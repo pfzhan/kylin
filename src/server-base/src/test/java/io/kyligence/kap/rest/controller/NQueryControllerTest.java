@@ -202,7 +202,7 @@ public class NQueryControllerTest {
 
     @Test
     public void testGetQueryHistories() throws Exception {
-        Mockito.when(queryHistoryService.parseQueryFilterRuleRequest(-1, -1, -1, -1, null, null, null)).thenReturn(null);
+        Mockito.when(queryHistoryService.parseQueryFilterRuleRequest(0, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null, null, null)).thenReturn(null);
         Mockito.when(queryHistoryService.getQueryHistories(PROJECT)).thenReturn(mockQueryHistories());
         Mockito.when(queryHistoryService.getQueryHistoriesByRules(null, mockQueryHistories())).thenReturn(mockQueryHistories());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
@@ -216,7 +216,7 @@ public class NQueryControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[1].start_time").value(8))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[2].start_time").value(9));
 
-        Mockito.verify(nQueryController).getQueryHistories(PROJECT, -1, -1, -1, -1, null, null, null, 2, 3);
+        Mockito.verify(nQueryController).getQueryHistories(PROJECT, 0, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null, null, null, 2, 3);
     }
 
     @Test

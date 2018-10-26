@@ -124,7 +124,7 @@ public class FavoriteQueryControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(1))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.candidates[0].query_id").value("query-1"));
 
-        Mockito.verify(favoriteQueryController).getCandidates(PROJECT, -1, -1, -1, -1, null, null, null, 0, 10);
+        Mockito.verify(favoriteQueryController).getCandidates(PROJECT, 0, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null, null, null, 0, 10);
     }
 
     @Test

@@ -173,7 +173,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     public void testParseFilterRequest() {
         // when there is any no filter rules
         QueryFilterRule rule = queryHistoryService.parseQueryFilterRuleRequest(-1 , -1 , -1, -1, "", null, null);
-        Assert.assertNull(rule);
+        Assert.assertEquals(2, rule.getConds().size());
 
         // when there are some rules
         rule = queryHistoryService.parseQueryFilterRuleRequest(0, 1000, 100, 1000, "select * from test_country",

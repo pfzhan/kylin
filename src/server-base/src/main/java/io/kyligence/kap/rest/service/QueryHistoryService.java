@@ -163,7 +163,7 @@ public class QueryHistoryService extends BasicService {
     }
 
     public List<QueryHistory> getQueryHistoriesByRules(final List<QueryFilterRule> rules,
-            final List<QueryHistory> queryHistories) throws IOException {
+            final List<QueryHistory> queryHistories) {
         List<Predicate<QueryHistory>> andPredicates = Lists.newArrayList();
         List<Predicate<QueryHistory>> orPredicates = Lists.newArrayList();
         Predicate<QueryHistory> predicate = null;
@@ -189,12 +189,13 @@ public class QueryHistoryService extends BasicService {
                 predicate = new Predicate<QueryHistory>() {
                     @Override
                     public boolean apply(@Nullable QueryHistory queryHistory) {
-                        for (QueryFilterRule.QueryHistoryCond cond : entry.getValue()) {
-                            if (compare(cond, queryHistory, queryHistories))
-                                return true;
+                        List<QueryFilterRule.QueryHistoryCond> conds = entry.getValue();
+                        int count = 0;
+                        while (count < conds.size() && !compare(conds.get(count), queryHistory, queryHistories)) {
+                            count ++;
                         }
 
-                        return false;
+                        return count < conds.size() ? true : false;
                     }
                 };
 
@@ -226,21 +227,18 @@ public class QueryHistoryService extends BasicService {
     public QueryFilterRule parseQueryFilterRuleRequest(long startTimeFrom, long startTimeTo, long latencyFrom,
             long latencyTo, String sql, List<String> realizations, List<String> accelerateStatuses) {
         List<QueryFilterRule.QueryHistoryCond> conds = Lists.newArrayList();
-        if (startTimeFrom != -1 && startTimeTo != -1) {
-            QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
-            cond.setField(QueryFilterRule.START_TIME);
-            cond.setLeftThreshold(String.valueOf(startTimeFrom));
-            cond.setRightThreshold(String.valueOf(startTimeTo));
-            conds.add(cond);
-        }
 
-        if (latencyFrom != -1 && latencyTo != -1) {
-            QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
-            cond.setField(QueryFilterRule.LATENCY);
-            cond.setLeftThreshold(String.valueOf(latencyFrom));
-            cond.setRightThreshold(String.valueOf(latencyTo));
-            conds.add(cond);
-        }
+        QueryFilterRule.QueryHistoryCond startTimeCond = new QueryFilterRule.QueryHistoryCond();
+        startTimeCond.setField(QueryFilterRule.START_TIME);
+        startTimeCond.setLeftThreshold(String.valueOf(startTimeFrom));
+        startTimeCond.setRightThreshold(String.valueOf(startTimeTo));
+        conds.add(startTimeCond);
+
+        QueryFilterRule.QueryHistoryCond latencyCond = new QueryFilterRule.QueryHistoryCond();
+        latencyCond.setField(QueryFilterRule.LATENCY);
+        latencyCond.setLeftThreshold(String.valueOf(latencyFrom));
+        latencyCond.setRightThreshold(String.valueOf(latencyTo));
+        conds.add(latencyCond);
 
         if (StringUtils.isNotBlank(sql)) {
             QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
@@ -251,31 +249,30 @@ public class QueryHistoryService extends BasicService {
 
         if (realizations != null && realizations.size() != 0) {
             for (String realization : realizations) {
-                if (realization != null) {
-                    QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
-                    cond.setField(QueryFilterRule.ANSWERED_BY);
-                    if (realization.equals(QueryHistory.ADJ_PUSHDOWN)) {
-                        cond.setRightThreshold(QueryHistory.ADJ_PUSHDOWN);
-                        conds.add(cond);
-                    } else if (realization.equals("modelName")) {
-                        cond.setRightThreshold("model");
-                        conds.add(cond);
-                    } else
-                        throw new IllegalArgumentException(
-                                String.format("Not supported filter condition: %s", realization));
-                }
+                if (realization == null)
+                    continue;
+
+                QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
+                cond.setField(QueryFilterRule.ANSWERED_BY);
+                if (realization.equals(QueryHistory.ADJ_PUSHDOWN)) {
+                    cond.setRightThreshold(QueryHistory.ADJ_PUSHDOWN);
+                    conds.add(cond);
+                } else if (realization.equals("modelName")) {
+                    cond.setRightThreshold("model");
+                    conds.add(cond);
+                } else
+                    throw new IllegalArgumentException(
+                            String.format("Not supported filter condition: %s", realization));
             }
 
         }
 
         if (accelerateStatuses != null && accelerateStatuses.size() != 0) {
             for (String accelerateStatus : accelerateStatuses) {
-                if (accelerateStatus != null) {
-                    QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
-                    cond.setField(QueryFilterRule.ACCELERATE_STATUS);
-                    cond.setRightThreshold(accelerateStatus);
-                    conds.add(cond);
-                }
+                QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
+                cond.setField(QueryFilterRule.ACCELERATE_STATUS);
+                cond.setRightThreshold(accelerateStatus);
+                conds.add(cond);
             }
 
         }

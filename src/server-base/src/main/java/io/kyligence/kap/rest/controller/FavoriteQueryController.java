@@ -89,10 +89,10 @@ public class FavoriteQueryController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getCandidates(@RequestParam(value = "project") String project,
-                                              @RequestParam(value = "startTimeFrom", required = false, defaultValue = "-1") long startTimeFrom,
-                                              @RequestParam(value = "startTimeTo", required = false, defaultValue = "-1") long startTimeTo,
-                                              @RequestParam(value = "latencyFrom", required = false, defaultValue = "-1") long latencyFrom,
-                                              @RequestParam(value = "latencyTo", required = false, defaultValue = "-1") long latencyTo,
+                                              @RequestParam(value = "startTimeFrom", required = false, defaultValue = "0") long startTimeFrom,
+                                              @RequestParam(value = "startTimeTo", required = false, defaultValue = Long.MAX_VALUE + "") long startTimeTo,
+                                              @RequestParam(value = "latencyFrom", required = false, defaultValue = "0") long latencyFrom,
+                                              @RequestParam(value = "latencyTo", required = false, defaultValue = Integer.MAX_VALUE + "") long latencyTo,
                                               @RequestParam(value = "sql", required = false) String sql,
                                               @RequestParam(value = "realization[]", required = false) List<String> realizations,
                                               @RequestParam(value = "accelerateStatus[]", required = false) List<String> accelerateStatuses,
