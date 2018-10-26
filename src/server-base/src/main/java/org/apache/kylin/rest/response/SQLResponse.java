@@ -107,7 +107,7 @@ public class SQLResponse implements Serializable {
 
     private String suite;
 
-    protected List<String> answeredBy;
+    private List<String> answeredBy;
 
     public SQLResponse() {
     }
