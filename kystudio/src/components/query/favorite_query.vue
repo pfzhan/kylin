@@ -3,20 +3,24 @@
     <el-collapse v-model="activeNames" class="favorite-rules">
       <el-collapse-item name="rules">
         <template slot="title">
-          {{$t('favoriteRules')}} <i class="el-icon-ksd-what"></i>
+          {{$t('favoriteRules')}}
+          <el-tooltip placement="right">
+            <div slot="content">{{$t('favRulesDesc')}}</div>
+            <i class="el-icon-ksd-what"></i>
+          </el-tooltip>
         </template>
         <el-row v-clickoutside="resetEditValue">
           <el-col :span="18" class="rules-conds">
             <div class="conds" :class="{'disabled': !frequencyObj.enable}">
               <div class="conds-title">
-                <span>Query Frequency</span>
+                <span>{{$t('queryFrequency')}}</span>
                 <el-switch class="ksd-switch" v-model="frequencyObj.enable" active-text="ON" inactive-text="OFF" @change="updateFre"></el-switch>
                 <el-button type="primary" size="small" text class="ksd-fright edit-conds" v-show="!isFrequencyEdit" @click="editFrequency">{{$t('kylinLang.common.edit')}}</el-button>
               </div>
               <div class="conds-content clearfix">
-                <div class="desc">Queries usage frequency under 50 times per day are covered, leading to a 37% acceleration.</div>
+                <div class="desc">{{$t('frequencyDesc')}}</div>
                 <el-slider :class="{'show-only': !isFrequencyEdit}" v-model="frequencyObj.value":step="10" button-type="sharp" :min="0" :max="100" show-dynamic-values :disabled="!isFrequencyEdit" :format-tooltip="formatTooltip"></el-slider>
-                <div class="ksd-fright ksd-mt-10">TopX% Frequency</div>
+                <div class="ksd-fright ksd-mt-10">TopX% {{$t('queryFrequency')}}</div>
               </div>
               <div class="conds-footer" v-if="isFrequencyEdit">
                 <div class="tips ksd-mb-10">Drag (the frequency point) to cover more queries.</div>
@@ -28,7 +32,7 @@
             </div>
             <div class="conds" :class="{'disabled': !submitterObj.enable}">
               <div class="conds-title">
-                <span>Query Submitter</span>
+                <span>{{$t('querySubmitter')}}</span>
                 <el-switch class="ksd-switch" v-model="submitterObj.enable" active-text="ON" inactive-text="OFF" @change="updateSub"></el-switch>
                 <el-button type="primary" size="small" text class="ksd-fright edit-conds" v-show="!isSubmitterEdit" @click="editSubmitter">{{$t('kylinLang.common.edit')}}</el-button>
               </div>
@@ -61,14 +65,14 @@
             </div>
             <div class="conds" :class="{'disabled': !durationObj.enable}">
               <div class="conds-title">
-                <span>Query Duration</span>
+                <span>{{$t('queryDuration')}}</span>
                 <el-switch class="ksd-switch" v-model="durationObj.enable" active-text="ON" inactive-text="OFF" @change="updateDura"></el-switch>
                 <el-button type="primary" size="small" text class="ksd-fright edit-conds" v-show="!isDurationEdit" @click="editDuration">{{$t('kylinLang.common.edit')}}</el-button>
               </div>
               <div class="conds-content clearfix">
-                <div class="desc">Queries duration between 50s and 75s are covered, leading to a 37% acceleration.</div>
+                <div class="desc">{{$t('durationDesc')}}</div>
                 <el-slider :class="{'show-only': !isDurationEdit}" v-model="durationObj.value" :step="1" range button-type="sharp" :min="0" :max="180" show-dynamic-values :disabled="!isDurationEdit"></el-slider>
-                <div class="ksd-fright ksd-mt-10">Seconds / Job</div>
+                <div class="ksd-fright ksd-mt-10">{{$t('unit')}}</div>
               </div>
               <div class="conds-footer" v-if="isDurationEdit">
                 <div class="tips ksd-mb-10">Drag (the starting and ending point) to cover needed queries.</div>
@@ -98,17 +102,16 @@
       </div>
       <div class="ksd-fright btn-group">
         <el-button size="medium" icon="el-icon-ksd-acclerate_ready" plain @click="openPreferrenceSetting">{{$t('preferrence')}}</el-button>
-        <el-button size="medium" icon="el-icon-ksd-table_delete" plain @click="removeFav">{{$t('remove')}}</el-button>
+        <el-button size="medium" icon="el-icon-ksd-download" plain @click="openWhiteList">{{$t('whiteList')}}</el-button>
+        <el-button size="medium" icon="el-icon-ksd-table_delete" plain @click="openBlackList">{{$t('blackList')}}</el-button>
       </div>
     </div>
     <el-table
       :data="favQueList.favorite_queries"
       border
       class="favorite-table"
-      @selection-change="handleSelectionChange"
       ref="favoriteTable"
       style="width: 100%">
-      <el-table-column type="selection" width="55" align="center"></el-table-column>
       <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql" header-align="center" show-overflow-tooltip></el-table-column>
       <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_query_time" sortable header-align="center" width="210">
         <template slot-scope="props">
@@ -168,6 +171,90 @@
         <el-button type="primary" size="medium" plain @click="preferrenceVisible = false">{{$t('kylinLang.common.save')}}</el-button>
       </span>
     </el-dialog>
+    <el-dialog
+      :title="$t('blackList')"
+      top="5vh"
+      :visible.sync="blackListVisible"
+      width="1180px"
+      class="blackListDialog">
+      <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}}</span>
+      <el-row :gutter="20">
+        <el-col :span="16">
+          <div class="clearfix ksd-mt-10">
+            <div class="btn-group ksd-fleft">
+              <el-button type="primary" size="medium" plain @click="newBlackSql">{{$t('inputSql')}}</el-button>
+            </div>
+            <div class="ksd-fright ksd-inline searchInput">
+              <el-input v-model="blackSqlFilter" @input="onblackSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
+            </div>
+          </div>
+          <div class="sqlLists">
+            <div v-for="(sql, index) in sqlLists" :key="index" class="sqlBox" :class="{'active': index == activeIndex}">
+              <span>{{transformSql(sql)}}</span>
+              <div class="group-btn">
+                <el-button size="small" type="primary" @click.stop="viewBlackSql(sql, index)" text>{{$t('kylinLang.common.view')}}</el-button>
+                <el-button type="primary" size="small" text @click="delBlack(sql, index)">{{$t('kylinLang.common.delete')}}</el-button>
+              </div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="8">
+          <div class="query_panel_box ksd-mt-10">
+            <kap_editor ref="blackInputBox" :height="inputHeight" lang="sql" theme="chrome" v-model="blackSql">
+            </kap_editor>
+            <div class="operatorBox" v-show="isEditSql">
+              <div class="btn-group ksd-fright">
+                <el-button size="medium" @click="clearSql">{{$t('kylinLang.query.clear')}}</el-button>
+                <el-button type="primary" size="medium" plain @click="">{{$t('kylinLang.common.submit')}}</el-button>
+              </div>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+      <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="sqlLists.length"  v-on:handleCurrentChange='sqlListsPageChange' :perPageSize="5"></kap-pager>
+    </el-dialog>
+    <el-dialog
+      :title="$t('whiteList')"
+      :visible.sync="whiteListVisible"
+      top="5vh"
+      width="1180px"
+      class="whiteListDialog">
+      <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}}</span>
+      <el-row :gutter="20">
+        <el-col :span="16">
+          <div class="clearfix ksd-mt-10">
+            <div class="btn-group ksd-fleft">
+              <el-button type="primary" size="medium" plain @click="" icon="el-icon-ksd-query_import">{{$t('kylinLang.common.import')}}
+              </el-button>
+            </div>
+            <div class="ksd-fright ksd-inline searchInput">
+              <el-input v-model="whiteSqlFilter" @input="onWhiteSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
+            </div>
+          </div>
+          <div class="sqlLists">
+            <div v-for="(sql, index) in sqlLists" :key="index" class="sqlBox" :class="{'active': index == activeIndex}" @click="activeSql(sql, index)">
+              <span>{{transformSql(sql)}}</span>
+              <div class="group-btn">
+                <el-button size="small" type="primary" @click.stop="editWhiteSql(sql, index)" text>{{$t('kylinLang.common.edit')}}</el-button>
+                <el-button type="primary" size="small" text @click.stop="delWhite(sql, index)">{{$t('kylinLang.common.delete')}}</el-button>
+              </div>
+            </div>
+          </div>
+        </el-col>
+        <el-col :span="8">
+          <div class="query_panel_box ksd-mt-10">
+            <kap_editor ref="whiteInputBox" :height="inputHeight" lang="sql" theme="chrome" v-model="whiteSql">
+            </kap_editor>
+            <div class="operatorBox" v-show="isEditSql">
+              <div class="btn-group ksd-fright">
+                <el-button type="primary" size="medium" plain @click="">{{$t('kylinLang.common.submit')}}</el-button>
+              </div>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+      <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="sqlLists.length"  v-on:handleCurrentChange='sqlListsPageChange' :perPageSize="5"></kap-pager>
+    </el-dialog>
   </div>
 </template>
 
@@ -177,15 +264,15 @@ import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import $ from 'jquery'
 import { handleSuccessAsync, handleError } from '../../util/index'
-import { handleSuccess, transToGmtTime } from '../../util/business'
+import { handleSuccess, transToGmtTime, kapConfirm } from '../../util/business'
 import { loadLiquidFillGauge, liquidFillGaugeDefaultSettings } from '../../util/liquidFillGauge'
 import Clickoutside from 'kyligence-ui/src/utils/clickoutside'
+import sqlFormatter from 'sql-formatter'
 @Component({
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
       getFavoriteList: 'GET_FAVORITE_LIST',
-      deleteFav: 'DELETE_FAV',
       getRules: 'GET_RULES',
       getRulesImpact: 'GET_RULES_IMPACT',
       getPreferrence: 'GET_PREFERRENCE',
@@ -200,8 +287,8 @@ import Clickoutside from 'kyligence-ui/src/utils/clickoutside'
     ])
   },
   locales: {
-    'en': {addCandidate: 'Add Candidate Query', preferrence: 'Preferrence', remove: 'Remove', candidateQuery: 'Candidate Query', favDesc: 'Critical SQL statement for business. System will create aggregate index or table index to serve them and do pre-computing to improve query performance.', favoriteRules: 'Favorite Rules'},
-    'zh-cn': {addCandidate: '添加查询', preferrence: 'Preferrence', remove: '删除查询', candidateQuery: '待选查询', favDesc: '重要SQL语句的列表。系统针对加速查询中的SQL对应生成聚合索引（agggregate index）或明细表索引（table index），通过预计算索引提升SQL查询响应速度。', favoriteRules: '加速规则'}
+    'en': {preferrence: 'Preferrence', whiteList: 'White List', blackList: 'Black List', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query. Favorite query represent your main business analysis scenarios and critical decision point. System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?'},
+    'zh-cn': {preferrence: 'Preferrence', whiteList: '白名单', blackList: '黑名单', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。这类查询可以代表最主要的业务分析和重要的业务决策点。系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？'}
   }
 })
 export default class FavoriteQuery extends Vue {
@@ -209,6 +296,331 @@ export default class FavoriteQuery extends Vue {
   statusFilteArr = [{name: 'el-icon-ksd-acclerate', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ready', value: 'WAITING'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ongoing', value: 'ACCELERATING'}]
   checkedStatus = []
   preferrenceVisible = false
+  blackListVisible = false
+  whiteListVisible = false
+  isShowInput = false
+  inputHeight = 564
+  isEditSql = false
+  blackSqlFilter = ''
+  whiteSqlFilter = ''
+  activeIndex = 0
+  sqlLists = [`#DROP VIEW IF EXISTS GUOYAO.ZX_RPT_ST_DAY_SUM_NEW;
+
+CREATE VIEW IF NOT EXISTS GUOYAO.ZX_RPT_ST_DAY_SUM_NEW
+(
+placepointid,
+useday,
+hsxszje,
+wsxszje,
+hscbje,
+wscbje,
+hsmle,
+wsmle,
+mll,
+zxxsje,
+nxxsje,
+hyxsje,
+hywsxsje,
+hyxszb,
+hyhscbje,
+hyhsmle,
+hywsmle,
+hymll,
+lsje,
+yhje,
+lks,
+kdj,
+--oemhsxsje,
+--oemhscbje,
+--oemhsmle,
+mxhs,
+xszrje,
+djqje,
+jfhgje,
+jfdhje,
+hylks,
+hyyhje
+,HYRS,
+kps,
+HSYSJE,
+GROUPYHJE,
+--PROMYHJE,
+--MOMPROMYHJE,
+SGZKYHJE,
+FHYYHJE
+)
+AS
+SELECT a.placepointid,
+a.useday,
+SUM(nvl(b.realmoney, 0) - nvl(b.couponmoney, 0) - nvl(b.trade_money, 0)),
+SUM((nvl(b.realmoney, 0) - nvl(b.couponmoney, 0) - nvl(b.trade_money, 0)) / (1 + nvl(b.taxrate, 0))),
+SUM(if(c.duns_loc = 'Y', d.unitprice, b.costingprice * (1 + nvl(b.taxrate, 0))) * b.goodsqty),
+SUM(if(c.duns_loc = 'Y', d.notaxsuprice, b.costingprice) * b.goodsqty),
+SUM(nvl(b.realmoney, 0) - nvl(b.couponmoney, 0) - nvl(b.trade_money, 0) - if(c.duns_loc = 'Y', d.unitprice, b.costingprice * (1 + nvl(b.taxrate, 0))) * b.goodsqty),
+SUM((nvl(b.realmoney, 0) - nvl(b.couponmoney, 0) - nvl(b.trade_money, 0)) / (1 + nvl(b.taxrate, 0)) - if(c.duns_loc = 'Y', d.notaxsuprice, b.costingprice) * b.goodsqty),
+if(sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))=0,0,(sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - if(c.duns_loc='Y',d.unitprice,b.costingprice*(1+nvl(b.taxrate,0)))*b.goodsqty)/sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))), --毛利率
+sum(if(a.rsatype=1,1,0) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))), --正向销售金额
+sum(if(a.rsatype=2,1,0) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))), --逆向销售金额
+sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))), --会员销售金额
+sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)) / (1 + nvl(b.taxrate, 0))), --会员无税销售金额
+if(sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))=0,0,(sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))/sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))), --会员销售占比
+sum(if(a.insiderid is null,0,1) * if(c.duns_loc='Y',d.unitprice,b.costingprice*(1+nvl(b.taxrate,0)))*b.goodsqty), --会员含税成本金额
+sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - if(c.duns_loc='Y',d.unitprice,b.costingprice*(1+nvl(b.taxrate,0)))*b.goodsqty)), --会员含税毛利金额
+sum(if(a.insiderid is null,0,1) * ((nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)) / (1 + nvl(b.taxrate, 0)) - b.costingmoney )), --会员无税毛利金额
+if(sum(if(a.insiderid is null,0,1) * b.realmoney)=0,0,(sum(if(a.insiderid is null,0,1) * (b.realmoney - if(c.duns_loc='Y',d.unitprice,b.costingprice*(1+nvl(b.taxrate,0)))*b.goodsqty))/sum(if(a.insiderid is null,0,1) * b.realmoney))),  --零售金额
+sum(b.resaprice * b.goodsqty),  --零售金额
+sum(b.resaprice * b.goodsqty - b.realmoney), --优惠金额
+count(distinct(a.rsaid)),  --来客数
+sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))/count(distinct(a.rsaid)), --客单价
+--sum(zx_get_oem_flag(b.goodsid, a.placepointid) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))), --OEM含税销售额
+--sum(zx_get_oem_flag(b.goodsid, a.placepointid) * b.costingmoney * (1 + nvl(b.taxrate, 0))), --OEM含税成本金额
+--sum(zx_get_oem_flag(b.goodsid, a.placepointid) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - b.costingmoney * (1 + nvl(b.taxrate, 0)))), --OEM含税毛利额
+count(1), --明细行数
+sum(nvl(b.couponmoney,0)+nvl(b.trade_money,0)),  --折让金额
+sum(nvl(b.couponmoney,0)),  --代金券金额
+sum(nvl(b.trade_money,0)),   --积分换购金额
+sum(nvl(f.exc_money,0))     --积分兑换金额
+,(case when count(distinct(a.rsaid)) = 1 and sum(if(a.insiderid is null,0,1)) = 0 then 0 when count(distinct(a.rsaid)) = count(distinct(if(a.insiderid is null,0,a.rsaid))) then count(distinct(if(a.insiderid is null,0,a.rsaid))) else count(distinct(if(a.insiderid is null,0,a.rsaid)))-1 end), --会员来客数
+sum(if(a.insiderid is null,0,1) * (b.resaprice * b.goodsqty - b.realmoney)), --会员优惠金额
+COUNT(DISTINCT A.INSIDERID), --会员人数
+if(COUNT(DISTINCT A.RSAID)=0,0,ROUND(COUNT(DISTINCT CONCAT(A.RSAID,',',B.Goodsid)) / COUNT(DISTINCT A.RSAID), 2)), --客品数
+SUM(B.RESAPRICE * B.GOODSQTY), --含税应收金额
+SUM(if(e.groupbuyid is null,0,B.RESAPRICE * B.GOODSQTY - B.REALMONEY)), --团购订单优惠金额
+sum((b.resaprice-nvl((select rpdtl.promprice from resa_priceprom_doc rpd,resa_priceprom_dtl rpdtl where rpd.promdocid = rpdtl.promdocid and rpd.usestatus = 2 and rpd.placepointid = a.placepointid and rpd.startdate >= a.useday and rpd.enddate < a.useday+1 and rpdtl.goodsid = b.goodsid and rownum = 1),b.resaprice))*b.goodsqty) AS PROMYHJE, --催销价优惠金额
+SUM(NVL(A.MANUALMONEY,0)*if(A.REALMONEY=0,0,B.REALMONEY/A.REALMONEY)) + SUM(NVL(B.MANUALMONEY,0)), --手工折扣优惠金额
+SUM(if(A.INSIDERID is null, 1, 0) * (B.RESAPRICE * B.GOODSQTY - B.REALMONEY)) --非会员优惠金额
+FROM guoyao.gresa_sa_doc_etl a
+JOIN guoyao.gresa_sa_dtl_etl b ON a.rsaid = b.rsaid
+JOIN guoyao.gpcs_placepoint_etl c ON a.placepointid = c.placepointid
+LEFT JOIN bms_batch_def d ON b.batchid = d.batchid
+LEFT JOIN zx_group_buy e ON a.rsaid = e.rsaid
+LEFT JOIN gresa_sa_integral_etl f ON a.rsaid = f.rsaid
+WHERE a.usestatus = 1
+GROUP BY a.placepointid, a.useday;`, `#DROP VIEW GUOYAO.ZX_RPT_ST_DAY_GOODS_SUM;
+
+CREATE VIEW IF NOT EXISTS GUOYAO.ZX_RPT_ST_DAY_GOODS_SUM_NEW(
+placepointid,
+     useday,
+     goodsid,
+     hsxszje,
+     wsxszje,
+     hscbje,
+     wscbje,
+     hsmle,
+     wsmle,
+     mll,
+     zxxsje,
+     nxxsje,
+     hyxsje,
+     hywsxsje,
+     hyxszb,
+     hyhscbje,
+     hyhsmle,
+     hywsmle,
+     hymll,
+     lsje,
+     yhje,
+     xspc,
+     xssl,
+     hyxspc,
+     hyxssl,
+     xszrje,
+     receivalmoney,
+     kpl,
+     CNSALEFLAG
+) as
+select a.placepointid, --门店id
+       a.useday, --逻辑日
+       b.goodsid, --货品id
+       (sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))) as hsxszje, --含税销售额
+       (sum((nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)) / (1 + nvl(b.taxrate, 0)))) as wsxszje, --无税销售额
+       (sum(b.costingmoney * (1 + nvl(b.taxrate, 0)))) as hscbje, --含税成本金额
+       (sum(b.costingmoney)) as wscbje,  --无税成本金额
+       (sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - b.costingmoney * (1 + nvl(b.taxrate, 0)))) as hsmle, --含税毛利额
+       (sum((nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)) / (1 + nvl(b.taxrate, 0)) - b.costingmoney)) as wsmle, --无税毛利额
+       (if(sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))=0,0,(sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - b.costingmoney * (1 + nvl(b.taxrate, 0)))/sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))))) as mll, --毛利率
+       (sum(if(a.rsatype=1,1,0) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))) as zxxsje, --正向销售金额
+       (sum(if(a.rsatype=2,1,0) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))) as nxxsje, --逆向销售金额
+       (sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))) as hyxsje, --会员销售金额
+       (sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)) / (1 + nvl(b.taxrate, 0)))) as hywsxsje, --会员无税销售金额
+       (if(sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))=0,0,
+       (sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))/sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))))) as hyxszb, --会员销售占比
+       (sum(if(a.insiderid is null,0,1) * b.costingmoney * (1 + nvl(b.taxrate, 0)))) as hyhscbje, --会员含税成本金额
+       (sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - b.costingmoney * (1 + nvl(b.taxrate, 0))))) as hyhsmle, --会员含税毛利金额
+       (sum(if(a.insiderid is null,0,1) * ((nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)) / (1 + nvl(b.taxrate, 0)) - b.costingmoney ))) as hywsmle, --会员无税毛利金额
+       (if(sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))=0,0,(sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - b.costingmoney * (1 + nvl(b.taxrate, 0))))/sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))))) as hymll,  --会员毛利率
+       (sum(b.resaprice * b.goodsqty)) as lsje,  --零售金额
+       (sum(b.resaprice * b.goodsqty - b.realmoney)) as yhje, --优惠金额
+       (count(distinct(a.rsaid))) as xspc,  --销售频次
+       (sum(b.goodsqty)) as xssl,  --销售数量
+       ((case when count(distinct(a.rsaid)) = 1 and sum(if(a.insiderid is null,0,1)) = 0 then 0 when count(distinct(a.rsaid)) = count(distinct(if(a.insiderid is null,0,a.rsaid))) then count(distinct(if(a.insiderid is null,0,a.rsaid))) else count(distinct(if(a.insiderid is null,0,a.rsaid)))-1 end)) as hyxspc, --会员销售频次
+       (sum(if(a.insiderid is null,0,1) * b.goodsqty)) as hyxssl, --会员销售数量
+       (sum(nvl(b.couponmoney,0)+nvl(b.trade_money,0))) as xszrje,  --销售折让金额
+       (sum(nvl(b.total_line, 0))) as receivalmoney,
+       if(COUNT(DISTINCT A.RSAID) is null, 0, if(COUNT(DISTINCT A.RSAID)=ROUND(SUM(B.GOODSQTY) / COUNT(DISTINCT A.RSAID)), 2, 0)) AS KPL,
+       if(NVL(A.CNCARDTYPEID, 0)=0, 0, 1) AS CNSALEFLAG --医保销售
+  from guoyao.gresa_sa_doc_etl a, guoyao.gresa_sa_dtl_etl b
+ where a.rsaid = b.rsaid
+ group by a.placepointid, a.useday, b.goodsid,A.CNCARDTYPEID;`, `#DROP VIEW IF EXISTS GUOYAO.ZX_RPT_ST_DAY_SUM_NEW;
+
+CREATE VIEW IF NOT EXISTS GUOYAO.ZX_RPT_ST_DAY_SUM_NEW
+(
+placepointid,
+useday,
+hsxszje,
+wsxszje,
+hscbje,
+wscbje,
+hsmle,
+wsmle,
+mll,
+zxxsje,
+nxxsje,
+hyxsje,
+hywsxsje,
+hyxszb,
+hyhscbje,
+hyhsmle,
+hywsmle,
+hymll,
+lsje,
+yhje,
+lks,
+kdj,
+--oemhsxsje,
+--oemhscbje,
+--oemhsmle,
+mxhs,
+xszrje,
+djqje,
+jfhgje,
+jfdhje,
+hylks,
+hyyhje
+,HYRS,
+kps,
+HSYSJE,
+GROUPYHJE,
+--PROMYHJE,
+--MOMPROMYHJE,
+SGZKYHJE,
+FHYYHJE
+)
+AS
+SELECT a.placepointid,
+a.useday,
+SUM(nvl(b.realmoney, 0) - nvl(b.couponmoney, 0) - nvl(b.trade_money, 0)),
+SUM((nvl(b.realmoney, 0) - nvl(b.couponmoney, 0) - nvl(b.trade_money, 0)) / (1 + nvl(b.taxrate, 0))),
+SUM(if(c.duns_loc = 'Y', d.unitprice, b.costingprice * (1 + nvl(b.taxrate, 0))) * b.goodsqty),
+SUM(if(c.duns_loc = 'Y', d.notaxsuprice, b.costingprice) * b.goodsqty),
+SUM(nvl(b.realmoney, 0) - nvl(b.couponmoney, 0) - nvl(b.trade_money, 0) - if(c.duns_loc = 'Y', d.unitprice, b.costingprice * (1 + nvl(b.taxrate, 0))) * b.goodsqty),
+SUM((nvl(b.realmoney, 0) - nvl(b.couponmoney, 0) - nvl(b.trade_money, 0)) / (1 + nvl(b.taxrate, 0)) - if(c.duns_loc = 'Y', d.notaxsuprice, b.costingprice) * b.goodsqty),
+if(sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))=0,0,(sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - if(c.duns_loc='Y',d.unitprice,b.costingprice*(1+nvl(b.taxrate,0)))*b.goodsqty)/sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))), --毛利率
+sum(if(a.rsatype=1,1,0) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))), --正向销售金额
+sum(if(a.rsatype=2,1,0) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))), --逆向销售金额
+sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))), --会员销售金额
+sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)) / (1 + nvl(b.taxrate, 0))), --会员无税销售金额
+if(sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))=0,0,(sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))/sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))), --会员销售占比
+sum(if(a.insiderid is null,0,1) * if(c.duns_loc='Y',d.unitprice,b.costingprice*(1+nvl(b.taxrate,0)))*b.goodsqty), --会员含税成本金额
+sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - if(c.duns_loc='Y',d.unitprice,b.costingprice*(1+nvl(b.taxrate,0)))*b.goodsqty)), --会员含税毛利金额
+sum(if(a.insiderid is null,0,1) * ((nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)) / (1 + nvl(b.taxrate, 0)) - b.costingmoney )), --会员无税毛利金额
+if(sum(if(a.insiderid is null,0,1) * b.realmoney)=0,0,(sum(if(a.insiderid is null,0,1) * (b.realmoney - if(c.duns_loc='Y',d.unitprice,b.costingprice*(1+nvl(b.taxrate,0)))*b.goodsqty))/sum(if(a.insiderid is null,0,1) * b.realmoney))),  --零售金额
+sum(b.resaprice * b.goodsqty),  --零售金额
+sum(b.resaprice * b.goodsqty - b.realmoney), --优惠金额
+count(distinct(a.rsaid)),  --来客数
+sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))/count(distinct(a.rsaid)), --客单价
+--sum(zx_get_oem_flag(b.goodsid, a.placepointid) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))), --OEM含税销售额
+--sum(zx_get_oem_flag(b.goodsid, a.placepointid) * b.costingmoney * (1 + nvl(b.taxrate, 0))), --OEM含税成本金额
+--sum(zx_get_oem_flag(b.goodsid, a.placepointid) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - b.costingmoney * (1 + nvl(b.taxrate, 0)))), --OEM含税毛利额
+count(1), --明细行数
+sum(nvl(b.couponmoney,0)+nvl(b.trade_money,0)),  --折让金额
+sum(nvl(b.couponmoney,0)),  --代金券金额
+sum(nvl(b.trade_money,0)),   --积分换购金额
+sum(nvl(f.exc_money,0))     --积分兑换金额
+,(case when count(distinct(a.rsaid)) = 1 and sum(if(a.insiderid is null,0,1)) = 0 then 0 when count(distinct(a.rsaid)) = count(distinct(if(a.insiderid is null,0,a.rsaid))) then count(distinct(if(a.insiderid is null,0,a.rsaid))) else count(distinct(if(a.insiderid is null,0,a.rsaid)))-1 end), --会员来客数
+sum(if(a.insiderid is null,0,1) * (b.resaprice * b.goodsqty - b.realmoney)), --会员优惠金额
+COUNT(DISTINCT A.INSIDERID), --会员人数
+if(COUNT(DISTINCT A.RSAID)=0,0,ROUND(COUNT(DISTINCT CONCAT(A.RSAID,',',B.Goodsid)) / COUNT(DISTINCT A.RSAID), 2)), --客品数
+SUM(B.RESAPRICE * B.GOODSQTY), --含税应收金额
+SUM(if(e.groupbuyid is null,0,B.RESAPRICE * B.GOODSQTY - B.REALMONEY)), --团购订单优惠金额
+sum((b.resaprice-nvl((select rpdtl.promprice from resa_priceprom_doc rpd,resa_priceprom_dtl rpdtl where rpd.promdocid = rpdtl.promdocid and rpd.usestatus = 2 and rpd.placepointid = a.placepointid and rpd.startdate >= a.useday and rpd.enddate < a.useday+1 and rpdtl.goodsid = b.goodsid and rownum = 1),b.resaprice))*b.goodsqty) AS PROMYHJE, --催销价优惠金额
+SUM(NVL(A.MANUALMONEY,0)*if(A.REALMONEY=0,0,B.REALMONEY/A.REALMONEY)) + SUM(NVL(B.MANUALMONEY,0)), --手工折扣优惠金额
+SUM(if(A.INSIDERID is null, 1, 0) * (B.RESAPRICE * B.GOODSQTY - B.REALMONEY)) --非会员优惠金额
+FROM guoyao.gresa_sa_doc_etl a
+JOIN guoyao.gresa_sa_dtl_etl b ON a.rsaid = b.rsaid
+JOIN guoyao.gpcs_placepoint_etl c ON a.placepointid = c.placepointid
+LEFT JOIN bms_batch_def d ON b.batchid = d.batchid
+LEFT JOIN zx_group_buy e ON a.rsaid = e.rsaid
+LEFT JOIN gresa_sa_integral_etl f ON a.rsaid = f.rsaid
+WHERE a.usestatus = 1
+GROUP BY a.placepointid, a.useday;`, `#DROP VIEW GUOYAO.ZX_RPT_ST_DAY_GOODS_SUM;
+
+CREATE VIEW IF NOT EXISTS GUOYAO.ZX_RPT_ST_DAY_GOODS_SUM_NEW(
+placepointid,
+     useday,
+     goodsid,
+     hsxszje,
+     wsxszje,
+     hscbje,
+     wscbje,
+     hsmle,
+     wsmle,
+     mll,
+     zxxsje,
+     nxxsje,
+     hyxsje,
+     hywsxsje,
+     hyxszb,
+     hyhscbje,
+     hyhsmle,
+     hywsmle,
+     hymll,
+     lsje,
+     yhje,
+     xspc,
+     xssl,
+     hyxspc,
+     hyxssl,
+     xszrje,
+     receivalmoney,
+     kpl,
+     CNSALEFLAG
+) as
+select a.placepointid, --门店id
+       a.useday, --逻辑日
+       b.goodsid, --货品id
+       (sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))) as hsxszje, --含税销售额
+       (sum((nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)) / (1 + nvl(b.taxrate, 0)))) as wsxszje, --无税销售额
+       (sum(b.costingmoney * (1 + nvl(b.taxrate, 0)))) as hscbje, --含税成本金额
+       (sum(b.costingmoney)) as wscbje,  --无税成本金额
+       (sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - b.costingmoney * (1 + nvl(b.taxrate, 0)))) as hsmle, --含税毛利额
+       (sum((nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)) / (1 + nvl(b.taxrate, 0)) - b.costingmoney)) as wsmle, --无税毛利额
+       (if(sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))=0,0,(sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - b.costingmoney * (1 + nvl(b.taxrate, 0)))/sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))))) as mll, --毛利率
+       (sum(if(a.rsatype=1,1,0) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))) as zxxsje, --正向销售金额
+       (sum(if(a.rsatype=2,1,0) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))) as nxxsje, --逆向销售金额
+       (sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))) as hyxsje, --会员销售金额
+       (sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)) / (1 + nvl(b.taxrate, 0)))) as hywsxsje, --会员无税销售金额
+       (if(sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))=0,0,
+       (sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))/sum(nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0))))) as hyxszb, --会员销售占比
+       (sum(if(a.insiderid is null,0,1) * b.costingmoney * (1 + nvl(b.taxrate, 0)))) as hyhscbje, --会员含税成本金额
+       (sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - b.costingmoney * (1 + nvl(b.taxrate, 0))))) as hyhsmle, --会员含税毛利金额
+       (sum(if(a.insiderid is null,0,1) * ((nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)) / (1 + nvl(b.taxrate, 0)) - b.costingmoney ))) as hywsmle, --会员无税毛利金额
+       (if(sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))=0,0,(sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0) - b.costingmoney * (1 + nvl(b.taxrate, 0))))/sum(if(a.insiderid is null,0,1) * (nvl(b.realmoney,0)-nvl(b.couponmoney,0)-nvl(b.trade_money,0)))))) as hymll,  --会员毛利率
+       (sum(b.resaprice * b.goodsqty)) as lsje,  --零售金额
+       (sum(b.resaprice * b.goodsqty - b.realmoney)) as yhje, --优惠金额
+       (count(distinct(a.rsaid))) as xspc,  --销售频次
+       (sum(b.goodsqty)) as xssl,  --销售数量
+       ((case when count(distinct(a.rsaid)) = 1 and sum(if(a.insiderid is null,0,1)) = 0 then 0 when count(distinct(a.rsaid)) = count(distinct(if(a.insiderid is null,0,a.rsaid))) then count(distinct(if(a.insiderid is null,0,a.rsaid))) else count(distinct(if(a.insiderid is null,0,a.rsaid)))-1 end)) as hyxspc, --会员销售频次
+       (sum(if(a.insiderid is null,0,1) * b.goodsqty)) as hyxssl, --会员销售数量
+       (sum(nvl(b.couponmoney,0)+nvl(b.trade_money,0))) as xszrje,  --销售折让金额
+       (sum(nvl(b.total_line, 0))) as receivalmoney,
+       if(COUNT(DISTINCT A.RSAID) is null, 0, if(COUNT(DISTINCT A.RSAID)=ROUND(SUM(B.GOODSQTY) / COUNT(DISTINCT A.RSAID)), 2, 0)) AS KPL,
+       if(NVL(A.CNCARDTYPEID, 0)=0, 0, 1) AS CNSALEFLAG --医保销售
+  from guoyao.gresa_sa_doc_etl a, guoyao.gresa_sa_dtl_etl b
+ where a.rsaid = b.rsaid
+ group by a.placepointid, a.useday, b.goodsid,A.CNCARDTYPEID;`, 'Select count (*) from table_1 UPDATE Person SET FirstName = \'Fred\' WHERE LastName = \'Wilson\' UPDATE Person SET Address = \'Zhongshan 23\', City = dsf dlfsjlk']
+  blackSql = ''
+  whiteSql = this.formatterSql(this.sqlLists[0]) || ''
   preSettingObj = {
     autoApply: true,
     accelerateThreshold: 20,
@@ -216,7 +628,6 @@ export default class FavoriteQuery extends Vue {
   }
   favoriteCurrentPage = 1
   activeNames = ['rules']
-  selectToUnFav = {}
   filterData = {
     startTimeFrom: null,
     startTimeTo: null,
@@ -382,11 +793,6 @@ export default class FavoriteQuery extends Vue {
     })
     const data = await handleSuccessAsync(res)
     this.favQueList = data
-    if (this.selectToUnFav[this.favoriteCurrentPage]) {
-      this.$nextTick(() => {
-        this.$refs.favoriteTable.toggleRowSelection(this.selectToUnFav[this.favoriteCurrentPage])
-      })
-    }
   }
 
   formatTooltip (val) {
@@ -400,6 +806,10 @@ export default class FavoriteQuery extends Vue {
   openPreferrenceSetting () {
     this.preferrenceVisible = true
     this.getPreferrence({project: this.currentSelectedProject})
+  }
+
+  getFormatterSql (sql) {
+    return sqlFormatter.format(sql)
   }
 
   created () {
@@ -429,34 +839,75 @@ export default class FavoriteQuery extends Vue {
     this.loadFavoriteList(offset, pageSize)
   }
 
-  handleSelectionChange (rows) {
-    this.selectToUnFav[this.favoriteCurrentPage] = rows
+  openBlackList () {
+    this.blackListVisible = true
+    this.activeIndex = -1
   }
 
-  removeFav () {
-    let uuidArr = []
-    $.each(this.selectToUnFav, (index, item) => {
-      const uuids = item.map((t) => {
-        return t.uuid
-      })
-      uuidArr = uuidArr.concat(uuids)
-    })
-    if (!uuidArr.length) {
-      return
-    }
-    this.deleteFav({project: this.currentSelectedProject, 'uuids': uuidArr}).then((res) => {
-      handleSuccess(res, () => {
-        this.$message({
-          type: 'success',
-          message: this.$t('kylinLang.common.delSuccess')
-        })
-        this.selectToUnFav = {}
-        this.loadFavoriteList()
-      })
-    }, (res) => {
-      handleError(res)
-    })
+  openWhiteList () {
+    this.whiteListVisible = true
+    this.activeIndex = 0
+    setTimeout(() => {
+      this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(true)
+    }, 0)
   }
+
+  activeSql (sql, index) {
+    this.whiteSql = this.formatterSql(sql)
+    this.activeIndex = index
+    this.isEditSql = false
+    this.inputHeight = 564
+    this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(true)
+  }
+
+  editWhiteSql (sql, index) {
+    this.isEditSql = true
+    this.inputHeight = 512
+    this.whiteSql = this.formatterSql(sql)
+    this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(false)
+  }
+
+  viewBlackSql (sql, index) {
+    this.inputHeight = 564
+    this.activeIndex = index
+    this.isEditSql = false
+    this.blackSql = this.formatterSql(sql)
+    this.$refs.blackInputBox.$refs.kapEditor.editor.setReadOnly(true)
+  }
+
+  newBlackSql () {
+    this.isEditSql = true
+    this.inputHeight = 512
+    this.blackSql = ''
+    this.activeIndex = -1
+    this.$refs.blackInputBox.$refs.kapEditor.editor.setReadOnly(false)
+  }
+
+  clearSql () {
+    this.blackSql = ''
+  }
+
+  delBlack (sql, index) {
+    kapConfirm(this.$t('delSql'))
+  }
+
+  delWhite (sql, index) {
+    kapConfirm(this.$t('delSql'))
+  }
+
+  formatterSql (sql) {
+    return this.getFormatterSql(sql)
+  }
+
+  transformSql (sql) {
+    return sql.length > 350 ? sql.substr(0, 350) + '...' : sql
+  }
+
+  onblackSqlFilterChange () {}
+
+  onWhiteSqlFilterChange () {}
+
+  sqlListsPageChange () {}
 
   renderColumn (h) {
     let items = []
@@ -535,7 +986,7 @@ export default class FavoriteQuery extends Vue {
                 line-height: 15px;
                 color: @text-title-color;
                 font-size: 10px;
-                margin-top: 10px;
+                margin-top: 15px;
               }
               .el-slider {
                 width: 95%;
@@ -643,6 +1094,57 @@ export default class FavoriteQuery extends Vue {
       .divider-line {
         border-top: 1px solid @line-border-color;
         margin: 20px -20px;
+      }
+    }
+    .blackListDialog,
+    .whiteListDialog {
+      .el-dialog {
+        min-height: 500px;
+        .operatorBox{
+          margin-top: 0;
+          padding: 10px;
+          display: block;
+          overflow: hidden;
+        }
+        .smyles_editor_wrap .smyles_dragbar {
+          height: 0;
+        }
+        .sqlLists {
+          .sqlBox {
+            border: 1px solid @text-secondary-color;
+            border-radius: 2px;
+            padding: 10px;
+            background-color: @aceditor-bg-color;
+            margin-top: 10px;
+            height: 75px;
+            overflow-y: scroll;
+            position: relative;
+            .group-btn {
+              position: absolute;
+              right: 10px;
+              bottom: 0px;
+              display: none;
+            }
+            &:hover {
+              box-shadow: 0 2px 4px 0 @line-border-color, 0 0 6px 0 @line-border-color;
+              .group-btn {
+                display: inline-block;
+              }
+            }
+            &.active {
+              border-color: @base-color;
+            }
+          }
+        }
+      }
+    }
+    .whiteListDialog {
+      .el-dialog {
+        .sqlLists {
+          .sqlBox {
+            overflow-y: hidden;
+          }
+        }
       }
     }
     .favorite-table {

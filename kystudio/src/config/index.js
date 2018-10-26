@@ -6,7 +6,7 @@ let baseUrl
 let regexApiUrl
 
 let pageCount = 10
-let pageSizes = [10, 20, 30, 40]
+let pageSizes = [5, 10, 20, 30, 40]
 
 let tooltipDelayTime = 400
 if (process.env.NODE_ENV === 'development') {

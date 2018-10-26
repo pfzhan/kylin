@@ -351,20 +351,6 @@ export default class NewQuery extends Vue {
     border-top: 1px solid @line-border-color;
     height: 100%;
     .layout-right {
-      .query_panel_box {
-        border: 1px solid @line-border-color;
-        border-top-left-radius: 5px;
-        border-top-right-radius: 5px;
-        .smyles_editor_wrap {
-          margin: -1px;
-          .ace-chrome {
-            border-top-left-radius: 5px;
-            border-top-right-radius: 5px;
-            border-bottom-left-radius: 0;
-            border-bottom-right-radius: 0;
-          }
-        }
-      }
       .saved_query_content {
         height: 620px;
         overflow-y: scroll;
@@ -395,10 +381,6 @@ export default class NewQuery extends Vue {
       }
     }
     .operatorBox{
-      margin-top: -3px;
-      display: flex;
-      padding: 16px;
-      background-color: @grey-4;
       .tips_box{
         color: @text-normal-color;
         flex:1;
