@@ -45,7 +45,6 @@ import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.SchedulerException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.Executable;
-import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.job.lock.JobLock;
@@ -108,7 +107,13 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                     return;
                 }
 
-                int nRunning = 0, nReady = 0, nStopped = 0, nOthers = 0, nError = 0, nDiscarded = 0, nSucceed = 0;
+                int nRunning = 0;
+                int nReady = 0;
+                int nStopped = 0;
+                int nOthers = 0;
+                int nError = 0;
+                int nDiscarded = 0;
+                int nSucceed = 0;
                 for (final String path : executableManager.getJobPathes(project)) {
                     if (isJobPoolFull()) {
                         return;
@@ -118,39 +123,31 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                         continue;
                     }
                     final Output output = executableManager.getOutputByJobPath(path);
-                    if ((output.getState() != ExecutableState.READY)) {
-                        if (output.getState() == ExecutableState.DISCARDED) {
-                            nDiscarded++;
-                        } else if (output.getState() == ExecutableState.ERROR) {
+                    switch (output.getState()) {
+                    case READY:
+                        nReady++;
+                        scheduleJob(path);
+                        break;
+                    case DISCARDED:
+                        nDiscarded++;
+                        break;
+                    case ERROR:
+                        nError++;
+                        break;
+                    case SUCCEED:
+                        nSucceed++;
+                        break;
+                    case STOPPED:
+                        nStopped++;
+                        break;
+                    default:
+                        if (fetchFailed) {
+                            executableManager.forceKillJob(NExecutableManager.extractId(path));
                             nError++;
-                        } else if (output.getState() == ExecutableState.SUCCEED) {
-                            nSucceed++;
-                        } else if (output.getState() == ExecutableState.STOPPED) {
-                            nStopped++;
                         } else {
-                            if (fetchFailed) {
-                                executableManager.forceKillJob(NExecutableManager.extractId(path));
-                                nError++;
-                            } else {
-                                nOthers++;
-                            }
+                            nOthers++;
                         }
-                        continue;
-                    }
-                    nReady++;
-                    AbstractExecutable executable = null;
-                    String jobDesc = null;
-                    try {
-                        executable = executableManager.getJobByPath(path);
-                        jobDesc = executable.toString();
-                        logger.info("{} prepare to schedule", jobDesc);
-                        context.addRunningJob(executable);
-                        jobPool.execute(new JobRunner(executable));
-                        logger.info("{} scheduled", jobDesc);
-                    } catch (Exception ex) {
-                        if (executable != null)
-                            context.removeRunningJob(executable);
-                        logger.warn(jobDesc + " fail to schedule", ex);
+                        break;
                     }
                 }
 
@@ -172,6 +169,23 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             }
 
             return false;
+        }
+
+        private void scheduleJob(String path) {
+            AbstractExecutable executable = null;
+            String jobDesc = null;
+            try {
+                executable = executableManager.getJobByPath(path);
+                jobDesc = executable.toString();
+                logger.info("{} prepare to schedule", jobDesc);
+                context.addRunningJob(executable);
+                jobPool.execute(new JobRunner(executable));
+                logger.info("{} scheduled", jobDesc);
+            } catch (Exception ex) {
+                if (executable != null)
+                    context.removeRunningJob(executable);
+                logger.warn(jobDesc + " fail to schedule", ex);
+            }
         }
     }
 
@@ -206,10 +220,10 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     public void stateChanged(CuratorFramework client, ConnectionState newState) {
         if ((newState == ConnectionState.SUSPENDED) || (newState == ConnectionState.LOST)) {
             try {
-                logger.info("ZK Connection state change to " + newState + ", shutdown default scheduler.");
+                logger.info("ZK Connection state change to {}, shutdown default scheduler.", newState);
                 shutdown();
             } catch (SchedulerException e) {
-                throw new RuntimeException("failed to shutdown scheduler", e);
+                throw new IllegalStateException("failed to shutdown scheduler", e);
             }
         }
     }
@@ -241,8 +255,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         jobLock = lock;
 
         String serverMode = jobEngineConfig.getConfig().getServerMode();
-        if (!("job".equals(serverMode.toLowerCase()) || "all".equals(serverMode.toLowerCase()))) {
-            logger.info("server mode: " + serverMode + ", no need to run job scheduler");
+        if (!("job".equalsIgnoreCase(serverMode) || "all".equalsIgnoreCase(serverMode))) {
+            logger.info("server mode: {}, no need to run job scheduler", serverMode);
             return;
         }
         logger.info("Initializing Job Engine ....");
@@ -255,7 +269,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
         this.jobEngineConfig = jobEngineConfig;
 
-        if (jobLock.lockJobEngine() == false) {
+        if (!jobLock.lockJobEngine()) {
             throw new IllegalStateException("Cannot start job scheduler due to lack of job lock");
         }
 
