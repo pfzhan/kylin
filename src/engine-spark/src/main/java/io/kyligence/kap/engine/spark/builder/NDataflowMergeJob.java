@@ -193,17 +193,17 @@ public class NDataflowMergeJob extends NDataflowJob {
     private void saveAndUpdateCuboid(Dataset<Row> dataset, long cuboidRowCnt, NDataSegment seg, NCuboidLayout layout,
             NLayoutMergeAssist assist) throws IOException {
         long layoutId = layout.getId();
-        long sourceSizeKB = 0L;
+        long sourceByteSize = 0L;
         long sourceCount = 0L;
 
         for (NDataCuboid cuboid : assist.getCuboids()) {
-            sourceSizeKB += cuboid.getSourceKB();
+            sourceByteSize += cuboid.getSourceByteSize();
             sourceCount += cuboid.getSourceRows();
         }
 
         NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg.getDataflow(), seg.getId(), layoutId);
         dataCuboid.setRows(cuboidRowCnt);
-        dataCuboid.setSourceKB(sourceSizeKB);
+        dataCuboid.setSourceByteSize(sourceByteSize);
         dataCuboid.setSourceRows(sourceCount);
         dataCuboid.setBuildJobId(jobId);
         dataCuboid.setStatus(SegmentStatusEnum.READY);

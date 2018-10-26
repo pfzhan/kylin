@@ -123,7 +123,7 @@ public class NDatasetChooser {
         buildSource.setDataset(layoutDs);
         buildSource.setCount(dataCuboid.getRows());
         buildSource.setLayoutId(layout.getId());
-        buildSource.setSizeKB(dataCuboid.getSizeKB());
+        buildSource.setByteSize(dataCuboid.getByteSize());
         buildSource.getToBuildCuboids().add(cuboidDesc);
         logger.info("Reuse a suitable layout: {} for building cuboid: {}", layout.getId(), cuboidDesc.getId());
         return buildSource;
@@ -164,7 +164,7 @@ public class NDatasetChooser {
         }
 
         NBuildSourceInfo sourceInfo = new NBuildSourceInfo();
-        sourceInfo.setSizeKB(sourceSize / 1024);
+        sourceInfo.setByteSize(sourceSize);
         sourceInfo.setCount(count);
         sourceInfo.setDataset(afterEncode);
 

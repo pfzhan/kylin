@@ -24,42 +24,15 @@
 
 package io.kyligence.kap.rest.request;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class FactTableRequest {
     private String table;
     private String project;
     private String column;
     private boolean fact;
 
-    public String getColumn() {
-        return column;
-    }
-
-    public void setColumn(String column) {
-        this.column = column;
-    }
-
-    public String getTable() {
-        return table;
-    }
-
-    public void setTable(String table) {
-        this.table = table;
-    }
-
-    public boolean getFact() {
-        return fact;
-
-    }
-
-    public void setFact(boolean fact) {
-        this.fact = fact;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
-    }
 }

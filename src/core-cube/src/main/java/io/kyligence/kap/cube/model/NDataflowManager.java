@@ -443,7 +443,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         long size = 0L;
         Collection<NDataCuboid> nDataCuboids = segment.getCuboidsMap().values();
         for (NDataCuboid nDataCuboid : nDataCuboids) {
-            size += nDataCuboid.getSizeKB();
+            size += nDataCuboid.getByteSize();
         }
         return size;
     }

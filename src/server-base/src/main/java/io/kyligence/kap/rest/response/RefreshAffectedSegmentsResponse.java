@@ -22,17 +22,22 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
 @Setter
 @Getter
-public class ModelCloneRequest {
+public class RefreshAffectedSegmentsResponse {
+    @JsonProperty("byte_size")
+    private long byteSize;
 
-    private String modelName;
-    private String newModelName;
-    private String project;
+    @JsonProperty("affected_start")
+    private String affectedStart;
+
+    @JsonProperty("affected_end")
+    private String affectedEnd;
 
 }

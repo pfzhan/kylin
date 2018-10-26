@@ -259,21 +259,22 @@ public class NDataLoadingRangeManager {
             dataLoadingRange = copyForWrite(dataLoadingRange);
 
             TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
-            List<String> models = NDataModelManager.getInstance(config, project).getModelsUsingTable(tableDesc);
+            List<String> models = NDataModelManager.getInstance(config, project).getModelsUsingRootTable(tableDesc);
             boolean needUpdateWaterMark = false;
 
             if (CollectionUtils.isEmpty(models)) {
-                needUpdateWaterMark = true;
-                dataLoadingRange.setWaterMarkEnd(dataLoadingRange.getSegmentRanges().size() - 1);
+                dataLoadingRange.setActualQueryStart(Long.parseLong(dataLoadingRange.getCoveredSegmentRange().getStart().toString()));
+                dataLoadingRange.setActualQueryEnd(Long.parseLong(dataLoadingRange.getCoveredSegmentRange().getEnd().toString()));
+                updateDataLoadingRange(dataLoadingRange);
+                return;
             } else {
                 List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
-
                 Pair<SegmentRange, SegmentRange> readySegmentRange = genReadySegmentRange(models);
                 SegmentRange start = readySegmentRange.getFirst();
                 SegmentRange end = readySegmentRange.getSecond();
 
                 if (start != null) {
-                    int waterMarkStart = segmentRanges.indexOf(start) - 1;
+                    int waterMarkStart = segmentRanges.indexOf(start) >= 0 ? segmentRanges.indexOf(start) - 1 : -1;
                     if (waterMarkStart != dataLoadingRange.getWaterMarkStart()) {
                         dataLoadingRange.setWaterMarkStart(waterMarkStart);
                         needUpdateWaterMark = true;
@@ -289,9 +290,20 @@ public class NDataLoadingRangeManager {
             }
 
             if (needUpdateWaterMark) {
-                updateDataLoadingRange(dataLoadingRange);
+                updateActualQueryRange(dataLoadingRange);
             }
         }
+    }
+
+    private void updateActualQueryRange(NDataLoadingRange dataLoadingRange) throws IOException {
+        if (dataLoadingRange.getWaterMarkEnd() == -1 && dataLoadingRange.getWaterMarkStart() == -1) {
+            dataLoadingRange.setActualQueryStart(-1);
+            dataLoadingRange.setActualQueryEnd(-1);
+        } else {
+            dataLoadingRange.setActualQueryStart(Long.parseLong(dataLoadingRange.getCoveredReadySegmentRange().getStart().toString()));
+            dataLoadingRange.setActualQueryEnd(Long.parseLong(dataLoadingRange.getCoveredReadySegmentRange().getEnd().toString()));
+        }
+        updateDataLoadingRange(dataLoadingRange);
     }
 
     private Pair<SegmentRange, SegmentRange> genReadySegmentRange(List<String> models) {

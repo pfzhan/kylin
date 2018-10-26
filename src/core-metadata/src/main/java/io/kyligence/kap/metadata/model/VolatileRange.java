@@ -22,17 +22,26 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.metadata.model;
 
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
+
 @Setter
 @Getter
-public class ModelCloneRequest {
+public class VolatileRange implements Serializable {
 
-    private String modelName;
-    private String newModelName;
-    private String project;
+    @JsonProperty("volatile_range_number")
+    private long volatileRangeNumber = 0;
+
+    @JsonProperty("volatile_range_enabled")
+    private boolean volatileRangeEnabled = true;
+
+    @JsonProperty("volatile_range_type")
+    private AutoMergeTimeEnum volatileRangeType = AutoMergeTimeEnum.DAY;
 
 }

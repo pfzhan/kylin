@@ -10,36 +10,36 @@
       "status": "READY",
       "build_job_id": 0,
       "rows": 1,
-      "size_kb": 0,
+      "byte_size": 0,
       "source_rows": 1,
-      "source_kb": 1
+      "source_byte_size": 1
     },
     {
       "cuboid_layout_id": 2,
       "status": "READY",
       "build_job_id": 0,
       "rows": 1,
-      "size_kb": 0,
+      "byte_size": 0,
       "source_rows": 1,
-      "source_kb": 1
+      "source_byte_size": 1
     },
     {
       "cuboid_layout_id": 1001,
       "status": "READY",
       "build_job_id": 0,
       "rows": 1,
-      "size_kb": 0,
+      "byte_size": 0,
       "source_rows": 1,
-      "source_kb": 1
+      "source_byte_size": 1
     },
     {
       "cuboid_layout_id": 1002,
       "status": "READY",
       "build_job_id": 0,
       "rows": 1,
-      "size_kb": 0,
+      "byte_size": 0,
       "source_rows": 1,
-      "source_kb": 1
+      "source_byte_size": 1
     }
   ]
 }

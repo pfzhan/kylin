@@ -91,7 +91,7 @@ public class NModelController extends NBasicController {
                 models.add(modelDesc);
             }
         } else {
-            models.addAll(modelService.getRelateModels(project, table));
+            models.addAll(modelService.getRelateModels(project, table, modelName));
         }
 
         HashMap<String, Object> modelResponse = getDataResponse("models", models, offset, limit);

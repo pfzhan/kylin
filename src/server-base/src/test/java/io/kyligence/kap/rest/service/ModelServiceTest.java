@@ -48,11 +48,18 @@ import java.util.List;
 import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
+import io.kylingence.kap.event.manager.EventDao;
+import io.kylingence.kap.event.model.Event;
+import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -200,6 +207,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelService.purgeModel("nmodel_basic", "default");
         List<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
+        RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", ManagementType.TABLE_ORIENTED);
+        Assert.assertEquals(response.getByteSize(), 2502656L);
     }
 
     @Test
@@ -278,8 +287,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetRelatedModels() throws IOException {
-        List<NDataModelResponse> models = modelService.getRelateModels("default", "EDW.TEST_CAL_DT");
-        Assert.assertTrue(models.size() == 2);
+        List<NDataModelResponse> models = modelService.getRelateModels("default", "EDW.TEST_CAL_DT", "");
+        Assert.assertTrue(models.size() == 0);
+        List<NDataModelResponse> models2 = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT", "nmodel_basic_inner");
+        Assert.assertEquals(1, models2.size());
     }
 
     @Test
@@ -293,4 +304,29 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         List<String> result = modelService.getModelsUsingTable("DEFAULT.TEST_KYLIN_FACT", "default");
         Assert.assertTrue(result.size() == 2);
     }
+
+
+    @Test
+    public void testRefreshSegments() throws IOException, PersistentException {
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "9223372036854775807");
+        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        List<Event> events = eventDao.getEvents();
+        boolean flag = false;
+        for (Event event : events) {
+            if (event instanceof LoadingRangeRefreshEvent) {
+                if (event.getSegmentRange().getStart().toString().equals("0") && event.getSegmentRange().getEnd().toString().equals("12223334")) {
+                    flag = true;
+                }
+            }
+        }
+        Assert.assertTrue(flag);
+    }
+
+    @Test
+    public void testRefreshSegmentsException() throws IOException, PersistentException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Can not refersh, please try again and confirm affected storage!");
+        modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
+    }
+
 }

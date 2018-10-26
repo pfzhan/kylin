@@ -25,8 +25,13 @@
 package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.List;
 
+@Getter
+@Setter
 public class TablesAndColumnsResponse {
 
     @JsonProperty("database")
@@ -36,27 +41,4 @@ public class TablesAndColumnsResponse {
     @JsonProperty("columns")
     private List<String> columns;
 
-    public String getDatabase() {
-        return database;
-    }
-
-    public void setDatabase(String database) {
-        this.database = database;
-    }
-
-    public String getTable() {
-        return table;
-    }
-
-    public void setTable(String table) {
-        this.table = table;
-    }
-
-    public List<String> getColumns() {
-        return columns;
-    }
-
-    public void setColumns(List<String> columns) {
-        this.columns = columns;
-    }
 }

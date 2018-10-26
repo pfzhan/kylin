@@ -61,14 +61,14 @@ public class NDataCuboid implements Serializable {
     private String buildJobId;
     @JsonProperty("rows")
     private long rows;
-    @JsonProperty("size_kb")
-    private long sizeKB;
+    @JsonProperty("byte_size")
+    private long byteSize;
     @JsonProperty("file_count")
     private long fileCount;
     @JsonProperty("source_rows")
     private long sourceRows;
-    @JsonProperty("source_kb")
-    private long sourceKB;
+    @JsonProperty("source_byte_size")
+    private long sourceByteSize;
 
     public NDataCuboid() {
     }
@@ -130,13 +130,13 @@ public class NDataCuboid implements Serializable {
         this.rows = rows;
     }
 
-    public long getSizeKB() {
-        return sizeKB;
+    public long getByteSize() {
+        return byteSize;
     }
 
-    public void setSizeKB(long sizeKB) {
+    public void setByteSize(long byteSize) {
         checkIsNotCachedAndShared();
-        this.sizeKB = sizeKB;
+        this.byteSize = byteSize;
     }
 
     public long getSourceRows() {
@@ -148,13 +148,14 @@ public class NDataCuboid implements Serializable {
         this.sourceRows = sourceRows;
     }
 
-    public long getSourceKB() {
-        return sourceKB;
+
+    public long getSourceByteSize() {
+        return sourceByteSize;
     }
 
-    public void setSourceKB(long sourceKB) {
+    public void setSourceByteSize(long sourceByteSize) {
         checkIsNotCachedAndShared();
-        this.sourceKB = sourceKB;
+        this.sourceByteSize = sourceByteSize;
     }
 
     public long getFileCount() {

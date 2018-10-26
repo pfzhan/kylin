@@ -24,6 +24,11 @@
 
 package io.kyligence.kap.rest.request;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
 public class ModelUpdateRequest {
 
     private String modelName;
@@ -31,35 +36,4 @@ public class ModelUpdateRequest {
     private String project;
     private String status;
 
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
-    }
-
-    public String getModelName() {
-        return modelName;
-    }
-
-    public void setModelName(String modelName) {
-        this.modelName = modelName;
-    }
-
-    public String getNewModelName() {
-        return newModelName;
-    }
-
-    public void setNewModelName(String newModelName) {
-        this.newModelName = newModelName;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
 }

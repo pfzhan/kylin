@@ -22,17 +22,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.metadata.model;
 
-import lombok.Getter;
-import lombok.Setter;
 
-@Setter
-@Getter
-public class ModelCloneRequest {
+public enum AutoMergeTimeEnum {
+    //code for sort
+    HOUR(1), SIX_HOUR(2), HALF_DAY(3), DAY(4), WEEK(5), MONTH(6), QUARTER(7), YEAR(8);
+    private final int code;
 
-    private String modelName;
-    private String newModelName;
-    private String project;
+    AutoMergeTimeEnum(int code) {
+        this.code = code;
+    }
 
+    public static AutoMergeTimeEnum getByCode(int code) {
+        for (AutoMergeTimeEnum time : values()) {
+            if (time.getCode() == code) {
+                return time;
+            }
+        }
+        return null;
+    }
+
+    public int getCode() {
+        return code;
+    }
 }

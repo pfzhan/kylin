@@ -9,81 +9,81 @@
     "status" : "READY",
     "build_job_id" : "2a607cd6-36d7-45f8-8bc4-da5695ace6a2",
     "rows" : 10000,
-    "size_kb" : 1173,
+    "byte_size" : 1201152,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_kb" : 1655
+    "source_byte_size" : 1655
   }, {
     "cuboid_layout_id" : 1,
     "status" : "READY",
     "build_job_id" : "2a607cd6-36d7-45f8-8bc4-da5695ace6a2",
     "rows" : 10000,
-    "size_kb" : 247,
+    "byte_size" : 252928,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_kb" : 1655
+    "source_byte_size" : 1655
   }, {
     "cuboid_layout_id" : 2,
     "status" : "READY",
     "build_job_id" : "2a607cd6-36d7-45f8-8bc4-da5695ace6a2",
     "rows" : 10000,
-    "size_kb" : 247,
+    "byte_size" : 252928,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_kb" : 1655
+    "source_byte_size" : 1655
   }, {
     "cuboid_layout_id" : 1001,
     "status" : "READY",
     "build_job_id" : "2a607cd6-36d7-45f8-8bc4-da5695ace6a2",
     "rows" : 10000,
-    "size_kb" : 254,
+    "byte_size" : 260096,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_kb" : 1655
+    "source_byte_size" : 1655
   }, {
     "cuboid_layout_id" : 1002,
     "status" : "READY",
     "build_job_id" : "2a607cd6-36d7-45f8-8bc4-da5695ace6a2",
     "rows" : 10000,
-    "size_kb" : 254,
+    "byte_size" : 260096,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_kb" : 1655
+    "source_byte_size" : 1655
   }, {
     "cuboid_layout_id" : 2001,
     "status" : "READY",
     "build_job_id" : "2a607cd6-36d7-45f8-8bc4-da5695ace6a2",
     "rows" : 10000,
-    "size_kb" : 292,
+    "byte_size" : 299008,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_kb" : 1655
+    "source_byte_size" : 1655
   }, {
     "cuboid_layout_id" : 3001,
     "status" : "READY",
     "build_job_id" : "2a607cd6-36d7-45f8-8bc4-da5695ace6a2",
     "rows" : 10000,
-    "size_kb" : 333,
+    "byte_size" : 340992,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_kb" : 1655
+    "source_byte_size" : 1655
   }, {
     "cuboid_layout_id" : 20000000001,
     "status" : "READY",
     "build_job_id" : "2a607cd6-36d7-45f8-8bc4-da5695ace6a2",
     "rows" : 10000,
-    "size_kb" : 493,
+    "byte_size" : 504832,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_kb" : 1655
+    "source_byte_size" : 1655
   }, {
     "cuboid_layout_id" : 20000001001,
     "status" : "READY",
     "build_job_id" : "2a607cd6-36d7-45f8-8bc4-da5695ace6a2",
     "rows" : 10000,
-    "size_kb" : 255,
+    "byte_size" : 261120,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_kb" : 1655
+    "source_byte_size" : 1655
   } ]
 }

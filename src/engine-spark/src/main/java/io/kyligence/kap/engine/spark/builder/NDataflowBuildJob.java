@@ -173,12 +173,12 @@ public class NDataflowBuildJob extends NDataflowJob {
         NCuboidDesc root = nSpanningTree.getRootCuboidDesc(layout.getCuboidDesc());
 
         NBuildSourceInfo sourceInfo = NDatasetChooser.getDataSourceByCuboid(sources, root, seg);
-        long sourceSizeKB = sourceInfo.getSizeKB();
+        long sourceByteSize = sourceInfo.getByteSize();
         long sourceCount = sourceInfo.getCount();
 
         NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg.getDataflow(), seg.getId(), layoutId);
         dataCuboid.setRows(cuboidRowCnt);
-        dataCuboid.setSourceKB(sourceSizeKB);
+        dataCuboid.setSourceByteSize(sourceByteSize);
         dataCuboid.setSourceRows(sourceCount);
         dataCuboid.setBuildJobId(jobId);
         dataCuboid.setStatus(SegmentStatusEnum.READY);
@@ -198,10 +198,10 @@ public class NDataflowBuildJob extends NDataflowJob {
         if (fs.exists(new Path(strPath))) {
             ContentSummary cs = fs.getContentSummary(new Path(strPath));
             cuboid.setFileCount(cs.getFileCount());
-            cuboid.setSizeKB(cs.getLength() / 1024);
+            cuboid.setByteSize(cs.getLength());
         } else {
             cuboid.setFileCount(0);
-            cuboid.setSizeKB(0);
+            cuboid.setByteSize(0);
         }
     }
 

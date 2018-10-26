@@ -24,6 +24,14 @@
 
 package io.kyligence.kap.rest.request;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Setter
+@Getter
+@NoArgsConstructor
+
 public class EventRequest {
 
     private String project;
@@ -46,6 +54,4 @@ public class EventRequest {
         this.id = id;
     }
 
-    public EventRequest() {
-    }
 }

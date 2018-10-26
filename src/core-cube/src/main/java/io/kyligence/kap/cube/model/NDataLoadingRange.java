@@ -46,6 +46,11 @@ package io.kyligence.kap.cube.model;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.VolatileRange;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -56,10 +61,11 @@ import java.util.List;
 import static org.apache.kylin.common.persistence.ResourceStore.DATA_LOADING_RANGE_RESOURCE_ROOT;
 
 @SuppressWarnings("serial")
+@Setter
+@Getter
+@NoArgsConstructor
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NDataLoadingRange extends RootPersistentEntity {
-
-    public NDataLoadingRange() {}
 
     private String project;
     @JsonProperty("table_name")
@@ -73,52 +79,24 @@ public class NDataLoadingRange extends RootPersistentEntity {
     private int waterMarkStart = -1;
     @JsonProperty("water_mark_end")
     private int waterMarkEnd = -1;
+    @JsonProperty("actual_query_start")
+    private long actualQueryStart = -1;
+    @JsonProperty("actual_query_end")
+    private long actualQueryEnd = -1;
+    @JsonProperty("pushdown_range_limited")
+    private boolean pushdownRangeLimited;
 
-    public String getProject() {
-        return project;
-    }
+    @JsonProperty("auto_merge_enabled")
+    private boolean autoMergeEnabled = true;
 
-    public void setProject(String project) {
-        this.project = project;
-    }
+    @JsonProperty("auto_merge_time_ranges")
+    private List<AutoMergeTimeEnum> autoMergeTimeRanges = Lists.newArrayList(AutoMergeTimeEnum.WEEK, AutoMergeTimeEnum.MONTH);
 
-    public String getTableName() {
-        return tableName;
-    }
+    @JsonProperty("volatile_range")
+    private VolatileRange volatileRange = new VolatileRange();
 
-    public void setTableName(String tableName) {
-        this.tableName = tableName;
-    }
 
-    public String getColumnName() {
-        return columnName;
-    }
-
-    public void setColumnName(String columnName) {
-        this.columnName = columnName;
-    }
-
-    public List<SegmentRange> getSegmentRanges() {
-        return segmentRanges;
-    }
-
-    public int getWaterMarkStart() {
-        return waterMarkStart;
-    }
-
-    public void setWaterMarkStart(int waterMarkStart) {
-        this.waterMarkStart = waterMarkStart;
-    }
-
-    public int getWaterMarkEnd() {
-        return waterMarkEnd;
-    }
-
-    public void setWaterMarkEnd(int waterMarkEnd) {
-        this.waterMarkEnd = waterMarkEnd;
-    }
-
-    public SegmentRange getCoveredSegmentRange(){
+    public SegmentRange getCoveredSegmentRange() {
         SegmentRange readySegmentRange = null;
 
         if (CollectionUtils.isEmpty(segmentRanges)) {
@@ -136,7 +114,7 @@ public class NDataLoadingRange extends RootPersistentEntity {
         return readySegmentRange;
     }
 
-    public SegmentRange getCoveredReadySegmentRange(){
+    public SegmentRange getCoveredReadySegmentRange() {
         SegmentRange readySegmentRange = null;
 
         if (CollectionUtils.isEmpty(segmentRanges) || (waterMarkEnd == waterMarkStart)) {

@@ -36,15 +36,20 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
+import io.kylingence.kap.event.manager.EventManager;
+import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.ModifiedOrder;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -135,7 +140,7 @@ public class ModelService extends BasicService {
                 if (segment.getSegRange().overlaps(filterRange)) {
                     long segmentSize = dataflowManager.getSegmentSize(segment);
                     NDataSegmentResponse nDataSegmentResponse = new NDataSegmentResponse(segment);
-                    nDataSegmentResponse.setSizeKB(segmentSize);
+                    nDataSegmentResponse.setBytesSize(segmentSize);
                     segments.add(nDataSegmentResponse);
                 }
 
@@ -195,7 +200,7 @@ public class ModelService extends BasicService {
             for (NCuboidLayout layout : layouts) {
                 NDataCuboid cuboid = segment.getCuboid(layout.getId());
                 if (cuboid != null) {
-                    storage += cuboid.getSizeKB();
+                    storage += cuboid.getByteSize();
                 }
             }
             long start = Long.parseLong(segment.getSegRange().getStart().toString());
@@ -230,21 +235,23 @@ public class ModelService extends BasicService {
         return result;
     }
 
-    public List<NDataModelResponse> getRelateModels(String project, String table) throws IOException {
+    public List<NDataModelResponse> getRelateModels(String project, String table, String modelName) throws IOException {
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         NDataModelManager dataModelManager = getDataModelManager(project);
-        List<String> models = dataModelManager.getModelsUsingTable(tableDesc);
+        List<String> models = dataModelManager.getModelsUsingRootTable(tableDesc);
         List<NDataModelResponse> dataModels = new ArrayList<NDataModelResponse>();
         for (String model : models) {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
             NDataModel dataModelDesc = dataModelManager.getDataModelDesc(model);
-            NDataModelResponse nDataSegmentResponse = new NDataModelResponse(dataModelDesc);
-            Segments<NDataSegment> segments = getSegments(model, project, "", "");
-            for (NDataSegment segment : segments) {
-                segmentRanges.put(segment.getSegRange(), segment.getStatus());
+            if (StringUtils.isEmpty(modelName) || dataModelDesc.getAlias().toLowerCase().contains(modelName.toLowerCase())) {
+                NDataModelResponse nDataModelResponse = new NDataModelResponse(dataModelDesc);
+                Segments<NDataSegment> segments = getSegments(model, project, "", "");
+                for (NDataSegment segment : segments) {
+                    segmentRanges.put(segment.getSegRange(), segment.getStatus());
+                }
+                nDataModelResponse.setSegmentRanges(segmentRanges);
+                dataModels.add(nDataModelResponse);
             }
-            nDataSegmentResponse.setSegmentRanges(segmentRanges);
-            dataModels.add(nDataSegmentResponse);
         }
         return dataModels;
     }
@@ -403,5 +410,48 @@ public class ModelService extends BasicService {
 
     public List<String> getModelsUsingTable(String table, String project) throws IOException {
         return getDataModelManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table));
+    }
+
+    public RefreshAffectedSegmentsResponse getAffectedSegmentsResponse(String project, String table, String start, String end, ManagementType managementType) throws IOException {
+        Segments<NDataSegment> segments = new Segments<>();
+        RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
+        long byteSize = 0L;
+        List<NDataModelResponse> models = getRelateModels(project, table, "");
+        for (NDataModel model : models) {
+            if (model.getManagementType().equals(managementType)) {
+                segments.addAll(getSegments(model.getName(), project, start, end));
+            }
+        }
+        response.setAffectedStart(segments.getFirstSegment().getSegRange().getStart().toString());
+        response.setAffectedEnd(segments.getLatestReadySegment().getSegRange().getEnd().toString());
+        for (NDataSegment segment : segments) {
+            byteSize += ((NDataSegmentResponse) segment).getBytesSize();
+        }
+        response.setByteSize(byteSize);
+        return response;
+    }
+
+    public void refreshSegments(String project, String table, String refreshStart, String refreshEnd, String affectedStart, String affectedEnd) throws IOException, PersistentException {
+        RefreshAffectedSegmentsResponse response = getAffectedSegmentsResponse(project, table, refreshStart, refreshEnd, ManagementType.TABLE_ORIENTED);
+        if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
+            throw new BadRequestException("Can not refersh, please try again and confirm affected storage!");
+        }
+        List<NDataModelResponse> models = getRelateModels(project, table, "");
+        for (NDataModel model : models) {
+            Segments<NDataSegment> segments = getSegments(model.getName(), project, refreshStart, refreshEnd);
+            if (segments.getBuildingSegments().size() > 0) {
+                throw new BadRequestException("Can not refresh, some segments is building during the range you want to refresh!");
+
+            }
+        }
+        TableDesc tableDesc = getTableManager(project).getTableDesc(table);
+        EventManager eventManager = getEventManager(project);
+        SegmentRange segmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(refreshStart, refreshEnd);
+        LoadingRangeRefreshEvent event = new LoadingRangeRefreshEvent();
+        event.setSegmentRange(segmentRange);
+        event.setApproved(true);
+        event.setProject(project);
+        event.setTableName(table);
+        eventManager.post(event);
     }
 }

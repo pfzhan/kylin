@@ -28,10 +28,14 @@ import io.kyligence.kap.cube.model.NDataSegment;
 
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 public class NDataSegmentResponse extends NDataSegment {
-    @JsonProperty("size_kb")
-    private long sizeKB;
+    @JsonProperty("bytes_size")
+    private long bytesSize;
 
     @JsonProperty("hit_count")
     private long hitCount;
@@ -44,19 +48,4 @@ public class NDataSegmentResponse extends NDataSegment {
         super(other);
     }
 
-    public long getSizeKB() {
-        return sizeKB;
-    }
-
-    public void setSizeKB(long sizeKB) {
-        this.sizeKB = sizeKB;
-    }
-
-    public long getHitCount() {
-        return hitCount;
-    }
-
-    public void setHitCount(long hitCount) {
-        this.hitCount = hitCount;
-    }
 }

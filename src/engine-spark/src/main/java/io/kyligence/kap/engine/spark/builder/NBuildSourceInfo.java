@@ -35,18 +35,18 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 
 public class NBuildSourceInfo {
     private Dataset<Row> dataset;
-    private long sizeKB;
+    private long byteSize;
     private long count;
     private long layoutId;
     private Set<NCuboidDesc> toBuildCuboids = new LinkedHashSet<>();
     private NDataSegment segment;
 
-    public void setSizeKB(long sizeKB) {
-        this.sizeKB = sizeKB;
+    public long getByteSize() {
+        return byteSize;
     }
 
-    public long getSizeKB() {
-        return sizeKB;
+    public void setByteSize(long byteSize) {
+        this.byteSize = byteSize;
     }
 
     public void setDataset(Dataset<Row> dataset) {

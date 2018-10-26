@@ -24,15 +24,18 @@
 
 package io.kyligence.kap.rest.request;
 
+
 import lombok.Getter;
 import lombok.Setter;
 
-@Setter
 @Getter
-public class ModelCloneRequest {
+@Setter
+public class PushDownModeRequest {
 
-    private String modelName;
-    private String newModelName;
     private String project;
+
+    private String table;
+
+    private boolean pushdownRangeLimited;
 
 }

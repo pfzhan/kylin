@@ -22,17 +22,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.VolatileRange;
 import lombok.Getter;
 import lombok.Setter;
 
-@Setter
+import java.util.List;
+
 @Getter
-public class ModelCloneRequest {
+@Setter
+public class AutoMergeConfigResponse {
+    @JsonProperty("auto_merge_enabled")
+    private boolean autoMergeEnabled = true;
 
-    private String modelName;
-    private String newModelName;
-    private String project;
+    @JsonProperty("auto_merge_time_ranges")
+    private List<AutoMergeTimeEnum> autoMergeTimeRanges;
 
+    @JsonProperty("volatile_range")
+    private VolatileRange volatileRange;
 }

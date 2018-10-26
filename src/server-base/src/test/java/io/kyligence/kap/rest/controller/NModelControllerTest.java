@@ -210,7 +210,7 @@ public class NModelControllerTest {
     @Test
     public void testGetRelatedModels() throws Exception {
 
-        Mockito.when(modelService.getRelateModels("default", "TEST_KYLIN_FACT")).thenReturn(mockModels());
+        Mockito.when(modelService.getRelateModels("default", "TEST_KYLIN_FACT", "model1")).thenReturn(mockModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
                 .param("exact", "true").param("owner", "ADMIN").param("status", "NEW").param("sortBy", "last_modify")
@@ -343,7 +343,7 @@ public class NModelControllerTest {
     private Segments<NDataSegment> mockSegments() {
         final Segments<NDataSegment> nDataSegments = new Segments<NDataSegment>();
         NDataSegment segment = new NDataSegment();
-        segment.setId(123);
+        segment.setId(1);
         segment.setName("seg1");
         nDataSegments.add(segment);
         return nDataSegments;

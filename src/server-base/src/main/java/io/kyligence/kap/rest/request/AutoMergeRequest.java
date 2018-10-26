@@ -29,10 +29,21 @@ import lombok.Setter;
 
 @Setter
 @Getter
-public class ModelCloneRequest {
+public class AutoMergeRequest {
+    private boolean autoMergeEnabled = true;
 
-    private String modelName;
-    private String newModelName;
+    private String[] autoMergeTimeRanges;
+
+    private long volatileRangeNumber;
+
+    private boolean volatileRangeEnabled = true;
+
+    private String volatileRangeType;
+
     private String project;
+
+    private String model;
+
+    private String table;
 
 }

@@ -42,9 +42,13 @@
 
 package io.kyligence.kap.rest.controller;
 
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DatabaseLoadRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.FactTableRequest;
+import io.kyligence.kap.rest.request.PushDownModeRequest;
+import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
@@ -187,7 +191,7 @@ public class NTableControllerTest {
     public void testSetTableFact() throws Exception {
         final FactTableRequest factTableRequest = mockFactTableRequest();
         Mockito.doNothing().when(tableService).setFact(factTableRequest.getProject(), factTableRequest.getTable(),
-                factTableRequest.getFact(), factTableRequest.getColumn());
+                factTableRequest.isFact(), factTableRequest.getColumn());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/fact").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(factTableRequest))
@@ -201,7 +205,7 @@ public class NTableControllerTest {
         final FactTableRequest factTableRequest = mockFactTableRequest();
         factTableRequest.setColumn("");
         Mockito.doNothing().when(tableService).setFact(factTableRequest.getProject(), factTableRequest.getTable(),
-                factTableRequest.getFact(), factTableRequest.getColumn());
+                factTableRequest.isFact(), factTableRequest.getColumn());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/fact").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(factTableRequest))
@@ -214,7 +218,7 @@ public class NTableControllerTest {
     public void testSetDateRangePass() throws Exception {
         final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         Mockito.doNothing().when(tableService).setDataRange(dateRangeRequest);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/date_range").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(dateRangeRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
@@ -236,7 +240,7 @@ public class NTableControllerTest {
 
 
     private DatabaseLoadRequest mockDatabaseLoadRequest() {
-        String[] databases = { "DEFAULT" };
+        String[] databases = {"DEFAULT"};
         DatabaseLoadRequest databaseLoadRequest = new DatabaseLoadRequest();
         databaseLoadRequest.setDatabases(databases);
         databaseLoadRequest.setDatasourceType(11);
@@ -281,7 +285,7 @@ public class NTableControllerTest {
 
     @Test
     public void testLoadTablesByDatabase() throws Exception {
-        String[] databases = { "DEFAULT" };
+        String[] databases = {"DEFAULT"};
         Mockito.doNothing().when(tableExtService).loadTablesByDatabase("default", databases, 11);
         final DatabaseLoadRequest databaseLoadRequest = mockDatabaseLoadRequest();
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/databases").contentType(MediaType.APPLICATION_JSON)
@@ -347,10 +351,130 @@ public class NTableControllerTest {
         Mockito.verify(nTableController).getTablesAndColomns("default", 0, 10);
     }
 
+    @Test
+    public void testGetAutoMergeConfig() throws Exception {
+        Mockito.doReturn(null).when(tableService).getAutoMergeConfigByTable("default", "DEFAULT.TEST_KYLIN_FACT");
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/auto_merge_config").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("model", "").param("table", "DEFAULT.TEST_KYLIN_FACT")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).getAutoMergeConfig("", "DEFAULT.TEST_KYLIN_FACT", "default");
+    }
+
+    @Test
+    public void testGetAutoMergeConfigException() throws Exception {
+        Mockito.doReturn(null).when(tableService).getAutoMergeConfigByModel("default", "");
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/auto_merge_config").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("model", "").param("table", "")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nTableController).getAutoMergeConfig("", "", "default");
+    }
+
+    @Test
+    public void testGetRefreshDateRange() throws Exception {
+        Mockito.doNothing().when(tableService).checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0", "100");
+        Mockito.doReturn(null).when(modelService).getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0", "100", ManagementType.TABLE_ORIENTED);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/affected_data_range").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("start", "0").param("table", "DEFAULT.TEST_KYLIN_FACT")
+                .param("end", "100")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).getRefreshAffectedDateRange("default", "DEFAULT.TEST_KYLIN_FACT", "0", "100");
+    }
+
+    @Test
+    public void testGetPushdownMode() throws Exception {
+        Mockito.doReturn(true).when(tableService).getPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT");
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/pushdown_mode").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default").param("table", "DEFAULT.TEST_KYLIN_FACT")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).getPushdownMode("default", "DEFAULT.TEST_KYLIN_FACT");
+    }
+
+
+    @Test
+    public void testRefreshSegments() throws Exception {
+        Mockito.doNothing().when(modelService).refreshSegments("default", "TEST_KYLIN_FACT", "0", "100", "0", "100");
+        RefreshSegmentsRequest refreshSegmentsRequest = new RefreshSegmentsRequest();
+        refreshSegmentsRequest.setProject("default");
+        refreshSegmentsRequest.setTable("TEST_KYLIN_FACT");
+        refreshSegmentsRequest.setRefreshStart("0");
+        refreshSegmentsRequest.setRefreshEnd("100");
+        refreshSegmentsRequest.setAffectedStart("0");
+        refreshSegmentsRequest.setAffectedEnd("100");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/data_range").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(refreshSegmentsRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).refreshSegments(Mockito.any(RefreshSegmentsRequest.class));
+    }
+
+    @Test
+    public void testUpdateAutoMergeConfigException() throws Exception {
+        AutoMergeRequest autoMergeRequest = mockAutoMergeRequest();
+        autoMergeRequest.setAutoMergeTimeRanges(null);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/auto_merge_config").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(autoMergeRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nTableController).updateAutoMergeConfig(Mockito.any(AutoMergeRequest.class));
+    }
+
+    @Test
+    public void testUpdateAutoMergeConfigException2() throws Exception {
+        AutoMergeRequest autoMergeRequest = mockAutoMergeRequest();
+        autoMergeRequest.setModel("");
+        autoMergeRequest.setTable("");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/auto_merge_config").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(autoMergeRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nTableController).updateAutoMergeConfig(Mockito.any(AutoMergeRequest.class));
+    }
+
+    @Test
+    public void testUpdateAutoMergeConfig() throws Exception {
+        AutoMergeRequest autoMergeRequest = mockAutoMergeRequest();
+        Mockito.doNothing().when(tableService).setAutoMergeConfigByTable(autoMergeRequest);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/auto_merge_config").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(autoMergeRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).updateAutoMergeConfig(Mockito.any(AutoMergeRequest.class));
+    }
+
+    @Test
+    public void testUpdatePushdownMode() throws Exception {
+        PushDownModeRequest config = new PushDownModeRequest();
+        config.setProject("default");
+        config.setPushdownRangeLimited(true);
+        config.setTable("DEFAULT.TEST_KYLIN_FACT");
+        Mockito.doNothing().when(tableService).setPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT", true);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/pushdown_mode").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(config))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).setPushdownMode(Mockito.any(PushDownModeRequest.class));
+    }
+
     private List<TablesAndColumnsResponse> mockTableAndColumns() {
         List<TablesAndColumnsResponse> result = new ArrayList<>();
         result.add(new TablesAndColumnsResponse());
         return result;
+    }
+
+    private AutoMergeRequest mockAutoMergeRequest() {
+        AutoMergeRequest autoMergeRequest = new AutoMergeRequest();
+        autoMergeRequest.setProject("default");
+        autoMergeRequest.setTable("DEFAULT.TEST_KYLIN_FACT");
+        autoMergeRequest.setAutoMergeEnabled(true);
+        autoMergeRequest.setAutoMergeTimeRanges(new String[]{"MINUTE"});
+        autoMergeRequest.setVolatileRangeEnabled(true);
+        autoMergeRequest.setVolatileRangeNumber(7);
+        autoMergeRequest.setVolatileRangeType("MINUTE");
+        return autoMergeRequest;
     }
 
     private List<TableDesc> mockTables() {

@@ -23,7 +23,14 @@
  */
 
 package io.kyligence.kap.rest.request;
-//resolve Cognitive Complexity of methods should not be too high
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+@AllArgsConstructor
 public class JobFilter {
 
     private Integer[] status;
@@ -40,69 +47,4 @@ public class JobFilter {
 
     private boolean reverse;
 
-    public Integer[] getStatus() {
-        return status;
-    }
-
-    public void setStatus(Integer[] status) {
-        this.status = status;
-    }
-
-    public String getJobName() {
-        return jobName;
-    }
-
-    public void setJobName(String jobName) {
-        this.jobName = jobName;
-    }
-
-    public int getTimeFilter() {
-        return timeFilter;
-    }
-
-    public void setTimeFilter(int timeFilter) {
-        this.timeFilter = timeFilter;
-    }
-
-    public String[] getSubjects() {
-        return subjects;
-    }
-
-    public void setSubjects(String[] subjects) {
-        this.subjects = subjects;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
-    }
-
-    public String getSortBy() {
-        return sortBy;
-    }
-
-    public void setSortBy(String sortBy) {
-        this.sortBy = sortBy;
-    }
-
-    public boolean isReverse() {
-        return reverse;
-    }
-
-    public void setReverse(boolean reverse) {
-        this.reverse = reverse;
-    }
-
-    public JobFilter(Integer[] status, String jobName, int timeFilter, String[] subjects, String project, String sortBy, boolean reverse) {
-        this.status = status;
-        this.jobName = jobName;
-        this.timeFilter = timeFilter;
-        this.subjects = subjects;
-        this.project = project;
-        this.sortBy = sortBy;
-        this.reverse = reverse;
-    }
 }

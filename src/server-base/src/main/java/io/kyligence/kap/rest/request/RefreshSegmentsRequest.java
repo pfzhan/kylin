@@ -27,12 +27,21 @@ package io.kyligence.kap.rest.request;
 import lombok.Getter;
 import lombok.Setter;
 
-@Setter
 @Getter
-public class ModelCloneRequest {
+@Setter
+public class RefreshSegmentsRequest {
 
-    private String modelName;
-    private String newModelName;
+    private String refreshStart;
+
+    private String refreshEnd;
+
+    private String affectedStart;
+
+    private String affectedEnd;
+
     private String project;
+
+    private String table;
+
 
 }

@@ -143,6 +143,9 @@ public class NDataModel extends RootPersistentEntity {
     private String rootFactTable;
 
     @EqualsAndHashCode.Include
+    @JsonProperty("management_type")
+    private ManagementType managementType = ManagementType.TABLE_ORIENTED;
+
     @JsonProperty("lookups")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private JoinTableDesc[] joinTables;
@@ -170,6 +173,18 @@ public class NDataModel extends RootPersistentEntity {
     @EqualsAndHashCode.Include
     @JsonProperty("capacity")
     private RealizationCapacity capacity = RealizationCapacity.MEDIUM;
+
+    @EqualsAndHashCode.Include
+    @JsonProperty("auto_merge_enabled")
+    private boolean autoMergeEnabled = true;
+
+    @EqualsAndHashCode.Include
+    @JsonProperty("auto_merge_time_ranges")
+    private List<AutoMergeTimeEnum> autoMergeTimeRanges = Lists.newArrayList(AutoMergeTimeEnum.WEEK, AutoMergeTimeEnum.MONTH);
+
+    @JsonProperty("volatile_range")
+    private VolatileRange volatileRange = new VolatileRange();
+
 
     // computed attributes
     private TableRef rootFactTableRef;
@@ -212,6 +227,10 @@ public class NDataModel extends RootPersistentEntity {
         this.colCorrs = other.colCorrs;
         this.mpColStrs = other.mpColStrs;
         this.computedColumnDescs = other.computedColumnDescs;
+        this.managementType = other.managementType;
+        this.autoMergeEnabled = other.autoMergeEnabled;
+        this.autoMergeTimeRanges = other.autoMergeTimeRanges;
+        this.volatileRange = other.volatileRange;
     }
 
     public KylinConfig getConfig() {
@@ -221,6 +240,38 @@ public class NDataModel extends RootPersistentEntity {
     @Override
     public String resourceName() {
         return name;
+    }
+
+    public ManagementType getManagementType() {
+        return managementType;
+    }
+
+    public void setManagementType(ManagementType managementType) {
+        this.managementType = managementType;
+    }
+
+    public boolean isAutoMergeEnabled() {
+        return autoMergeEnabled;
+    }
+
+    public void setAutoMergeEnabled(boolean autoMergeEnabled) {
+        this.autoMergeEnabled = autoMergeEnabled;
+    }
+
+    public List<AutoMergeTimeEnum> getAutoMergeTimeRanges() {
+        return autoMergeTimeRanges;
+    }
+
+    public void setAutoMergeTimeRanges(List<AutoMergeTimeEnum> autoMergeTimeRanges) {
+        this.autoMergeTimeRanges = autoMergeTimeRanges;
+    }
+
+    public VolatileRange getVolatileRange() {
+        return volatileRange;
+    }
+
+    public void setVolatileRange(VolatileRange volatileRange) {
+        this.volatileRange = volatileRange;
     }
 
     public String getName() {

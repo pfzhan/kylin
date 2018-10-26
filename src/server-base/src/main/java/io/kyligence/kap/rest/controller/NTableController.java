@@ -24,16 +24,23 @@
 
 package io.kyligence.kap.rest.controller;
 
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DatabaseLoadRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.FactTableRequest;
+import io.kyligence.kap.rest.request.PushDownModeRequest;
+import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
+import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
+import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableService;
 import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -65,6 +72,8 @@ public class NTableController extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NTableController.class);
 
     private static final Message msg = MsgPicker.getMsg();
+
+    private static final String TABLE = "table";
 
     @Autowired
     @Qualifier("tableService")
@@ -121,10 +130,10 @@ public class NTableController extends NBasicController {
     public EnvelopeResponse setTableFact(@RequestBody FactTableRequest factTableRequest) throws IOException {
 
         checkProjectName(factTableRequest.getProject());
-        if (factTableRequest.getFact()) {
+        if (factTableRequest.isFact()) {
             checkRequiredArg("column", factTableRequest.getColumn());
         }
-        tableService.setFact(factTableRequest.getTable(), factTableRequest.getProject(), factTableRequest.getFact(),
+        tableService.setFact(factTableRequest.getTable(), factTableRequest.getProject(), factTableRequest.isFact(),
                 factTableRequest.getColumn());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
@@ -153,12 +162,12 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sets, "");
     }
 
-    @RequestMapping(value = "/date_range", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/data_range", method = {RequestMethod.POST}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
     public EnvelopeResponse setDateRanges(@RequestBody DateRangeRequest dateRangeRequest) throws Exception {
         checkProjectName(dateRangeRequest.getProject());
-        checkRequiredArg("table", dateRangeRequest.getTable());
+        checkRequiredArg(TABLE, dateRangeRequest.getTable());
         tableService.setDataRange(dateRangeRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
@@ -217,6 +226,96 @@ public class NTableController extends NBasicController {
         List<TablesAndColumnsResponse> responses = tableService.getTableAndColomns(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, getDataResponse("tablesAndColumns", responses, offset, limit)
                 , "");
+    }
+
+    @RequestMapping(value = "/affected_data_range", method = {RequestMethod.GET}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse getRefreshAffectedDateRange(@RequestParam(value = "project", required = true) String project,
+                                                        @RequestParam(value = "table", required = true) String table,
+                                                        @RequestParam(value = "start", required = true) String start,
+                                                        @RequestParam(value = "end", required = true) String end) throws Exception {
+        checkProjectName(project);
+        checkRequiredArg(TABLE, table);
+        checkRequiredArg("start", start);
+        checkRequiredArg("end", end);
+        tableService.checkRefreshDataRangeReadiness(project, table, start, end);
+        RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse(project, table, start, end, ManagementType.TABLE_ORIENTED);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @RequestMapping(value = "/data_range", method = {RequestMethod.PUT}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse refreshSegments(@RequestBody RefreshSegmentsRequest request) throws Exception {
+        checkProjectName(request.getProject());
+        checkRequiredArg(TABLE, request.getTable());
+        checkRequiredArg("refresh start", request.getRefreshStart());
+        checkRequiredArg("refresh end", request.getRefreshEnd());
+        checkRequiredArg("affected start", request.getAffectedStart());
+        checkRequiredArg("affected end", request.getAffectedEnd());
+        modelService.refreshSegments(request.getProject(), request.getTable(), request.getRefreshStart(), request.getRefreshEnd(), request.getAffectedStart(), request.getAffectedEnd());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/pushdown_mode", method = {RequestMethod.PUT}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse setPushdownMode(@RequestBody PushDownModeRequest pushDownModeRequest) throws Exception {
+        checkProjectName(pushDownModeRequest.getProject());
+        checkRequiredArg(TABLE, pushDownModeRequest.getTable());
+        tableService.setPushDownMode(pushDownModeRequest.getProject(), pushDownModeRequest.getTable(), pushDownModeRequest.isPushdownRangeLimited());
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/pushdown_mode", method = {RequestMethod.GET}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse getPushdownMode(@RequestParam(value = "project", required = true) String project,
+                                            @RequestParam(value = "table", required = true) String table) throws Exception {
+        checkProjectName(project);
+        checkRequiredArg(TABLE, table);
+        boolean result = tableService.getPushDownMode(project, table);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, result, "");
+    }
+
+    @RequestMapping(value = "/auto_merge_config", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse getAutoMergeConfig(@RequestParam(value = "model", required = false) String modelName,
+                                               @RequestParam(value = "table", required = false) String tableName,
+                                               @RequestParam(value = "project", required = true) String project) throws IOException {
+        checkProjectName(project);
+        if (StringUtils.isEmpty(modelName) && StringUtils.isEmpty(tableName)) {
+            throw new BadRequestException("model name or table name must be specified!");
+        }
+        AutoMergeConfigResponse response;
+        if (StringUtils.isNotEmpty(modelName)) {
+            response = tableService.getAutoMergeConfigByModel(project, modelName);
+        } else {
+            response = tableService.getAutoMergeConfigByTable(project, tableName);
+        }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
+    }
+
+    @RequestMapping(value = "/auto_merge_config", method = {RequestMethod.PUT}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse updateAutoMergeConfig(@RequestBody AutoMergeRequest autoMergeRequest) throws IOException {
+        checkProjectName(autoMergeRequest.getProject());
+        if (ArrayUtils.isEmpty(autoMergeRequest.getAutoMergeTimeRanges())) {
+            throw new BadRequestException("You should specify at least one autoMerge range!");
+        }
+        if (StringUtils.isEmpty(autoMergeRequest.getModel()) && StringUtils.isEmpty(autoMergeRequest.getTable())) {
+            throw new BadRequestException("model name or table name must be specified!");
+        }
+        if (StringUtils.isNotEmpty(autoMergeRequest.getModel())) {
+            tableService.setAutoMergeConfigByModel(autoMergeRequest);
+        } else {
+            tableService.setAutoMergeConfigByTable(autoMergeRequest);
+        }
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
 }

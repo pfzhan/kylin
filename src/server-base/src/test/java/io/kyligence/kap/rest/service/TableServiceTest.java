@@ -47,12 +47,19 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
+import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import org.apache.kylin.common.KylinConfig;
 import com.google.common.collect.Lists;
@@ -64,6 +71,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -193,30 +201,104 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void testSetFactAndSetDataRange() throws Exception {
         tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
         List<TableDesc> tables = tableService.getTableDesc("default", false, "", "DEFAULT", true);
+        //test set fact and table list order by fact
+        Assert.assertTrue(tables.get(0).getName().equals("TEST_KYLIN_FACT") && tables.get(0).getFact());
+        NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        List<SegmentRange> segmentRanges = new ArrayList<>();
+        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(0L, 1294364500000L);
+        segmentRanges.add(segmentRange);
+        dataLoadingRange.setSegmentRanges(segmentRanges);
+        dataLoadingRange.setWaterMarkStart(-1);
+        dataLoadingRange.setWaterMarkEnd(0);
+        NDataLoadingRange updateRange = rangeManager.copyForWrite(dataLoadingRange);
+        rangeManager.updateDataLoadingRange(updateRange);
         tableService.setDataRange(mockDateRangeRequest());
-        Assert.assertTrue(tables.get(0).getFact() && tables.get(0).getName().equals("TEST_KYLIN_FACT"));
+        dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertEquals(dataLoadingRange.getActualQueryStart(), 0);
+        Assert.assertEquals(dataLoadingRange.getActualQueryEnd(), 1294364500000L);
+        // test fact table to be set normal
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("NDataLoadingRange is related in models");
+        thrown.expectMessage("NDataLoadingRange is related in models '[nmodel_basic, nmodel_basic_inner]' as rootFactTable, it can not be removed !!!");
         tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "");
-        DateRangeRequest dateRangeRequest = mockDateRangeRequest();
-        dateRangeRequest.setTable("DEFAULT.TEST_ACCOUNT");
-        //set Account fact true and false
-        tableService.setFact("DEFAULT.TEST_ACCOUNT", "default", true, "ACCOUNT_BUYER_LEVEL");
-        List<TableDesc> tables2 = tableService.getTableDesc("default", false, "TEST_KYLIN_FACT", "DEFAULT", true);
-        tableService.setDataRange(dateRangeRequest);
-        Assert.assertTrue(tables2.get(0).getFact() && tables2.get(0).getName().equals("DEFAULT.TEST_ACCOUNT"));
-        tableService.setFact("DEFAULT.TEST_ACCOUNT", "default", false, "");
-        Assert.assertTrue(!tables2.get(0).getFact() && tables2.get(0).getName().equals("DEFAULT.TEST_ACCOUNT"));
     }
 
     @Test
     public void testSetDateRangeException() throws IOException, PersistentException {
         DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         dateRangeRequest.setTable("DEFAULT.TEST_ACCOUNT");
-        thrown.expect(IllegalArgumentException.class);
-        thrown.expectMessage("this table can not set date range, plz check table");
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("this table can not set date range, please check table");
         tableService.setDataRange(dateRangeRequest);
     }
+
+    @Test
+    public void testSetDateRangeException3() throws IOException, PersistentException {
+        //test some building segments in tail,and set dataRange smaller
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
+        NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        List<SegmentRange> segmentRanges = new ArrayList<>();
+        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(0L, 1294364500000L);
+        segmentRanges.add(segmentRange);
+        SegmentRange segmentRange2 = new SegmentRange.TimePartitionedSegmentRange(0L, 1294364600000L);
+        segmentRanges.add(segmentRange2);
+        dataLoadingRange.setSegmentRanges(segmentRanges);
+        dataLoadingRange.setWaterMarkStart(-1);
+        //segment2 building
+        dataLoadingRange.setWaterMarkEnd(0);
+        NDataLoadingRange updateRange = rangeManager.copyForWrite(dataLoadingRange);
+        rangeManager.updateDataLoadingRange(updateRange);
+        DateRangeRequest dateRangeRequest = mockDateRangeRequest();
+        dateRangeRequest.setStart("0");
+        dateRangeRequest.setEnd("1294364700000");
+        tableService.setDataRange(dateRangeRequest);
+        dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertEquals(0, dataLoadingRange.getActualQueryStart());
+        Assert.assertEquals(1294364500000L, dataLoadingRange.getActualQueryEnd());
+        //shrink head
+        dateRangeRequest.setStart("100");
+        tableService.setDataRange(dateRangeRequest);
+        dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertEquals(100, dataLoadingRange.getActualQueryStart());
+        Assert.assertEquals(1294364500000L, dataLoadingRange.getActualQueryEnd());
+        //shrink tail
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Some segments is building, can not set data range smaller than before");
+        dateRangeRequest.setEnd("1294364600000");
+        tableService.setDataRange(dateRangeRequest);
+    }
+
+    @Test
+    public void testSetDateRangeException4() throws IOException, PersistentException {
+        //test some building segments in header,and set dataRange smaller
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
+        NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        List<SegmentRange> segmentRanges = new ArrayList<>();
+        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(1294364400000L, 1294364500000L);
+        segmentRanges.add(segmentRange);
+        SegmentRange segmentRange2 = new SegmentRange.TimePartitionedSegmentRange(1294364500000L, 1294364600000L);
+        segmentRanges.add(segmentRange2);
+        dataLoadingRange.setSegmentRanges(segmentRanges);
+        dataLoadingRange.setWaterMarkStart(0);
+        //segment1 is building
+        dataLoadingRange.setWaterMarkEnd(1);
+        NDataLoadingRange updateRange = rangeManager.copyForWrite(dataLoadingRange);
+        rangeManager.updateDataLoadingRange(updateRange);
+        DateRangeRequest dateRangeRequest = mockDateRangeRequest();
+        dateRangeRequest.setStart("1294364300000");
+        dateRangeRequest.setEnd("1294364700000");
+        tableService.setDataRange(dateRangeRequest);
+        dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertEquals(1294364500000L, dataLoadingRange.getActualQueryStart());
+        Assert.assertEquals(1294364600000L, dataLoadingRange.getActualQueryEnd());
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Some segments is building, can not set data range smaller than before");
+        dateRangeRequest.setStart("1294364350000");
+        tableService.setDataRange(dateRangeRequest);
+    }
+
 
     @Test
     public void testGetTableAndColumns() {
@@ -240,6 +322,111 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(tables.get(0).isTop());
     }
 
+    @Test
+    public void checkRefreshDataRangeException1() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("There is no ready segment to refresh!");
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
+        tableService.checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0", "1294364500000");
+    }
+
+    @Test
+    public void checkRefreshDataRangeException2() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Data during refresh range must be ready!");
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
+        NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        List<SegmentRange> segmentRanges = new ArrayList<>();
+        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(1294364400000L, 1294364500000L);
+        segmentRanges.add(segmentRange);
+        dataLoadingRange.setSegmentRanges(segmentRanges);
+        dataLoadingRange.setWaterMarkStart(-1);
+        dataLoadingRange.setWaterMarkEnd(0);
+        NDataLoadingRange updateRange = rangeManager.copyForWrite(dataLoadingRange);
+        rangeManager.updateDataLoadingRange(updateRange);
+        tableService.checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0", "1294364500000");
+    }
+
+    @Test
+    public void testGetAutoMergeConfigException() {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Model default does not exist in project default");
+        tableService.getAutoMergeConfigByModel("default", "default");
+    }
+
+    @Test
+    public void testGetAutoMergeConfig() throws IOException {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel dataModel = modelManager.getDataModelDesc("nmodel_basic");
+        dataModel.setManagementType(ManagementType.TABLE_ORIENTED);
+        NDataModel dataModelUpdate = modelManager.copyForWrite(dataModel);
+        modelManager.updateDataModelDesc(dataModelUpdate);
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
+        //table oriented model
+        AutoMergeConfigResponse response = tableService.getAutoMergeConfigByTable("default", "DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertEquals(response.getVolatileRange().getVolatileRangeNumber(), 0);
+        Assert.assertEquals(response.isAutoMergeEnabled(), true);
+        Assert.assertEquals(response.getAutoMergeTimeRanges().size(), 2);
+
+        dataModel = modelManager.getDataModelDesc("nmodel_basic");
+        dataModel.setManagementType(ManagementType.MODEL_BASED);
+        dataModelUpdate = modelManager.copyForWrite(dataModel);
+        modelManager.updateDataModelDesc(dataModelUpdate);
+        //model Based model
+        response = tableService.getAutoMergeConfigByModel("default", "nmodel_basic");
+        Assert.assertEquals(response.getVolatileRange().getVolatileRangeNumber(), 0);
+        Assert.assertEquals(response.isAutoMergeEnabled(), true);
+        Assert.assertEquals(response.getAutoMergeTimeRanges().size(), 2);
+
+    }
+
+    @Test
+    public void testSetAutoMergeConfigByTable() throws IOException {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel dataModel = modelManager.getDataModelDesc("nmodel_basic");
+        dataModel.setManagementType(ManagementType.TABLE_ORIENTED);
+        NDataModel dataModelUpdate = modelManager.copyForWrite(dataModel);
+        modelManager.updateDataModelDesc(dataModelUpdate);
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
+        AutoMergeRequest autoMergeRequest = mockAutoMergeRequest();
+        tableService.setAutoMergeConfigByTable(autoMergeRequest);
+        AutoMergeConfigResponse respone = tableService.getAutoMergeConfigByTable("default", "DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertEquals(respone.isAutoMergeEnabled(), autoMergeRequest.isAutoMergeEnabled());
+        Assert.assertEquals(respone.getAutoMergeTimeRanges().size(), autoMergeRequest.getAutoMergeTimeRanges().length);
+        Assert.assertEquals(respone.getVolatileRange().getVolatileRangeNumber(), autoMergeRequest.getVolatileRangeNumber());
+        Assert.assertEquals(respone.getVolatileRange().getVolatileRangeType().toString(), autoMergeRequest.getVolatileRangeType());
+
+    }
+
+    @Test
+    public void testSetAutoMergeConfigByModel() throws IOException {
+        AutoMergeRequest autoMergeRequest = mockAutoMergeRequest();
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel dataModel = modelManager.getDataModelDesc("nmodel_basic");
+        dataModel.setManagementType(ManagementType.MODEL_BASED);
+        NDataModel dataModelUpdate = modelManager.copyForWrite(dataModel);
+        modelManager.updateDataModelDesc(dataModelUpdate);
+        autoMergeRequest.setTable("");
+        autoMergeRequest.setModel("nmodel_basic");
+        tableService.setAutoMergeConfigByModel(autoMergeRequest);
+        AutoMergeConfigResponse respone = tableService.getAutoMergeConfigByModel("default", "nmodel_basic");
+        Assert.assertEquals(respone.isAutoMergeEnabled(), autoMergeRequest.isAutoMergeEnabled());
+        Assert.assertEquals(respone.getAutoMergeTimeRanges().size(), autoMergeRequest.getAutoMergeTimeRanges().length);
+        Assert.assertEquals(respone.getVolatileRange().getVolatileRangeNumber(), autoMergeRequest.getVolatileRangeNumber());
+        Assert.assertEquals(respone.getVolatileRange().getVolatileRangeType().toString(), autoMergeRequest.getVolatileRangeType());
+
+    }
+
+    @Test
+    public void testSetPushDownMode() throws IOException {
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
+        tableService.setPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT", true);
+        boolean result = tableService.getPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertTrue(result);
+    }
+
+
     private TopTableRequest mockTopTableRequest() {
         TopTableRequest topTableRequest = new TopTableRequest();
         topTableRequest.setProject("default");
@@ -248,10 +435,22 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         return topTableRequest;
     }
 
+    private AutoMergeRequest mockAutoMergeRequest() {
+        AutoMergeRequest autoMergeRequest = new AutoMergeRequest();
+        autoMergeRequest.setProject("default");
+        autoMergeRequest.setTable("DEFAULT.TEST_KYLIN_FACT");
+        autoMergeRequest.setAutoMergeEnabled(true);
+        autoMergeRequest.setAutoMergeTimeRanges(new String[]{"HOUR"});
+        autoMergeRequest.setVolatileRangeEnabled(true);
+        autoMergeRequest.setVolatileRangeNumber(7);
+        autoMergeRequest.setVolatileRangeType("HOUR");
+        return autoMergeRequest;
+    }
+
     private DateRangeRequest mockDateRangeRequest() {
         DateRangeRequest request = new DateRangeRequest();
         request.setStart("0");
-        request.setEnd("155998883322");
+        request.setEnd("1294450900000");
         request.setProject("default");
         request.setTable("DEFAULT.TEST_KYLIN_FACT");
         return request;

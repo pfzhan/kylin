@@ -24,7 +24,13 @@
 
 package io.kyligence.kap.rest.request;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+@Getter
+@Setter
+@NoArgsConstructor
 public class DateRangeRequest {
     private String start;
 
@@ -34,39 +40,5 @@ public class DateRangeRequest {
 
     private String table;
 
-    public String getStart() {
-        return start;
-    }
-
-    public void setStart(String start) {
-        this.start = start;
-    }
-
-    public String getEnd() {
-        return end;
-    }
-
-    public void setEnd(String end) {
-        this.end = end;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
-    }
-
-    public String getTable() {
-        return table;
-    }
-
-    public void setTable(String table) {
-        this.table = table;
-    }
-
-    public DateRangeRequest() {
-    }
 
 }

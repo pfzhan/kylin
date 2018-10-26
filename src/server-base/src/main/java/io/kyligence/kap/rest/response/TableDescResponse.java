@@ -25,6 +25,8 @@
 package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -34,6 +36,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+@Setter
+@Getter
 public class TableDescResponse extends TableDesc {
     @JsonProperty("exd")
     Map<String, String> descExd = new HashMap<String, String>();
@@ -51,128 +55,17 @@ public class TableDescResponse extends TableDesc {
     private String partitionedColumn;
     @JsonProperty("segment_ranges")
     private Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
-    @JsonProperty("water_mark_start")
-    private int waterMarkStart = -1;
-    @JsonProperty("water_mark_end")
-    private int waterMarkEnd = -1;
-    @JsonProperty("start_time")
-    private long startTime = -1;
-    @JsonProperty("end_time")
-    private long endTime = -1;
+    //ready segments range
+    @JsonProperty("ready_start")
+    private long readyStart = -1;
+    @JsonProperty("ready_end")
+    private long readyEnd = -1;
+    //datarange for query
+    @JsonProperty("actual_query_start")
+    private long actualQueryStart = -1;
+    @JsonProperty("actual_query_end")
+    private long actualQueryEnd = -1;
 
-    public long getStartTime() {
-        return startTime;
-    }
-
-    public void setStartTime(long startTime) {
-        this.startTime = startTime;
-    }
-
-    public long getEndTime() {
-        return endTime;
-    }
-
-    public void setEndTime(long endTime) {
-        this.endTime = endTime;
-    }
-
-    public int getWaterMarkStart() {
-        return waterMarkStart;
-    }
-
-    public void setWaterMarkStart(int waterMarkStart) {
-        this.waterMarkStart = waterMarkStart;
-    }
-
-    public int getWaterMarkEnd() {
-        return waterMarkEnd;
-    }
-
-    public void setWaterMarkEnd(int waterMarkEnd) {
-        this.waterMarkEnd = waterMarkEnd;
-    }
-
-    public Map<SegmentRange, SegmentStatusEnum> getSegmentRanges() {
-        return segmentRanges;
-    }
-
-    public void setSegmentRanges(Map<SegmentRange, SegmentStatusEnum> segmentRanges) {
-        this.segmentRanges = segmentRanges;
-    }
-
-    public String getPartitionedColumn() {
-        return partitionedColumn;
-    }
-
-    public void setPartitionedColumn(String partitionedColumn) {
-        this.partitionedColumn = partitionedColumn;
-    }
-
-    public Set<String> getPrimaryKey() {
-        return primaryKey;
-    }
-
-    public void setPrimaryKey(Set<String> primaryKey) {
-        this.primaryKey = primaryKey;
-    }
-
-    public Set<String> getForeignKey() {
-        return foreignKey;
-    }
-
-    public void setForeignKey(Set<String> foreignKey) {
-        this.foreignKey = foreignKey;
-    }
-
-    public boolean isRootFact() {
-        return rootFact;
-    }
-
-    public void setRootFact(boolean rootFact) {
-        this.rootFact = rootFact;
-    }
-
-    public boolean isLookup() {
-        return lookup;
-    }
-
-    public void setLookup(boolean lookup) {
-        this.lookup = lookup;
-    }
-
-    /**
-     * @return the cardinality
-     */
-    public Map<String, Long> getCardinality() {
-        return cardinality;
-    }
-
-    /**
-     * @param cardinality
-     *            the cardinality to set
-     */
-    public void setCardinality(Map<String, Long> cardinality) {
-        this.cardinality = cardinality;
-    }
-
-    /**
-     * @return the descExd
-     */
-    public Map<String, String> getDescExd() {
-        return descExd;
-    }
-
-    /**
-     * @param descExd
-     *            the descExd to set
-     */
-    public void setDescExd(Map<String, String> descExd) {
-        this.descExd = descExd;
-    }
-
-    /**
-     * @param table
-     */
     public TableDescResponse(TableDesc table) {
         super(table);
     }

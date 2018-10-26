@@ -93,7 +93,7 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
 
     }
 
-        @Test
+    @Test
     public void testCreateAndUpdateDataLoadingRange() throws IOException {
 
         String tableName = "DEFAULT.TEST_KYLIN_FACT";

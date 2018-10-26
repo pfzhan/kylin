@@ -33,10 +33,16 @@ import com.google.common.collect.SetMultimap;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
+import io.kyligence.kap.metadata.model.VolatileRange;
+import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kylingence.kap.event.manager.EventManager;
@@ -53,6 +59,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
@@ -97,38 +104,38 @@ public class TableService extends BasicService {
                 public boolean apply(TableDesc tableDesc) {
                     if (StringUtils.isEmpty(database)) {
                         return true;
-                    } else if (tableDesc.getDatabase().equals(database)) {
-                        return true;
                     }
-                    return false;
+                    return tableDesc.getDatabase().equals(database);
                 }
             }).filter(new Predicate<TableDesc>() {
                 @Override
                 public boolean apply(TableDesc tableDesc) {
                     if (StringUtils.isEmpty(tableName)) {
                         return true;
-                    } else if (tableDesc.getName().toLowerCase().contains(tableName.toLowerCase())) {
-                        return true;
                     }
-                    return false;
+                    return tableDesc.getName().toLowerCase().contains(tableName.toLowerCase());
                 }
             }).toSortedList(new Comparator<TableDesc>() {
                 @Override
                 public int compare(TableDesc o1, TableDesc o2) {
-                    if (!(o1.isTop() ^ o2.isTop())) {
-                        if (!(o1.getFact() ^ o2.getFact())) {
-                            return o1.getName().compareToIgnoreCase(o2.getName());
-                        } else {
-                            return o1.getFact() && !o2.getFact() ? -1 : 1;
-                        }
-                    } else {
-                        return o1.isTop() && !o2.isTop() ? -1 : 1;
-                    }
+                    return compareTableDesc(o1, o2);
                 }
             })));
         }
         tables = getTablesResponse(tables, project, withExt);
         return tables;
+    }
+
+    private int compareTableDesc(TableDesc table1, TableDesc table2) {
+        if (!(table1.isTop() ^ table2.isTop())) {
+            if (!(table1.getFact() ^ table2.getFact())) {
+                return table1.getName().compareToIgnoreCase(table2.getName());
+            } else {
+                return table1.getFact() && !table2.getFact() ? -1 : 1;
+            }
+        } else {
+            return table1.isTop() && !table2.isTop() ? -1 : 1;
+        }
     }
 
     public String[] loadTableToProject(TableDesc tableDesc, TableExtDesc extDesc, String project) throws IOException {
@@ -276,12 +283,12 @@ public class TableService extends BasicService {
             if (null != dataLoadingRange) {
                 rtableDesc.setPartitionedColumn(dataLoadingRange.getColumnName());
                 rtableDesc.setSegmentRanges(getSegmentRangesWithStatus(dataLoadingRange));
-                rtableDesc.setWaterMarkStart(dataLoadingRange.getWaterMarkStart());
-                rtableDesc.setWaterMarkEnd(dataLoadingRange.getWaterMarkEnd());
+                rtableDesc.setActualQueryStart(dataLoadingRange.getActualQueryStart());
+                rtableDesc.setActualQueryEnd(dataLoadingRange.getActualQueryEnd());
                 SegmentRange segmentRange = dataLoadingRange.getCoveredSegmentRange();
                 if (segmentRange != null) {
-                    rtableDesc.setStartTime(Long.parseLong(segmentRange.getStart().toString()));
-                    rtableDesc.setEndTime(Long.parseLong(segmentRange.getEnd().toString()));
+                    rtableDesc.setReadyStart(Long.parseLong(segmentRange.getStart().toString()));
+                    rtableDesc.setReadyEnd(Long.parseLong(segmentRange.getEnd().toString()));
 
                 }
             }
@@ -363,30 +370,60 @@ public class TableService extends BasicService {
         String table = dateRangeRequest.getTable();
         SegmentRange segmentRange = getSegmentRangeByTable(dateRangeRequest);
         NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
-        NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange(table);
+        NDataLoadingRange dataLoadingRange = getDataLoadingRange(dateRangeRequest.getProject(), dateRangeRequest.getTable());
         NTableMetadataManager tableManager = getTableManager(project);
-        if (dataLoadingRange != null) {
-            TableDesc tableDesc = tableManager.getTableDesc(table);
-            tableManager.updateTableDesc(tableDesc);
-            List<SegmentRange> segmentRanges = getSegmentRanges(rangeManager.getDataLoadingRange(table), segmentRange);
-            EventManager eventManager = getEventManager(project);
-            for (SegmentRange seg : segmentRanges) {
-                LoadingRangeUpdateEvent updateEvent = new LoadingRangeUpdateEvent();
-                updateEvent.setTableName(table);
-                updateEvent.setApproved(true);
-                updateEvent.setProject(project);
-                updateEvent.setSegmentRange(seg);
-                eventManager.post(updateEvent);
-                dataLoadingRange = rangeManager.appendSegmentRange(dataLoadingRange, seg);
+        TableDesc tableDesc = tableManager.getTableDesc(table);
+        SegmentRange newSegmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
+        SegmentRange readyRange = dataLoadingRange.getCoveredReadySegmentRange();
+        SegmentRange allRange = dataLoadingRange.getCoveredSegmentRange();
+
+        //has some building segments
+        checkShrinkRangeInBuildingSide(allRange, readyRange, newSegmentRange);
+
+        List<SegmentRange> segmentRanges = getNewSegmentRanges(rangeManager.getDataLoadingRange(table), segmentRange);
+        EventManager eventManager = getEventManager(project);
+        for (SegmentRange seg : segmentRanges) {
+            LoadingRangeUpdateEvent updateEvent = new LoadingRangeUpdateEvent();
+            updateEvent.setTableName(table);
+            updateEvent.setApproved(true);
+            updateEvent.setProject(project);
+            updateEvent.setSegmentRange(seg);
+            eventManager.post(updateEvent);
+            dataLoadingRange = rangeManager.appendSegmentRange(dataLoadingRange, seg);
+        }
+
+        if (readyRange == null) {
+            return;
+        } else {
+            NDataLoadingRange dataLoadingRangeUpdate = rangeManager.copyForWrite(dataLoadingRange);
+            long start = newSegmentRange.getStart().compareTo(readyRange.getStart()) < 0 ? Long.parseLong(readyRange.getStart().toString()) : Long.parseLong(newSegmentRange.getStart().toString());
+            long end = newSegmentRange.getEnd().compareTo(readyRange.getEnd()) < 0 ? Long.parseLong(newSegmentRange.getEnd().toString()) : Long.parseLong(readyRange.getEnd().toString());
+            dataLoadingRangeUpdate.setActualQueryStart(start);
+            dataLoadingRangeUpdate.setActualQueryEnd(end);
+            rangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
+        }
+
+    }
+
+    private void checkShrinkRangeInBuildingSide(SegmentRange allRange, SegmentRange readyRange, SegmentRange newSegmentRange) {
+        if (allRange == null) {
+            return;
+        } else {
+            //having some building segments in tail
+            if (readyRange == null || readyRange.getEnd().compareTo(allRange.getEnd()) < 0) {
+                if (newSegmentRange.getEnd().compareTo(allRange.getEnd()) < 0)
+                    throw new BadRequestException("Some segments is building, can not set data range smaller than before");
             }
 
-        } else {
-            throw new IllegalArgumentException(
-                    "this table can not set date range, plz check table " + table + "is fact or else");
+            //having some building segments in head
+            if (readyRange == null || readyRange.getStart().compareTo(allRange.getStart()) > 0) {
+                if (newSegmentRange.getStart().compareTo(allRange.getStart()) > 0)
+                    throw new BadRequestException("Some segments is building, can not set data range smaller than before");
+            }
         }
     }
 
-    private List<SegmentRange> getSegmentRanges(NDataLoadingRange dataLoadingRange, SegmentRange newRange) {
+    private List<SegmentRange> getNewSegmentRanges(NDataLoadingRange dataLoadingRange, SegmentRange newRange) {
         List<SegmentRange> segmentRanges = new ArrayList<>();
         SegmentRange oldSegmentRange = dataLoadingRange.getCoveredSegmentRange();
         if (dataLoadingRange == null || null == oldSegmentRange || !oldSegmentRange.overlaps(newRange)) {
@@ -451,5 +488,124 @@ public class TableService extends BasicService {
             result.add(response);
         }
         return result;
+    }
+
+    public void checkRefreshDataRangeReadiness(String project, String table, String start, String end) {
+        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
+        SegmentRange readySegmentRange = dataLoadingRange.getCoveredReadySegmentRange();
+        if (readySegmentRange == null) {
+            throw new BadRequestException("There is no ready segment to refresh!");
+        }
+        NTableMetadataManager tableMetadataManager = getTableManager(project);
+        TableDesc tableDesc = tableMetadataManager.getTableDesc(table);
+        SegmentRange segmentRangeRefresh = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
+
+        if (!readySegmentRange.contains(segmentRangeRefresh)) {
+            throw new BadRequestException("Data during refresh range must be ready!");
+        }
+    }
+
+    private NDataLoadingRange getDataLoadingRange(String project, String table) {
+        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
+        if (dataLoadingRange == null) {
+            throw new IllegalStateException("this table can not set date range, please check table " + table + " is fact or not");
+        }
+        return dataLoadingRange;
+    }
+
+    public void setPushDownMode(String project, String table, boolean pushdownRangeLimited) throws IOException {
+        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
+        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRange dataLoadingRangeUpdate = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
+        dataLoadingRangeUpdate.setPushdownRangeLimited(pushdownRangeLimited);
+        dataLoadingRangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
+    }
+
+    public AutoMergeConfigResponse getAutoMergeConfigByModel(String project, String modelName) {
+        NDataModelManager dataModelManager = getDataModelManager(project);
+        AutoMergeConfigResponse mergeConfig = new AutoMergeConfigResponse();
+
+        NDataModel model = dataModelManager.getDataModelDesc(modelName);
+        if (model == null) {
+            throw new BadRequestException("Model " + modelName + " does not exist in project " + project);
+        }
+        if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
+            mergeConfig.setAutoMergeEnabled(model.isAutoMergeEnabled());
+            mergeConfig.setAutoMergeTimeRanges(model.getAutoMergeTimeRanges());
+            mergeConfig.setVolatileRange(model.getVolatileRange());
+        } else {
+            mergeConfig = getAutoMergeConfigByTable(project, model.getRootFactTable().getTableIdentity());
+        }
+
+        return mergeConfig;
+    }
+
+    public AutoMergeConfigResponse getAutoMergeConfigByTable(String project, String tableName) {
+        AutoMergeConfigResponse mergeConfig = new AutoMergeConfigResponse();
+        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, tableName);
+        mergeConfig.setAutoMergeEnabled(dataLoadingRange.isAutoMergeEnabled());
+        mergeConfig.setAutoMergeTimeRanges(dataLoadingRange.getAutoMergeTimeRanges());
+        mergeConfig.setVolatileRange(dataLoadingRange.getVolatileRange());
+        return mergeConfig;
+    }
+
+
+    public void setAutoMergeConfigByModel(AutoMergeRequest autoMergeRequest) throws IOException {
+        String project = autoMergeRequest.getProject();
+        String modelName = autoMergeRequest.getModel();
+        NDataModelManager dataModelManager = getDataModelManager(project);
+        List<AutoMergeTimeEnum> autoMergeRanges = new ArrayList<>();
+        for (String range : autoMergeRequest.getAutoMergeTimeRanges()) {
+            autoMergeRanges.add(AutoMergeTimeEnum.valueOf(range));
+        }
+        VolatileRange volatileRange = new VolatileRange();
+        volatileRange.setVolatileRangeType(AutoMergeTimeEnum.valueOf(autoMergeRequest.getVolatileRangeType()));
+        volatileRange.setVolatileRangeEnabled(autoMergeRequest.isVolatileRangeEnabled());
+        volatileRange.setVolatileRangeNumber(autoMergeRequest.getVolatileRangeNumber());
+
+        NDataModel model = dataModelManager.getDataModelDesc(modelName);
+        if (model == null) {
+            throw new IllegalStateException("Model " + modelName + "does not exist in project " + project);
+        }
+        if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
+            model.setVolatileRange(volatileRange);
+            model.setAutoMergeTimeRanges(autoMergeRanges);
+            model.setAutoMergeEnabled(autoMergeRequest.isAutoMergeEnabled());
+            NDataModel modelUpdate = dataModelManager.copyForWrite(model);
+            dataModelManager.updateDataModelDesc(modelUpdate);
+
+        } else {
+            autoMergeRequest.setTable(model.getRootFactTable().getTableIdentity());
+            setAutoMergeConfigByTable(autoMergeRequest);
+
+        }
+    }
+
+
+    public boolean getPushDownMode(String project, String table) {
+        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
+        return dataLoadingRange.isPushdownRangeLimited();
+    }
+
+    public void setAutoMergeConfigByTable(AutoMergeRequest autoMergeRequest) throws IOException {
+        String project = autoMergeRequest.getProject();
+        String tableName = autoMergeRequest.getTable();
+        List<AutoMergeTimeEnum> autoMergeRanges = new ArrayList<>();
+        for (String range : autoMergeRequest.getAutoMergeTimeRanges()) {
+            autoMergeRanges.add(AutoMergeTimeEnum.valueOf(range));
+        }
+        VolatileRange volatileRange = new VolatileRange();
+        volatileRange.setVolatileRangeType(AutoMergeTimeEnum.valueOf(autoMergeRequest.getVolatileRangeType()));
+        volatileRange.setVolatileRangeEnabled(autoMergeRequest.isVolatileRangeEnabled());
+        volatileRange.setVolatileRangeNumber(autoMergeRequest.getVolatileRangeNumber());
+        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, tableName);
+        dataLoadingRange.setAutoMergeEnabled(autoMergeRequest.isAutoMergeEnabled());
+        dataLoadingRange.setAutoMergeTimeRanges(autoMergeRanges);
+        dataLoadingRange.setVolatileRange(volatileRange);
+        NDataLoadingRange dataLoadingRangeUpdate = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
+        dataLoadingRangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
     }
 }

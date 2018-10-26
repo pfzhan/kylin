@@ -45,6 +45,8 @@ import io.kyligence.kap.rest.request.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -88,7 +90,7 @@ public class JobService extends BasicService {
         long timeEndInMillis = Long.MAX_VALUE;
         List<JobStatusEnum> statusList = new ArrayList<JobStatusEnum>();
         Integer[] status = jobFilter.getStatus();
-        if (null != status && status.length != 0) {
+        if (ArrayUtils.isNotEmpty(status)) {
             for (int stat : status) {
                 statusList.add(JobStatusEnum.getByCode(stat));
             }
@@ -99,7 +101,7 @@ public class JobService extends BasicService {
                 FluentIterable.from(jobs).filter(Predicates.and(new Predicate<AbstractExecutable>() {
                     @Override
                     public boolean apply(AbstractExecutable abstractExecutable) {
-                        if (states == null || states.size() == 0) {
+                        if (CollectionUtils.isEmpty(states)) {
                             return true;
                         }
                         ExecutableState state = abstractExecutable.getStatus();
@@ -109,7 +111,7 @@ public class JobService extends BasicService {
                     @Override
                     public boolean apply(AbstractExecutable abstractExecutable) {
                         String[] subjects = jobFilter.getSubjects();
-                        if (subjects == null || subjects.length == 0) {
+                        if (ArrayUtils.isEmpty(subjects)) {
                             return true;
                         }
                         return Lists.newArrayList(subjects).contains(abstractExecutable.getTargetSubject());
@@ -134,20 +136,7 @@ public class JobService extends BasicService {
                     @Override
                     public int compare(ExecutableResponse o1, ExecutableResponse o2) {
                         String sortBy = jobFilter.getSortBy();
-                        switch (sortBy) {
-                            case JOB_NAME:
-                                return o1.getJobName().compareTo(o2.getJobName());
-                            case TARGET_SUBJECT:
-                                return o1.getTargetSubject().compareTo(o2.getTargetSubject());
-                            case JOB_STATUS:
-                                return o1.getStatus().compareTo(o2.getStatus());
-                            case EXEC_START_TIME:
-                                return o1.getExecStartTime() < o2.getExecStartTime() ? -1 : o1.getExecStartTime() > o2.getExecStartTime() ? 1 : 0;
-                            case DURATION:
-                                return o1.getDuration() < o2.getDuration() ? -1 : o1.getDuration() > o2.getDuration() ? 1 : 0;
-                            default:
-                                return o1.getLastModified() < o2.getLastModified() ? -1 : o1.getLastModified() > o2.getLastModified() ? 1 : 0;
-                        }
+                        return sortJobs(sortBy, o1, o2);
                     }
                 });
         if (jobFilter.isReverse()) {
@@ -155,6 +144,23 @@ public class JobService extends BasicService {
         }
         List<ExecutableResponse> executableResponseResults = Lists.newArrayList(filteredJobs);
         return executableResponseResults;
+    }
+
+    private int sortJobs(String sortBy, ExecutableResponse o1, ExecutableResponse o2) {
+        switch (sortBy) {
+            case JOB_NAME:
+                return o1.getJobName().compareTo(o2.getJobName());
+            case TARGET_SUBJECT:
+                return o1.getTargetSubject().compareTo(o2.getTargetSubject());
+            case JOB_STATUS:
+                return o1.getStatus().compareTo(o2.getStatus());
+            case EXEC_START_TIME:
+                return o1.getExecStartTime() < o2.getExecStartTime() ? -1 : 1;
+            case DURATION:
+                return o1.getDuration() < o2.getDuration() ? -1 : 1;
+            default:
+                return o1.getLastModified() < o2.getLastModified() ? -1 : 1;
+        }
     }
 
     private long getTimeStartInMillis(Calendar calendar, JobTimeFilterEnum timeFilter) {

@@ -48,7 +48,7 @@ import com.google.common.collect.Maps;
 
 /**
  * Holds details of pre-calculated data (like cuboids) of a data segment.
- * 
+ *
  * Could be persisted together with dataflow, but we made it a separated root entity such that
  * - The details of a data segment can be updated concurrently during build.
  * - The update event of data segment is separated from dataflow.
@@ -143,12 +143,12 @@ public class NDataSegDetails extends RootPersistentEntity {
         this.segmentId = segmentId;
     }
 
-    public long getTotalCuboidSizeKB() {
-        long sizeKB = 0L;
+    public long getTotalCuboidByteSize() {
+        long byteSize = 0L;
         for (NDataCuboid cuboid : getCuboids()) {
-            sizeKB += cuboid.getSizeKB();
+            byteSize += cuboid.getByteSize();
         }
-        return sizeKB;
+        return byteSize;
     }
 
     public long getTotalCuboidRowCount() {

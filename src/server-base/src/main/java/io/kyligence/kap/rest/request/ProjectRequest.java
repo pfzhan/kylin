@@ -24,47 +24,13 @@
 
 package io.kyligence.kap.rest.request;
 
-import java.util.Objects;
 
+import lombok.Data;
 
+@Data
 public class ProjectRequest {
     private String formerProjectName;
 
     private String projectDescData;
 
-    public ProjectRequest() {
-    }
-
-    public String getProjectDescData() {
-        return projectDescData;
-    }
-
-    public void setProjectDescData(String projectDescData) {
-        this.projectDescData = projectDescData;
-    }
-
-    public String getFormerProjectName() {
-        return formerProjectName;
-    }
-
-    public void setFormerProjectName(String formerProjectName) {
-        this.formerProjectName = formerProjectName;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-        ProjectRequest that = (ProjectRequest) o;
-        return Objects.equals(formerProjectName, that.formerProjectName)
-                && Objects.equals(projectDescData, that.projectDescData);
-    }
-
-    @Override
-    public int hashCode() {
-
-        return Objects.hash(formerProjectName, projectDescData);
-    }
 }
