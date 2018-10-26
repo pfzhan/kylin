@@ -50,7 +50,7 @@ export function getUserRange (table) {
 }
 
 function getQueryableRange (table) {
-  return ~table.start && ~table.end ? [table.start, table.end] : []
+  return ~table.actual_query_start && ~table.actual_query_end ? [table.actual_query_start, table.actual_query_end] : []
 }
 
 function getReadySegmentsRange (table) {

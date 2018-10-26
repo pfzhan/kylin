@@ -47,7 +47,7 @@
         </div>
         <div class="info-value">
           <el-radio :value="isIncremental" :label="true" @click.native="handleChangeType(true)" :disabled="!partitionColumns.length">SCD1</el-radio>
-          <el-radio :value="isIncremental" :label="false" @click.native="handleChangeType(false)">SCD2</el-radio>
+          <el-radio :value="isIncremental" :disabled="!isIncremental" :label="false" @click.native="handleChangeType(false)">SCD2</el-radio>
         </div>
       </el-row>
       <el-collapse-transition>
@@ -103,7 +103,7 @@
           <span>{{$t('modifyDateRange')}}</span>&ensp;<span>{{$t(':')}}</span>
         </div>
         <div class="info-value">
-          <el-button size="small" icon="el-icon-ksd-data_range" @click="handleChangeDataRange">{{$t('incrementalLoading')}}</el-button>
+          <el-button size="small" icon="el-icon-ksd-data_range" @click="handleChangeDataRange(table.userRange)">{{$t('incrementalLoading')}}</el-button>
           <el-button size="small" icon="el-icon-ksd-table_refresh" @click="handleRefreshTable">{{$t('kylinLang.common.refresh')}}</el-button>
           <el-button size="small" icon="el-icon-ksd-merge" @click="handleTableMerge">{{$t('dataMerge')}}</el-button>
         </div>
@@ -115,6 +115,7 @@
         :project-name="projectName"
         :table="table"
         :related-models="relatedModels"
+        @filter="handleFilterModels"
         @load-more="handleLoadMore"/>
     </template>
   </div>
@@ -124,12 +125,12 @@
 import Vue from 'vue'
 import dayjs from 'dayjs'
 import { mapActions } from 'vuex'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import DataRangeBar from '../../../common/DataRangeBar/DataRangeBar'
 import RelatedModels from '../RelatedModels/RelatedModels'
-import { handleSuccessAsync } from '../../../../util'
+import { handleSuccessAsync, handleError } from '../../../../util'
 import { partitionColumnTypes } from '../../../../config'
 
 @Component({
@@ -160,6 +161,7 @@ export default class TableDataLoad extends Vue {
     pageOffset: 0,
     pageSize: 50
   }
+  filterModelName = null
   relatedModels = []
   isLoadingTypeShow = true
   isSchemaChangeShow = true
@@ -184,8 +186,12 @@ export default class TableDataLoad extends Vue {
       this.loadRelatedModel()
     }
   }
-  async handleChangeDataRange () {
-    const isSubmit = await this.callSourceTableModal({ editType: 'changeDataRange', table: this.table })
+  @Watch('table')
+  onTableChange () {
+    this.loadRelatedModel()
+  }
+  async handleChangeDataRange (newDataRange) {
+    const isSubmit = await this.callSourceTableModal({ editType: 'changeDataRange', table: this.table, newDataRange })
     isSubmit && this.$emit('fresh-tables')
   }
   async handleChangeType () {
@@ -204,7 +210,19 @@ export default class TableDataLoad extends Vue {
     isSubmit && this.$emit('fresh-tables')
   }
   async handleLoadMore () {
-    this.loadRelatedModel({ isReset: false })
+    try {
+      await this.loadRelatedModel({ isReset: false })
+    } catch (e) {
+      e && handleError(e)
+    }
+  }
+  async handleFilterModels (value) {
+    try {
+      this.filterModelName = value
+      this.loadRelatedModel()
+    } catch (e) {
+      e && handleError(e)
+    }
   }
   addPagination () {
     this.pagination.pageOffset++
@@ -216,9 +234,13 @@ export default class TableDataLoad extends Vue {
     const { isReset = true } = options || {}
     const { projectName, table, pagination } = this
     const tableFullName = `${table.database}.${table.name}`
-    const res = await this.fetchRelatedModels({ projectName, tableFullName, ...pagination })
+    const modelName = this.filterModelName
+    const res = await this.fetchRelatedModels({ projectName, tableFullName, modelName, ...pagination })
     const { size, models } = await handleSuccessAsync(res)
     const formatedModels = this.formatModelData(models)
+    if (isReset) {
+      this.relatedModels = []
+    }
     if (size > this.relatedModels.length) {
       if (isReset) {
         this.relatedModels = formatedModels

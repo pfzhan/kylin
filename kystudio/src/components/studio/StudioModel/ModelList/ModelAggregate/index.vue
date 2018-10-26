@@ -75,8 +75,8 @@ import { formatFlowerJson, getCuboidCounts } from './handle'
 import FlowerChart from '../../../../common/FlowerChart'
 import PartitionChart from '../../../../common/PartitionChart'
 import { handleSuccessAsync, transToGmtTime } from '../../../../../util'
-import { aggregateGroups } from './mock'
 import AggregateModal from './AggregateModal/index.vue'
+import { mockModel } from './mock'
 
 @Component({
   props: {
@@ -147,7 +147,7 @@ export default class ModelAggregate extends Vue {
     this.cuboidCount = getCuboidCounts(data)
   }
   async handleAggregateGroup () {
-    await this.callAggregateModal({ editType: 'new', model: { ...this.model, aggregateGroups } })
+    await this.callAggregateModal({ editType: 'new', model: mockModel })
   }
 }
 </script>

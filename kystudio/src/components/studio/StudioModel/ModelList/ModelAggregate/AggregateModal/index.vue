@@ -153,13 +153,15 @@
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
-import { mapState, mapMutations, mapActions } from 'vuex'
+import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 
 import vuex from '../../../../../../store'
 import locales from './locales'
 import store, { types, initialAggregateData } from './store'
-import { titleMaps, getSubmitData, getPlaintDimensions, findIncludeDimension } from './handler'
+import { titleMaps, editTypes, getPlaintDimensions, findIncludeDimension } from './handler'
 import { handleError, get, set, push } from '../../../../../../util'
+
+const { EDIT } = editTypes
 
 vuex.registerModule(['modals', 'AggregateModal'], store)
 
@@ -171,7 +173,10 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
       editType: state => state.editType,
       callback: state => state.callback,
       model: state => state.model
-    })
+    }),
+    ...mapGetters('AggregateModal', [
+      'dimensions'
+    ])
   },
   methods: {
     ...mapMutations('AggregateModal', {
@@ -190,18 +195,6 @@ export default class AggregateModal extends Vue {
   isDimensionShow = false
   get modalTitle () {
     return titleMaps[this.editType]
-  }
-  get dimensions () {
-    const dimesions = []
-    this.model.dimensions.forEach(dimension => {
-      dimension.columns.forEach(column => {
-        dimesions.push({
-          label: `${dimension.table}.${column}`,
-          value: `${dimension.table}.${column}`
-        })
-      })
-    })
-    return dimesions
   }
   getUnusedDimensions (aggregateIdx) {
     const aggregate = this.form.aggregateArray[aggregateIdx]
@@ -297,7 +290,7 @@ export default class AggregateModal extends Vue {
   async handleSubmit () {
     try {
       // 获取Form格式化后的递交数据
-      /* const data = */getSubmitData(this)
+      /* const data = */this.getSubmitData()
       // 验证表单
       // await this.$refs['form'].validate()
       // 针对不同的模式，发送不同的请求
@@ -310,6 +303,18 @@ export default class AggregateModal extends Vue {
       this.handleClose(true)
     } catch (e) {
       e && handleError(e)
+    }
+  }
+  getSubmitData () {
+    const { editType, form } = this
+
+    switch (editType) {
+      case EDIT: {
+        const { aggregateArray } = form
+        return aggregateArray.map(aggregate => ({
+          dimensions: 1
+        }))
+      }
     }
   }
 }

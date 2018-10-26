@@ -23,7 +23,7 @@
     <div class="el-popover" v-if="tip" :style="tip.style">
       <div class="popper__arrow"></div>
       <p>Segment ID: {{tip.id}}</p>
-      <p>Storage Size: {{tip.storage}}</p>
+      <p>Storage Size: {{tip.storage | dataSize}}</p>
       <p>Start: {{tip.startDate}}</p>
       <p>End: {{tip.endDate}}</p>
     </div>
@@ -63,7 +63,7 @@ export default class SegmentChart extends Vue {
   timer = null
   isFullInitilized = true
   get selectedSegments () {
-    return this.segments.filter(segment => this.selectedSegmentIds.includes(segment.uuid))
+    return this.segments.filter(segment => this.selectedSegmentIds.includes(segment.id))
   }
   get formatType () {
     return formatTypes[this.scaleType]
@@ -116,10 +116,10 @@ export default class SegmentChart extends Vue {
   }
   get inviewSegments () {
     return this.segments.map(item => {
-      const { uuid, startTime, endTime } = item
-      const storage = item.size_kb
+      const { id, startTime, endTime } = item
+      const storage = item.bytes_size
       const hitCount = item.hit_count
-      return { uuid, startTime, endTime, storage, hitCount }
+      return { id, startTime, endTime, storage, hitCount }
     }).map(segment => {
       const style = this.getSegmentStyle(segment)
       const isShow = this.isSegmentShow(segment)
@@ -146,6 +146,8 @@ export default class SegmentChart extends Vue {
 
       !isSegmentFull && this.$emit('load-more')
     }
+
+    this.clearSelectedSegments()
   }
   isTickShow (xTick) {
     const { totalTime, startTick, gridWidth, xTicks, viewPort } = this
@@ -161,7 +163,8 @@ export default class SegmentChart extends Vue {
     const segmentLeft = (startTime - startTimestamp) / totalTime * xTicks.length * gridWidth
     const segmentRight = segmentLeft + (endTime - startTime) / totalTime * xTicks.length * gridWidth
     return (viewPort[0] <= segmentLeft && segmentLeft <= viewPort[1]) ||
-      (viewPort[0] <= segmentRight && segmentRight <= viewPort[1])
+      (viewPort[0] <= segmentRight && segmentRight <= viewPort[1]) ||
+      (viewPort[0] >= segmentLeft && viewPort[1] <= segmentRight)
   }
   getTickStyle (xTick) {
     const { totalTime, startTick } = this
@@ -173,13 +176,13 @@ export default class SegmentChart extends Vue {
   }
   getSegmentStyle (segment) {
     const { totalTime, startTick, hoveredSegmentId } = this
-    const { uuid, endTime, startTime, hitCount } = segment
+    const { id, endTime, startTime, hitCount } = segment
     const startTimestamp = startTick.timestamp
     return {
       left: `${(startTime - startTimestamp) / totalTime * 100}%`,
       width: `${(endTime - startTime) / totalTime * 100}%`,
       background: hitCount === 0 ? 'white' : `rgb(255, ${(1 - hitCount / 100) * 255}, 0)`,
-      zIndex: hoveredSegmentId === uuid ? 3 : (this.selectedSegmentIds.includes(segment.uuid) ? 2 : 1)
+      zIndex: hoveredSegmentId === id ? 3 : (this.selectedSegmentIds.includes(segment.id) ? 2 : 1)
     }
   }
   getSegmentRight (segment) {
@@ -193,8 +196,12 @@ export default class SegmentChart extends Vue {
   }
   getSegmentClass (segment) {
     return {
-      selected: this.selectedSegmentIds.includes(segment.uuid)
+      selected: this.selectedSegmentIds.includes(segment.id)
     }
+  }
+  clearSelectedSegments () {
+    this.selectedSegmentIds = []
+    this.$emit('input', this.selectedSegmentIds, true)
   }
   handleScroll () {
     clearTimeout(this.timer)
@@ -212,24 +219,24 @@ export default class SegmentChart extends Vue {
     this.tip = null
   }
   handleMouseMove (event, segment) {
-    const { uuid, startTime, endTime, storage } = segment
+    const { id, startTime, endTime, storage } = segment
     const startDate = dayjs(startTime).format('YYYY-MM-DD HH:mm:ss')
     const endDate = dayjs(endTime).format('YYYY-MM-DD HH:mm:ss')
     const style = {
       left: `${event.offsetX + event.target.offsetLeft - this.scrollLeft}px`
     }
-    this.hoveredSegmentId = uuid
-    this.tip = { id: uuid, startDate, endDate, storage, style }
+    this.hoveredSegmentId = id
+    this.tip = { id, startDate, endDate, storage, style }
   }
   handleClick (event, segment) {
     if (segment.hitCount) {
-      const isSelected = this.selectedSegmentIds.includes(segment.uuid)
+      const isSelected = this.selectedSegmentIds.includes(segment.id)
       const isSelectable = isFilteredSegmentsContinue(segment, this.selectedSegments)
       if (isSelectable) {
         if (isSelected) {
-          this.selectedSegmentIds = this.selectedSegmentIds.filter(segmentId => segmentId !== segment.uuid)
+          this.selectedSegmentIds = this.selectedSegmentIds.filter(segmentId => segmentId !== segment.id)
         } else {
-          this.selectedSegmentIds.push(segment.uuid)
+          this.selectedSegmentIds.push(segment.id)
         }
       }
       this.$emit('input', this.selectedSegmentIds, isSelectable)

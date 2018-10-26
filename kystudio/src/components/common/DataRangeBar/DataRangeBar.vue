@@ -56,6 +56,10 @@ const LARGE = 1
     isLeftDisable: {
       type: Boolean,
       default: false
+    },
+    isAnimation: {
+      type: Boolean,
+      default: false
     }
   }
 })
@@ -66,6 +70,14 @@ export default class DataRangeBar extends Vue {
   timer = null
   isShowSlider = true
   isDragSmall = false
+  get selectDate () {
+    const [ min ] = this.maxRange
+    const newLeftValue = min + this.sliderValue[SMALL]
+    const newRightValue = min + this.sliderValue[LARGE]
+    const leftValue = this.isLeftDisable ? this.maxRange[SMALL] : newLeftValue
+    const rightValue = this.isRightDisable ? this.maxRange[LARGE] : newRightValue
+    return [ leftValue, rightValue ]
+  }
   get totalTicks () {
     const [ min, max ] = this.maxRange
     return max - min
@@ -129,7 +141,7 @@ export default class DataRangeBar extends Vue {
       clearInterval(this.timer)
       this.timer = setTimeout(() => {
         this.movement = 0
-        this.$emit('click', this.sliderValue)
+        this.$emit('click', this.selectDate)
       }, 100)
     }
   }
@@ -137,15 +149,21 @@ export default class DataRangeBar extends Vue {
     if (this.isDragging) {
       const frontgroundEl = this.$refs['frontground']
       if (this.isDragSmall && this.isOutOfMin) {
+        const sliderEl = this.$el.querySelector('.el-slider__runway')
+        const { left: sliderLeft } = sliderEl.getBoundingClientRect()
         const targetEl = frontgroundEl.querySelectorAll('.el-slider__button')[SMALL]
         const { left } = targetEl.getBoundingClientRect()
-        if (event.pageX <= left) {
+        const isProgressingDrangeDragSmall = this.isLeftDisable && sliderLeft < left
+        if (event.pageX <= left && !isProgressingDrangeDragSmall) {
           this.movement = left - event.pageX
         }
       } else if (!this.isDragSmall && this.isOutOfMax) {
+        const sliderEl = this.$el.querySelector('.el-slider__runway')
+        const { left: sliderLeft, width: sliderWidth } = sliderEl.getBoundingClientRect()
         const targetEl = frontgroundEl.querySelectorAll('.el-slider__button')[LARGE]
         const { left, width } = targetEl.getBoundingClientRect()
-        if (event.pageX >= left + width) {
+        const isProgressingDrangeDragSmall = this.isRightDisable && sliderLeft + sliderWidth > left + width / 2
+        if (event.pageX >= left + width && !isProgressingDrangeDragSmall) {
           this.movement = event.pageX - left - width
         }
       } else if (!this.isOutOfMin && !this.isOutOfMax) {
@@ -185,7 +203,7 @@ export default class DataRangeBar extends Vue {
     clearInterval(this.timer)
     this.timer = setTimeout(() => {
       this.movement = 0
-      this.$emit('click', this.sliderValue)
+      this.$emit('click', this.selectDate)
     }, 100)
   }
   handleFormatTip (val) {
@@ -268,6 +286,9 @@ export default class DataRangeBar extends Vue {
     position: absolute;
     height: 8px;
     background-color: #E2ECF1;
+  }
+  .el-slider__button-wrapper.animate {
+    transition: left .5s ease-in;
   }
 }
 </style>

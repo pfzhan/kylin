@@ -24,15 +24,23 @@
             <div class="model-card">
               <el-row class="model-header">
                 <span class="model-name">{{relatedModel.name}}</span>
-                <el-tag v-if="relatedModel.status === 'broken'" size="small" type="info">Broken</el-tag>
-                <el-tag v-else-if="relatedModel.isOnline" size="small" type="success">Online</el-tag>
-                <el-tag v-else size="small" type="danger">Offline</el-tag>
               </el-row>
               <el-row class="model-body">
-                <el-col :span="12">{{getGMTDate(relatedModel.startTime)}}</el-col>
-                <el-col :span="12">{{getGMTDate(relatedModel.endTime)}}</el-col>
+                <el-col class="model-status" :span="24">
+                  <el-tag v-if="relatedModel.status === 'broken'" size="small" type="info">Broken</el-tag>
+                  <el-tag v-else-if="relatedModel.isOnline" size="small" type="success">Online</el-tag>
+                  <el-tag v-else size="small" type="danger">Offline</el-tag>
+                </el-col>
+                <el-col class="range-time" :span="24">
+                  <div class="lable">Start Time :</div>
+                  {{getGMTDate(relatedModel.startTime)}}
+                </el-col>
+                <el-col class="range-time" :span="24">
+                  <div class="lable">End Time :</div>
+                  {{getGMTDate(relatedModel.endTime)}}
+                </el-col>
               </el-row>
-              <div class="discard">Discard</div>
+              <div class="discard" @click="handleDiscard(relatedModel)">Discard</div>
             </div>
           </el-col>
         </el-row>
@@ -45,7 +53,8 @@
 
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { mapActions } from 'vuex'
+import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import Waypoint from '../../../common/Waypoint/Waypoint'
@@ -64,6 +73,11 @@ import { transToGmtTime } from '../../../../util'
       default: () => []
     }
   },
+  computed: {
+    ...mapActions({
+      discardModel: 'DISCARD_MODEL'
+    })
+  },
   components: {
     Waypoint
   },
@@ -75,7 +89,7 @@ export default class RelatedModels extends Vue {
   windowWidth = 0
   scrollableAncestor = null
   get columnCount () {
-    return this.windowWidth > 1280 ? 2 : 2
+    return this.windowWidth > 1500 ? 3 : 2
   }
   get span () {
     return 24 / this.columnCount
@@ -94,6 +108,10 @@ export default class RelatedModels extends Vue {
     })
     return modelCardGroups
   }
+  @Watch('filterText')
+  onTilterTextChange () {
+    this.$emit('filter', this.filterText)
+  }
   mounted () {
     this.handleResize()
     window.addEventListener('resize', this.handleResize)
@@ -107,6 +125,9 @@ export default class RelatedModels extends Vue {
   }
   handleLoadMore () {
     this.$emit('load-more')
+  }
+  handleDiscard () {
+    this.discardModel()
   }
   getGMTDate (time) {
     return transToGmtTime(time)
@@ -173,9 +194,14 @@ export default class RelatedModels extends Vue {
   .model-header {
     margin-bottom: 10px;
   }
+  .model-header,
+  .range-time {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+  }
   .el-tag {
     font-size: 14px;
-    margin-left: 5px;
   }
   .discard {
     position: absolute;
@@ -187,6 +213,20 @@ export default class RelatedModels extends Vue {
   .center {
     text-align: center;
     padding: 20px;
+  }
+  .range-time {
+    margin-bottom: 10px;
+    line-height: 18px;
+    .lable {
+      float: left;
+      width: 70px;
+    }
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  .model-status {
+    margin-bottom: 10px;
   }
 }
 </style>

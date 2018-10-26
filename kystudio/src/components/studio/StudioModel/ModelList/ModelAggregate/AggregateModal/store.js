@@ -33,12 +33,23 @@ const initialState = JSON.stringify({
 
 export default {
   state: JSON.parse(initialState),
+  getters: {
+    dimensions (state) {
+      if (state.model) {
+        return state.model.all_named_columns
+          .filter(column => column.is_dimension)
+          .map(dimension => ({
+            label: dimension.column,
+            value: dimension.column
+          }))
+      } else {
+        return []
+      }
+    }
+  },
   mutations: {
     [types.SET_MODAL_FORM]: (state, payload) => {
-      state.form = {
-        ...state.form,
-        ...payload
-      }
+      state.form = { ...state.form, ...payload }
     },
     [types.SHOW_MODAL]: (state) => {
       state.isShow = true
@@ -58,7 +69,6 @@ export default {
   actions: {
     [types.CALL_MODAL] ({ commit }, { editType, model }) {
       return new Promise(resolve => {
-        console.log(model)
         commit(types.SET_MODAL, { editType, model, callback: resolve })
         commit(types.SHOW_MODAL)
       })

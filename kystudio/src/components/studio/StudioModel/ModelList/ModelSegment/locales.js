@@ -10,7 +10,10 @@ export default {
     primaryPartition: 'Primary Partition',
     pleaseChoose: 'Please Choose',
     merge: 'Merge',
-    segmentSetting: 'Segment Setting'
+    segmentSetting: 'Segment Setting',
+    selectContinueSegments: 'Please select continuous segments',
+    pleaseSelectSegments: 'Please select at least one segment',
+    confirmDeleteSegments: 'Are you sure delete?'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',
@@ -23,6 +26,9 @@ export default {
     primaryPartition: '一级分区',
     pleaseChoose: '请选择',
     merge: '合并',
-    segmentSetting: 'Segment管理参数'
+    segmentSetting: 'Segment管理参数',
+    selectContinueSegments: '请选择时间相邻的segment',
+    pleaseSelectSegments: '至少选择一个segment',
+    confirmDeleteSegments: '确认是否删除？'
   }
 }

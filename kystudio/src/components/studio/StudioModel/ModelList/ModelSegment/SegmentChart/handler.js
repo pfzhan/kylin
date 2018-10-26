@@ -24,8 +24,8 @@ export const formatTypes = {
 }
 
 export function isFilteredSegmentsContinue (segment, selectedSegments) {
-  const isSegmentSelected = selectedSegments.some(selectedSegment => selectedSegment.uuid === segment.uuid)
-  const filteredSegments = isSegmentSelected ? selectedSegments.filter(selectSegment => segment.uuid !== selectSegment.uuid) : [...selectedSegments, segment]
+  const isSegmentSelected = selectedSegments.some(selectedSegment => selectedSegment.id === segment.id)
+  const filteredSegments = isSegmentSelected ? selectedSegments.filter(selectSegment => segment.id !== selectSegment.id) : [...selectedSegments, segment]
 
   filteredSegments.sort((segmentA, segmentB) => segmentA.startTime < segmentB.startTime ? -1 : 1)
 

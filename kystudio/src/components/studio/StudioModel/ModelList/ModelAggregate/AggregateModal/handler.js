@@ -1,19 +1,13 @@
+export const editTypes = {
+  EDIT: 'edit'
+}
+
 export const fieldVisiableMaps = {
-  'new': []
+  [editTypes.EDIT]: []
 }
 
 export const titleMaps = {
-  'new': 'addAggregateGroup'
-}
-
-export function getSubmitData (that) {
-  const { editType } = that
-
-  switch (editType) {
-    case 'new':
-      return {
-      }
-  }
+  [editTypes.EDIT]: 'addAggregateGroup'
 }
 
 export function getPlaintDimensions (array = []) {

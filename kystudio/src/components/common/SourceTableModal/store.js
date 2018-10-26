@@ -1,3 +1,4 @@
+import dayjs from 'dayjs'
 import { editTypes, volatileTypes } from './handler'
 import { handleSuccessAsync } from '../../../util'
 import { partitionColumnTypes } from '../../../config'
@@ -40,9 +41,7 @@ export default {
   state: JSON.parse(initialState),
   getters: {
     tableFullName (state) {
-      return state.table
-        ? `${state.table.database}.${state.table.name}`
-        : ''
+      return getTableName(state.table, state.model)
     },
     partitionColumns (state) {
       return state.table
@@ -50,12 +49,14 @@ export default {
         : []
     },
     modelName (state) {
-      return state.model.name
+      return !getTableName(state.table, state.model) && state.model ? state.model.name : null
     }
   },
   mutations: {
     [types.SET_MODAL_FORM]: (state, payload) => {
       state.form = { ...state.form, ...payload }
+      fixDataRange(state.form.newDataRange)
+      fixDataRange(state.form.freshDataRange)
     },
     [types.SHOW_MODAL]: (state) => {
       state.isShow = true
@@ -71,21 +72,30 @@ export default {
         payload[key] && (state[key] = payload[key])
       }
     },
-    [types.INIT_FORM]: (state, payload) => {
+    [types.INIT_FORM]: (state, payload = {}) => {
       if (state.table) {
         const [ startTime, endTime ] = state.table.userRange
         state.form.newDataRange = [ new Date(startTime), new Date(endTime) ]
         state.form.freshDataRange = [ new Date(startTime), new Date(endTime) ]
       }
-      state.form = { ...state.form, ...payload }
+      for (const [ key, value ] of Object.entries(payload)) {
+        switch (key) {
+          case 'newDataRange':
+            state.form[key] = [ new Date(value[0]), new Date(value[1]) ]
+            break
+          default:
+            state.form[key] = value
+            break
+        }
+      }
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { editType, projectName = null, table = null, model = null }) {
+    [types.CALL_MODAL] ({ commit }, { editType, projectName = null, table = null, model = null, newDataRange = null }) {
       const { dispatch } = this
       return new Promise(async resolve => {
-        const tableFullName = table && `${table.database}.${table.name}`
-        const modelName = model && model.name
+        const tableFullName = getTableName(table, model)
+        const modelName = (!tableFullName && model) ? model.name : null
 
         commit(types.SET_MODAL, { editType, table, model, callback: resolve })
 
@@ -103,6 +113,10 @@ export default {
             commit(types.INIT_FORM, { isPushdownSync })
             break
           }
+          case editTypes.INCREMENTAL_LOADING: {
+            commit(types.INIT_FORM, { newDataRange })
+            break
+          }
           default: {
             commit(types.INIT_FORM)
           }
@@ -115,8 +129,8 @@ export default {
 }
 
 function formatMergeConfig (response) {
-  const isAutoMerge = response.auto_merge
-  const isVolatile = response.volatile_range.volatile_range_available
+  const isAutoMerge = response.auto_merge_enabled
+  const isVolatile = response.volatile_range.volatile_range_enabled
   const autoMergeConfigs = response.auto_merge_time_ranges
   const volatileConfig = {
     value: response.volatile_range.volatile_range_number,
@@ -124,6 +138,19 @@ function formatMergeConfig (response) {
   }
   const isMergeable = isAutoMerge && isVolatile
   return { isMergeable, isAutoMerge, isVolatile, autoMergeConfigs, volatileConfig }
+}
+
+function getTableName (table, model) {
+  if (table) {
+    return `${table.database}.${table.name}`
+  } else if (model) {
+    return model.fact_table
+  }
+}
+
+function fixDataRange (dataRange) {
+  dataRange[0] && (dataRange[0] = dayjs(dataRange[0]).toDate())
+  dataRange[1] && (dataRange[1] = dayjs(dataRange[1]).toDate())
 }
 
 export { types }

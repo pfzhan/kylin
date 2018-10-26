@@ -138,8 +138,8 @@ export default {
   saveDataRange (project, table, start, end) {
     return Vue.resource(apiUrl + 'tables/data_range').save({project, table, start, end})
   },
-  fetchRelatedModels (project, table, pageOffset, pageSize) {
-    return Vue.resource(apiUrl + 'models').get({project, table, pageOffset, pageSize})
+  fetchRelatedModels (project, table, model, pageOffset, pageSize) {
+    return Vue.resource(apiUrl + 'models').get({project, table, model, pageOffset, pageSize})
   },
   fetchTables (project, database, table, pageOffset, pageSize, isFuzzy, ext) {
     return Vue.resource(apiUrl + 'tables').get({project, database, table, pageOffset, pageSize, isFuzzy, ext})
@@ -157,21 +157,24 @@ export default {
     return Vue.resource(apiUrl + `tables/${project}/${database}/${table}`).delete()
   },
   fetchRangeFreshInfo (project, table, start, end) {
-    return Vue.resource(apiUrl + `tables/refresh_storage`).get({ project, table, start, end })
+    return Vue.resource(apiUrl + `tables/affected_data_range`).get({ project, table, start, end })
   },
-  freshRangeData (project, table, start, end) {
-    return Vue.resource(apiUrl + `tables/segments`).update({ project, table, start, end })
+  freshRangeData (project, table, refreshStart, refreshEnd, affectedStart, affectedEnd) {
+    return Vue.resource(apiUrl + `tables/data_range`).update({ project, table, refreshStart, refreshEnd, affectedStart, affectedEnd })
   },
   fetchMergeConfig (project, model, table) {
     return Vue.resource(apiUrl + `tables/auto_merge_config`).get({ project, model, table })
   },
-  updateMergeConfig (project, model, table, autoMerge, autoMergeTimeRanges, volatileRangeAvailable, volatileRangeNumber, volatileRangeType) {
-    return Vue.resource(apiUrl + `tables/auto_merge_config`).update({ project, model, table, autoMerge, autoMergeTimeRanges, volatileRangeNumber, volatileRangeType, volatileRangeAvailable })
+  updateMergeConfig (project, model, table, autoMergeEnabled, autoMergeTimeRanges, volatileRangeEnabled, volatileRangeNumber, volatileRangeType) {
+    return Vue.resource(apiUrl + `tables/auto_merge_config`).update({ project, model, table, autoMergeEnabled, autoMergeTimeRanges, volatileRangeNumber, volatileRangeType, volatileRangeEnabled })
   },
   fetchPushdownConfig (project, table) {
-    return Vue.resource(apiUrl + `tables/push_down_config`).get({ project, table })
+    return Vue.resource(apiUrl + `tables/pushdown_mode`).get({ project, table })
   },
-  updatePushdownConfig (project, table, pushDownData) {
+  updatePushdownConfig (project, table, pushdownRangeLimited) {
+    return Vue.resource(apiUrl + `tables/pushdown_mode`).update({ project, table, pushdownRangeLimited })
+  },
+  discardTableModel (project, table, pushDownData) {
     return Vue.resource(apiUrl + `tables/push_down_config`).update({ project, table, pushDownData })
   }
 }

@@ -2,9 +2,9 @@
   <div class="model-segment">
     <div class="segment-actions clearfix">
       <div class="left">
-        <el-button size="medium" type="primary" icon="el-icon-ksd-table_refresh" :disabled="!selectedSegmentIds.length" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
+        <el-button size="medium" type="primary" icon="el-icon-ksd-table_refresh" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
         <el-button size="medium" type="primary" icon="el-icon-ksd-merge" @click="handleMergeSegment">{{$t('merge')}}</el-button>
-        <el-button size="medium" type="default" icon="el-icon-ksd-table_delete" :disabled="!selectedSegmentIds.length" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
+        <el-button size="medium" type="default" icon="el-icon-ksd-table_delete" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
       </div>
       <div class="right">
         <div class="segment-action">
@@ -139,7 +139,7 @@ export default class ModelSegment extends Vue {
   isSegmentLoading = false
   get selectedSegments () {
     return this.selectedSegmentIds.map(
-      segmentId => this.segments.find(segment => segment.uuid === segmentId)
+      segmentId => this.segments.find(segment => segment.id === segmentId)
     )
   }
   @Watch('filter.startDate')
@@ -176,20 +176,23 @@ export default class ModelSegment extends Vue {
       this.isSegmentLoading = true
       isReset && this.clearPagination()
       const res = await this.fetchSegments({ projectName, modelName, startTime, endTime, ...this.pagination })
-      let { size, segments } = await handleSuccessAsync(res)
+      const { size, segments } = await handleSuccessAsync(res)
       const formatedSegments = formatSegments(segments)
-      // const formatedSegments = formatSegments(getMockSegments(isReset))
       if (size > this.segments.length) {
         this.segments = isReset ? formatedSegments : this.segments.concat(formatedSegments)
         this.addPagination()
       }
       this.isSegmentLoading = false
     } catch (e) {
-      handleError(e)
+      e !== 'cancel' && handleError(e)
     }
   }
-  handleLoadMore () {
-    this.loadSegments({ isReset: false })
+  async handleLoadMore () {
+    try {
+      await this.loadSegments({ isReset: false })
+    } catch (e) {
+      e !== 'cancel' && handleError(e)
+    }
   }
   handleAddZoom () {
     if (this.scaleTypeIdx > 0) {
@@ -205,33 +208,48 @@ export default class ModelSegment extends Vue {
     if (isSelectable) {
       this.selectedSegmentIds = selectedSegmentIds
     } else {
-      this.$message('请选择相邻的segment')
+      this.$message(this.$t('selectContinueSegments'))
     }
   }
   async handleRefreshSegment () {
     try {
-      const projectName = this.currentSelectedProject
-      const modelName = this.model.name
       const segmentIds = this.selectedSegmentIds
-      segmentIds.length && await this.refreshSegments({ projectName, modelName, segmentIds })
+      if (segmentIds.length) {
+        const projectName = this.currentSelectedProject
+        const modelName = this.model.name
+        const isSubmit = await this.refreshSegments({ projectName, modelName, segmentIds })
+        isSubmit && this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+      } else {
+        this.$message(this.$t('pleaseSelectSegments'))
+      }
     } catch (e) {
-      handleError(e)
+      e !== 'cancel' && handleError(e)
     }
   }
   async handleMergeSegment () {
     const projectName = this.currentSelectedProject
     const model = this.model
-    const isSubmit = await this.callSourceTableModal({ editType: 'dataMerge', model, projectName })
-    isSubmit && this.$emit('fresh-tables')
+    await this.callSourceTableModal({ editType: 'dataMerge', model, projectName })
   }
   async handleDeleteSegment () {
     try {
-      const projectName = this.currentSelectedProject
-      const modelName = this.model.name
       const segmentIds = this.selectedSegmentIds
-      segmentIds.length && await this.deleteSegments({ projectName, modelName, segmentIds })
+      if (segmentIds.length) {
+        const projectName = this.currentSelectedProject
+        const modelName = this.model.name
+        const confirmTitle = this.$t('kylinLang.common.notice')
+        const confirmMessage = this.$t('confirmDeleteSegments')
+        const confirmButtonText = this.$t('kylinLang.common.ok')
+        const cancelButtonText = this.$t('kylinLang.common.cancel')
+        await this.$confirm(confirmMessage, confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText })
+        await this.deleteSegments({ projectName, modelName, segmentIds })
+        this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
+        await this.loadSegments()
+      } else {
+        this.$message(this.$t('pleaseSelectSegments'))
+      }
     } catch (e) {
-      handleError(e)
+      e !== 'cancel' && handleError(e)
     }
   }
 }
@@ -370,7 +388,6 @@ export default class ModelSegment extends Vue {
     top: 0;
     height: 100%;
     width: 1px;
-    background: red;
   }
 }
 </style>
