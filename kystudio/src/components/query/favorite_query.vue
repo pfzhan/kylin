@@ -102,8 +102,8 @@
       </div>
       <div class="ksd-fright btn-group">
         <el-button size="medium" icon="el-icon-ksd-acclerate_ready" plain @click="openPreferrenceSetting">{{$t('preferrence')}}</el-button>
-        <el-button size="medium" icon="el-icon-ksd-download" plain @click="openWhiteList">{{$t('whiteList')}}</el-button>
-        <el-button size="medium" icon="el-icon-ksd-table_delete" plain @click="openBlackList">{{$t('blackList')}}</el-button>
+        <el-button size="medium" icon="el-icon-ksd-white_list" plain @click="openWhiteList">{{$t('whiteList')}}</el-button>
+        <el-button size="medium" icon="el-icon-ksd-black_list" plain @click="openBlackList">{{$t('blackList')}}</el-button>
       </div>
     </div>
     <el-table
@@ -189,7 +189,11 @@
             </div>
           </div>
           <div class="sqlLists">
-            <div v-for="(sql, index) in sqlLists" :key="index" class="sqlBox" :class="{'active': index == activeIndex}">
+            <div class="ksd-null-pic-text" v-if="!sqlLists.length">
+              <img  src="../../assets/img/no_data.png" />
+              <p>{{$t('kylinLang.common.noData')}}</p>
+            </div>
+            <div v-for="(sql, index) in sqlLists" :key="index" class="sqlBox" :class="{'active': index == activeIndex}" v-else>
               <span>{{transformSql(sql)}}</span>
               <div class="group-btn">
                 <el-button size="small" type="primary" @click.stop="viewBlackSql(sql, index)" text>{{$t('kylinLang.common.view')}}</el-button>
@@ -211,7 +215,7 @@
           </div>
         </el-col>
       </el-row>
-      <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="sqlLists.length"  v-on:handleCurrentChange='sqlListsPageChange' :perPageSize="5"></kap-pager>
+      <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="sqlLists.length"  v-on:handleCurrentChange='sqlListsPageChange' :perPageSize="5" v-if="sqlLists.length > 0"></kap-pager>
     </el-dialog>
     <el-dialog
       :title="$t('whiteList')"
@@ -232,7 +236,11 @@
             </div>
           </div>
           <div class="sqlLists">
-            <div v-for="(sql, index) in sqlLists" :key="index" class="sqlBox" :class="{'active': index == activeIndex}" @click="activeSql(sql, index)">
+            <div class="ksd-null-pic-text" v-if="!sqlLists.length">
+              <img  src="../../assets/img/no_data.png" />
+              <p>{{$t('kylinLang.common.noData')}}</p>
+            </div>
+            <div v-for="(sql, index) in sqlLists" :key="index" class="sqlBox" :class="{'active': index == activeIndex}" @click="activeSql(sql, index)" v-else>
               <span>{{transformSql(sql)}}</span>
               <div class="group-btn">
                 <el-button size="small" type="primary" @click.stop="editWhiteSql(sql, index)" text>{{$t('kylinLang.common.edit')}}</el-button>
@@ -253,7 +261,7 @@
           </div>
         </el-col>
       </el-row>
-      <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="sqlLists.length"  v-on:handleCurrentChange='sqlListsPageChange' :perPageSize="5"></kap-pager>
+      <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="sqlLists.length"  v-on:handleCurrentChange='sqlListsPageChange' :perPageSize="5" v-if="sqlLists.length > 0"></kap-pager>
     </el-dialog>
   </div>
 </template>
@@ -287,8 +295,8 @@ import sqlFormatter from 'sql-formatter'
     ])
   },
   locales: {
-    'en': {preferrence: 'Preferrence', whiteList: 'White List', blackList: 'Black List', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query. Favorite query represent your main business analysis scenarios and critical decision point. System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?'},
-    'zh-cn': {preferrence: 'Preferrence', whiteList: '白名单', blackList: '黑名单', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。这类查询可以代表最主要的业务分析和重要的业务决策点。系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？'}
+    'en': {preferrence: 'Preferrence', whiteList: 'White List', blackList: 'Black List', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query. Favorite query represent your main business analysis scenarios and critical decision point. System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the editor?'},
+    'zh-cn': {preferrence: 'Preferrence', whiteList: '白名单', blackList: '黑名单', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。这类查询可以代表最主要的业务分析和重要的业务决策点。系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？'}
   }
 })
 export default class FavoriteQuery extends Vue {
@@ -867,12 +875,22 @@ select a.placepointid, --门店id
     this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(false)
   }
 
-  viewBlackSql (sql, index) {
+  toView (sql, index) {
     this.inputHeight = 564
     this.activeIndex = index
     this.isEditSql = false
     this.blackSql = this.formatterSql(sql)
     this.$refs.blackInputBox.$refs.kapEditor.editor.setReadOnly(true)
+  }
+
+  viewBlackSql (sql, index) {
+    if (this.blackSql) {
+      kapConfirm(this.$t('giveUpEdit')).then(() => {
+        this.toView(sql, index)
+      })
+    } else {
+      this.toView(sql, index)
+    }
   }
 
   newBlackSql () {
