@@ -63,6 +63,6 @@ public class TableIndexResponse {
     private int storageType = IKapStorageAware.ID_NDATA_STORAGE;
 
     public enum Status {
-        Empty, Available, Broken
+        EMPTY, AVAILABLE, BROKEN
     }
 }

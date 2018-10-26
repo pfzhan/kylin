@@ -251,7 +251,7 @@ public class CubePlanService extends BasicService {
 
         NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val dataflow = dfMgr.getDataflow(cuboidLayout.getCuboidDesc().getCubePlan().getName());
-        TableIndexResponse.Status status = TableIndexResponse.Status.Available;
+        TableIndexResponse.Status status = TableIndexResponse.Status.AVAILABLE;
         int readyCount = 0;
         for (NDataSegment segment : dataflow.getSegments()) {
             val dataCuboid = segment.getCuboid(cuboidLayout.getId());
@@ -260,13 +260,13 @@ public class CubePlanService extends BasicService {
             }
             val segmentStatus = dataCuboid.getStatus();
             if (segmentStatus == SegmentStatusEnum.NEW || segmentStatus == SegmentStatusEnum.READY_PENDING) {
-                status = TableIndexResponse.Status.Empty;
+                status = TableIndexResponse.Status.EMPTY;
                 break;
             }
             readyCount++;
         }
         if (readyCount != dataflow.getSegments().size() || CollectionUtils.isEmpty(dataflow.getSegments())) {
-            status = TableIndexResponse.Status.Empty;
+            status = TableIndexResponse.Status.EMPTY;
         }
         response.setStatus(status);
         return response;

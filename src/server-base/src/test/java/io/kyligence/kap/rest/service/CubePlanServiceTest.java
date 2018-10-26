@@ -295,6 +295,6 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("ti1", first.getName());
         Assert.assertEquals("ADMIN", first.getOwner());
         Assert.assertEquals("nmodel_basic", first.getModel());
-        Assert.assertEquals(TableIndexResponse.Status.Empty, first.getStatus());
+        Assert.assertEquals(TableIndexResponse.Status.EMPTY, first.getStatus());
     }
 }
