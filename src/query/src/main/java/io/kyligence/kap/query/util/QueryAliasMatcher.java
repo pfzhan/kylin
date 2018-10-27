@@ -378,7 +378,7 @@ public class QueryAliasMatcher {
     }
 
     private static class CCJoinDescMatcher extends JoinsTree.DefaultJoinDescMatcher {
-        QueryAliasMatchInfo matchInfo;
+        transient QueryAliasMatchInfo matchInfo;
         boolean compareCCExpr;
 
         public CCJoinDescMatcher(QueryAliasMatchInfo matchInfo, boolean compareCCExpr) {

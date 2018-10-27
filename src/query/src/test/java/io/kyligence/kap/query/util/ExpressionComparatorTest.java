@@ -39,7 +39,6 @@ import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
-import io.kyligence.kap.metadata.model.alias.IAliasDeduce;
 
 public class ExpressionComparatorTest {
 
@@ -57,22 +56,22 @@ public class ExpressionComparatorTest {
         aliasMapping.put("A", "A");
         QueryAliasMatchInfo matchInfo = new QueryAliasMatchInfo(aliasMapping, null);
 
-        assertEquals(true, ExpressionComparator.isNodeEqual(sn0, sn1, matchInfo, IAliasDeduce.NO_OP));
-        assertEquals(false, ExpressionComparator.isNodeEqual(sn0, sn3, matchInfo, IAliasDeduce.NO_OP));
+        assertEquals(true, ExpressionComparator.isNodeEqual(sn0, sn1, matchInfo, AliasDeduceImpl.NO_OP));
+        assertEquals(false, ExpressionComparator.isNodeEqual(sn0, sn3, matchInfo, AliasDeduceImpl.NO_OP));
 
     }
 
     @Test
     public void testAdvancedEqual() throws SqlParseException {
         //treat sql0 as model
-        String sql0 = "select a.a + a.b + a.c from t as a";
+        String sql0 = "select a.a + a.b + a.c, cast(a.d as decimal(19,4)) from t as a";
 
-        String sql1 = "select b.a + b.b + b.c from t as b";
-        String sql2 = "select (a + b) + c  from t";
+        String sql1 = "select b.a + b.b + b.c, cast(b.d as decimal(19,4)) from t as b";
+        String sql2 = "select (a + b) + c, cast(d as decimal(19,4)) from t";
 
-        SqlNode sn0 = CalciteParser.getOnlySelectNode(sql0);
-        SqlNode sn1 = CalciteParser.getOnlySelectNode(sql1);
-        SqlNode sn2 = CalciteParser.getOnlySelectNode(sql2);
+        SqlNode sn0 = CalciteParser.getSelectNode(sql0);
+        SqlNode sn1 = CalciteParser.getSelectNode(sql1);
+        SqlNode sn2 = CalciteParser.getSelectNode(sql2);
 
         // when query using different alias than model
         {
@@ -82,13 +81,14 @@ public class ExpressionComparatorTest {
             ColumnRowType columnRowType = ColumnRowTypeMockUtil.mock("T", "B", //
                     Pair.newPair("A", "integer"), //
                     Pair.newPair("B", "integer"), //
-                    Pair.newPair("C", "integer"));
+                    Pair.newPair("C", "integer"), //
+                    Pair.newPair("D", "integer"));
 
             LinkedHashMap<String, ColumnRowType> mockQueryAlias = Maps.newLinkedHashMap();
             mockQueryAlias.put("B", columnRowType);
 
             QueryAliasMatchInfo matchInfo = new QueryAliasMatchInfo(aliasMapping, mockQueryAlias);
-            assertEquals(true, ExpressionComparator.isNodeEqual(sn1, sn0, matchInfo, IAliasDeduce.NO_OP));
+            assertEquals(true, ExpressionComparator.isNodeEqual(sn1, sn0, matchInfo, AliasDeduceImpl.NO_OP));
         }
 
         // when query not using alias
@@ -99,7 +99,8 @@ public class ExpressionComparatorTest {
             ColumnRowType columnRowType = ColumnRowTypeMockUtil.mock("T", "T", //
                     Pair.newPair("A", "integer"), //
                     Pair.newPair("B", "integer"), //
-                    Pair.newPair("C", "integer"));
+                    Pair.newPair("C", "integer"), //
+                    Pair.newPair("D", "integer"));
 
             LinkedHashMap<String, ColumnRowType> mockQueryAlias = Maps.newLinkedHashMap();
             mockQueryAlias.put("T", columnRowType);

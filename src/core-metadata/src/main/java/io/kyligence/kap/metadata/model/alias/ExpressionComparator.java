@@ -52,7 +52,7 @@ public class ExpressionComparator {
      * @return
      */
     public static boolean isNodeEqual(SqlNode queryNode, SqlNode exprNode, final AliasMapping aliasMapping,
-            final IAliasDeduce aliasDeduce) {
+            final AliasDeduce aliasDeduce) {
         if (aliasMapping == null) {
             return false;
         }
@@ -71,9 +71,9 @@ public class ExpressionComparator {
 
     public static class AliasMachingSqlNodeComparator extends SqlNodeComparator {
         private final AliasMapping aliasMapping;
-        private final IAliasDeduce aliasDeduce;
+        private final AliasDeduce aliasDeduce;
 
-        public AliasMachingSqlNodeComparator(AliasMapping aliasMapping, IAliasDeduce aliasDeduce) {
+        public AliasMachingSqlNodeComparator(AliasMapping aliasMapping, AliasDeduce aliasDeduce) {
             this.aliasMapping = aliasMapping;
             this.aliasDeduce = aliasDeduce;
         }
@@ -100,14 +100,16 @@ public class ExpressionComparator {
         }
     }
 
-    public static abstract class SqlNodeComparator {
+    public abstract static class SqlNodeComparator {
         protected abstract boolean isSqlIdentifierEqual(SqlIdentifier querySqlIdentifier,
                 SqlIdentifier exprSqlIdentifier);
 
         public boolean isSqlNodeEqual(SqlNode queryNode, SqlNode exprNode) {
             if (queryNode == null) {
                 return exprNode == null;
-            } else if (exprNode == null) {
+            }
+            
+            if (exprNode == null) {
                 return false;
             }
 
@@ -116,40 +118,24 @@ public class ExpressionComparator {
             }
 
             if (queryNode instanceof SqlCall) {
-                if (!(exprNode instanceof SqlCall)) {
-                    return false;
-                }
-
                 SqlCall thisNode = (SqlCall) queryNode;
                 SqlCall thatNode = (SqlCall) exprNode;
-
                 if (!thisNode.getOperator().getName().equalsIgnoreCase(thatNode.getOperator().getName())) {
                     return false;
                 }
                 return isNodeListEqual(thisNode.getOperandList(), thatNode.getOperandList());
             }
             if (queryNode instanceof SqlLiteral) {
-                if (!(exprNode instanceof SqlLiteral)) {
-                    return false;
-                }
-
                 SqlLiteral thisNode = (SqlLiteral) queryNode;
                 SqlLiteral thatNode = (SqlLiteral) exprNode;
-
                 return Objects.equals(thisNode.getValue(), thatNode.getValue());
             }
             if (queryNode instanceof SqlNodeList) {
-                if (!(exprNode instanceof SqlNodeList)) {
-                    return false;
-                }
-
                 SqlNodeList thisNode = (SqlNodeList) queryNode;
                 SqlNodeList thatNode = (SqlNodeList) exprNode;
-
                 if (thisNode.getList().size() != thatNode.getList().size()) {
                     return false;
                 }
-
                 for (int i = 0; i < thisNode.getList().size(); i++) {
                     SqlNode thisChild = thisNode.getList().get(i);
                     final SqlNode thatChild = thatNode.getList().get(i);
@@ -161,19 +147,12 @@ public class ExpressionComparator {
             }
 
             if (queryNode instanceof SqlIdentifier) {
-                if (!(exprNode instanceof SqlIdentifier)) {
-                    return false;
-                }
                 SqlIdentifier thisNode = (SqlIdentifier) queryNode;
                 SqlIdentifier thatNode = (SqlIdentifier) exprNode;
-
                 return isSqlIdentifierEqual(thisNode, thatNode);
             }
 
-            if (queryNode instanceof SqlDataTypeSpec) {
-                if (!(exprNode instanceof SqlDataTypeSpec))
-                    return false;
-
+            if (queryNode instanceof SqlDataTypeSpec){
                 SqlDataTypeSpec thisNode = (SqlDataTypeSpec) queryNode;
                 SqlDataTypeSpec thatNode = (SqlDataTypeSpec) exprNode;
                 return isSqlDataTypeSpecEqual(thisNode, thatNode);

@@ -27,10 +27,10 @@ package io.kyligence.kap.metadata.model.alias;
  * normally col reference in query should be ALIAS.COL, when ALIAS part is missing,
  * we need to deduce the alias 
  */
-public interface IAliasDeduce {
-    public String deduceAlias(String colName);
+public abstract class AliasDeduce {
+    public abstract String deduceAlias(String colName);
 
-    public IAliasDeduce NO_OP = new IAliasDeduce() {
+    public static final AliasDeduce NO_OP = new AliasDeduce() {
         @Override
         public String deduceAlias(String colName) {
             throw new IllegalStateException();

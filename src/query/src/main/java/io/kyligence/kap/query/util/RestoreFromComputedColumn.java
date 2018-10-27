@@ -49,7 +49,6 @@
 
 package io.kyligence.kap.query.util;
 
-import java.io.IOException;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.Comparator;
@@ -116,7 +115,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
     }
 
     public static String convertWithGivenModels(String sql, String project, String defaultSchema,
-            Map<String, NDataModel> dataModelDescs) throws SqlParseException, IOException {
+            Map<String, NDataModel> dataModelDescs) throws SqlParseException {
 
         List<SqlCall> selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
 
@@ -126,74 +125,46 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
             C is not a topColumn here.
          */
         List<List<SqlNode>> topColumns = Lists.newArrayList();
-        for (int i = 0; i < selectOrOrderbys.size(); i++) {
-
-            List<SqlNode> columnList = Lists.newArrayList();
-
-            for (SqlNode node : selectOrOrderbys.get(i).getOperandList()) {
-
-                if (node instanceof SqlNodeList) {
-                    columnList.addAll(((SqlNodeList) node).getList());
-                }
-            }
-            topColumns.add(columnList);
+        for (SqlCall selectOrOrderby : selectOrOrderbys) {
+            topColumns.add(collectTopColumns(selectOrOrderby));
         }
-
-        Pair<String, Integer> choiceForCurrentSubquery = null; //<new sql, number of changes by the model>
 
         QueryAliasMatcher queryAliasMatcher = new QueryAliasMatcher(project, defaultSchema);
 
-        boolean recursionCompleted = false;
         int recursionTimes = 0;
         int maxRecursionTimes = KapConfig.getInstanceFromEnv().getComputedColumnMaxRecursionTimes();
 
-        while (!recursionCompleted && (recursionTimes++) < maxRecursionTimes) {
+        while ((recursionTimes++) < maxRecursionTimes) {
 
-            recursionCompleted = true;
+            boolean recursionCompleted = true;
 
             for (int i = 0; i < selectOrOrderbys.size(); i++) { //subquery will precede
-                if (choiceForCurrentSubquery != null) { //last selectOrOrderby had a matched
-                    selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
-                    choiceForCurrentSubquery = null;
-                }
-
-                SqlCall selectOrOrderby = selectOrOrderbys.get(i);
-                SqlSelect sqlSelect = KapQueryUtil.extractSqlSelect(selectOrOrderby);
-                if (sqlSelect == null)
-                    continue;
-
-                //give each data model a chance to rewrite, choose the model that generates most changes
-                for (NDataModel modelDesc : dataModelDescs.values()) {
-
-                    NDataModel forMathModel = modelDesc;
-                    if(modelDesc.isDraft() && dataModelDescs.containsKey(modelDesc.getName())){
-                        forMathModel = dataModelDescs.get(modelDesc.getName());
-                    }
-
-                    QueryAliasMatchInfo info = queryAliasMatcher.match(forMathModel, sqlSelect);
-                    if (info == null) {
-                        continue;
-                    }
-
-                    Pair<String, Integer> ret = restoreComputedColumn(sql, selectOrOrderby, topColumns.get(i), modelDesc, info);
-
-                    if (ret.getSecond() == 0)
-                        continue;
-
-                    if ((choiceForCurrentSubquery == null)
-                            || (ret.getSecond() > choiceForCurrentSubquery.getSecond())) {
-                        choiceForCurrentSubquery = ret;
-
-                        recursionCompleted = false;
-                    }
-                }
+                Pair<String, Integer> choiceForCurrentSubquery = restoreComputedColumn(sql, selectOrOrderbys.get(i),
+                        topColumns.get(i), dataModelDescs, queryAliasMatcher);
 
                 if (choiceForCurrentSubquery != null) {
                     sql = choiceForCurrentSubquery.getFirst();
+                    selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
+                    recursionCompleted = false;
                 }
+            }
+
+            if (recursionCompleted) {
+                break;
             }
         }
         return sql;
+    }
+
+    private static List<SqlNode> collectTopColumns(SqlCall selectOrOrderby) {
+        List<SqlNode> columnList = Lists.newArrayList();
+        for (SqlNode node : selectOrOrderby.getOperandList()) {
+
+            if (node instanceof SqlNodeList) {
+                columnList.addAll(((SqlNodeList) node).getList());
+            }
+        }
+        return columnList;
     }
 
     private static class ReplaceRange {
@@ -263,6 +234,41 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         return !(hasLeft && hasRight);
 
     }
+
+    static Pair<String, Integer> restoreComputedColumn(String sql, SqlCall selectOrOrderby, List<SqlNode> topColumns,
+            Map<String, NDataModel> dataModelDescs, QueryAliasMatcher queryAliasMatcher) throws SqlParseException {
+        SqlSelect sqlSelect = KapQueryUtil.extractSqlSelect(selectOrOrderby);
+        if (sqlSelect == null)
+            return Pair.newPair(sql, 0);
+
+        Pair<String, Integer> choiceForCurrentSubquery = null; //<new sql, number of changes by the model>
+
+        //give each data model a chance to rewrite, choose the model that generates most changes
+        for (NDataModel modelDesc : dataModelDescs.values()) {
+
+            NDataModel forMatchModel = modelDesc;
+            if (modelDesc.isDraft() && dataModelDescs.containsKey(modelDesc.getName())) {
+                forMatchModel = dataModelDescs.get(modelDesc.getName());
+            }
+
+            QueryAliasMatchInfo info = queryAliasMatcher.match(forMatchModel, sqlSelect);
+            if (info == null) {
+                continue;
+            }
+
+            Pair<String, Integer> ret = restoreComputedColumn(sql, selectOrOrderby, topColumns, modelDesc, info);
+
+            if (ret.getSecond() == 0)
+                continue;
+
+            if ((choiceForCurrentSubquery == null) || (ret.getSecond() > choiceForCurrentSubquery.getSecond())) {
+                choiceForCurrentSubquery = ret;
+            }
+        }
+
+        return choiceForCurrentSubquery;
+    }
+
 
     /**
      * return the replaced sql, and the count of changes in the replaced sql
@@ -376,13 +382,11 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
                 if (operands != null && operands.length == 2) {
                     operands[0].accept(this);
                 }
-
-                return null;
-            }
-
-            for (SqlNode operand : call.getOperandList()) {
-                if (operand != null) {
-                    operand.accept(this);
+            } else {
+                for (SqlNode operand : call.getOperandList()) {
+                    if (operand != null) {
+                        operand.accept(this);
+                    }
                 }
             }
 

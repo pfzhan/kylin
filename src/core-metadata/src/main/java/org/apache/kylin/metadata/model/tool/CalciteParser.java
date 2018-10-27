@@ -77,7 +77,7 @@ public class CalciteParser {
         return sqlParser.parseQuery();
     }
 
-    public static SqlNode getOnlySelectNode(String sql) {
+    public static SqlNode getSelectNode(String sql) {
         SqlNodeList selectList = null;
         try {
             selectList = ((SqlSelect) CalciteParser.parse(sql)).getSelectList();
@@ -85,10 +85,14 @@ public class CalciteParser {
             throw new IllegalStateException(
                     "Failed to parse expression \'" + sql + "\', please make sure the expression is valid", e);
         }
+        return selectList;
+    }
 
+    public static SqlNode getOnlySelectNode(String sql) {
+        SqlNodeList selectList = null;
+        selectList = (SqlNodeList) getSelectNode(sql);
         Preconditions.checkArgument(selectList.size() == 1,
                 "Expression is invalid because size of select list exceeds one");
-
         return selectList.get(0);
     }
 

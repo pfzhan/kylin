@@ -136,57 +136,65 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             return sql;
         }
 
-        boolean recursionCompleted = false;
         int recursionTimes = 0;
         int maxRecursionTimes = KapConfig.getInstanceFromEnv().getComputedColumnMaxRecursionTimes();
 
-        while (!recursionCompleted && (recursionTimes++) < maxRecursionTimes) {
-
-            recursionCompleted = true;
-
-            List<SqlCall> selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
-            Pair<String, Integer> choiceForCurrentSubquery = null; //<new sql, number of changes by the model>
-
-            for (int i = 0; i < selectOrOrderbys.size(); i++) { //subquery will precede
-                if (choiceForCurrentSubquery != null) { //last selectOrOrderby had a matched
-                    selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
-                    choiceForCurrentSubquery = null;
-                }
-
-                SqlCall selectOrOrderby = selectOrOrderbys.get(i);
-                SqlSelect sqlSelect = KapQueryUtil.extractSqlSelect(selectOrOrderby);
-                if (sqlSelect == null)
-                    continue;
-
-                //give each data model a chance to rewrite, choose the model that generates most changes
-                for (int j = 0; j < dataModelDescs.size(); j++) {
-                    NDataModel model = dataModelDescs.get(j);
-                    QueryAliasMatchInfo info = queryAliasMatcher.match(model, sqlSelect);
-                    if (info == null) {
-                        continue;
-                    }
-
-                    List<ComputedColumnDesc> computedColumns = getSortedComputedColumnWithModel(model);
-                    Pair<String, Integer> ret = replaceComputedColumn(sql, selectOrOrderby, computedColumns, info);
-
-                    if (ret.getSecond() == 0)
-                        continue;
-
-                    if ((choiceForCurrentSubquery == null)
-                            || (ret.getSecond() > choiceForCurrentSubquery.getSecond())) {
-                        choiceForCurrentSubquery = ret;
-
-                        recursionCompleted = false;
-                    }
-                }
-
-                if (choiceForCurrentSubquery != null) {
-                    sql = choiceForCurrentSubquery.getFirst();
-                }
+        while ((recursionTimes++) < maxRecursionTimes) {
+            Pair<String, Boolean> result = transformImplRecursive(sql, queryAliasMatcher, dataModelDescs);
+            sql = result.getFirst();
+            boolean recursionCompleted = result.getSecond();
+            if (recursionCompleted) {
+                break;
             }
         }
 
         return sql;
+    }
+    
+    private Pair<String, Boolean> transformImplRecursive(String sql, QueryAliasMatcher queryAliasMatcher,
+            List<NDataModel> dataModelDescs) throws SqlParseException {
+        boolean recursionCompleted = true;
+        List<SqlCall> selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
+        Pair<String, Integer> choiceForCurrentSubquery = null; //<new sql, number of changes by the model>
+
+        for (int i = 0; i < selectOrOrderbys.size(); i++) { //subquery will precede
+            if (choiceForCurrentSubquery != null) { //last selectOrOrderby had a matched
+                selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
+                choiceForCurrentSubquery = null;
+            }
+
+            SqlCall selectOrOrderby = selectOrOrderbys.get(i);
+            SqlSelect sqlSelect = KapQueryUtil.extractSqlSelect(selectOrOrderby);
+            if (sqlSelect == null)
+                continue;
+
+            //give each data model a chance to rewrite, choose the model that generates most changes
+            for (int j = 0; j < dataModelDescs.size(); j++) {
+                NDataModel model = dataModelDescs.get(j);
+                QueryAliasMatchInfo info = queryAliasMatcher.match(model, sqlSelect);
+                if (info == null) {
+                    continue;
+                }
+
+                List<ComputedColumnDesc> computedColumns = getSortedComputedColumnWithModel(model);
+                Pair<String, Integer> ret = replaceComputedColumn(sql, selectOrOrderby, computedColumns, info);
+
+                if (ret.getSecond() == 0)
+                    continue;
+
+                if ((choiceForCurrentSubquery == null)
+                        || (ret.getSecond() > choiceForCurrentSubquery.getSecond())) {
+                    choiceForCurrentSubquery = ret;
+                    recursionCompleted = false;
+                }
+            }
+
+            if (choiceForCurrentSubquery != null) {
+                sql = choiceForCurrentSubquery.getFirst();
+            }
+        }
+
+        return Pair.newPair(sql, recursionCompleted);
     }
 
     static Pair<String, Integer> replaceComputedColumn(String inputSql, SqlCall selectOrOrderby,
@@ -197,37 +205,12 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         }
 
         String result = inputSql;
-        List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> toBeReplacedExp = new ArrayList<>();
-
-        for (ComputedColumnDesc cc : computedColumns) {
-            List<SqlNode> matchedNodes;
-            try {
-                matchedNodes = getMatchedNodes(selectOrOrderby, cc.getExpression(), queryAliasMatchInfo);
-            } catch (Exception e) {
-                logger.debug("Convert to computedColumn Fail,parse sql fail ", e);
-                return Pair.newPair(inputSql, 0);
-            }
-            for (SqlNode node : matchedNodes) {
-                Pair<Integer, Integer> startEndPos = CalciteParser.getReplacePos(node, inputSql);
-                int start = startEndPos.getFirst();
-                int end = startEndPos.getSecond();
-
-                boolean conflict = false;
-                for (int i = 0; i < toBeReplacedExp.size(); i++) {
-                    Pair<Integer, Integer> replaced = toBeReplacedExp.get(i).getSecond();
-                    if (!(replaced.getFirst() >= end || replaced.getSecond() <= start)) {
-                        //overlap with chosen areas
-                        conflict = true;
-                    }
-                }
-
-                if (conflict) {
-                    continue;
-                }
-
-                toBeReplacedExp.add(Pair.newPair(cc, Pair.newPair(start, end)));
-            }
-
+        List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> toBeReplacedExp;
+        try {
+            toBeReplacedExp = matchComputedColumn(inputSql, selectOrOrderby, computedColumns, queryAliasMatchInfo);
+        } catch (Exception e) {
+            logger.debug("Convert to computedColumn Fail,parse sql fail ", e);
+            return Pair.newPair(inputSql, 0);
         }
 
         Collections.sort(toBeReplacedExp, new Comparator<Pair<ComputedColumnDesc, Pair<Integer, Integer>>>() {
@@ -257,6 +240,36 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             result = result.substring(0, start) + alias + "." + cc.getColumnName() + result.substring(end);
         }
         return Pair.newPair(result, toBeReplacedExp.size());
+    }
+    
+    private static List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> matchComputedColumn(String inputSql,
+            SqlCall selectOrOrderby, List<ComputedColumnDesc> computedColumns,
+            QueryAliasMatchInfo queryAliasMatchInfo) {
+        List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> toBeReplacedExp = new ArrayList<>();
+        for (ComputedColumnDesc cc : computedColumns) {
+            List<SqlNode> matchedNodes;
+            matchedNodes = getMatchedNodes(selectOrOrderby, cc.getExpression(), queryAliasMatchInfo);
+
+            for (SqlNode node : matchedNodes) {
+                Pair<Integer, Integer> startEndPos = CalciteParser.getReplacePos(node, inputSql);
+                int start = startEndPos.getFirst();
+                int end = startEndPos.getSecond();
+
+                boolean conflict = false;
+                for (int i = 0; i < toBeReplacedExp.size(); i++) {
+                    Pair<Integer, Integer> replaced = toBeReplacedExp.get(i).getSecond();
+                    if (!(replaced.getFirst() >= end || replaced.getSecond() <= start)) {
+                        // overlap with chosen areas
+                        conflict = true;
+                    }
+                }
+                if (conflict) {
+                    continue;
+                }
+                toBeReplacedExp.add(Pair.newPair(cc, Pair.newPair(start, end)));
+            }
+        }
+        return toBeReplacedExp;
     }
 
     //Return matched node's position and its alias(if exists).If can not find matches, return an empty list

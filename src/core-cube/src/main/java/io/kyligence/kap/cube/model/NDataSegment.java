@@ -28,10 +28,8 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Dictionary;
@@ -84,7 +82,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     private long sourceCount = -1; // source table records number
 
     @JsonProperty("additionalInfo")
-    private Map<String, String> additionalInfo = new LinkedHashMap<String, String>();
+    private Map<String, String> additionalInfo = Maps.newLinkedHashMap();
 
     // computed fields below
 
@@ -181,7 +179,8 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     }
 
     @Override
-    public void validate() throws IllegalStateException {
+    public void validate() {
+        // Do nothing
     }
 
     public Map<TblColRef, Dictionary<String>> buildDictionaryMap() {
@@ -223,7 +222,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         } catch (IOException e) {
             throw new IllegalStateException("Failed to get dictionary for cube segment" + this + ", col" + reuseCol, e);
         }
-        return (Dictionary<String>) info.getDictionaryObject();
+        return info.getDictionaryObject();
     }
 
     // ============================================================================
@@ -280,7 +279,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     public Map<String, String> getDictionaries() {
         if (dictionaries == null)
-            dictionaries = new ConcurrentHashMap<String, String>();
+            dictionaries = Maps.newConcurrentMap();
 
         return isCachedAndShared() ? ImmutableMap.copyOf(dictionaries) : dictionaries;
     }
@@ -299,7 +298,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     public Map<String, String> getSnapshots() {
         if (snapshots == null)
-            snapshots = new ConcurrentHashMap<String, String>();
+            snapshots = Maps.newConcurrentMap();
 
         return isCachedAndShared() ? ImmutableMap.copyOf(snapshots) : snapshots;
     }
@@ -343,7 +342,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     // ============================================================================
 
     public boolean isCachedAndShared() {
-        if (dataflow == null || dataflow.isCachedAndShared() == false)
+        if (dataflow == null || !dataflow.isCachedAndShared())
             return false;
 
         for (NDataSegment cached : dataflow.getSegments()) {
@@ -391,9 +390,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
                 return false;
         } else if (!dataflow.equals(other.dataflow))
             return false;
-        if (id != other.id)
-            return false;
-        return true;
+        return id == other.id;
     }
 
     @Override
