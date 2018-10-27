@@ -23,22 +23,19 @@
  */
 package io.kyligence.kap.rest.service;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Ordering;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
-import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffset;
-import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
-import io.kyligence.kap.metadata.query.QueryFilterRule;
-import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.NSmartMaster;
-import io.kylingence.kap.event.model.AccelerateEvent;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.PostConstruct;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
@@ -54,17 +51,23 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
+
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffset;
+import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
+import io.kyligence.kap.metadata.query.QueryFilterRule;
+import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.NSmartMaster;
+import io.kyligence.kap.event.model.AccelerateEvent;
 
 @Component("favoriteQueryService")
 public class FavoriteQueryService extends BasicService {

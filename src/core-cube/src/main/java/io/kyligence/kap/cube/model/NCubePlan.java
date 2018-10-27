@@ -37,8 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.annotation.Nullable;
-
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -141,6 +139,11 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     @JsonProperty("dictionaries")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<NDictionaryDesc> dictionaries;
+    @Getter
+    @JsonProperty("status")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private CubePlanStatus status = CubePlanStatus.READY;
+
     // computed fields below
     @JsonProperty("project")
     private String project;
@@ -211,18 +214,10 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
             measureBitSet.or(cuboid.getMeasureBitset().mutable());
         }
 
-        this.effectiveDimCols = Maps.filterKeys(model.getEffectiveColsMap(), new Predicate<Integer>() {
-            @Override
-            public boolean apply(@Nullable Integer input) {
-                return input != null && dimBitSet.get(input);
-            }
-        });
-        this.effectiveMeasures = Maps.filterKeys(model.getEffectiveMeasureMap(), new Predicate<Integer>() {
-            @Override
-            public boolean apply(@Nullable Integer input) {
-                return input != null && measureBitSet.get(input);
-            }
-        });
+        this.effectiveDimCols = Maps.filterKeys(model.getEffectiveColsMap(),
+                input -> input != null && dimBitSet.get(input));
+        this.effectiveMeasures = Maps.filterKeys(model.getEffectiveMeasureMap(),
+                input -> input != null && measureBitSet.get(input));
     }
 
     private void initAllColumns() {
@@ -462,6 +457,15 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         return r;
     }
 
+    public List<NCuboidLayout> getWhitelistCuboidLayouts() {
+        List<NCuboidLayout> r = Lists.newArrayList();
+
+        for (NCuboidDesc cd : cuboids) {
+            r.addAll(cd.getLayouts());
+        }
+        return r;
+    }
+
     public List<NCuboidLayout> getRuleBaseCuboidLayouts() {
         List<NCuboidLayout> r = new ArrayList<>();
 
@@ -596,6 +600,11 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
 
     public List<String> getStatusNeedNotify() {
         return isCachedAndShared ? ImmutableList.copyOf(statusNeedNotify) : statusNeedNotify;
+    }
+
+    public void setStatus(CubePlanStatus status) {
+        checkIsNotCachedAndShared();
+        this.status = status;
     }
 
     /**

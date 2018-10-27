@@ -51,13 +51,14 @@ import io.kyligence.kap.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.RemoveCuboidByIdEvent;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.TableIndexResponse;
-import io.kylingence.kap.event.manager.EventDao;
-import io.kylingence.kap.event.model.AddCuboidEvent;
-import io.kylingence.kap.event.model.Event;
-import io.kylingence.kap.event.model.RemoveCuboidByIdEvent;
 import lombok.val;
 import lombok.var;
 
@@ -75,9 +76,9 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         staticCreateTestMetadata();
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         dataflowManager.dropDataflow("all_fixed_length");
-        val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val fixedPlan = cubePlanManager.getCubePlan("all_fixed_length");
-        cubePlanManager.removeCubePlan(fixedPlan);
+//        val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+//        val fixedPlan = cubePlanManager.getCubePlan("all_fixed_length");
+//        cubePlanManager.removeCubePlan(fixedPlan);
     }
 
     @After
@@ -97,7 +98,7 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = cubePlanManager.getCubePlan("ncube_basic");
         val saved = cubePlanService.updateRuleBasedCuboid(UpdateRuleBasedCuboidRequest.builder().project("default")
-                .model("nmodel_basic").dimensions(Arrays.asList(1, 2, 3, 4)).measures(Arrays.asList(1001, 1002))
+                .model("nmodel_basic").dimensions(Arrays.asList(1, 2, 3, 4))
                 .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
         Assert.assertNotNull(saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid());
         Assert.assertEquals(4, saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().getDimensions().size());
@@ -109,7 +110,7 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = cubePlanManager.getCubePlan("ncube_basic");
         val saved = cubePlanService.updateRuleBasedCuboid(UpdateRuleBasedCuboidRequest.builder().project("default")
-                .model("nmodel_basic").dimensions(Arrays.asList(1, 2, 3, 4)).measures(Arrays.asList(1001, 1002))
+                .model("nmodel_basic").dimensions(Arrays.asList(1, 2, 3, 4))
                 .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
         Assert.assertNotNull(saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid());
         Assert.assertEquals(4, saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().getDimensions().size());
@@ -124,7 +125,7 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         val fixedPlan = cubePlanManager.getCubePlan("ncube_basic");
         cubePlanManager.removeCubePlan(fixedPlan);
         val saved = cubePlanService.updateRuleBasedCuboid(UpdateRuleBasedCuboidRequest.builder().project("default")
-                .model("nmodel_basic").dimensions(Arrays.asList(1, 2, 3, 4)).measures(Arrays.asList(1001, 1002))
+                .model("nmodel_basic").dimensions(Arrays.asList(1, 2, 3, 4))
                 .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
         Assert.assertNotNull(saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid());
         Assert.assertEquals(4, saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().getDimensions().size());
@@ -140,10 +141,11 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
                 .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                         "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                 .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
-                .layoutOverrideIndices(new HashMap<String, String>() {{
-                    put("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "eq");
-                }})
-                .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+                .layoutOverrideIndices(new HashMap<String, String>() {
+                    {
+                        put("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "eq");
+                    }
+                }).sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
         val saved = cubePlanManager.getCubePlan("ncube_basic");
         Assert.assertEquals(originLayoutSize + 1, saved.getAllCuboidLayouts().size());
         NCuboidLayout newLayout = null;
@@ -185,7 +187,6 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
                 .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
     }
 
-
     @Test
     public void testCreateTableIndexWithNewColumns() throws IOException, PersistentException {
         val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -226,7 +227,8 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         });
         Assert.assertEquals(2, allEvents.size());
         val event = allEvents.get(1);
-        Assert.assertThat(((RemoveCuboidByIdEvent) event).getLayoutIds(), CoreMatchers.is(Arrays.asList(30_000_000_001L)));
+        Assert.assertThat(((RemoveCuboidByIdEvent) event).getLayoutIds(),
+                CoreMatchers.is(Arrays.asList(30_000_000_001L)));
     }
 
     @Test
@@ -234,6 +236,7 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         thrown.expect(IllegalStateException.class);
         cubePlanService.removeTableIndex("default", "nmodel_basic", 20000002001L);
     }
+
     @Test
     public void testUpdateTableIndex() throws IOException, PersistentException {
         cubePlanService.createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
@@ -257,19 +260,20 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         });
         Assert.assertEquals(3, allEvents.size());
         val event = allEvents.get(1);
-        Assert.assertThat(((RemoveCuboidByIdEvent) event).getLayoutIds(), CoreMatchers.is(Arrays.asList(30_000_000_001L)));
+        Assert.assertThat(((RemoveCuboidByIdEvent) event).getLayoutIds(),
+                CoreMatchers.is(Arrays.asList(30_000_000_001L)));
         val event2 = allEvents.get(2);
         Assert.assertThat(((AddCuboidEvent) event2).getLayoutIds(), CoreMatchers.is(Arrays.asList(30_000_001_001L)));
     }
 
     @Test
     public void testGetTableIndex() throws IOException, PersistentException {
-        cubePlanService.createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
-                .name("ti1")
-                .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
-                        "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
-                .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
-                .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+        cubePlanService
+                .createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic").name("ti1")
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
+                                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
+                        .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
         cubePlanService.createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
                 .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                         "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID",
@@ -296,5 +300,22 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("ADMIN", first.getOwner());
         Assert.assertEquals("nmodel_basic", first.getModel());
         Assert.assertEquals(TableIndexResponse.Status.EMPTY, first.getStatus());
+    }
+
+    @Test
+    public void testGetRule() throws Exception {
+        Assert.assertNull(cubePlanService.getRule("default", "nmodel_basic"));
+        val rule = cubePlanService.getRule("default", "nmodel_basic_inner");
+        Assert.assertNotNull(rule);
+        val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), "default");
+        cubeMgr.updateCubePlan("ncube_basic_inner", copy -> {
+            val newRule = new NRuleBasedCuboidsDesc();
+            newRule.setDimensions(Lists.newArrayList(1, 2, 3));
+            newRule.setMeasures(Lists.newArrayList(1001, 1002));
+            rule.setNewRuleBasedCuboid(newRule);
+            copy.setRuleBasedCuboidsDesc(rule);
+        });
+        val rule2 = cubePlanService.getRule("default", "nmodel_basic_inner");
+        Assert.assertNotEquals(rule2, rule);
     }
 }

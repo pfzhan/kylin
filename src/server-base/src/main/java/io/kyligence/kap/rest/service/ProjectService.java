@@ -27,7 +27,7 @@ package io.kyligence.kap.rest.service;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.QueryFilterRule;
 import io.kyligence.kap.rest.request.ProjectRequest;
-import io.kylingence.kap.event.model.AddProjectEvent;
+import io.kyligence.kap.event.model.AddProjectEvent;
 import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.PersistentException;

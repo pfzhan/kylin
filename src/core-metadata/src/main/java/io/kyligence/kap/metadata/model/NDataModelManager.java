@@ -24,8 +24,11 @@
 
 package io.kyligence.kap.metadata.model;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -46,10 +49,10 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 
 public class NDataModelManager {
     private static final Logger logger = LoggerFactory.getLogger(NDataModelManager.class);
@@ -253,6 +256,15 @@ public class NDataModelManager {
         }
     }
 
+    public NDataModel updateDataModel(String model, NDataModelUpdater updater) throws IOException {
+        try (AutoLock lock = modelMapLock.lockForWrite()) {
+            val cached = getDataModelDesc(model);
+            val copy = copyForWrite(cached);
+            updater.modify(copy);
+            return updateDataModelDesc(copy);
+        }
+    }
+
     public NDataModel updateDataModelDesc(NDataModel desc) throws IOException {
         try (AutoLock lock = modelMapLock.lockForWrite()) {
             String name = desc.getName();
@@ -314,5 +326,9 @@ public class NDataModelManager {
 
     private NProjectManager getProjectManager() {
         return NProjectManager.getInstance(config);
+    }
+
+    public interface NDataModelUpdater {
+        void modify(NDataModel copyForWrite);
     }
 }

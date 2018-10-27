@@ -112,6 +112,10 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     @Setter
     private int version;
 
+    public NCuboidLayout() {
+        // Only used by Jackson
+    }
+
     /**
      * @return  0 for auto agg; 1 for rule based agg; 2 for auto table index; 3 for manual table index
      */
@@ -258,6 +262,17 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     public void setOwner(String owner) {
         checkIsNotCachedAndShared();
         this.owner = owner;
+    }
+
+    public boolean containMeasures(NCuboidLayout other) {
+        if (!(Objects.equal(this.getSortByColumns(), other.getSortByColumns())
+                && Objects.equal(this.getShardByColumns(), other.getShardByColumns())
+                && Objects.equal(this.getLayoutOverrideIndices(), other.getLayoutOverrideIndices())
+                && Objects.equal(this.getStorageType(), other.getStorageType()))
+                && Objects.equal(orderedDimensions.keySet(), other.getOrderedDimensions().keySet())) {
+            return false;
+        }
+        return getOrderedMeasures().keySet().containsAll(other.getOrderedMeasures().keySet());
     }
 
     public boolean isCachedAndShared() {

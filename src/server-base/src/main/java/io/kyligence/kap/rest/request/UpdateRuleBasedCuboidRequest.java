@@ -50,9 +50,6 @@ public class UpdateRuleBasedCuboidRequest {
     private List<Integer> dimensions = Lists.newArrayList();
 
     @Builder.Default
-    private List<Integer> measures = Lists.newArrayList();
-
-    @Builder.Default
     @JsonProperty("cuboid_black_list")
     private Set<Long> cuboidBlackSet = Sets.newHashSet();
 

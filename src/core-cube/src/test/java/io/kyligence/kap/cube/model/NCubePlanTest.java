@@ -140,6 +140,7 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
             NCuboidLayout cuboidLayout = cubePlan.getCuboidLayout(1000001L);
             final String colIndexType = cuboidLayout.getColIndexType(1);
             Assert.assertEquals("eq", colIndexType);
+            Assert.assertEquals(10, cubePlan.getWhitelistCuboidLayouts().size());
         }
 
         {
@@ -194,4 +195,5 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         Set<TblColRef> tblCols = cubePlan.getAllColumnsNeedDictionaryBuilt();
         Assert.assertEquals(31, tblCols.size());
     }
+
 }

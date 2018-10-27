@@ -24,21 +24,13 @@
 
 package io.kyligence.kap.rest;
 
-import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kylingence.kap.event.handle.AddCuboidHandler;
-import io.kylingence.kap.event.handle.AddSegmentHandler;
-import io.kylingence.kap.event.handle.CubePlanRuleUpdateHandler;
-import io.kylingence.kap.event.handle.LoadingRangeRefreshHandler;
-import io.kylingence.kap.event.handle.LoadingRangeUpdateHandler;
-import io.kylingence.kap.event.handle.MergeSegmentHandler;
-import io.kylingence.kap.event.handle.ModelUpdateHandler;
-import io.kylingence.kap.event.handle.PostCubePlanRuleUpdateHandler;
-import io.kylingence.kap.event.handle.ProjectHandler;
-import io.kylingence.kap.event.handle.RefreshSegmentHandler;
-import io.kylingence.kap.event.handle.RemoveCuboidByIdHandler;
-import io.kylingence.kap.event.handle.RemoveCuboidBySqlHandler;
-import io.kylingence.kap.event.handle.RemoveSegmentHandler;
+import java.io.File;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.util.Map;
+import java.util.UUID;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -56,12 +48,23 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ImportResource;
 
-import java.io.File;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.util.Map;
-import java.util.UUID;
+import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.event.handle.AddCuboidHandler;
+import io.kyligence.kap.event.handle.AddSegmentHandler;
+import io.kyligence.kap.event.handle.CubePlanRuleUpdateHandler;
+import io.kyligence.kap.event.handle.LoadingRangeRefreshHandler;
+import io.kyligence.kap.event.handle.LoadingRangeUpdateHandler;
+import io.kyligence.kap.event.handle.MergeSegmentHandler;
+import io.kyligence.kap.event.handle.ModelSemanticUpdateHandler;
+import io.kyligence.kap.event.handle.ModelUpdateHandler;
+import io.kyligence.kap.event.handle.PostCubePlanRuleUpdateHandler;
+import io.kyligence.kap.event.handle.PostModelSemanticUpdateHandler;
+import io.kyligence.kap.event.handle.ProjectHandler;
+import io.kyligence.kap.event.handle.RefreshSegmentHandler;
+import io.kyligence.kap.event.handle.RemoveCuboidByIdHandler;
+import io.kyligence.kap.event.handle.RemoveCuboidBySqlHandler;
+import io.kyligence.kap.event.handle.RemoveSegmentHandler;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 @ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
 @SpringBootApplication
@@ -140,6 +143,8 @@ public class BootstrapServer {
         new RefreshSegmentHandler();
         new CubePlanRuleUpdateHandler();
         new PostCubePlanRuleUpdateHandler();
+        new ModelSemanticUpdateHandler();
+        new PostModelSemanticUpdateHandler();
 
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         for (ProjectInstance projectInstance : projectManager.listAllProjects()) {

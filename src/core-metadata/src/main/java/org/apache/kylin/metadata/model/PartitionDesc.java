@@ -44,8 +44,6 @@ package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.DateFormat;
@@ -55,6 +53,9 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.EqualsAndHashCode;
 
 /**
  */
@@ -76,6 +77,7 @@ public class PartitionDesc implements Serializable {
     @JsonProperty("partition_time_column")
     private String partitionTimeColumn;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("partition_date_start")
     private long partitionDateStart = 0L;//Deprecated
 
@@ -91,6 +93,7 @@ public class PartitionDesc implements Serializable {
     @JsonProperty("partition_type")
     private PartitionType partitionType = PartitionType.APPEND;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("partition_condition_builder")
     private String partitionConditionBuilderClz = DefaultPartitionConditionBuilder.class.getName();
 

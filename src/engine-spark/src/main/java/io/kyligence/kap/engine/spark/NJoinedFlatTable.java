@@ -59,7 +59,7 @@ public class NJoinedFlatTable {
      */
     
     public static Dataset<Row> generateDataset(IJoinedFlatTableDesc flatTable, SparkSession ss) {
-        NDataModel model = (NDataModel) flatTable.getDataModel();
+        NDataModel model = flatTable.getDataModel();
         TableDesc rootFactDesc = model.getRootFactTable().getTableDesc();
         Dataset<Row> ds = SourceFactory.createEngineAdapter(rootFactDesc, NSparkCubingEngine.NSparkCubingSource.class)
                 .getSourceData(rootFactDesc, ss).alias(model.getRootFactTable().getAlias());

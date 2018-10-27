@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
@@ -44,6 +43,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.cube.model.CubePlanStatus;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
@@ -56,10 +56,10 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.TableIndexResponse;
-import io.kylingence.kap.event.manager.EventManager;
-import io.kylingence.kap.event.model.AddCuboidEvent;
-import io.kylingence.kap.event.model.CubePlanRuleUpdateEvent;
-import io.kylingence.kap.event.model.RemoveCuboidByIdEvent;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.CubePlanRuleUpdateEvent;
+import io.kyligence.kap.event.model.RemoveCuboidByIdEvent;
 import lombok.val;
 
 @Service("cubePlanService")
@@ -70,7 +70,6 @@ public class CubePlanService extends BasicService {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val cubePlanManager = NCubePlanManager.getInstance(kylinConfig, request.getProject());
         val eventManager = EventManager.getInstance(kylinConfig, request.getProject());
-
         NCubePlan originCubePlan = getCubePlan(request.getProject(), request.getModel());
 
         if (originCubePlan == null) {
@@ -83,20 +82,22 @@ public class CubePlanService extends BasicService {
             originCubePlan = cubePlanManager.createCubePlan(originCubePlan);
         }
 
-        val cubePlan = cubePlanManager.updateCubePlan(originCubePlan.getName(),
-                new NCubePlanManager.NCubePlanUpdater() {
-                    @Override
-                    public void modify(NCubePlan copyForWrite) {
-                        val newRuleBasedCuboid = new NRuleBasedCuboidsDesc();
-                        BeanUtils.copyProperties(request, newRuleBasedCuboid);
-                        newRuleBasedCuboid.setCubePlan(copyForWrite);
-                        newRuleBasedCuboid.init();
-                        if (copyForWrite.getRuleBasedCuboidsDesc() == null) {
-                            copyForWrite.setRuleBasedCuboidsDesc(new NRuleBasedCuboidsDesc());
-                        }
-                        copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(newRuleBasedCuboid);
-                    }
-                });
+        Preconditions.checkState(originCubePlan.getStatus() == CubePlanStatus.READY, "cube is building");
+        Preconditions.checkState(
+                originCubePlan.getRuleBasedCuboidsDesc() == null
+                        || originCubePlan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid() == null,
+                "cube is building");
+
+        val cubePlan = cubePlanManager.updateCubePlan(originCubePlan.getName(), copyForWrite -> {
+            val newRuleBasedCuboid = new NRuleBasedCuboidsDesc();
+            BeanUtils.copyProperties(request, newRuleBasedCuboid);
+            newRuleBasedCuboid.setCubePlan(copyForWrite);
+            newRuleBasedCuboid.init();
+            if (copyForWrite.getRuleBasedCuboidsDesc() == null) {
+                copyForWrite.setRuleBasedCuboidsDesc(new NRuleBasedCuboidsDesc());
+            }
+            copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(newRuleBasedCuboid);
+        });
         val event = new CubePlanRuleUpdateEvent();
         event.setApproved(true);
         event.setProject(request.getProject());
@@ -129,7 +130,6 @@ public class CubePlanService extends BasicService {
             if (model.getColumnIdByColumnName(col) == -1) {
                 val newCol = new NDataModel.NamedColumn();
                 newCol.id = maxId + 1;
-                newCol.name = col.split("\\.")[1];
                 newCol.aliasDotColumn = col;
                 newColumns.add(newCol);
                 maxId++;
@@ -173,16 +173,13 @@ public class CubePlanService extends BasicService {
 
             }
         }
-        cubePlanManager.updateCubePlan(cubePlan.getName(), new NCubePlanManager.NCubePlanUpdater() {
-            @Override
-            public void modify(NCubePlan copyForWrite) {
-                val newCuboid = new NCuboidDesc();
-                newCuboid.setId(newLayout.getId() - 1);
-                newCuboid.setDimensions(Lists.newArrayList(newLayout.getColOrder()));
-                newCuboid.setLayouts(Arrays.asList(newLayout));
-                newCuboid.setCubePlan(copyForWrite);
-                copyForWrite.getCuboids().add(newCuboid);
-            }
+        cubePlanManager.updateCubePlan(cubePlan.getName(), copyForWrite -> {
+            val newCuboid = new NCuboidDesc();
+            newCuboid.setId(newLayout.getId() - 1);
+            newCuboid.setDimensions(Lists.newArrayList(newLayout.getColOrder()));
+            newCuboid.setLayouts(Arrays.asList(newLayout));
+            newCuboid.setCubePlan(copyForWrite);
+            copyForWrite.getCuboids().add(newCuboid);
         });
         val addEvent = new AddCuboidEvent();
         addEvent.setProject(request.getProject());
@@ -198,7 +195,7 @@ public class CubePlanService extends BasicService {
         val eventManager = EventManager.getInstance(kylinConfig, project);
 
         val cubePlan = getCubePlan(project, model);
-        Preconditions.checkNotNull(cubePlan);
+        Preconditions.checkState(cubePlan != null);
         if (id < NCuboidDesc.MANUAL_TABLE_INDEX_START_ID) {
             throw new IllegalStateException(
                     "Table Index Id should large than " + NCuboidDesc.MANUAL_TABLE_INDEX_START_ID);
@@ -206,18 +203,8 @@ public class CubePlanService extends BasicService {
         val layout = cubePlan.getCuboidLayout(id);
         Preconditions.checkNotNull(layout);
 
-        cubePlanManager.updateCubePlan(cubePlan.getName(), new NCubePlanManager.NCubePlanUpdater() {
-            @Override
-            public void modify(NCubePlan copyForWrite) {
-                copyForWrite.removeLayouts(Sets.newHashSet(id),
-                        new Predicate2<NCuboidLayout, NCuboidLayout>() {
-                            @Override
-                            public boolean apply(NCuboidLayout o1, NCuboidLayout o2) {
-                                return o1.equals(o2);
-                            }
-                        });
-            }
-        });
+        cubePlanManager.updateCubePlan(cubePlan.getName(),
+                copyForWrite -> copyForWrite.removeLayouts(Sets.newHashSet(id), NCuboidLayout::equals));
         val removeEvent = new RemoveCuboidByIdEvent();
         removeEvent.setLayoutIds(Arrays.asList(id));
         removeEvent.setProject(project);
@@ -228,7 +215,7 @@ public class CubePlanService extends BasicService {
 
     public List<TableIndexResponse> getTableIndexs(String project, String model) {
         val cubePlan = getCubePlan(project, model);
-        Preconditions.checkNotNull(cubePlan);
+        Preconditions.checkState(cubePlan != null);
         List<TableIndexResponse> result = Lists.newArrayList();
         for (NCuboidLayout cuboidLayout : cubePlan.getAllCuboidLayouts()) {
             if (cuboidLayout.getId() >= NCuboidDesc.MANUAL_TABLE_INDEX_START_ID) {
@@ -236,6 +223,15 @@ public class CubePlanService extends BasicService {
             }
         }
         return result;
+    }
+
+    public NRuleBasedCuboidsDesc getRule(String project, String model) {
+        val cubePlan = getCubePlan(project, model);
+        Preconditions.checkState(cubePlan != null);
+        if (cubePlan.getRuleBasedCuboidsDesc() != null && cubePlan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid() != null) {
+            return cubePlan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid();
+        }
+        return cubePlan.getRuleBasedCuboidsDesc();
     }
 
     private TableIndexResponse convertToResponse(NCuboidLayout cuboidLayout, NDataModel model) {
@@ -269,6 +265,7 @@ public class CubePlanService extends BasicService {
             status = TableIndexResponse.Status.EMPTY;
         }
         response.setStatus(status);
+        response.setUpdateTime(cuboidLayout.getUpdateTime());
         return response;
     }
 

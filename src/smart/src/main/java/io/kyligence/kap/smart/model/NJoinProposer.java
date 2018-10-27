@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.smart.model;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -125,7 +126,7 @@ public class NJoinProposer extends NAbstractModelProposer {
         }
 
         // Add joins
-        modelDesc.setJoinTables(joinTables.values().toArray(new JoinTableDesc[0]));
+        modelDesc.setJoinTables(new ArrayList<>(joinTables.values()));
     }
 
     /**

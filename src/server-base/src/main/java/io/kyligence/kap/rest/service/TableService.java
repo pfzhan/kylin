@@ -46,8 +46,9 @@ import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
-import io.kylingence.kap.event.manager.EventManager;
-import io.kylingence.kap.event.model.LoadingRangeUpdateEvent;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.LoadingRangeUpdateEvent;
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -323,7 +324,7 @@ public class TableService extends BasicService {
         Set<String> primaryKey = new HashSet<>();
         Set<String> foreignKey = new HashSet<>();
         for (String model : models) {
-            JoinTableDesc[] joinTables = dataModelManager.getDataModelDesc(model).getJoinTables();
+            val joinTables = dataModelManager.getDataModelDesc(model).getJoinTables();
             for (JoinTableDesc joinTable : joinTables) {
                 if (joinTable.getTable().equals(table.getIdentity())) {
                     foreignKey.addAll(Arrays.asList(joinTable.getJoin().getForeignKey()));

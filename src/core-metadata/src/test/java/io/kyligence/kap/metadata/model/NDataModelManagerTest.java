@@ -88,7 +88,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasicModel() {
         NDataModel bm = mgrDefault.getDataModelDesc(modelBasic);
-        Assert.assertEquals(9, bm.getJoinTables().length);
+        Assert.assertEquals(9, bm.getJoinTables().size());
     }
 
     @Test

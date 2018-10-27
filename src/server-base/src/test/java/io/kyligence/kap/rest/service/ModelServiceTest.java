@@ -54,34 +54,14 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NDataLoadingRange;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.model.DataCheckDesc;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.response.CuboidDescResponse;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
-import io.kyligence.kap.rest.response.RelatedModelResponse;
-import io.kylingence.kap.event.manager.EventDao;
-import io.kylingence.kap.event.model.AddSegmentEvent;
-import io.kylingence.kap.event.model.Event;
-import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
-import io.kylingence.kap.event.model.RemoveSegmentEvent;
+import io.kyligence.kap.event.model.RemoveSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -115,9 +95,33 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.LoadingRangeRefreshEvent;
 import io.kyligence.kap.metadata.model.BadModelException;
+import io.kyligence.kap.metadata.model.Canvas;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.DataCheckDesc;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.request.ModelCanvasUpdateRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
+import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
+import io.kyligence.kap.rest.response.RelatedModelResponse;
+import lombok.val;
 
 
 public class ModelServiceTest extends NLocalFileMetadataTestCase {
@@ -1630,4 +1634,19 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, dataCheckDesc.getFaultActions());
     }
 
+    @Test
+    public void testUpdateCanvas() throws Exception {
+        val request = new ModelCanvasUpdateRequest();
+        request.setProject("default");
+        request.setModel("nmodel_basic");
+        request.setCanvas(Canvas.builder().zoom(3.2).coordinate(new HashMap<String, Canvas.Coordinate>() {
+            {
+                put("abc", Canvas.Coordinate.builder().x(1.0).y(2.0).width(3.0).height(4.0).build());
+            }
+        }).build());
+        modelService.updateDataModelCanvas(request);
+
+        val savedModel = modelService.getDataModelManager("default").getDataModelDesc("nmodel_basic");
+        Assert.assertNotNull(savedModel.getCanvas());
+    }
 }

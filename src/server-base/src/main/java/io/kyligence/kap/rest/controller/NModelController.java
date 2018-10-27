@@ -24,23 +24,12 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.model.BadModelException;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.request.BuildSegmentsRequest;
-import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
-import io.kyligence.kap.rest.request.ModelCheckRequest;
-import io.kyligence.kap.rest.request.ModelCloneRequest;
-import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.request.ModelUpdateRequest;
-import io.kyligence.kap.rest.request.UnlinkModelRequest;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
 import io.kyligence.kap.rest.request.SegmentsRequest;
-import io.kyligence.kap.rest.response.CuboidDescResponse;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.service.ModelService;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.exception.PersistentException;
@@ -56,15 +45,32 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.model.BadModelException;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.request.BuildSegmentsRequest;
+import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
+import io.kyligence.kap.rest.request.ModelCanvasUpdateRequest;
+import io.kyligence.kap.rest.request.ModelCheckRequest;
+import io.kyligence.kap.rest.request.ModelCloneRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.ModelSemanticUpdateRequest;
+import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.UnlinkModelRequest;
+import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.service.ModelService;
 
 @Controller
 @RequestMapping(value = "/models")
@@ -193,6 +199,22 @@ public class NModelController extends NBasicController {
         List<NForestSpanningTree> modelRelations = modelService.getModelRelations(modelName, project);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelRelations, "");
+    }
+
+    @PutMapping(value = "/semantic", produces = "application/vnd.apache.kylin-v2+json")
+    public EnvelopeResponse updateSemantic(@RequestBody ModelSemanticUpdateRequest request) throws IOException, PersistentException {
+        checkProjectName(request.getProject());
+        checkRequiredArg(MODEL_NAME, request.getModel());
+        modelService.updateDataModelSemantic(request);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @PutMapping(value = "/canvas", produces = "application/vnd.apache.kylin-v2+json")
+    public EnvelopeResponse updateCanvas(@RequestBody ModelCanvasUpdateRequest request) throws IOException {
+        checkProjectName(request.getProject());
+        checkRequiredArg(MODEL_NAME, request.getModel());
+        modelService.updateDataModelCanvas(request);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "/name", method = { RequestMethod.PUT }, produces = {

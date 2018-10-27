@@ -59,6 +59,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.val;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -101,10 +102,10 @@ public class ModelDataGenerator {
         Set<TableDesc> generated = new HashSet<>();
         Set<TableDesc> allTableDesc = new LinkedHashSet<>();
 
-        JoinTableDesc[] allTables = model.getJoinTables();
-        for (int i = allTables.length - 1; i >= -1; i--) { // reverse order needed for FK generation
+        val allTables = model.getJoinTables();
+        for (int i = allTables.size()- 1; i >= -1; i--) { // reverse order needed for FK generation
             TableDesc table = (i == -1) ? model.getRootFactTable().getTableDesc()
-                    : allTables[i].getTableRef().getTableDesc();
+                    : allTables.get(i).getTableRef().getTableDesc();
             allTableDesc.add(table);
 
             if (generated.contains(table))
@@ -264,9 +265,9 @@ public class ModelDataGenerator {
     }
 
     public List<String> getPkValuesIfIsFk(ColumnDesc fk) throws IOException {
-        JoinTableDesc[] joinTables = model.getJoinTables();
-        for (int i = 0; i < joinTables.length; i++) {
-            JoinTableDesc joinTable = joinTables[i];
+        val joinTables = model.getJoinTables();
+        for (int i = 0; i < joinTables.size(); i++) {
+            JoinTableDesc joinTable = joinTables.get(i);
             ColumnDesc pk = findPk(joinTable, fk);
             if (pk == null)
                 continue;

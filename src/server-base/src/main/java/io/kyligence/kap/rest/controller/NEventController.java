@@ -29,7 +29,7 @@ import java.util.List;
 
 import io.kyligence.kap.rest.request.EventRequest;
 import io.kyligence.kap.rest.service.EventService;
-import io.kylingence.kap.event.model.Event;
+import io.kyligence.kap.event.model.Event;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;

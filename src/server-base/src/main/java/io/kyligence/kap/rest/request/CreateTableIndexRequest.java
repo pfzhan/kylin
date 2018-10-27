@@ -53,6 +53,7 @@ public class CreateTableIndexRequest {
     private List<String> colOrder;
 
     @JsonProperty("layout_override_indices")
+    @Builder.Default
     private Map<String, String> layoutOverrideIndices = Maps.newHashMap();
 
     @JsonProperty("shard_by_columns")
@@ -62,5 +63,6 @@ public class CreateTableIndexRequest {
     private List<String> sortByColumns;
 
     @JsonProperty("storage_type")
+    @Builder.Default
     private int storageType = IKapStorageAware.ID_NDATA_STORAGE;
 }

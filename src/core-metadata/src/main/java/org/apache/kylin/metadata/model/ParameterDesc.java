@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -48,6 +47,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -179,14 +179,14 @@ public class ParameterDesc implements Serializable {
         ParameterDesc p = this, q = that;
         for (; p != null && q != null; p = p.nextParameter, q = q.nextParameter) {
             if (p.isColumnType()) {
-                if (q.isColumnType() == false)
+                if (!q.isColumnType())
                     return false;
-                if (q.getColRef().equals(p.getColRef()) == false)
+                if (!Objects.equals(q.getColRef(), p.getColRef()))
                     return false;
             } else {
-                if (q.isColumnType() == true)
+                if (q.isColumnType())
                     return false;
-                if (p.value.equals(q.value) == false)
+                if (!p.value.equals(q.value))
                     return false;
             }
         }
@@ -292,7 +292,7 @@ public class ParameterDesc implements Serializable {
             if (this.isColumnType()) {
                 if (!that.isColumnType())
                     return false;
-                if (!this.colRef.equals(that.colRef)) {
+                if (!Objects.equals(this.colRef, that.colRef)) {
                     return false;
                 }
             } else {

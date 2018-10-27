@@ -62,6 +62,9 @@ public class TableIndexResponse {
     @JsonProperty("storage_type")
     private int storageType = IKapStorageAware.ID_NDATA_STORAGE;
 
+    @JsonProperty("update_time")
+    private long updateTime;
+
     public enum Status {
         EMPTY, AVAILABLE, BROKEN
     }

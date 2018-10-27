@@ -95,7 +95,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             // Load from old model
             setNamedColumns(nDataModel.getAllNamedColumns());
             setMeasures(nDataModel.getAllMeasures());
-            setJoins(nDataModel.getJoinTables());
+            setJoins(nDataModel.getJoinTables().toArray(new JoinTableDesc[0]));
             // Add partition column to named columns
             setPartitionColumn(nDataModel.getPartitionDesc());
         }
@@ -170,7 +170,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
             for (TblColRef tblColRef : allColumns) {
                 if (namedColsCandidate.containsKey(tblColRef.getIdentity())) {
-                    namedColsCandidate.get(tblColRef.getIdentity()).tomb = false;
+                    namedColsCandidate.get(tblColRef.getIdentity()).status = NDataModel.ColumnStatus.DIMENSION;
                     continue;
                 }
                 int newId = ++maxColId;
@@ -192,7 +192,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 }
                 for (TblColRef tblColRef : agg.getParameter().getColRefs()) {
                     if (namedColsCandidate.containsKey(tblColRef.getIdentity())) {
-                        namedColsCandidate.get(tblColRef.getIdentity()).tomb = false;
+                        namedColsCandidate.get(tblColRef.getIdentity()).status = NDataModel.ColumnStatus.DIMENSION;
                     }
                 }
                 if (checkFunctionDesc(agg)) {

@@ -52,5 +52,4 @@ public class NDataModelResponse extends NDataModel {
         super(dataMolde);
     }
 
-
 }

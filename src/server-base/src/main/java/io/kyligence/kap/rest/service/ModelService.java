@@ -32,11 +32,43 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import com.google.common.primitives.Ints;
-import io.kylingence.kap.event.model.Event;
-import io.kylingence.kap.event.model.RefreshSegmentEvent;
-import io.kylingence.kap.event.model.RemoveSegmentEvent;
+import io.kyligence.kap.engine.spark.NJoinedFlatTable;
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.LoadingRangeRefreshEvent;
+import io.kyligence.kap.event.model.ModelSemanticUpdateEvent;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.event.model.RemoveSegmentEvent;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.DataCheckDesc;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.ModelStatus;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.rest.request.ModelCanvasUpdateRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.ModelSemanticUpdateRequest;
+import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
+import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.ParameterResponse;
+import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
+import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
+import io.kyligence.kap.rest.response.SimplifiedMeasureResponse;
+import io.kyligence.kap.rest.response.SimplifiedTableResponse;
+import io.kyligence.kap.smart.util.CubeUtils;
+import lombok.val;
+import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -65,12 +97,16 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.cube.model.CubePlanStatus;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
@@ -82,31 +118,6 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.DataCheckDesc;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
-import io.kyligence.kap.rest.response.CuboidDescResponse;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.ParameterResponse;
-import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
-import io.kyligence.kap.rest.response.RelatedModelResponse;
-import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
-import io.kyligence.kap.rest.response.SimplifiedMeasureResponse;
-import io.kyligence.kap.rest.response.SimplifiedTableResponse;
-import io.kyligence.kap.smart.util.CubeUtils;
-import io.kylingence.kap.event.manager.EventManager;
-import io.kylingence.kap.event.model.AddSegmentEvent;
-import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
 
 @Component("modelService")
 public class ModelService extends BasicService {
@@ -121,7 +132,7 @@ public class ModelService extends BasicService {
             .toCharArray();
 
     public List<NDataModelResponse> getModels(final String modelName, final String projectName, boolean exactMatch,
-            String owner, String status, String sortBy, boolean reverse) {
+                                              String owner, String status, String sortBy, boolean reverse) {
 
         List<NDataModel> models = getDataModelManager(projectName).getDataModels();
         List<NDataModelResponse> filterModels = new ArrayList<NDataModelResponse>();
@@ -548,7 +559,8 @@ public class ModelService extends BasicService {
     }
 
     public boolean isModelsUsingTable(String table, String project) throws IOException {
-        return getDataModelManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table)).size() > 0;
+        return getDataModelManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table))
+                .size() > 0;
     }
 
     public List<String> getModelsUsingTable(String table, String project) throws IOException {
@@ -952,6 +964,103 @@ public class ModelService extends BasicService {
                     eventManager.post(event);
 
                 }
+            }
+        }
+    }
+    public void updateDataModelSemantic(ModelSemanticUpdateRequest request) throws PersistentException, IOException {
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
+        val cubeManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
+        val originModel = modelManager.getDataModelDesc(request.getModel());
+
+        Preconditions.checkState(originModel.getModelStatus() == ModelStatus.READY,
+                "model " + request.getModel() + " is building");
+        val copyModel = modelManager.copyForWrite(originModel);
+        BeanUtils.copyProperties(request, copyModel, "allNamedColumns", "allMeasures");
+        updateModelColumns(copyModel, request);
+        val targetModel = modelManager.updateDataModelDesc(copyModel);
+
+        for (NCubePlan cubePlan : cubeManager.findMatchingCubePlan(request.getModel(), request.getProject(),
+                KylinConfig.getInstanceFromEnv())) {
+            Preconditions.checkState(cubePlan.getStatus() == CubePlanStatus.READY,
+                    "cube " + cubePlan.getName() + " is building");
+            // check agg group contains removed dimensions
+            val rule = cubePlan.getRuleBasedCuboidsDesc();
+            if (rule != null && !targetModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {
+                val allDimensions = rule.getDimensions();
+                val dimensionNames = allDimensions.stream()
+                        .filter(id -> !targetModel.getEffectiveDimenionsMap().containsKey(id))
+                        .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
+                throw new IllegalStateException("cube " + cubePlan.getName() + " still contains dimensions "
+                        + StringUtils.join(dimensionNames, ","));
+            }
+        }
+
+        val eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
+        val event = new ModelSemanticUpdateEvent();
+        event.setProject(request.getProject());
+        event.setModelName(request.getModel());
+        event.setOriginModel(originModel);
+        eventManager.post(event);
+    }
+
+    public void updateDataModelCanvas(ModelCanvasUpdateRequest request) throws IOException {
+        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
+        val originModel = modelManager.getDataModelDesc(request.getModel());
+        val targetModel = modelManager.copyForWrite(originModel);
+
+        targetModel.setCanvas(request.getCanvas());
+        modelManager.updateDataModelDesc(targetModel);
+    }
+
+    private void updateModelColumns(NDataModel targetModel, ModelSemanticUpdateRequest request) throws IOException {
+        val newMeasures = Lists.<NDataModel.Measure> newArrayList();
+        var maxMeasureId = targetModel.getEffectiveMeasureMap().keySet().stream().mapToInt(i -> i).max()
+                .orElse(NDataModel.MEASURE_ID_BASE - 1) + 1;
+        for (NDataModel.Measure measure : request.getAllMeasures()) {
+            measure.getFunction().init(targetModel);
+            val matched = targetModel.getEffectiveMeasureMap().values().stream()
+                    .filter(m -> m.getName().equals(measure.getName()) && m.getFunction().equals(measure.getFunction()))
+                    .count();
+            if (matched == 0) {
+                val measureCopy = JsonUtil.deepCopy(measure, NDataModel.Measure.class);
+                measureCopy.id = maxMeasureId;
+                newMeasures.add(measureCopy);
+                maxMeasureId++;
+            }
+        }
+        targetModel.getAllMeasures().addAll(newMeasures);
+        for (NDataModel.Measure measure : targetModel.getAllMeasures()) {
+            val matched = request.getAllMeasures().stream()
+                    .filter(m -> m.getName().equals(measure.getName()) && m.getFunction().equals(measure.getFunction()))
+                    .count();
+            measure.tomb = matched == 0 || measure.tomb;
+        }
+
+        for (NDataModel.NamedColumn newColumn : request.getAllDimensions()) {
+            // change name does not matter
+            val matched = targetModel.getAllNamedColumns().stream()
+                    .filter(col -> col.isDimension() && col.aliasDotColumn.equals(newColumn.aliasDotColumn))
+                    .collect(Collectors.toList());
+            for (NDataModel.NamedColumn column : matched) {
+                column.name = newColumn.name;
+            }
+            if (matched.size() == 0) {
+                targetModel.getAllNamedColumns().stream()
+                        .filter(col -> col.isExist() && col.aliasDotColumn.equals(newColumn.aliasDotColumn))
+                        .forEach(col -> {
+                            col.status = NDataModel.ColumnStatus.DIMENSION;
+                            col.name = newColumn.name;
+                        });
+            }
+        }
+        for (NDataModel.NamedColumn column : targetModel.getAllNamedColumns()) {
+            if (!column.isDimension()) {
+                continue;
+            }
+            val matched = request.getAllDimensions().stream()
+                    .filter(col -> col.aliasDotColumn.equals(column.aliasDotColumn)).count();
+            if (matched == 0) {
+                column.status = NDataModel.ColumnStatus.EXIST;
             }
         }
     }

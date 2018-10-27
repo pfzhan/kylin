@@ -96,7 +96,6 @@ import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.querymeta.ColumnMeta;
@@ -139,6 +138,8 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.metrics.QueryMetricsContext;
+import io.kyligence.kap.rest.service.QueryHistoryService;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
@@ -795,31 +796,6 @@ public class QueryService extends BasicService {
                     }
                 }
 
-                // update column type: DIMENSION AND MEASURE
-                List<ModelDimensionDesc> dimensions = dataModelDesc.getDimensions();
-                for (ModelDimensionDesc dimension : dimensions) {
-                    for (String column : dimension.getColumns()) {
-                        String columnIdentity = (dataModelDesc.findTable(dimension.getTable()).getTableIdentity() + "."
-                                + column).replace('.', '#');
-                        if (columnMap.containsKey(columnIdentity)) {
-                            columnMap.get(columnIdentity).getTYPE().add(ColumnMetaWithType.columnTypeEnum.DIMENSION);
-                        } else {
-                            // throw new BadRequestException(msg.getCOLUMN_META_INCONSISTENT());
-                        }
-
-                    }
-                }
-
-                String[] measures = dataModelDesc.getMetrics();
-                for (String measure : measures) {
-                    String columnIdentity = (dataModelDesc.findTable(measure.substring(0, measure.indexOf(".")))
-                            .getTableIdentity() + measure.substring(measure.indexOf("."))).replace('.', '#');
-                    if (columnMap.containsKey(columnIdentity)) {
-                        columnMap.get(columnIdentity).getTYPE().add(ColumnMetaWithType.columnTypeEnum.MEASURE);
-                    } else {
-                        // throw new BadRequestException(msg.getCOLUMN_META_INCONSISTENT());
-                    }
-                }
             }
         }
 

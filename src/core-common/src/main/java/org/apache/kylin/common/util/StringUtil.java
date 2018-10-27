@@ -45,6 +45,7 @@ package org.apache.kylin.common.util;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -107,6 +108,16 @@ public class StringUtil {
             for (int i = 0; i < source.length; i++) {
                 if (source[i] != null) {
                     target[i] = source[i].toUpperCase();
+                }
+            }
+        }
+    }
+
+    public static void toUpperCaseArray(List<String> source, List<String> target) {
+        if (source != null) {
+            for (int i = 0; i < source.size(); i++) {
+                if (source.get(i) != null) {
+                    target.set(i, source.get(i).toUpperCase());
                 }
             }
         }

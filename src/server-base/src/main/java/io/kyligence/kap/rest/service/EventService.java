@@ -26,8 +26,8 @@ package io.kyligence.kap.rest.service;
 
 import java.util.List;
 
-import io.kylingence.kap.event.manager.EventDao;
-import io.kylingence.kap.event.model.Event;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.Event;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;

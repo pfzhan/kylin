@@ -49,7 +49,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import io.kyligence.kap.rest.request.EventRequest;
 import io.kyligence.kap.rest.service.EventService;
-import io.kylingence.kap.event.model.Event;
+import io.kyligence.kap.event.model.Event;
 
 public class NEventControllerTest {
 

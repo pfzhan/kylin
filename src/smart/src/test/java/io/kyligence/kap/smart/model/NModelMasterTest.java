@@ -25,9 +25,8 @@
 package io.kyligence.kap.smart.model;
 
 import java.io.IOException;
-
 import java.util.List;
-import org.apache.kylin.metadata.model.JoinTableDesc;
+
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.Assert;
@@ -39,6 +38,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.NTestBase;
+import lombok.val;
 
 public class NModelMasterTest extends NTestBase {
     @Test
@@ -75,15 +75,15 @@ public class NModelMasterTest extends NTestBase {
 
         dataModel = modelMaster.proposeJoins(dataModel);
         {
-            JoinTableDesc[] joins = dataModel.getJoinTables();
+            val joins = dataModel.getJoinTables();
             Assert.assertNotNull(joins);
-            Assert.assertEquals(1, joins.length);
-            Assert.assertEquals(NDataModel.TableKind.LOOKUP, joins[0].getKind());
-            Assert.assertEquals("left", joins[0].getJoin().getType());
-            Assert.assertEquals("DEFAULT.KYLIN_CAL_DT", joins[0].getTable());
-            Assert.assertEquals("KYLIN_CAL_DT", joins[0].getAlias());
-            Assert.assertArrayEquals(new String[] { "KYLIN_CAL_DT.CAL_DT" }, joins[0].getJoin().getPrimaryKey());
-            Assert.assertArrayEquals(new String[] { "KYLIN_SALES.PART_DT" }, joins[0].getJoin().getForeignKey());
+            Assert.assertEquals(1, joins.size());
+            Assert.assertEquals(NDataModel.TableKind.LOOKUP, joins.get(0).getKind());
+            Assert.assertEquals("left", joins.get(0).getJoin().getType());
+            Assert.assertEquals("DEFAULT.KYLIN_CAL_DT", joins.get(0).getTable());
+            Assert.assertEquals("KYLIN_CAL_DT", joins.get(0).getAlias());
+            Assert.assertArrayEquals(new String[] { "KYLIN_CAL_DT.CAL_DT" }, joins.get(0).getJoin().getPrimaryKey());
+            Assert.assertArrayEquals(new String[] { "KYLIN_SALES.PART_DT" }, joins.get(0).getJoin().getForeignKey());
         }
 
         // propose again, should return same result
@@ -144,7 +144,7 @@ public class NModelMasterTest extends NTestBase {
             Assert.assertEquals(5, dataModel.getAllNamedColumns().size());
             Assert.assertEquals(-1, dataModel.getColumnIdByColumnName("KYLIN_SALES.PART_DT"));
             Assert.assertEquals(2, dataModel.getAllMeasures().size());
-            Assert.assertEquals(1, dataModel.getJoinTables().length);
+            Assert.assertEquals(1, dataModel.getJoinTables().size());
         }
 
         // propose model with partition column
@@ -157,7 +157,7 @@ public class NModelMasterTest extends NTestBase {
             Assert.assertEquals(6, dataModel.getAllNamedColumns().size());
             Assert.assertNotEquals(-1, dataModel.getColumnIdByColumnName("KYLIN_SALES.PART_DT"));
             Assert.assertEquals(2, dataModel.getAllMeasures().size());
-            Assert.assertEquals(1, dataModel.getJoinTables().length);
+            Assert.assertEquals(1, dataModel.getJoinTables().size());
         }
     }
 

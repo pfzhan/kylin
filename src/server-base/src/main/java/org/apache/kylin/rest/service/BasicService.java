@@ -42,19 +42,19 @@
 
 package org.apache.kylin.rest.service;
 
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
-import io.kylingence.kap.event.manager.EventDao;
-import io.kylingence.kap.event.manager.EventManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.acl.TableACLManager;
 
 import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
 
 public abstract class BasicService {
 

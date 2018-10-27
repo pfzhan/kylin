@@ -25,11 +25,6 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Keep same order with dependencyManagement -->
-        <!-- General Properties -->
-        <javaVersion>1.7</javaVersion>
-        <maven-model.version>3.3.9</maven-model.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Hadoop versions -->
         <hadoop2.version>2.7.1</hadoop2.version>

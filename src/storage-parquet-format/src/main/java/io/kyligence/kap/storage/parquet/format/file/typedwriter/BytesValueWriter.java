@@ -37,7 +37,11 @@ public class BytesValueWriter implements TypeValuesWriter {
     }
 
     public void writeData(Object obj) {
-        writer.writeBytes((Binary) obj);
+        if (obj instanceof byte[]) {
+            writer.writeBytes(Binary.fromConstantByteArray((byte[]) obj));
+        } else {
+            writer.writeBytes((Binary) obj);
+        }
     }
 
     public BytesInput getBytes() {

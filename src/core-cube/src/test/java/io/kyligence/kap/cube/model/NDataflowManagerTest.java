@@ -45,8 +45,12 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
+import lombok.var;
 
 public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     private String projectDefault = "default";
@@ -500,5 +504,17 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals(2, dataSegments.size());
 
+    }
+
+    @Test
+    public void testRemoveLayouts() throws IOException {
+        val testConfig = getTestConfig();
+        val mgr = NDataflowManager.getInstance(testConfig, projectDefault);
+        var dataflow = mgr.getDataflow("ncube_basic");
+        val originSize = dataflow.getLastSegment().getSegDetails().getCuboids().size();
+        dataflow = mgr.removeLayouts(dataflow, Lists.newArrayList(1000001L, 1L));
+        Assert.assertEquals(originSize - 2, dataflow.getLastSegment().getSegDetails().getCuboids().size());
+        dataflow = mgr.removeLayouts(dataflow, Lists.newArrayList(100000000L));
+        Assert.assertEquals(originSize - 2, dataflow.getLastSegment().getSegDetails().getCuboids().size());
     }
 }

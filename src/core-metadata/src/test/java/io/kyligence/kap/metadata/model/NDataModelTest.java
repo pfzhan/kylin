@@ -99,7 +99,6 @@ public class NDataModelTest {
         Assert.assertEquals(model.getAllCols(), copyModel.getAllCols());
         Assert.assertEquals(model.getAllMeasures(), copyModel.getAllMeasures());
         Assert.assertEquals(model.getAllNamedColumns(), copyModel.getAllNamedColumns());
-        Assert.assertEquals(model.getColCorrs(), copyModel.getColCorrs());
 
 
         ImmutableBiMap<Integer, NDataModel.Measure> measureMap = model.getEffectiveMeasureMap();
@@ -118,7 +117,7 @@ public class NDataModelTest {
         NDataModel model = mgr.getDataModelDesc("nmodel_basic");
         int size = model.getEffectiveColsMap().size();
 
-        model.getAllNamedColumns().get(0).tomb = true;
+        model.getAllNamedColumns().get(0).status = NDataModel.ColumnStatus.TOMB;
         mgr.updateDataModelDesc(model);
         model = mgr.getDataModelDesc("nmodel_basic");
         int size2 = model.getEffectiveColsMap().size();
@@ -147,4 +146,12 @@ public class NDataModelTest {
         copyModel3.getColCorrs().remove(copyModel3.getColCorrs().size() - 1);
         Assert.assertNotEquals(model, copyModel3);
     }
+
+    @Test
+    public void testGetNameById()  {
+        NDataModel model = mgr.getDataModelDesc("nmodel_basic");
+        Assert.assertEquals("CAL_DT", model.getNameByColumnId(2));
+        Assert.assertNull(model.getNameByColumnId(100));
+    }
+
 }

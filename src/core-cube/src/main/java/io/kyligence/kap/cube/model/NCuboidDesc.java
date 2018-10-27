@@ -32,8 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import javax.annotation.Nullable;
-
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -94,19 +92,17 @@ public class NCuboidDesc implements Serializable, IKeep {
         this.dimensionBitset = ImmutableBitSet.valueOf(dimensions);
         this.measureBitset = ImmutableBitSet.valueOf(measures);
 
-        this.effectiveDimCols = Maps.filterKeys(model.getEffectiveColsMap(), new Predicate<Integer>() {
-            @Override
-            public boolean apply(@Nullable Integer input) {
-                return input != null && dimensionBitset.get(input);
-            }
-        });
+        this.effectiveDimCols = Maps.filterKeys(model.getEffectiveColsMap(),
+                input -> input != null && dimensionBitset.get(input));
 
         this.dimensionSet = ImmutableSet.copyOf(this.effectiveDimCols.values());
 
         // TODO: all layouts' measure order must follow cuboid_desc's define ?
         ImmutableBiMap.Builder<Integer, Measure> measuresBuilder = ImmutableBiMap.builder();
         for (int m : measures) {
-            measuresBuilder.put(m, model.getEffectiveMeasureMap().get(m));
+            if (model.getEffectiveMeasureMap().containsKey(m)) {
+                measuresBuilder.put(m, model.getEffectiveMeasureMap().get(m));
+            }
         }
         this.effectiveMeasures = measuresBuilder.build();
         this.measureSet = effectiveMeasures.values();
@@ -242,8 +238,8 @@ public class NCuboidDesc implements Serializable, IKeep {
         return id >= MANUAL_TABLE_INDEX_START_ID;
     }
 
-    void removeLayoutsInCuboid(List<NCuboidLayout> deprecatedLayouts,
-                               Predicate<NCuboidLayout> isSkip, Predicate2<NCuboidLayout, NCuboidLayout> equal) {
+    void removeLayoutsInCuboid(List<NCuboidLayout> deprecatedLayouts, Predicate<NCuboidLayout> isSkip,
+            Predicate2<NCuboidLayout, NCuboidLayout> equal) {
         List<NCuboidLayout> toRemoveLayouts = Lists.newArrayList();
         for (NCuboidLayout cuboidLayout : deprecatedLayouts) {
             if (isSkip != null && isSkip.apply(cuboidLayout)) {
@@ -260,7 +256,7 @@ public class NCuboidDesc implements Serializable, IKeep {
                 toRemoveLayouts.add(toRemoveLayout);
             }
         }
-//        logger.debug("to remove {}", toRemoveLayouts);
+        //        logger.debug("to remove {}", toRemoveLayouts);
         getLayouts().removeAll(toRemoveLayouts);
     }
 

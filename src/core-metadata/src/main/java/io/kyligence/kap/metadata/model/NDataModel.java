@@ -48,11 +48,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
@@ -61,9 +61,9 @@ import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.commons.lang.mutable.MutableInt;
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -77,9 +77,7 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
-import org.apache.kylin.metadata.model.JoinsTree.Chain;
 import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.ModelDimensionDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -94,15 +92,11 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableMultimap;
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -114,12 +108,16 @@ import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.val;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class NDataModel extends RootPersistentEntity {
     private static final Logger logger = LoggerFactory.getLogger(NDataModel.class);
+    public static final int MEASURE_ID_BASE = 1000;
 
     public enum TableKind implements Serializable {
         FACT, LOOKUP
@@ -163,19 +161,9 @@ public class NDataModel extends RootPersistentEntity {
     @JsonProperty("maintain_model_type")
     private MaintainModelType maintainModelType = MaintainModelType.AUTO_MAINTAIN;
 
-    @JsonProperty("lookups")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private JoinTableDesc[] joinTables;
-
     @JsonProperty("join_tables")
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private JoinTableDesc[] deprecatedLookups; // replaced by "join_tables" since KYLIN-1875
-
-    private List<ModelDimensionDesc> dimensions;
-
-    @EqualsAndHashCode.Include
-    @JsonProperty("metrics")
-    private String[] metrics;
+    private List<JoinTableDesc> joinTables;
 
     @EqualsAndHashCode.Include
     @JsonProperty("filter_condition")
@@ -183,7 +171,7 @@ public class NDataModel extends RootPersistentEntity {
 
     @EqualsAndHashCode.Include
     @JsonProperty("partition_desc")
-    PartitionDesc partitionDesc;
+    private PartitionDesc partitionDesc;
 
     @EqualsAndHashCode.Include
     @JsonProperty("capacity")
@@ -195,16 +183,68 @@ public class NDataModel extends RootPersistentEntity {
 
     @EqualsAndHashCode.Include
     @JsonProperty("auto_merge_time_ranges")
-    private List<AutoMergeTimeEnum> autoMergeTimeRanges = Lists.newArrayList(AutoMergeTimeEnum.WEEK, AutoMergeTimeEnum.MONTH);
+    private List<AutoMergeTimeEnum> autoMergeTimeRanges = Lists.newArrayList(AutoMergeTimeEnum.WEEK,
+            AutoMergeTimeEnum.MONTH);
 
     @JsonProperty("volatile_range")
     private VolatileRange volatileRange = new VolatileRange();
-
 
     @JsonProperty("data_check_desc")
     private DataCheckDesc dataCheckDesc;
 
     // computed attributes
+    @EqualsAndHashCode.Include
+    @JsonProperty("all_named_columns")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<NamedColumn> allNamedColumns = new ArrayList<>(); // including deleted ones
+
+    @EqualsAndHashCode.Include
+    @JsonProperty("all_measures")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<Measure> allMeasures = new ArrayList<>(); // including deleted ones
+
+    @EqualsAndHashCode.Include
+    @JsonProperty("column_correlations")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private List<ColumnCorrelation> colCorrs = new ArrayList<>();
+
+    @EqualsAndHashCode.Include
+    @JsonProperty("multilevel_partition_cols")
+    @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
+    private List<String> mpColStrs = Lists.newArrayList();
+
+    @EqualsAndHashCode.Include
+    @JsonProperty("computed_columns")
+    @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
+    private List<ComputedColumnDesc> computedColumnDescs = Lists.newArrayList();
+
+    @Setter
+    @Getter
+    @JsonProperty("model_status")
+    @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
+    private ModelStatus modelStatus = ModelStatus.READY;
+
+    @Setter
+    @Getter
+    @JsonProperty("canvas")
+    @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
+    private Canvas canvas;
+
+    // computed fields below
+    private String project;
+
+    private List<TblColRef> allCols; // including DELETED cols
+
+    private ImmutableBiMap<Integer, TblColRef> effectiveCols; // excluding DELETED cols
+
+    private ImmutableBiMap<Integer, TblColRef> effectiveDimensions; // including DIMENSION cols
+
+    private ImmutableBiMap<Integer, Measure> effectiveMeasures; // excluding DELETED cols
+    //private Map<TableRef, BitSet> effectiveDerivedCols;
+    private ImmutableMultimap<TblColRef, TblColRef> fk2Pk;
+
+    private List<TblColRef> mpCols;
+
     private TableRef rootFactTableRef;
 
     private Set<TableRef> factTableRefs = Sets.newLinkedHashSet();
@@ -220,10 +260,76 @@ public class NDataModel extends RootPersistentEntity {
     private JoinsTree joinsTree;
     private JoinsGraph joinsGraph;
 
+    // when set true, cc expression will allow null value
+    private boolean isSeekingCCAdvice = false;
+
     /**
      * Error messages during resolving json metadata
      */
-    private List<String> errors = new ArrayList<String>();
+    private List<String> errors = new ArrayList<>();
+
+    public enum ColumnStatus {
+        TOMB, EXIST, DIMENSION
+    }
+
+    @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
+    @EqualsAndHashCode
+    public static class NamedColumn implements Serializable, IKeep {
+        @Getter
+        @JsonProperty("id")
+        public int id;
+
+        @JsonProperty("name")
+        public String name;
+
+        @JsonProperty("column")
+        public String aliasDotColumn;
+        // logical delete symbol
+        @JsonProperty("status")
+        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+        public ColumnStatus status = ColumnStatus.EXIST;
+
+        public boolean isExist() {
+            return status != ColumnStatus.TOMB;
+        }
+
+        public boolean isDimension() {
+            return status == ColumnStatus.DIMENSION;
+        }
+    }
+
+    @EqualsAndHashCode
+    public static class Measure extends MeasureDesc implements IKeep {
+        @Getter
+        @JsonProperty("id")
+        public int id;
+        // logical delete symbol
+        @JsonProperty("tomb")
+        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
+        public boolean tomb = false;
+
+    }
+
+    @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
+    @EqualsAndHashCode
+    public static class ColumnCorrelation implements Serializable, IKeep {
+        @JsonProperty("name")
+        public String name;
+        @JsonProperty("correlation_type") // "hierarchy" or "joint"
+        public String corrType;
+        @JsonProperty("columns")
+        public String[] aliasDotColumns;
+
+        public TblColRef[] cols;
+
+    }
+
+    // ============================================================================
+
+    // don't use unless you're sure(when in doubt, leave it out), for jackson only
+    public NDataModel() {
+        super();
+    }
 
     public NDataModel(NDataModel other) {
         this.uuid = other.uuid;
@@ -236,8 +342,6 @@ public class NDataModel extends RootPersistentEntity {
         this.description = other.description;
         this.rootFactTable = other.rootFactTable;
         this.joinTables = other.joinTables;
-        this.dimensions = other.dimensions;
-        this.metrics = other.metrics;
         this.filterCondition = other.filterCondition;
         this.partitionDesc = other.partitionDesc;
         this.capacity = other.capacity;
@@ -365,11 +469,11 @@ public class NDataModel extends RootPersistentEntity {
         return lookupTableRefs;
     }
 
-    public JoinTableDesc[] getJoinTables() {
+    public List<JoinTableDesc> getJoinTables() {
         return joinTables;
     }
 
-    public void setJoinTables(JoinTableDesc[] joinTables) {
+    public void setJoinTables(List<JoinTableDesc> joinTables) {
         this.joinTables = joinTables;
     }
 
@@ -553,27 +657,20 @@ public class NDataModel extends RootPersistentEntity {
         reorderJoins(tables);
         initJoinsTree();
         initJoinsGraph();
-        initDimensionsAndMetrics();
         initPartitionDesc();
         initFilterCondition();
         if (StringUtils.isEmpty(this.alias)) {
             this.alias = this.name;
         }
-        boolean reinit = validate();
-        if (reinit) { // model slightly changed by validate() and must init() again
-            init(config, tables, isOnlineModel);
-        }
+        //        boolean reinit = validate();
+        //        if (reinit) { // model slightly changed by validate() and must init() again
+        //            init(config, tables, isOnlineModel);
+        //        }
     }
 
     private void initJoinTablesForUpgrade() {
         if (joinTables == null) {
-            joinTables = new JoinTableDesc[0];
-        }
-        if (deprecatedLookups != null) {
-            JoinTableDesc[] copy = Arrays.copyOf(joinTables, joinTables.length + deprecatedLookups.length);
-            System.arraycopy(deprecatedLookups, 0, copy, joinTables.length, deprecatedLookups.length);
-            joinTables = copy;
-            deprecatedLookups = null;
+            joinTables = Lists.newArrayList();
         }
     }
 
@@ -642,20 +739,6 @@ public class NDataModel extends RootPersistentEntity {
             tableNameMap.put(name, null); // conflict name
         } else {
             tableNameMap.put(name, ref);
-        }
-    }
-
-    private void initDimensionsAndMetrics() {
-        if (dimensions == null)
-            dimensions = new ArrayList<>(0);
-        if (metrics == null)
-            metrics = new String[0];
-
-        for (ModelDimensionDesc dim : dimensions) {
-            dim.init(this);
-        }
-        for (int i = 0; i < metrics.length; i++) {
-            metrics[i] = findColumn(metrics[i]).getIdentity();
         }
     }
 
@@ -783,7 +866,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     private void reorderJoins(Map<String, TableDesc> tables) {
-        if (joinTables.length == 0) {
+        if (CollectionUtils.isEmpty(joinTables)) {
             return;
         }
 
@@ -800,15 +883,15 @@ public class NDataModel extends RootPersistentEntity {
             }
         }
 
-        JoinTableDesc[] orderedJoinTables = new JoinTableDesc[joinTables.length];
+        val orderedJoinTables = Arrays.asList(new JoinTableDesc[joinTables.size()]);
         int orderedIndex = 0;
 
-        Queue<JoinTableDesc> joinTableBuff = new ArrayDeque<JoinTableDesc>();
+        Queue<JoinTableDesc> joinTableBuff = new ArrayDeque<>();
         TableDesc rootDesc = tables.get(rootFactTable);
         joinTableBuff.addAll(fkMap.get(rootDesc.getName()));
         while (!joinTableBuff.isEmpty()) {
             JoinTableDesc head = joinTableBuff.poll();
-            orderedJoinTables[orderedIndex++] = head;
+            orderedJoinTables.set(orderedIndex++, head);
             String headAlias = head.getJoin().getPKSide().getAlias();
             if (fkMap.containsKey(headAlias)) {
                 joinTableBuff.addAll(fkMap.get(headAlias));
@@ -816,75 +899,6 @@ public class NDataModel extends RootPersistentEntity {
         }
 
         joinTables = orderedJoinTables;
-    }
-
-    private boolean validate() {
-
-        // ensure no dup between dimensions/metrics
-        for (ModelDimensionDesc dim : dimensions) {
-            String table = dim.getTable();
-            for (String c : dim.getColumns()) {
-                TblColRef dcol = findColumn(table, c);
-                metrics = ArrayUtils.removeElement(metrics, dcol.getIdentity());
-            }
-        }
-
-        Set<TblColRef> mcols = new HashSet<>();
-        for (String m : metrics) {
-            mcols.add(findColumn(m));
-        }
-
-        // validate PK/FK are in dimensions
-        boolean pkfkDimAmended = false;
-        for (Chain chain : joinsTree.getTableChains().values()) {
-            pkfkDimAmended = validatePkFkDim(chain.getJoin(), mcols) || pkfkDimAmended;
-        }
-        return pkfkDimAmended;
-    }
-
-    private boolean validatePkFkDim(JoinDesc join, Set<TblColRef> mcols) {
-        if (join == null)
-            return false;
-
-        boolean pkfkDimAmended = false;
-
-        for (TblColRef c : join.getForeignKeyColumns()) {
-            if (!mcols.contains(c)) {
-                pkfkDimAmended = validatePkFkDim(c) || pkfkDimAmended;
-            }
-        }
-        for (TblColRef c : join.getPrimaryKeyColumns()) {
-            if (!mcols.contains(c)) {
-                pkfkDimAmended = validatePkFkDim(c) || pkfkDimAmended;
-            }
-        }
-        return pkfkDimAmended;
-    }
-
-    private boolean validatePkFkDim(TblColRef c) {
-        String t = c.getTableAlias();
-        ModelDimensionDesc dimDesc = null;
-        for (ModelDimensionDesc dim : dimensions) {
-            if (dim.getTable().equals(t)) {
-                dimDesc = dim;
-                break;
-            }
-        }
-
-        if (dimDesc == null) {
-            dimDesc = new ModelDimensionDesc();
-            dimDesc.setTable(t);
-            dimDesc.setColumns(new String[0]);
-            dimensions.add(dimDesc);
-        }
-
-        if (ArrayUtils.contains(dimDesc.getColumns(), c.getName()) == false) {
-            String[] newCols = ArrayUtils.add(dimDesc.getColumns(), c.getName());
-            dimDesc.setColumns(newCols);
-            return true;
-        }
-
-        return false;
     }
 
     public boolean isStandardPartitionedDateColumn() {
@@ -917,7 +931,6 @@ public class NDataModel extends RootPersistentEntity {
         return this.errors;
     }
 
-
     @Override
     public String toString() {
         return "NDataModel [name=" + name + "]";
@@ -927,121 +940,12 @@ public class NDataModel extends RootPersistentEntity {
         return ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT + "/" + descName + MetadataConstants.FILE_SURFIX;
     }
 
-    public List<ModelDimensionDesc> getDimensions() {
-        return dimensions;
-    }
-
-    public String[] getMetrics() {
-        return metrics;
-    }
-
-    public void setDimensions(List<ModelDimensionDesc> dimensions) {
-        this.dimensions = dimensions;
-    }
-
-    public void setMetrics(String[] metrics) {
-        this.metrics = metrics;
-    }
-
     public ProjectInstance getProjectInstance() {
         return NProjectManager.getInstance(getConfig()).getProject(project);
     }
 
     public NDataModel copy() {
         return getCopyOf(this);
-    }
-
-    // TODO: newten:
-
-    public static final int MEASURE_ID_BASE = 1000;
-
-    @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
-    @EqualsAndHashCode
-    public static class NamedColumn implements Serializable, IKeep {
-        @Getter
-        @JsonProperty("id")
-        public int id;
-
-        @JsonProperty("name")
-        public String name;
-
-        @JsonProperty("column")
-        public String aliasDotColumn;
-        // logical delete symbol
-        @JsonProperty("tomb")
-        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-        public boolean tomb = false;
-
-    }
-
-    @EqualsAndHashCode
-    public static class Measure extends MeasureDesc implements IKeep {
-        @Getter
-        @JsonProperty("id")
-        public int id;
-        // logical delete symbol
-        @JsonProperty("tomb")
-        @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-        public boolean tomb = false;
-
-    }
-
-    @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
-    @EqualsAndHashCode
-    public static class ColumnCorrelation implements Serializable, IKeep {
-        @JsonProperty("name")
-        public String name;
-        @JsonProperty("correlation_type") // "hierarchy" or "joint"
-        public String corrType;
-        @JsonProperty("columns")
-        public String[] aliasDotColumns;
-
-        public TblColRef[] cols;
-
-    }
-
-    // ============================================================================
-
-    @EqualsAndHashCode.Include
-    @JsonProperty("all_named_columns")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<NamedColumn> allNamedColumns = new ArrayList<>(); // including deleted ones
-
-    @EqualsAndHashCode.Include
-    @JsonProperty("all_measures")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<Measure> allMeasures = new ArrayList<>(); // including deleted ones
-
-    @EqualsAndHashCode.Include
-    @JsonProperty("column_correlations")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<ColumnCorrelation> colCorrs = new ArrayList<>();
-
-    @EqualsAndHashCode.Include
-    @JsonProperty("multilevel_partition_cols")
-    @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
-    private String[] mpColStrs = new String[0];
-
-    @EqualsAndHashCode.Include
-    @JsonProperty("computed_columns")
-    @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
-    private List<ComputedColumnDesc> computedColumnDescs = Lists.newArrayList();
-
-    // computed fields below
-    private String project;
-    private List<TblColRef> allCols; // including DELETED cols
-    private ImmutableBiMap<Integer, TblColRef> effectiveCols; // excluding DELETED cols
-    private ImmutableBiMap<Integer, Measure> effectiveMeasures; // excluding DELETED cols
-    //private Map<TableRef, BitSet> effectiveDerivedCols;
-    private ImmutableMultimap<TblColRef, TblColRef> fk2Pk;
-    private TblColRef[] mpCols;
-
-    // when set true, cc expression will allow null value
-    private boolean isSeekingCCAdvice = false;
-
-    // don't use unless you're sure(when in doubt, leave it out), for jackson only
-    public NDataModel() {
-        super();
     }
 
     public String getProject() {
@@ -1072,12 +976,13 @@ public class NDataModel extends RootPersistentEntity {
 
         initComputedColumns(otherModels);
         initMultilevelPartitionCols();
-        initAllNamedColumns();
+        this.effectiveCols = initAllNamedColumns(NamedColumn::isExist);
+        this.effectiveDimensions = initAllNamedColumns(NamedColumn::isDimension);
         initAllMeasures();
         initFk2Pk();
     }
 
-    private void initAllNamedColumns() {
+    private ImmutableBiMap<Integer, TblColRef> initAllNamedColumns(Predicate<NamedColumn> filter) {
         List<TblColRef> all = new ArrayList<>(allNamedColumns.size());
         ImmutableBiMap.Builder<Integer, TblColRef> mapBuilder = ImmutableBiMap.builder();
         for (NamedColumn d : allNamedColumns) {
@@ -1085,15 +990,15 @@ public class NDataModel extends RootPersistentEntity {
             d.aliasDotColumn = col.getIdentity();
             all.add(col);
 
-            if (!d.tomb) {
+            if (filter.test(d)) {
                 mapBuilder.put(d.id, col);
             }
         }
 
         this.allCols = all;
-        this.effectiveCols = mapBuilder.build();
-
-        checkNoDup(effectiveCols);
+        val cols = mapBuilder.build();
+        checkNoDup(cols);
+        return cols;
     }
 
     private <T> void checkNoDup(ImmutableBiMap<Integer, T> idMap) {
@@ -1182,6 +1087,10 @@ public class NDataModel extends RootPersistentEntity {
         return effectiveCols;
     }
 
+    public ImmutableBiMap<Integer, TblColRef> getEffectiveDimenionsMap() {
+        return effectiveDimensions;
+    }
+
     /**
      * returns ID <==> Measure
      */
@@ -1203,26 +1112,26 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     private void initMultilevelPartitionCols() {
-        mpCols = new TblColRef[mpColStrs.length];
-        if (mpColStrs.length == 0)
+        mpCols = Arrays.asList(new TblColRef[mpColStrs.size()]);
+        if (CollectionUtils.isEmpty(mpColStrs))
             return;
 
         StringUtil.toUpperCaseArray(mpColStrs, mpColStrs);
 
-        for (int i = 0; i < mpColStrs.length; i++) {
-            mpCols[i] = findColumn(mpColStrs[i]);
-            mpColStrs[i] = mpCols[i].getIdentity();
+        for (int i = 0; i < mpColStrs.size(); i++) {
+            mpCols.set(i, findColumn(mpColStrs.get(i)));
+            mpColStrs.set(i, mpCols.get(i).getIdentity());
 
-            DataType type = mpCols[i].getType();
+            DataType type = mpCols.get(i).getType();
             if (!type.isNumberFamily() && !type.isStringFamily())
                 throw new IllegalStateException(
-                        "Multi-level partition column must be Number or String, but " + mpCols[i] + " is " + type);
+                        "Multi-level partition column must be Number or String, but " + mpCols.get(i) + " is " + type);
         }
 
         checkMPColsBelongToModel(mpCols);
     }
 
-    private void checkMPColsBelongToModel(TblColRef[] tcr) {
+    private void checkMPColsBelongToModel(List<TblColRef> tcr) {
         Set<TblColRef> refSet = effectiveCols.values();
         if (!refSet.containsAll(Sets.newHashSet(tcr))) {
             throw new IllegalStateException("Primary partition column should inside of this model.");
@@ -1318,7 +1227,7 @@ public class NDataModel extends RootPersistentEntity {
             }
         }
     }
-    
+
     private void singleCCConflictCheck(NDataModel existingModel, ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
         AliasMapping aliasMapping = null;
         JoinsTree ccJoinsTree = getCCExprRelatedSubgraph(newCC, this);
@@ -1515,31 +1424,20 @@ public class NDataModel extends RootPersistentEntity {
 
     private ColumnDesc[] createComputedColumns(final TableDesc tableDesc) {
         final MutableInt id = new MutableInt(tableDesc.getColumnCount());
-        return FluentIterable.from(this.computedColumnDescs).filter(new Predicate<ComputedColumnDesc>() {
-            @Override
-            public boolean apply(@Nullable ComputedColumnDesc input) {
-                return tableDesc.getIdentity().equalsIgnoreCase(input.getTableIdentity());
-            }
-        }).transform(new Function<ComputedColumnDesc, ColumnDesc>() {
-            @Nullable
-            @Override
-            public ColumnDesc apply(@Nullable ComputedColumnDesc input) {
-                id.increment();
-                ColumnDesc columnDesc = new ColumnDesc(id.toString(), input.getColumnName(), input.getDatatype(),
-                        input.getComment(), null, null, input.getInnerExpression());
-                return columnDesc;
-            }
-        }).toArray(ColumnDesc.class);
+        return this.computedColumnDescs.stream()
+                .filter(input -> tableDesc.getIdentity().equalsIgnoreCase(input.getTableIdentity())).map(input -> {
+                    id.increment();
+                    ColumnDesc columnDesc = new ColumnDesc(id.toString(), input.getColumnName(), input.getDatatype(),
+                            input.getComment(), null, null, input.getInnerExpression());
+                    return columnDesc;
+                }).toArray(ColumnDesc[]::new);
     }
 
     public ComputedColumnDesc findCCByCCColumnName(final String columnName) {
-        return Iterables.find(this.computedColumnDescs, new Predicate<ComputedColumnDesc>() {
-            @Override
-            public boolean apply(@Nullable ComputedColumnDesc input) {
-                Preconditions.checkNotNull(input);
-                return columnName.equals(input.getColumnName());
-            }
-        });
+        return this.computedColumnDescs.stream().filter(input -> {
+            Preconditions.checkNotNull(input);
+            return columnName.equals(input.getColumnName());
+        }).findFirst().orElse(null);
     }
 
     public List<ComputedColumnDesc> getComputedColumnDescs() {
@@ -1563,26 +1461,26 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public boolean isMultiLevelPartitioned() {
-        return mpColStrs.length > 0;
+        return mpColStrs.size() > 0;
     }
 
-    public String[] getMutiLevelPartitionColStrs() {
+    public List<String> getMutiLevelPartitionColStrs() {
         return mpColStrs;
     }
 
-    void setMutiLevelPartitionColStrs(String[] colStrs) {
+    void setMutiLevelPartitionColStrs(List<String> colStrs) {
         this.mpColStrs = colStrs;
     }
 
-    public TblColRef[] getMutiLevelPartitionCols() {
+    public List<TblColRef> getMutiLevelPartitionCols() {
         return mpCols;
     }
 
-    public String[] getMpColStrs() {
+    public List<String> getMpColStrs() {
         return mpColStrs;
     }
 
-    void setMpColStrs(String[] mpColStrs) {
+    void setMpColStrs(List<String> mpColStrs) {
         this.mpColStrs = mpColStrs;
     }
 
@@ -1636,8 +1534,17 @@ public class NDataModel extends RootPersistentEntity {
         return null;
     }
 
+    public String getNameByColumnId(int id) {
+        Preconditions.checkArgument(allNamedColumns != null);
+        for (NamedColumn col : allNamedColumns) {
+            if (col.id == id)
+                return col.name;
+        }
+        return null;
+    }
+
     public static NDataModel getCopyOf(NDataModel orig) {
-        return (NDataModel)SerializationUtils.clone(orig);
+        return (NDataModel) SerializationUtils.clone(orig);
     }
 
     @Override

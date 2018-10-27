@@ -49,7 +49,7 @@ import lombok.val;
 @RequestMapping(value = "/cube_plans")
 public class NCubePlanController extends NBasicController {
 
-    private static final String MODEL_NAME = "cubePlanName";
+    private static final String MODEL_NAME = "modelName";
 
     @Autowired
     @Qualifier("cubePlanService")
@@ -62,6 +62,15 @@ public class NCubePlanController extends NBasicController {
         checkRequiredArg(MODEL_NAME, request.getModel());
         cubePlanService.updateRuleBasedCuboid(request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @GetMapping(value = "/rule", produces = { "application/vnd.apache.kylin-v2+json" })
+    public EnvelopeResponse getRule(@RequestParam("project") String project, @RequestParam("model") String model)
+            throws IOException, PersistentException {
+        checkProjectName(project);
+        checkRequiredArg(MODEL_NAME, model);
+        val rule = cubePlanService.getRule(project, model);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, rule, "");
     }
 
     @PostMapping(value = "/table_index", produces = { "application/vnd.apache.kylin-v2+json" })
