@@ -255,6 +255,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     }
 
     @Test
+    @Ignore("For developing")
     public void testTemp() throws Exception {
         String[] exclusionList = new String[] {};
         new TestScenario("temp", CompareLevel.SAME, exclusionList).execute();

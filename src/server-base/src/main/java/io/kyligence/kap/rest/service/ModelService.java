@@ -24,27 +24,14 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
-import io.kyligence.kap.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.rest.response.CuboidDescResponse;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
-import io.kylingence.kap.event.manager.EventManager;
-import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -57,22 +44,48 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.source.SourceFactory;
+import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import com.fasterxml.jackson.core.JsonProcessingException;
+
+import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
+import io.kyligence.kap.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.engine.spark.NJoinedFlatTable;
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
+import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
+import io.kylingence.kap.event.manager.EventManager;
+import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
 
 @Component("modelService")
 public class ModelService extends BasicService {
@@ -453,5 +466,111 @@ public class ModelService extends BasicService {
         event.setProject(project);
         event.setTableName(table);
         eventManager.post(event);
+    }
+
+    public void primaryCheck(NDataModel modelDesc) {
+        Message msg = MsgPicker.getMsg();
+
+        if (modelDesc == null) {
+            throw new BadRequestException(msg.getINVALID_MODEL_DEFINITION());
+        }
+
+        String modelName = modelDesc.getName();
+
+        if (StringUtils.isEmpty(modelName)) {
+            logger.info("Model name should not be empty.");
+            throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
+        }
+        if (!StringUtils.containsOnly(modelName, VALID_MODELNAME)) {
+            logger.info("Invalid Model name {}, only letters, numbers and underline supported.", modelDesc.getName());
+            throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), modelName));
+        }
+    }
+
+    public ComputedColumnUsageResponse getComputedColumnUsages(String project) {
+        ComputedColumnUsageResponse ret = new ComputedColumnUsageResponse();
+        List<NDataModel> models = getDataModelManager(project).getDataModels();
+        for (NDataModel model : models) {
+            for (ComputedColumnDesc computedColumnDesc : model.getComputedColumnDescs()) {
+                ret.addUsage(computedColumnDesc, model.getName());
+            }
+        }
+        return ret;
+    }
+
+    /**
+     * check if the computed column expressions are valid ( in hive)
+     *
+     * ccInCheck is optional, if provided, other cc in the model will skip hive check
+     */
+    public boolean checkComputedColumn(final NDataModel dataModelDesc, String project, String ccInCheck) throws IOException {
+
+        dataModelDesc.setDraft(false);
+        if (dataModelDesc.getUuid() == null)
+            dataModelDesc.updateRandomUuid();
+
+        dataModelDesc.init(getConfig(), getTableManager(project).getAllTablesMap(),
+                getDataModelManager(project).getDataModels(), false);
+
+        if (dataModelDesc.isSeekingCCAdvice()) {
+            // if it's seeking for advise, it should have thrown exceptions by far
+            throw new IllegalStateException("No advice could be provided");
+        }
+
+        for (ComputedColumnDesc cc : dataModelDesc.getComputedColumnDescs()) {
+            checkCCName(cc.getColumnName());
+
+            if (!StringUtils.isEmpty(ccInCheck)
+                    && !StringUtils.equalsIgnoreCase(cc.getFullName(), ccInCheck))
+                continue;
+
+            //replace computed columns with basic columns
+            String ccExpression = massageComputedColumn(dataModelDesc, project, cc);
+            cc.simpleParserCheck(ccExpression, dataModelDesc.getAliasMap().keySet());
+
+            //check by data source, this could be slow
+            long ts = System.currentTimeMillis();
+            try {
+                NDataModelFlatTableDesc flatTableDesc = new NDataModelFlatTableDesc(dataModelDesc, true);
+                SparkSession ss = SparkSession.builder().enableHiveSupport().getOrCreate();
+                Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTableDesc, ss);
+                ds.selectExpr(NSparkCubingUtil.convertFromDot(ccExpression));
+            } catch (Exception e) {
+                throw new IllegalArgumentException("The expression " + cc.getExpression() + " failed syntax check", e);
+            }
+
+            logger.debug("Spent {} ms to visit data source to validate computed column expression: {}",
+                    (System.currentTimeMillis() - ts), cc.getExpression());
+        }
+
+        return true;
+    }
+
+    private static void checkCCName(String name) {
+        if (PushDownConverterKeyWords.CALCITE.contains(name.toUpperCase())
+                || PushDownConverterKeyWords.HIVE.contains(name.toUpperCase())) {
+            throw new IllegalStateException(
+                    "The computed column's name:" + name + " is a sql keyword, please choose another name.");
+        }
+    }
+
+    private static String massageComputedColumn(NDataModel modelDesc, String project, ComputedColumnDesc cc) {
+
+        NDataModelFlatTableDesc flatTableDesc = new NDataModelFlatTableDesc(modelDesc);
+
+        String tempConst = "'" + UUID.randomUUID().toString() + "'";
+
+        StringBuilder forCC = new StringBuilder();
+        forCC.append("select ");
+        forCC.append(cc.getExpression());
+        forCC.append(" ,").append(tempConst);
+        forCC.append(" ");
+        NJoinedFlatTable.appendJoinStatement(flatTableDesc, forCC, false);
+
+        
+        String ccSql = KeywordDefaultDirtyHack.transform(forCC.toString());
+        ccSql = KapQueryUtil.massageComputedColumn(ccSql, project, "DEFAULT", modelDesc);
+
+        return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1);
     }
 }

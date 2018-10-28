@@ -28,7 +28,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
@@ -240,6 +242,32 @@ public class NModelController extends NBasicController {
         modelService.cloneModel(request.getModelName(), request.getNewModelName(), request.getProject());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
 
+    }
+
+    @RequestMapping(value = "/computed_columns/check", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse checkComputedColumns(@RequestBody ComputedColumnCheckRequest modelRequest) throws IOException {
+
+        NDataModel modelDesc = modelRequest.getModelDesc();
+        modelDesc.setSeekingCCAdvice(modelRequest.isSeekingExprAdvice());
+
+        modelService.primaryCheck(modelDesc);
+        try {
+            modelService.checkComputedColumn(modelDesc, modelRequest.getProject(), modelRequest.getCcInCheck());
+        } catch (BadModelException e) {
+            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, e, e.getMessage());
+        }
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/computed_columns/usage", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getComputedColumnUsage(@RequestParam(value = "project", required = true) String project) {
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.getComputedColumnUsages(project),
+                "");
     }
 
 }

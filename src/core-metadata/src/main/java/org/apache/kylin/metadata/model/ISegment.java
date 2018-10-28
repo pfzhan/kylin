@@ -64,6 +64,6 @@ public interface ISegment extends Comparable<ISegment> {
 
     public long getLastBuildTime();
     
-    public void validate() throws IllegalStateException;
+    public void validate();
     
 }

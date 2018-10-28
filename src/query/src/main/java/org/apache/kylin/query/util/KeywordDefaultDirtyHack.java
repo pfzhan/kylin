@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -52,10 +51,15 @@ public class KeywordDefaultDirtyHack implements QueryUtil.IQueryTransformer {
         if (!KylinConfig.getInstanceFromEnv().isEscapeDefaultKeywordEnabled()) {
             return sql;
         }
-        // KYLIN-2108, DEFAULT is hive default database, but a sql keyword too, needs quote
-        sql = sql.replace("DEFAULT.", "\"DEFAULT\".");
-        sql = sql.replace("default.", "\"default\".");
+        return transform(sql);
+    }
+
+    public static String transform(String sql) {
+        // KYLIN-2108, DEFAULT is hive default database, but a sql keyword too,
+        // needs quote
+        sql = sql.replaceAll("(?i)default\\.", "\"DEFAULT\".");
         sql = sql.replace("defaultCatalog.", "");
+        sql = sql.replace("\"defaultCatalog\".", "");
 
         return sql;
     }

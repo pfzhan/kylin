@@ -54,6 +54,7 @@ public abstract class NTestBase {
 
     @After
     public void tearDown() throws Exception {
+        KylinConfig.removeKylinConfigThreadLocal();
         if (tmpMeta != null)
             FileUtils.forceDelete(tmpMeta);
         ResourceStore.clearCache(kylinConfig);
