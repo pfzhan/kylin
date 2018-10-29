@@ -1,17 +1,16 @@
 <template>
   <div class="model-edit-outer" @drop='dropTable($event)' v-drag="{sizeChangeCb:dragBox}">
-
     <div class="model-edit"  @dragover='allowDrop($event)' @dragleave="dragLeave">
       <!-- table box -->
       <div class="table-box" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
         <div class="table-title"  @mousedown="activeTablePanel(t)"   v-drag:change.left.top="t.drawSize" :class="{isLookup:t.kind==='LOOKUP'}">
-          <el-input v-show="t.aliasIsEdit" v-focus="t.aliasIsEdit" v-model="t.alias" @blur=" t.aliasIsEdit = false" v-event-stop></el-input>
-          <span v-show="!t.aliasIsEdit" @click="changeTableType(t)">
-            <i class="el-icon-ksd-fact_table kind" v-if="t.kind==='FACT'" v-event-stop></i>
-            <i v-else class="el-icon-ksd-lookup_table kind" v-event-stop></i>
+          <el-input v-show="t.aliasIsEdit" v-focus="t.aliasIsEdit" v-event-stop v-model="t.alias" @blur="saveNewAlias(t)" @keyup.enter="saveNewAlias(t)"></el-input>
+          <span v-show="!t.aliasIsEdit" @click.stop="changeTableType(t)">
+            <i class="el-icon-ksd-fact_table kind" v-if="t.kind==='FACT'"></i>
+            <i v-else class="el-icon-ksd-lookup_table kind"></i>
           </span>
           <common-tip class="name" v-show="!t.aliasIsEdit">
-            <span slot="content">{{t.alias}} <i class="el-icon-ksd-table_edit" @click="editAlias(t)"></i></span>
+            <span slot="content">{{t.alias}} <i class="el-icon-ksd-table_edit" v-show="t.kind!=='FACT'" @click="editAlias(t)"></i></span>
             <span>{{t.alias}}</span>
           </common-tip>
           <span v-show="!t.aliasIsEdit" class="close" @click="delTable(t.guid)"><i class="el-icon-ksd-close"></i></span>
@@ -40,7 +39,7 @@
     </AddMeasure>
     <SingleDimensionModal :allColumns="allColumns || []"/>
     <!-- datasource面板  index 3-->
-    <div class="tool-icon icon-ds" :class="{active: panelAppear.datasource.display}" @click="toggleMenu('datasource')" v-event-stop><i class="el-icon-ksd-data_source"></i></div>
+    <div class="tool-icon icon-ds" :class="{active: panelAppear.datasource.display}" @click.stop="toggleMenu('datasource')"><i class="el-icon-ksd-data_source"></i></div>
       <transition name="bounceleft">
         <div class="panel-box panel-datasource" v-show="panelAppear.datasource.display" :style="panelStyle('datasource')" v-event-stop>
           <div class="panel-title"><span>{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
@@ -74,17 +73,17 @@
         </div>
       </div>
       <div class="sub-tool-icon-group">
-        <div class="tool-icon" @click="reduceZoom" v-event-stop><i class="el-icon-ksd-shrink" ></i></div>
-        <div class="tool-icon" @click="addZoom" v-event-stop><i class="el-icon-ksd-enlarge"></i></div>
+        <div class="tool-icon" @click.stop="reduceZoom"><i class="el-icon-ksd-shrink" ></i></div>
+        <div class="tool-icon" @click.stop="addZoom"><i class="el-icon-ksd-enlarge"></i></div>
         <!-- <div class="tool-icon" v-event-stop>{{modelRender.zoom}}0%</div> -->
-        <div class="tool-icon" @click="fullScreen" v-event-stop><i class="el-icon-ksd-full_screen" v-if="!isFullScreen"></i><i class="el-icon-ksd-collapse" v-if="isFullScreen"></i></div>
-        <div class="tool-icon" @click="autoLayout" v-event-stop><i class="el-icon-ksd-auto"></i></div>
+        <div class="tool-icon" @click.stop="fullScreen"><i class="el-icon-ksd-full_screen" v-if="!isFullScreen"></i><i class="el-icon-ksd-collapse" v-if="isFullScreen"></i></div>
+        <div class="tool-icon" @click.stop="autoLayout"><i class="el-icon-ksd-auto"></i></div>
       </div>
       <!-- 右侧面板组 -->
       <!-- <div class="panel-group"> -->
         <!-- dimension面板  index 0-->
         <transition name="bounceright">
-          <div class="panel-box panel-dimension" @mousedown="activePanel('dimension')" v-event-stop :style="panelStyle('dimension')" v-if="panelAppear.dimension.display">
+          <div class="panel-box panel-dimension" @mousedown.stop="activePanel('dimension')" :style="panelStyle('dimension')" v-if="panelAppear.dimension.display">
             <div class="panel-title" @mousedown="activePanel('dimension')" v-drag:change.right.top="panelAppear.dimension">
               <span><i class="el-icon-ksd-dimansion"></i></span>
               <span class="title">{{$t('kylinLang.common.dimension')}}</span>
@@ -97,10 +96,16 @@
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="dimension-list">
-                <li v-for="d in dimensionColumns" :key="d.name">
-                  {{d.id}}{{d.name|omit(18,'...')}}
-                  <i class="el-icon-ksd-table_edit" @click="editDimension(d)"></i>
-                  <i class="el-icon-ksd-table_delete" @click="deleteDimenison(d.id)"></i>
+                <li v-for="(d, i) in normalDimensionColumns" :key="d.name">
+                  {{d.id}}--{{d.name|omit(18,'...')}}
+                  <i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i>
+                  <i class="el-icon-ksd-table_delete" @click="deleteDimenison(d, i)"></i>
+                  <span>{{getColumnType(d.column.split('.')[0], d.column)}}</span>
+                </li>
+                <li v-for="(d, i) in ccDimensionColumns" :key="d.name">
+                  {{d.id}}--{{d.name|omit(18,'...')}}
+                  <i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i>
+                  <i class="el-icon-ksd-table_delete" @click="deleteDimenison(d, i)"></i>
                   <span>{{getColumnType(d.column.split('.')[0], d.column)}}</span>
                 </li>
               </ul>
@@ -110,7 +115,7 @@
         </transition>
         <!-- measure面板  index 1-->
         <transition name="bounceright">
-          <div class="panel-box panel-measure" @mousedown="activePanel('measure')" v-event-stop :style="panelStyle('measure')"  v-if="panelAppear.measure.display">
+          <div class="panel-box panel-measure" @mousedown.stop="activePanel('measure')" :style="panelStyle('measure')"  v-if="panelAppear.measure.display">
             <div class="panel-title" @mousedown="activePanel('measure')" v-drag:change.right.top="panelAppear.measure">
               <span><i class="el-icon-ksd-measure"></i></span>
               <span class="title">{{$t('kylinLang.common.measure')}}</span>
@@ -131,7 +136,7 @@
         </transition>
         <!-- setting面板  index 2-->
         <transition name="bounceright">
-          <div class="panel-box panel-setting" v-event-stop @mousedown="activePanel('setting')" :style="panelStyle('setting')" v-if="panelAppear.setting.display">
+          <div class="panel-box panel-setting" @mousedown.stop="activePanel('setting')" :style="panelStyle('setting')" v-if="panelAppear.setting.display">
             <div class="panel-title" @mousedown="activePanel('setting')" v-drag:change.right.top="panelAppear.setting">
               <span><i class="el-icon-ksd-setting"></i></span>
               <span class="title">{{$t('modelSetting')}}</span>
@@ -180,6 +185,7 @@
      </transition>
     </div>
     </transition> 
+    <PartitionModal/>
   </div>
 </template>
 <script>
@@ -189,12 +195,13 @@ import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
 import { handleSuccess, handleError, loadingBox, kapMessage } from '../../../../util/business'
-import { isIE, groupData } from '../../../../util'
+import { isIE, groupData, objectClone } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
 import AddMeasure from '../AddMeasure/index.vue'
 import TableJoinModal from '../TableJoinModal/index.vue'
 import SingleDimensionModal from '../SingleDimensionModal/addDimension.vue'
+import PartitionModal from '../ModelList/ModelPartitionModal/index.vue'
 import NModel from './model.js'
 import { modelRenderConfig } from './config'
 @Component({
@@ -228,6 +235,9 @@ import { modelRenderConfig } from './config'
     ...mapActions('SingleDimensionModal', {
       showSingleDimensionDialog: 'CALL_MODAL'
     }),
+    ...mapActions('ModelPartitionModal', {
+      showPartitionDialog: 'CALL_MODAL'
+    }),
     ...mapMutations({
       toggleFullScreen: 'TOGGLE_SCREEN'
     })
@@ -237,7 +247,8 @@ import { modelRenderConfig } from './config'
     AddMeasure,
     DimensionModal,
     TableJoinModal,
-    SingleDimensionModal
+    SingleDimensionModal,
+    PartitionModal
   },
   locales
 })
@@ -268,10 +279,11 @@ export default class ModelEdit extends Vue {
   }
   panelAppear = modelRenderConfig.pannelsLayout()
   radio = 1
-  get dimensionColumns () {
-    return this.modelRender.all_named_columns.filter((col) => {
-      return col.is_dimension === true
-    })
+  get normalDimensionColumns () {
+    return this.modelRender.normalDimensions
+  }
+  get ccDimensionColumns () {
+    return this.modelRender.ccDimensions
   }
   query (className) {
     return $(this.$el.querySelector(className))
@@ -285,6 +297,10 @@ export default class ModelEdit extends Vue {
   }
   editAlias (t) {
     this.$set(t, 'aliasIsEdit', true)
+  }
+  saveNewAlias (t) {
+    this.modelInstance.setUniqueAlias(t)
+    this.$set(t, 'aliasIsEdit', false)
   }
   // 切换悬浮菜单
   toggleMenu (i) {
@@ -306,6 +322,7 @@ export default class ModelEdit extends Vue {
   changeTableType (t) {
     if (this._checkTableType(t)) {
       t.kind = t.kind === modelRenderConfig.tableKind.fact ? modelRenderConfig.tableKind.lookup : modelRenderConfig.tableKind.fact
+      this.modelInstance.setUniqueAlias(t)
     }
   }
   _checkTableType (t) {
@@ -361,21 +378,12 @@ export default class ModelEdit extends Vue {
   batchSetDimension () {
     this.showDimensionDialog({
       modelDesc: this.modelRender
-    }).then((res) => {
-      if (res.isSubmit) {
-        this.modelRender.all_named_columns = res.data
-      }
     })
   }
   addCCDimension () {
     this.allColumns = this.modelInstance.getTableColumns()
     this.showSingleDimensionDialog({
-      modelDesc: this.modelRender
-    }).then((res) => {
-      if (res.isSubmit) {
-        this.modelInstance.addDimension(res.data.dimension)
-        this.modelInstance.addCC(res.data.cc)
-      }
+      modelInstance: this.modelInstance
     })
   }
   addCCMeasure () {
@@ -389,21 +397,17 @@ export default class ModelEdit extends Vue {
       this.modelInstance.addMeasure(measureObj)
       this.modelInstance.addCC(ccObj)
     }
+    this.measureVisible = false
   }
-  editDimension (dimension) {
+  editDimension (dimension, i) {
+    dimension._id = i
     this.showSingleDimensionDialog({
-      dimension: dimension
-    }).then((data) => {
-      if (data.isSubmit) {
-        this.modelInstance.editDimension(data.dimension)
-        this.modelInstance.addCC(data.dimension)
-      }
+      dimension: objectClone(dimension),
+      modelInstance: this.modelInstance
     })
   }
-  deleteDimenison (id) {
-    this.modelRender.all_named_columns = this.modelRender.all_named_columns.map((col) => {
-      return col.id !== id
-    })
+  deleteDimenison (dimension, i) {
+    this.modelInstance.delDimension(dimension, i)
   }
   editMeasure (m) {
     this.$nextTick(() => {
@@ -446,7 +450,7 @@ export default class ModelEdit extends Vue {
     if (target.className.indexOf(modelRenderConfig.drawBox.substring(1)) >= 0) {
       this.modelInstance.addTable({
         table: this.currentDragTable,
-        alias: this.currentDragTable,
+        alias: this.currentDragTable.split('.')[1],
         drawSize: {
           left: e.offsetX,
           top: e.offsetY
@@ -667,12 +671,16 @@ export default class ModelEdit extends Vue {
       this.globalLoading.hide()
     })
     this.$on('saveModel', () => {
-      let data = this.modelInstance.generateMetadata()
-      console.log(data)
+      this.showPartitionDialog({
+        modelDesc: this.modelRender
+      }).then(() => {
+        let data = this.modelInstance.generateMetadata()
+        console.log(data)
+      })
     })
   }
-  beforeCreate () {
-
+  created () {
+    console.log(this.extraoption)
   }
   destoryed () {
     $(document).unbind('selectstart')

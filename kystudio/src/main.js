@@ -125,6 +125,11 @@ Vue.http.interceptors.push(function (request, next) {
   })
 })
 router.beforeEach((to, from, next) => {
+  // 处理在模型添加的业务窗口刷新浏览器
+  if (to.name === 'ModelEdit' && to.params.action === 'add' && from.name === null) {
+    router.push({name: 'ModelList'})
+    return
+  }
   ElementUI.Message.closeAll() // 切换路由的时候关闭message
   store.state.config.showLoadingBox = false // 切换路由的时候关闭全局loading
   if (to.matched && to.matched.length) {

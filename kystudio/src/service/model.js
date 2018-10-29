@@ -138,5 +138,14 @@ export default {
   },
   deleteSegments: (model, project, ids) => {
     return Vue.resource(`${apiUrl}models/segments/${project}/${model}`).delete({ ids })
+  },
+  modelDataCheck: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.modelName + '/data_check').update(para.data)
+  },
+  buildModel: (para) => {
+    return Vue.resource(apiUrl + 'models/segments').save(para)
+  },
+  setPartition: (para) => {
+    return Vue.resource(apiUrl + 'models/partition_desc').save(para)
   }
 }

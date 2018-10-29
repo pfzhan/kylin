@@ -39,7 +39,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { computedDataType } from 'config/index'
 // import $ from 'jquery'
 @Component({
-  props: ['isShow'],
+  props: ['isShow', 'ccDesc', 'modelInstance'],
   locales: {
     'en': {requiredName: 'The measure name is required.', name: 'Name', expression: 'Expression', returnType: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredReturnType: 'The return type is required.', requiredExpress: 'The expression is required.'},
     'zh-cn': {requiredName: '请输入度量名称', name: '名称', expression: '表达式', returnType: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入列表名称', requiredReturnType: '请选择度量返回类型', requiredExpress: '请输入表达式。'}
@@ -52,11 +52,12 @@ export default class CCForm extends Vue {
     datatype: [{ required: true, message: this.$t('requiredReturnType'), trigger: 'change' }],
     expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }]
   }
-  ccObject = {
+  ccMeta = JSON.stringify({
     columnName: '',
     datatype: '',
     expression: ''
-  }
+  })
+  ccObject = JSON.parse(this.ccMeta)
   activeCCIndex = null
   isEdit = true
   ccVisible = false
@@ -64,7 +65,6 @@ export default class CCForm extends Vue {
   integerType = ['bigint', 'int', 'integer', 'smallint', 'tinyint']
   floatType = ['decimal', 'double', 'float']
   otherType = ['binary', 'boolean', 'char', 'date', 'string', 'timestamp', 'varchar']
-
   upperCaseCCName () {
     this.ccObject.columnName = this.ccObject.columnName.toLocaleUpperCase()
   }
@@ -74,13 +74,21 @@ export default class CCForm extends Vue {
     this.$refs['ccForm'].resetFields()
   }
   delCC () {
-    this.$emit('del', this.ccObject)
+    this.modelInstance.delCC(this.ccObject).then(() => {
+      this.ccObject = JSON.parse(this.ccMeta)
+      this.$emit('delSuccess', this.ccObject)
+      this.ccVisible = false
+    })
   }
   addCC () {
     this.$refs['ccForm'].validate((valid) => {
       if (valid) {
-        this.$emit('save', this.ccObject)
-        this.isEdit = false
+        this.modelInstance.addCC(this.ccObject).then((cc) => {
+          this.$emit('saveSuccess', cc)
+          this.isEdit = false
+        }, () => {
+          // 提示已经有同名的CC
+        })
       }
     })
   }
@@ -89,14 +97,15 @@ export default class CCForm extends Vue {
   }
   resetCC () {
     this.$refs['ccForm'].resetFields()
-    this.ccObject = {
-      columnName: '',
-      datatype: '',
-      expression: ''
-    }
+    this.ccObject = JSON.parse(this.ccMeta)
   }
   @Watch('isShow')
-  onShowChange (val) {
+  onCCChange (val) {
+    if (this.ccDesc && this.isShow) {
+      this.ccObject = JSON.parse(this.ccMeta)
+      Object.assign(this.ccObject, this.ccDesc)
+    }
+    this.isEdit = false
   }
 }
 </script>

@@ -1,7 +1,7 @@
 import NTable from './table.js'
 import store from '../../../../store'
 import { jsPlumbTool } from '../../../../util/plumb'
-import { parsePath, objectArraySort } from '../../../../util'
+import { parsePath, sampleGuid, indexOfObjWithSomeKey, indexOfObjWithSomeKeys } from '../../../../util'
 import { modelRenderConfig } from './config'
 import ModelTree from './layout'
 import $ from 'jquery'
@@ -20,30 +20,68 @@ class NModel {
     this.last_modified = options.last_modified || 0
     this.partition_desc = options.partition_desc || {}
     this.all_named_columns = options.all_named_columns || []
+    this.all_named_columns.forEach((col) => {
+      col.guid = sampleGuid()
+    })
+    this.computed_columns.forEach((col) => {
+      col.guid = sampleGuid()
+    })
+    // 用普通列构建的dimension
+    this.normalDimensions = options.all_named_columns.filter((x) => {
+      let columnNamed = x.column.split('.')
+      let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', columnNamed[1], 'tableAlias', columnNamed[0])
+      if (i < 0 && x.is_dimension) {
+        return x
+      }
+    })
+    // 用在tableIndex上的列
+    this.tableIndexColumns = options.all_named_columns.filter((x) => {
+      if (!x.is_dimension) {
+        return x
+      }
+    })
+    // 可计算列构建的dimension
+    this.ccDimensions = options.all_named_columns.filter((x) => {
+      let columnNamed = x.column.split('.')
+      let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', columnNamed[1], 'tableAlias', columnNamed[0])
+      if (i >= 0 && x.is_dimension) {
+        return x
+      }
+    })
     this.lookups = options.lookups || []
-    this.dimensions = options.dimensions || []
     this.all_measures = options.all_measures || []
     this.project = options.project
+    this.maintain_model_type = options.maintain_model_type
+    this.management_type = options.management_type
     this.datasource = store.state.datasource.dataSource[this.project]
-    this.vm = _
-    this._mount = _mount // 挂载对象
-    this.$set = _.$set
-    this.$delete = _.$delete
-    this.plumbTool = jsPlumbTool()
-    this.$set(this._mount, 'computed_columns', this.computed_columns)
-    this.$set(this._mount, 'tables', this.tables)
-    this.$set(this._mount, 'all_named_columns', this.all_named_columns)
-    this.$set(this._mount, 'all_measures', this.all_measures)
-    this.$set(this._mount, 'dimensions', this.dimensions)
-    this.$set(this._mount, 'zoom', this.canvas && this.canvas.zoom || modelRenderConfig.zoom)
-    this.renderDom = this.vm.$el.querySelector(options.renderDom)
-    this.plumbTool.init(this.renderDom, this._mount.zoom / 10)
+    if (_) {
+      this.vm = _
+      this._mount = _mount // 挂载对象
+      this.$set = _.$set
+      this.$delete = _.$delete
+      this.plumbTool = jsPlumbTool()
+    }
+    if (_mount) {
+      this.$set(this._mount, 'computed_columns', this.computed_columns)
+      this.$set(this._mount, 'tables', this.tables)
+      this.$set(this._mount, 'all_named_columns', this.all_named_columns)
+      this.$set(this._mount, 'all_measures', this.all_measures)
+      this.$set(this._mount, 'dimensions', this.dimensions)
+      this.$set(this._mount, 'zoom', this.canvas && this.canvas.zoom || modelRenderConfig.zoom)
+      this.$set(this._mount, 'normalDimensions', this.normalDimensions)
+      this.$set(this._mount, 'tableIndexColumns', this.tableIndexColumns)
+      this.$set(this._mount, 'ccDimensions', this.ccDimensions)
+    }
+    if (options.renderDom) {
+      this.renderDom = this.vm.$el.querySelector(options.renderDom)
+      this.plumbTool.init(this.renderDom, this._mount.zoom / 10)
+    }
     this.allConnInfo = {}
     this.render()
   }
   render () {
     this.renderTable()
-    this.vm.$nextTick(() => {
+    this.vm && this.vm.$nextTick(() => {
       this.renderLinks()
       // 如果没有布局信息，就走自动布局程序
       if (!this.canvas) {
@@ -80,8 +118,10 @@ class NModel {
         initTableInfo.drawSize = this.getTableCoordinate(tableObj.alias) // 获取坐标信息
         let ntable = this.addTable(initTableInfo)
         // 获取外键表对象
-        var ftable = this.getTableByAlias(tableObj.join.foreign_key[0].split('.')[0])
-        ntable.addLinkData(ftable, tableObj.join.foreign_key, tableObj.join.primary_key, tableObj.join.type)
+        if (this.renderDom) {
+          var ftable = this.getTableByAlias(tableObj.join.foreign_key[0].split('.')[0])
+          ntable.addLinkData(ftable, tableObj.join.foreign_key, tableObj.join.primary_key, tableObj.join.type)
+        }
       })
     }
   }
@@ -279,10 +319,24 @@ class NModel {
       }
     }
   }
+  getTables (key, val) {
+    let result = []
+    for (var i in this.tables) {
+      if (this.tables[i][key] === val) {
+        result.push(this.tables[i])
+      }
+    }
+    return result
+  }
   getTableColumns () {
     let result = []
     for (var i in this.tables) {
-      Array.prototype.push.apply(result, this.tables[i].columns)
+      let columns = this.tables[i].columns
+      columns && columns.forEach((col) => {
+        col.guid = i // 永久指纹
+        col.table_alias = this.tables[i].alias // 临时
+        result.push(col)
+      })
     }
     return result
   }
@@ -299,6 +353,48 @@ class NModel {
           }
         }
       }
+    }
+  }
+  _checkSameAlias (guid, newAlias) {
+    var hasAlias = 0
+    Object.values(this.tables).forEach(function (table) {
+      if (table.guid !== guid) {
+        if (table.alias.toUpperCase() === newAlias.toUpperCase()) {
+          hasAlias++
+        }
+      }
+    })
+    return hasAlias
+  }
+  _createUniqueName (guid, alias) {
+    if (alias && guid) {
+      var sameCount = this._checkSameAlias(guid, alias)
+      var finalAlias = alias.toUpperCase().replace(/[^a-zA-Z_0-9]/g, '')
+      if (sameCount === 0) {
+        return finalAlias
+      } else {
+        while (this._checkSameAlias(guid, finalAlias + '_' + sameCount)) {
+          sameCount++
+        }
+        return finalAlias + '_' + sameCount
+      }
+    }
+  }
+  setUniqueAlias (table) {
+    // fact 情况的特殊处理
+    if (table.kind === modelRenderConfig.tableKind.fact) {
+      let sameTable = this.getTables('name', table.name)
+      for (let i = 0; i < sameTable.length; i++) {
+        const t = sameTable[i]
+        if (t.guid !== table.guid) {
+          t.alias = table.alias
+          break
+        }
+      }
+      table.alias = table.name.split('.')[1]
+    } else {
+      var uniqueName = this._createUniqueName(table.guid, table.alias)
+      this.$set(table, 'alias', uniqueName)
     }
   }
   // 设置当前最上层的table（zindex）
@@ -353,8 +449,13 @@ class NModel {
       // this.tables[options.alias] = table
       if (this.vm) {
         this.vm.$set(this._mount.tables, table.guid, table)
+      } else {
+        this.tables[table.guid] = table
       }
-      this.plumbTool.draggable([table.guid])
+      if (this.renderDom) {
+        this.plumbTool.draggable([table.guid])
+      }
+      this.setUniqueAlias(table)
       return table
     }
     return this.tables[options.alias]
@@ -383,6 +484,12 @@ class NModel {
       }
     }
   }
+  getCCObj (tableAlias, column) {
+    let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', column, 'tableAlias', tableAlias)
+    if (i >= 0) {
+      return this.computed_columns[i]
+    }
+  }
   getFactTable () {
     for (var i in this.tables) {
       if (this.tables[i].kind === modelRenderConfig.tableKind.fact) {
@@ -390,58 +497,95 @@ class NModel {
       }
     }
   }
-  getAllColumnsMaxId () {
-    let sortedColumns = objectArraySort(this.all_named_columns, false, 'id')
-    let maxId = 0
-    if (sortedColumns && sortedColumns.length) {
-      maxId = sortedColumns[0].id
-    }
-    return maxId
-  }
   // 添加维度
-  addDimension (dimObj) {
-    dimObj.is_dimension = true
-    let maxId = this.getAllColumnsMaxId()
-    if (!dimObj.id) {
-      dimObj.id = maxId + 1
-    }
-    this.all_named_columns.push(dimObj)
-  }
-  // 添加度量
-  editDimsnion (dimObj) {
-    dimObj.is_dimension = true
-    this.all_named_columns.forEach((d) => {
-      if (dimObj.id === d.id) {
-        d = dimObj
+  addDimension (dimension) {
+    return new Promise((resolve, reject) => {
+      if (dimension.isCC) {
+        if (indexOfObjWithSomeKey(this.ccDimensions, 'name', dimension.name) <= 0) {
+          this._mount.ccDimensions.push(dimension)
+          resolve(dimension)
+        } else {
+          reject()
+        }
+      } else {
+        if (indexOfObjWithSomeKey(this.normalDimensions, 'name', dimension.name) <= 0) {
+          this._mount.normalDimensions.push(dimension)
+          resolve(dimension)
+        } else {
+          reject()
+        }
       }
     })
   }
   // 添加度量
+  editDimension (dimension, i) {
+    return new Promise((resolve, reject) => {
+      if (dimension.isCC) {
+        this._mount.ccDimensions.splice(i, 1, dimension)
+        resolve()
+      } else {
+        this._mount.normalDimensions.splice(i, 1, dimension)
+        resolve()
+      }
+    })
+  }
+  delDimension (dimension, i) {
+    if (dimension.isCC) {
+      this._mount.ccDimensions.splice(i, 1)
+    } else {
+      this._mount.normalDimensions.splice(i, 1)
+    }
+  }
+  // 添加度量
   addMeasure (measureObj) {
-    this.all_measures.push(measureObj)
+    this._mount.all_measures.push(measureObj)
   }
   // 编辑度量
   editMeasure (measureObj) {
-    this.all_measures.forEach((m) => {
+    this._mount.all_measures.forEach((m) => {
       if (m.name === measureObj.name) {
         m = measureObj
       }
     })
   }
+  // 检查是否有同名
+  _checkSameCCName (name) {
+    return indexOfObjWithSomeKey(this._mount.computed_columns, 'name', name) < 0
+  }
   // 添加CC
   addCC (ccObj) {
-    let ccBase = {
-      tableIdentity: this.fact_table,
-      tableAlias: this.fact_table.split('.')[1]
-    }
-    Object.assign(ccBase, ccObj)
-    this.computed_columns.push(ccBase)
+    return new Promise((resolve, reject) => {
+      if (this._checkSameCCName) {
+        let ccBase = {
+          tableIdentity: this.fact_table,
+          tableAlias: this.fact_table.split('.')[1]
+        }
+        ccObj.guid = sampleGuid()
+        Object.assign(ccBase, ccObj)
+        this._mount.computed_columns.push(ccBase)
+        resolve(ccBase)
+      } else {
+        reject()
+      }
+    })
   }
   // 编辑CC
   editCC (ccObj) {
-    this.computed_columns.forEach((c) => {
+    this._mount.computed_columns.forEach((c) => {
       if (c.columnName === ccObj.name) {
         Object.assign(c, ccObj)
+      }
+    })
+  }
+  delCC (ccObj) {
+    return new Promise((resolve) => {
+      for (let i = 0; i < this._mount.computed_columns.length; i++) {
+        const c = this._mount.computed_columns[i]
+        if (c.guid === ccObj.guid) {
+          this._mount.computed_columns.splice(i, 1)
+          resolve(c)
+          break
+        }
       }
     })
   }

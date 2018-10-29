@@ -101,7 +101,7 @@
             <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
              <div v-show="isAdmin || hasPermissionOfProject()">
               <common-tip :content="$t('kylinLang.common.edit')" class="ksd-ml-10"><i class="el-icon-ksd-table_edit ksd-fs-16" @click="handleEditModel(scope.row.alias)"></i></common-tip>
-              <common-tip :content="$t('dataloading')" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16" @click="dataLoad"></i></common-tip>
+              <common-tip :content="$t('dataloading')" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16" @click="setModelBuldRange(scope.row)" v-if="scope.row.management_type!=='TABLE_ORIENTED'"></i></common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="!scope.row.is_draft">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
@@ -109,6 +109,8 @@
                   </span>
                  <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' >
                     <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item>
+                    <!-- 设置partition -->
+                    <el-dropdown-item command="dataLoad" v-if="scope.row.management_type!=='TABLE_ORIENTED'">{{$t('dataLoading')}}</el-dropdown-item>
                     <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item>
                     <el-dropdown-item command="importMDX" divided disabled>{{$t('importMdx')}}</el-dropdown-item>
                     <el-dropdown-item command="exportTDS" disabled>{{$t('exportTds')}}</el-dropdown-item>
@@ -126,10 +128,8 @@
           </template>
         </el-table-column>
       </el-table>
-
-
+      <!-- 分页 -->
       <kap-pager class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"  :totalSize="modelsPagerRenderData.totalSize"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
-
     </div>
     <div class="ksd-null-pic-text" v-if="!showSearchResult">
       <img src="../../../../assets/img/no_model.png">
@@ -139,99 +139,27 @@
        </div>
     </div>
 
-  <el-dialog width="440px" :title="$t('kylinLang.common.notice')" :visible.sync="reachThreshold" :show-close="false">
-    <div>
-      {{$t('hello', {user: currentUser.username})}}<br/>
-      <p style="text-indent:25px; line-height: 26px;" v-html="$t('speedTip', {queryCount: modelSpeedEvents ,modelCount: modelSpeedModelsCount})"></p>
-    </div>
-    <div slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
-      <el-button size="medium" type="primary" plain @click="applySpeed" :loading="btnLoading">{{$t('apply')}}</el-button>
-    </div>
-  </el-dialog>
-    <!-- 模型检查 -->
-    <el-dialog title="Model Check" width="440px" :visible.sync="modelCheckModeVisible">
-      <el-form :model="createModelMeta"  :rules="createModelFormRule" ref="addModelForm" label-width="130px" label-position="top">
-        <div class="ky-list-title">数据检查项</div>
-        <ul class="ksd-mtb-20">
-          <li class="ksd-mb-10"><el-checkbox>模型上主外键重复</el-checkbox></li>
-          <li class="ksd-mb-10"><el-checkbox>数据倾斜（偏度过高）</el-checkbox></li>
-          <li class="ksd-mb-10"><el-checkbox>字段中存在空值</el-checkbox></li>
-        </ul>
-        <div class="ky-line"></div>
-        <div class="ky-list-title ksd-mt-20">数据容忍标准</div>
-        <div class="ksd-mt-20">
-          有数据问题超过<el-input size="mini" style="width:70px;" class="ksd-mrl-4"></el-input>条时，采取以下方式：
-        </div>
-        <div class="ksd-mt-16">
-          <ul>
-            <li class="ksd-mb-10"><el-radio>模型上主外键重复</el-radio></li>
-            <li class="ksd-mb-10"><el-radio>数据倾斜（偏度过高）</el-radio></li>
-            <li><el-radio>字段中存在空值</el-radio></li>
-          </ul>
-        </div>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="modelCheckModeVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain @click="" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
-      </div>
-    </el-dialog>
-
-
-    <!--  数据加载 -->
-    <el-dialog title="数据加载管理"  width="660px" :visible.sync="dataLoadingModeVisible">
+    <el-dialog width="440px" :title="$t('kylinLang.common.notice')" :visible.sync="reachThreshold" :show-close="false">
       <div>
-        <div class="ky-list-title">分区设置</div>
-        <div class="ky-list-sub-title">一级分区</div>
-        <el-form :inline="true"  class="demo-form-inline">
-          <el-form-item label="表">
-            <el-select  placeholder="请选择表">
-              <el-option label="1" value="shanghai"></el-option>
-              <el-option label="2" value="beijing"></el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="列">
-            <el-select  placeholder="请选择列">
-              <el-option label="1" value="shanghai"></el-option>
-              <el-option label="2" value="beijing"></el-option>
-            </el-select>
-          </el-form-item>
-        </el-form>
-        <div class="ky-list-sub-title ksd-mt-2">时间分区</div>
-        <el-form :inline="true"  class="demo-form-inline">
-          <el-form-item label="表">
-            <el-select  placeholder="表">
-              <el-option label="1" value="shanghai"></el-option>
-              <el-option label="2" value="beijing"></el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="列">
-            <el-select  placeholder="列">
-              <el-option label="1" value="1"></el-option>
-              <el-option label="2" value="2"></el-option>
-            </el-select>
-          </el-form-item>
-        </el-form>
-        <div class="ky-line"></div>
-        <div class="ky-list-title ksd-mt-20">数据更新</div>
-        <div class="ky-list-sub-title">维度表更新</div>
-        <div class="ksd-mt-14">
-          <el-radio label="1">与数据源更新同步</el-radio>
-          <el-radio label="2">自定义更新时间</el-radio>
-        </div>
-        <div class="ky-list-sub-title">事实表更新</div>
-        <div class="ksd-mt-14">
-          <el-radio label="1">与数据源更新同步</el-radio>
-          <el-radio label="2">自定义更新时间</el-radio>
-        </div>
+        {{$t('hello', {user: currentUser.username})}}<br/>
+        <p style="text-indent:25px; line-height: 26px;" v-html="$t('speedTip', {queryCount: modelSpeedEvents ,modelCount: modelSpeedModelsCount})"></p>
       </div>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="dataLoadingModeVisible = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
+        <el-button size="medium" type="primary" plain @click="applySpeed" :loading="btnLoading">{{$t('apply')}}</el-button>
       </div>
     </el-dialog>
+    <!-- 模型检查 -->
+    <ModelCheckDataModal/>
+    <!-- 模型构建 -->
+    <ModelBuildModal/>
+    <!--  数据分区设置 -->
+    <ModelPartitionModal/>
+    <!-- 模型重命名 -->
     <ModelRenameModal/>
+    <!-- 模型克隆 -->
     <ModelCloneModal/>
+    <!-- 模型添加 -->
     <ModelAddModal/>
   </div>
 </template>
@@ -250,7 +178,11 @@ import ModelAggregate from './ModelAggregate/index.vue'
 import ModelRenameModal from './ModelRenameModal/rename.vue'
 import ModelCloneModal from './ModelCloneModal/clone.vue'
 import ModelAddModal from './ModelAddModal/addmodel.vue'
+import ModelCheckDataModal from './ModelCheckData/checkdata.vue'
+import ModelBuildModal from './ModelBuildModal/build.vue'
+import ModelPartitionModal from './ModelPartitionModal/index.vue'
 import { mockSQL } from './mock'
+import NModel from '../ModelEdit/model.js'
 import '../../../../util/fly.js'
 @Component({
   computed: {
@@ -292,6 +224,15 @@ import '../../../../util/fly.js'
     }),
     ...mapActions('ModelAddModal', {
       callAddModelDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('ModelCheckDataModal', {
+      checkModelData: 'CALL_MODAL'
+    }),
+    ...mapActions('ModelBuildModal', {
+      callModelBuildDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('ModelPartitionModal', {
+      callModelPartitionDialog: 'CALL_MODAL'
     })
   },
   components: {
@@ -300,17 +241,21 @@ import '../../../../util/fly.js'
     ModelAggregate,
     ModelRenameModal,
     ModelCloneModal,
-    ModelAddModal
+    ModelAddModal,
+    ModelCheckDataModal,
+    ModelBuildModal,
+    ModelPartitionModal
   },
   locales
 })
 export default class ModelList extends Vue {
   mockSQL = mockSQL
+  checkOptions = []
   applyDialogVisible = false
   createModelVisible = false
   cloneFormVisible = false
   modelCheckModeVisible = false
-  dataLoadingModeVisible = false
+  dataRangeVal = []
   btnLoading = false
   btnLoadingCancel = false
   createModelFormRule = {
@@ -411,12 +356,20 @@ export default class ModelList extends Vue {
       callback()
     }
   }
-  dataLoad () {
-    this.dataLoadingModeVisible = true
+  setModelBuldRange (modelInstance) {
+    this.callModelBuildDialog({
+      modelDesc: modelInstance
+    })
   }
   async handleCommand (command, modelInstance) {
     if (command === 'dataCheck') {
-      this.modelCheckModeVisible = true
+      this.checkModelData({
+        modelDesc: modelInstance
+      })
+    } else if (command === 'dataLoad') {
+      this.callModelPartitionDialog({
+        modelDesc: new NModel(modelInstance)
+      })
     } else if (command === 'rename') {
       const isSubmit = await this.callRenameModelDialog(objectClone(modelInstance))
       isSubmit && this.loadModelsList()

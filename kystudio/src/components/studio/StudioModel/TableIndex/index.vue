@@ -9,28 +9,30 @@
       </div>
       <kap-nodata v-if="tableIndexBaseList.length === 0" class="ksd-mt-40"></kap-nodata>
       <el-steps direction="vertical">
-        <el-step :title="key" status="finish" v-if="tableIndex.length" v-for="(tableIndex, key) in tableIndexGroup" :key="key">
+        <el-step :title="`${key}(${tableIndex.length})`" status="finish" v-if="tableIndex.length" v-for="(tableIndex, key) in tableIndexGroup" :key="key">
           <div slot="icon"><i class="el-icon-ksd-elapsed_time"></i></div>
           <div slot="description">
-            <el-carousel :interval="4000" type="card" height="149px" :autoplay="false">
+            <el-carousel :interval="4000" type="card" height="173px" :autoplay="false" :initial-index="tableIndex.length - 1">
               <el-carousel-item v-for="item in tableIndex" :key="item.name" @click.native="showTableIndexDetal(item)">
                 <div :class="{'empty-table-index': item.status === 'Empty'}">
                   <div class="slider-content-above ">
-                    <div class="sub-info">Table Index ID: {{item.id}}</div>
-                    <div class="main-title" :title="item.name">Table Index Name: {{item.name|omit(10, '...')}}
-                      <i v-if="item.status === 'Broken'" class="el-icon-warning ksd-ml-4"></i>
+                    <div class="main-title" :title="item.name">Table Index Name: {{item.name|omit(10, '...')}}</div>
+                    <div class="status-list">
+                      <div v-if="item.status === 'Broken'" class="broken-icon">Broken</div>
+                      <div v-if="item.status === 'Empty'" class="empty-icon">[Empty]</div>
                     </div>
-                    <div class="sub-info tableindex-timer">
-                      <i class="el-icon-ksd-elapsed-time"></i>{{transToGmtTime(item.update_time)}}
-                    </div>
-                    <div class="actions ksd-right">
-                      <i class="el-icon-ksd-table_delete del-icon" @click="delTableIndex(item.id)"></i>
+                    <div class="sub-info">
+                      <div>Table Index ID: {{item.id}}</div>
+                      <i class="el-icon-ksd-elapsed_time"></i>{{transToGmtTime(item.update_time)}}
+                       <div class="actions ksd-fright">
+                        <i class="el-icon-ksd-table_delete del-icon" @click="delTableIndex(item.id)"></i>
+                      </div>
                     </div>
                   </div>
                   <div class="ky-line"></div>
                   <div class="slider-content-below">
                     <span class="tableindex-user">{{item.owner}}</span>
-                    <span class="tableindex-count"><span>{{item.col_order.length}}</span>Columns</span>
+                    <span class="tableindex-count"><span>{{item.col_order.length}}</span> Columns</span>
                   </div>
                 </div>
               </el-carousel-item>
@@ -268,9 +270,6 @@ export default class TableIndex extends Vue {
     color:@base-color;
     border-width:1px;
   }
-  .empty-table-index {
-    background-color: @grey-4;
-  }
   .el-step__description {
     padding-right:20px!important;
   }
@@ -307,6 +306,7 @@ export default class TableIndex extends Vue {
     .tableindex-user {
       float:left;
       margin-left:20px;
+      font-size:14px;
     }
     .tableindex-count {
       float:right;
@@ -316,8 +316,42 @@ export default class TableIndex extends Vue {
       }
     }
   }
+  .empty-table-index {
+    background-color: @grey-4;
+    .slider-content-above {
+      .main-title {
+        color:@text-disabled-color;
+      }
+    }
+    .slider-content-below {
+      .tableindex-user {
+        color:@text-secondary-color;
+      }
+      .tableindex-count {
+        color:@text-secondary-color;
+      }
+    }
+  }
   .slider-content-above{
-    height:108px;
+    .broken-icon {
+      color:@error-color-1;
+      border: 1px solid @error-color-1;
+      border-radius: 2px;
+      width:56px;
+      height:24px;
+      line-height:24px;
+      text-align:center;
+      background:@error-color-3;
+    }
+    .empty-icon {
+      // color:@text-disabled-color;
+      font-size:16px;
+    }
+    .status-list {
+      height:34px;
+      padding-top:10px;
+    }
+    height:132px;
     padding:20px;
     .del-icon {
       display: none;
@@ -330,6 +364,7 @@ export default class TableIndex extends Vue {
     .sub-info {
       font-size:12px;
       color:@text-disabled-color;
+      margin-top:5px;
     }
     .main-title {
       font-size: 16px;

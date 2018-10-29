@@ -6,10 +6,9 @@
     <div class="footer">
       <div class="btn-group">
         <el-button @click="goModelList">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button type="primary" @click="openSaveDialog">{{$t('kylinLang.common.save')}}</el-button>
+          <el-button type="primary" @click="saveModel">{{$t('kylinLang.common.save')}}</el-button>
         </div>
     </div>
-    <PartitionModal/>
   </div>
 </template>
 <script>
@@ -20,7 +19,6 @@ import { mapActions, mapGetters, mapMutations } from 'vuex'
 import locales from './locales'
 import { sampleGuid } from 'util/index'
 import ModelEdit from '../ModelEdit/index.vue'
-import PartitionModal from '../ModelPartitionModal/index.vue'
 
 @Component({
   // props: {
@@ -42,16 +40,12 @@ import PartitionModal from '../ModelPartitionModal/index.vue'
       delModel: 'DELETE_MODEL',
       checkModelName: 'CHECK_MODELNAME'
     }),
-    ...mapActions('ModelPartitionModal', {
-      showPartitionDialog: 'CALL_MODAL'
-    }),
     ...mapMutations({
       toggleFullScreen: 'TOGGLE_SCREEN'
     })
   },
   components: {
-    ModelEdit,
-    PartitionModal
+    ModelEdit
   },
   locales
 })
@@ -78,10 +72,6 @@ export default class ModelTabs extends Vue {
   goModelList () {
     this.toggleFullScreen(false)
     this.$router.push({name: 'ModelList'})
-  }
-  openSaveDialog () {
-    this.showPartitionDialog()
-    this.saveModel()
   }
   saveModel () {
     this.$refs[this.modelEditPanels[0].content][0].$emit('saveModel', null)

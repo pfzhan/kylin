@@ -228,7 +228,7 @@ export function objectArraySort (objArr, sequence, sortKey) {
   }
   return objectArr
 }
-// 对象数组按照另一个数组来排序
+// 对象数组按照另一个数组来排序 （废弃）
 export function ObjectArraySortByArray (arr1, arr2, key1, key2) {
   var resultArr = []
   var len1 = arr1 && arr1.length || 0
@@ -241,6 +241,26 @@ export function ObjectArraySortByArray (arr1, arr2, key1, key2) {
     }
   }
   return resultArr
+}
+/* 一个数组按照另一个数组里的排序进行重排
+* args: arr1:['a', 'b', 'c', 'd']  arr2:['d','a']
+* result ["d", "b", "c", "a"]
+*/
+export function arrSortByArr (arr1, arr2) {
+  let pos = []
+  arr2.forEach((s) => {
+    let i = arr1.indexOf(s)
+    if (i >= 0 && pos.indexOf(i) === -1) { // 当找到位置且没有重复的时候，记录位置
+      pos.push(arr1.indexOf(s))
+    }
+  })
+  pos.sort((a, b) => {
+    return a - b
+  })
+  pos.forEach((p, i) => {
+    arr1[p] = arr2[i]
+  })
+  return arr1
 }
 // 对象克隆
 export function objectClone (obj) {

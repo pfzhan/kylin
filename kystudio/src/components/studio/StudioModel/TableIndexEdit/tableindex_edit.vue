@@ -16,7 +16,7 @@
                 <div class="actions"><el-button @click="selectAll" plain  type="primary" size="medium">Select All Columns</el-button> <el-button @click="clearAll" size="medium">Clear All</el-button> </div>
                 <ul class="table-index-columns">
                   <li v-for='(col, index) in tableIndexMeta.col_order' :key='col'>
-                    <span class="sort-icon ksd-mr-10">{{index + 1}}</span>
+                    <span class="sort-icon ksd-mr-10">{{index + 1 + pager * 10}}</span>
                     <el-select v-model="tableIndexMeta.col_order[index]" filterable style="width:420px" placeholder="请选择">
                       <el-option
                         v-for="item in allColumns"
@@ -30,6 +30,15 @@
                     <el-button circle size="small" icon="el-icon-minus" @click="delCol('col_order', index)"></el-button> 
                   </li>
                 </ul>
+                <!-- <div class="show-pagers">
+                  <ul>
+                    <li v-for="x in totalPage" :key="x" @click="pagerChange(x - 1)">
+                      <span>{{(x - 1)*10 + 1}}</span>
+                         /
+                        <span>{{ (x) * 10}}</span>
+                    </li>
+                  </ul>
+                </div> -->
               </div>
             </div>
           </el-step>
@@ -92,6 +101,7 @@
   import vuex from '../../../../store'
   import { NamedRegex } from 'config'
   import { handleError } from 'util/business'
+  import { objectClone, arrSortByArr } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
 
@@ -105,25 +115,9 @@
       ...mapState('TableIndexEditModal', {
         isShow: state => state.isShow,
         modelDesc: state => state.form.data.modelDesc,
-        tableIndexDesc: state => state.form.data.tableIndexDesc,
+        tableIndexDesc: state => objectClone(state.form.data.tableIndexDesc),
         callback: state => state.callback
-      }),
-      allColumns () {
-        // mock
-        let modelUsedTables = this.$store.state.datasource.dataSource[this.currentSelectedProject] // mock
-        // let modelUsedTables = this.modelDesc.simple_tables
-        var result = []
-        modelUsedTables && modelUsedTables.forEach((tableObj) => {
-          tableObj.columns.forEach((col) => {
-            col.alias = tableObj.name
-            result.push(col)
-          })
-        })
-        return result
-      },
-      selectedColumns () {
-        return Vue.filter('filterArr')(this.tableIndexMeta.col_order, '')
-      }
+      })
     },
     methods: {
       ...mapActions({
@@ -142,6 +136,7 @@
   export default class TableIndexEditModal extends Vue {
     btnLoading = false
     openShared = false
+    pager = 0
     tableIndexMetaStr = JSON.stringify({
       id: '',
       name: '',
@@ -155,16 +150,40 @@
         {validator: this.checkName, trigger: 'blur'}
       ]
     }
-    @Watch('tableIndexDesc')
-    initTableIndex () {
-      if (this.tableIndexDesc) {
+    get allColumns () {
+      // mock
+      let modelUsedTables = this.$store.state.datasource.dataSource[this.currentSelectedProject] // mock
+      // let modelUsedTables = this.modelDesc.simple_tables
+      var result = []
+      modelUsedTables && modelUsedTables.forEach((tableObj) => {
+        tableObj.columns.forEach((col) => {
+          col.alias = tableObj.name
+          result.push(col)
+        })
+      })
+      return result
+    }
+    // get pagerShowOrder () {
+    //   return this.tableIndexMeta.col_order.slice(this.pager * 10, 10 + 10 * this.pager)
+    // }
+    get selectedColumns () {
+      return Vue.filter('filterArr')(this.tableIndexMeta.col_order, '')
+    }
+    // get totalPage () {
+    //   let y = this.tableIndexMeta.col_order.length % 10 ? 1 : 0
+    //   return Math.floor(this.tableIndexMeta.col_order.length / 10) + y
+    // }
+    @Watch('isShow')
+    initTableIndex (val) {
+      if (val && this.tableIndexDesc) {
         Object.assign(this.tableIndexMeta, this.tableIndexDesc)
       } else {
         this.tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
       }
-      if (this.tableIndexMeta.shard_by_columns.length > 0) {
-        this.openShared = true
-      }
+      this.openShared = this.tableIndexMeta.shard_by_columns.length > 0
+    }
+    pagerChange (pager) {
+      this.pager = pager
     }
     checkName (rule, value, callback) {
       if (!NamedRegex.test(value)) {
@@ -174,7 +193,9 @@
       }
     }
     clearAll () {
-      this.tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
+      this.tableIndexMeta.col_order = ['']
+      this.tableIndexMeta.sort_by_columns = ['']
+      this.tableIndexMeta.shard_by_columns = []
     }
     selectAll () {
       this.allColumns.forEach((col) => {
@@ -216,6 +237,8 @@
           this.btnLoading = false
           handleError(res)
         }
+        // 按照sort选中列的顺序对col_order进行重新排序
+        this.tableIndexMeta.col_order = arrSortByArr(this.tableIndexMeta.col_order, this.tableIndexMeta.sort_by_columns)
         this.tableIndexMeta.project = this.currentSelectedProject
         this.tableIndexMeta.model = this.modelDesc.name
         if (this.tableIndexMeta.id) {
@@ -230,12 +253,31 @@
 <style lang="less">
   @import '../../../../assets/styles/variables.less';
   .table-edit-dialog {
+    .show-pagers{
+      width: 42px;
+      position: absolute;
+      top: 100px;
+      right: -16px;
+      ul {
+        li {
+          border:solid 1px #ccc;
+          margin-bottom:12px;
+          text-align:center;
+        }
+      }
+    }
+    .show-more-block {
+      width:120px;
+      height:20px;
+      line-height:20px;
+      text-align:center
+    }
     .sort-icon {
       .ky-square-box(32px, 32px);
       background: @text-secondary-color;
       display: inline-block;
       color:@fff;
-      ertical-align: bottom;
+      vertical-align: baseline;
     }
     .table-index-columns {
       li {

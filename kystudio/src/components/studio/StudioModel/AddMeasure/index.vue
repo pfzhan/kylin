@@ -1,5 +1,5 @@
 <template>
-  <el-dialog v-event-stop width="440px" :title="$t('kylinLang.cube.measure')" :visible.sync="measureVisible" top="5%" :close-on-press-escape="false" :close-on-click-modal="false" @close="handleHide">
+  <el-dialog append-to-body width="440px" :title="$t('kylinLang.cube.measure')" :visible.sync="measureVisible" top="5%" :close-on-press-escape="false" :close-on-click-modal="false" @close="handleHide">
     <el-form :model="measure" class="add-measure" label-position="top" :rules="rules"  ref="measureForm">
       <el-form-item :label="$t('name')" prop="name">
         <div>
@@ -31,7 +31,7 @@
         <el-tag type="info" class="measures-width" v-if="measure.expression === 'SUM(constant)' || measure.expression === 'COUNT(constant)'">1</el-tag>
         <div class="measure-flex-row" v-else>
           <div class="flex-item">
-            <el-select :popper-append-to-body="false" :class="{
+            <el-select :class="{
             'measures-addCC': measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N',
             'measures-width': measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'}"
             size="medium" v-model="measure.parameterValue.value" :placeholder="$t('kylinLang.common.pleaseSelect')"
@@ -365,15 +365,14 @@ export default class AddMeasure extends Vue {
     this.measureVisible = false
     this.$emit('closeAddMeasureDia')
   }
-
   checkMeasure () {
-    this.$refs['measureForm'].validate((valid) => {
-      if (valid) {
-        this.$emit('saveNewMeasure', this.measure, this.ccObject, this.isEditMeasure)
-        this.resetMeasure()
-        this.handleHide()
-      }
-    })
+    // this.$refs.measureForm.validate((valid) => {
+      // if (valid) {
+    this.$emit('saveNewMeasure', this.measure, this.ccObject, this.isEditMeasure)
+    this.resetMeasure()
+    this.handleHide()
+      // }
+    // })
   }
 
   resetMeasure () {

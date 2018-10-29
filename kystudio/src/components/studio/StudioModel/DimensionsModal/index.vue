@@ -125,7 +125,7 @@ import locales from './locales'
 import store, { types } from './store'
 // import { sourceTypes } from '../../../../config'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-import { objectClone, objectArraySort } from 'util'
+import { objectClone } from 'util'
 vuex.registerModule(['modals', 'DimensionsModal'], store)
 @Component({
   computed: {
@@ -136,7 +136,8 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
     ...mapState('DimensionsModal', {
       isShow: state => state.isShow,
       tables: state => objectClone(state.modelDesc.tables),
-      usedColumns: state => state.modelDesc.all_named_columns,
+      modelDesc: state => state.modelDesc,
+      usedColumns: state => state.modelDesc.normalDimensions,
       callback: state => state.callback
     })
   },
@@ -182,19 +183,15 @@ export default class DimensionsModal extends Vue {
         let len = this.usedColumns.length
         for (let i = 0; i < len; i++) {
           let d = this.usedColumns[i]
-          if (table.alias + '.' + col.name === d.column && d.is_dimension) {
+          if (table.alias + '.' + col.name === d.column) {
             if (d.is_dimension) {
+              col.alias = d.name
               col.isSelected = true //  dimension的列
-            } else {
-              col.isUsed = true // tableIndex的列
             }
-            col.alias = d.name
-            col.id = d.id
             break
           } else {
-            delete col.id
+            col.alias = col.name
             col.isSelected = false
-            col.isUsed = false
           }
         }
       })
@@ -266,21 +263,15 @@ export default class DimensionsModal extends Vue {
   }
   submit () {
     let result = []
-    let sortedColumns = objectArraySort(this.usedColumns, false, 'id')
-    let maxId = 0
-    // 获取上次数据里的最大ID，供新增的列做为起始ID
-    if (sortedColumns && sortedColumns.length) {
-      maxId = sortedColumns[0].id
-    }
     Object.values(this.tables).forEach((table) => {
       table.columns && table.columns.forEach((col) => {
-        if (col.isSelected || col.isUsed) {
-          result.push({id: col.id || ++maxId, name: col.alias, column: table.alias + '.' + col.name, is_dimension: col.isSelected})
+        if (col.isSelected) {
+          result.push({guid: table.guid, name: col.alias, column: table.alias + '.' + col.name, is_dimension: col.isSelected})
         }
       })
     })
-    console.log(result)
-    this.handleClose(true, result)
+    this.modelDesc.normalDimensions = result
+    this.handleClose(true)
   }
   destroyed () {
     if (!module.hot) {

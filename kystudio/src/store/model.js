@@ -195,6 +195,15 @@ export default {
     },
     [types.DELETE_SEGMENTS] ({ commit }, params) {
       return api.model.deleteSegments(params.modelName, params.projectName, params.segmentIds)
+    },
+    [types.MODEL_DATA_CHECK] ({ commit }, para) {
+      return api.model.modelDataCheck(para)
+    },
+    [types.MODEL_BUILD] ({ commit }, para) {
+      return api.model.buildModel(para)
+    },
+    [types.MODEL_PARTITION_SET] ({ commit }, para) {
+      return api.model.setPartition(para)
     }
   },
   getters: {
