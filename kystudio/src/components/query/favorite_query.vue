@@ -23,7 +23,6 @@
                 <div class="ksd-fright ksd-mt-10">TopX% {{$t('queryFrequency')}}</div>
               </div>
               <div class="conds-footer" v-if="isFrequencyEdit">
-                <div class="tips ksd-mb-10">Drag (the frequency point) to cover more queries.</div>
                 <div class="btn-groups">
                   <el-button @click="cancelFrequency" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
                   <el-button type="primary" plain @click="saveFrequency" size="medium">{{$t('kylinLang.common.save')}}</el-button>
@@ -37,11 +36,11 @@
                 <el-button type="primary" size="small" text class="ksd-fright edit-conds" v-show="!isSubmitterEdit" @click="editSubmitter">{{$t('kylinLang.common.edit')}}</el-button>
               </div>
               <div class="conds-content">
+                <div class="desc">{{$t('submitterDesc')}}</div>
                 <div class="users">
                   <i class="el-icon-ksd-table_admin"></i> <span>{{submitterObj.value[0]}}</span> Users
                   <i class="el-icon-ksd-table_group"></i> <span>{{submitterObj.value[1]}}</span> Groups
                 </div>
-                <div class="desc">Queries sent from above submitters will be covered. </div>
               </div>
               <div class="conds-footer" v-if="isSubmitterEdit">
                 <el-select v-model="selectedUser" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User" class="ksd-mt-10" @change="selectUserChange">
@@ -75,7 +74,6 @@
                 <div class="ksd-fright ksd-mt-10">{{$t('unit')}}</div>
               </div>
               <div class="conds-footer" v-if="isDurationEdit">
-                <div class="tips ksd-mb-10">Drag (the starting and ending point) to cover needed queries.</div>
                 <div class="btn-groups">
                   <el-button @click="cancelDuration" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
                   <el-button type="primary" plain @click="saveDuration" size="medium">{{$t('kylinLang.common.save')}}</el-button>
@@ -84,6 +82,13 @@
             </div>
           </el-col>
           <el-col :span="6" class="fillgauge-block">
+            <div class="conds-title">
+              <span>{{$t('ruleImpact')}}</span>
+              <el-tooltip placement="left">
+                <div slot="content">{{$t('ruleImpactDesc')}}</div>
+                <i class="el-icon-ksd-what"></i>
+              </el-tooltip>
+            </div>
             <svg id="fillgauge" width="80%" height="165"></svg>
           </el-col>
         </el-row>
@@ -96,14 +101,26 @@
           <div slot="content">{{$t('favDesc')}}</div>
           <i class="el-icon-ksd-what"></i>
         </el-tooltip>
-        <span>13 more to accelerate <span class="highlight">40</span>, or you can
-          <el-button type="primary" text size="medium">accelerate them now !</el-button>
+        <span><span v-html="$t('thereAre')"></span>
+          <el-button type="primary" text size="medium">{{$t('accelerateNow')}}</el-button>
         </span>
       </div>
       <div class="ksd-fright btn-group">
-        <el-button size="medium" icon="el-icon-ksd-acclerate_ready" plain @click="openPreferrenceSetting">{{$t('preferrence')}}</el-button>
-        <el-button size="medium" icon="el-icon-ksd-white_list" plain @click="openWhiteList">{{$t('whiteList')}}</el-button>
-        <el-button size="medium" icon="el-icon-ksd-black_list" plain @click="openBlackList">{{$t('blackList')}}</el-button>
+        <el-button size="medium" icon="el-icon-ksd-acclerate_ready" plain @click="openPreferrenceSetting">
+          {{$t('preferrence')}}
+        </el-button>
+        <el-button size="medium" icon="el-icon-ksd-white_list" plain @click="openWhiteList">{{$t('whiteList')}}
+          <el-tooltip placement="left">
+            <div slot="content">{{$t('whiteListDesc')}}</div>
+            <i class="el-icon-ksd-what el-icon--right"></i>
+          </el-tooltip>
+        </el-button>
+        <el-button size="medium" icon="el-icon-ksd-black_list" plain @click="openBlackList">{{$t('blackList')}}
+          <el-tooltip placement="left">
+            <div slot="content">{{$t('blackListDesc')}}</div>
+            <i class="el-icon-ksd-what el-icon--right"></i>
+          </el-tooltip>
+        </el-button>
       </div>
     </div>
     <el-table
@@ -144,26 +161,26 @@
     </el-table>
     <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
     <el-dialog
-      :title="$t('preferrence')"
       :visible.sync="preferrenceVisible"
       width="440px"
       class="preferrenceDialog">
+      <span slot="title" class="ky-list-title">{{$t('preferrence')}}</span>
       <div class="batch">
-        <span class="ky-list-title">Accelerating Batch</span>
+        <span class="ky-list-title">{{$t('acceThreshold')}}</span>
         <el-switch class="ksd-switch" v-model="preSettingObj.auto" active-text="ON" inactive-text="OFF"></el-switch>
         <div class="setting">
-          <span>Accelerate</span>
+          <span>{{$t('notifyLeftTips')}}</span>
           <el-input size="small" class="acce-input" v-model="preSettingObj.accelerateThreshold"></el-input>
-          <span>favorite queries in a batch.</span>
+          <span>{{$t('notifyRightTips')}}</span>
         </div>
       </div>
       <div class="divider-line"></div>
       <div class="resource">
-        <span class="ky-list-title">Accelerating Resource</span>
-        <div class="ksd-mt-10 ksd-mb-10">System needs your permission to use any resource to refresh model & index ?</div>
+        <span class="ky-list-title">{{$t('acceResource')}}</span>
+        <div class="ksd-mt-10 ksd-mb-10">{{$t('reasourceDsec')}}</div>
         <el-radio-group v-model="preSettingObj.accumulateFavorites">
-          <el-radio :label="true">Yes</el-radio>
-          <el-radio :label="false">No, I don’t need to know</el-radio>
+          <el-radio :label="true">{{$t('ressourceYse')}}</el-radio>
+          <el-radio :label="false">{{$t('ressourceNo')}}</el-radio>
         </el-radio-group>
       </div>
       <span slot="footer" class="dialog-footer">
@@ -172,11 +189,16 @@
       </span>
     </el-dialog>
     <el-dialog
-      :title="$t('blackList')"
       top="5vh"
       :visible.sync="blackListVisible"
       width="1180px"
       class="blackListDialog">
+      <span slot="title" class="ky-list-title">{{$t('blackList')}}
+        <el-tooltip placement="left">
+          <div slot="content">{{$t('blackListDesc')}}</div>
+          <i class="el-icon-ksd-what"></i>
+        </el-tooltip>
+      </span>
       <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}}</span>
       <el-row :gutter="20">
         <el-col :span="16">
@@ -218,11 +240,16 @@
       <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="sqlLists.length"  v-on:handleCurrentChange='sqlListsPageChange' :perPageSize="5" v-if="sqlLists.length > 0"></kap-pager>
     </el-dialog>
     <el-dialog
-      :title="$t('whiteList')"
       :visible.sync="whiteListVisible"
       top="5vh"
       width="1180px"
       class="whiteListDialog">
+      <span slot="title" class="ky-list-title">{{$t('whiteList')}}
+        <el-tooltip placement="left">
+          <div slot="content">{{$t('whiteListDesc')}}</div>
+          <i class="el-icon-ksd-what"></i>
+        </el-tooltip>
+      </span>
       <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}}</span>
       <el-row :gutter="20">
         <el-col :span="16">
@@ -295,8 +322,8 @@ import sqlFormatter from 'sql-formatter'
     ])
   },
   locales: {
-    'en': {preferrence: 'Preferrence', whiteList: 'White List', blackList: 'Black List', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query. Favorite query represent your main business analysis scenarios and critical decision point. System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the editor?'},
-    'zh-cn': {preferrence: 'Preferrence', whiteList: '白名单', blackList: '黑名单', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。这类查询可以代表最主要的业务分析和重要的业务决策点。系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？'}
+    'en': {preferrence: 'Preferrence', whiteList: 'White List', blackList: 'Black List', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query. Favorite query represent your main business analysis scenarios and critical decision point. System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', submitterDesc: 'Optimize queries from critical users and groups', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the editor?', acceThreshold: 'Accelerating Threshold', notifyLeftTips: 'Notify me every time when there are ', notifyRightTips: ' favorite queries.', acceResource: 'Accelerating Resource', reasourceDsec: 'The system should ask me for permission for using storage and computing resource to accelerate favorite queries.', ressourceYse: 'Yes', ressourceNo: 'No, I don\'t need to know', whiteListDesc: 'White list helps to manage user manually defined favorite SQLs, especially for SQLs from query history list and imported SQL files.', blackListDesc: 'Black list helps to manage SQLs which are undesired for accelerating, especially for those SQLs will require unreasonable large storage or computing resource to accelerate.', ruleImpact: 'Rules Impact', ruleImpactDesc: 'Percentage of SQL queries selected by the favorite rule.', thereAre: 'There are 13 SQLs waiting for acceleration on the threshold of <span class="highlight">50</span>.', accelerateNow: 'Accelerate them now !'},
+    'zh-cn': {preferrence: '加速偏好', whiteList: '白名单', blackList: '黑名单', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。这类查询可以代表最主要的业务分析和重要的业务决策点。系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', submitterDesc: '优化重要⽤用户或⽤用户组发出的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？', acceThreshold: '加速阈值', notifyLeftTips: '每积累', notifyRightTips: ' 条加速查询时，提醒我。', acceResource: '加速资源', reasourceDsec: '系统需要获取存储资源和计算资源来加速查询时，请征询我的许可。', ressourceYse: '征询许可', ressourceNo: '不需要征询', whiteListDesc: '本列列表管理理⽤用户⼈人为指定加速的SQL查询。⼀一般指⽤用户从查询历史指定或导⼊入的查询⽂文件。', blackListDesc: '本列列表管理理⽤用户不不希望被加速的SQL查询。⼀一般是指加速时对存储空间、计算⼒力力需求过⼤大的查询。', ruleImpact: '加速规则影响⼒', ruleImpactDesc: '被加速规则选出的SQL查询的百分⽐。', thereAre: '已有13条SQL查询等待加速(阈值为<span class="highlight">50</span>条SQL)', accelerateNow: '现在就加速它们！'}
   }
 })
 export default class FavoriteQuery extends Vue {
@@ -631,7 +658,7 @@ select a.placepointid, --门店id
   whiteSql = this.formatterSql(this.sqlLists[0]) || ''
   preSettingObj = {
     autoApply: true,
-    accelerateThreshold: 20,
+    accelerateThreshold: 50,
     accumulateFavorites: true
   }
   favoriteCurrentPage = 1
@@ -663,7 +690,7 @@ select a.placepointid, --门店id
     label: this.$t('kylinLang.menu.user'),
     options: ['Admin']
   }]
-  oldFrequencyValue = 20
+  oldFrequencyValue = 50
   oldSubmitterValue = ['Admin']
   oldDurationValue = [58, 80]
   isFrequencyEdit = false
@@ -1026,7 +1053,7 @@ select a.placepointid, --门店id
                 }
               }
               .users {
-                margin: 14px 0;
+                margin: 10px 0;
                 .el-icon-ksd-table_admin,
                 .el-icon-ksd-table_group {
                   font-size: 16px;
@@ -1057,6 +1084,7 @@ select a.placepointid, --门店id
               border-top: 1px solid @line-border-color;
               text-align: right;
               padding-top: 10px;
+              margin-top: 10px;
             }
             .edit-conds {
               display: none;
@@ -1084,6 +1112,12 @@ select a.placepointid, --门店id
         .fillgauge-block {
           text-align: center;
           padding: 10px;
+          position: relative;
+          .conds-title {
+            position: absolute;
+            top: 40px;
+            left: 34%;
+          }
         }
       }
     }
