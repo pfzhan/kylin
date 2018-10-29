@@ -10,21 +10,25 @@
           {{$t('partitionColumn')}}
           <i class="el-icon-ksd-what"></i>
         </span>
-        <el-select
-          class="margin-top-5"
-          filterable
-          size="medium"
-          :value="form.partitionColumn"
-          :disabled="disabled"
-          :placeholder="$t('kylinLang.common.pleaseChoose')"
-          @input="value => handleInput('partitionColumn', value)">
-          <el-option
-            v-for="column in partitionColumns"
-            :key="column.name"
-            :label="column.name"
-            :value="column.name">
-          </el-option>
-        </el-select>
+        <el-row>
+          <el-col :span="13">
+            <el-select
+              class="margin-top-5"
+              filterable
+              size="medium"
+              :value="form.partitionColumn"
+              :disabled="disabled"
+              :placeholder="$t('kylinLang.common.pleaseChoose')"
+              @input="value => handleInput('partitionColumn', value)">
+              <el-option
+                v-for="column in partitionColumns"
+                :key="column.name"
+                :label="column.name"
+                :value="column.name">
+              </el-option>
+            </el-select>
+          </el-col>
+        </el-row>
       </el-form-item>
       <!-- New/Change Data Range Picker -->
       <el-form-item class="margin-bottom-0" prop="newDataRange" v-if="isFieldShow('newDataRange')">
@@ -32,17 +36,21 @@
           {{$t('newDataRange')}}
           <i class="el-icon-ksd-what"></i>
         </span>
-        <el-date-picker
-          class="margin-top-5"
-          size="medium"
-          type="datetimerange"
-          range-separator="-"
-          :value="form.newDataRange"
-          :disabled="disabled"
-          :start-placeholder="$t('kylinLang.common.startTime')"
-          :end-placeholder="$t('kylinLang.common.endTime')"
-          @input="value => handleInputDate('newDataRange', value)">
-        </el-date-picker>
+        <el-row>
+          <el-col :span="22">
+            <el-date-picker
+              class="margin-top-5"
+              size="medium"
+              type="datetimerange"
+              range-separator="-"
+              :value="form.newDataRange"
+              :disabled="disabled"
+              :start-placeholder="$t('kylinLang.common.startTime')"
+              :end-placeholder="$t('kylinLang.common.endTime')"
+              @input="value => handleInputDate('newDataRange', value)">
+            </el-date-picker>
+          </el-col>
+        </el-row>
       </el-form-item>
       <!-- Refresh Data Range Picker -->
       <el-form-item class="margin-bottom-0" prop="freshDataRange" v-if="isFieldShow('freshDataRange')">
@@ -50,17 +58,21 @@
           {{$t('dataRange')}}
           <i class="el-icon-ksd-what"></i>
         </span>
-        <el-date-picker
-          class="margin-top-5"
-          size="medium"
-          type="datetimerange"
-          range-separator="-"
-          :value="form.freshDataRange"
-          :disabled="disabled"
-          :start-placeholder="$t('kylinLang.common.startTime')"
-          :end-placeholder="$t('kylinLang.common.endTime')"
-          @input="value => handleInputDate('freshDataRange', value)">
-        </el-date-picker>
+        <el-row>
+          <el-col :span="22">
+            <el-date-picker
+              class="margin-top-5"
+              size="medium"
+              type="datetimerange"
+              range-separator="-"
+              :value="form.freshDataRange"
+              :disabled="disabled"
+              :start-placeholder="$t('kylinLang.common.startTime')"
+              :end-placeholder="$t('kylinLang.common.endTime')"
+              @input="value => handleInputDate('freshDataRange', value)">
+            </el-date-picker>
+          </el-col>
+        </el-row>
       </el-form-item>
       <!-- Data Merge Switcher -->
       <el-form-item class="start-merge" prop="isMergeable" v-if="isFieldShow('isMergeable')">
@@ -364,6 +376,12 @@ export default class SourceTableModal extends Vue {
   .el-dialog__title {
     font-size: 16px;
     font-weight: 500;
+  }
+  .el-date-editor--datetimerange.el-input__inner {
+    width: 100%;
+    .el-range-input {
+      width: 47%;
+    }
   }
   .item-desc {
     font-size: 14px;

@@ -1,10 +1,13 @@
+import { handleSuccessAsync, getFullMapping } from '../../../../../../util'
+
 const types = {
   SHOW_MODAL: 'SHOW_MODAL',
   HIDE_MODAL: 'HIDE_MODAL',
   SET_MODAL: 'SET_MODAL',
   SET_MODAL_FORM: 'SET_MODAL_FORM',
   RESET_MODAL_FORM: 'RESET_MODAL_FORM',
-  CALL_MODAL: 'CALL_MODAL'
+  CALL_MODAL: 'CALL_MODAL',
+  INIT_FORM: 'INIT_FORM'
 }
 export const initialAggregateData = JSON.stringify({
   id: 0,
@@ -21,9 +24,10 @@ export const initialAggregateData = JSON.stringify({
 })
 const initialState = JSON.stringify({
   isShow: false,
-  editType: 'new',
+  editType: 'edit',
   callback: null,
   model: null,
+  projectName: null,
   form: {
     aggregateArray: [
       JSON.parse(initialAggregateData)
@@ -37,14 +41,23 @@ export default {
     dimensions (state) {
       if (state.model) {
         return state.model.all_named_columns
-          .filter(column => column.is_dimension)
+          .filter(column => column.status === 'DIMENSION')
           .map(dimension => ({
             label: dimension.column,
-            value: dimension.column
+            value: dimension.column,
+            id: dimension.id
           }))
       } else {
         return []
       }
+    },
+    dimensionIdMapping (state, getters) {
+      const { dimensions } = getters
+      const mapping = dimensions.reduce((mapping, item) => {
+        mapping[item.value] = item.id
+        return mapping
+      }, {})
+      return getFullMapping(mapping)
     }
   },
   mutations: {
@@ -64,12 +77,23 @@ export default {
       for (const key of Object.keys(state)) {
         payload[key] && (state[key] = payload[key])
       }
+    },
+    [types.INIT_FORM]: (state, payload) => {
+      if (payload) {
+      }
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { editType, model }) {
-      return new Promise(resolve => {
-        commit(types.SET_MODAL, { editType, model, callback: resolve })
+    [types.CALL_MODAL] ({ commit }, { editType, projectName, model }) {
+      const { dispatch } = this
+
+      return new Promise(async (resolve, reject) => {
+        const modelName = model && model.name
+
+        commit(types.SET_MODAL, { editType, model, projectName, callback: resolve })
+        const response = await dispatch('FETCH_AGGREGATE_GROUPS', { projectName, modelName })
+        const aggregateGroupRule = await handleSuccessAsync(response)
+        commit(types.INIT_FORM, aggregateGroupRule)
         commit(types.SHOW_MODAL)
       })
     }

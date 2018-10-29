@@ -68,7 +68,7 @@
 
 <script>
 import Vue from 'vue'
-import { mapActions, mapGetters } from 'vuex'
+import { mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import { formatFlowerJson, getCuboidCounts } from './handle'
@@ -76,18 +76,15 @@ import FlowerChart from '../../../../common/FlowerChart'
 import PartitionChart from '../../../../common/PartitionChart'
 import { handleSuccessAsync, transToGmtTime } from '../../../../../util'
 import AggregateModal from './AggregateModal/index.vue'
-import { mockModel } from './mock'
 
 @Component({
   props: {
     model: {
       type: Object
+    },
+    projectName: {
+      type: String
     }
-  },
-  computed: {
-    ...mapGetters([
-      'currentSelectedProject'
-    ])
   },
   methods: {
     ...mapActions('AggregateModal', {
@@ -122,7 +119,7 @@ export default class ModelAggregate extends Vue {
   async handleClickNode (node) {
     const cuboidId = node.cuboid.id
     const res = await this.fetchCuboid({
-      projectName: this.currentSelectedProject,
+      projectName: this.projectName,
       modelName: this.model.name,
       cuboidId
     })
@@ -141,13 +138,16 @@ export default class ModelAggregate extends Vue {
   }
 
   async mounted () {
-    const res = await this.fetchCuboids({modelName: this.model.name, projectName: this.currentSelectedProject})
+    const projectName = this.projectName
+    const modelName = this.model.name
+    const res = await this.fetchCuboids({ modelName, projectName })
     const data = await handleSuccessAsync(res)
     this.cuboids = formatFlowerJson(data)
     this.cuboidCount = getCuboidCounts(data)
   }
   async handleAggregateGroup () {
-    await this.callAggregateModal({ editType: 'new', model: mockModel })
+    const { projectName, model } = this
+    await this.callAggregateModal({ editType: 'edit', model, projectName })
   }
 }
 </script>

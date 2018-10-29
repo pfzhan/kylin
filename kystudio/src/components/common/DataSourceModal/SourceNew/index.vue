@@ -1,27 +1,60 @@
 <template>
   <div class="source-new">
-    <p class="ksd-center ksd-mt-40 select-title">
-      {{$t('dataSourceTypeCheckTip')}}
-    </p>
-
-    <ul class="ksd-center datasource-type">
-      <li @click="clickHandler(sourceTypes.HIVE)">
-        <div class="type-hive" :class="getSourceClass([sourceTypes.HIVE])"></div>
-        <p>Hive</p>
+    <ul class="ksd-center">
+      <li class="datasouce" @click="clickHandler(sourceTypes.HIVE)" :class="getSourceClass([sourceTypes.HIVE])">
+        <div class="datasource-icon">
+          <i class="el-icon-ksd-hive_normal"></i>
+        </div>
+        <div>Hive</div>
       </li>
-      <li @click="clickHandler(sourceTypes.RDBMS)">
-        <div class="type-rdbms" :class="getSourceClass([sourceTypes.RDBMS, sourceTypes.RDBMS2])"></div>
-        <p>RDBMS</p>
+      <li class="datasouce">
+        <div class="datasource-icon">
+          <i class="el-icon-ksd-mysql"></i>
+        </div>
+        <div>MySQL</div>
+        <div class="status">
+          <span>{{$t('upcoming')}}</span>
+        </div>
       </li>
-      <li @click="clickHandler(sourceTypes.KAFKA)">
-        <div class="type-kafka" :class="getSourceClass([sourceTypes.KAFKA])"></div>
-        <p>Kafka</p>
+      <li class="datasouce">
+        <div class="datasource-icon">
+          <i class="el-icon-ksd-kafka_normal"></i>
+        </div>
+        <div>Kafka</div>
+        <div class="status">
+          <span>{{$t('upcoming')}}</span>
+        </div>
       </li>
     </ul>
-
-    <p class="ksd-center ksd-mt-20 checksource-warn-msg">
-      {{$t('singleSourceTip')}}
-    </p>
+    <ul class="ksd-center">
+      <li class="datasouce">
+        <div class="datasource-icon">
+          <i class="el-icon-ksd-greenplum"></i>
+        </div>
+        <div>Greenplum</div>
+        <div class="status">
+          <span>{{$t('upcoming')}}</span>
+        </div>
+      </li>
+      <li class="datasouce">
+        <div class="datasource-icon">
+          <i class="el-icon-ksd-SQL-server"></i>
+        </div>
+        <div>SQL Server</div>
+        <div class="status">
+          <span>{{$t('upcoming')}}</span>
+        </div>
+      </li>
+      <li class="datasouce">
+        <div class="datasource-icon">
+          <i class="el-icon-ksd-csv"></i>
+        </div>
+        <div>CSV</div>
+        <div class="status">
+          <span>{{$t('upcoming')}}</span>
+        </div>
+      </li>
+    </ul>
   </div>
 </template>
 
@@ -68,50 +101,51 @@ export default class SourceNew extends Vue {
 @import '../../../../assets/styles/variables.less';
 
 .source-new {
-  .datasource-type{
-    margin-top: 40px;
+  padding: 105px 0 115px 0;
+  ul {
+    margin-bottom: 35px;
+    &:last-child {
+      margin-bottom: 0px;
+    }
   }
-  .datasource-type li {
+  .datasouce {
     display: inline-block;
-    margin-right: 15px;
-    margin-left: 15px;
+    height: 130px;
+    width: 90px;
+    vertical-align: top;
+    color: #B0BEC5;
+    margin-right: 30px;
+    * {
+      vertical-align: middle;
+    }
+    &:last-child {
+      margin-right: 0;
+    }
+    &.active {
+      color: #455A64;
+      .datasource-icon {
+        color: #0988DE;
+      }
+    }
+  }
+  .datasource-icon {
+    font-size: 65px;
+    height: 90px;
+    border-radius: 6px;
+    background: #F1F7FA;
+    margin-bottom: 10px;
     cursor: pointer;
   }
-  .checksource-warn-msg {
-    margin-bottom: 240px;
-  }
-  .type-hive,
-  .type-rdbms,
-  .type-kafka {
-    width: 80px;
-    height: 80px;
-    background-color: @grey-4;
-    background-repeat:no-repeat;
-    background-position: center;
-    margin-bottom: 10px;
-    background-size: 50%;
-  }
-  .type-hive {
-    background-image: url('../../../../assets/img/datasource/hive_blue.png');
-    background-size: 60%;
-    &.active{
-      background-color: @base-color;
-      background-image: url('../../../../assets/img/datasource/hive_white.png');
-    }
-  }
-  .type-rdbms {
-    background-image: url('../../../../assets/img/datasource/rdbms_blue.png');
-    &.active{
-      background-color: @base-color;
-      background-image: url('../../../../assets/img/datasource/rdbms_white.png');
-    }
-  }
-  .type-kafka {
-    background-image: url('../../../../assets/img/datasource/kafka_blue.png');
-    &.active{
-      background-color: @base-color;
-      background-image: url('../../../../assets/img/datasource/kafka_white.png');
-    }
+  .status {
+    background: #CFD8DC;
+    border-radius: 7.8px;
+    overflow: hidden;
+    color: white;
+    font-size: 12px;
+    height: 15.6px;
+    width: 72px;
+    display: inline-block;
+    transform: scale(0.83333);
   }
 }
 </style>

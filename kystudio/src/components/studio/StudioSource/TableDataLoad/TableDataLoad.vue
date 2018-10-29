@@ -29,7 +29,7 @@
         </div>
       </div>
     </el-collapse-transition>
-    <el-row class="info-group" v-if="!isIncremental">
+    <el-row class="info-group" v-if="false">
       <el-row class="info-row">
         <div class="info-label font-medium">
           <span>{{$t('storageType')}}</span>

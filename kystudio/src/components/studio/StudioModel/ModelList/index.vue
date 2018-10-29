@@ -37,7 +37,7 @@
                   <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" />
                 </el-tab-pane>
                 <el-tab-pane :label="$t('aggregate')" name="second">
-                  <ModelAggregate :model="props.row" v-if="props.row.tabTypes === 'second'" />
+                  <ModelAggregate :model="props.row" :project-name="currentSelectedProject" v-if="props.row.tabTypes === 'second'" />
                 </el-tab-pane>
                 <el-tab-pane :label="$t('tableIndex')" name="third">
                   <TableIndex :modelDesc="props.row"></TableIndex>

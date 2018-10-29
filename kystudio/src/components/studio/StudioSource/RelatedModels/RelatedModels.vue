@@ -21,15 +21,17 @@
         </el-row>
         <el-row v-if="relatedModels.length" v-for="(modelCardGroup, index) in modelCardGroups" :key="index" :gutter="10">
           <el-col v-for="relatedModel in modelCardGroup" :key="relatedModel.uuid" :span="span">
-            <div class="model-card">
+            <div class="model-card" :class="{ 'is-discard': relatedModel.management_type === 'MODEL_BASED' }">
               <el-row class="model-header">
                 <span class="model-name">{{relatedModel.name}}</span>
               </el-row>
               <el-row class="model-body">
                 <el-col class="model-status" :span="24">
-                  <el-tag v-if="relatedModel.status === 'broken'" size="small" type="info">Broken</el-tag>
-                  <el-tag v-else-if="relatedModel.isOnline" size="small" type="success">Online</el-tag>
-                  <el-tag v-else size="small" type="danger">Offline</el-tag>
+                  <template v-if="relatedModel.management_type !== 'MODEL_BASED'">
+                    <el-tag v-if="relatedModel.status === 'DESCBROKEN'" size="small" type="info">Broken</el-tag>
+                    <el-tag v-if="relatedModel.status === 'READY'" size="small" type="success">Online</el-tag>
+                    <el-tag v-if="relatedModel.status === 'DISABLED'" size="small" type="danger">Offline</el-tag>
+                  </template>
                 </el-col>
                 <el-col class="range-time" :span="24">
                   <div class="lable">Start Time :</div>
@@ -40,7 +42,7 @@
                   {{getGMTDate(relatedModel.endTime)}}
                 </el-col>
               </el-row>
-              <div class="discard" @click="handleDiscard(relatedModel)">Discard</div>
+              <div class="discard" v-if="relatedModel.management_type !== 'MODEL_BASED'" @click="handleDiscard(relatedModel)">Discard</div>
             </div>
           </el-col>
         </el-row>
@@ -58,7 +60,7 @@ import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import Waypoint from '../../../common/Waypoint/Waypoint'
-import { transToGmtTime } from '../../../../util'
+import { transToGmtTime, handleError } from '../../../../util'
 
 @Component({
   props: {
@@ -73,9 +75,9 @@ import { transToGmtTime } from '../../../../util'
       default: () => []
     }
   },
-  computed: {
+  methods: {
     ...mapActions({
-      discardModel: 'DISCARD_MODEL'
+      discardTableModel: 'DISCARD_TABLE_MODEL'
     })
   },
   components: {
@@ -126,8 +128,24 @@ export default class RelatedModels extends Vue {
   handleLoadMore () {
     this.$emit('load-more')
   }
-  handleDiscard () {
-    this.discardModel()
+  async handleDiscard (relatedModel) {
+    try {
+      const modelName = relatedModel.alias
+      const { projectName } = this
+      const message = this.$t('kylinLang.common.updateSuccess')
+      const confirmMessage = this.$t('dicardConfirm')
+      const confirmTitle = this.$t('kylinLang.common.notice')
+      await this.$confirm(confirmMessage, confirmTitle, {
+        confirmButtonText: this.$t('kylinLang.common.ok'),
+        cancelButtonText: this.$t('kylinLang.common.cancel'),
+        type: 'warning'
+      })
+      await this.discardTableModel({ projectName, modelName, status: 'DISCARD' })
+      this.$message({ message, type: 'success' })
+      relatedModel.management_type = 'MODEL_BASED'
+    } catch (e) {
+      e !== 'cancel' && handleError(e)
+    }
   }
   getGMTDate (time) {
     return transToGmtTime(time)
@@ -182,6 +200,9 @@ export default class RelatedModels extends Vue {
       }
     }
   }
+  .is-discard {
+    background: #F1F7FA;
+  }
   .model-name {
     font-size: 14px;
     color: #263238;
@@ -227,6 +248,7 @@ export default class RelatedModels extends Vue {
   }
   .model-status {
     margin-bottom: 10px;
+    height: 24px;
   }
 }
 </style>

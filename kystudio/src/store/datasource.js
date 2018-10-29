@@ -204,7 +204,7 @@ export default {
       return api.datasource.updatePushdownConfig(para.projectName, para.tableFullName, para.isPushdownSync)
     },
     [types.DISCARD_TABLE_MODEL]: function ({commit}, para) {
-      return api.datasource.discardTableModel(para.projectName, para.tableFullName, para.isPushdownSync)
+      return api.datasource.discardTableModel(para.projectName, para.modelName, para.status)
     }
   }
 }

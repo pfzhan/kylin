@@ -204,6 +204,12 @@ export default {
     },
     [types.MODEL_PARTITION_SET] ({ commit }, para) {
       return api.model.setPartition(para)
+    },
+    [types.FETCH_AGGREGATE_GROUPS] ({ commit }, params) {
+      return api.model.fetchAggregateGroups(params.projectName, params.modelName)
+    },
+    [types.UPDATE_AGGREGATE_GROUPS] ({ commit }, params) {
+      return api.model.updateAggregateGroups(params.projectName, params.modelName, params.dimensions, params.aggregationGroups)
     }
   },
   getters: {

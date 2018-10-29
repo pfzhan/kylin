@@ -85,18 +85,11 @@
                 </el-option>
               </el-select>
               <div class="list-actions clearfix">
-                <el-button
-                  plain
-                  class="is-circle primary"
-                  size="medium"
-                  icon="el-icon-ksd-add"
+                <el-button plain circle type="primary" size="medium" icon="el-icon-ksd-add_2"
                   @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`)">
                 </el-button>
-                <el-button
-                  plain
-                  class="is-circle delete"
-                  size="medium"
-                  icon="el-icon-ksd-minus"
+                <el-button plain circle class="delete" size="medium" icon="el-icon-minus"
+                  :disabled="aggregate.hierarchyArray.length === 1"
                   @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregateIdx, hierarchyRowIdx)">
                 </el-button>
               </div>
@@ -123,18 +116,11 @@
                 </el-option>
               </el-select>
               <div class="list-actions clearfix">
-                <el-button
-                  plain
-                  class="is-circle primary"
-                  size="medium"
-                  icon="el-icon-ksd-add"
+                <el-button plain circle type="primary" size="medium" icon="el-icon-ksd-add_2"
                   @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`)">
                 </el-button>
-                <el-button
-                  plain
-                  class="is-circle delete"
-                  size="medium"
-                  icon="el-icon-ksd-minus"
+                <el-button plain circle class="delete" size="medium" icon="el-icon-minus"
+                  :disabled="aggregate.jointArray.length === 1"
                   @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregateIdx, jointRowIdx)">
                 </el-button>
               </div>
@@ -172,10 +158,12 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
       isShow: state => state.isShow,
       editType: state => state.editType,
       callback: state => state.callback,
-      model: state => state.model
+      model: state => state.model,
+      projectName: state => state.projectName
     }),
     ...mapGetters('AggregateModal', [
-      'dimensions'
+      'dimensions',
+      'dimensionIdMapping'
     ])
   },
   methods: {
@@ -186,6 +174,7 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
       resetModalForm: types.RESET_MODAL_FORM
     }),
     ...mapActions({
+      updateAggregateGroups: 'UPDATE_AGGREGATE_GROUPS'
     })
   },
   locales
@@ -289,13 +278,8 @@ export default class AggregateModal extends Vue {
   }
   async handleSubmit () {
     try {
-      // 获取Form格式化后的递交数据
-      /* const data = */this.getSubmitData()
-      // 验证表单
-      // await this.$refs['form'].validate()
-      // 针对不同的模式，发送不同的请求
-      // this.editType === 'new' && await this.saveUser(data)
-      // 成功提示
+      const data = this.getSubmitData()
+      await this.submit(data)
       this.$message({
         type: 'success',
         message: this.$t('kylinLang.common.saveSuccess')
@@ -305,15 +289,35 @@ export default class AggregateModal extends Vue {
       e && handleError(e)
     }
   }
+  submit (data) {
+    switch (this.editType) {
+      case EDIT:
+        return this.updateAggregateGroups(data)
+    }
+  }
   getSubmitData () {
-    const { editType, form } = this
+    const { editType, form, dimensions, dimensionIdMapping, projectName, model } = this
 
     switch (editType) {
       case EDIT: {
         const { aggregateArray } = form
-        return aggregateArray.map(aggregate => ({
-          dimensions: 1
-        }))
+        return {
+          projectName,
+          modelName: model.name,
+          dimensions: dimensions.map(dimension => dimension.id),
+          aggregationGroups: aggregateArray.map(aggregate => ({
+            includes: aggregate.includes.map(includeItem => dimensionIdMapping[includeItem]),
+            select_rule: {
+              mandatory_dims: aggregate.mandatory.map(includeItem => dimensionIdMapping[includeItem]),
+              hierarchy_dims: aggregate.hierarchyArray.map(hierarchys => {
+                return hierarchys.items.map(hierarchyItem => dimensionIdMapping[hierarchyItem])
+              }).filter(hierarchys => hierarchys.length),
+              joint_dims: aggregate.jointArray.map(joints => {
+                return joints.items.map(jointItem => dimensionIdMapping[jointItem])
+              }).filter(joints => joints.length)
+            }
+          }))
+        }
       }
     }
   }
@@ -389,6 +393,11 @@ export default class AggregateModal extends Vue {
       color: @fff;
     }
   }
+  .el-button {
+    i[class^=el-icon-] {
+      cursor: inherit;
+    }
+  }
   .list {
     padding-right: 85px;
     position: relative;
@@ -409,6 +418,17 @@ export default class AggregateModal extends Vue {
       background: #FFFFFF;
       border: 1px solid #B0BEC5;
       color: #8E9FA8;
+      &:hover {
+        background: #FFFFFF;
+        border: 1px solid #B0BEC5;
+        color: #8E9FA8;
+      }
+      &.is-disabled {
+        background: #F1F7FA;
+        &:hover {
+          background: #F1F7FA;
+        }
+      }
     }
   }
 }

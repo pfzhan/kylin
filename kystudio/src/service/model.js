@@ -147,5 +147,11 @@ export default {
   },
   setPartition: (para) => {
     return Vue.resource(apiUrl + 'models/partition_desc').save(para)
+  },
+  fetchAggregateGroups: (project, model) => {
+    return Vue.resource(apiUrl + 'cube_plans/rule').get({ project, model })
+  },
+  updateAggregateGroups: (project, model, dimensions, aggregationGroups) => {
+    return Vue.resource(apiUrl + 'cube_plans/rule').update({ project, model, dimensions, aggregation_groups: aggregationGroups })
   }
 }
