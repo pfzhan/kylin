@@ -43,24 +43,45 @@
 package org.apache.kylin.rest.service;
 
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.rest.service.QueryHistoryService;
-import net.sf.ehcache.CacheManager;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
+import javax.annotation.Nullable;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
+import org.apache.kylin.common.persistence.Serializer;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.querymeta.ColumnMeta;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
+import org.apache.kylin.metadata.querymeta.TableMetaWithType;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.Assert;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -68,14 +89,23 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.IOException;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Connection;
-import java.util.Collections;
-import java.util.List;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.service.QueryHistoryService;
+import net.sf.ehcache.CacheManager;
 
 
 /**
@@ -254,4 +284,242 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
                     response.getExceptionMessage());
         }
     }
+
+    @Test
+    public void testExposedColumnsWhenPushdownDisabled() throws Exception {
+
+        Pair<Set<String>, Set<String>> schemasAndTables;
+        Set<String> tableSchemas, tableNames;
+        List<ColumnMeta> factColumns;
+
+        //we have two projects: testproject2 and testproject1. different projects exposes different views of
+        //table, depending on what ready cube it has.
+        {
+            //check the default project
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+
+            schemasAndTables = getSchemasAndTables(tableMetas);
+            tableSchemas = schemasAndTables.getFirst();
+            tableNames = schemasAndTables.getSecond();
+
+            Assert.assertEquals(2, tableSchemas.size());
+            //make sure the schema "metadata" is not exposed
+            Assert.assertTrue(!tableSchemas.contains("metadata"));
+            Assert.assertEquals(9, tableNames.size());
+            Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
+
+            //make sure test_kylin_fact contains all computed columns
+            factColumns = getFactColumns(tableMetas);
+            Assert.assertEquals(21, factColumns.size());
+        }
+
+        //disable the one ready cube
+        {
+            NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+            NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
+            NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
+            nDataflowUpdate.setStatus(RealizationStatusEnum.DISABLED);
+            dataflowManager.updateDataflow(nDataflowUpdate);
+            dataflow = dataflowManager.getDataflow("ncube_basic_inner");
+            nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
+            nDataflowUpdate.setStatus(RealizationStatusEnum.DISABLED);
+            dataflowManager.updateDataflow(nDataflowUpdate);
+
+            Thread.sleep(1000);
+
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+
+            schemasAndTables = getSchemasAndTables(tableMetas);
+            tableSchemas = schemasAndTables.getFirst();
+            tableNames = schemasAndTables.getSecond();
+
+            Assert.assertEquals(1, tableSchemas.size());
+            //make sure the schema "metadata" is not exposed
+            Assert.assertTrue(!tableSchemas.contains("metadata"));
+            Assert.assertEquals(1, tableNames.size());
+            Assert.assertTrue(tableNames.contains("TEST_MEASURE"));
+        }
+
+        // enable the ready cube
+        {
+            NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+            NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
+            NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
+            nDataflowUpdate.setStatus(RealizationStatusEnum.READY);
+            dataflowManager.updateDataflow(nDataflowUpdate);
+            dataflow = dataflowManager.getDataflow("ncube_basic_inner");
+            nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
+            nDataflowUpdate.setStatus(RealizationStatusEnum.READY);
+            dataflowManager.updateDataflow(nDataflowUpdate);
+            
+            Thread.sleep(1000);
+
+            //check the default project
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+
+            schemasAndTables = getSchemasAndTables(tableMetas);
+            tableSchemas = schemasAndTables.getFirst();
+            tableNames = schemasAndTables.getSecond();
+
+            Assert.assertEquals(2, tableSchemas.size());
+            //make sure the schema "metadata" is not exposed
+            Assert.assertTrue(!tableSchemas.contains("metadata"));
+            Assert.assertEquals(9, tableNames.size());
+            Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
+
+            //make sure test_kylin_fact contains all computed columns
+            factColumns = getFactColumns(tableMetas);
+            Assert.assertEquals(21, factColumns.size());
+        }
+    }
+
+    @Test
+    public void testExposedColumnsWhenPushdownEnabled() throws Exception {
+
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
+                "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
+
+        Pair<Set<String>, Set<String>> schemasAndTables;
+        Set<String> tableSchemas, tableNames;
+        List<ColumnMeta> factColumns;
+        
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        
+
+        //we have two projects: default and testproject1. different projects exposes different views of
+        //table, depending on what model it has.
+        {
+            //check the default project
+            final List<TableMetaWithType> tableMetas4default = queryService.getMetadataV2("default");
+
+            schemasAndTables = getSchemasAndTables(tableMetas4default);
+            tableSchemas = schemasAndTables.getFirst();
+            tableNames = schemasAndTables.getSecond();
+
+            Assert.assertEquals(2, tableSchemas.size());
+            //make sure the schema "metadata" is not exposed
+            Assert.assertTrue(!tableSchemas.contains("metadata"));
+            Assert.assertEquals(11, tableNames.size());
+            Assert.assertTrue(tableNames.contains("TEST_KYLIN_FACT"));
+
+            //make sure test_kylin_fact contains all computed columns
+            factColumns = getFactColumns(tableMetas4default);
+            Assert.assertEquals(21, factColumns.size());
+            Assert.assertTrue(getColumnNames(factColumns)
+                    .containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT", "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME",
+                            "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME", "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR")));
+        }
+
+        //add a new model with new cc
+        {
+            NDataModel dKapModel = makeModelWithMoreCC();
+            modelManager.updateDataModelDesc(dKapModel);
+
+            //wait for broadcast
+            Thread.sleep(1000);
+
+            final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
+
+            ColumnDesc[] columnDescs = findColumnDescs();
+            factColumns = getFactColumns(tableMetas);
+            Assert.assertEquals(11 + columnDescs.length, factColumns.size());
+            Assert.assertTrue(getColumnNames(factColumns).containsAll(
+                    Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT", "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
+                            "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR", "DEAL_YEAR_PLUS_ONE")));
+        }
+
+        //remove a cc from model
+        {
+            NDataModel dKapModel = makeModelWithLessCC();
+            modelManager.updateDataModelDesc(dKapModel);
+
+            //wait for broadcast
+            Thread.sleep(1000);
+
+            final List<TableMetaWithType> tableMetas4default = queryService.getMetadataV2("default");
+            ColumnDesc[] columnDescs = findColumnDescs();
+            factColumns = getFactColumns(tableMetas4default);
+            Assert.assertEquals(10 + columnDescs.length, factColumns.size());
+            Assert.assertTrue(getColumnNames(factColumns)
+                    .containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT", "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME",
+                            "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME", "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR")));
+        }
+    }
+
+    private ColumnDesc[] findColumnDescs() {
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        tableMetadataManager.resetProjectSpecificTableDesc();
+        TableDesc tableDesc = tableMetadataManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+        ColumnDesc[] columnDescs = tableDesc.getColumns();
+        return columnDescs;
+    }
+
+    private NDataModel makeModelWithLessCC() throws IOException {
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel model = modelManager.getDataModelDesc("nmodel_basic_inner");
+        Serializer<NDataModel> dataModelSerializer = NDataModelManager.getInstance(getTestConfig(), "default")
+                .getDataModelSerializer();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        dataModelSerializer.serialize(model, new DataOutputStream(baos));
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        NDataModel dKapModel = dataModelSerializer.deserialize(new DataInputStream(bais));
+
+        dKapModel.getComputedColumnDescs().remove(dKapModel.getComputedColumnDescs().size() - 1);
+        return dKapModel;
+    }
+
+    private NDataModel makeModelWithMoreCC() throws IOException {
+        NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel model = modelManager.getDataModelDesc("nmodel_basic_inner");
+        Serializer<NDataModel> dataModelSerializer = NDataModelManager.getInstance(getTestConfig(), "default")
+                .getDataModelSerializer();
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        dataModelSerializer.serialize(model, new DataOutputStream(baos));
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        NDataModel dKapModel = dataModelSerializer.deserialize(new DataInputStream(bais));
+
+        String newCCStr = " {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_KYLIN_FACT\",\n"
+                + "      \"tableAlias\": \"TEST_KYLIN_FACT\",\n" + "      \"columnName\": \"DEAL_YEAR_PLUS_ONE\",\n"
+                + "      \"expression\": \"year(TEST_KYLIN_FACT.CAL_DT)+1\",\n" + "      \"datatype\": \"integer\",\n"
+                + "      \"comment\": \"test use\"\n" + "    }";
+        ComputedColumnDesc computedColumnDesc = JsonUtil.readValue(newCCStr, ComputedColumnDesc.class);
+        dKapModel.getComputedColumnDescs().add(computedColumnDesc);
+        return dKapModel;
+    }
+
+    private Pair<Set<String>, Set<String>> getSchemasAndTables(List<TableMetaWithType> tableMetas) {
+        Set<String> tableSchemas = Sets.newHashSet();
+        Set<String> tableNames = Sets.newHashSet();
+        for (TableMetaWithType tableMetaWithType : tableMetas) {
+            tableSchemas.add(tableMetaWithType.getTABLE_SCHEM());
+            tableNames.add(tableMetaWithType.getTABLE_NAME());
+        }
+
+        return Pair.newPair(tableSchemas, tableNames);
+    }
+
+    private List<ColumnMeta> getFactColumns(List<TableMetaWithType> tableMetas) {
+        Optional<TableMetaWithType> factTable = FluentIterable.from(tableMetas)
+                .filter(new Predicate<TableMetaWithType>() {
+                    @Override
+                    public boolean apply(@Nullable TableMetaWithType tableMetaWithType) {
+                        return tableMetaWithType.getTABLE_NAME().equals("TEST_KYLIN_FACT");
+                    }
+                }).first();
+        Assert.assertTrue(factTable.isPresent());
+        return factTable.get().getColumns();
+    }
+
+    private ImmutableSet<String> getColumnNames(List<ColumnMeta> columns) {
+        return FluentIterable.from(columns).transform(new Function<ColumnMeta, String>() {
+            @Nullable
+            @Override
+            public String apply(@Nullable ColumnMeta columnMeta) {
+                return columnMeta.getCOLUMN_NAME();
+            }
+        }).toSet();
+    }
+
 }

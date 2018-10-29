@@ -42,33 +42,42 @@
 
 package io.kyligence.kap.rest.service;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.regex.Pattern;
 
-import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.response.CuboidDescResponse;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
-import io.kylingence.kap.event.manager.EventDao;
-import io.kylingence.kap.event.model.Event;
-import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
+import javax.annotation.Nullable;
+
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.PersistentException;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.junit.AfterClass;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -77,7 +86,25 @@ import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.model.BadModelException;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
+import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
+import io.kylingence.kap.event.manager.EventDao;
+import io.kylingence.kap.event.model.Event;
+import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
 
 public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
@@ -87,10 +114,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
-    @BeforeClass
-    public static void setupResource() throws Exception {
+    @Before
+    public void setupResource() throws Exception {
         System.setProperty("HADOOP_USER_NAME", "root");
-        staticCreateTestMetadata();
+        createTestMetadata();
 
     }
 
@@ -101,9 +128,9 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
-    @AfterClass
-    public static void tearDown() {
-        staticCleanupTestMetadata();
+    @After
+    public void tearDown() {
+        cleanupTestMetadata();
     }
 
     @Test
@@ -111,16 +138,16 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         List<NDataModelResponse> models2 = modelService.getModels("nmodel_full_measure_test", "default", false, "", "",
                 "last_modify", true);
-        Assert.assertEquals(models2.size(), 1);
+        Assert.assertEquals(1, models2.size());
         List<NDataModelResponse> model3 = modelService.getModels("nmodel_full_measure_test", "default", true, "", "",
                 "last_modify", true);
-        Assert.assertEquals(model3.size(), 1);
+        Assert.assertEquals(1, model3.size());
         List<NDataModelResponse> model4 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm",
                 "", "last_modify", true);
-        Assert.assertEquals(model4.size(), 1);
+        Assert.assertEquals(1, model4.size());
         List<NDataModelResponse> model5 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm",
                 "DISABLED", "last_modify", true);
-        Assert.assertEquals(model5.size(), 0);
+        Assert.assertEquals(0, model5.size());
 
     }
 
@@ -128,14 +155,14 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testGetSegments() throws Exception {
 
         Segments<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", "0", "" + Long.MAX_VALUE);
-        Assert.assertEquals(segments.size(), 2);
+        Assert.assertEquals(2, segments.size());
     }
 
     @Test
     public void testGetAggIndices() throws Exception {
 
         List<CuboidDescResponse> indices = modelService.getAggIndices("nmodel_basic", "default");
-        Assert.assertEquals(indices.size(), 7);
+        Assert.assertEquals(7, indices.size());
         Assert.assertTrue(indices.get(0).getId() < NCuboidDesc.TABLE_INDEX_START_ID);
 
     }
@@ -144,7 +171,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testGetTableIndices() throws Exception {
 
         List<CuboidDescResponse> indices = modelService.getTableIndices("nmodel_basic", "default");
-        Assert.assertEquals(indices.size(), 3);
+        Assert.assertEquals(3, indices.size());
         Assert.assertTrue(indices.get(0).getId() >= NCuboidDesc.TABLE_INDEX_START_ID);
 
     }
@@ -208,7 +235,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         List<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
         RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", ManagementType.TABLE_ORIENTED);
-        Assert.assertEquals(response.getByteSize(), 2502656L);
+        Assert.assertEquals(2502656L, response.getByteSize());
     }
 
     @Test
@@ -327,6 +354,942 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Can not refersh, please try again and confirm affected storage!");
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
+    }
+
+    @Test
+    public void testGetCCUsage() {
+        ComputedColumnUsageResponse usages = modelService.getComputedColumnUsages("default");
+        Assert.assertTrue(usages.getUsageMap().get("TEST_KYLIN_FACT.DEAL_AMOUNT").getModels().size() == 2);
+        Assert.assertTrue(usages.getUsageMap().get("TEST_KYLIN_FACT.SELLER_COUNTRY_ABBR") == null);
+        Assert.assertTrue(usages.getUsageMap().get("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR").getModels().size() == 1);
+    }
+
+    @Rule
+    public ExpectedException expectedEx = ExpectedException.none();
+
+    @Test
+    public void testAddSameNameDiffExprNormal() throws IOException, NoSuchFieldException, IllegalAccessException {
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                        && ccException.getAdvise().equals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT")
+                        && ccException.getConflictingModel().equals("nmodel_basic_inner")
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
+                        && ccException.getMessage()
+                                .equals("Column name for computed column TEST_KYLIN_FACT.DEAL_AMOUNT is already used in model nmodel_basic_inner,"
+                                        + " you should apply the same expression as ' TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT ' here,"
+                                        + " or use a different computed column name.");
+
+            }
+        });
+ 
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+
+        List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
+                "", false);
+        Assert.assertTrue(dataModelDescs.size() == 1);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        serializer.serialize(dataModelDescs.get(0), new DataOutputStream(baos));
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+
+        Field field = ComputedColumnDesc.class.getDeclaredField("expression");
+        field.setAccessible(true);
+        field.set(deserialized.getComputedColumnDescs().get(0), "1+1");
+        modelService.getDataModelManager("default").updateDataModelDesc(deserialized);
+        // TODO should use modelService.updateModelAndDesc("default", deserialized);
+    }
+
+    @Test
+    public void testFailureModelUpdateDueToComputedColumnConflict2()
+            throws IOException, NoSuchFieldException, IllegalAccessException {
+        expectedEx.expect(IllegalArgumentException.class);
+        expectedEx.expectMessage(
+                "There is already a column named cal_dt on table DEFAULT.TEST_KYLIN_FACT,"
+                + " please change your computed column name");
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
+                "", false);
+        Assert.assertTrue(dataModelDescs.size() == 1);
+
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        serializer.serialize(dataModelDescs.get(0), new DataOutputStream(baos));
+        ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+
+        Field field = ComputedColumnDesc.class.getDeclaredField("columnName");
+        field.setAccessible(true);
+        field.set(deserialized.getComputedColumnDescs().get(0), "cal_dt");
+        modelService.getDataModelManager("default").updateDataModelDesc(deserialized);
+        // TODO should use modelService.updateModelAndDesc("default", deserialized);
+    }
+
+    /*
+     * start to test with model new_ci_left_join_model, which is structurely same as ci_left_join_model,
+     * but with different alias
+     */
+
+    @Test
+    public void testCCExpressionNotReferingHostAlias1() throws IOException {
+        expectedEx.expect(BadModelException.class);
+        expectedEx.expectMessage(
+                "A computed column should be defined on root fact table if its expression is not referring its hosting alias table,"
+                        + " cc: BUYER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR");
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        //replace last cc's host alias
+        contents = StringUtils.reverse(
+                StringUtils.reverse(contents).replaceFirst(StringUtils.reverse("\"tableAlias\": \"TEST_KYLIN_FACT\""),
+                        StringUtils.reverse("\"tableAlias\": \"BUYER_ACCOUNT\"")));
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    @Test
+    public void testCCExpressionNotReferingHostAlias2() throws IOException {
+        expectedEx.expect(BadModelException.class);
+        expectedEx.expectMessage(
+                "A computed column should be defined on root fact table if its expression is not referring its hosting alias table,"
+                + " cc: BUYER_ACCOUNT.DEAL_AMOUNT");
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        //replace first cc's host alias
+        String str = "\"columnName\": \"DEAL_AMOUNT\",";
+        int index = contents.indexOf(str);
+        contents = contents.substring(0, str.length() + index) + "\"tableAlias\": \"BUYER_ACCOUNT\","
+                + contents.substring(str.length() + index);
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    @Test
+    public void testNewModelAddSameExprSameNameNormal() throws IOException {
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+        
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    @Test
+    public void testNewModelAddSameExprSameNameOnDifferentAliasTable() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+
+                return ccException.getCauseType().equals(BadModelException.CauseType.WRONG_POSITION_DUE_TO_NAME)
+                        && ccException.getAdvise().equals("TEST_KYLIN_FACT")
+                        && ccException.getConflictingModel().equals("nmodel_basic")
+                        && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR")
+                        && ccException.getMessage()
+                                .equals("Computed column LEFTJOIN_SELLER_COUNTRY_ABBR is already defined in model nmodel_basic,"
+                                        + " to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
+            }
+        });
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        contents = contents.replace(
+                " {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_KYLIN_FACT\",\n"
+                        + "      \"tableAlias\": \"TEST_KYLIN_FACT\",\n"
+                        + "      \"columnName\": \"LEFTJOIN_SELLER_COUNTRY_ABBR\",\n"
+                        + "      \"expression\": \"SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)\",\n"
+                        + "      \"datatype\": \"string\",\n"
+                        + "      \"comment\": \"first char of country of seller account\"\n" + "    }",
+                " {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_ACCOUNT\",\n"
+                        + "      \"tableAlias\": \"SELLER_ACCOUNT\",\n"
+                        + "      \"columnName\": \"LEFTJOIN_SELLER_COUNTRY_ABBR\",\n"
+                        + "      \"expression\": \"SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)\",\n"
+                        + "      \"datatype\": \"string\",\n"
+                        + "      \"comment\": \"first char of country of seller account\"\n" + "    }");
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    @Test
+    public void testNewModelAddSameExprSameNameOnDifferentAliasTableCannotProvideAdvice() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.WRONG_POSITION_DUE_TO_NAME)
+                        && ccException.getConflictingModel().equals("nmodel_cc_test")
+                        && ccException.getBadCC().equals("TEST_ORDER.ID_PLUS_1") && ccException.getAdvise() == null
+                        && ccException.getMessage().equals(
+                                "Computed column ID_PLUS_1 is already defined in model nmodel_cc_test, no suggestion could be provided to reuse it");
+            }
+        });
+
+        //save ut_left_join_cc_model, which is a model defining cc on lookup table
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+
+        List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_cc_test", "default", true, null, null,
+                "", false);
+        Assert.assertTrue(dataModelDescs.size() == 1);
+
+        contents = contents.replaceFirst("\"type\": \"LEFT\"", "\"type\": \"INNER\"");
+        contents = contents.replace("nmodel_cc_test", "nmodel_cc_test_2");
+
+        bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    @Test
+    public void testSeekAdviseOnLookTable() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                        && ccException.getConflictingModel().equals("nmodel_cc_test")
+                        && "UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)".equals(ccException.getAdvise())
+                        && ccException.getBadCC().equals("BUYER_ACCOUNT.COUNTRY_UPPER")
+                        && ccException.getMessage().equals(
+                                "Column name for computed column BUYER_ACCOUNT.COUNTRY_UPPER is already used in model nmodel_cc_test, you should apply the same expression as ' UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY) ' here, or use a different computed column name.");
+            }
+        });
+
+        //save nmodel_cc_test, which is a model defining cc on lookup table
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+
+        List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_cc_test", "default", true, null, null,
+                "", false);
+        Assert.assertTrue(dataModelDescs.size() == 1);
+
+        contents = StringUtils.reverse(StringUtils.reverse(contents).replaceFirst(
+                Pattern.quote(StringUtils.reverse("\"expression\": \"UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)\",")),
+                StringUtils.reverse("\"expression\": null, ")));
+        contents = contents.replace("nmodel_cc_test", "nmodel_cc_test_2");
+
+        bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setSeekingCCAdvice(true);
+
+        modelService.checkComputedColumn(deserialized, "default", null);
+
+    }
+
+    @Test
+    public void testNewModelAddSameExprDiffNameOnDifferentAliasTable() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.WRONG_POSITION_DUE_TO_EXPR)
+                        && ccException.getAdvise().equals("TEST_KYLIN_FACT")
+                        && ccException.getConflictingModel().equals("nmodel_basic")
+                        && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR_2")
+                        && ccException.getMessage().equals(
+                                "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR_2's expression is already defined in model nmodel_basic, to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
+            }
+        });
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        contents = contents.replace(
+                " {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_KYLIN_FACT\",\n"
+                        + "      \"tableAlias\": \"TEST_KYLIN_FACT\",\n"
+                        + "      \"columnName\": \"LEFTJOIN_SELLER_COUNTRY_ABBR\",\n"
+                        + "      \"expression\": \"SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)\",\n"
+                        + "      \"datatype\": \"string\",\n"
+                        + "      \"comment\": \"first char of country of seller account\"\n" + "    }",
+                " {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_ACCOUNT\",\n"
+                        + "      \"tableAlias\": \"SELLER_ACCOUNT\",\n"
+                        + "      \"columnName\": \"LEFTJOIN_SELLER_COUNTRY_ABBR_2\",\n"
+                        + "      \"expression\": \"SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)\",\n"
+                        + "      \"datatype\": \"string\",\n"
+                        + "      \"comment\": \"first char of country of seller account\"\n" + "    }");
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    @Test
+    public void testNewModelAddSameNameDiffExpr1() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                        && ccException.getAdvise().equals("SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)")
+                        && ccException.getConflictingModel().equals("nmodel_basic")
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR")
+                        && ccException.getMessage().equals(
+                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR is already used in model nmodel_basic, you should apply the same expression as ' SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1) ' here, or use a different computed column name.");
+            }
+        });
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        contents = contents.replace("SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)",
+                "SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,2)");
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    @Test
+    public void testNewModelAddSameNameDiffExpr2() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                        && ccException.getAdvise()
+                                .equals("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)")
+                        && ccException.getConflictingModel().equals("nmodel_basic")
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
+                        && ccException.getMessage().equals(
+                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
+            }
+        });
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        contents = contents.replace("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)",
+                "SUBSTR(CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME),0,1)");
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    @Test
+    public void testNewModelAddSameExprDiffName() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_EXPR_DIFF_NAME)
+                        && ccException.getAdvise().equals("LEFTJOIN_BUYER_COUNTRY_ABBR")
+                        && ccException.getConflictingModel().equals("nmodel_basic")
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2")
+                        && ccException.getMessage().equals(
+                                "Expression SUBSTR(BUYER_ACCOUNT.ACCOUNT_COUNTRY,0,1) in computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR_2 is already defined by computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR from model nmodel_basic, you should use the same column name: ' LEFTJOIN_BUYER_COUNTRY_ABBR ' .");
+            }
+        });
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        contents = contents.replace("LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_BUYER_COUNTRY_ABBR_2");
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    @Test
+    public void testNewModelAddSameNameDiffExprModelToNonDefaultProject() throws IOException {
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        contents = contents.replace("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)",
+                "SUBSTR(CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME),0,1)");
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        //it's adding to non-default project, should be okay because cc conflict check is by project
+        modelService.getDataModelManager("newten").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "non-default");
+    }
+
+    @Test
+    public void testNewModelAddDiffNameSameExprModelToNonDefaultProject() throws IOException {
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        contents = contents.replace("LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_BUYER_COUNTRY_ABBR_2");
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        //it's adding to non-default project, should be okay because cc conflict check is by project
+        modelService.getDataModelManager("newten").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "non-default");
+    }
+
+    @Test
+    public void testCCAdviseNormalCase() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                        && ccException.getAdvise()
+                                .equals("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)")
+                        && ccException.getConflictingModel().equals("nmodel_basic")
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
+                        && ccException.getMessage().equals(
+                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
+            }
+        });
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        contents = contents.replace("\"CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)\"", "null");
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setSeekingCCAdvice(true);
+
+        modelService.checkComputedColumn(deserialized, "default", null);
+
+    }
+
+    @Test
+    public void testCCAdviseWithNonExistingName() throws IOException {
+
+        expectedEx.expect(RuntimeException.class);
+        expectedEx.expectMessage("No advice could be provided");
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        contents = contents.replace(" \"columnName\": \"LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME\",",
+                " \"columnName\": \"LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME_2\",");
+        contents = contents.replace("\"CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)\"", "null");
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setSeekingCCAdvice(true);
+
+        modelService.checkComputedColumn(deserialized, "default", null);
+    }
+
+    @Test
+    public void testCCNameCheck() {
+        ModelService.checkCCName("cc_1");
+        try {
+            // HIVE
+            ModelService.checkCCName("LOCAL");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals("The computed column's name:LOCAL is a sql keyword, please choose another name.",
+                    e.getMessage());
+        }
+
+        try {
+            // CALCITE
+            ModelService.checkCCName("MSCK");
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertEquals("The computed column's name:MSCK is a sql keyword, please choose another name.",
+                    e.getMessage());
+        }
+
+    }
+
+    @Test
+    public void testCCAdviseUnmatchingSubgraph() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                        && ccException.getAdvise() == null
+                        && ccException.getConflictingModel().equals("nmodel_basic")
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
+                        && ccException.getMessage().equals(
+                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression like ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
+            }
+        });
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        contents = contents.replace("\"CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)\"", "null");
+
+        //replace last join's type, which is for SELLER_ACCOUNT
+        contents = StringUtils.reverse(StringUtils.reverse(contents)
+                .replaceFirst(StringUtils.reverse("\"type\": \"LEFT\""), StringUtils.reverse("\"type\": \"INNER\"")));
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setSeekingCCAdvice(true);
+
+        modelService.checkComputedColumn(deserialized, "default", null);
+
+    }
+
+    @Test
+    public void testCCAdviseMatchingSubgraph() throws IOException {
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
+                        && ccException.getAdvise()
+                                .equals("CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)")
+                        && ccException.getConflictingModel().equals("nmodel_basic")
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME")
+
+                        && ccException.getMessage().equals(
+                                "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression as ' CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME) ' here, or use a different computed column name.");
+            }
+        });
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        contents = contents.replace("\"CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)\"", "null");
+
+        //replace last join's type, which is for SELLER_ACCOUNT
+        contents = StringUtils.reverse(StringUtils.reverse(contents)
+                .replaceFirst(StringUtils.reverse("\"type\": \"LEFT\""), StringUtils.reverse("\"type\": \"INNER\"")));
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        deserialized.setSeekingCCAdvice(true);
+
+        modelService.checkComputedColumn(deserialized, "default", null);
+
+    }
+
+    /*
+     * now test conflict within a model
+     */
+
+    @Test
+    public void testSameNameSameExprInOneModelNormal() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.SELF_CONFLICT)
+                        && ccException.getAdvise() == null && ccException.getConflictingModel() == null
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
+                        && ccException.getMessage().equals(
+                                "In current model, at least two computed columns share the same column name: DEAL_AMOUNT, please use different column name");
+            }
+        });
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        String str = "\"computed_columns\": [";
+        int i = contents.indexOf(str) + str.length();
+        String oneMoreCC = " {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_KYLIN_FACT\",\n"
+                + "      \"columnName\": \"DEAL_AMOUNT\",\n" + "      \"expression\": \"PRICE * ITEM_COUNT\",\n"
+                + "      \"datatype\": \"decimal\",\n" + "      \"comment\": \"bla bla bla\"\n" + "    },";
+        contents = contents.substring(0, i) + oneMoreCC + contents.substring(i);
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    @Test
+    public void testSameNameOnDifferentAliasTableInOneModel() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.SELF_CONFLICT)
+                        && ccException.getAdvise() == null && ccException.getConflictingModel() == null
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
+                        && ccException.getMessage().equals(
+                                "In current model, at least two computed columns share the same column name: DEAL_AMOUNT, please use different column name");
+            }
+        });
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        String str = "\"computed_columns\": [";
+        int i = contents.indexOf(str) + str.length();
+        String oneMoreCC = "  {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_ACCOUNT\",\n"
+                + "      \"tableAlias\": \"BUYER_ACCOUNT\",\n" + "      \"columnName\": \"DEAL_AMOUNT\",\n"
+                + "      \"expression\": \"BUYER_ACCOUNT.ACCOUNT_ID\",\n" + "      \"datatype\": \"bigint\",\n"
+                + "      \"comment\": \"bla bla\"\n" + "    },";
+        contents = contents.substring(0, i) + oneMoreCC + contents.substring(i);
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    @Test
+    public void testDiffNameSameExprInOneModelNormal() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.SELF_CONFLICT)
+                        && ccException.getAdvise() == null && ccException.getConflictingModel() == null
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
+                        && ccException.getMessage().equals(
+                                "In current model, computed column TEST_KYLIN_FACT.DEAL_AMOUNT share same expression as TEST_KYLIN_FACT.DEAL_AMOUNT_2, please remove one");
+            }
+        });
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        String str = "\"computed_columns\": [";
+        int i = contents.indexOf(str) + str.length();
+        String oneMoreCC = " {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_KYLIN_FACT\",\n"
+                + "      \"columnName\": \"DEAL_AMOUNT_2\",\n" + "      \"expression\": \"PRICE * ITEM_COUNT\",\n"
+                + "      \"datatype\": \"decimal\",\n" + "      \"comment\": \"bla bla bla\"\n" + "    },";
+        contents = contents.substring(0, i) + oneMoreCC + contents.substring(i);
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    @Test
+    //compared with testDiffNameSameExprInOneModelNormal, expression is normalized
+    public void testDiffNameSameExprInOneModelWithSlightlyDifferentExpression() throws IOException {
+
+        expectedEx.expect(new BaseMatcher() {
+            @Override
+            public void describeTo(Description description) {
+            }
+
+            @Override
+            public boolean matches(Object item) {
+                if (!(item instanceof BadModelException)) {
+                    return false;
+                }
+                BadModelException ccException = (BadModelException) item;
+                return ccException.getCauseType().equals(BadModelException.CauseType.SELF_CONFLICT)
+                        && ccException.getAdvise() == null && ccException.getConflictingModel() == null
+                        && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
+                        && ccException.getMessage().equals(
+                                "In current model, computed column TEST_KYLIN_FACT.DEAL_AMOUNT share same expression as TEST_KYLIN_FACT.DEAL_AMOUNT_2, please remove one");
+            }
+        });
+
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+
+        String str = "\"computed_columns\": [";
+        int i = contents.indexOf(str) + str.length();
+        String oneMoreCC = " {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_KYLIN_FACT\",\n"
+                + "      \"columnName\": \"DEAL_AMOUNT_2\",\n"
+                + "      \"expression\": \"TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT\",\n"
+                + "      \"datatype\": \"decimal\",\n" + "      \"comment\": \"bla bla bla\"\n" + "    },";
+        contents = contents.substring(0, i) + oneMoreCC + contents.substring(i);
+
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+        //TODO modelService.updateModelToResourceStore(deserialized, "default");
+    }
+
+    /**
+     * start to the side effect of bad model
+     */
+
+    /**
+     * if a bad model is detected, it should not affect the existing table desc
+     * <p>
+     * same bad model as testDiffNameSameExprInOneModelWithSlightlyDifferentExpression
+     */
+    @Test
+    public void testCreateBadModelWontAffectTableDesc() throws IOException {
+
+        try {
+            Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+            String contents = StringUtils.join(Files.readAllLines(
+                    new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                    Charset.defaultCharset()), "\n");
+
+            String str = "\"computed_columns\": [";
+            int i = contents.indexOf(str) + str.length();
+            String oneMoreCC = " {\n" + "      \"tableIdentity\": \"DEFAULT.TEST_KYLIN_FACT\",\n"
+                    + "      \"columnName\": \"DEAL_AMOUNT_2\",\n"
+                    + "      \"expression\": \"TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT\",\n"
+                    + "      \"datatype\": \"decimal\",\n" + "      \"comment\": \"bla bla bla\"\n" + "    },";
+            contents = contents.substring(0, i) + oneMoreCC + contents.substring(i);
+
+            InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+            NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+            modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+            //TODO modelService.updateModelToResourceStore(deserialized, "default");
+        } catch (BadModelException e) {
+            modelService.getTableManager("default").resetProjectSpecificTableDesc();
+            TableDesc aDefault = modelService.getTableManager("default").getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+            Collection<String> allColumnNames = Collections2.transform(Arrays.asList(aDefault.getColumns()),
+                    new Function<ColumnDesc, String>() {
+                        @Nullable
+                        @Override
+                        public String apply(@Nullable ColumnDesc columnDesc) {
+                            return columnDesc.getName();
+                        }
+                    });
+            Assert.assertTrue(!allColumnNames.contains("DEAL_AMOUNT_2"));
+        }
+    }
+
+    @Test
+    /**
+     * testSeekAdviseOnLookTable
+     */
+    public void testSeekAdviceWontAffectTableDesc() throws IOException {
+
+        try {
+            //save nmodel_cc_test, which is a model defining cc on lookup table
+            Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+            String contents = StringUtils.join(Files.readAllLines(
+                    new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                    Charset.defaultCharset()), "\n");
+            InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+            NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+            modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
+            //TODO modelService.updateModelToResourceStore(deserialized, "default");
+
+            List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_cc_test", "default", true,
+                    null, null, "", false);
+            Assert.assertTrue(dataModelDescs.size() == 1);
+
+            contents = StringUtils.reverse(StringUtils.reverse(contents).replaceFirst(
+                    Pattern.quote(StringUtils.reverse("\"expression\": \"UPPER(BUYER_ACCOUNT.ACCOUNT_COUNTRY)\",")),
+                    StringUtils.reverse("\"expression\": null, ")));
+            contents = contents.replace("nmodel_cc_test", "nmodel_cc_test_2");
+
+            bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+
+            deserialized = serializer.deserialize(new DataInputStream(bais));
+            deserialized.setSeekingCCAdvice(true);
+
+            modelService.checkComputedColumn(deserialized, "default", null);
+
+        } catch (BadModelException e) {
+            modelService.getTableManager("default").resetProjectSpecificTableDesc();
+            TableDesc aDefault = modelService.getTableManager("default").getTableDesc("DEFAULT.TEST_ACCOUNT");
+            Assert.assertEquals(5, aDefault.getColumns().length);
+        }
+    }
+
+    @Test
+    public void testPreProcessBeforeModelSave() throws IOException {
+        Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
+        String contents = StringUtils.join(Files.readAllLines(
+                new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
+                Charset.defaultCharset()), "\n");
+        InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
+        NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
+        NDataModel updated = NDataModel.getCopyOf(deserialized);
+        ComputedColumnDesc ccDesc1 = new ComputedColumnDesc();
+        ccDesc1.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+        ccDesc1.setColumnName("CC1");
+        ccDesc1.setExpression("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1");
+        ccDesc1.setDatatype("decimal");
+        updated.setComputedColumnDescs(Lists.newArrayList(ccDesc1));
+        ComputedColumnDesc ccDesc2 = new ComputedColumnDesc();
+        ccDesc2.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+        ccDesc2.setColumnName("CC2");
+        ccDesc2.setExpression("CC1 * 2");
+        ccDesc2.setDatatype("decimal");
+        updated.setComputedColumnDescs(Lists.newArrayList(ccDesc1, ccDesc2));
+
+        Assert.assertEquals("CC1 * 2", ccDesc2.getInnerExpression());
+        modelService.preProcessBeforeModelSave(updated, "default");
+        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1) * 2 ", ccDesc2.getInnerExpression());
+
+        ccDesc1.setExpression("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2");
+        modelService.preProcessBeforeModelSave(updated, "default");
+        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 2 ", ccDesc2.getInnerExpression());
+
+        ccDesc2.setExpression("CC1 * 3");
+        modelService.preProcessBeforeModelSave(updated, "default");
+        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 3 ", ccDesc2.getInnerExpression());
     }
 
 }

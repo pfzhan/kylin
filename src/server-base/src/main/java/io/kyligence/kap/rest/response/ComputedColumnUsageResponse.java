@@ -50,7 +50,7 @@ public class ComputedColumnUsageResponse {
     }
 
     @Data
-    class Usage {
+    public class Usage {
         @JsonProperty("cc_desc")
         private ComputedColumnDesc desc;
 

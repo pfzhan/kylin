@@ -47,6 +47,6 @@ import java.io.Serializable;
 
 public enum RealizationStatusEnum implements Serializable{
 
-    DISABLED, READY, DESCBROKEN
+    DISABLED, READY, DESCBROKEN, NO_CUBEPLAN
 
 }

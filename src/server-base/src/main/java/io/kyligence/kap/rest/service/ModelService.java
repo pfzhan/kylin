@@ -138,7 +138,7 @@ public class ModelService extends BasicService {
         if (CollectionUtils.isNotEmpty(cubePlans)) {
             return getDataflowManager(projectName).getDataflow(cubePlans.get(0).getName()).getStatus();
         } else {
-            throw new IllegalStateException("No cubePlans exists in " + modelName);
+            return RealizationStatusEnum.NO_CUBEPLAN;
         }
     }
 
@@ -546,7 +546,7 @@ public class ModelService extends BasicService {
         return true;
     }
 
-    private static void checkCCName(String name) {
+    static void checkCCName(String name) {
         if (PushDownConverterKeyWords.CALCITE.contains(name.toUpperCase())
                 || PushDownConverterKeyWords.HIVE.contains(name.toUpperCase())) {
             throw new IllegalStateException(
@@ -572,5 +572,17 @@ public class ModelService extends BasicService {
         ccSql = KapQueryUtil.massageComputedColumn(ccSql, project, "DEFAULT", modelDesc);
 
         return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1);
+    }
+
+    public void preProcessBeforeModelSave(NDataModel model, String project) {
+
+        model.init(getConfig(), getTableManager(project).getAllTablesMap(),
+                getDataModelManager(project).getDataModels(), false);
+
+        // Update CC expression from query transformers
+        for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
+            String ccExpression = massageComputedColumn(model, project, ccDesc);
+            ccDesc.setInnerExpression(ccExpression);
+        }
     }
 }

@@ -201,28 +201,28 @@ public class NJoinedFlatTable {
 
         for (JoinTableDesc lookupDesc : model.getJoinTables()) {
             JoinDesc join = lookupDesc.getJoin();
-            if (join != null && join.getType().equals("") == false) {
-                String joinType = join.getType().toUpperCase();
-                TableRef dimTable = lookupDesc.getTableRef();
-                if (!dimTableCache.contains(dimTable)) {
-                    TblColRef[] pk = join.getPrimaryKeyColumns();
-                    TblColRef[] fk = join.getForeignKeyColumns();
-                    if (pk.length != fk.length) {
-                        throw new RuntimeException("Invalid join condition of lookup table:" + lookupDesc);
-                    }
-                    sql.append(joinType + " JOIN " + dimTable.getTableIdentity() + " as " + dimTable.getAlias() + sep);
-                    sql.append("ON ");
-                    for (int i = 0; i < pk.length; i++) {
-                        if (i > 0) {
-                            sql.append(" AND ");
-                        }
-                        sql.append(fk[i].getExpressionInSourceDB() + " = " + pk[i].getExpressionInSourceDB());
-                    }
-                    sql.append(sep);
-
-                    dimTableCache.add(dimTable);
-                }
+            TableRef dimTable = lookupDesc.getTableRef();
+            if (join == null || StringUtils.isEmpty(join.getType()) || dimTableCache.contains(dimTable)) {
+                continue;
             }
+
+            TblColRef[] pk = join.getPrimaryKeyColumns();
+            TblColRef[] fk = join.getForeignKeyColumns();
+            if (pk.length != fk.length) {
+                throw new IllegalArgumentException("Invalid join condition of lookup table:" + lookupDesc);
+            }
+            String joinType = join.getType().toUpperCase();
+            sql.append(joinType + " JOIN " + dimTable.getTableIdentity() + " as " + dimTable.getAlias() + sep);
+            sql.append("ON ");
+            for (int i = 0; i < pk.length; i++) {
+                if (i > 0) {
+                    sql.append(" AND ");
+                }
+                sql.append(fk[i].getExpressionInSourceDB() + " = " + pk[i].getExpressionInSourceDB());
+            }
+            sql.append(sep);
+
+            dimTableCache.add(dimTable);
         }
     }
 

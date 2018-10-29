@@ -27,6 +27,7 @@ package io.kyligence.kap.common.util;
 import java.io.File;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 
 public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
     public static File tempMetadataDirectory = null;
@@ -40,7 +41,6 @@ public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
         staticCreateTestMetadata(overlay);
     }
 
-    @Override
     public void createTestMetadata() {
         staticCreateTestMetadata();
     }
@@ -74,5 +74,4 @@ public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         return config;
     }
-
 }

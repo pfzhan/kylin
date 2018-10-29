@@ -1306,7 +1306,7 @@ public class NDataModel extends RootPersistentEntity {
 
         if (sameName) {
             if (!isSameAliasTable(existingCC, newCC, positionAliasMapping)) {
-                makeAdviseOnWrongPosition(existingModel, existingCC, newCC, positionAliasMapping, "name");
+                makeAdviseOnWrongPositionName(existingModel, existingCC, newCC, positionAliasMapping);
             }
 
             if (!sameCCExpr) {
@@ -1316,7 +1316,7 @@ public class NDataModel extends RootPersistentEntity {
 
         if (sameCCExpr) {
             if (!isSameAliasTable(existingCC, newCC, positionAliasMapping)) {
-                makeAdviseOnWrongPosition(existingModel, existingCC, newCC, positionAliasMapping, "expression");
+                makeAdviseOnWrongPositionExpr(existingModel, existingCC, newCC, positionAliasMapping);
             }
 
             if (!sameName) {
@@ -1365,8 +1365,8 @@ public class NDataModel extends RootPersistentEntity {
                 existingModel.getName(), newCC.getFullName());
     }
 
-    private void makeAdviseOnWrongPosition(NDataModel existingModel, ComputedColumnDesc existingCC,
-            ComputedColumnDesc newCC, AliasMapping positionAliasMapping, String type) {
+    private void makeAdviseOnWrongPositionExpr(NDataModel existingModel, ComputedColumnDesc existingCC,
+            ComputedColumnDesc newCC, AliasMapping positionAliasMapping) {
         String advice = positionAliasMapping == null ? null
                 : positionAliasMapping.getAliasMapping().get(existingCC.getTableAlias());
 
@@ -1374,15 +1374,36 @@ public class NDataModel extends RootPersistentEntity {
 
         if (advice != null) {
             msg = String.format(
-                    "Computed column %s's %s is already defined in model %s, to reuse it you have to define it on alias table: %s",
-                    newCC.getColumnName(), type, existingModel.getName(), advice);
+                    "Computed column %s's expression is already defined in model %s, to reuse it you have to define it on alias table: %s",
+                    newCC.getColumnName(), existingModel.getName(), advice);
         } else {
             msg = String.format(
-                    "Computed column %s's %s is already defined in model %s, no suggestion could be provided to reuse it",
-                    newCC.getColumnName(), type, existingModel.getName());
+                    "Computed column %s's expression is already defined in model %s, no suggestion could be provided to reuse it",
+                    newCC.getColumnName(), existingModel.getName());
         }
 
         throw new BadModelException(msg, BadModelException.CauseType.WRONG_POSITION_DUE_TO_EXPR, advice,
+                existingModel.getName(), newCC.getFullName());
+    }
+
+    private void makeAdviseOnWrongPositionName(NDataModel existingModel, ComputedColumnDesc existingCC,
+            ComputedColumnDesc newCC, AliasMapping positionAliasMapping) {
+        String advice = positionAliasMapping == null ? null
+                : positionAliasMapping.getAliasMapping().get(existingCC.getTableAlias());
+
+        String msg = null;
+
+        if (advice != null) {
+            msg = String.format(
+                    "Computed column %s is already defined in model %s, to reuse it you have to define it on alias table: %s",
+                    newCC.getColumnName(), existingModel.getName(), advice);
+        } else {
+            msg = String.format(
+                    "Computed column %s is already defined in model %s, no suggestion could be provided to reuse it",
+                    newCC.getColumnName(), existingModel.getName());
+        }
+
+        throw new BadModelException(msg, BadModelException.CauseType.WRONG_POSITION_DUE_TO_NAME, advice,
                 existingModel.getName(), newCC.getFullName());
     }
 
