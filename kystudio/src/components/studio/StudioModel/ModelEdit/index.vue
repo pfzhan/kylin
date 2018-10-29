@@ -37,7 +37,7 @@
       @saveNewMeasure="saveMeasure"
       v-on:closeAddMeasureDia="closeAddMeasureDia">
     </AddMeasure>
-    <SingleDimensionModal :allColumns="allColumns || []"/>
+    <SingleDimensionModal/>
     <!-- datasource面板  index 3-->
     <div class="tool-icon icon-ds" :class="{active: panelAppear.datasource.display}" @click.stop="toggleMenu('datasource')"><i class="el-icon-ksd-data_source"></i></div>
       <transition name="bounceleft">
@@ -96,13 +96,7 @@
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="dimension-list">
-                <li v-for="(d, i) in normalDimensionColumns" :key="d.name">
-                  {{d.id}}--{{d.name|omit(18,'...')}}
-                  <i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i>
-                  <i class="el-icon-ksd-table_delete" @click="deleteDimenison(d, i)"></i>
-                  <span>{{getColumnType(d.column.split('.')[0], d.column)}}</span>
-                </li>
-                <li v-for="(d, i) in ccDimensionColumns" :key="d.name">
+                <li v-for="(d, i) in allDimension" :key="d.name">
                   {{d.id}}--{{d.name|omit(18,'...')}}
                   <i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i>
                   <i class="el-icon-ksd-table_delete" @click="deleteDimenison(d, i)"></i>
@@ -224,7 +218,8 @@ import { modelRenderConfig } from './config'
   methods: {
     ...mapActions({
       getModelByModelName: 'LOAD_MODEL_INFO',
-      loadDataSourceByProject: 'LOAD_DATASOURCE'
+      loadDataSourceByProject: 'LOAD_DATASOURCE',
+      saveModel: 'SAVE_MODEL'
     }),
     ...mapActions('DimensionsModal', {
       showDimensionDialog: 'CALL_MODAL'
@@ -279,6 +274,9 @@ export default class ModelEdit extends Vue {
   }
   panelAppear = modelRenderConfig.pannelsLayout()
   radio = 1
+  get allDimension () {
+    return this.modelRender.dimensions
+  }
   get normalDimensionColumns () {
     return this.modelRender.normalDimensions
   }

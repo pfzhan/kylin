@@ -50,7 +50,7 @@ export default {
     return Vue.resource(apiUrl + 'models/').update(data)
   },
   saveModel: (data) => {
-    return Vue.resource(apiUrl + 'models').update(data)
+    return Vue.resource(apiUrl + 'models').save(data)
   },
   saveModelDraft: (data) => {
     return Vue.resource(apiUrl + 'models/draft').update(data)

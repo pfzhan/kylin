@@ -35,7 +35,7 @@
 </template>
 <script>
 import Vue from 'vue'
-import { Component, Watch } from 'vue-property-decorator'
+import { Component } from 'vue-property-decorator'
 import { computedDataType } from 'config/index'
 // import $ from 'jquery'
 @Component({
@@ -83,12 +83,21 @@ export default class CCForm extends Vue {
   addCC () {
     this.$refs['ccForm'].validate((valid) => {
       if (valid) {
-        this.modelInstance.addCC(this.ccObject).then((cc) => {
-          this.$emit('saveSuccess', cc)
-          this.isEdit = false
-        }, () => {
-          // 提示已经有同名的CC
-        })
+        if (this.ccObject.guid) {
+          this.modelInstance.editCC(this.ccObject).then((cc) => {
+            this.$emit('saveSuccess', cc)
+            this.isEdit = false
+          }, () => {
+            // 提示已经有同名的CC
+          })
+        } else {
+          this.modelInstance.addCC(this.ccObject).then((cc) => {
+            this.$emit('saveSuccess', cc)
+            this.isEdit = false
+          }, () => {
+            // 提示已经有同名的CC
+          })
+        }
       }
     })
   }
@@ -99,13 +108,14 @@ export default class CCForm extends Vue {
     this.$refs['ccForm'].resetFields()
     this.ccObject = JSON.parse(this.ccMeta)
   }
-  @Watch('isShow')
-  onCCChange (val) {
-    if (this.ccDesc && this.isShow) {
-      this.ccObject = JSON.parse(this.ccMeta)
-      Object.assign(this.ccObject, this.ccDesc)
+  mounted () {
+    if (this.ccDesc) {
+      this.isEdit = false
+    } else {
+      this.isEdit = true
     }
-    this.isEdit = false
+    this.ccObject = JSON.parse(this.ccMeta)
+    Object.assign(this.ccObject, this.ccDesc)
   }
 }
 </script>

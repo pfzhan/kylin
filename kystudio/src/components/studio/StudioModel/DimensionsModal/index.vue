@@ -125,7 +125,8 @@ import locales from './locales'
 import store, { types } from './store'
 // import { sourceTypes } from '../../../../config'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-import { objectClone } from 'util'
+// import { objectClone } from 'util'
+import { objectClone, sampleGuid } from '../../../../util'
 vuex.registerModule(['modals', 'DimensionsModal'], store)
 @Component({
   computed: {
@@ -137,7 +138,7 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
       isShow: state => state.isShow,
       tables: state => objectClone(state.modelDesc.tables),
       modelDesc: state => state.modelDesc,
-      usedColumns: state => state.modelDesc.normalDimensions,
+      usedColumns: state => state.modelDesc.dimensions,
       callback: state => state.callback
     })
   },
@@ -187,11 +188,13 @@ export default class DimensionsModal extends Vue {
             if (d.is_dimension) {
               col.alias = d.name
               col.isSelected = true //  dimension的列
+              col.guid = d.guid
             }
             break
           } else {
             col.alias = col.name
             col.isSelected = false
+            col.guid = null
           }
         }
       })
@@ -266,11 +269,19 @@ export default class DimensionsModal extends Vue {
     Object.values(this.tables).forEach((table) => {
       table.columns && table.columns.forEach((col) => {
         if (col.isSelected) {
-          result.push({guid: table.guid, name: col.alias, column: table.alias + '.' + col.name, is_dimension: col.isSelected})
+          result.push({
+            guid: col.guid || sampleGuid(),
+            name: col.alias,
+            column: table.alias + '.' + col.name,
+            is_dimension: col.isSelected
+          })
         }
       })
     })
-    this.modelDesc.normalDimensions = result
+    let ccDimensionList = this.usedColumns.filter((x) => {
+      return x.isCC
+    })
+    this.modelDesc.dimensions = [...result, ...ccDimensionList]
     this.handleClose(true)
   }
   destroyed () {

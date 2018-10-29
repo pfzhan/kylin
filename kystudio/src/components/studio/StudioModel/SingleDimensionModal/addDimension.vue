@@ -83,7 +83,6 @@ export default class SingleDimensionModal extends Vue {
   })
   dimensionInfo = JSON.parse(this.dimensionStr)
   selectColumns = []
-  currentUseCC = null
   allBaseColumns = []
   rules = {
     name: [
@@ -104,12 +103,14 @@ export default class SingleDimensionModal extends Vue {
 
   }
   saveCC (cc) {
-    this.dimensionInfo.column = cc.columnName
-    this.dimensionInfo.guid = cc.guid
-    this.currentUseCC = cc
+    this.dimensionInfo.column = cc.tableAlias + '.' + cc.columnName
+    this.dimensionInfo.cc = cc
   }
   delCC (cc) {
-    this.currentUseCC = null
+    this.ccDesc = null
+    this.showCC = false
+    this.dimensionInfo.column = ''
+    this.dimensionInfo.cc = null
   }
   get allColumns () {
     let cloneCCList = objectClone(this.ccColumns)
@@ -120,31 +121,27 @@ export default class SingleDimensionModal extends Vue {
     })
     return [...this.allBaseColumns, ...cloneCCList]
   }
-  // changeColumn () {
-  //   let column = this.dimensionInfo.column
-  //   for (let i = 0; i < this.savedColumns.length; i++) {
-  //     if (this.savedColumns[i].columnName === column) {
-  //       this.ccDesc = this.savedColumns[i]
-  //       break
-  //     }
-  //   }
-  // }
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
       if (this.dimension) {
         Object.assign(this.dimensionInfo, this.dimension)
+        if (this.dimensionInfo.cc) {
+          this.showCC = true
+          this.ccDesc = this.dimensionInfo.cc
+        } else {
+          this.showCC = false
+          this.ccDesc = null
+        }
       } else {
         this.dimensionInfo = JSON.parse(this.dimensionStr)
+        this.showCC = false
+        this.ccDesc = null
       }
       this.allBaseColumns = this.modelInstance.getTableColumns()
       this.isFormShow = true
-      this.showCC = false
-      if (!this.currentSelectedProject) {
-        this.$message(this.$t('kylinLang.project.mustSelectProject'))
-        this.handleClose(false)
-      }
     } else {
+      this.dimensionInfo = JSON.parse(this.dimensionStr)
       setTimeout(() => {
         this.isFormShow = false
       }, 200)
@@ -162,13 +159,15 @@ export default class SingleDimensionModal extends Vue {
       let dimensionNamed = fullName.split('.')
       let alias = dimensionNamed[0]
       let column = dimensionNamed[1]
-      let tableInfo = this.modelInstance.getTableByAlias(alias)
-      if (tableInfo) {
-        this.dimensionInfo.guid = tableInfo.guid
-      }
       let ccObj = this.modelInstance.getCCObj(alias, column)
       if (ccObj) {
         this.dimensionInfo.cc = ccObj
+        this.dimensionInfo.isCC = true
+        this.showCC = true
+      } else {
+        this.dimensionInfo.cc = null
+        this.dimensionInfo.isCC = false
+        this.showCC = false
       }
       this.ccDesc = ccObj
       this.dimensionInfo.isCC = !!ccObj

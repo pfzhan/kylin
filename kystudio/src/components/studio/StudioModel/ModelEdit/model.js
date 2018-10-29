@@ -26,6 +26,17 @@ class NModel {
     this.computed_columns.forEach((col) => {
       col.guid = sampleGuid()
     })
+    this.dimensions = options.all_named_columns.filter((x) => {
+      if (x.is_dimension) {
+        let columnNamed = x.column.split('.')
+        let k = indexOfObjWithSomeKeys(this.computed_columns, 'tableAlias', columnNamed[0], 'columnName', columnNamed[1])
+        if (k >= 0) {
+          x.isCC = true
+          x.cc = this.computed_columns[k]
+        }
+        return x
+      }
+    })
     // 用普通列构建的dimension
     this.normalDimensions = options.all_named_columns.filter((x) => {
       let columnNamed = x.column.split('.')
@@ -206,7 +217,7 @@ class NModel {
     return result
   }
   _generateAllColumns () {
-    return this.all_named_columns
+    return [...this.dimensions, ...this.tableIndexColumns]
   }
   // end
   // 判断是否table有关联的链接
@@ -262,7 +273,8 @@ class NModel {
   searchColumn (keywords) {
     var columns = []
     for (var i in this.tables) {
-      this.tables[i].columns.forEach((co) => {
+      let columns = this.tables[i].columns
+      columns && columns.forEach((co) => {
         co.alias = this.tables[i].alias + '.' + co.name
         co.guid = this.tables[i].guid
       })
@@ -500,41 +512,25 @@ class NModel {
   // 添加维度
   addDimension (dimension) {
     return new Promise((resolve, reject) => {
-      if (dimension.isCC) {
-        if (indexOfObjWithSomeKey(this.ccDimensions, 'name', dimension.name) <= 0) {
-          this._mount.ccDimensions.push(dimension)
-          resolve(dimension)
-        } else {
-          reject()
-        }
+      if (indexOfObjWithSomeKey(this.dimensions, 'name', dimension.name) <= 0) {
+        dimension.guid = sampleGuid()
+        this._mount.dimensions.push(dimension)
+        resolve(dimension)
       } else {
-        if (indexOfObjWithSomeKey(this.normalDimensions, 'name', dimension.name) <= 0) {
-          this._mount.normalDimensions.push(dimension)
-          resolve(dimension)
-        } else {
-          reject()
-        }
+        reject()
       }
     })
   }
   // 添加度量
   editDimension (dimension, i) {
     return new Promise((resolve, reject) => {
-      if (dimension.isCC) {
-        this._mount.ccDimensions.splice(i, 1, dimension)
-        resolve()
-      } else {
-        this._mount.normalDimensions.splice(i, 1, dimension)
-        resolve()
-      }
+      let index = indexOfObjWithSomeKey(this._mount.dimensions, 'guid', dimension.guid)
+      Object.assign(this._mount.dimensions[index], dimension)
+      resolve()
     })
   }
-  delDimension (dimension, i) {
-    if (dimension.isCC) {
-      this._mount.ccDimensions.splice(i, 1)
-    } else {
-      this._mount.normalDimensions.splice(i, 1)
-    }
+  delDimension (i) {
+    this._mount.dimensions.splice(i, 1)
   }
   // 添加度量
   addMeasure (measureObj) {
@@ -571,9 +567,17 @@ class NModel {
   }
   // 编辑CC
   editCC (ccObj) {
-    this._mount.computed_columns.forEach((c) => {
-      if (c.columnName === ccObj.name) {
-        Object.assign(c, ccObj)
+    return new Promise((resolve, reject) => {
+      let hasEdit = false
+      this._mount.computed_columns.forEach((c) => {
+        if (c.guid === ccObj.guid) {
+          Object.assign(c, ccObj)
+          hasEdit = true
+          resolve(c)
+        }
+      })
+      if (!hasEdit) {
+        reject()
       }
     })
   }
