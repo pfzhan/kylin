@@ -18,6 +18,8 @@
 
 -- ISSUE #5527
 
+-- failed at io.kyligence.kap.newten.NAutoBuildAndQueryTest.testPowerBiQuery()
+
 SELECT
     "NAME"
 ,   COUNT("TRANS_ID")   AS  "C1"
