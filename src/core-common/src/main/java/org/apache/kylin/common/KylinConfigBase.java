@@ -1052,7 +1052,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public String getKylinJobJarPath() {
-        final String jobJar = getOptional("kylin.engine.mr.job-jar");
+        final String jobJar = getOptional("kylin.engine.spark.job-jar");
         if (StringUtils.isNotEmpty(jobJar)) {
             return jobJar;
         }
@@ -1063,9 +1063,8 @@ abstract public class KylinConfigBase implements Serializable {
         return getFileName(kylinHome + File.separator + "lib", JOB_JAR_NAME_PATTERN);
     }
 
-    public void overrideMRJobJarPath(String path) {
-        logger.info("override " + "kylin.engine.mr.job-jar" + " to " + path);
-        System.setProperty("kylin.engine.mr.job-jar", path);
+    public void overrideSparkJobJarPath(String path) {
+        System.setProperty("kylin.engine.spark.job-jar", path);
     }
 
     public String getKylinJobMRLibDir() {

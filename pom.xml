@@ -124,6 +124,9 @@
             **/org/apache/kylin/query/optrule/*,
             **/org/apache/kylin/query/relnode/OLAP*Rel.java
         </sonar.jacoco.excludes>
+        <sonar.coverage.exclusions>
+            **/io/kyligence/kap/rest/*Server.java
+        </sonar.coverage.exclusions>
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
 
         <!-- JVM Args for Testing -->
@@ -182,6 +185,7 @@
         <module>src/core-dictionary</module>
         <module>src/server</module>
         <module>src/core-event</module>
+        <module>src/assembly</module>
 
     </modules>
 
@@ -206,6 +210,11 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-engine-spark</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>ke-assembly</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -1152,7 +1161,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-shade-plugin</artifactId>
-                    <version>3.0.0</version>
+                    <version>3.2.0</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

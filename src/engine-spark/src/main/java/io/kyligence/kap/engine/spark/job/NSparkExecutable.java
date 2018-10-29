@@ -138,7 +138,7 @@ public class NSparkExecutable extends AbstractExecutable {
     private String runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
             String kylinJobJar, String[] appArgs) throws IOException {
         StringBuilder sb = new StringBuilder();
-        sb.append("export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class SparkEntry ");
+        sb.append("export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry ");
 
         Map<String, String> sparkConfs = config.getSparkConfigOverride();
         for (Map.Entry<String, String> entry : sparkConfs.entrySet()) {

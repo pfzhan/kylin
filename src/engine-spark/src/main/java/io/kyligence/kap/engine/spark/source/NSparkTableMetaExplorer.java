@@ -63,6 +63,7 @@ public class NSparkTableMetaExplorer implements Serializable {
         for (int i = 0; i < rowList.size(); i++) {
             Row row = rowList.get(i);
             if (row.getString(0) == null || "".equals(row.getString(0).trim())) {
+                isColumn = false;
                 continue;
             }
             if ("# Detailed Table ..".equals(row.getString(0).trim())) {

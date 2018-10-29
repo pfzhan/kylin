@@ -48,7 +48,13 @@ public class NSparkTableReader implements TableReader {
 
     private void initialize() {
         ss = SparkSession.builder().getOrCreate();
-        records = SparkSqlUtil.queryAll(ss, tableName);
+        String master = ss.sparkContext().master();
+        String tableIdentity = tableName;
+        // spark sql can not add the database prefix when create tempView from csv, but when working with hive, it need the database prefix
+        if (!master.toLowerCase().contains("local")) {
+            tableIdentity = String.format("%s.%s", dbName, tableName);
+        }
+        records = SparkSqlUtil.queryAll(ss, tableIdentity);
         iterator = records.iterator();
     }
 

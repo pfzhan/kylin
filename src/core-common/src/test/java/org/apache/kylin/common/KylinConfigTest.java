@@ -46,6 +46,7 @@ package org.apache.kylin.common;
 import java.util.Map;
 import java.util.Properties;
 
+import org.apache.commons.lang.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -157,5 +158,27 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
         KylinConfig conf = KylinConfig.getInstanceFromEnv();
         String hdfsWorkingDirectory = conf.getHdfsWorkingDirectory();
         Assert.assertTrue(hdfsWorkingDirectory.startsWith("file:/"));
+    }
+
+    @Test
+    public void testOverrideSparkJobJarPath(){
+        KylinConfig conf = KylinConfig.getInstanceFromEnv();
+        String oldSparkJobJarPath = System.getProperty("kylin.engine.spark.job-jar");
+        String overrideSparkJobJarPath = oldSparkJobJarPath + "_override";
+        conf.overrideSparkJobJarPath(overrideSparkJobJarPath);
+        String newSparkJobJarPath = System.getProperty("kylin.engine.spark.job-jar");
+        Assert.assertEquals(newSparkJobJarPath, overrideSparkJobJarPath);
+
+        if (StringUtils.isBlank(oldSparkJobJarPath)) {
+            oldSparkJobJarPath = "";
+        }
+        conf.overrideSparkJobJarPath(oldSparkJobJarPath);
+    }
+
+    @Test
+    public void testGetKylinJobJarPath(){
+        KylinConfig conf = KylinConfig.getInstanceFromEnv();
+        String kylinJobJarPath = conf.getKylinJobJarPath();
+        Assert.assertEquals(kylinJobJarPath, "");
     }
 }

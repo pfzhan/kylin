@@ -140,7 +140,7 @@ public class NProjectManager {
 
         for (String resource : resources) {
             // "/" filter dirs  properties  and *.crc
-            if (resource.equals("/UUID") || resource.equals("/user") || resource.equals("/user_group")
+            if (resource.equals("/@global") || resource.equals("/UUID") || resource.equals("/user") || resource.equals("/user_group")
                     || resource.contains(".crc") || resource.contains(".properties") || resource.contains(".DS_Store"))
                 continue;
             //remove "/" before dirName
