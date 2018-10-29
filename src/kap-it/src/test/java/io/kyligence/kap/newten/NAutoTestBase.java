@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -138,7 +139,8 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     protected NSmartMaster proposeCubeWithSmartMaster(List<Pair<String, String>> queries) throws Exception {
         List<String> sqlList = new ArrayList<>();
         for (Pair<String, String> queryPair : queries) {
-            sqlList.add(queryPair.getSecond());
+            String normalizedQuery = QueryPatternUtil.normalizeSQLPattern(queryPair.getSecond());
+            sqlList.add(normalizedQuery);
         }
 
         NSmartMaster master = new NSmartMaster(kylinConfig, getProject(), sqlList.toArray(new String[0]));
