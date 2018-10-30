@@ -48,8 +48,14 @@ export default {
   markFav: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries').save(para)
   },
-  getRules: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules').get(para)
+  getFrequency: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/frequency').get(para)
+  },
+  getSubmitter: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/submitter').get(para)
+  },
+  getDuration: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/duration').get(para)
   },
   getRulesImpact: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules/impact').get(para)
@@ -57,8 +63,14 @@ export default {
   getPreferrence: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/config').get(para)
   },
-  updateRules: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules').update(para)
+  updateFrequency: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/frequency').update(para)
+  },
+  updateSubmitter: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/submitter').update(para)
+  },
+  updateDuration: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/rules/duration').update(para)
   },
   updatePreferrence: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/config').updata(para)

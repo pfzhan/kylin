@@ -74,8 +74,23 @@ export default {
     [types.MARK_FAV]: function ({commit}, para) {
       return api.datasource.markFav(para)
     },
-    [types.GET_RULES]: function ({commit}, para) {
-      return api.datasource.getRules(para)
+    [types.GET_FREQUENCY]: function ({commit}, para) {
+      return api.datasource.getFrequency(para)
+    },
+    [types.GET_SUBMITTER]: function ({commit}, para) {
+      return api.datasource.getSubmitter(para)
+    },
+    [types.GET_DURATION]: function ({commit}, para) {
+      return api.datasource.getDuration(para)
+    },
+    [types.UPDATE_FREQUENCY]: function ({commit}, para) {
+      return api.datasource.updateFrequency(para)
+    },
+    [types.UPDATE_SUBMITTER]: function ({commit}, para) {
+      return api.datasource.updateSubmitter(para)
+    },
+    [types.UPDATE_DURATION]: function ({commit}, para) {
+      return api.datasource.updateDuration(para)
     },
     [types.GET_RULES_IMPACT]: function ({commit}, para) {
       return api.datasource.getRulesImpact(para)

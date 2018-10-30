@@ -19,7 +19,7 @@
               </div>
               <div class="conds-content clearfix">
                 <div class="desc">{{$t('frequencyDesc')}}</div>
-                <el-slider :class="{'show-only': !isFrequencyEdit}" v-model="frequencyObj.value":step="10" button-type="sharp" :min="0" :max="100" show-dynamic-values :disabled="!isFrequencyEdit" :format-tooltip="formatTooltip"></el-slider>
+                <el-slider :class="{'show-only': !isFrequencyEdit}" v-model="frequencyObj.freqValue":step="0.1" button-type="sharp" :min="0" :max="1" show-dynamic-values :disabled="!isFrequencyEdit" :format-tooltip="formatTooltip"></el-slider>
                 <div class="ksd-fright ksd-mt-10">TopX% {{$t('queryFrequency')}}</div>
               </div>
               <div class="conds-footer" v-if="isFrequencyEdit">
@@ -38,8 +38,8 @@
               <div class="conds-content">
                 <div class="desc">{{$t('submitterDesc')}}</div>
                 <div class="users">
-                  <i class="el-icon-ksd-table_admin"></i> <span>{{submitterObj.value[0]}}</span> Users
-                  <i class="el-icon-ksd-table_group"></i> <span>{{submitterObj.value[1]}}</span> Groups
+                  <i class="el-icon-ksd-table_admin"></i> <span>{{submitterObj.users.length}}</span> Users
+                  <i class="el-icon-ksd-table_group"></i> <span>{{submitterObj.groups.length}}</span> Groups
                 </div>
               </div>
               <div class="conds-footer" v-if="isSubmitterEdit">
@@ -51,7 +51,7 @@
                 <div class="vip-users-block ksd-mb-10">
                   <div class="ksd-mt-10"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
                   <div class="vip-users">
-                    <span v-for="(user, index) in users" :key="user" class="user-label">{{user}}
+                    <span v-for="(user, index) in submitterObj.users" :key="user" class="user-label">{{user}}
                       <i class="el-icon-ksd-close" @click="removeUser(index)"></i>
                     </span>
                   </div>
@@ -70,7 +70,7 @@
               </div>
               <div class="conds-content clearfix">
                 <div class="desc">{{$t('durationDesc')}}</div>
-                <el-slider :class="{'show-only': !isDurationEdit}" v-model="durationObj.value" :step="1" range button-type="sharp" :min="0" :max="180" show-dynamic-values :disabled="!isDurationEdit"></el-slider>
+                <el-slider :class="{'show-only': !isDurationEdit}" v-model="durationObj.durationValue" :step="1" range button-type="sharp" :min="0" :max="180" show-dynamic-values :disabled="!isDurationEdit"></el-slider>
                 <div class="ksd-fright ksd-mt-10">{{$t('unit')}}</div>
               </div>
               <div class="conds-footer" v-if="isDurationEdit">
@@ -129,7 +129,7 @@
       class="favorite-table"
       ref="favoriteTable"
       style="width: 100%">
-      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql" header-align="center" show-overflow-tooltip></el-table-column>
+      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_pattern" header-align="center" show-overflow-tooltip></el-table-column>
       <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_query_time" sortable header-align="center" width="210">
         <template slot-scope="props">
           {{transToGmtTime(props.row.last_query_time)}}
@@ -141,7 +141,7 @@
         </template>
       </el-table-column>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.frequency')" prop="frequency" sortable align="center" width="120"></el-table-column>
+      <el-table-column :label="$t('kylinLang.query.frequency')" prop="totalCount" sortable align="center" width="120"></el-table-column>
       <el-table-column :label="$t('kylinLang.query.avgDuration')" prop="average_duration" sortable align="center" width="160">
         <template slot-scope="props">
           <span v-if="props.row.average_duration < 1000"> < 1s</span>
@@ -308,10 +308,14 @@ import sqlFormatter from 'sql-formatter'
     transToGmtTime: transToGmtTime,
     ...mapActions({
       getFavoriteList: 'GET_FAVORITE_LIST',
-      getRules: 'GET_RULES',
+      getFrequency: 'GET_FREQUENCY',
+      getSubmitter: 'GET_SUBMITTER',
+      getDuration: 'GET_DURATION',
       getRulesImpact: 'GET_RULES_IMPACT',
       getPreferrence: 'GET_PREFERRENCE',
-      updateRules: 'UPDATE_RULES',
+      updateFrequency: 'UPDATE_FREQUENCY',
+      updateSubmitter: 'UPDATE_SUBMITTER',
+      updateDuration: 'UPDATE_DURATION',
       updatePreferrence: 'UPDATE_PREFERRENCE'
     })
   },
@@ -674,25 +678,25 @@ select a.placepointid, --门店id
   }
   frequencyObj = {
     enable: true,
-    value: 20
+    freqValue: 0.2
   }
   submitterObj = {
     enable: true,
-    value: [1, 0]
+    users: ['Admin'],
+    groups: []
   }
   durationObj = {
     enable: true,
-    value: [50, 80]
+    durationValue: [50, 80]
   }
-  users = ['Admin']
   selectedUser = ''
   options = [{
     label: this.$t('kylinLang.menu.user'),
     options: ['Admin']
   }]
-  oldFrequencyValue = 50
-  oldSubmitterValue = ['Admin']
-  oldDurationValue = [58, 80]
+  oldFrequencyValue = 0.2
+  oldSubmitterUsers = ['Admin']
+  oldDurationValue = [50, 80]
   isFrequencyEdit = false
   isSubmitterEdit = false
   isDurationEdit = false
@@ -702,9 +706,9 @@ select a.placepointid, --门店id
     this.isFrequencyEdit = false
     this.isSubmitterEdit = false
     this.isDurationEdit = false
-    this.frequencyObj.value = this.oldFrequencyValue
-    this.submitterObj.value[0] = this.oldSubmitterValue.length
-    this.durationObj.value = this.oldDurationValue
+    this.frequencyObj.freqValue = this.oldFrequencyValue
+    this.submitterObj.users = this.oldSubmitterUsers
+    this.durationObj.durationValue = this.oldDurationValue
   }
 
   editFrequency () {
@@ -714,21 +718,20 @@ select a.placepointid, --门店id
 
   cancelFrequency () {
     this.isFrequencyEdit = false
-    this.frequencyObj.value = this.oldFrequencyValue
+    this.frequencyObj.freqValue = this.oldFrequencyValue
   }
 
   saveFrequency () {
     this.isFrequencyEdit = false
-    this.oldFrequencyValue = this.frequencyObj.value
+    this.oldFrequencyValue = this.frequencyObj.freqValue
     this.updateFre()
   }
 
   updateFre () {
-    this.updateRules({
+    this.updateFrequency({
       project: this.currentSelectedProject,
-      ruleName: 'frequency',
       enable: this.frequencyObj.enable,
-      rightThreshold: this.frequencyObj.value
+      freqValue: this.frequencyObj.freqValue
     }).then((res) => {
       handleSuccess(res, () => {
         this.loadRuleImpactRatio()
@@ -745,22 +748,21 @@ select a.placepointid, --门店id
 
   cancelSubmitter () {
     this.isSubmitterEdit = false
-    this.submitterObj.value[0] = this.oldSubmitterValue.length
+    this.submitterObj.users = this.oldSubmitterUsers
   }
 
   saveSubmitter () {
     this.isSubmitterEdit = false
-    this.oldSubmitterValue = this.users
-    this.submitterObj.value[0] = this.oldSubmitterValue.length
+    this.oldSubmitterUsers = this.submitterObj.users
     this.updateSub()
   }
 
   updateSub () {
-    this.updateRules({
+    this.updateSubmitter({
       project: this.currentSelectedProject,
-      ruleName: 'submitter',
       enable: this.submitterObj.enable,
-      rightThreshold: this.users
+      users: this.submitterObj.users,
+      groups: null
     }).then((res) => {
       handleSuccess(res, () => {
         this.loadRuleImpactRatio()
@@ -771,15 +773,15 @@ select a.placepointid, --门店id
   }
 
   selectUserChange (val) {
-    this.users.push(val)
+    this.submitterObj.users.push(val)
     const index = this.options[0].options.indexOf(val)
     this.selectedUser = ''
     this.options[0].options.splice(index, 1)
   }
 
   removeUser (index) {
-    const user = this.users[index]
-    this.users.splice(index, 1)
+    const user = this.submitterObj.users[index]
+    this.submitterObj.users.splice(index, 1)
     this.options[0].options.push(user)
   }
 
@@ -790,22 +792,20 @@ select a.placepointid, --门店id
 
   cancelDuration () {
     this.isDurationEdit = false
-    this.durationObj.value = this.oldDurationValue
+    this.durationObj.durationValue = this.oldDurationValue
   }
 
   saveDuration () {
     this.isDurationEdit = false
-    this.oldDurationValue = this.durationObj.value
+    this.oldDurationValue = this.durationObj.durationValue
     this.updateDura()
   }
 
   updateDura () {
-    this.updateRules({
+    this.updateDuration({
       project: this.currentSelectedProject,
-      ruleName: 'duration',
       enable: this.durationObj.enable,
-      leftThreshold: this.durationObj.value[0],
-      rightThreshold: this.durationObj.value[1]
+      durationValue: this.durationObj.durationValue
     }).then((res) => {
       handleSuccess(res, () => {
         this.loadRuleImpactRatio()
@@ -831,7 +831,7 @@ select a.placepointid, --门店id
   }
 
   formatTooltip (val) {
-    return val + '%'
+    return val * 100 + '%'
   }
 
   filterFav () {
@@ -849,9 +849,30 @@ select a.placepointid, --门店id
 
   created () {
     this.loadFavoriteList()
-    this.getRules({project: this.currentSelectedProject, ruleName: 'frequency'})
-    this.getRules({project: this.currentSelectedProject, ruleName: 'submitter'})
-    this.getRules({project: this.currentSelectedProject, ruleName: 'duration'})
+    this.getFrequency({project: this.currentSelectedProject}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.frequencyObj = data
+        this.oldFrequencyValue = data.freqValue
+      })
+    }, (res) => {
+      handleError(res)
+    })
+    this.getSubmitter({project: this.currentSelectedProject}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.submitterObj = data
+        this.oldSubmitterUsers = data.users
+      })
+    }, (res) => {
+      handleError(res)
+    })
+    this.getDuration({project: this.currentSelectedProject}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.durationObj = data
+        this.oldDurationValue = data.durationValue
+      })
+    }, (res) => {
+      handleError(res)
+    })
   }
 
   mounted () {

@@ -21,7 +21,7 @@
           <div class="detail-content">
             <el-row :gutter="20">
               <el-col :span="10" style="position:relative;">
-                <kap_editor height="220" width="90%" lang="sql" theme="chrome" v-model="props.row.sql" dragbar="#393e53">
+                <kap_editor height="220" width="90%" lang="sql" theme="chrome" v-model="props.row.sql_text" dragbar="#393e53">
                 </kap_editor>
                 <div class="copy-btn">
                   <transition name="fade">
@@ -37,18 +37,14 @@
                 </div>
                 <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.duration')}}</span>
-                  <span>{{props.row.latency / 1000 | fixed(2)}}s</span>
+                  <span>{{props.row.duration / 1000 | fixed(2)}}s</span>
                 </div>
                 <div class="realization-block">
                   <span class="label">{{$t('kylinLang.query.realization')}}</span>
                   <div class="tags-block">
-                    <el-tag v-if="!props.row.cube_hit" type="warning" v-for="pushdown in props.row.realization" :key="pushdown">{{pushdown}}</el-tag>
-                    <el-tag v-else v-for="modelName in props.row.realization" :key="modelName" @click.native="openAgg(modelName)">{{modelName}}</el-tag>
+                    <el-tag v-if="!props.row.cube_hit" type="warning" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag>
+                    <el-tag v-else v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName" @click.native="openAgg(modelName)">{{modelName}}</el-tag>
                   </div>
-                </div>
-                <div class="ksd-nobr-text">
-                  <span class="label">{{$t('kylinLang.query.content')}}</span>
-                  <span>{{props.row.content | arrayToStr}}</span>
                 </div>
                 <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.scanCount')}}</span>
@@ -64,41 +60,41 @@
                 </div>
                 <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.isCubeHit')}}</span>
-                  <span>{{props.row.cube_hit}}</span>
+                  <span>{{props.row.cache_hit}}</span>
                 </div>
               </el-col>
             </el-row>
           </div>
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn" sortable prop="start_time" header-align="center" width="210">
+      <el-table-column :renderHeader="renderColumn" sortable prop="query_time" header-align="center" width="210">
         <template slot-scope="props">
-          {{transToGmtTime(props.row.start_time)}}
+          {{transToGmtTime(props.row.query_time)}}
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn2" sortable prop="latency" header-align="center" align="right" width="150">
+      <el-table-column :renderHeader="renderColumn2" sortable prop="duration" header-align="center" align="right" width="150">
         <template slot-scope="props">
-          <span v-if="props.row.latency < 1000 && props.row.query_status === 'SUCCEEDED'">< 1s</span>
-          <span v-if="props.row.latency >= 1000 && props.row.query_status === 'SUCCEEDED'">{{props.row.latency / 1000 | fixed(2)}}s</span>
+          <span v-if="props.row.duration < 1000 && props.row.query_status === 'SUCCEEDED'">< 1s</span>
+          <span v-if="props.row.duration >= 1000 && props.row.query_status === 'SUCCEEDED'">{{props.row.duration / 1000 | fixed(2)}}s</span>
           <span v-if="props.row.query_status === 'FAILED'">Failed</span>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql" header-align="center" show-overflow-tooltip>
+      <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_text" header-align="center" show-overflow-tooltip>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn3" prop="realization" header-align="center" width="250" show-overflow-tooltip>
+      <el-table-column :renderHeader="renderColumn3" prop="answered_by" header-align="center" width="250" show-overflow-tooltip>
         <template slot-scope="props">
           <div class="tag-ellipsis">
-            <el-tag v-if="!props.row.cube_hit" type="warning" v-for="pushdown in props.row.realization" :key="pushdown">{{pushdown}}</el-tag>
-            <el-tag v-else v-for="modelName in props.row.realization" :key="modelName">{{modelName}}</el-tag>
+            <el-tag v-if="!props.row.cube_hit" type="warning" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag>
+            <el-tag v-else v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName">{{modelName}}</el-tag>
           </div>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.submitter')" prop="user" header-align="center" width="200">
+      <el-table-column :label="$t('kylinLang.query.submitter')" prop="submitter" header-align="center" width="200">
       </el-table-column>
       <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="120">
         <template slot-scope="props">
           <el-tooltip class="item" effect="dark" :content="$t('toAcce')" placement="top" v-if="props.row.accelerate_status === 'UNACCELERATED'">
-            <i class="el-icon-ksd-negative" @click="(event) => {toAcce(event, props.row.uuid)}"></i>
+            <i class="el-icon-ksd-negative" @click="(event) => {toAcce(event, props.row)}"></i>
           </el-tooltip>
           <i class="status-icon" :class="{
             'el-icon-ksd-acclerate': props.row.accelerate_status === 'FULLY_ACCELERATED',
@@ -146,8 +142,8 @@ export default class QueryHistoryTable extends Vue {
   filterData = {
     startTimeFrom: null,
     startTimeTo: null,
-    latencyFrom: -1,
-    latencyTo: -1,
+    latencyFrom: null,
+    latencyTo: null,
     realization: [],
     accelerateStatus: [],
     sql: null
@@ -208,8 +204,12 @@ export default class QueryHistoryTable extends Vue {
     })
   }
 
-  toAcce (event, uuid) {
-    this.markFav({project: this.currentSelectedProject, uuids: [uuid]}).then((res) => {
+  getAnsweredByList (answeredBy) {
+    return answeredBy.split(',')
+  }
+
+  toAcce (event, row) {
+    this.markFav({project: this.currentSelectedProject, sqlPattern: row.sql_pattern, queryTime: row.query_time, queryStatus: row.query_status}).then((res) => {
       handleSuccess(res, () => {
         this.flyEvent(event)
       })
@@ -270,8 +270,8 @@ export default class QueryHistoryTable extends Vue {
     }
   }
   resetLatency () {
-    this.startSec = -1
-    this.endSec = -1
+    this.startSec = null
+    this.endSec = null
     this.filterData.latencyFrom = this.startSec
     this.filterData.latencyTo = this.endSec
     this.latencyFilterPopoverVisible = false
@@ -284,7 +284,7 @@ export default class QueryHistoryTable extends Vue {
     this.filterList()
   }
   renderColumn2 (h) {
-    if (this.filterData.latencyFrom > 0 && this.filterData.latencyTo > 0) {
+    if (this.filterData.latencyFrom && this.filterData.latencyTo) {
       return (<span>
         <span>{this.$t('kylinLang.query.latency_th')}</span>
         <el-tooltip placement="top" class="ksd-fright">
