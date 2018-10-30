@@ -99,7 +99,11 @@ object RuntimeHelper {
       .zip(allColumns)
       .map {
         case (index, column) =>
-          val columnName = "dummy_" + column.getTableRef.getAlias + "_" + column.getName
+          var alias: String = index.toString
+          if (column.getTableRef != null) {
+            alias = column.getTableRef.getAlias
+          }
+          val columnName = "dummy_" + alias + "_" + column.getName
           //          if (advanceMapping.contains(index)) {
           //            advanceMapping.apply(index)
           //          } else

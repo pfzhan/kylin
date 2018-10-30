@@ -1,3 +1,4 @@
+-- #5169
 select t1.seller_id, t1.sum_price, t2.CAL_DT from (
 select seller_id,CAL_DT,sum(price) as sum_price from test_kylin_fact
   group by seller_id,CAL_DT limit 200

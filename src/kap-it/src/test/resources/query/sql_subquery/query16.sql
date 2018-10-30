@@ -17,7 +17,6 @@
 --
 
 
---- build JoinChain cause NPE
 SELECT
     t1.leaf_categ_id, COUNT(*) AS nums
 FROM

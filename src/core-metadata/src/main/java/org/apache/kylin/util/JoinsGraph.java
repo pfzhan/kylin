@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -57,6 +58,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class JoinsGraph implements Serializable {
     private TableRef center = null;
@@ -191,16 +193,24 @@ public class JoinsGraph implements Serializable {
             throw new IllegalArgumentException("pattern(model) should have a center: " + pattern);
         }
 
-        TableRef qCenter = query.searchNodeByIdentity(pattern.center);
-        if (qCenter == null) {
+        List<TableRef> candidatesOfQCenter = query.searchNodeByIdentity(pattern.center);
+        if (CollectionUtils.isEmpty(candidatesOfQCenter)) {
             return false;
         }
 
-        matchAlias.put(qCenter.getAlias(), pattern.center.getAlias());
-        if (query.edges.isEmpty()) {
-            return true;
+        Map<String, String> tmpMatchAlias = Maps.newHashMap(matchAlias);
+        for (TableRef qCenter : candidatesOfQCenter) {
+            matchAlias.put(qCenter.getAlias(), pattern.center.getAlias());
+            if (query.edges.isEmpty()) {
+                return true;
+            }
+            if (innerMatch(query, pattern, qCenter, pattern.center, null, null, matchAlias)) {
+                return true;
+            }
+            matchAlias.clear();
+            matchAlias.putAll(tmpMatchAlias);
         }
-        return innerMatch(query, pattern, qCenter, pattern.center, null, null, matchAlias);
+        return false;
     }
 
     public static boolean innerMatch(JoinsGraph query, JoinsGraph pattern, TableRef qVisited, TableRef pVisitied,
@@ -243,14 +253,15 @@ public class JoinsGraph implements Serializable {
         return true;
     }
 
-    public TableRef searchNodeByIdentity(TableRef table) {
-        for (TableRef n : nodes) {
-            if (n.getTableIdentity().equals(table.getTableIdentity())) {
-                return n;
+    private List<TableRef> searchNodeByIdentity(final TableRef table) {
+        // special case: several same nodes in a JoinGraph
+        List<TableRef> candidatesOfQueryRoot = Lists.newArrayList();
+        for (TableRef tbl : nodes) {
+            if (tbl.getTableIdentity().equals(table.getTableIdentity())) {
+                candidatesOfQueryRoot.add(tbl);
             }
         }
-
-        return null;
+        return candidatesOfQueryRoot;
     }
 
     public List<TableRef> otherSide(TableRef thisSide) {

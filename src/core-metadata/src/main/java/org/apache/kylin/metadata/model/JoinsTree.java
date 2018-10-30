@@ -44,12 +44,18 @@
 package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+
+import org.apache.kylin.common.util.Pair;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -58,6 +64,74 @@ import com.google.common.collect.Maps;
 public class JoinsTree implements Serializable {
     private static final long serialVersionUID = 1L;
     private static final IJoinDescMatcher DEFAULT_JOINDESC_MATCHER = new DefaultJoinDescMatcher();
+
+    public static class Chain implements Serializable {
+        private static final long serialVersionUID = 1L;
+
+        TableRef table; // pk side
+        JoinDesc join;
+        Chain fkSide;
+
+        public Chain(TableRef table, JoinDesc join, Chain fkSide) {
+            this.table = table;
+            this.join = join;
+            this.fkSide = fkSide;
+            if (join != null) {
+                Preconditions.checkArgument(table == join.getPKSide());
+                Preconditions.checkArgument(fkSide.table == join.getFKSide());
+            }
+        }
+
+        public JoinDesc getJoin() {
+            return join;
+        }
+
+        public TableRef getTable() {
+            return table;
+        }
+
+        public Chain getFkSide() {
+            return fkSide;
+        }
+    }
+
+    public static interface IJoinDescMatcher extends Serializable {
+        boolean matches(JoinDesc join1, JoinDesc join2);
+    }
+
+    public static class DefaultJoinDescMatcher implements IJoinDescMatcher {
+        @Override
+        public boolean matches(JoinDesc join1, JoinDesc join2) {
+            if (join1 == null) {
+                return join2 == null;
+            } else if (join2 == null) {
+                return false;
+            } else {
+
+                if (!join1.getType().equalsIgnoreCase(join2.getType()))
+                    return false;
+
+                // note pk/fk are sorted, sortByFK()
+                return this.columnDescEquals(join1.getForeignKeyColumns(), join2.getForeignKeyColumns())
+                        && this.columnDescEquals(join1.getPrimaryKeyColumns(), join2.getPrimaryKeyColumns());
+            }
+        }
+
+        private boolean columnDescEquals(TblColRef[] a, TblColRef[] b) {
+            if (a.length != b.length)
+                return false;
+
+            for (int i = 0; i < a.length; i++) {
+                if (!columnDescEquals(a[i].getColumnDesc(), b[i].getColumnDesc()))
+                    return false;
+            }
+            return true;
+        }
+
+        protected boolean columnDescEquals(ColumnDesc a, ColumnDesc b) {
+            return a == null ? b == null : a.equals(b);
+        }
+    }
 
     private Map<String, Chain> tableChains = new LinkedHashMap<>();
     private IJoinDescMatcher joinDescMatcher = DEFAULT_JOINDESC_MATCHER;
@@ -70,8 +144,10 @@ public class JoinsTree implements Serializable {
                 Preconditions.checkState(col.isQualified());
         }
 
-        tableChains.put(rootTable.getAlias(), new Chain(rootTable, null, null));
-        for (JoinDesc join : joins) {
+        Pair<TableRef, List<JoinDesc>> reordered = reorderJoins(rootTable, joins);
+
+        tableChains.put(reordered.getFirst().getAlias(), new Chain(reordered.getFirst(), null, null));
+        for (JoinDesc join : reordered.getSecond()) {
             TableRef pkSide = join.getPKSide();
             Chain fkSide = tableChains.get(join.getFKSide().getAlias());
             tableChains.put(pkSide.getAlias(), new Chain(pkSide, join, fkSide));
@@ -194,71 +270,43 @@ public class JoinsTree implements Serializable {
         return new JoinsTree(subgraph);
     }
 
-    public static class Chain implements Serializable {
-        private static final long serialVersionUID = 1L;
-
-        TableRef table; // pk side
-        JoinDesc join;
-        Chain fkSide;
-
-        public Chain(TableRef table, JoinDesc join, Chain fkSide) {
-            this.table = table;
-            this.join = join;
-            this.fkSide = fkSide;
-            if (join != null) {
-                Preconditions.checkArgument(table == join.getPKSide());
-                Preconditions.checkArgument(fkSide.table == join.getFKSide());
-            }
+    private Pair<TableRef, List<JoinDesc>> reorderJoins(TableRef root, List<JoinDesc> joins) {
+        if (joins.isEmpty()) {
+            return new Pair(root, joins);
         }
 
-        public JoinDesc getJoin() {
-            return join;
-        }
-
-        public TableRef getTable() {
-            return table;
-        }
-
-        public Chain getFkSide() {
-            return fkSide;
-        }
-    }
-
-    public static interface IJoinDescMatcher extends Serializable {
-        boolean matches(JoinDesc join1, JoinDesc join2);
-    }
-
-    public static class DefaultJoinDescMatcher implements IJoinDescMatcher {
-        @Override
-        public boolean matches(JoinDesc join1, JoinDesc join2) {
-            if (join1 == null) {
-                return join2 == null;
-            } else if (join2 == null) {
-                return false;
+        Set<TableRef> fkSides = new HashSet<>();
+        Set<TableRef> pkSides = new HashSet<>();
+        Map<TableRef, List<JoinDesc>> fkMap = new HashMap<>();
+        for (JoinDesc join : joins) {
+            fkSides.add(join.getFKSide());
+            pkSides.add(join.getPKSide());
+            if (fkMap.containsKey(join.getFKSide())) {
+                fkMap.get(join.getFKSide()).add(join);
             } else {
+                fkMap.put(join.getFKSide(), Lists.newArrayList(join));
+            }
+        }
+        fkSides.removeAll(pkSides);
+        if (fkSides.size() > 1) {
+            throw new IllegalArgumentException("joins is not a valid join tree: " + joins);
+        }
 
-                if (!join1.getType().equalsIgnoreCase(join2.getType()))
-                    return false;
+        TableRef newRoot = fkSides.iterator().next();
+        Queue<TableRef> pending = new LinkedList();
+        pending.offer(newRoot);
+        List<JoinDesc> reordered = new ArrayList<>();
 
-                // note pk/fk are sorted, sortByFK()
-                return this.columnDescEquals(join1.getForeignKeyColumns(), join2.getForeignKeyColumns())
-                    && this.columnDescEquals(join1.getPrimaryKeyColumns(), join2.getPrimaryKeyColumns());
+        while (!pending.isEmpty()) {
+            TableRef cur = pending.poll();
+            if (fkMap.containsKey(cur)) {
+                reordered.addAll(fkMap.get(cur));
+                for (JoinDesc join : fkMap.get(cur)) {
+                    pending.offer(join.getPKSide());
+                }
             }
         }
 
-        private boolean columnDescEquals(TblColRef[] a, TblColRef[] b) {
-            if (a.length != b.length)
-                return false;
-
-            for (int i = 0; i < a.length; i++) {
-                if (!columnDescEquals(a[i].getColumnDesc(), b[i].getColumnDesc()))
-                    return false;
-            }
-            return true;
-        }
-
-        protected boolean columnDescEquals(ColumnDesc a, ColumnDesc b) {
-            return a == null ? b == null : a.equals(b);
-        }
+        return new Pair(newRoot, reordered);
     }
 }

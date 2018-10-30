@@ -311,6 +311,8 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
     @Test
     public void testPowerBiQuery() throws Exception {
+        kylinConfig.setProperty("kylin.query.pushdown.runner-class-name",
+                "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
         new TestScenario("sql_powerbi", CompareLevel.SAME).execute();
     }
 
