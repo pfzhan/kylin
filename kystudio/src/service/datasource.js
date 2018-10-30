@@ -175,6 +175,6 @@ export default {
     return Vue.resource(apiUrl + `tables/pushdown_mode`).update({ project, table, pushdownRangeLimited })
   },
   discardTableModel (project, modelName, status) {
-    return Vue.resource(apiUrl + `models/status`).update({ project, modelName, status })
+    return Vue.resource(apiUrl + `models/management_type`).update({ project, modelName })
   }
 }

@@ -7,7 +7,7 @@
         </div>
         <div>Hive</div>
       </li>
-      <li class="datasouce">
+      <li class="datasouce disabled">
         <div class="datasource-icon">
           <i class="el-icon-ksd-mysql"></i>
         </div>
@@ -16,7 +16,7 @@
           <span>{{$t('upcoming')}}</span>
         </div>
       </li>
-      <li class="datasouce">
+      <li class="datasouce disabled">
         <div class="datasource-icon">
           <i class="el-icon-ksd-kafka_normal"></i>
         </div>
@@ -27,7 +27,7 @@
       </li>
     </ul>
     <ul class="ksd-center">
-      <li class="datasouce">
+      <li class="datasouce disabled">
         <div class="datasource-icon">
           <i class="el-icon-ksd-greenplum"></i>
         </div>
@@ -36,7 +36,7 @@
           <span>{{$t('upcoming')}}</span>
         </div>
       </li>
-      <li class="datasouce">
+      <li class="datasouce disabled">
         <div class="datasource-icon">
           <i class="el-icon-ksd-SQL-server"></i>
         </div>
@@ -45,7 +45,7 @@
           <span>{{$t('upcoming')}}</span>
         </div>
       </li>
-      <li class="datasouce">
+      <li class="datasouce disabled">
         <div class="datasource-icon">
           <i class="el-icon-ksd-csv"></i>
         </div>
@@ -113,34 +113,51 @@ export default class SourceNew extends Vue {
     height: 130px;
     width: 90px;
     vertical-align: top;
-    color: #B0BEC5;
+    color: @text-secondary-color;
     margin-right: 30px;
+    border: 1px solid transparent;
     * {
       vertical-align: middle;
     }
     &:last-child {
       margin-right: 0;
     }
-    &.active {
-      color: #455A64;
+    &:hover {
       .datasource-icon {
-        color: #0988DE;
+        border-color: @base-color;
       }
+    }
+  }
+  .datasouce.active {
+    color: @text-normal-color;
+    .datasource-icon {
+      color: @fff;
+      background: @base-color;
+    }
+  }
+  .datasouce.disabled {
+    .datasource-icon {
+      color: @text-secondary-color;
+      cursor: not-allowed;
+    }
+    * {
+      cursor: inherit;
     }
   }
   .datasource-icon {
     font-size: 65px;
     height: 90px;
     border-radius: 6px;
-    background: #F1F7FA;
+    background: @grey-4;
     margin-bottom: 10px;
+    color: @base-color;
     cursor: pointer;
   }
   .status {
-    background: #CFD8DC;
+    background: @text-placeholder-color;
     border-radius: 7.8px;
     overflow: hidden;
-    color: white;
+    color: @fff;
     font-size: 12px;
     height: 15.6px;
     width: 72px;

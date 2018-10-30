@@ -29,8 +29,8 @@
                 <el-col class="model-status" :span="24">
                   <template v-if="relatedModel.management_type !== 'MODEL_BASED'">
                     <el-tag v-if="relatedModel.status === 'DESCBROKEN'" size="small" type="info">Broken</el-tag>
-                    <el-tag v-if="relatedModel.status === 'READY'" size="small" type="success">Online</el-tag>
-                    <el-tag v-if="relatedModel.status === 'DISABLED'" size="small" type="danger">Offline</el-tag>
+                    <el-tag v-if="relatedModel.status === 'ONLINE'" size="small" type="success">Online</el-tag>
+                    <el-tag v-if="relatedModel.status === 'OFFLINE'" size="small" type="danger">Offline</el-tag>
                   </template>
                 </el-col>
                 <el-col class="range-time" :span="24">
@@ -140,7 +140,7 @@ export default class RelatedModels extends Vue {
         cancelButtonText: this.$t('kylinLang.common.cancel'),
         type: 'warning'
       })
-      await this.discardTableModel({ projectName, modelName, status: 'DISCARD' })
+      await this.discardTableModel({ projectName, modelName })
       this.$message({ message, type: 'success' })
       relatedModel.management_type = 'MODEL_BASED'
     } catch (e) {
