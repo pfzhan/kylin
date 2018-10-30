@@ -738,6 +738,7 @@ select a.placepointid, --门店id
       })
     }, (res) => {
       handleError(res)
+      this.getFrequencyObj()
     })
   }
 
@@ -769,6 +770,7 @@ select a.placepointid, --门店id
       })
     }, (res) => {
       handleError(res)
+      this.getSubmitterObj()
     })
   }
 
@@ -812,6 +814,7 @@ select a.placepointid, --门店id
       })
     }, (res) => {
       handleError(res)
+      this.getDurationObj()
     })
   }
 
@@ -847,8 +850,7 @@ select a.placepointid, --门店id
     return sqlFormatter.format(sql)
   }
 
-  created () {
-    this.loadFavoriteList()
+  getFrequencyObj () {
     this.getFrequency({project: this.currentSelectedProject}).then((res) => {
       handleSuccess(res, (data) => {
         this.frequencyObj = data
@@ -857,6 +859,9 @@ select a.placepointid, --门店id
     }, (res) => {
       handleError(res)
     })
+  }
+
+  getSubmitterObj () {
     this.getSubmitter({project: this.currentSelectedProject}).then((res) => {
       handleSuccess(res, (data) => {
         this.submitterObj = data
@@ -865,6 +870,9 @@ select a.placepointid, --门店id
     }, (res) => {
       handleError(res)
     })
+  }
+
+  getDurationObj () {
     this.getDuration({project: this.currentSelectedProject}).then((res) => {
       handleSuccess(res, (data) => {
         this.durationObj = data
@@ -873,6 +881,13 @@ select a.placepointid, --门店id
     }, (res) => {
       handleError(res)
     })
+  }
+
+  created () {
+    this.loadFavoriteList()
+    this.getFrequencyObj()
+    this.getSubmitterObj()
+    this.getDurationObj()
   }
 
   mounted () {
