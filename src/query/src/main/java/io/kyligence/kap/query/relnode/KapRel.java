@@ -37,6 +37,8 @@ import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 
 import io.kyligence.kap.query.util.ICutContextStrategy;
+import lombok.Getter;
+import lombok.Setter;
 
 public interface KapRel extends OLAPRel {
     /**
@@ -64,9 +66,12 @@ public interface KapRel extends OLAPRel {
             return parentNodeStack.peek();
         }
 
-        public OLAPContext allocateContext() {
+        public OLAPContext allocateContext(KapRel topNode, KapRel parentOfTopNode) {
             OLAPContext context = new OLAPContext(ctxSeq++);
             OLAPContext.registerContext(context);
+            context.setTopNode(topNode);
+            context.setParentOfTopNode(parentOfTopNode);
+            topNode.setContext(context);
             return context;
         }
 
@@ -124,8 +129,8 @@ public interface KapRel extends OLAPRel {
     }
 
     class ContextVisitorState {
-        public boolean hasFilter; // filter exists in the child
-        public boolean hasFreeTable; // free table (not in any context) exists in the child
+        @Setter @Getter private boolean hasFilter; // filter exists in the child
+        @Setter @Getter private boolean hasFreeTable; // free table (not in any context) exists in the child
 
         public ContextVisitorState(boolean hasFilter, boolean hasFreeTable) {
             this.hasFilter = hasFilter;

@@ -89,13 +89,11 @@ public class KapUnionRel extends OLAPUnionRel implements KapRel {
             ContextVisitorState tempState = ContextVisitorState.init();
             RelNode input = getInput(i);
             olapContextImplementor.visitChild(input, this, tempState);
-            if (tempState.hasFreeTable) {
+            if (tempState.isHasFreeTable()) {
                 // any input containing free table should be assigned a context
-                OLAPContext context = olapContextImplementor.allocateContext();
-                context.topNode = (KapRel) input;
-                ((KapRel) input).setContext(context);
+                olapContextImplementor.allocateContext((KapRel) input, null);
             }
-            tempState.hasFreeTable = false;
+            tempState.setHasFreeTable(false);
             accumulateState.merge(tempState);
         }
         state.merge(accumulateState);
@@ -111,7 +109,7 @@ public class KapUnionRel extends OLAPUnionRel implements KapRel {
             olapContextImplementor.visitChild(getInputs().get(i), this);
         }
         this.columnRowType = buildColumnRowType();
-        if (context != null && this == context.topNode && !context.hasAgg)
+        if (context != null && this == context.getTopNode() && !context.isHasAgg())
             KapContext.amendAllColsIfNoAgg(this);
     }
 

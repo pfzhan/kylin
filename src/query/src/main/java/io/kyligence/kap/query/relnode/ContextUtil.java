@@ -93,7 +93,7 @@ public class ContextUtil {
         // 1. the parent node of TopRel in subContext is not NULL and is instance Of KapJoinRel.
         // 2. JoinRels in the path from currentNode to the ParentOfContextTopRel node are all of the same type (left/inner/cross)
         // 3. all aggregate is derived from the same subContext
-        return subContext.parentOfTopNode instanceof KapJoinRel
+        return subContext.getParentOfTopNode() instanceof KapJoinRel
                 && areSubJoinRelsSameType(currentRel, subContext, null, null)
                 && derivedFromSameContext(new HashSet<Integer>(), currentRel, subContext);
     }
@@ -202,7 +202,7 @@ public class ContextUtil {
                 expectedJoinType = joinRel.getJoinType();
             }
             if (joinRel.getJoinType() == expectedJoinType && joinRel.getCondition().getClass().equals(joinCondClz)) {
-                return kapRel == subContext.parentOfTopNode
+                return kapRel == subContext.getParentOfTopNode()
                         || areSubJoinRelsSameType(joinRel.getLeft(), subContext, expectedJoinType, joinCondClz)
                         || areSubJoinRelsSameType(joinRel.getRight(), subContext, expectedJoinType, joinCondClz);
             }

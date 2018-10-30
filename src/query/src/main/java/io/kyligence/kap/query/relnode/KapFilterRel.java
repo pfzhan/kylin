@@ -118,7 +118,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
                 if (context.havingFilter == null)
                     context.havingFilter = havingFilter;
             }
-            if (this == context.topNode && !context.hasAgg)
+            if (this == context.getTopNode() && !context.isHasAgg())
                 KapContext.amendAllColsIfNoAgg(this);
         } else {
             pushDownColsInfo(subContexts);

@@ -108,27 +108,18 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
 
         if (getJoinType() == JoinRelType.INNER || getJoinType() == JoinRelType.LEFT) {
             // special case for left join
-            if (getJoinType() == JoinRelType.LEFT && rightState.hasFilter && rightState.hasFreeTable) {
-                OLAPContext context = olapContextImplementor.allocateContext();
-                context.topNode = (KapRel) getInput(1);
-                ((KapRel) getInput(1)).setContext(context);
-                rightState.hasFreeTable = false;
-                context.parentOfTopNode = this;
+            if (getJoinType() == JoinRelType.LEFT && rightState.isHasFilter() && rightState.isHasFreeTable()) {
+                olapContextImplementor.allocateContext((KapRel) getInput(1), this);
+                rightState.setHasFreeTable(false);
             }
 
             // if one side of join has no free table, the other side should have separate context
-            if (!leftState.hasFreeTable && rightState.hasFreeTable) {
-                OLAPContext context = olapContextImplementor.allocateContext();
-                context.topNode = (KapRel) getInput(1);
-                ((KapRel) getInput(1)).setContext(context);
-                rightState.hasFreeTable = false;
-                context.parentOfTopNode = this;
-            } else if (leftState.hasFreeTable && !rightState.hasFreeTable) {
-                OLAPContext context = olapContextImplementor.allocateContext();
-                context.topNode = (KapRel) getInput(0);
-                ((KapRel) getInput(0)).setContext(context);
-                leftState.hasFreeTable = false;
-                context.parentOfTopNode = this;
+            if (!leftState.isHasFreeTable() && rightState.isHasFreeTable()) {
+                olapContextImplementor.allocateContext((KapRel) getInput(1), this);
+                rightState.setHasFreeTable(false);
+            } else if (leftState.isHasFreeTable() && !rightState.isHasFreeTable()) {
+                olapContextImplementor.allocateContext((KapRel) getInput(0), this);
+                leftState.setHasFreeTable(false);
             }
 
             state.merge(leftState).merge(rightState);
@@ -137,21 +128,15 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
             return;
         }
 
-        // other join types, two sides two contexts
-        if (leftState.hasFreeTable) {
-            OLAPContext context = olapContextImplementor.allocateContext();
-            context.topNode = (KapRel) getInput(0);
-            ((KapRel) getInput(0)).setContext(context);
-            leftState.hasFreeTable = false;
-            context.parentOfTopNode = this;
+        // other join types (RIGHT or FULL), two sides two contexts
+        if (leftState.isHasFreeTable()) {
+            olapContextImplementor.allocateContext((KapRel) getInput(0), this);
+            leftState.setHasFreeTable(false);
         }
 
-        if (rightState.hasFreeTable) {
-            OLAPContext context = olapContextImplementor.allocateContext();
-            context.topNode = (KapRel) getInput(1);
-            ((KapRel) getInput(1)).setContext(context);
-            rightState.hasFreeTable = false;
-            context.parentOfTopNode = this;
+        if (rightState.isHasFreeTable()) {
+            olapContextImplementor.allocateContext((KapRel) getInput(1), this);
+            rightState.setHasFreeTable(false);
         }
 
         state.merge(leftState).merge(rightState);
@@ -170,14 +155,8 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
         } else {
             this.context = null;
             this.columnRowType = null;
-            OLAPContext leftCtx = implementor.allocateContext();
-            ((KapRel) getInput(0)).setContext(leftCtx);
-            leftCtx.topNode = (KapRel) getInput(0);
-            leftCtx.parentOfTopNode = this;
-            OLAPContext rightCtx = implementor.allocateContext();
-            ((KapRel) getInput(1)).setContext(rightCtx);
-            rightCtx.topNode = (KapRel) getInput(1);
-            rightCtx.parentOfTopNode = this;
+            implementor.allocateContext((KapRel) getInput(0), this);
+            OLAPContext rightCtx = implementor.allocateContext((KapRel) getInput(1), this);
         }
 
     }
@@ -195,7 +174,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
     public boolean pushRelInfoToContext(OLAPContext context) {
         if (this.context != null)
             return false;
-        if (this == context.parentOfTopNode || ((KapRel) getLeft()).pushRelInfoToContext(context)
+        if (this == context.getParentOfTopNode() || ((KapRel) getLeft()).pushRelInfoToContext(context)
                 || ((KapRel) getRight()).pushRelInfoToContext(context)) {
             this.context = context;
             this.isPreCalJoin = false;
@@ -210,9 +189,9 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
             if (this.isPreCalJoin && !(this.getCondition() instanceof RexCall))
                 throw new NotSupportedSQLException("Cartesian Join is not supported");
             this.context.allOlapJoins.add(this);
-            this.isTopPreCalcJoin = !this.isPreCalJoin || !this.context.hasPreCalcJoin;
-            this.context.hasJoin = true;
-            this.context.hasPreCalcJoin = this.context.hasPreCalcJoin || this.isPreCalJoin;
+            this.isTopPreCalcJoin = !this.isPreCalJoin || !this.context.isHasPreCalcJoin();
+            this.context.setHasJoin(true);
+            this.context.setHasPreCalcJoin(this.context.isHasPreCalcJoin() || this.isPreCalJoin);
         }
 
         // as we keep the first table as fact table, we need to visit from left to right
@@ -230,7 +209,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
     }
 
     private void collectCtxOlapInfoIfExist() {
-        if (isPreCalJoin || this.context.parentOfTopNode.getContext() != this.context) {
+        if (isPreCalJoin || this.context.getParentOfTopNode().getContext() != this.context) {
             // build JoinDesc for pre-calculate join
             JoinDesc join = buildJoin((RexCall) this.getCondition());
             String joinType = this.getJoinType() == JoinRelType.INNER ? "INNER"
@@ -248,7 +227,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
             }
             joinCol.clear();
         }
-        if (this == context.topNode && !context.hasAgg)
+        if (this == context.getTopNode() && !context.isHasAgg())
             KapContext.amendAllColsIfNoAgg(this);
     }
 

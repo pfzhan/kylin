@@ -135,7 +135,7 @@ public class OLAPProjectRel extends Project implements OLAPRel {
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
         boolean hasRexOver = RexOver.containsOver(getProjects(), null);
         RelOptCost relOptCost = super.computeSelfCost(planner, mq).multiplyBy(.05)
-                .multiplyBy(getProjects().size() * (hasRexOver ? 50 : 1))
+                .multiplyBy(getProjects().size() * (hasRexOver ? 50.0 : 1.0))
                 .plus(planner.getCostFactory().makeCost(0.1 * caseCount, 0, 0));
         return planner.getCostFactory().makeCost(relOptCost.getRows(), 0, 0);
     }
@@ -155,7 +155,7 @@ public class OLAPProjectRel extends Project implements OLAPRel {
         implementor.visitChild(getInput(), this);
 
         this.context = implementor.getContext();
-        this.hasJoin = context.hasJoin;
+        this.hasJoin = context.isHasJoin();
         this.afterTopJoin = context.afterTopJoin;
         this.afterAggregate = context.afterAggregate;
 
@@ -220,7 +220,7 @@ public class OLAPProjectRel extends Project implements OLAPRel {
         return null;
     }
 
-    private TblColRef translateRexInputRef(RexInputRef inputRef, ColumnRowType inputColumnRowType, String fieldName,
+    protected TblColRef translateRexInputRef(RexInputRef inputRef, ColumnRowType inputColumnRowType, String fieldName,
             Set<TblColRef> sourceCollector) {
         int index = inputRef.getIndex();
         // check it for rewrite count

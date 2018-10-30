@@ -103,18 +103,16 @@ public class KapLimitRel extends OLAPLimitRel implements KapRel {
         olapContextImplementor.fixSharedOlapTableScan(this);
         ContextVisitorState tempState = ContextVisitorState.init();
         olapContextImplementor.visitChild(getInput(), this, tempState);
-        if (tempState.hasFreeTable) {
-            OLAPContext context = olapContextImplementor.allocateContext();
-            context.topNode = this;
-            this.setContext(context);
-            tempState.hasFreeTable = false;
+        if (tempState.isHasFreeTable()) {
+            olapContextImplementor.allocateContext(this, null);
+            tempState.setHasFreeTable(false);
         }
         subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
 
         if (context == null && subContexts.size() == 1
-                && this.getInput() == Lists.newArrayList(this.subContexts).get(0).topNode) {
+                && this.getInput() == Lists.newArrayList(this.subContexts).get(0).getTopNode()) {
             this.context = Lists.newArrayList(this.subContexts).get(0);
-            this.context.topNode = this;
+            this.context.setTopNode(this);
         }
         state.merge(tempState);
     }
@@ -142,7 +140,7 @@ public class KapLimitRel extends OLAPLimitRel implements KapRel {
             } else {
                 this.context.storageContext.setOverlookOuterLimit();
             }
-            if (this == context.topNode && !context.hasAgg)
+            if (this == context.getTopNode() && !context.isHasAgg())
                 KapContext.amendAllColsIfNoAgg(this);
         }
     }

@@ -26,7 +26,6 @@ package io.kyligence.kap.query.util;
 
 import java.util.List;
 
-import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 
 import com.google.common.collect.Lists;
@@ -41,11 +40,9 @@ public class FirstRoundContextCutStrategy implements ICutContextStrategy {
         KapRel.OLAPContextImplementor contextImplementor = new KapRel.OLAPContextImplementor();
         KapRel.ContextVisitorState initState = KapRel.ContextVisitorState.init();
         contextImplementor.visitChild(rootRel, rootRel, initState);
-        if (initState.hasFreeTable) {
+        if (initState.isHasFreeTable()) {
             // if there are free tables, allocate a context for it
-            OLAPContext context = contextImplementor.allocateContext();
-            context.topNode = ((KapRel) rootRel);
-            ((KapRel) rootRel).setContext(context);
+            contextImplementor.allocateContext((KapRel) rootRel, null);
         }
 
         contextImplementor.optimizeContextCut();

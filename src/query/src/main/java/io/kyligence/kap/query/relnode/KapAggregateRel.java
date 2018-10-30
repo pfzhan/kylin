@@ -92,11 +92,9 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         olapContextImplementor.fixSharedOlapTableScan(this);
         ContextVisitorState tempState = ContextVisitorState.init();
         olapContextImplementor.visitChild(getInput(), this, tempState);
-        if (tempState.hasFreeTable) {
-            OLAPContext context = olapContextImplementor.allocateContext();
-            context.topNode = this;
-            setContext(context);
-            tempState.hasFreeTable = false;
+        if (tempState.isHasFreeTable()) {
+            OLAPContext context = olapContextImplementor.allocateContext(this, null);
+            tempState.setHasFreeTable(false);
         }
         state.merge(tempState);
 
@@ -116,7 +114,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
 
         this.columnRowType = buildColumnRowType();
         if (context != null) {
-            this.context.hasAgg = true;
+            this.context.setHasAgg(true);
             this.afterAggregate = this.context.afterAggregate;
             // only translate the innermost aggregation
             if (!this.afterAggregate) {
@@ -239,7 +237,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
                 if (subContext.aggregations.size() > 0)
                     continue;
                 if (ContextUtil.qualifiedForAggInfoPushDown(this, subContext)) {
-                    subContext.topNode = this;
+                    subContext.setTopNode(this);
                     pushRelInfoToContext(subContext);
                 }
             }

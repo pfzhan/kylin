@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -78,6 +77,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  */
@@ -149,8 +150,8 @@ public class OLAPContext {
     // query info
     public OLAPSchema olapSchema = null;
     public OLAPTableScan firstTableScan = null; // to be fact table scan except "select * from lookupTable"
-    public OLAPRel topNode = null; // the context's toppest node
-    public OLAPRel parentOfTopNode = null; // record the JoinRel that cuts off its children into new context(s), in other case it should be null
+    @Setter @Getter private OLAPRel topNode = null; // the context's toppest node
+    @Setter @Getter private OLAPRel parentOfTopNode = null; // record the JoinRel that cuts off its children into new context(s), in other case it should be null
     public Set<OLAPTableScan> allTableScans = new HashSet<>();
     public Set<OLAPJoinRel> allOlapJoins = new HashSet<>();
     public Set<MeasureDesc> involvedMeasure = new HashSet<>();
@@ -159,20 +160,19 @@ public class OLAPContext {
     public boolean afterHavingClauseFilter = false;
     public boolean afterLimit = false;
     public boolean limitPrecedesAggr = false;
-    public boolean afterTopJoin = false;
-    public boolean hasJoin = false;
-    public boolean hasPreCalcJoin = false;
-    public boolean hasAgg = false;
+    boolean afterTopJoin = false;
+    @Setter @Getter private boolean hasJoin = false;
+    @Setter @Getter private boolean hasPreCalcJoin = false;
+    @Setter @Getter private boolean hasAgg = false;
     public boolean hasWindow = false;
-    public boolean metProject = false;
-    public OLAPQuery.EnumeratorTypeEnum enumeratorType;
+    @Getter @Setter private OLAPQuery.EnumeratorTypeEnum enumeratorType;
 
     // cube metadata
     public IRealization realization;
     public RealizationCheck realizationCheck = new RealizationCheck();
-    public boolean fixedModel;
-    public boolean hasSelected = false;
+    boolean fixedModel;
 
+    @Getter @Setter private boolean hasSelected = false;
     public Set<TblColRef> allColumns = new HashSet<>();
     public List<TblColRef> groupByColumns = new ArrayList<>();
     public Set<TblColRef> subqueryJoinParticipants = new HashSet<TblColRef>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
@@ -185,7 +185,7 @@ public class OLAPContext {
     public TupleFilter havingFilter;
     public List<JoinDesc> joins = new LinkedList<>();
     public JoinsTree joinsTree;
-    public JoinsGraph joinsGraph;
+    @Getter @Setter private JoinsGraph joinsGraph;
     List<TblColRef> sortColumns;
     List<SQLDigest.OrderEnum> sortOrders;
 
@@ -287,7 +287,6 @@ public class OLAPContext {
         this.hasPreCalcJoin = false;
         this.hasAgg = false;
         this.hasWindow = false;
-        this.metProject = false;
 
         this.allColumns.clear();
         this.groupByColumns.clear();

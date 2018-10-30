@@ -152,8 +152,8 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
         //parent context
         this.context = implementor.getContext();
         this.context.allOlapJoins.add(this);
-        this.isTopJoin = !this.context.hasJoin;
-        this.context.hasJoin = true;
+        this.isTopJoin = !this.context.isHasJoin();
+        this.context.setHasJoin(true);
 
         boolean leftHasSubquery = false;
         boolean rightHasSubquery = false;

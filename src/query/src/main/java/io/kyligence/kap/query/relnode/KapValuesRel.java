@@ -85,9 +85,7 @@ public class KapValuesRel extends OLAPValuesRel implements KapRel {
     @Override
     public void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state) {
         state.merge(ContextVisitorState.of(false, false));
-        OLAPContext context = olapContextImplementor.allocateContext();
-        context.topNode = this;
-        this.setContext(context);
+        olapContextImplementor.allocateContext(this, null);
     }
 
     @Override

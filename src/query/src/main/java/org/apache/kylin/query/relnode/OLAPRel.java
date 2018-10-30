@@ -204,7 +204,7 @@ public interface OLAPRel extends RelNode {
         }
 
         public static boolean needRewrite(OLAPContext ctx) {
-            if (ctx.hasJoin)
+            if (ctx.isHasJoin())
                 return true;
 
             if (ctx.realization == null) {

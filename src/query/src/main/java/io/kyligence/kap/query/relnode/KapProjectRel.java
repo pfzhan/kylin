@@ -59,7 +59,6 @@ import io.kyligence.kap.query.util.ICutContextStrategy;
  */
 public class KapProjectRel extends OLAPProjectRel implements KapRel {
     List<RexNode> exps;
-    private boolean isTopProject = false;
     private boolean beforeTopPreCalcJoin = false;
     private Set<OLAPContext> subContexts = Sets.newHashSet();
 
@@ -89,12 +88,6 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
     @Override
     public void setContext(OLAPContext context) {
         this.context = context;
-        if (!context.metProject) {
-            this.isTopProject = true;
-            context.metProject = true;
-        } else {
-            this.isTopProject = false;
-        }
         ((KapRel) getInput()).setContext(context);
         subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
     }
@@ -115,10 +108,10 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         olapContextImplementor.visitChild(getInput(), this, tempState);
         subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
         if (context == null && subContexts.size() == 1
-                && this.getInput() == Lists.newArrayList(this.subContexts).get(0).topNode
+                && this.getInput() == Lists.newArrayList(this.subContexts).get(0).getTopNode()
                 && !(this.getInput() instanceof KapWindowRel)) {
             this.context = Lists.newArrayList(this.subContexts).get(0);
-            this.context.topNode = this;
+            this.context.setTopNode(this);
         }
         state.merge(tempState);
     }
@@ -133,20 +126,21 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         //     Proj   TableScan
         //    /
         //  TableScan
-        this.beforeTopPreCalcJoin = context != null && context.hasPreCalcJoin;
+        this.beforeTopPreCalcJoin = context != null && context.isHasPreCalcJoin();
         implementor.visitChild(getInput(), this);
 
         this.columnRowType = buildColumnRowType();
         if (context != null) {
-            this.hasJoin = context.hasJoin;
+            this.hasJoin = context.isHasJoin();
             this.afterAggregate = context.afterAggregate;
-            if (this == context.topNode && !context.hasAgg)
+            if (this == context.getTopNode() && !context.isHasAgg())
                 KapContext.amendAllColsIfNoAgg(this);
         } else {
             updateSubContexts(subContexts);
         }
     }
 
+    @Override
     protected TblColRef translateRexInputRef(RexInputRef inputRef, ColumnRowType inputColumnRowType, String fieldName,
             Set<TblColRef> sourceCollector) {
         int index = inputRef.getIndex();
@@ -174,7 +168,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
         // project before join or is just after OLAPToEnumerableConverter
         if (!RewriteImplementor.needRewrite(this.context) || this.afterAggregate
                 || !(this.context.hasPrecalculatedFields())
-                || (this.getContext().hasJoin && this.beforeTopPreCalcJoin)) {
+                || (this.getContext().isHasJoin() && this.beforeTopPreCalcJoin)) {
             this.columnRowType = this.buildColumnRowType();
             return;
         }

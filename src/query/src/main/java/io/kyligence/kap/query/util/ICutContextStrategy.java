@@ -49,9 +49,12 @@ public interface ICutContextStrategy {
             ((KapRel) input).implementCutContext(this);
         }
 
-        public OLAPContext allocateContext() {
+        public OLAPContext allocateContext(KapRel topNode, KapRel parentOfTopNode) {
             OLAPContext context = new OLAPContext(ctxSeq++);
             OLAPContext.registerContext(context);
+            context.setTopNode(topNode);
+            topNode.setContext(context);
+            context.setParentOfTopNode(parentOfTopNode);
             return context;
         }
 

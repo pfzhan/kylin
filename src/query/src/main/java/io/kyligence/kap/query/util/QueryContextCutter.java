@@ -71,10 +71,10 @@ public class QueryContextCutter {
                 reCutContextStrategy = new QueryReCutContextStrategy(
                         new ICutContextStrategy.CutContextImplementor(ctxSeq));
                 for (OLAPContext context : ContextUtil.listContextsHavingScan()) {
-                    if (context.hasSelected && context.realization == null && !context.hasPreCalcJoin) {
+                    if (context.isHasSelected() && context.realization == null && !context.isHasPreCalcJoin()) {
                         throw e;
-                    } else if (context.hasSelected && context.realization == null) {
-                        new QueryContextCutter(reCutContextStrategy).cutContext(context.topNode, root);
+                    } else if (context.isHasSelected() && context.realization == null) {
+                        new QueryContextCutter(reCutContextStrategy).cutContext(context.getTopNode(), root);
                         ContextUtil.setSubContexts(root.getInput(0));
                         continue;
                     } else if (context.realization != null) {

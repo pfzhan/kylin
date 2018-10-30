@@ -53,7 +53,7 @@ public class QueryReCutContextStrategy implements ICutContextStrategy {
 
     @Override
     public boolean needCutOff(OLAPRel rootRel) {
-        return rootRel.getContext() != null && rootRel.getContext().hasJoin;
+        return rootRel.getContext() != null && rootRel.getContext().isHasJoin();
     }
 
     public CutContextImplementor getRecutContextImplementor() {

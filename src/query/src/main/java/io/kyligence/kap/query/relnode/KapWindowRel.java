@@ -70,10 +70,9 @@ public class KapWindowRel extends OLAPWindowRel implements KapRel {
         olapContextImplementor.visitChild(getInput(), this, tempState);
 
         // window rel need a separate context
-        if (tempState.hasFreeTable) {
-            setContext(olapContextImplementor.allocateContext());
-            context.topNode = this;
-            tempState.hasFreeTable = false;
+        if (tempState.isHasFreeTable()) {
+            olapContextImplementor.allocateContext(this, null);
+            tempState.setHasFreeTable(false);
         }
 
         state.merge(tempState);
@@ -105,7 +104,7 @@ public class KapWindowRel extends OLAPWindowRel implements KapRel {
         this.columnRowType = buildColumnRowType();
         if (context != null) {
             this.context.hasWindow = true;
-            if (this == context.topNode && !context.hasAgg)
+            if (this == context.getTopNode() && !context.isHasAgg())
                 KapContext.amendAllColsIfNoAgg(this);
         }
     }

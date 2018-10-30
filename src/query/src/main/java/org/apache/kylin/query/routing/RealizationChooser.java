@@ -112,7 +112,7 @@ public class RealizationChooser {
     }
 
     private static void attemptSelectCandidate(OLAPContext context) {
-        context.hasSelected = true;
+        context.setHasSelected(true);
         Map<NDataModel, Set<IRealization>> modelMap = makeOrderedModelMap(context);
 
         if (modelMap.size() == 0) {
@@ -287,15 +287,15 @@ public class RealizationChooser {
             throw new IllegalStateException("Please adjust the sequence of join tables. " + toErrorMsg(ctx));
         } else {
             // normal big joins
-            if (ctx.joinsGraph == null) {
-                ctx.joinsGraph = new JoinsGraph(firstTable, ctx.joins);
+            if (ctx.getJoinsGraph() == null) {
+                ctx.setJoinsGraph(new JoinsGraph(firstTable, ctx.joins));
             }
             // TODO: finally we should remove joinsTree, it's only used in Auto-Modelling.
             if (ctx.joinsTree == null) {
                 Pair<TableRef, List<JoinDesc>> reordered = reorderJoins(firstTable, ctx.joins);
                 ctx.joinsTree = new JoinsTree(reordered.getFirst(), reordered.getSecond());
             }
-            matched = JoinsGraph.match(ctx.joinsGraph, model.getJoinsGraph(), matchUp);
+            matched = JoinsGraph.match(ctx.getJoinsGraph(), model.getJoinsGraph(), matchUp);
         }
 
         if (!matched) {

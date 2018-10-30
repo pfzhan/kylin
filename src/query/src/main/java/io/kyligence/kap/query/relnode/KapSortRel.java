@@ -96,9 +96,9 @@ public class KapSortRel extends OLAPSortRel implements KapRel {
         subContexts.addAll(ContextUtil.collectSubContext((KapRel) this.getInput()));
 
         if (context == null && subContexts.size() == 1
-                && this.getInput() == Lists.newArrayList(this.subContexts).get(0).topNode) {
+                && this.getInput() == Lists.newArrayList(this.subContexts).get(0).getTopNode()) {
             this.context = Lists.newArrayList(this.subContexts).get(0);
-            this.context.topNode = this;
+            this.context.setTopNode(this);
         }
         state.merge(tempState);
     }
@@ -107,7 +107,7 @@ public class KapSortRel extends OLAPSortRel implements KapRel {
     public void implementOLAP(OLAPImplementor olapContextImplementor) {
         olapContextImplementor.visitChild(getInput(), this);
         this.columnRowType = buildColumnRowType();
-        if (context != null && this == context.topNode && !context.hasAgg)
+        if (context != null && this == context.getTopNode() && !context.isHasAgg())
             KapContext.amendAllColsIfNoAgg(this);
     }
 

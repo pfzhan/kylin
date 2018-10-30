@@ -313,9 +313,9 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
                 if (ctx.firstTableScan == null)
                     continue;
 
-                if (ctx.enumeratorType == null)
+                if (ctx.getEnumeratorType() == null)
                     System.out.println("");
-                switch (ctx.enumeratorType) {
+                switch (ctx.getEnumeratorType()) {
                     case OLAP:
                         Assert.assertNotNull(ctx.realization);
                         Assert.assertNotNull(ctx.storageContext.getCuboidId());

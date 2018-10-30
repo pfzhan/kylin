@@ -42,6 +42,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.tools.RelBuilder;
 import org.apache.calcite.tools.RelBuilderFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 
@@ -55,6 +56,7 @@ public class JoinFilterRule extends RelOptRule {
     private static Predicate<Join> innerJoinPre = new Predicate<Join>() {
         @Override
         public boolean apply(@Nullable Join join) {
+            Preconditions.checkArgument(join != null, "join MUST NOT be null");
             return join.getJoinType() == JoinRelType.INNER;
         }
     };

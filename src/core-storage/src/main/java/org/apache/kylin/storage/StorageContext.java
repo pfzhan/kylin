@@ -46,7 +46,6 @@ package org.apache.kylin.storage;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
-import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.gridtable.StorageLimitLevel;
@@ -59,13 +58,16 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Range;
 
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
+import lombok.Getter;
+
 /**
  * @author xjiang
  */
 public class StorageContext {
     private static final Logger logger = LoggerFactory.getLogger(StorageContext.class);
-
-    public int ctxId;
+    @Getter
+    private int ctxId;
     private StorageURL connUrl;
     private int limit = Integer.MAX_VALUE;
     private boolean overlookOuterLimit = false;
@@ -215,14 +217,14 @@ public class StorageContext {
             return;
         }
 
-        long temp = this.getOffset() + this.getLimit();
+        int temp = this.getOffset() + this.getLimit();
 
         if (!isValidPushDownLimit(temp)) {
-            logger.warn("Not enabling limit push down because current limit is invalid: " + this.getLimit());
+            logger.warn("Not enabling limit push down because current limit is invalid: {}", this.getLimit());
             return;
         }
 
-        this.finalPushDownLimit = (int) temp;
+        this.finalPushDownLimit = temp;
         this.storageLimitLevel = storageLimitLevel;
         logger.info("Enabling limit push down: {} at level: {}", temp, storageLimitLevel);
     }
