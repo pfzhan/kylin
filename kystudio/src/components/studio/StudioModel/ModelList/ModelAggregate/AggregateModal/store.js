@@ -39,25 +39,10 @@ export default {
   state: JSON.parse(initialState),
   getters: {
     dimensions (state) {
-      if (state.model) {
-        return state.model.all_named_columns
-          .filter(column => column.status === 'DIMENSION')
-          .map(dimension => ({
-            label: dimension.column,
-            value: dimension.column,
-            id: dimension.id
-          }))
-      } else {
-        return []
-      }
+      return getDimensions(state.model)
     },
     dimensionIdMapping (state, getters) {
-      const { dimensions } = getters
-      const mapping = dimensions.reduce((mapping, item) => {
-        mapping[item.value] = item.id
-        return mapping
-      }, {})
-      return getFullMapping(mapping)
+      return getMapping(getters.dimensions)
     }
   },
   mutations: {
@@ -80,6 +65,29 @@ export default {
     },
     [types.INIT_FORM]: (state, payload) => {
       if (payload) {
+        const dimensions = getDimensions(state.model)
+        const nameMapping = getMapping(dimensions)
+        state.form.aggregateArray = payload.aggregation_groups.map((aggregationGroup, aggregateIdx) => {
+          const id = payload.aggregation_groups.length - aggregateIdx
+          const includes = aggregationGroup.includes.map(include => nameMapping[include])
+          const selectRules = aggregationGroup.select_rule
+          const mandatory = selectRules.mandatory_dims.map(mandatory => nameMapping[mandatory])
+          const jointArray = selectRules.joint_dims.map((jointGroup, groupIdx) => {
+            const items = jointGroup.map(joint => nameMapping[joint])
+            return { id: groupIdx, items }
+          })
+          const hierarchyArray = selectRules.hierarchy_dims.map((hierarchyGroup, groupIdx) => {
+            const items = hierarchyGroup.map(hierarchy => nameMapping[hierarchy])
+            return { id: groupIdx, items }
+          })
+          if (!hierarchyArray.length) {
+            hierarchyArray.push({ id: 0, items: [] })
+          }
+          if (!jointArray.length) {
+            jointArray.push({ id: 0, items: [] })
+          }
+          return { id, includes, mandatory, jointArray, hierarchyArray }
+        })
       }
     }
   },
@@ -99,6 +107,28 @@ export default {
     }
   },
   namespaced: true
+}
+
+function getMapping (dimensions) {
+  const mapping = dimensions.reduce((mapping, item) => {
+    mapping[item.value] = item.id
+    return mapping
+  }, {})
+  return getFullMapping(mapping)
+}
+
+function getDimensions (model) {
+  if (model) {
+    return model.all_named_columns
+      .filter(column => column.status === 'DIMENSION')
+      .map(dimension => ({
+        label: dimension.column,
+        value: dimension.column,
+        id: dimension.id
+      }))
+  } else {
+    return []
+  }
 }
 
 export { types }

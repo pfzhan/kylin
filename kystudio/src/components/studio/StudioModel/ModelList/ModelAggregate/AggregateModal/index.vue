@@ -2,6 +2,7 @@
   <el-dialog class="aggregate-modal" width="960px"
     :title="$t(modalTitle)"
     :visible="isShow"
+    :close-on-click-modal="false"
     @close="isShow && handleClose(false)">
     <template v-if="model">
       <!-- 维度列表展示 -->
@@ -37,7 +38,8 @@
               filterable
               :ref="`aggregate.include.${aggregateIdx}`"
               :value="aggregate.includes"
-              @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value)">
+              @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value)"
+              @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">
               <el-option
                 v-for="dimension in dimensions"
                 :key="dimension.value"
@@ -53,14 +55,12 @@
               multiple
               filterable
               :value="aggregate.mandatory"
-              @change="value => handleInput(`aggregateArray.${aggregateIdx}.mandatory`, value)"
-              @remove-tag="value => toggleIncludeDimension(aggregateIdx, value, false)">
+              @change="value => handleInput(`aggregateArray.${aggregateIdx}.mandatory`, value)">
               <el-option
                 v-for="dimension in getUnusedDimensions(aggregateIdx)"
                 :key="dimension.value"
                 :label="dimension.label"
-                :value="dimension.value"
-                @click.native="() => toggleIncludeDimension(aggregateIdx, dimension.value, true)">
+                :value="dimension.value">
               </el-option>
             </el-select>
           </div>
@@ -74,14 +74,12 @@
                 multiple
                 filterable
                 :value="hierarchy.items"
-                @change="value => handleInput(`aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`, value)"
-                @remove-tag="value => toggleIncludeDimension(aggregateIdx, value, false)">
+                @change="value => handleInput(`aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`, value)">
                 <el-option
                   v-for="dimension in getUnusedDimensions(aggregateIdx)"
                   :key="dimension.value"
                   :label="dimension.label"
-                  :value="dimension.value"
-                  @click.native="() => toggleIncludeDimension(aggregateIdx, dimension.value, true)">
+                  :value="dimension.value">
                 </el-option>
               </el-select>
               <div class="list-actions clearfix">
@@ -105,14 +103,12 @@
                 multiple
                 filterable
                 :value="joint.items"
-                @change="value => handleInput(`aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`, value)"
-                @remove-tag="value => toggleIncludeDimension(aggregateIdx, value, false)">
+                @change="value => handleInput(`aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`, value)">
                 <el-option
                   v-for="dimension in getUnusedDimensions(aggregateIdx)"
                   :key="dimension.value"
                   :label="dimension.label"
-                  :value="dimension.value"
-                  @click.native="() => toggleIncludeDimension(aggregateIdx, dimension.value, true)">
+                  :value="dimension.value">
                 </el-option>
               </el-select>
               <div class="list-actions clearfix">
@@ -257,10 +253,7 @@ export default class AggregateModal extends Vue {
     const dimensionRows = get(this.form, path)
 
     if (dimensionRows.length > 1) {
-      const deletedRow = dimensionRows.splice(dimensionRowIndex, 1)[0]
-      deletedRow.items.forEach(item => {
-        this.toggleIncludeDimension(aggregateIdx, item, false)
-      })
+      dimensionRows.splice(dimensionRowIndex, 1)[0]
       this.setModalForm({[rootKey]: set(this.form, path, dimensionRows)[rootKey]})
     }
   }
@@ -275,6 +268,29 @@ export default class AggregateModal extends Vue {
   handleInput (key, value) {
     const rootKey = key.split('.')[0]
     this.setModalForm({[rootKey]: set(this.form, key, value)[rootKey]})
+  }
+  handleRemoveIncludeRules (removedValue, aggregateIdx) {
+    const { aggregateArray = [] } = this.form
+    const { mandatory, hierarchyArray, jointArray } = aggregateArray[aggregateIdx]
+
+    if (mandatory.includes(removedValue)) {
+      const mandatoryKey = `aggregateArray.${aggregateIdx}.mandatory`
+      this.handleInput(mandatoryKey, mandatory.filter(item => item !== removedValue))
+    }
+    hierarchyArray.forEach((hierarchyGroup, hierarchyRowIdx) => {
+      const hierarchy = hierarchyGroup.items
+      if (hierarchy.includes(removedValue)) {
+        const hierarchyKey = `aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`
+        this.handleInput(hierarchyKey, hierarchy.filter(item => item !== removedValue))
+      }
+    })
+    jointArray.forEach((jointGroup, jointRowIdx) => {
+      const joint = jointGroup.items
+      if (joint.includes(removedValue)) {
+        const jointKey = `aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`
+        this.handleInput(jointKey, joint.filter(item => item !== removedValue))
+      }
+    })
   }
   async handleSubmit () {
     try {
@@ -320,6 +336,25 @@ export default class AggregateModal extends Vue {
         }
       }
     }
+  }
+  repaintDimensionSelector () {
+    const { form = {} } = this
+    const { aggregateArray = [] } = form
+
+    aggregateArray.forEach((aggregateGroup, aggregateIdx) => {
+      const { includes, mandatory, jointArray, hierarchyArray } = aggregateGroup
+      const jointBundle = jointArray.reduce((result, jointGroup) => [...result, ...jointGroup.items], [])
+      const hierarchyBundle = hierarchyArray.reduce((result, hierarchyGroup) => [...result, ...hierarchyGroup.items], [])
+      const selectedItems = [ ...mandatory, ...jointBundle, ...hierarchyBundle ]
+
+      includes.forEach((include) => {
+        const isSelected = selectedItems.includes(include)
+        this.toggleIncludeDimension(aggregateIdx, include, isSelected)
+      })
+    })
+  }
+  updated () {
+    this.repaintDimensionSelector()
   }
 }
 </script>

@@ -191,6 +191,7 @@ export default class ModelAggregate extends Vue {
       overflow: auto;
       padding: 10px;
       height: 583px;
+      width: 100%;
       .detail-content {
         .el-row {
           margin-bottom: 10px;
