@@ -62,7 +62,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
 
 public class NProjectManager {
     private static final Logger logger = LoggerFactory.getLogger(NProjectManager.class);
@@ -401,12 +401,10 @@ public class NProjectManager {
         }
     }
 
-    public ProjectInstance addTableDescToProject(String[] tableIdentities, String projectName) throws IOException {
-        try (AutoLock lock = prjMapLock.lockForWrite()) {
-            NTableMetadataManager metaMgr = getTableManager(projectName);
+    public ProjectInstance addTableDescToProject(List<TableDesc> tables, String projectName) throws IOException {
+        try (AutoLock ignored = prjMapLock.lockForWrite()) {
             ProjectInstance projectInstance = getProject(projectName);
-            for (String tableId : tableIdentities) {
-                TableDesc table = metaMgr.getTableDesc(tableId);
+            for (val table : tables) {
                 if (table == null) {
                     throw new IllegalStateException("Cannot find table '" + table + "' in metadata manager");
                 }
@@ -417,47 +415,14 @@ public class NProjectManager {
         }
     }
 
-    public void removeTableDescFromProject(String tableIdentities, String projectName) throws IOException {
-        try (AutoLock lock = prjMapLock.lockForWrite()) {
-            NTableMetadataManager metaMgr = getTableManager(projectName);
+    public void removeTableDescFromProject(TableDesc table, String projectName) throws IOException {
+        try (AutoLock ignored = prjMapLock.lockForWrite()) {
             ProjectInstance projectInstance = getProject(projectName);
-            TableDesc table = metaMgr.getTableDesc(tableIdentities);
             if (table == null) {
                 throw new IllegalStateException("Cannot find table '" + table + "' in metadata manager");
             }
 
             projectInstance.removeTable(table.getIdentity());
-            save(projectInstance);
-        }
-    }
-
-    public ProjectInstance addExtFilterToProject(String[] filters, String projectName) throws IOException {
-        try (AutoLock lock = prjMapLock.lockForWrite()) {
-            NTableMetadataManager metaMgr = getTableManager(projectName);
-            ProjectInstance projectInstance = getProject(projectName);
-            for (String filterName : filters) {
-                ExternalFilterDesc extFilter = metaMgr.getExtFilterDesc(filterName);
-                if (extFilter == null) {
-                    throw new IllegalStateException(
-                            "Cannot find external filter '" + filterName + "' in metadata manager");
-                }
-                projectInstance.addExtFilter(filterName);
-            }
-
-            return save(projectInstance);
-        }
-    }
-
-    public void removeExtFilterFromProject(String filterName, String projectName) throws IOException {
-        try (AutoLock lock = prjMapLock.lockForWrite()) {
-            NTableMetadataManager metaMgr = getTableManager(projectName);
-            ProjectInstance projectInstance = getProject(projectName);
-            ExternalFilterDesc filter = metaMgr.getExtFilterDesc(filterName);
-            if (filter == null) {
-                throw new IllegalStateException("Cannot find external filter '" + filterName + "' in metadata manager");
-            }
-
-            projectInstance.removeExtFilter(filterName);
             save(projectInstance);
         }
     }
@@ -548,10 +513,6 @@ public class NProjectManager {
 
     ResourceStore getStore() {
         return ResourceStore.getKylinMetaStore(this.config);
-    }
-
-    NTableMetadataManager getTableManager(String project) {
-        return NTableMetadataManager.getInstance(config, project);
     }
 
 }

@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import lombok.Setter;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.measure.basic.BasicMeasureType;
@@ -109,6 +110,7 @@ public class FunctionDesc implements Serializable {
     @JsonProperty("returntype")
     private String returnType;
 
+    @Setter
     @JsonProperty("configuration")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
     private Map<String, String> configuration = new LinkedHashMap<String, String>();
@@ -123,14 +125,18 @@ public class FunctionDesc implements Serializable {
             expression = PercentileMeasureType.FUNC_PERCENTILE_APPROX; // for backward compatibility
         }
 
-        returnDataType = DataType.getType(returnType);
+//        returnDataType = DataType.getType(returnType);
 
         for (ParameterDesc p = parameter; p != null; p = p.getNextParameter()) {
             if (p.isColumnType()) {
                 TblColRef colRef = model.findColumn(p.getValue());
+                returnDataType = DataType.getByColumnType(expression, colRef.getDatatype());
                 p.setValue(colRef.getIdentity());
                 p.setColRef(colRef);
             }
+        }
+        if (returnDataType == null) {
+            returnDataType = DataType.getType("bigint");
         }
     }
 

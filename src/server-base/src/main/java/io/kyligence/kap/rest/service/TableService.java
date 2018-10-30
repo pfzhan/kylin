@@ -149,6 +149,7 @@ public class TableService extends BasicService {
         final NTableMetadataManager tableMetaMgr = getTableManager(project);
         // save table meta
         List<String> saved = Lists.newArrayList();
+        List<TableDesc> savedTables = Lists.newArrayList();
         for (Pair<TableDesc, TableExtDesc> pair : allMeta) {
             TableDesc tableDesc = pair.getFirst();
             TableExtDesc extDesc = pair.getSecond();
@@ -180,9 +181,10 @@ public class TableService extends BasicService {
             }
 
             saved.add(tableDesc.getIdentity());
+            savedTables.add(tableDesc);
         }
         String[] result = (String[]) saved.toArray(new String[saved.size()]);
-        addTableToProject(result, project);
+        addTableToProject(savedTables, project);
         return result;
     }
 
@@ -212,7 +214,7 @@ public class TableService extends BasicService {
         return allMeta;
     }
 
-    private void addTableToProject(String[] tables, String project) throws IOException {
+    private void addTableToProject(List<TableDesc> tables, String project) throws IOException {
         getProjectManager().addTableDescToProject(tables, project);
     }
 
@@ -461,7 +463,7 @@ public class TableService extends BasicService {
 
     public void unloadTable(String project, String table) throws IOException {
         NTableMetadataManager tableMetadataManager = getTableManager(project);
-        getProjectManager().removeTableDescFromProject(table, project);
+        getProjectManager().removeTableDescFromProject(tableMetadataManager.getTableDesc(table), project);
         tableMetadataManager.removeTableExt(table);
         tableMetadataManager.removeSourceTable(table);
     }

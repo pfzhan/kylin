@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.model;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -208,7 +209,7 @@ public class NTableMetadataManager {
         try (AutoLock ignored = srcTableMapLock.lockForWrite()) {
             srcTable.init(project);
             srcTableCrud.save(srcTable);
-            getProjectManager().addTableDescToProject(new String[] { srcTable.getIdentity() }, project);
+            getProjectManager().addTableDescToProject(Arrays.asList(srcTable), project);
         }
     }
 
@@ -217,7 +218,7 @@ public class NTableMetadataManager {
             TableDesc t = getTableDesc(tableIdentity);
             if (t == null)
                 return;
-            getProjectManager().removeTableDescFromProject(tableIdentity, project);
+            getProjectManager().removeTableDescFromProject(t, project);
             srcTableCrud.delete(t);
         }
     }

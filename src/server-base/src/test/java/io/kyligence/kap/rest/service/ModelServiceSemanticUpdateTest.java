@@ -26,10 +26,12 @@ package io.kyligence.kap.rest.service;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.rest.response.ParameterResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.After;
 import org.junit.Assert;
@@ -45,12 +47,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
+import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.ModelSemanticUpdateRequest;
-import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import lombok.val;
-import lombok.var;
 
 public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     @InjectMocks
@@ -63,6 +65,10 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     public void setupResource() throws Exception {
         System.setProperty("HADOOP_USER_NAME", "root");
         staticCreateTestMetadata();
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        modelMgr.updateDataModel("nmodel_basic", copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        });
     }
 
     @Before
@@ -80,13 +86,17 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     @Test
     public void testModelUpdateMeasures() throws Exception {
         val request = newSemanticRequest();
-        val newMeasure1 = new NDataModel.Measure();
+        val newMeasure1 = new SimplifiedMeasure();
         newMeasure1.setName("GMV_AVG");
-        var desc = FunctionDesc.newInstance("AVG", ParameterDesc.newInstance("3"), "bitmap");
-        newMeasure1.setFunction(desc);
-        request.getAllMeasures().add(newMeasure1);
-        request.setAllMeasures(request.getAllMeasures().stream().filter(m -> !m.tomb && m.id != 1002 && m.id != 1003)
-                .collect(Collectors.toList()));
+        newMeasure1.setExpression("AVG");
+        newMeasure1.setReturnType("bitmap");
+        val param = new ParameterResponse();
+        param.setType("column");
+        param.setValue("TEST_KYLIN_FACT.PRICE");
+        newMeasure1.setParameterValue(Lists.newArrayList(param));
+        request.getSimplifiedMeasures().add(newMeasure1);
+        request.setSimplifiedMeasures(request.getSimplifiedMeasures().stream()
+                .filter(m -> m.getId() != 1002 && m.getId() != 1003).collect(Collectors.toList()));
         // add new measure and remove 1002 and 1003
         modelService.updateDataModelSemantic(request);
 
@@ -115,6 +125,9 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
         Assert.assertEquals(1, eventDao.getEvents().size());
 
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        dfMgr.updateDataflow(dfMgr.getDataflowByModelName(request.getName()).getName(),  copyForWrite -> copyForWrite.setReconstructing(false));
+
         newCol.name = "PRICE3";
         modelService.updateDataModelSemantic(request);
         val model2 = getTestModel();
@@ -124,7 +137,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRemoveDimensionsWithCubePlanRule() throws Exception {
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("cube ncube_basic still contains dimensions TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP");
+        thrown.expectMessage("model nmodel_basic's agg group still contains dimensions TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP");
         val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), "default");
         cubeMgr.updateCubePlan("ncube_basic", cubeBasic -> {
             val rule = new NRuleBasedCuboidsDesc();
@@ -143,10 +156,11 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val model = modelMgr.getDataModelDesc("nmodel_basic");
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelSemanticUpdateRequest.class);
         request.setProject("default");
-        request.setModel("nmodel_basic");
+        request.setName("nmodel_basic");
         request.setAllDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
-        request.setAllMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb).collect(Collectors.toList()));
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
+                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
         return JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelSemanticUpdateRequest.class);
     }
 

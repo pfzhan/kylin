@@ -151,7 +151,7 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
         }
 
         for (NAggregationGroup nAggregationGroup : aggregationGroups) {
-            nAggregationGroup.init(cubePlan);
+            nAggregationGroup.init(this);
         }
 
         if (newRuleBasedCuboid != null) {

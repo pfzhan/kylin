@@ -60,10 +60,6 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.event.handle.EventHandler;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.EventStatus;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -80,8 +76,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.event.handle.EventHandler;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.EventStatus;
 import io.kyligence.kap.shaded.influxdb.com.google.common.common.base.MoreObjects;
 import io.kyligence.kap.shaded.influxdb.com.google.common.common.collect.Sets;
+import lombok.val;
 
 /**
  */
@@ -116,8 +117,10 @@ public class EventOrchestrator {
 
                 List<Future> futures = new ArrayList<>();
                 List<Event> events = eventDao.getEvents();
+                logger.debug("project {}: events {}", project, events);
                 Map<String, List<EventSetManager>> eventsToBeProcessed = sectionalizeEvents(events);
                 List<EventSetManager> eventSetManagers;
+                logger.debug("project {}: tobe processsed {}", project, eventsToBeProcessed);
                 for (Map.Entry<String, List<EventSetManager>> eventsEntry : eventsToBeProcessed.entrySet()) {
                     eventSetManagers = eventsEntry.getValue();
                     futures.add(eventProcessPool.submit(new EventWorker(eventSetManagers)));
@@ -192,6 +195,7 @@ public class EventOrchestrator {
             while (iterator.hasNext()) {
                 event = iterator.next();
                 String groupKey = genGroupKey(event);
+                val finalEvent = event;
                 if (event.getStatus().equals(EventStatus.SUCCEED) || !event.isApproved()
                         || blackList.contains(groupKey)) {
                     iterator.remove();
@@ -382,4 +386,5 @@ public class EventOrchestrator {
     public void cleanBlackList() {
         blackList.clear();
     }
+
 }

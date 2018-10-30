@@ -48,7 +48,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArraySet;
 
-import io.kyligence.kap.event.handle.EventHandler;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.lock.JobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -57,6 +56,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.event.handle.EventHandler;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 /**

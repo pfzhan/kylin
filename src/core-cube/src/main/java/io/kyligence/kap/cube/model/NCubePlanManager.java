@@ -99,19 +99,17 @@ public class NCubePlanManager implements IKeepNames {
         Broadcaster.getInstance(config).registerListener(new CubePlanSyncListener(), project, NCUBE_PLAN_ENTITY_NAME);
     }
 
-    public List<NCubePlan> findMatchingCubePlan(String modelName, String project, KylinConfig kylinConfig) {
-        List<NCubePlan> matchingCubePlans = Lists.newArrayList();
+    public NCubePlan findMatchingCubePlan(String modelName, String project, KylinConfig kylinConfig) {
         Set<IRealization> realizations = NProjectManager.getInstance(kylinConfig).listAllRealizations(project);
         for (IRealization realization : realizations) {
             if (realization instanceof NDataflow) {
                 NCubePlan cubePlan = ((NDataflow) realization).getCubePlan();
                 if (cubePlan.getModelName().equals(modelName)) {
-                    matchingCubePlans.add(cubePlan);
+                    return cubePlan;
                 }
             }
         }
-
-        return matchingCubePlans;
+        throw new IllegalStateException("model " + modelName + " does not contain cube");
     }
 
     private class CubePlanSyncListener extends Broadcaster.Listener {

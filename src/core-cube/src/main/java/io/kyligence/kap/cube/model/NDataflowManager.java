@@ -237,6 +237,15 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
     }
 
+    public NDataflow getDataflowByModelName(String name) {
+        for (NDataflow dataflow : listAllDataflows()) {
+            if (dataflow.getModel().getName().equals(name)) {
+                return dataflow;
+            }
+        }
+        throw new IllegalStateException("Cannot find " + name + "'s dataflow");
+    }
+
     public List<NDataflow> getDataflowsByCubePlan(String cubePlan) {
         List<NDataflow> list = listAllDataflows();
         List<NDataflow> result = new ArrayList<NDataflow>();

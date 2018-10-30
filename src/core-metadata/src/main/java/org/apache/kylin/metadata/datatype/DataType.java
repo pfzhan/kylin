@@ -111,6 +111,7 @@ public class DataType implements Serializable {
         registerComplex("array\\<.*\\>");
     }
 
+
     public static final Set<String> INTEGER_FAMILY = new HashSet<String>();
     public static final Set<String> NUMBER_FAMILY = new HashSet<String>();
     public static final Set<String> DATETIME_FAMILY = new HashSet<String>();
@@ -150,6 +151,12 @@ public class DataType implements Serializable {
         LEGACY_TYPE_MAP.put("hllc15", "hllc(15)");
         LEGACY_TYPE_MAP.put("hllc16", "hllc(16)");
     }
+    private static final Map<String, String> MEASURE_DEFAULT_TYPE_MAP = new HashMap<>();
+    static {
+        MEASURE_DEFAULT_TYPE_MAP.put("TOP_N", "topn(100, 4)");
+        MEASURE_DEFAULT_TYPE_MAP.put("COUNT_DISTINCT", "bitmap");
+        MEASURE_DEFAULT_TYPE_MAP.put("PERCENTILE", "percentile(100)");
+    }
 
     private static final ConcurrentMap<DataType, DataType> CACHE = new ConcurrentHashMap<DataType, DataType>();
 
@@ -165,6 +172,13 @@ public class DataType implements Serializable {
         return m.matches();
     }
 
+    public static DataType getByColumnType(String expression, String colType) {
+        String defaultType = MEASURE_DEFAULT_TYPE_MAP.get(expression);
+        if (defaultType == null) {
+            defaultType = colType;
+        }
+        return getType(defaultType);
+    }
     public static DataType getType(String type) {
         if (type == null)
             return null;

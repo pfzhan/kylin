@@ -25,6 +25,7 @@
 package io.kyligence.kap.event.handle;
 
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.SerializationUtils;
@@ -34,7 +35,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
 import io.kyligence.kap.event.manager.EventDao;
@@ -64,14 +64,11 @@ public class CubePlanRuleUpdateHandlerTest extends NLocalFileMetadataTestCase {
         val cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), "default");
         val cubePlanUpdateEvent = new CubePlanRuleUpdateEvent();
 
-        val cubePlan = cubePlanManager.updateCubePlan("ncube_basic_inner", new NCubePlanManager.NCubePlanUpdater() {
-            @Override
-            public void modify(NCubePlan copyForWrite) {
-                val newRule = new NRuleBasedCuboidsDesc();
-                newRule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
-                newRule.setMeasures(Arrays.asList(1001, 1002));
-                copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(newRule);
-            }
+        val cubePlan = cubePlanManager.updateCubePlan("ncube_basic_inner", copyForWrite -> {
+            val newRule = new NRuleBasedCuboidsDesc();
+            newRule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
+            newRule.setMeasures(Arrays.asList(1001, 1002));
+            copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(newRule);
         });
         cubePlanUpdateEvent.setProject("default");
         cubePlanUpdateEvent.setCubePlanName(cubePlan.getName());
@@ -111,6 +108,8 @@ public class CubePlanRuleUpdateHandlerTest extends NLocalFileMetadataTestCase {
         handler.handle(eventContext);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        events.sort(Comparator.comparingLong(Event::getCreateTime));
         Assert.assertEquals(2, events.size());
+
     }
 }

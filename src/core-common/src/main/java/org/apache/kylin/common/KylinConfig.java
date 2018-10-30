@@ -116,7 +116,7 @@ public class KylinConfig extends KylinConfigBase {
         synchronized (KylinConfig.class) {
             KylinConfig config = THREAD_ENV_INSTANCE.get();
             if (config != null) {
-                logger.info("Using thread local KylinConfig");
+                logger.trace("Using thread local KylinConfig");
                 return config;
             }
 

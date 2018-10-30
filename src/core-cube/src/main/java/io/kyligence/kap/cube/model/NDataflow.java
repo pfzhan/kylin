@@ -58,6 +58,8 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.Getter;
+import lombok.Setter;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -102,6 +104,10 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     private long createTimeUTC;
     @JsonProperty("status")
     private RealizationStatusEnum status;
+    @Setter
+    @Getter
+    @JsonProperty("reconstructing")
+    private boolean isReconstructing;
     @JsonProperty("cost")
     private int cost = 50;
 

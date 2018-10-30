@@ -1,9 +1,8 @@
 {
   "uuid": "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
-  "name": "nmodel_basic",
+  "name": "all_fixed_length",
   "fact_table": "DEFAULT.TEST_KYLIN_FACT",
   "owner": "ADMIN",
-  "maintain_model_type": "MANUAL_MAINTAIN",
   "join_tables": [
     {
       "table": "DEFAULT.TEST_ORDER",
@@ -191,13 +190,13 @@
       "id": 11,
       "name": "PRICE",
       "column": "TEST_KYLIN_FACT.PRICE",
-      "status": "EXIST"
+      "status": "DIMENSION"
     },
     {
       "id": 12,
       "name": "ITEM_COUNT",
       "column": "TEST_KYLIN_FACT.ITEM_COUNT",
-      "status": "EXIST"
+      "status": "DIMENSION"
     },
     {
       "id": 13,
@@ -281,66 +280,6 @@
       "id": 26,
       "name": "TEST_COUNT_DISTINCT_BITMAP",
       "column": "TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP",
-      "status": "DIMENSION"
-    },
-    {
-      "id": 27,
-      "name": "DEAL_AMOUNT",
-      "column": "TEST_KYLIN_FACT.DEAL_AMOUNT",
-      "status": "DIMENSION"
-    },
-    {
-      "id": 28,
-      "name": "DEAL_YEAR",
-      "column": "TEST_KYLIN_FACT.DEAL_YEAR",
-      "status": "DIMENSION"
-    },
-    {
-      "id": 29,
-      "name": "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME",
-      "column": "TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME",
-      "status": "DIMENSION"
-    },
-    {
-      "id": 30,
-      "name": "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
-      "column": "TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
-      "status": "DIMENSION"
-    },
-    {
-      "id": 31,
-      "name": "LEFTJOIN_BUYER_COUNTRY_ABBR",
-      "column": "TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR",
-      "status": "DIMENSION"
-    },
-    {
-      "id": 32,
-      "name": "LEFTJOIN_SELLER_COUNTRY_ABBR",
-      "column": "TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR",
-      "status": "DIMENSION"
-    },
-    {
-      "id": 33,
-      "name": "NEST1",
-      "column": "TEST_KYLIN_FACT.NEST1",
-      "status": "DIMENSION"
-    },
-    {
-      "id": 34,
-      "name": "NEST2",
-      "column": "TEST_KYLIN_FACT.NEST2",
-      "status": "DIMENSION"
-    },
-    {
-      "id": 35,
-      "name": "NEST3",
-      "column": "TEST_KYLIN_FACT.NEST3",
-      "status": "DIMENSION"
-    },
-    {
-      "id": 36,
-      "name": "NEST4",
-      "column": "TEST_KYLIN_FACT.NEST4",
       "status": "DIMENSION"
     }
   ],
@@ -525,86 +464,7 @@
       ]
     }
   ],
-  "computed_columns": [
-    {
-      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
-      "columnName": "DEAL_AMOUNT",
-      "expression": "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
-      "datatype": "decimal",
-      "comment": "deal amount of left join model (with legacy expression format)"
-    },
-    {
-      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
-      "tableAlias": "TEST_KYLIN_FACT",
-      "columnName": "DEAL_YEAR",
-      "expression": "year(TEST_KYLIN_FACT.CAL_DT)",
-      "datatype": "integer",
-      "comment": "the year of the deal"
-    },
-    {
-      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
-      "tableAlias": "TEST_KYLIN_FACT",
-      "columnName": "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME",
-      "expression": "CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)",
-      "datatype": "string",
-      "comment": "synthetically concat buyer's account id and buyer country"
-    },
-    {
-      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
-      "tableAlias": "TEST_KYLIN_FACT",
-      "columnName": "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
-      "expression": "CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)",
-      "datatype": "string",
-      "comment": "synthetically concat seller's account id and seller country"
-    },
-    {
-      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
-      "tableAlias": "TEST_KYLIN_FACT",
-      "columnName": "LEFTJOIN_BUYER_COUNTRY_ABBR",
-      "expression": "SUBSTR(BUYER_ACCOUNT.ACCOUNT_COUNTRY,0,1)",
-      "datatype": "string",
-      "comment": "first char of country of buyer account"
-    },
-    {
-      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
-      "tableAlias": "TEST_KYLIN_FACT",
-      "columnName": "LEFTJOIN_SELLER_COUNTRY_ABBR",
-      "expression": "SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)",
-      "datatype": "string",
-      "comment": "first char of country of seller account"
-    },
-    {
-      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
-      "columnName": "NEST1",
-      "expression": "TEST_KYLIN_FACT.PRICE + 11",
-      "datatype": "decimal",
-      "comment": "test nest1"
-    },
-    {
-      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
-      "columnName": "NEST2",
-      "expression": "TEST_KYLIN_FACT.NEST1 * 12",
-      "innerExpression": "(TEST_KYLIN_FACT.PRICE + 11) * 12",
-      "datatype": "decimal",
-      "comment": "test nest2"
-    },
-    {
-      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
-      "columnName": "NEST3",
-      "expression": "round(TEST_KYLIN_FACT.NEST2, 0)",
-      "innerExpression": "round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0)",
-      "datatype": "decimal",
-      "comment": "test nest3"
-    },
-    {
-      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
-      "columnName": "NEST4",
-      "expression": "TEST_KYLIN_FACT.NEST3 * TEST_KYLIN_FACT.ITEM_COUNT",
-      "innerExpression": "round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0) * TEST_KYLIN_FACT.ITEM_COUNT",
-      "datatype": "decimal",
-      "comment": "test nest4"
-    }
-  ],
+  "computed_columns": [],
   "last_modified": 1422435345352,
   "filter_condition": null,
   "partition_desc": {

@@ -44,9 +44,13 @@
 package io.kyligence.kap.event.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
+@Setter
+@Getter
 public class AddSegmentEvent extends Event {
 
     @JsonProperty("segment_ids")
@@ -58,11 +62,5 @@ public class AddSegmentEvent extends Event {
         setParallel(true);
     }
 
-    public List<Integer> getSegmentIds() {
-        return segmentIds;
-    }
-
-    public void setSegmentIds(List<Integer> segmentIds) {
-        this.segmentIds = segmentIds;
-    }
 }
+

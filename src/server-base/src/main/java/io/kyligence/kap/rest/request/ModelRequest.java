@@ -26,7 +26,7 @@ package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.response.SimplifiedMeasureResponse;
+import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -40,13 +40,13 @@ public class ModelRequest extends NDataModel {
     @JsonProperty("project")
     private String project;
     @JsonProperty("simplified_measures")
-    private List<SimplifiedMeasureResponse> simplifiedMeasures = new ArrayList<>();
+    private List<SimplifiedMeasure> simplifiedMeasures;
 
     public ModelRequest() {
         super();
     }
 
-    public ModelRequest(NDataModel dataMolde) {
-        super(dataMolde);
+    public ModelRequest(NDataModel dataModel) {
+        super(dataModel);
     }
 }

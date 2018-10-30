@@ -30,10 +30,8 @@ import java.util.stream.Collectors;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.base.Functions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.CubePlanStatus;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.event.model.AddCuboidEvent;
@@ -74,7 +72,6 @@ public class CubePlanRuleUpdateHandler extends AbstractEventHandler implements D
             val difference = Maps.difference(Maps.asMap(originLayouts, Functions.identity()),
                     Maps.asMap(targetLayouts, Functions.identity()));
 
-            cubePlanManager.updateCubePlan(event.getCubePlanName(), cube -> cube.setStatus(CubePlanStatus.NOT_READY));
             // new cuboid
             if (difference.entriesOnlyOnRight().size() > 0) {
                 val addCuboidEvent = new AddCuboidEvent();
@@ -105,7 +102,6 @@ public class CubePlanRuleUpdateHandler extends AbstractEventHandler implements D
     }
 
     private boolean onlyRemoveMeasures(Set<NCuboidLayout> originLayouts, Set<NCuboidLayout> targetLayouts) {
-        val contains = Lists.<Boolean>newArrayList();
         if (originLayouts.size() != targetLayouts.size()) {
             return false;
         }
@@ -117,9 +113,11 @@ public class CubePlanRuleUpdateHandler extends AbstractEventHandler implements D
                     break;
                 }
             }
-            contains.add(result);
+            if (!result) {
+                return false;
+            }
         }
-        return contains.stream().reduce(true, (left, right) -> left && right);
+        return true;
     }
 
     @Override

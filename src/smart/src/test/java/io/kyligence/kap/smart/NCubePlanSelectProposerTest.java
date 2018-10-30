@@ -68,8 +68,8 @@ public class NCubePlanSelectProposerTest extends NLocalFileMetadataTestCase {
         smartMaster.selectModel();
         NSmartContext ctx = smartMaster.getContext();
         NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-        Assert.assertEquals("nmodel_basic", mdCtx.getTargetModel().getName());
-        Assert.assertEquals("nmodel_basic", mdCtx.getOrigModel().getName());
+        Assert.assertEquals("all_fixed_length", mdCtx.getTargetModel().getName());
+        Assert.assertEquals("all_fixed_length", mdCtx.getOrigModel().getName());
 
         // validate select the expected CubePlan
         smartMaster.selectCubePlan();

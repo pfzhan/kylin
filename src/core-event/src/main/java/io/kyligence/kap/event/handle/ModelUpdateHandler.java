@@ -28,10 +28,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
-import io.kyligence.kap.event.model.AccelerateEvent;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.RemoveCuboidBySqlEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -43,12 +39,17 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AccelerateEvent;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.PostModelSemanticUpdateEvent;
+import io.kyligence.kap.event.model.RemoveCuboidBySqlEvent;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.model.ModelTree;
-import io.kyligence.kap.event.manager.EventManager;
 
-public class ModelUpdateHandler extends AbstractEventHandler {
+public class ModelUpdateHandler extends AbstractEventHandler implements DeriveEventMixin {
 
     private static final Logger logger = LoggerFactory.getLogger(ModelUpdateHandler.class);
 
@@ -60,24 +61,15 @@ public class ModelUpdateHandler extends AbstractEventHandler {
         boolean eventAutoApproved = kylinConfig.getEventAutoApproved();
         List<String> sqlList = event.getSqlPatterns();
         if (sqlList == null || sqlList.size() == 0) {
+            fireEvent(new PostModelSemanticUpdateEvent(), event, eventContext.getConfig());
             return;
         }
         if (CollectionUtils.isNotEmpty(sqlList)) {
             // need parse sql
             NSmartMaster master = new NSmartMaster(kylinConfig, project, sqlList.toArray(new String[0]));
-            if (event.isFavoriteMark()) {
-                master.runAll();
-            } else {
-                // unFavorite sql will not update model and cubePlan, just convert to a RemoveCuboidEvent and dispatch it
-                master.analyzeSQLs();
-                master.selectModel();
-                master.selectCubePlan();
-
-//                master.shrinkCubePlan();
-//                master.shrinkModel();
-            }
-            List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
+            List<NSmartContext.NModelContext> modelContexts = master.getModelContext(event.isFavoriteMark());
             if (CollectionUtils.isEmpty(modelContexts)) {
+                fireEvent(new PostModelSemanticUpdateEvent(), event, eventContext.getConfig());
                 return;
             }
             EventManager eventManager = EventManager.getInstance(kylinConfig, project);
@@ -117,6 +109,7 @@ public class ModelUpdateHandler extends AbstractEventHandler {
             }
         }
 
+        fireEvent(new PostModelSemanticUpdateEvent(), event, eventContext.getConfig());
     }
 
     private List<String> getRelatedSqlsFromModelContext(NSmartContext.NModelContext modelContext) {

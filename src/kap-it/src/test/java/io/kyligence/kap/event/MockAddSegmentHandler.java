@@ -21,24 +21,46 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.event.handle;
+package io.kyligence.kap.event;
 
+import org.apache.kylin.common.KylinConfig;
+
+import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.event.handle.AbstractEventHandler;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.PostModelSemanticUpdateEvent;
 import lombok.val;
 
-public class PostModelSemanticUpdateHandler extends AbstractEventHandler {
+public class MockAddSegmentHandler extends AbstractEventHandler {
     @Override
     protected void doHandle(EventContext eventContext) throws Exception {
-        val event = eventContext.getEvent();
-        val dataflowManager = NDataflowManager.getInstance(eventContext.getConfig(), event.getProject());
-        val df = dataflowManager.getDataflowByModelName(event.getModelName());
-        dataflowManager.updateDataflow(df.getName(), copyForWrite -> copyForWrite.setReconstructing(false));
+        AddSegmentEvent event = (AddSegmentEvent) eventContext.getEvent();
+
+        String project = event.getProject();
+        KylinConfig kylinConfig = eventContext.getConfig();
+
+        val dfMgr = NDataflowManager.getInstance(kylinConfig, project);
+        val eventManager = EventManager.getInstance(kylinConfig, project);
+
+        NDataflow df = dfMgr.getDataflow(event.getCubePlanName());
+        // repost event
+        if (df.isReconstructing()) {
+            val newEvent = new AddSegmentEvent();
+            newEvent.setModelName(event.getModelName());
+            newEvent.setProject(event.getProject());
+            newEvent.setApproved(event.isApproved());
+            newEvent.setCubePlanName(event.getCubePlanName());
+            newEvent.setSegmentIds(event.getSegmentIds());
+            newEvent.setAddedInfo(event.getAddedInfo());
+            eventManager.post(newEvent);
+        }
+        Thread.sleep(2000);
     }
 
     @Override
     public Class<?> getEventClassType() {
-        return PostModelSemanticUpdateEvent.class;
+        return AddSegmentEvent.class;
     }
 }

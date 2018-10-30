@@ -50,7 +50,6 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
@@ -74,11 +73,6 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
     public void setupResource() throws Exception {
         System.setProperty("HADOOP_USER_NAME", "root");
         staticCreateTestMetadata();
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        dataflowManager.dropDataflow("all_fixed_length");
-//        val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-//        val fixedPlan = cubePlanManager.getCubePlan("all_fixed_length");
-//        cubePlanManager.removeCubePlan(fixedPlan);
     }
 
     @After
@@ -115,21 +109,6 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid());
         Assert.assertEquals(4, saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().getDimensions().size());
         Assert.assertEquals(origin.getAllCuboidLayouts().size() + 1, saved.getAllCuboidLayouts().size());
-    }
-
-    @Test
-    public void testUpdateEmptyCube() throws IOException, PersistentException {
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        dataflowManager.dropDataflow("ncube_basic");
-        val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val fixedPlan = cubePlanManager.getCubePlan("ncube_basic");
-        cubePlanManager.removeCubePlan(fixedPlan);
-        val saved = cubePlanService.updateRuleBasedCuboid(UpdateRuleBasedCuboidRequest.builder().project("default")
-                .model("nmodel_basic").dimensions(Arrays.asList(1, 2, 3, 4))
-                .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
-        Assert.assertNotNull(saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid());
-        Assert.assertEquals(4, saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().getDimensions().size());
-        Assert.assertEquals(1, saved.getAllCuboidLayouts().size());
     }
 
     @Test

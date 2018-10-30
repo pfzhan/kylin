@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.event.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -31,6 +32,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 public class ModelSemanticUpdateEvent extends Event {
 
+    @JsonProperty("origin_model")
     private NDataModel originModel;
 
 }

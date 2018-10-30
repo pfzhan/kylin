@@ -75,7 +75,7 @@ public class ModelUpdateHandlerTest extends NLocalFileMetadataTestCase {
 
         List<Event> events = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT).getEvents();
         Assert.assertNotNull(events);
-        Assert.assertTrue(events.size() == 2);
+        Assert.assertEquals(3, events.size());
 
         // run again, and model will not update and will not post an new AddCuboidEvent
         handler.handle(eventContext);
@@ -94,7 +94,7 @@ public class ModelUpdateHandlerTest extends NLocalFileMetadataTestCase {
 
         events = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT).getEvents();
         Assert.assertNotNull(events);
-        Assert.assertTrue(events.size() == 3);
+        Assert.assertEquals(6, events.size());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
 

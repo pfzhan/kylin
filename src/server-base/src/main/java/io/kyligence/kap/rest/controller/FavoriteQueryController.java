@@ -55,7 +55,7 @@ public class FavoriteQueryController extends NBasicController {
 
     @RequestMapping(value = "", method = RequestMethod.POST)
     @ResponseBody
-    public EnvelopeResponse manualFavorite(@RequestBody FavoriteRequest request) throws PersistentException {
+    public EnvelopeResponse manualFavorite(@RequestBody FavoriteRequest request) throws PersistentException, IOException {
         favoriteQueryService.manualFavorite(request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }

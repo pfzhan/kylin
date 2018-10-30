@@ -175,7 +175,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 }
                 int newId = ++maxColId;
                 NDataModel.NamedColumn col = new NDataModel.NamedColumn();
-                col.name = tblColRef.getIdentity();
+                col.name = tblColRef.getName();
                 col.aliasDotColumn = tblColRef.getIdentity();
                 col.id = newId;
                 namedColsCandidate.put(tblColRef.getIdentity(), col);

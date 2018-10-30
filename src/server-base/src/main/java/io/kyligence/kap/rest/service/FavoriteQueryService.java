@@ -36,6 +36,8 @@ import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.cube.model.NDataflowManager;
+import lombok.val;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
@@ -57,6 +59,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.event.model.AccelerateEvent;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
@@ -67,7 +70,6 @@ import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
-import io.kyligence.kap.event.model.AccelerateEvent;
 
 @Component("favoriteQueryService")
 public class FavoriteQueryService extends BasicService {
@@ -153,7 +155,7 @@ public class FavoriteQueryService extends BasicService {
         queryHistoryTimeOffsetManager.save(queryHistoryTimeOffset);
     }
 
-    public void manualFavorite(FavoriteRequest request) throws PersistentException {
+    public void manualFavorite(FavoriteRequest request) throws PersistentException, IOException {
         final String project = request.getProject();
         final String sqlPattern = request.getSqlPattern();
         final int sqlPatternHash = sqlPattern.hashCode();
@@ -453,7 +455,7 @@ public class FavoriteQueryService extends BasicService {
         return data;
     }
 
-    public void acceptAccelerate(String project, int accelerateSize) throws PersistentException {
+    public void acceptAccelerate(String project, int accelerateSize) throws PersistentException, IOException {
         List<String> sqlPatterns = Lists.newArrayList();
         List<String> unAcceleratedSqlPattern = favoriteQueryJDBCDao.getUnAcceleratedSqlPattern(project);
         if (accelerateSize > unAcceleratedSqlPattern.size()) {
@@ -497,7 +499,17 @@ public class FavoriteQueryService extends BasicService {
         return ignoreCountMap;
     }
 
-    void post(String project, List<String> sqls, boolean favoriteMark) throws PersistentException {
+    void post(String project, List<String> sqls, boolean favoriteMark) throws PersistentException, IOException {
+        val master = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project, sqls.toArray(new String[0]));
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        for (NSmartContext.NModelContext modelContext : master.getModelContext(favoriteMark)) {
+            val model = modelContext.getOrigModel();
+            val df = dataflowManager.getDataflowByModelName(model.getName());
+            if (df.isReconstructing()) {
+                throw new IllegalStateException("model " + model.getName() + " is reconstructing");
+            }
+            dataflowManager.updateDataflow(df.getName(), copy -> copy.setReconstructing(true));
+        }
         AccelerateEvent accelerateEvent = new AccelerateEvent();
         accelerateEvent.setFavoriteMark(favoriteMark);
         accelerateEvent.setProject(project);

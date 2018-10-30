@@ -61,7 +61,6 @@ import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
-import io.kyligence.kap.rest.request.ModelCanvasUpdateRequest;
 import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -98,7 +97,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse)
             throws IOException {
         checkProjectName(project);
-        List<NDataModel> models = new ArrayList<NDataModel>();
+        List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
             for (NDataModelResponse modelDesc : modelService.getModels(modelName, project, exactMatch, owner, status,
                     sortBy, reverse)) {
@@ -202,18 +201,11 @@ public class NModelController extends NBasicController {
     }
 
     @PutMapping(value = "/semantic", produces = "application/vnd.apache.kylin-v2+json")
+    @ResponseBody
     public EnvelopeResponse updateSemantic(@RequestBody ModelSemanticUpdateRequest request) throws IOException, PersistentException {
         checkProjectName(request.getProject());
-        checkRequiredArg(MODEL_NAME, request.getModel());
+        checkRequiredArg(MODEL_NAME, request.getName());
         modelService.updateDataModelSemantic(request);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
-    }
-
-    @PutMapping(value = "/canvas", produces = "application/vnd.apache.kylin-v2+json")
-    public EnvelopeResponse updateCanvas(@RequestBody ModelCanvasUpdateRequest request) throws IOException {
-        checkProjectName(request.getProject());
-        checkRequiredArg(MODEL_NAME, request.getModel());
-        modelService.updateDataModelCanvas(request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 

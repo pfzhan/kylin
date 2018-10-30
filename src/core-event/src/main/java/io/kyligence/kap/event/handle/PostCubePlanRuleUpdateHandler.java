@@ -23,8 +23,8 @@
  */
 package io.kyligence.kap.event.handle;
 
-import io.kyligence.kap.cube.model.CubePlanStatus;
 import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.PostCubePlanRuleUpdateEvent;
 import lombok.val;
@@ -42,9 +42,11 @@ public class PostCubePlanRuleUpdateHandler extends AbstractEventHandler {
             if (newRule == null) {
                 return;
             }
-            copyForWrite.setStatus(CubePlanStatus.READY);
             copyForWrite.setRuleBasedCuboidsDesc(newRule);
         });
+        val dataflowManager = NDataflowManager.getInstance(kylinConfig, event.getProject());
+        val df = dataflowManager.getDataflowByModelName(event.getModelName());
+        dataflowManager.updateDataflow(df.getName(), copyForWrite -> copyForWrite.setReconstructing(false));
     }
 
     @Override

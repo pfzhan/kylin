@@ -27,56 +27,26 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.google.common.primitives.Ints;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.LoadingRangeRefreshEvent;
-import io.kyligence.kap.event.model.ModelSemanticUpdateEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.event.model.RemoveSegmentEvent;
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.DataCheckDesc;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.ModelStatus;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.rest.request.ModelCanvasUpdateRequest;
-import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.request.ModelSemanticUpdateRequest;
-import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
-import io.kyligence.kap.rest.response.CuboidDescResponse;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.ParameterResponse;
-import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
-import io.kyligence.kap.rest.response.RelatedModelResponse;
-import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
-import io.kyligence.kap.rest.response.SimplifiedMeasureResponse;
-import io.kyligence.kap.rest.response.SimplifiedTableResponse;
 import io.kyligence.kap.smart.util.CubeUtils;
-import lombok.val;
-import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.PersistentException;
-import org.apache.kylin.metadata.ModifiedOrder;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -84,6 +54,7 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -103,10 +74,10 @@ import org.springframework.stereotype.Component;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.cube.model.CubePlanStatus;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
@@ -118,6 +89,34 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.engine.spark.NJoinedFlatTable;
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.LoadingRangeRefreshEvent;
+import io.kyligence.kap.event.model.ModelSemanticUpdateEvent;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.DataCheckDesc;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.ModelSemanticUpdateRequest;
+import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
+import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.ParameterResponse;
+import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
+import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
+import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.response.SimplifiedTableResponse;
+import lombok.val;
+import lombok.var;
 
 @Component("modelService")
 public class ModelService extends BasicService {
@@ -132,7 +131,7 @@ public class ModelService extends BasicService {
             .toCharArray();
 
     public List<NDataModelResponse> getModels(final String modelName, final String projectName, boolean exactMatch,
-                                              String owner, String status, String sortBy, boolean reverse) {
+            String owner, String status, String sortBy, boolean reverse) {
 
         List<NDataModel> models = getDataModelManager(projectName).getDataModels();
         List<NDataModelResponse> filterModels = new ArrayList<NDataModelResponse>();
@@ -155,10 +154,11 @@ public class ModelService extends BasicService {
                 }
             }
         }
+        var comp = Comparator.<NDataModelResponse> comparingLong(r -> -r.getLastModified());
         if (sortBy.equals(LAST_MODIFY) && reverse) {
-            Collections.sort(filterModels, new ModifiedOrder());
+            Collections.sort(filterModels, comp);
         } else if (sortBy.equals(LAST_MODIFY) && !reverse) {
-            Collections.sort(filterModels, new ModifiedOrder());
+            Collections.sort(filterModels, comp);
             Collections.reverse(filterModels);
 
         }
@@ -176,7 +176,7 @@ public class ModelService extends BasicService {
             simpleTables.add(simpleTable);
         }
         nDataModelResponse.setSimpleTables(simpleTables);
-        List<SimplifiedMeasureResponse> simplifiedMeasures = getSimplifiedMeasures(modelDesc);
+        List<SimplifiedMeasure> simplifiedMeasures = getSimplifiedMeasures(modelDesc);
         nDataModelResponse.setSimplifiedMeasures(simplifiedMeasures);
         if (modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             Segments<NDataSegment> segments = getSegments(modelDesc.getName(), projectName, "0", "" + Long.MAX_VALUE);
@@ -191,25 +191,11 @@ public class ModelService extends BasicService {
         return nDataModelResponse;
     }
 
-    private List<SimplifiedMeasureResponse> getSimplifiedMeasures(NDataModel model) {
+    private List<SimplifiedMeasure> getSimplifiedMeasures(NDataModel model) {
         List<NDataModel.Measure> measures = model.getAllMeasures();
-        List<SimplifiedMeasureResponse> measureResponses = new ArrayList<>();
+        List<SimplifiedMeasure> measureResponses = new ArrayList<>();
         for (NDataModel.Measure measure : measures) {
-            SimplifiedMeasureResponse measureResponse = new SimplifiedMeasureResponse();
-            measureResponse.setId(measure.id);
-            measureResponse.setName(measure.getName());
-            measureResponse.setExpression(measure.getFunction().getExpression());
-            measureResponse.setReturnType(measure.getFunction().getReturnType());
-            List<ParameterResponse> parameters = new ArrayList<>();
-            Set<ParameterDesc.PlainParameter> plainParameters = measure.getFunction().getParameter().getPlainParameters();
-            for (ParameterDesc.PlainParameter plainParameter : plainParameters) {
-                ParameterResponse parameterResponse = new ParameterResponse();
-                parameterResponse.setType(plainParameter.getType());
-                parameterResponse.setValue(plainParameter.getValue());
-                parameters.add(parameterResponse);
-            }
-            measureResponse.setParameterValue(parameters);
-            measureResponses.add(measureResponse);
+            measureResponses.add(SimplifiedMeasure.fromMeasure(measure));
         }
         return measureResponses;
     }
@@ -350,7 +336,8 @@ public class ModelService extends BasicService {
         return result;
     }
 
-    public List<RelatedModelResponse> getRelateModels(String project, String table, String modelName) throws IOException {
+    public List<RelatedModelResponse> getRelateModels(String project, String table, String modelName)
+            throws IOException {
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         NDataModelManager dataModelManager = getDataModelManager(project);
         List<String> models = dataModelManager.getModelsUsingRootTable(tableDesc);
@@ -358,7 +345,8 @@ public class ModelService extends BasicService {
         for (String model : models) {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
             NDataModel dataModelDesc = dataModelManager.getDataModelDesc(model);
-            if (StringUtils.isEmpty(modelName) || dataModelDesc.getAlias().toLowerCase().contains(modelName.toLowerCase())) {
+            if (StringUtils.isEmpty(modelName)
+                    || dataModelDesc.getAlias().toLowerCase().contains(modelName.toLowerCase())) {
                 RelatedModelResponse relatedModelResponse = new RelatedModelResponse(dataModelDesc);
                 Segments<NDataSegment> segments = getSegments(model, project, "", "");
                 for (NDataSegment segment : segments) {
@@ -374,9 +362,8 @@ public class ModelService extends BasicService {
 
     private List<NCubePlan> getCubePlans(String modelName, String project) {
         NCubePlanManager cubePlanManager = getCubePlanManager(project);
-        List<NCubePlan> cubePlans = cubePlanManager.findMatchingCubePlan(modelName, project,
-                KylinConfig.getInstanceFromEnv());
-        return cubePlans;
+        val cubePlan = cubePlanManager.findMatchingCubePlan(modelName, project, KylinConfig.getInstanceFromEnv());
+        return cubePlan == null ? Lists.newArrayList() : Lists.newArrayList(cubePlan);
     }
 
     private void checkAliasExist(String modelName, String newAlias, String project) {
@@ -455,23 +442,21 @@ public class ModelService extends BasicService {
 
     private void cloneCubePlan(String modelName, String newModelName, String project, String owner) throws IOException {
         NCubePlanManager cubePlanManager = getCubePlanManager(project);
-        List<NCubePlan> cubePlans = cubePlanManager.findMatchingCubePlan(modelName, project, getConfig());
+        NCubePlan cubePlan = cubePlanManager.findMatchingCubePlan(modelName, project, getConfig());
         NDataflowManager dataflowManager = getDataflowManager(project);
-        for (NCubePlan cubePlan : cubePlans) {
-            NCubePlan copy = cubePlanManager.copy(cubePlan);
-            copy.setModelName(newModelName);
-            copy.setSegmentRangeStart(0L);
-            copy.setSegmentRangeEnd(0L);
-            copy.updateRandomUuid();
-            copy.setName(copy.getUuid());
-            copy.setLastModified(0L);
-            cubePlanManager.createCubePlan(copy);
-            NDataflow nDataflow = new NDataflow();
-            nDataflow.setStatus(RealizationStatusEnum.OFFLINE);
-            nDataflow.setProject(project);
-            nDataflow.setCubePlanName(cubePlan.getName());
-            dataflowManager.createDataflow(copy.getName(), project, copy, owner);
-        }
+        NCubePlan copy = cubePlanManager.copy(cubePlan);
+        copy.setModelName(newModelName);
+        copy.setSegmentRangeStart(0L);
+        copy.setSegmentRangeEnd(0L);
+        copy.updateRandomUuid();
+        copy.setName(copy.getUuid());
+        copy.setLastModified(0L);
+        cubePlanManager.createCubePlan(copy);
+        NDataflow nDataflow = new NDataflow();
+        nDataflow.setStatus(RealizationStatusEnum.OFFLINE);
+        nDataflow.setProject(project);
+        nDataflow.setCubePlanName(cubePlan.getName());
+        dataflowManager.createDataflow(copy.getName(), project, copy, owner);
     }
 
     public void renameDataModel(String project, String modelName, String newAlias) throws IOException {
@@ -498,7 +483,8 @@ public class ModelService extends BasicService {
         if (nDataModel.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new IllegalStateException("Model " + modelName + " is model based, can not unlink it!");
         } else {
-            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(nDataModel.getRootFactTable().getTableIdentity());
+            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager
+                    .getDataLoadingRange(nDataModel.getRootFactTable().getTableIdentity());
             NDataModel modelUpdate = dataModelManager.copyForWrite(nDataModel);
             if (dataLoadingRange != null) {
                 modelUpdate.setAutoMergeTimeRanges(dataLoadingRange.getAutoMergeTimeRanges());
@@ -528,7 +514,7 @@ public class ModelService extends BasicService {
             boolean needChangeStatus = (status.equals(RealizationStatusEnum.OFFLINE.name())
                     && dataflow.getStatus().equals(RealizationStatusEnum.ONLINE))
                     || (status.equals(RealizationStatusEnum.ONLINE.name())
-                    && dataflow.getStatus().equals(RealizationStatusEnum.OFFLINE));
+                            && dataflow.getStatus().equals(RealizationStatusEnum.OFFLINE));
             if (dataflow.getStatus().equals(RealizationStatusEnum.DESCBROKEN)
                     && !status.equals(RealizationStatusEnum.DESCBROKEN.name())) {
                 throw new BadRequestException(
@@ -550,7 +536,6 @@ public class ModelService extends BasicService {
             }
         }
     }
-
 
     public SegmentRange getSegmentRangeByModel(String project, String modelName, String start, String end) {
         TableRef tableRef = getDataModelManager(project).getDataModelDesc(modelName).getRootFactTable();
@@ -621,60 +606,60 @@ public class ModelService extends BasicService {
         eventManager.post(event);
     }
 
-
     public void createModel(ModelRequest modelRequest) throws IOException {
         String project = modelRequest.getProject();
         checkAliasExist(modelRequest.getName(), modelRequest.getAlias(), project);
         //remove some attributes in modelResponse to fit NDataModel
-        NDataModel dataModel = convertToDataModel(modelRequest);
-        getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
+        val dataModel = convertToDataModel(modelRequest);
+        val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
+
+        val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+        val nCubePlan = new NCubePlan();
+        nCubePlan.setProject(modelRequest.getProject());
+        nCubePlan.setUuid(UUID.randomUUID().toString());
+        nCubePlan.setModelName(modelRequest.getName());
+        nCubePlan.setName(modelRequest.getName() + "_cube");
+        nCubePlan.setModelName(modelRequest.getName());
+        cubePlanManager.createCubePlan(nCubePlan);
+        dataflowManager.createDataflow(nCubePlan.getName(), nCubePlan.getProject(), nCubePlan, model.getOwner());
     }
 
-    public static NDataModel convertToDataModel(ModelRequest modelRequest) throws IOException {
-        //remove some attributes in modelResponse to fit NDataModel
+    public NDataModel convertToDataModel(ModelRequest modelRequest) throws IOException {
+        String project = modelRequest.getProject();
+        List<SimplifiedMeasure> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
         NDataModel dataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelRequest), NDataModel.class);
         dataModel.setUuid(UUID.randomUUID().toString());
+        dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
 
-        List<SimplifiedMeasureResponse> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
-        List<NDataModel.Measure> measures = new ArrayList<>();
-        boolean hasCount = false;
-        int id = NDataModel.MEASURE_ID_BASE;
-        for (SimplifiedMeasureResponse simplifiedMeasure : simplifiedMeasures) {
-            NDataModel.Measure measure = new NDataModel.Measure();
-            measure.id = simplifiedMeasure.getId();
-            measure.setName(simplifiedMeasure.getName());
-            FunctionDesc functionDesc = new FunctionDesc();
-            functionDesc.setReturnType(simplifiedMeasure.getReturnType());
-            functionDesc.setExpression(simplifiedMeasure.getExpression());
-            List<ParameterResponse> parameterResponseList = simplifiedMeasure.getParameterValue();
-            functionDesc.setParameter(enrichParameterDesc(parameterResponseList, null));
-            // TODO just check count(*), update this logic when count(col) is implemented
-            if (functionDesc.isCount()) {
-                hasCount = true;
+        int id = 0;
+        List<NDataModel.NamedColumn> columns = Lists.newArrayList();
+        Map<String, JoinTableDesc> allTables = Maps.newHashMap();
+        allTables.put(modelRequest.getRootFactTableName(), null);
+        for (JoinTableDesc table : modelRequest.getJoinTables()) {
+            allTables.put(table.getTable(), table);
+        }
+        for (Map.Entry<String, JoinTableDesc> entry : allTables.entrySet()) {
+            val tableDesc = tableManager.getTableDesc(entry.getKey());
+            boolean isFact = entry.getValue() == null || entry.getValue().getKind() == NDataModel.TableKind.FACT;
+            val alias = entry.getValue() == null ? tableDesc.getName() : entry.getValue().getAlias();
+            val tableRef = new TableRef(dataModel, alias, tableDesc, !isFact);
+            for (TblColRef column : tableRef.getColumns()) {
+                val namedColumn = new NDataModel.NamedColumn();
+                namedColumn.id = id;
+                namedColumn.name = column.getName();
+                namedColumn.aliasDotColumn = alias + "." + column.getName();
+                namedColumn.status = NDataModel.ColumnStatus.EXIST;
+                if (dataModel.getAllNamedColumns().stream().anyMatch(c -> c.aliasDotColumn.equals(namedColumn.aliasDotColumn))) {
+                    namedColumn.status = NDataModel.ColumnStatus.DIMENSION;
+                }
+                columns.add(namedColumn);
+                id++;
             }
-            measure.setFunction(functionDesc);
-            measure = CubeUtils.newMeasure(functionDesc, simplifiedMeasure.getName(), id++);
-            measures.add(measure);
-
         }
-        if (!hasCount) {
-            FunctionDesc functionDesc = new FunctionDesc();
-            ParameterDesc parameterDesc = new ParameterDesc();
-            parameterDesc.setType("constant");
-            parameterDesc.setValue("1");
-            functionDesc.setParameter(parameterDesc);
-            functionDesc.setExpression("COUNT");
-            functionDesc.setReturnType("bigint");
-            NDataModel.Measure measure = CubeUtils.newMeasure(functionDesc, "COUNT_ALL", id);
-            measures.add(measure);
-        }
-        dataModel.setAllMeasures(measures);
-
-        List<NDataModel.NamedColumn> allNamedColumns = dataModel.getAllNamedColumns();
-        for (int i = 0; i < allNamedColumns.size(); i++) {
-            allNamedColumns.get(i).id = i;
-        }
-
+        dataModel.setAllNamedColumns(columns);
         return dataModel;
     }
 
@@ -735,12 +720,14 @@ public class ModelService extends BasicService {
         } else {
             for (NDataSegment existedSegment : segments) {
                 if (existedSegment.getSegRange().overlaps(segmentRangeToBuild)) {
-                    throw new BadRequestException("Segments to build overlaps built or building segment(from " + existedSegment.getSegRange().getStart().toString() + " to " + existedSegment.getSegRange().getEnd().toString() + "), please select new data range and try again!");
+                    throw new BadRequestException("Segments to build overlaps built or building segment(from "
+                            + existedSegment.getSegRange().getStart().toString() + " to "
+                            + existedSegment.getSegRange().getEnd().toString()
+                            + "), please select new data range and try again!");
                 }
             }
         }
     }
-
 
     public void primaryCheck(NDataModel modelDesc) {
         Message msg = MsgPicker.getMsg();
@@ -794,8 +781,7 @@ public class ModelService extends BasicService {
         for (ComputedColumnDesc cc : dataModelDesc.getComputedColumnDescs()) {
             checkCCName(cc.getColumnName());
 
-            if (!StringUtils.isEmpty(ccInCheck)
-                    && !StringUtils.equalsIgnoreCase(cc.getFullName(), ccInCheck))
+            if (!StringUtils.isEmpty(ccInCheck) && !StringUtils.equalsIgnoreCase(cc.getFullName(), ccInCheck))
                 continue;
 
             //replace computed columns with basic columns
@@ -837,7 +823,6 @@ public class ModelService extends BasicService {
         forCC.append(" ,").append(tempConst);
         forCC.append(" ");
         NJoinedFlatTable.appendJoinStatement(flatTableDesc, forCC, false);
-
 
         String ccSql = KeywordDefaultDirtyHack.transform(forCC.toString());
         ccSql = KapQueryUtil.massageComputedColumn(ccSql, project, "DEFAULT", modelDesc);
@@ -967,56 +952,58 @@ public class ModelService extends BasicService {
             }
         }
     }
+
+    // TODO: transaction
     public void updateDataModelSemantic(ModelSemanticUpdateRequest request) throws PersistentException, IOException {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
         val cubeManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        val originModel = modelManager.getDataModelDesc(request.getModel());
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
+        val originModel = modelManager.getDataModelDesc(request.getName());
 
-        Preconditions.checkState(originModel.getModelStatus() == ModelStatus.READY,
-                "model " + request.getModel() + " is building");
+        //        Preconditions.checkState(originModel.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN,
+        //                "model " + originModel.getName() + " is AUTO_MAINTAIN");
+
+        val df = dataflowManager.getDataflowByModelName(request.getName());
+        Preconditions.checkState(!df.isReconstructing(), "model " + request.getName() + " is reconstructing ");
         val copyModel = modelManager.copyForWrite(originModel);
-        BeanUtils.copyProperties(request, copyModel, "allNamedColumns", "allMeasures");
+        BeanUtils.copyProperties(request, copyModel);
         updateModelColumns(copyModel, request);
-        val targetModel = modelManager.updateDataModelDesc(copyModel);
+        val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
+                .getAllTablesMap();
+        copyModel.init(modelManager.getConfig(), allTables, modelManager.listModels(), false);
 
-        for (NCubePlan cubePlan : cubeManager.findMatchingCubePlan(request.getModel(), request.getProject(),
-                KylinConfig.getInstanceFromEnv())) {
-            Preconditions.checkState(cubePlan.getStatus() == CubePlanStatus.READY,
-                    "cube " + cubePlan.getName() + " is building");
-            // check agg group contains removed dimensions
-            val rule = cubePlan.getRuleBasedCuboidsDesc();
-            if (rule != null && !targetModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {
-                val allDimensions = rule.getDimensions();
-                val dimensionNames = allDimensions.stream()
-                        .filter(id -> !targetModel.getEffectiveDimenionsMap().containsKey(id))
-                        .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
-                throw new IllegalStateException("cube " + cubePlan.getName() + " still contains dimensions "
-                        + StringUtils.join(dimensionNames, ","));
-            }
+        NCubePlan cubePlan = cubeManager.findMatchingCubePlan(request.getName(), request.getProject(),
+                KylinConfig.getInstanceFromEnv());
+        // check agg group contains removed dimensions
+        val rule = cubePlan.getRuleBasedCuboidsDesc();
+        if (rule != null && !copyModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {
+            val allDimensions = rule.getDimensions();
+            val dimensionNames = allDimensions.stream()
+                    .filter(id -> !copyModel.getEffectiveDimenionsMap().containsKey(id))
+                    .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
+
+            throw new IllegalStateException("model " + cubePlan.getModel().getName()
+                    + "'s agg group still contains dimensions " + StringUtils.join(dimensionNames, ","));
         }
 
+        modelManager.updateDataModelDesc(copyModel);
+        dataflowManager.updateDataflow(df.getName(), copyForWrite -> copyForWrite.setReconstructing(true));
         val eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
         val event = new ModelSemanticUpdateEvent();
         event.setProject(request.getProject());
-        event.setModelName(request.getModel());
+        event.setModelName(request.getName());
+        event.setCubePlanName(df.getCubePlanName());
         event.setOriginModel(originModel);
+        event.setApproved(true);
         eventManager.post(event);
-    }
-
-    public void updateDataModelCanvas(ModelCanvasUpdateRequest request) throws IOException {
-        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        val originModel = modelManager.getDataModelDesc(request.getModel());
-        val targetModel = modelManager.copyForWrite(originModel);
-
-        targetModel.setCanvas(request.getCanvas());
-        modelManager.updateDataModelDesc(targetModel);
     }
 
     private void updateModelColumns(NDataModel targetModel, ModelSemanticUpdateRequest request) throws IOException {
         val newMeasures = Lists.<NDataModel.Measure> newArrayList();
         var maxMeasureId = targetModel.getEffectiveMeasureMap().keySet().stream().mapToInt(i -> i).max()
                 .orElse(NDataModel.MEASURE_ID_BASE - 1) + 1;
-        for (NDataModel.Measure measure : request.getAllMeasures()) {
+        for (SimplifiedMeasure simplifiedMeasure : request.getSimplifiedMeasures()) {
+            val measure = simplifiedMeasure.toMeasure();
             measure.getFunction().init(targetModel);
             val matched = targetModel.getEffectiveMeasureMap().values().stream()
                     .filter(m -> m.getName().equals(measure.getName()) && m.getFunction().equals(measure.getFunction()))
@@ -1030,9 +1017,10 @@ public class ModelService extends BasicService {
         }
         targetModel.getAllMeasures().addAll(newMeasures);
         for (NDataModel.Measure measure : targetModel.getAllMeasures()) {
-            val matched = request.getAllMeasures().stream()
-                    .filter(m -> m.getName().equals(measure.getName()) && m.getFunction().equals(measure.getFunction()))
-                    .count();
+            val matched = request.getSimplifiedMeasures().stream().filter(simplifiedMeasure -> {
+                val m = simplifiedMeasure.toMeasure();
+                return m.getName().equals(measure.getName()) && m.getFunction().equals(measure.getFunction());
+            }).count();
             measure.tomb = matched == 0 || measure.tomb;
         }
 
@@ -1063,6 +1051,45 @@ public class ModelService extends BasicService {
                 column.status = NDataModel.ColumnStatus.EXIST;
             }
         }
+    }
+
+    private List<NDataModel.Measure> convertMeasure(List<SimplifiedMeasure> simplifiedMeasures) {
+        List<NDataModel.Measure> measures = new ArrayList<>();
+        boolean hasCount = false;
+        int id = NDataModel.MEASURE_ID_BASE;
+        if (simplifiedMeasures == null) {
+            simplifiedMeasures = Lists.newArrayList();
+        }
+        for (SimplifiedMeasure simplifiedMeasure : simplifiedMeasures) {
+            NDataModel.Measure measure = new NDataModel.Measure();
+            measure.id = simplifiedMeasure.getId();
+            measure.setName(simplifiedMeasure.getName());
+            FunctionDesc functionDesc = new FunctionDesc();
+            functionDesc.setReturnType(simplifiedMeasure.getReturnType());
+            functionDesc.setExpression(simplifiedMeasure.getExpression());
+            List<ParameterResponse> parameterResponseList = simplifiedMeasure.getParameterValue();
+            functionDesc.setParameter(enrichParameterDesc(parameterResponseList, null));
+            // TODO just check count(*), update this logic when count(col) is implemented
+            if (functionDesc.isCount()) {
+                hasCount = true;
+            }
+            measure.setFunction(functionDesc);
+            measure = CubeUtils.newMeasure(functionDesc, simplifiedMeasure.getName(), id++);
+            measures.add(measure);
+
+        }
+        if (!hasCount) {
+            FunctionDesc functionDesc = new FunctionDesc();
+            ParameterDesc parameterDesc = new ParameterDesc();
+            parameterDesc.setType("constant");
+            parameterDesc.setValue("1");
+            functionDesc.setParameter(parameterDesc);
+            functionDesc.setExpression("COUNT");
+            functionDesc.setReturnType("bigint");
+            NDataModel.Measure measure = CubeUtils.newMeasure(functionDesc, "COUNT_ALL", id);
+            measures.add(measure);
+        }
+        return measures;
     }
 
 }

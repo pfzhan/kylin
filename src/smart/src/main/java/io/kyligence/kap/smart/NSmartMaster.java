@@ -162,6 +162,17 @@ public class NSmartMaster {
         saveCubePlan();
     }
 
+    public List<NSmartContext.NModelContext> getModelContext(boolean isOptimize) throws IOException {
+        if (isOptimize) {
+            runAll();
+        } else {
+            analyzeSQLs();
+            selectModel();
+            selectCubePlan();
+        }
+        return getContext().getModelContexts();
+    }
+
     public void saveCubePlan() throws IOException {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(context.getKylinConfig(), context.getProject());
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(context.getKylinConfig(), context.getProject());

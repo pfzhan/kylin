@@ -23,12 +23,12 @@
  */
 package io.kyligence.kap.event.handle;
 
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,11 +37,20 @@ import org.junit.Test;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.CubePlanRuleUpdateEvent;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.ModelSemanticUpdateEvent;
+import io.kyligence.kap.event.model.PostModelSemanticUpdateEvent;
+import io.kyligence.kap.event.model.RemoveCuboidByIdEvent;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.ModelSemanticUpdateEvent;
 import lombok.val;
+import lombok.var;
 
 public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
 
@@ -77,7 +86,36 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Comparator.comparingLong(Event::getCreateTime));
-        Assert.assertTrue(events.get(1) instanceof RefreshSegmentEvent);
+        Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
+    }
+
+    @Test
+    public void testChangePartitionDesc() throws Exception {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val originModel = getTestBasicModel();
+        val cube = dfMgr.getDataflowByModelName(originModel.getName()).getCubePlan();
+        val ids = cube.getAllCuboidLayouts().stream().map(NCuboidLayout::getId).collect(Collectors.toList());
+
+        modelMgr.updateDataModel(MODEL_NAME, model -> {
+            val partitionDesc = model.getPartitionDesc();
+            partitionDesc.setCubePartitionType(PartitionDesc.PartitionType.UPDATE_INSERT);
+        });
+        val updateEvent = new ModelSemanticUpdateEvent();
+        updateEvent.setProject("default");
+        updateEvent.setModelName(MODEL_NAME);
+        updateEvent.setOriginModel(originModel);
+        val eventContext = new EventContext(updateEvent, getTestConfig());
+        val handler = new ModelSemanticUpdateHandler();
+        handler.handle(eventContext);
+
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        events.sort(Comparator.comparingLong(Event::getCreateTime));
+        Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
+        val savedIds = ((AddCuboidEvent) events.get(1)).getLayoutIds();
+        Assert.assertTrue(CollectionUtils.isEqualCollection(savedIds,
+                Arrays.<Long>asList(1000001L, 1L, 2L, 1001L, 1002L, 2001L, 3001L, 20000001001L)));
+        Assert.assertTrue(events.get(2) instanceof PostModelSemanticUpdateEvent);
     }
 
     @Test
@@ -96,7 +134,8 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Comparator.comparingLong(Event::getCreateTime));
-        Assert.assertEquals(1, events.size());
+        Assert.assertEquals(2, events.size());
+
     }
 
     @Test
@@ -117,9 +156,26 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         val handler = new ModelSemanticUpdateHandler();
         handler.handle(eventContext);
 
-        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        var events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Comparator.comparingLong(Event::getCreateTime));
         Assert.assertEquals(2, events.size());
+
+        cubeMgr.updateCubePlan("ncube_basic", copyForWrite -> {
+            val rule = new NRuleBasedCuboidsDesc();
+            rule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
+            rule.setMeasures(Arrays.asList(1011, 1000));
+            copyForWrite.setRuleBasedCuboidsDesc(rule);
+        });
+        val updateEvent2 = new ModelSemanticUpdateEvent();
+        updateEvent2.setProject("default");
+        updateEvent2.setModelName(MODEL_NAME);
+        updateEvent2.setOriginModel(originModel);
+        eventContext.setEvent(updateEvent2);
+        handler.handle(eventContext);
+        events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        events.sort(Comparator.comparingLong(Event::getCreateTime));
+        Assert.assertEquals(4, events.size());
+        Assert.assertTrue(events.get(3) instanceof CubePlanRuleUpdateEvent);
 
         val cube = cubeMgr.getCubePlan("ncube_basic");
         for (NCuboidLayout layout : cube.getWhitelistCuboidLayouts()) {
@@ -149,7 +205,8 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Comparator.comparingLong(Event::getCreateTime));
-        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(2, events.size());
+        Assert.assertTrue(events.get(1) instanceof CubePlanRuleUpdateEvent);
 
         val cube = cubeMgr.getCubePlan("ncube_basic_inner");
         for (NCuboidLayout layout : cube.getWhitelistCuboidLayouts()) {
@@ -175,8 +232,8 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
             val joins = model.getJoinTables();
             joins.get(0).getJoin().setType("inner");
         });
-        modelMgr.updateDataModel(originModel.getName(), model -> model.setAllNamedColumns(model.getAllNamedColumns()
-                .stream().peek(c -> {
+        modelMgr.updateDataModel(originModel.getName(),
+                model -> model.setAllNamedColumns(model.getAllNamedColumns().stream().peek(c -> {
                     c.status = NDataModel.ColumnStatus.DIMENSION;
                     if (c.id == 26) {
                         c.status = NDataModel.ColumnStatus.EXIST;
@@ -192,14 +249,21 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Comparator.comparingLong(Event::getCreateTime));
-        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(3, events.size());
+        Assert.assertTrue(events.get(1) instanceof CubePlanRuleUpdateEvent);
+        Assert.assertTrue(events.get(2) instanceof RemoveCuboidByIdEvent);
+
+        val removeEvent = (RemoveCuboidByIdEvent) events.get(2);
 
         val cube = cubeMgr.getCubePlan("ncube_basic_inner");
         for (NCuboidLayout layout : cube.getWhitelistCuboidLayouts()) {
             Assert.assertTrue(!layout.getColOrder().contains(1011));
-            Assert.assertTrue(!layout.getColOrder().contains(26));
             Assert.assertTrue(!layout.getCuboidDesc().getMeasures().contains(1011));
-            Assert.assertTrue(!layout.getCuboidDesc().getDimensions().contains(26));
+            if (removeEvent.getLayoutIds().contains(layout.getId())) {
+                Assert.assertTrue(layout.getColOrder().contains(26));
+            } else {
+                Assert.assertTrue(!layout.getColOrder().contains(26));
+            }
         }
     }
 

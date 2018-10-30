@@ -45,7 +45,6 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
 
 /**
@@ -72,15 +71,14 @@ public class NAggregationGroup implements Serializable {
     private List<Long> joints;//each long is a group
     private long jointDimsMask;
     private List<Long> normalDims;//each long is a single dim
-    private NCubePlan nCubePlan;
     private NRuleBasedCuboidsDesc nRuleBasedCuboidsDesc;
     private boolean isMandatoryOnlyValid;
     private HashMap<Long, Long> dim2JointMap;
 
-    public void init(NCubePlan cubePlan) {
-        this.nCubePlan = cubePlan;
-        this.nRuleBasedCuboidsDesc = cubePlan.getRuleBasedCuboidsDesc();
-        this.isMandatoryOnlyValid = cubePlan.getConfig().getCubeAggrGroupIsMandatoryOnlyValid();
+    public void init(NRuleBasedCuboidsDesc ruleBasedCuboidsDesc) {
+        this.nRuleBasedCuboidsDesc = ruleBasedCuboidsDesc;
+        this.isMandatoryOnlyValid = ruleBasedCuboidsDesc.getCubePlan().getConfig()
+                .getCubeAggrGroupIsMandatoryOnlyValid();
 
         if (this.includes == null || this.includes.length == 0 || this.selectRule == null) {
             throw new IllegalStateException("AggregationGroup incomplete");
@@ -266,6 +264,7 @@ public class NAggregationGroup implements Serializable {
     public List<HierarchyMask> getHierarchyMasks() {
         return hierarchyMasks;
     }
+
     public Long translateToOnTreeCuboid(long cuboidID) {
         if ((cuboidID & ~getPartialCubeFullMask()) > 0) {
             //the partial cube might not contain all required dims
@@ -358,7 +357,7 @@ public class NAggregationGroup implements Serializable {
             return false;
         } else {
             //base cuboid is always valid
-            if (cuboidID == nCubePlan.getRuleBasedCuboidsDesc().getFullMask()) {
+            if (cuboidID == nRuleBasedCuboidsDesc.getFullMask()) {
                 return true;
             }
 

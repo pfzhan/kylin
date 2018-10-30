@@ -30,16 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.cube.model.NDataLoadingRange;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
@@ -54,10 +44,21 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.val;
 
 
 public class AddSegmentHandler extends AbstractEventWithJobHandler {
@@ -122,8 +123,21 @@ public class AddSegmentHandler extends AbstractEventWithJobHandler {
         KylinConfig kylinConfig = eventContext.getConfig();
 
         NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
+        EventManager eventManager = EventManager.getInstance(kylinConfig, project);
 
         NDataflow df = dfMgr.getDataflow(event.getCubePlanName());
+        // repost event
+        if (df.isReconstructing()) {
+            val newEvent = new AddSegmentEvent();
+            newEvent.setModelName(event.getModelName());
+            newEvent.setProject(event.getProject());
+            newEvent.setApproved(event.isApproved());
+            newEvent.setCubePlanName(event.getCubePlanName());
+            newEvent.setSegmentIds(event.getSegmentIds());
+            newEvent.setAddedInfo(event.getAddedInfo());
+            eventManager.post(newEvent);
+            return null;
+        }
         AbstractExecutable job;
         List<NCuboidLayout> layouts = new ArrayList<>();
         Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);

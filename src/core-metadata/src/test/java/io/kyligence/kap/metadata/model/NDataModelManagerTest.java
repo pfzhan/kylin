@@ -93,7 +93,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testListDataModels() {
-        Assert.assertEquals(4, mgrDefault.getDataModels().size());
+        Assert.assertEquals(6, mgrDefault.getDataModels().size());
     }
 
     @Test
@@ -106,7 +106,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModels() {
         List<NDataModel> models = mgrDefault.listModels();
-        Assert.assertEquals(4, models.size());
+        Assert.assertEquals(6, models.size());
 
         NDataModelManager mgrSsb;
         mgrSsb = NDataModelManager.getInstance(getTestConfig(), "ssb");

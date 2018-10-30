@@ -25,6 +25,8 @@ package io.kyligence.kap.rest.request;
 
 import java.util.List;
 
+import io.kyligence.kap.metadata.model.Canvas;
+import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 
@@ -40,7 +42,7 @@ public class ModelSemanticUpdateRequest {
 
     private String project;
 
-    private String model;
+    private String name;
 
     @JsonProperty("join_tables")
     private List<JoinTableDesc> joinTables;
@@ -48,16 +50,19 @@ public class ModelSemanticUpdateRequest {
     @JsonProperty("partition_desc")
     private PartitionDesc partitionDesc;
 
-    @JsonProperty("all_dimensions")
+    @JsonProperty("all_named_columns")
     private List<NDataModel.NamedColumn> allDimensions = Lists.newArrayList();
 
-    @JsonProperty("all_measures")
-    private List<NDataModel.Measure> allMeasures = Lists.newArrayList();
+    @JsonProperty("simplified_measures")
+    private List<SimplifiedMeasure> simplifiedMeasures;
 
     @JsonProperty("multilevel_partition_cols")
     private List<String> mpColStrs = Lists.newArrayList();
 
     @JsonProperty("computed_columns")
     private List<ComputedColumnDesc> computedColumnDescs = Lists.newArrayList();
+
+    @JsonProperty("canvas")
+    private Canvas canvas;
 
 }

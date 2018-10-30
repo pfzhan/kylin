@@ -139,10 +139,6 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     @JsonProperty("dictionaries")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<NDictionaryDesc> dictionaries;
-    @Getter
-    @JsonProperty("status")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private CubePlanStatus status = CubePlanStatus.READY;
 
     // computed fields below
     @JsonProperty("project")
@@ -600,11 +596,6 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
 
     public List<String> getStatusNeedNotify() {
         return isCachedAndShared ? ImmutableList.copyOf(statusNeedNotify) : statusNeedNotify;
-    }
-
-    public void setStatus(CubePlanStatus status) {
-        checkIsNotCachedAndShared();
-        this.status = status;
     }
 
     /**

@@ -204,7 +204,7 @@ class NProjectL2Cache {
         if (pi == null)
             throw new IllegalArgumentException("Project '" + project + "' does not exist;");
 
-        NTableMetadataManager metaMgr = mgr.getTableManager(project);
+        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(mgr.getConfig(), project);
 
         for (String tableName : pi.getTables()) {
             TableDesc tableDesc = metaMgr.getTableDesc(tableName);
@@ -257,7 +257,7 @@ class NProjectL2Cache {
         if (realization == null)
             return false;
 
-        NTableMetadataManager metaMgr = mgr.getTableManager(project);
+        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(mgr.getConfig(), project);
 
         Set<TblColRef> allColumns = realization.getAllColumns();
         if (allColumns == null || allColumns.isEmpty()) {

@@ -89,7 +89,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
         for (NamedColumn namedColumn : model.getAllNamedColumns()) {
             namedColumn.status = NDataModel.ColumnStatus.TOMB;
             colsById.put(namedColumn.id, namedColumn);
-            colsByName.put(namedColumn.name, namedColumn);
+            colsByName.put(namedColumn.aliasDotColumn, namedColumn);
         }
         for (Measure measure : model.getAllMeasures()) {
             if (measure.getFunction().isCount()) {
@@ -105,7 +105,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
             String partitionColName = partitionDesc.getPartitionDateColumn();
             if (colsByName.containsKey(partitionColName)) {
                 NamedColumn namedColumn = colsByName.get(partitionColName);
-                namedColumn.status = NDataModel.ColumnStatus.TOMB;
+                namedColumn.status = NDataModel.ColumnStatus.DIMENSION;
             }
         }
     }

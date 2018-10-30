@@ -48,8 +48,8 @@ public class RelatedModelResponse extends NDataModel {
         super();
     }
 
-    public RelatedModelResponse(NDataModel dataMolde) {
-        super(dataMolde);
+    public RelatedModelResponse(NDataModel dataModel) {
+        super(dataModel);
     }
 
 

@@ -41,7 +41,6 @@ public interface DeriveEventMixin {
         newEvent.setProject(originEvent.getProject());
         newEvent.setModelName(originEvent.getModelName());
         newEvent.setCubePlanName(originEvent.getCubePlanName());
-        newEvent.setSegmentRange(originEvent.getSegmentRange());
         newEvent.setParentId(originEvent.getId());
         eventManager.post(newEvent);
     }

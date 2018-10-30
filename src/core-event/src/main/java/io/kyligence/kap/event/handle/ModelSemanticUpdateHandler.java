@@ -24,31 +24,33 @@
 package io.kyligence.kap.event.handle;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.event.model.CubePlanRuleUpdateEvent;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.PostModelSemanticUpdateEvent;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.PersistentException;
+import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
-import io.kyligence.kap.metadata.model.ModelStatus;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.CubePlanRuleUpdateEvent;
+import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.ModelSemanticUpdateEvent;
+import io.kyligence.kap.event.model.PostModelSemanticUpdateEvent;
+import io.kyligence.kap.event.model.RemoveCuboidByIdEvent;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.event.model.ModelSemanticUpdateEvent;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -60,94 +62,125 @@ public class ModelSemanticUpdateHandler extends AbstractEventHandler implements 
         val event = (ModelSemanticUpdateEvent) eventContext.getEvent();
         val cubeMgr = NCubePlanManager.getInstance(eventContext.getConfig(), event.getProject());
         val modelMgr = NDataModelManager.getInstance(eventContext.getConfig(), event.getProject());
+        val dataflowManager = NDataflowManager.getInstance(eventContext.getConfig(), event.getProject());
 
-        val cubes = cubeMgr.findMatchingCubePlan(event.getModelName(), event.getProject(), eventContext.getConfig());
+        val matchingCubePlan = cubeMgr.findMatchingCubePlan(event.getModelName(), event.getProject(),
+                eventContext.getConfig());
         val newModel = modelMgr.getDataModelDesc(event.getModelName());
         val originModel = event.getOriginModel();
+        val allTables = NTableMetadataManager.getInstance(eventContext.getConfig(), event.getProject())
+                .getAllTablesMap();
+        originModel.init(eventContext.getConfig(), allTables, modelMgr.listModels(), false);
 
-        modelMgr.updateDataModel(event.getModelName(), model -> model.setModelStatus(ModelStatus.NOT_READY));
-        if (!Objects.equals(originModel.getPartitionDesc(), newModel.getPartitionDesc())
-                || !Objects.equals(originModel.getMpColStrs(), newModel.getMpColStrs())
-                || !Objects.equals(originModel.getJoinTables(), newModel.getJoinTables())) {
-            fireCubeEvents(cubes, eventContext, cube -> new RefreshSegmentEvent());
+        if (isSignificantChange(originModel, newModel)) {
+            handleMeasuresChanged(matchingCubePlan, newModel.getEffectiveMeasureMap().keySet(),
+                    NCubePlan::setRuleBasedCuboidsDesc, cubeMgr);
+            // do not need to fire this event, the follow logic will clear all segments
+            removeUselessDimensions(matchingCubePlan, newModel.getEffectiveDimenionsMap().keySet(), false,
+                    eventContext);
+            handleReloadData(newModel, dataflowManager, eventContext);
+            fireEvent(new PostModelSemanticUpdateEvent(), event, eventContext.getConfig());
+            return;
         }
         val dimensionsOnlyAdded = newModel.getEffectiveDimenionsMap().keySet()
                 .containsAll(originModel.getEffectiveDimenionsMap().keySet());
         val measuresNotChanged = CollectionUtils.isEqualCollection(newModel.getEffectiveMeasureMap().keySet(),
                 originModel.getEffectiveMeasureMap().keySet());
         if (dimensionsOnlyAdded && measuresNotChanged) {
+            fireEvent(new PostModelSemanticUpdateEvent(), event, eventContext.getConfig());
             return;
         }
+        boolean needPostUpdate = true;
         // measure changed: does not matter to auto created cuboids' data, need refresh rule based cuboids
         if (!measuresNotChanged) {
-            handleMeasuresChanged(cubes, newModel.getEffectiveMeasureMap().keySet(), cubeMgr);
-            fireCubeEvents(cubes, eventContext, cube -> {
-                if (cube.getRuleBasedCuboidsDesc() != null)
-                    return new CubePlanRuleUpdateEvent();
-                return null;
-            });
+            needPostUpdate = !handleMeasuresChanged(matchingCubePlan, newModel.getEffectiveMeasureMap().keySet(),
+                    (cube, rule) -> {
+                        try {
+                            cube.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(rule);
+                            fireEvent(new CubePlanRuleUpdateEvent(), event, eventContext.getConfig());
+                        } catch (PersistentException e) {
+                            log.info("persist failed", e);
+                        }
+                    }, cubeMgr);
         }
         // dimension deleted: previous step is remove dimensions in rule,
         //   so we only remove the auto created cuboids
         if (!dimensionsOnlyAdded) {
-            removeUselessDimensions(cubes, newModel.getEffectiveDimenionsMap().keySet(), cubeMgr);
+            removeUselessDimensions(matchingCubePlan, newModel.getEffectiveDimenionsMap().keySet(), true, eventContext);
         }
-        val postUpdateEvent = new PostModelSemanticUpdateEvent();
-        fireEvent(postUpdateEvent, event, eventContext.getConfig());
+        if (needPostUpdate) {
+            fireEvent(new PostModelSemanticUpdateEvent(), event, eventContext.getConfig());
+        }
     }
 
-    private void handleMeasuresChanged(List<NCubePlan> cubes, Set<Integer> measures, NCubePlanManager cubePlanManager)
+    // if partitionDesc, mpCol, joinTable changed, we need reload data from datasource
+    private boolean isSignificantChange(NDataModel originModel, NDataModel newModel) {
+        return !Objects.equals(originModel.getPartitionDesc(), newModel.getPartitionDesc())
+                || !Objects.equals(originModel.getMpColStrs(), newModel.getMpColStrs())
+                || !Objects.equals(originModel.getJoinTables(), newModel.getJoinTables());
+    }
+
+    private boolean handleMeasuresChanged(NCubePlan cube, Set<Integer> measures,
+            BiConsumer<NCubePlan, NRuleBasedCuboidsDesc> descConsumer, NCubePlanManager cubePlanManager)
             throws IOException {
-        for (NCubePlan cube : cubes) {
-            cubePlanManager.updateCubePlan(cube.getName(), copyForWrite -> {
-                for (NCuboidLayout layout : copyForWrite.getWhitelistCuboidLayouts()) {
-                    layout.getCuboidDesc().setMeasures(layout.getCuboidDesc().getMeasures().stream()
-                            .filter(measures::contains).collect(Collectors.toList()));
-                    layout.setColOrder(layout.getColOrder().stream()
-                            .filter(col -> col < NDataModel.MEASURE_ID_BASE || measures.contains(col))
-                            .collect(Collectors.toList()));
-                }
-                if (copyForWrite.getRuleBasedCuboidsDesc() == null) {
-                    return;
-                }
-                try {
-                    val newRule = JsonUtil.deepCopy(copyForWrite.getRuleBasedCuboidsDesc(),
-                            NRuleBasedCuboidsDesc.class);
-                    newRule.setMeasures(Lists.newArrayList(measures));
-                    copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(newRule);
-                } catch (IOException e) {
-                    log.warn("copy rule failed ", e);
-                }
-            });
-        }
-
-    }
-
-    private void removeUselessDimensions(List<NCubePlan> cubes, Set<Integer> dimensions,
-            NCubePlanManager cubePlanManager) throws IOException {
-        for (NCubePlan cube : cubes) {
-            cubePlanManager.updateCubePlan(cube.getName(), copyForWrite -> {
-                for (NCuboidLayout layout : copyForWrite.getWhitelistCuboidLayouts()) {
-                    layout.getCuboidDesc().setDimensions(layout.getCuboidDesc().getDimensions().stream()
-                            .filter(dimensions::contains).collect(Collectors.toList()));
-                    layout.setColOrder(layout.getColOrder().stream()
-                            .filter(col -> col >= NDataModel.MEASURE_ID_BASE || dimensions.contains(col))
-                            .collect(Collectors.toList()));
-                }
-            });
-        }
-    }
-
-    private void fireCubeEvents(List<NCubePlan> cubes, EventContext context, Function<NCubePlan, Event> eventCreator)
-            throws PersistentException {
-        for (NCubePlan cube : cubes) {
-            val refreshEvent = eventCreator.apply(cube);
-            if (refreshEvent == null) {
-                continue;
+        val savedCube = cubePlanManager.updateCubePlan(cube.getName(), copyForWrite -> {
+            copyForWrite.setCuboids(copyForWrite.getCuboids().stream().filter(cuboid -> {
+                val allMeasures = cuboid.getMeasures();
+                allMeasures.removeAll(measures);
+                return allMeasures.size() == 0;
+            }).collect(Collectors.toList()));
+            if (copyForWrite.getRuleBasedCuboidsDesc() == null) {
+                return;
             }
-            refreshEvent.setCubePlanName(cube.getName());
-            fireEvent(refreshEvent, context.getEvent(), context.getConfig());
+            try {
+                val newRule = JsonUtil.deepCopy(copyForWrite.getRuleBasedCuboidsDesc(), NRuleBasedCuboidsDesc.class);
+                newRule.setMeasures(Lists.newArrayList(measures));
+                descConsumer.accept(copyForWrite, newRule);
+            } catch (IOException e) {
+                log.warn("copy rule failed ", e);
+            }
+        });
+        return savedCube.getRuleBasedCuboidsDesc() != null
+                && savedCube.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid() != null;
+    }
+
+    private void removeUselessDimensions(NCubePlan cube, Set<Integer> availableDimensions, boolean triggerEvent,
+            EventContext eventContext) throws PersistentException, IOException {
+        val layoutIds = cube.getWhitelistCuboidLayouts().stream()
+                .filter(layout -> layout.getColOrder().stream()
+                        .anyMatch(col -> col < NDataModel.MEASURE_ID_BASE && !availableDimensions.contains(col)))
+                .map(NCuboidLayout::getId).collect(Collectors.toList());
+        if (layoutIds.isEmpty()) {
+            return;
         }
+        if (triggerEvent) {
+            val removeEvent = new RemoveCuboidByIdEvent();
+            removeEvent.setCubePlanName(cube.getName());
+            removeEvent.setLayoutIds(layoutIds);
+            fireEvent(removeEvent, eventContext.getEvent(), eventContext.getConfig());
+        } else {
+            val cubePlanManager = NCubePlanManager.getInstance(eventContext.getConfig(),
+                    eventContext.getEvent().getProject());
+            cubePlanManager.updateCubePlan(cube.getName(), copy -> {
+                copy.setCuboids(cube.getCuboids().stream()
+                        .filter(cuboid -> availableDimensions.containsAll(cuboid.getDimensions()))
+                        .collect(Collectors.toList()));
+            });
+        }
+    }
+
+    private void handleReloadData(NDataModel model, NDataflowManager dataflowManager, EventContext eventContext)
+            throws IOException, PersistentException {
+        val df = dataflowManager.getDataflowByModelName(model.getName());
+        dataflowManager.updateDataflow(df.getName(), copyForWrite -> {
+            copyForWrite.setStatus(RealizationStatusEnum.OFFLINE);
+            copyForWrite.setSegments(new Segments<>());
+        });
+        val event = new AddCuboidEvent();
+        event.setLayoutIds(
+                df.getCubePlan().getAllCuboidLayouts().stream().map(NCuboidLayout::getId).collect(Collectors.toList()));
+        eventContext.getEvent().setCubePlanName(df.getCubePlanName());
+        fireEvent(event, eventContext.getEvent(), eventContext.getConfig());
     }
 
     @Override

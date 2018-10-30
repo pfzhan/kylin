@@ -23,17 +23,8 @@
  */
 package io.kyligence.kap.event.handle;
 
+import java.util.List;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NDataLoadingRange;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.LoadingRangeRefreshEvent;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.event.manager.EventManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -41,7 +32,16 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.LoadingRangeRefreshEvent;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class LoadingRangeRefreshHandler extends AbstractEventHandler {
 
@@ -61,35 +61,36 @@ public class LoadingRangeRefreshHandler extends AbstractEventHandler {
         }
 
         SegmentRange toBeRefreshSegmentRange = event.getSegmentRange();
-        if (toBeRefreshSegmentRange == null) {
-            return;
-        }
-
-        NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager.getInstance(kylinConfig, project).getDataLoadingRange(tableName);
+        NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager.getInstance(kylinConfig, project)
+                .getDataLoadingRange(tableName);
         SegmentRange coveredReadySegmentRange = dataLoadingRange.getCoveredReadySegmentRange();
         if (coveredReadySegmentRange == null || !coveredReadySegmentRange.contains(toBeRefreshSegmentRange)) {
-            throw new IllegalArgumentException("ToBeRefreshSegmentRange " + toBeRefreshSegmentRange + " is out of range the coveredReadySegmentRange of dataLoadingRange, the coveredReadySegmentRange is " + coveredReadySegmentRange);
+            throw new IllegalArgumentException("ToBeRefreshSegmentRange " + toBeRefreshSegmentRange
+                    + " is out of range the coveredReadySegmentRange of dataLoadingRange, the coveredReadySegmentRange is "
+                    + coveredReadySegmentRange);
         }
 
-        List<String> modelNames = NDataModelManager.getInstance(kylinConfig, project).getModelsUsingRootTable(tableDesc);
+        List<String> modelNames = NDataModelManager.getInstance(kylinConfig, project)
+                .getModelsUsingRootTable(tableDesc);
         if (CollectionUtils.isNotEmpty(modelNames)) {
             EventManager eventManager = EventManager.getInstance(kylinConfig, project);
             for (String modelName : modelNames) {
-                List<NCubePlan> matchingCubePlans = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName, project, kylinConfig);
-                if (CollectionUtils.isNotEmpty(matchingCubePlans)) {
-                    for (NCubePlan cubePlan : matchingCubePlans) {
-                        RefreshSegmentEvent refreshSegmentEvent = new RefreshSegmentEvent();
-                        refreshSegmentEvent.setApproved(eventAutoApproved);
-                        refreshSegmentEvent.setProject(project);
-                        refreshSegmentEvent.setModelName(modelName);
-                        refreshSegmentEvent.setCubePlanName(cubePlan.getName());
-                        refreshSegmentEvent.setSegmentRange(toBeRefreshSegmentRange);
-                        refreshSegmentEvent.setParentId(event.getId());
-                        eventManager.post(refreshSegmentEvent);
-                        logger.info("LoadingRangeRefreshHandler produce AddSegmentEvent project : {}, model : {}, cubePlan : {}, segmentRange : {}",
-                                project, modelName, cubePlan.getName(), event.getSegmentRange());
-                    }
+                NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName,
+                        project, kylinConfig);
+                if (cubePlan == null) {
+                    continue;
                 }
+                RefreshSegmentEvent refreshSegmentEvent = new RefreshSegmentEvent();
+                refreshSegmentEvent.setApproved(eventAutoApproved);
+                refreshSegmentEvent.setProject(project);
+                refreshSegmentEvent.setModelName(modelName);
+                refreshSegmentEvent.setCubePlanName(cubePlan.getName());
+                refreshSegmentEvent.setSegmentRange(toBeRefreshSegmentRange);
+                refreshSegmentEvent.setParentId(event.getId());
+                eventManager.post(refreshSegmentEvent);
+                logger.info(
+                        "LoadingRangeRefreshHandler produce AddSegmentEvent project : {}, model : {}, cubePlan : {}, segmentRange : {}",
+                        project, modelName, cubePlan.getName(), event.getSegmentRange());
             }
         }
 

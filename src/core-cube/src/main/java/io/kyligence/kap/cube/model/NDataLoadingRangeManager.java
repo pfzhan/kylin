@@ -29,8 +29,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -54,9 +52,10 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-
 
 public class NDataLoadingRangeManager {
     private static final Logger logger = LoggerFactory.getLogger(NDataLoadingRangeManager.class);
@@ -93,7 +92,8 @@ public class NDataLoadingRangeManager {
         this.project = project;
         this.dataLoadingRangeMap = new CaseInsensitiveStringCache<>(config, project, "loading_range");
         String resourceRootPath = "/" + project + ResourceStore.DATA_LOADING_RANGE_RESOURCE_ROOT;
-        this.crud = new CachedCrudAssist<NDataLoadingRange>(getStore(), resourceRootPath, NDataLoadingRange.class, dataLoadingRangeMap) {
+        this.crud = new CachedCrudAssist<NDataLoadingRange>(getStore(), resourceRootPath, NDataLoadingRange.class,
+                dataLoadingRangeMap) {
             @Override
             protected NDataLoadingRange initEntityAfterReload(NDataLoadingRange dataLoadingRange, String resourceName) {
                 // do nothing
@@ -157,24 +157,28 @@ public class NDataLoadingRangeManager {
             String tableName = dataLoadingRange.getTableName();
             TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
             if (tableDesc == null) {
-                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' 's table " + tableName + " does not exists");
+                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName()
+                        + "' 's table " + tableName + " does not exists");
             }
             String columnName = dataLoadingRange.getColumnName();
             ColumnDesc columnDesc = tableDesc.findColumnByName(columnName);
             if (columnDesc == null) {
-                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' 's column " + columnName + " does not exists");
+                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName()
+                        + "' 's column " + columnName + " does not exists");
             }
             String columnType = columnDesc.getDatatype();
             DataType dataType = DataType.getType(columnType);
             if (dataType == null || !dataType.isDate()) {
-                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' 's column " + columnName + " 's dataType does not support partition column");
+                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName()
+                        + "' 's column " + columnName + " 's dataType does not support partition column");
             }
 
             return crud.save(dataLoadingRange);
         }
     }
 
-    public NDataLoadingRange appendSegmentRange(NDataLoadingRange dataLoadingRange, SegmentRange segmentRange) throws IOException {
+    public NDataLoadingRange appendSegmentRange(NDataLoadingRange dataLoadingRange, SegmentRange segmentRange)
+            throws IOException {
         try (AutoLock lock = rangeMapLock.lockForWrite()) {
             NDataLoadingRange copyForWrite = copyForWrite(dataLoadingRange);
             List<SegmentRange> segmentRanges = copyForWrite.getSegmentRanges();
@@ -191,13 +195,13 @@ public class NDataLoadingRangeManager {
                     int waterMarkEnd = copyForWrite.getWaterMarkEnd();
                     int waterMarkStart = copyForWrite.getWaterMarkStart();
                     if (waterMarkEnd != -1) {
-                        copyForWrite.setWaterMarkStart(++ waterMarkStart);
-                        copyForWrite.setWaterMarkEnd(++ waterMarkEnd);
+                        copyForWrite.setWaterMarkStart(++waterMarkStart);
+                        copyForWrite.setWaterMarkEnd(++waterMarkEnd);
                     }
                     segmentRanges.add(0, segmentRange);
-                }else {
-                    throw new IllegalArgumentException("NDataLoadingRange appendSegmentRange " + segmentRange +
-                            " has overlaps/gap with existing segmentRanges " + copyForWrite.getCoveredSegmentRange());
+                } else {
+                    throw new IllegalArgumentException("NDataLoadingRange appendSegmentRange " + segmentRange
+                            + " has overlaps/gap with existing segmentRanges " + copyForWrite.getCoveredSegmentRange());
                 }
             }
             return updateDataLoadingRange(copyForWrite);
@@ -226,10 +230,12 @@ public class NDataLoadingRangeManager {
             checkNDataLoadingRangeIdentify(dataLoadingRange);
             checkNDataLoadingRangeNotExist(dataLoadingRange);
 
-            TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(dataLoadingRange.getTableName());
+            TableDesc tableDesc = NTableMetadataManager.getInstance(config, project)
+                    .getTableDesc(dataLoadingRange.getTableName());
             List<String> models = NDataModelManager.getInstance(config, project).getModelsUsingRootTable(tableDesc);
             if (CollectionUtils.isNotEmpty(models)) {
-                throw new IllegalStateException("NDataLoadingRange is related in models '" + models + "' as rootFactTable, it can not be removed !!!");
+                throw new IllegalStateException("NDataLoadingRange is related in models '" + models
+                        + "' as rootFactTable, it can not be removed !!!");
             }
             crud.delete(dataLoadingRange);
         }
@@ -242,7 +248,8 @@ public class NDataLoadingRangeManager {
 
     private void checkNDataLoadingRangeNotExist(NDataLoadingRange dataLoadingRange) {
         if (!dataLoadingRangeMap.containsKey(dataLoadingRange.resourceName()))
-            throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' does not exist");
+            throw new IllegalArgumentException(
+                    "NDataLoadingRange '" + dataLoadingRange.resourceName() + "' does not exist");
     }
 
     private void checkNDataLoadingRangeIdentify(NDataLoadingRange dataLoadingRange) {
@@ -263,8 +270,10 @@ public class NDataLoadingRangeManager {
             boolean needUpdateWaterMark = false;
 
             if (CollectionUtils.isEmpty(models)) {
-                dataLoadingRange.setActualQueryStart(Long.parseLong(dataLoadingRange.getCoveredSegmentRange().getStart().toString()));
-                dataLoadingRange.setActualQueryEnd(Long.parseLong(dataLoadingRange.getCoveredSegmentRange().getEnd().toString()));
+                dataLoadingRange.setActualQueryStart(
+                        Long.parseLong(dataLoadingRange.getCoveredSegmentRange().getStart().toString()));
+                dataLoadingRange.setActualQueryEnd(
+                        Long.parseLong(dataLoadingRange.getCoveredSegmentRange().getEnd().toString()));
                 updateDataLoadingRange(dataLoadingRange);
                 return;
             } else {
@@ -300,8 +309,10 @@ public class NDataLoadingRangeManager {
             dataLoadingRange.setActualQueryStart(-1);
             dataLoadingRange.setActualQueryEnd(-1);
         } else {
-            dataLoadingRange.setActualQueryStart(Long.parseLong(dataLoadingRange.getCoveredReadySegmentRange().getStart().toString()));
-            dataLoadingRange.setActualQueryEnd(Long.parseLong(dataLoadingRange.getCoveredReadySegmentRange().getEnd().toString()));
+            dataLoadingRange.setActualQueryStart(
+                    Long.parseLong(dataLoadingRange.getCoveredReadySegmentRange().getStart().toString()));
+            dataLoadingRange.setActualQueryEnd(
+                    Long.parseLong(dataLoadingRange.getCoveredReadySegmentRange().getEnd().toString()));
         }
         updateDataLoadingRange(dataLoadingRange);
     }
@@ -314,40 +325,39 @@ public class NDataLoadingRangeManager {
         SegmentRange first;
         SegmentRange last;
         for (String model : models) {
-            List<NCubePlan> matchingCubePlans = NCubePlanManager.getInstance(config, project).findMatchingCubePlan(model, project, config);
-            if (CollectionUtils.isEmpty(matchingCubePlans)) {
+            NCubePlan cubePlan = NCubePlanManager.getInstance(config, project).findMatchingCubePlan(model, project,
+                    config);
+            if (cubePlan == null) {
                 continue;
             }
-            for (NCubePlan cubePlan : matchingCubePlans) {
-                NDataflow df = NDataflowManager.getInstance(config, project).getDataflow(cubePlan.getName());
-                RealizationStatusEnum statusEnum = df.getStatus();
-                if (!RealizationStatusEnum.ONLINE.equals(statusEnum)) {
-                    continue;
-                }
-                List<SegmentRange> readySegmentRangeList = calcReadySegmentRangeList(df);
-                if (CollectionUtils.isEmpty(readySegmentRangeList)) {
-                    return new Pair<>();
-                }
-                int size = readySegmentRangeList.size();
-                first = readySegmentRangeList.get(0);
-                last = readySegmentRangeList.get(size - 1);
-                SegmentRange firstReady = readySegmentRangePair.getFirst();
-                SegmentRange lastReady = readySegmentRangePair.getSecond();
+            NDataflow df = NDataflowManager.getInstance(config, project).getDataflow(cubePlan.getName());
+            RealizationStatusEnum statusEnum = df.getStatus();
+            if (!RealizationStatusEnum.ONLINE.equals(statusEnum)) {
+                continue;
+            }
+            List<SegmentRange> readySegmentRangeList = calcReadySegmentRangeList(df);
+            if (CollectionUtils.isEmpty(readySegmentRangeList)) {
+                return new Pair<>();
+            }
+            int size = readySegmentRangeList.size();
+            first = readySegmentRangeList.get(0);
+            last = readySegmentRangeList.get(size - 1);
+            SegmentRange firstReady = readySegmentRangePair.getFirst();
+            SegmentRange lastReady = readySegmentRangePair.getSecond();
 
-                if (firstReady == null) {
+            if (firstReady == null) {
+                readySegmentRangePair.setFirst(first);
+            } else {
+                if (first.compareTo(firstReady) > 0) {
                     readySegmentRangePair.setFirst(first);
-                } else {
-                    if (first.compareTo(firstReady) > 0) {
-                        readySegmentRangePair.setFirst(first);
-                    }
                 }
+            }
 
-                if (lastReady == null) {
+            if (lastReady == null) {
+                readySegmentRangePair.setSecond(last);
+            } else {
+                if (last.compareTo(lastReady) < 0) {
                     readySegmentRangePair.setSecond(last);
-                } else {
-                    if (last.compareTo(lastReady) < 0) {
-                        readySegmentRangePair.setSecond(last);
-                    }
                 }
             }
         }

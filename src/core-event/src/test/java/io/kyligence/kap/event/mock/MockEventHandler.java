@@ -21,9 +21,29 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.metadata.model;
+package io.kyligence.kap.event.mock;
 
-public enum ModelStatus {
+import io.kyligence.kap.event.handle.AbstractEventHandler;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.EventContext;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
-    READY, NOT_READY
+@Slf4j
+public class MockEventHandler extends AbstractEventHandler {
+    @Override
+    protected void doHandle(EventContext eventContext) throws Exception {
+        log.debug("handle mock {}", eventContext.getEvent());
+    }
+
+    @Override
+    public Class<?> getEventClassType() {
+        return MockEvent.class;
+    }
+
+    @Getter
+    @Setter
+    public static class MockEvent extends Event {
+    }
 }

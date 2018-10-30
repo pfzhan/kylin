@@ -24,12 +24,15 @@
 
 package io.kyligence.kap.rest.response;
 
+import java.util.List;
+
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import java.util.List;
 
 @Setter
 @Getter
@@ -42,7 +45,7 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("simplified_tables")
     private List<SimplifiedTableResponse> simpleTables;
     @JsonProperty("simplified_measures")
-    private List<SimplifiedMeasureResponse> simplifiedMeasures;
+    private List<SimplifiedMeasure> simplifiedMeasures;
 
     public NDataModelResponse() {
         super();

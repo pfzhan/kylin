@@ -23,19 +23,8 @@
  */
 package io.kyligence.kap.event.handle;
 
-
 import java.util.List;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.event.model.LoadingRangeUpdateEvent;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.event.model.AddSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -43,9 +32,20 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.LoadingRangeUpdateEvent;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class LoadingRangeUpdateHandler extends AbstractEventHandler {
 
@@ -63,7 +63,8 @@ public class LoadingRangeUpdateHandler extends AbstractEventHandler {
         if (tableDesc == null) {
             throw new IllegalArgumentException("TableDesc '" + tableName + "' does not exist");
         }
-        List<String> modelNames = NDataModelManager.getInstance(kylinConfig, project).getModelsUsingRootTable(tableDesc);
+        List<String> modelNames = NDataModelManager.getInstance(kylinConfig, project)
+                .getModelsUsingRootTable(tableDesc);
         if (CollectionUtils.isNotEmpty(modelNames)) {
             AddSegmentEvent addSegmentEvent;
             NDataflow df;
@@ -71,30 +72,28 @@ public class LoadingRangeUpdateHandler extends AbstractEventHandler {
             NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
             for (String modelName : modelNames) {
 
-                List<NCubePlan> matchingCubePlans = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName, project, kylinConfig);
-                if (CollectionUtils.isEmpty(matchingCubePlans)) {
-                    continue;
-                }
-                for (NCubePlan cubePlan : matchingCubePlans) {
-                    df = dataflowManager.getDataflow(cubePlan.getName());
-                    SegmentRange segmentRange = event.getSegmentRange();
-                    NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
-                    addSegmentEvent = new AddSegmentEvent();
-                    addSegmentEvent.setApproved(eventAutoApproved);
-                    addSegmentEvent.setProject(project);
-                    addSegmentEvent.setModelName(modelName);
-                    addSegmentEvent.setCubePlanName(cubePlan.getName());
-                    addSegmentEvent.setSegmentRange(segmentRange);
-                    addSegmentEvent.setSegmentIds(Lists.newArrayList(dataSegment.getId()));
-                    addSegmentEvent.setParentId(event.getId());
-                    eventManager.post(addSegmentEvent);
-                    logger.info("LoadingRangeUpdateHandler produce AddSegmentEvent project : {}, model : {}, cubePlan : {}, segmentRange : {}",
-                            project, modelName, cubePlan.getName(), event.getSegmentRange());
-                }
+                NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project)
+                        .findMatchingCubePlan(modelName, project, kylinConfig);
+                df = dataflowManager.getDataflow(cubePlan.getName());
+                SegmentRange segmentRange = event.getSegmentRange();
+                NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
+                addSegmentEvent = new AddSegmentEvent();
+                addSegmentEvent.setApproved(eventAutoApproved);
+                addSegmentEvent.setProject(project);
+                addSegmentEvent.setModelName(modelName);
+                addSegmentEvent.setCubePlanName(cubePlan.getName());
+                addSegmentEvent.setSegmentRange(segmentRange);
+                addSegmentEvent.setSegmentIds(Lists.newArrayList(dataSegment.getId()));
+                addSegmentEvent.setParentId(event.getId());
+                eventManager.post(addSegmentEvent);
+                logger.info(
+                        "LoadingRangeUpdateHandler produce AddSegmentEvent project : {}, model : {}, cubePlan : {}, segmentRange : {}",
+                        project, modelName, cubePlan.getName(), event.getSegmentRange());
             }
         } else {
             // there is no models, just update the dataLoadingRange waterMark
-            NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(kylinConfig, project);
+            NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(kylinConfig,
+                    project);
             dataLoadingRangeManager.updateDataLoadingRangeWaterMark(tableName);
         }
 

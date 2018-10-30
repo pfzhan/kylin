@@ -33,7 +33,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class EventOrchestratorManagerTest extends NLocalFileMetadataTestCase {
 
     private static final String DEFAULT_PROJECT = "default";
@@ -41,11 +43,13 @@ public class EventOrchestratorManagerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
+        EventOrchestratorManager.destroyInstance();
     }
 
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
+        EventOrchestratorManager.destroyInstance();
     }
 
     @Test

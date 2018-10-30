@@ -56,7 +56,6 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
-import lombok.Getter;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -220,12 +219,6 @@ public class NDataModel extends RootPersistentEntity {
 
     @Setter
     @Getter
-    @JsonProperty("model_status")
-    @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
-    private ModelStatus modelStatus = ModelStatus.READY;
-
-    @Setter
-    @Getter
     @JsonProperty("canvas")
     @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
     private Canvas canvas;
@@ -355,10 +348,9 @@ public class NDataModel extends RootPersistentEntity {
         this.autoMergeTimeRanges = other.autoMergeTimeRanges;
         this.volatileRange = other.volatileRange;
         this.dataCheckDesc = other.dataCheckDesc;
-
         this.maintainModelType = other.maintainModelType;
+        this.canvas = other.canvas;
     }
-
     public KylinConfig getConfig() {
         return config;
     }
@@ -662,10 +654,6 @@ public class NDataModel extends RootPersistentEntity {
         if (StringUtils.isEmpty(this.alias)) {
             this.alias = this.name;
         }
-        //        boolean reinit = validate();
-        //        if (reinit) { // model slightly changed by validate() and must init() again
-        //            init(config, tables, isOnlineModel);
-        //        }
     }
 
     private void initJoinTablesForUpgrade() {
