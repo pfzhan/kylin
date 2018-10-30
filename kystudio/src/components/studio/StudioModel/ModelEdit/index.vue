@@ -97,7 +97,7 @@
             <div class="panel-main-content" v-scroll>
               <ul class="dimension-list">
                 <li v-for="(d, i) in allDimension" :key="d.name">
-                  {{d.id}}--{{d.name|omit(18,'...')}}
+                  {{d.name|omit(18,'...')}}
                   <i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i>
                   <i class="el-icon-ksd-table_delete" @click="deleteDimenison(d, i)"></i>
                   <span>{{getColumnType(d.column.split('.')[0], d.column)}}</span>
@@ -138,7 +138,7 @@
             </div>
             <div class="panel-main-content" style="top:36px;" data-scrollbar>
               <div :class="{active:autoSetting}">
-                <div><el-radio v-model="autoSetting" :label="true">{{$t('userMaintainedModel')}}<i class="el-icon-ksd-lock ksd-ml-4"></i></el-radio></div>
+                <div><el-radio v-model="modelRender.maintain_model_type" label="MANUAL_MAINTAIN">{{$t('userMaintainedModel')}}<i class="el-icon-ksd-lock ksd-ml-4"></i></el-radio></div>
                 <ul>
                   <li>{{$t('userMaintainedTip1')}}</li>
                   <li>{{$t('userMaintainedTip2')}}</li>
@@ -146,7 +146,7 @@
                 </ul>
               </div>
               <div :class="{active:!autoSetting}">
-                <div><el-radio v-model="autoSetting" :label="false">{{$t('systemMaintainedModel')}}<i class="el-icon-ksd-unlock ksd-ml-4"></i></el-radio></div>
+                <div><el-radio v-model="modelRender.maintain_model_type" label="AUTO_MAINTAIN">{{$t('systemMaintainedModel')}}<i class="el-icon-ksd-unlock ksd-ml-4"></i></el-radio></div>
                 <ul>
                   <li>{{$t('systemMaintainedTip1')}}</li>
                   <li>{{$t('systemMaintainedTip2')}}</li>
@@ -219,7 +219,8 @@ import { modelRenderConfig } from './config'
     ...mapActions({
       getModelByModelName: 'LOAD_MODEL_INFO',
       loadDataSourceByProject: 'LOAD_DATASOURCE',
-      saveModel: 'SAVE_MODEL'
+      saveModel: 'SAVE_MODEL',
+      updataModel: 'UPDATE_MODEL'
     }),
     ...mapActions('DimensionsModal', {
       showDimensionDialog: 'CALL_MODAL'
@@ -319,8 +320,7 @@ export default class ModelEdit extends Vue {
   }
   changeTableType (t) {
     if (this._checkTableType(t)) {
-      t.kind = t.kind === modelRenderConfig.tableKind.fact ? modelRenderConfig.tableKind.lookup : modelRenderConfig.tableKind.fact
-      this.modelInstance.setUniqueAlias(t)
+      this.modelInstance.changeTableType(t)
     }
   }
   _checkTableType (t) {
@@ -356,18 +356,18 @@ export default class ModelEdit extends Vue {
         handleSuccess(response, (data) => {
           if (data.models && data.models.length) {
             this.modelData = data.models[0]
+            this.modelData.project = this.currentSelectedProject
+            cb(this.modelData)
+            this.globalLoading.hide()
           }
-          this.modelData.action = this.action
-          cb(this.modelData)
-          this.globalLoading.hide()
         })
       }, () => {
         this.globalLoading.hide()
       })
     } else if (this.extraoption.action === 'add') {
       this.modelData = {
-        modelName: this.extraoption.modelName,
-        name: this.extraoption.action
+        name: this.extraoption.modelName,
+        project: this.currentSelectedProject
       }
       cb(this.modelData)
       this.globalLoading.hide()
@@ -669,12 +669,30 @@ export default class ModelEdit extends Vue {
       this.globalLoading.hide()
     })
     this.$on('saveModel', () => {
-      this.showPartitionDialog({
-        modelDesc: this.modelRender
-      }).then(() => {
-        let data = this.modelInstance.generateMetadata()
-        console.log(data)
+      this.modelInstance.generateMetadata().then((data) => {
+        this.handleSaveModel(data)
+      }, (errMsg) => {
+        kapMessage(errMsg, {type: 'warning'})
       })
+    })
+  }
+  handleSaveModel (data) {
+    let action = 'saveModel'
+    let para = {
+      project: this.currentSelectedProject,
+      modelDesc: JSON.stringify(data),
+      modelName: data.name
+    }
+    if (data.uuid) {
+      action = 'updataModel'
+      para = data
+    }
+    this[action](para).then((res) => {
+      handleSuccess(res, () => {
+        this.$router.push({name: 'ModelList'})
+      })
+    }, (res) => {
+      handleError(res)
     })
   }
   created () {

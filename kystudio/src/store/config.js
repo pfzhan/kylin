@@ -43,7 +43,6 @@ export default {
       state.layoutConfig.fullScreen = isFull
     },
     [types.TOGGLE_MENU]: function (state, isBrief) {
-      console.log(isBrief)
       state.layoutConfig.briefMenu = isBrief
       cacheLocalStorage('isBrief', isBrief)
     }

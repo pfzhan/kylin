@@ -31,7 +31,10 @@ export default {
     aggregate: 'Aggregate Index',
     speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> models! Do you want to apply it?',
     hello: 'Hi {user},',
-    tableIndex: 'Table Index'
+    tableIndex: 'Table Index',
+    onLine: 'OnLine',
+    offLine: 'OffLine',
+    build: 'Model Build'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -40,15 +43,15 @@ export default {
     dataloading: '数据加载',
     delModelTip: '你确认要删除该模型吗？',
     pergeModelTip: '你确定要清空该模型的数据吗？',
-    disbaleModelTip: '你确认要禁用该模型吗？',
-    enableModelTip: '你确认要启用该模型吗？',
+    disbaleModelTip: '你确认要下线该模型吗？',
+    enableModelTip: '你确认要上线该模型吗？',
     disbaleModelSuccessTip: '禁用模型成功。',
     enabledModelSuccessTip: '启用模型成功。',
     purgeModelSuccessTip: '清理模型成功。',
     deleteModelSuccessTip: '删除模型成功。',
     noModel: '您可以点击下面的按钮来添加模型',
     datacheck: '数据检测',
-    favorite: 'favorite',
+    favorite: '加速查询',
     importMdx: '导入MDX',
     exportTds: '导出TDS',
     exportMdx: '导出MDX',
@@ -65,6 +68,9 @@ export default {
     aggregate: '聚合索引',
     speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的模型有 <span class="ky-highlight-text">{modelCount}</span> 个！同意此次加速吗？',
     hello: '{user} 你好，',
-    tableIndex: '表明细索引'
+    tableIndex: '表明细索引',
+    onLine: '模型上线',
+    offLine: '模型下线',
+    build: '模型构建'
   }
 }

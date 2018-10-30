@@ -21,7 +21,7 @@
     <el-row :gutter="10"  class="ksd-mt-20" v-for="(key, val) in joinColumns.foreign_key" :key="val">
       <el-col :span="10">
          <el-select :popper-append-to-body="false"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
-            <el-option v-for="f in form.foreignTable.columns" :value="form.foreignTable.alias+'$'+f.name" :key="f.name" :label="f.name">
+            <el-option v-for="f in form.foreignTable.columns" :value="form.foreignTable.alias+'.'+f.name" :key="f.name" :label="f.name">
             </el-option>
           </el-select>
       </el-col>

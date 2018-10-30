@@ -69,7 +69,8 @@ class NTable {
     let joinInfo = objectClone(this.joinInfo[this.guid])
     let obj = {}
     if (joinInfo && joinInfo.table && joinInfo.join) {
-      obj.table = joinInfo.table.alias
+      obj.table = joinInfo.table.name
+      obj.alias = joinInfo.table.alias
       obj.join = joinInfo.join
     } else {
       return null

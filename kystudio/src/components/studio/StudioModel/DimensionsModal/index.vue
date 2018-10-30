@@ -185,7 +185,7 @@ export default class DimensionsModal extends Vue {
         for (let i = 0; i < len; i++) {
           let d = this.usedColumns[i]
           if (table.alias + '.' + col.name === d.column) {
-            if (d.is_dimension) {
+            if (d.status === 'DIMENSION') {
               col.alias = d.name
               col.isSelected = true //  dimension的列
               col.guid = d.guid
@@ -273,7 +273,7 @@ export default class DimensionsModal extends Vue {
             guid: col.guid || sampleGuid(),
             name: col.alias,
             column: table.alias + '.' + col.name,
-            is_dimension: col.isSelected
+            status: 'DIMENSION'
           })
         }
       })
@@ -281,7 +281,8 @@ export default class DimensionsModal extends Vue {
     let ccDimensionList = this.usedColumns.filter((x) => {
       return x.isCC
     })
-    this.modelDesc.dimensions = [...result, ...ccDimensionList]
+    this.modelDesc.dimensions.splice(0, this.modelDesc.dimensions.length)
+    this.modelDesc.dimensions.push(...result, ...ccDimensionList)
     this.handleClose(true)
   }
   destroyed () {

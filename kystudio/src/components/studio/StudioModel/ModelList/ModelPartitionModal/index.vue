@@ -1,6 +1,6 @@
 <template>
   <el-dialog 
-    :title="$t('saveModel')"
+    :title="$t('setting')"
     width="660px"
     append-to-body
     :visible.sync="isShow" 

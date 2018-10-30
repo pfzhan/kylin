@@ -27,11 +27,11 @@ export default {
     return Vue.resource(apiUrl + 'models/name').update(params)
   },
   disableModel: (params) => {
-    params.status = 'DISABLED'
+    params.status = 'OFFLINE'
     return Vue.resource(apiUrl + 'models/status').update(params)
   },
   enableModel: (params) => {
-    params.status = 'READY'
+    params.status = 'ONLINE'
     return Vue.resource(apiUrl + 'models/status').update(params)
   },
   measureDimensionSuggestion: (params) => {
@@ -47,7 +47,7 @@ export default {
     return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.modelname + '/stats').save(para.data)
   },
   updateModel: (data) => {
-    return Vue.resource(apiUrl + 'models/').update(data)
+    return Vue.resource(apiUrl + 'models/semantic').update(data)
   },
   saveModel: (data) => {
     return Vue.resource(apiUrl + 'models').save(data)
@@ -56,7 +56,7 @@ export default {
     return Vue.resource(apiUrl + 'models/draft').update(data)
   },
   cloneModel: (para) => {
-    return Vue.resource(apiUrl + 'models').save(para)
+    return Vue.resource(apiUrl + 'models/clone').save(para)
   },
   diagnose: (project, modelName) => {
     return Vue.resource(apiUrl + 'models/' + project + '/' + modelName + '/diagnose').get()
@@ -89,10 +89,10 @@ export default {
     return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.table + '/' + para.column).get()
   },
   checkComputedExpression: (para) => {
-    return Vue.resource(apiUrl + 'models/validness').save(para)
+    return Vue.resource(apiUrl + 'models/computed_columns/check').save(para)
   },
-  getComputedColumns: (projectName) => {
-    return Vue.resource(apiUrl + 'models/computed_column_usage/' + projectName).get()
+  getComputedColumns: (para) => {
+    return Vue.resource(apiUrl + 'models/computed_columns/usage').get(para)
   },
   sqlValidate: (para) => {
     return Vue.resource(apiUrl + 'sql_validate/model').save(para)

@@ -1,23 +1,23 @@
 <template>
   <!-- tableindex的添加和编辑 -->
-  <el-dialog :title="$t('Edit Table Index')" class="table-edit-dialog" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+  <el-dialog :title="$t('editTableIndexTitle')" class="table-edit-dialog" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <el-form :model="tableIndexMeta" :rules="rules" ref="tableIndexForm" >
-        <el-form-item :label="$t('Table Index Name')" prop="name">
+        <el-form-item :label="$t('tableIndexName')" prop="name">
           <el-input v-model="tableIndexMeta.name" auto-complete="off" size="medium"></el-input>
         </el-form-item>
       </el-form>
       <div class="ky-line-full"></div>
-      <h3 class="ksd-mt-40">Table Index Content:</h3>
+      <div class="ky-list-title sub-title">{{$t('tableIndexContent')}}</div>
       <div class="ksd-mt-20">
         <el-steps direction="vertical" :active="3">
-          <el-step title="Select Columns">
+          <el-step :title="$t('selectColumns')">
             <div slot="description"  class="ksd-mb-20">
               <div class="ksd-mt-14 ksd-mb-16">
-                <div class="actions"><el-button @click="selectAll" plain  type="primary" size="medium">Select All Columns</el-button> <el-button @click="clearAll" size="medium">Clear All</el-button> </div>
+                <div class="actions"><el-button @click="selectAll" plain  type="primary" size="medium">{{$t('selectAllColumns')}}</el-button> <el-button @click="clearAll" size="medium">{{$t('clearAll')}}</el-button> </div>
                 <ul class="table-index-columns">
                   <li v-for='(col, index) in tableIndexMeta.col_order' :key='col'>
                     <span class="sort-icon ksd-mr-10">{{index + 1 + pager * 10}}</span>
-                    <el-select v-model="tableIndexMeta.col_order[index]" filterable style="width:420px" placeholder="请选择">
+                    <el-select v-model="tableIndexMeta.col_order[index]" filterable style="width:420px">
                       <el-option
                         v-for="item in allColumns"
                         :key="item.alias + '.' + item.name"
@@ -253,6 +253,9 @@
 <style lang="less">
   @import '../../../../assets/styles/variables.less';
   .table-edit-dialog {
+    .sub-title {
+      margin-top:60px;
+    }
     .show-pagers{
       width: 42px;
       position: absolute;

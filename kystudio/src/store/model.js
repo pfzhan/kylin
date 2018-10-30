@@ -116,7 +116,7 @@ export default {
     [types.SAVE_MODEL_DRAFT]: function ({ commit }, para) {
       return api.model.saveModelDraft(para)
     },
-    [types.CACHE_UPDATE_MODEL_EDIT]: function ({ commit }, para) {
+    [types.UPDATE_MODEL]: function ({ commit }, para) {
       return api.model.updateModel(para)
     },
     [types.COLLECT_MODEL_STATS]: function ({ commit }, para) {
@@ -163,8 +163,8 @@ export default {
     [types.CHECK_COMPUTED_EXPRESSION]: function ({ commit }, para) {
       return api.model.checkComputedExpression(para)
     },
-    [types.GET_COMPUTED_COLUMNS]: function ({ commit }, projectName) {
-      return api.model.getComputedColumns(projectName)
+    [types.GET_COMPUTED_COLUMNS]: function ({ commit }, para) {
+      return api.model.getComputedColumns(para)
     },
     [types.VERIFY_MODEL_SQL]: function ({ commit }, para) {
       return api.model.sqlValidate(para)

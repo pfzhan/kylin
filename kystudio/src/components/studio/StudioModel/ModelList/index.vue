@@ -66,12 +66,12 @@
           width="210"
           :label="$t('kylinLang.common.fact')">
         </el-table-column>
-      <!--   <el-table-column
-          prop="capacity"
+        <el-table-column
+          prop="favorite"
           show-overflow-tooltip
-          width="210"
-          :label="$t('capbility')">
-        </el-table-column> -->
+          width="180"
+          :label="$t('favorite')">
+        </el-table-column>
         <el-table-column
           prop="gmtTime"
           show-overflow-tooltip
@@ -85,7 +85,7 @@
           width="100"
           :label="$t('status')">
           <template slot-scope="scope">
-        <el-tag size="small" :type="scope.row.status === 'DISABLED' ? 'danger' : scope.row.status === 'DESCBROKEN'? 'info' : 'success'">{{scope.row.status}}</el-tag>
+        <el-tag size="small" :type="scope.row.status === 'OFFLINE' ? 'info' : scope.row.status === 'DESCBROKEN'? 'danger' : 'success'">{{scope.row.status}}</el-tag>
       </template>
         </el-table-column>
         <el-table-column
@@ -101,7 +101,7 @@
             <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
              <div v-show="isAdmin || hasPermissionOfProject()">
               <common-tip :content="$t('kylinLang.common.edit')" class="ksd-ml-10"><i class="el-icon-ksd-table_edit ksd-fs-16" @click="handleEditModel(scope.row.alias)"></i></common-tip>
-              <common-tip :content="$t('dataloading')" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16" @click="setModelBuldRange(scope.row)" v-if="scope.row.management_type!=='TABLE_ORIENTED'"></i></common-tip>
+              <common-tip :content="$t('build')" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16" @click="setModelBuldRange(scope.row)" v-if="scope.row.management_type!=='TABLE_ORIENTED'"></i></common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="!scope.row.is_draft">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
@@ -110,17 +110,17 @@
                  <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' >
                     <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item>
                     <!-- 设置partition -->
-                    <el-dropdown-item command="dataLoad" v-if="scope.row.management_type!=='TABLE_ORIENTED'">{{$t('dataLoading')}}</el-dropdown-item>
-                    <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item>
-                    <el-dropdown-item command="importMDX" divided disabled>{{$t('importMdx')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportTDS" disabled>{{$t('exportTds')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportMDX" disabled>{{$t('exportMdx')}}</el-dropdown-item>
-                    <el-dropdown-item command="rename" divided>{{$t('rename')}}</el-dropdown-item>
-                    <el-dropdown-item command="clone" >{{$t('kylinLang.common.clone')}}</el-dropdown-item>
+                    <el-dropdown-item command="dataLoad" v-if="scope.row.management_type!=='TABLE_ORIENTED'">{{$t('dataloading')}}</el-dropdown-item>
+                    <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
+                    <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'DESCBROKEN'">{{$t('importMdx')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'DESCBROKEN'">{{$t('exportTds')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'DESCBROKEN'">{{$t('exportMdx')}}</el-dropdown-item>
+                    <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'DESCBROKEN'">{{$t('rename')}}</el-dropdown-item>
+                    <el-dropdown-item command="clone" v-if="scope.row.status !== 'DESCBROKEN'">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
                     <el-dropdown-item command="delete">{{$t('delete')}}</el-dropdown-item>
-                    <el-dropdown-item command="purge">{{$t('purge')}}</el-dropdown-item>
-                    <el-dropdown-item command="disabled" v-if="scope.row.status === 'READY'">{{$t('disable')}}</el-dropdown-item>
-                    <el-dropdown-item command="enabled" v-if="scope.row.status === 'DISABLED'" >{{$t('enable')}}</el-dropdown-item>
+                    <el-dropdown-item command="purge" v-if="scope.row.management_type!=='TABLE_ORIENTED'">{{$t('purge')}}</el-dropdown-item>
+                    <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'DESCBROKEN'">{{$t('offLine')}}</el-dropdown-item>
+                    <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'DESCBROKEN'">{{$t('onLine')}}</el-dropdown-item>
                     </el-dropdown-menu>
                   </el-dropdown>
                 </common-tip>
@@ -384,11 +384,11 @@ export default class ModelList extends Vue {
     } else if (command === 'clone') {
       const isSubmit = await this.callCloneModelDialog(objectClone(modelInstance))
       isSubmit && this.loadModelsList()
-    } else if (command === 'disabled') {
+    } else if (command === 'offline') {
       kapConfirm(this.$t('disbaleModelTip')).then(() => {
         this.handleDisableModel(objectClone(modelInstance))
       })
-    } else if (command === 'enabled') {
+    } else if (command === 'online') {
       kapConfirm(this.$t('enableModelTip')).then(() => {
         this.handleEnableModel(objectClone(modelInstance))
       })

@@ -8,17 +8,25 @@ import $ from 'jquery'
 // model 对象
 class NModel {
   constructor (options, _mount, _) {
+    Object.assign(this, options)
     this.mode = options.uuid ? 'edit' : 'new' // 当前模式
     this.name = options.name
     this.fact_table = options.fact_table
+    this.project = options.project
     this.uuid = options.uuid || null
     this.tables = {}
+    this.owner = options.owner || ''
     this.canvas = options.canvas // 模型布局坐标
     this.filter_condition = options.filter_condition || null
     this.column_correlations = options.column_correlations || []
     this.computed_columns = options.computed_columns || []
     this.last_modified = options.last_modified || 0
-    this.partition_desc = options.partition_desc || {}
+    this.partition_desc = options.partition_desc || {
+      partition_date_column: null,
+      partition_time_column: null,
+      partition_date_start: 0,
+      partition_type: 'APPEND'
+    }
     this.all_named_columns = options.all_named_columns || []
     this.all_named_columns.forEach((col) => {
       col.guid = sampleGuid()
@@ -26,8 +34,8 @@ class NModel {
     this.computed_columns.forEach((col) => {
       col.guid = sampleGuid()
     })
-    this.dimensions = options.all_named_columns.filter((x) => {
-      if (x.is_dimension) {
+    this.dimensions = this.all_named_columns.filter((x) => {
+      if (x.status === 'DIMENSION') {
         let columnNamed = x.column.split('.')
         let k = indexOfObjWithSomeKeys(this.computed_columns, 'tableAlias', columnNamed[0], 'columnName', columnNamed[1])
         if (k >= 0) {
@@ -38,24 +46,24 @@ class NModel {
       }
     })
     // 用普通列构建的dimension
-    this.normalDimensions = options.all_named_columns.filter((x) => {
+    this.normalDimensions = this.all_named_columns.filter((x) => {
       let columnNamed = x.column.split('.')
       let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', columnNamed[1], 'tableAlias', columnNamed[0])
-      if (i < 0 && x.is_dimension) {
+      if (i < 0 && x.status === 'DIMENSION') {
         return x
       }
     })
     // 用在tableIndex上的列
-    this.tableIndexColumns = options.all_named_columns.filter((x) => {
-      if (!x.is_dimension) {
+    this.tableIndexColumns = this.all_named_columns.filter((x) => {
+      if (x.status !== 'DIMENSION') {
         return x
       }
     })
     // 可计算列构建的dimension
-    this.ccDimensions = options.all_named_columns.filter((x) => {
+    this.ccDimensions = this.all_named_columns.filter((x) => {
       let columnNamed = x.column.split('.')
       let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', columnNamed[1], 'tableAlias', columnNamed[0])
-      if (i >= 0 && x.is_dimension) {
+      if (i >= 0 && x.status === 'DIMENSION') {
         return x
       }
     })
@@ -64,13 +72,18 @@ class NModel {
     this.project = options.project
     this.maintain_model_type = options.maintain_model_type
     this.management_type = options.management_type
-    this.datasource = store.state.datasource.dataSource[this.project]
+    this.globalDataSource = store.state.datasource.dataSource[this.project] // 全局数据源表数据
+    this.datasource = options.simplified_tables || [] // 当前模型使用的数据源表数据
     if (_) {
       this.vm = _
       this._mount = _mount // 挂载对象
       this.$set = _.$set
       this.$delete = _.$delete
       this.plumbTool = jsPlumbTool()
+    } else {
+      this.$set = function (obj, key, val) {
+        obj[key] = val
+      }
     }
     if (_mount) {
       this.$set(this._mount, 'computed_columns', this.computed_columns)
@@ -82,6 +95,7 @@ class NModel {
       this.$set(this._mount, 'normalDimensions', this.normalDimensions)
       this.$set(this._mount, 'tableIndexColumns', this.tableIndexColumns)
       this.$set(this._mount, 'ccDimensions', this.ccDimensions)
+      this.$set(this._mount, 'maintain_model_type', this.maintain_model_type)
     }
     if (options.renderDom) {
       this.renderDom = this.vm.$el.querySelector(options.renderDom)
@@ -189,19 +203,30 @@ class NModel {
   }
   // 生成供后台使用的数据结构
   generateMetadata () {
-    let metaData = {
-      uuid: this.uuid,
-      name: this.name,
-      fact_table: this.fact_table,
-      lookups: this._generateLookups(),
-      all_named_columns: this._generateAllColumns(),
-      all_measures: this.all_measures,
-      computed_columns: this.computed_columns,
-      last_modified: this.last_modified,
-      filter_condition: this.filter_condition,
-      partition_desc: this.partition_desc
-    }
-    return metaData
+    return new Promise((resolve, reject) => {
+      let metaData = {
+        uuid: this.uuid,
+        name: this.name,
+        owner: this.owner,
+        project: this.project
+      }
+      let factTable = this.getFactTable()
+      if (factTable) {
+        metaData.fact_table = factTable.name
+      } else {
+        return reject(this.$t('noFactTable'))
+      }
+      metaData.lookups = this._generateLookups()
+      metaData.all_named_columns = this._generateAllColumns()
+      metaData.simplified_measures = this.all_measures
+      metaData.computed_columns = this.computed_columns
+      metaData.last_modified = this.last_modified
+      metaData.filter_condition = this.filter_condition
+      metaData.partition_desc = this.partition_desc
+      metaData.maintain_model_type = this._mount.maintain_model_type
+      metaData.management_type = this.management_type
+      resolve(metaData)
+    })
   }
   _generateLookups () {
     let result = []
@@ -217,7 +242,12 @@ class NModel {
     return result
   }
   _generateAllColumns () {
-    return [...this.dimensions, ...this.tableIndexColumns]
+    return [...this._mount.dimensions, ...this.tableIndexColumns]
+  }
+  _generateTableRectData () {
+    for (let t in this.tables) {
+      console.log(t)
+    }
   }
   // end
   // 判断是否table有关联的链接
@@ -367,6 +397,12 @@ class NModel {
       }
     }
   }
+  changeTableType (t) {
+    t.kind = t.kind === modelRenderConfig.tableKind.fact ? modelRenderConfig.tableKind.lookup : modelRenderConfig.tableKind.fact
+    this.setUniqueAlias(t)
+    // 更新facttable的名字
+    // 删除原来facttable上的cc
+  }
   _checkSameAlias (guid, newAlias) {
     var hasAlias = 0
     Object.values(this.tables).forEach(function (table) {
@@ -473,11 +509,20 @@ class NModel {
     return this.tables[options.alias]
   }
   _getTableOriginInfo (tableFullName) {
+    let tableNamed = tableFullName.split('.')
     if (this.datasource) {
-      for (var i = this.datasource.length - 1; i >= 0; i--) {
-        if (this.datasource[i].database + '.' + this.datasource[i].name === tableFullName) {
-          return this.datasource[i]
-        }
+      let i = indexOfObjWithSomeKey(this.datasource, 'table', tableFullName)
+      if (i >= 0) {
+        return this.datasource[i]
+      }
+    }
+    if (this.globalDataSource) {
+      let i = indexOfObjWithSomeKeys(this.globalDataSource, 'database', tableNamed[0], 'name', tableNamed[1])
+      if (i >= 0) {
+        let globalTableInfo = this.globalDataSource[i]
+        globalTableInfo.table = globalTableInfo.database + '.' + globalTableInfo.name
+        this.datasource.push(globalTableInfo)
+        return this.globalDataSource[i]
       }
     }
     return []// 需要报错

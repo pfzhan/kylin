@@ -69,6 +69,12 @@
     initModelBuldRange () {
       if (this.isShow) {
         this.modelBuildMeta.dataRangeVal = []
+        if (this.modelDesc.last_build_end) {
+          let lastBuildDate = new Date(+this.modelDesc.last_build_end)
+          if (lastBuildDate) {
+            this.modelBuildMeta.dataRangeVal.push(lastBuildDate)
+          }
+        }
       } else {
         this.modelBuildMeta.dataRangeVal = []
       }

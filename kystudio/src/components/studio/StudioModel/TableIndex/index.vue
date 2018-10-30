@@ -5,25 +5,25 @@
         <el-button type="primary" icon="el-icon-ksd-project_add" @click="editTableIndex(true)">Create Table Index</el-button>
         <el-button type="primary" disabled icon="el-icon-ksd-table_refresh">Refresh</el-button>
         <!-- <el-button icon="el-icon-ksd-table_delete">Delete</el-button> -->
-        <el-input style="width:200px" v-model="tableIndexFilter" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" placeholder="search index ID" class="ksd-fright ksd-mr-20"></el-input>
+        <el-input style="width:200px" v-model="tableIndexFilter" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :placeholder="$t('searchTip')" class="ksd-fright ksd-mr-20"></el-input>
       </div>
       <kap-nodata v-if="tableIndexBaseList.length === 0" class="ksd-mt-40"></kap-nodata>
       <el-steps direction="vertical">
-        <el-step :title="`${key}(${tableIndex.length})`" status="finish" v-if="tableIndex.length" v-for="(tableIndex, key) in tableIndexGroup" :key="key">
+        <el-step :title="$t(key) + '(' + tableIndex.length + ')'" status="finish" v-if="tableIndex.length" v-for="(tableIndex, key) in tableIndexGroup" :key="key">
           <div slot="icon"><i class="el-icon-ksd-elapsed_time"></i></div>
           <div slot="description">
             <el-carousel :interval="4000" type="card" height="173px" :autoplay="false" :initial-index="tableIndex.length - 1">
               <el-carousel-item v-for="item in tableIndex" :key="item.name" @click.native="showTableIndexDetal(item)">
                 <div :class="{'empty-table-index': item.status === 'Empty'}">
                   <div class="slider-content-above ">
-                    <div class="main-title" :title="item.name">Table Index Name: {{item.name|omit(10, '...')}}</div>
+                    <div class="main-title" :title="item.name">{{$t('tableIndexName')}} {{item.name|omit(10, '...')}}</div>
                     <div class="status-list">
                       <div v-if="item.status === 'Broken'" class="broken-icon">Broken</div>
                       <div v-if="item.status === 'Empty'" class="empty-icon">[Empty]</div>
                     </div>
                     <div class="sub-info">
-                      <div>Table Index ID: {{item.id}}</div>
-                      <i class="el-icon-ksd-elapsed_time"></i>{{transToGmtTime(item.update_time)}}
+                      <div>{{$t('tableIndexId')}}{{item.id}}</div>
+                      <i class="el-icon-ksd-elapsed_time ksd-mr-4"></i>{{transToGmtTime(item.update_time)}}
                        <div class="actions ksd-fright">
                         <i class="el-icon-ksd-table_delete del-icon" @click="delTableIndex(item.id)"></i>
                       </div>
@@ -44,8 +44,8 @@
     <div class="right-part">
       <el-card class="box-card">
         <div slot="header" class="clearfix">
-          <span>Table Index Details</span>
-          <el-button size="mini" v-if="currentShowTableIndex" @click="editTableIndex(false)" class="ksd-fright ksd-mt-8" icon="el-icon-ksd-table_edit">Edit</el-button>
+          <span>{{$t('tableIndexDetail')}}</span>
+          <el-button size="mini" v-if="currentShowTableIndex" @click="editTableIndex(false)" class="ksd-fright ksd-mt-8" icon="el-icon-ksd-table_edit">{{$t('kylinLang.common.edit')}}</el-button>
         </div>
         <div class="ksd-prl-20 ksd-ptb-20">
           <el-table

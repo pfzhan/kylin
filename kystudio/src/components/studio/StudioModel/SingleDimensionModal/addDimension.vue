@@ -79,7 +79,7 @@ export default class SingleDimensionModal extends Vue {
     name: '',
     column: '',
     comment: '',
-    is_dimension: true
+    status: 'DIMENSION'
   })
   dimensionInfo = JSON.parse(this.dimensionStr)
   selectColumns = []

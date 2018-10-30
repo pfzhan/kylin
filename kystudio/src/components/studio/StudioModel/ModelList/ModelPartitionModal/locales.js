@@ -1,4 +1,4 @@
 export default {
-  'en': {dateFormat: 'Time Format', partitionDateColumn: 'Time Partition Column', saveModel: 'Save Model'},
-  'zh-cn': {dateFormat: '时间格式', partitionDateColumn: '时间分区列', saveModel: '保存模型'}
+  'en': {dateFormat: 'Time Format', partitionDateColumn: 'Time Partition Column', saveModel: 'Save Model', setting: 'Setting'},
+  'zh-cn': {dateFormat: '时间格式', partitionDateColumn: '时间分区列', saveModel: '保存模型', setting: '设置'}
 }
