@@ -151,15 +151,9 @@ public class BootstrapServer {
     }
 
     private static void setLocalEnvs() {
-        File localMetadata;
-        if ((localMetadata = new File(TempMetadataBuilder.TEMP_TEST_METADATA)).exists()) {
-            if (!localMetadata.delete()){
-                throw new RuntimeException("TEMP_TEST_METADATA dir delete failed, server will shutdown !!!");
-            }
-        }
         String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
-        localMetadata = new File(tempMetadataDir);
+        File localMetadata = new File(tempMetadataDir);
 
         // pass checkHadoopHome
         System.setProperty("hadoop.home.dir", localMetadata.getAbsolutePath() + "/working-dir");
