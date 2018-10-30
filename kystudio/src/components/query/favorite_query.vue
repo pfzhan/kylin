@@ -89,7 +89,7 @@
                 <i class="el-icon-ksd-what"></i>
               </el-tooltip>
             </div>
-            <svg id="fillgauge" width="80%" height="165"></svg>
+            <svg id="fillgauge" width="100%" height="165"></svg>
           </el-col>
         </el-row>
       </el-collapse-item>
@@ -1152,7 +1152,7 @@ select a.placepointid, --门店id
           .conds-title {
             position: absolute;
             top: 40px;
-            left: 34%;
+            width: 95%;
           }
         }
       }
