@@ -59,7 +59,9 @@ export default class ModelTabs extends Vue {
   get currentAction () {
     return this.$route.params.action
   }
-
+  get modelDesc () {
+    return this.$route.params.modelDesc
+  }
   addTab () {}
   reloadTab () {}
   delTab () {
@@ -87,6 +89,7 @@ export default class ModelTabs extends Vue {
       extraoption: {
         project: this.currentSelectedProject,
         modelName: this.currentModel,
+        modelDesc: this.modelDesc,
         action: this.currentAction
       }
     })

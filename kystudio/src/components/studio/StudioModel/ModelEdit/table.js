@@ -12,15 +12,20 @@ class NTable {
     this.joinInfo = {} // 链接对象
     this.guid = sampleGuid() // identify id
     this.alias = options.alias || options.table // 别名
+    this.ST = null
     this.drawSize = Object.assign({}, { // 绘制信息
       left: 100,
       top: 20,
       width: modelRenderConfig.tableBoxWidth,
       height: modelRenderConfig.tableBoxHeight,
-      minheight: 44,
+      limit: {
+        height: [44]
+      },
       zIndex: zIndex++,
-      sizeChangeCb () {
-        options.plumbTool.refreshPlumbInstance()
+      sizeChangeCb: () => {
+        options.plumbTool.lazyRender(() => {
+          options.plumbTool.refreshPlumbInstance()
+        })
       }
     }, options.drawSize)
   }
@@ -76,6 +81,15 @@ class NTable {
       return null
     }
     return obj
+  }
+  // 获取符合元数据格式的模型坐标位置信息
+  getMetaCanvasInfo () {
+    return {
+      x_position: this.drawSize.left,
+      y_position: this.drawSize.top,
+      width: this.drawSize.width,
+      height: this.drawSize.height
+    }
   }
   // 改变连接关系
   changeLinkType (pid, type) {

@@ -227,6 +227,7 @@ export default {
         totalSize: state.modelsTotal,
         list: state.modelsList && state.modelsList.map((m) => {
           m.gmtTime = transToGmtTime(m.last_modified)
+          m.status = m.status === 'NEW' ? 'OFFLINE' : m.status // new状态当成offline处理
           return m
         }) || []
       }

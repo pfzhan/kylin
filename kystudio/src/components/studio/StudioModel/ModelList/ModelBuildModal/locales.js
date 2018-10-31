@@ -1,4 +1,4 @@
 export default {
-  'en': {'modelClone': 'Model Clone', modelName: 'New Name', cloneSuccessful: 'Model clone successfully.'},
-  'zh-cn': {'modelClone': '模型克隆', modelName: '新的名称', cloneSuccessful: '模型克隆成功。'}
+  'en': {'buildRange': 'Build Range', startDate: 'Start Date', endDate: 'End Date', to: 'To'},
+  'zh-cn': {'buildRange': '构建范围', startDate: '起始日期', endDate: 'End Date', to: '至'}
 }

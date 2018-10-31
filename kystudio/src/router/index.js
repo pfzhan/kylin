@@ -62,6 +62,7 @@ export default new Router({
         path: 'studio/modeledit/:modelName/:action',
         // path: 'studio/:subaction',
         // component: modelTab
+        meta: {},
         component: () => import('../components/studio/StudioModel/ModelTabs/index.vue')
       }, {
         name: 'Cubes',

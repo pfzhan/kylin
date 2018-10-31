@@ -420,7 +420,7 @@ export default class ModelList extends Vue {
   }
   // 编辑model
   handleEditModel (modelName) {
-    this.$router.push({ name: 'ModelEdit', params: { modelName: modelName, action: 'edit' } })
+    this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'edit' }})
   }
   @Watch('modelsPagerRenderData')
   onModelChange (modelsPagerRenderData) {

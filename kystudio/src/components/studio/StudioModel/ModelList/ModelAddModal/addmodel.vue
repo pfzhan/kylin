@@ -86,7 +86,7 @@ export default class ModelAddModal extends Vue {
       var modelName = this.createModelMeta.newName
       // this.btnLoading = true
       this.closeModal(true)
-      this.$router.push({ name: 'ModelEdit', params: { modelName: modelName, action: 'add' } })
+      this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'add', modelDesc: this.createModelMeta.modelDesc }})
     })
   }
 }

@@ -53,7 +53,9 @@ export const modelRenderConfig = {
         height: 316,
         zIndex: baseIndex - 2,
         display: false,
-        minheight: 80,
+        limit: {
+          height: [80]
+        },
         box: rootBox
       },
       measure: {
@@ -61,7 +63,9 @@ export const modelRenderConfig = {
         right: 60,
         width: 250,
         height: 316,
-        minheight: 80,
+        limit: {
+          height: [80]
+        },
         zIndex: baseIndex - 1,
         display: false,
         box: rootBox
@@ -71,7 +75,9 @@ export const modelRenderConfig = {
         right: 60,
         width: 250,
         height: 410,
-        minheight: 80,
+        limit: {
+          height: [80]
+        },
         zIndex: baseIndex,
         display: false,
         box: rootBox
@@ -81,7 +87,9 @@ export const modelRenderConfig = {
         left: 10,
         width: 250,
         height: 316,
-        minheight: 80,
+        limit: {
+          height: [80]
+        },
         zIndex: baseIndex,
         display: true,
         box: rootBox
@@ -91,7 +99,9 @@ export const modelRenderConfig = {
         left: 10,
         width: 250,
         height: 316,
-        minheight: 80,
+        limit: {
+          height: [80]
+        },
         zIndex: baseIndex,
         display: false,
         box: rootBox

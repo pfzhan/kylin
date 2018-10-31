@@ -145,17 +145,25 @@ Vue.directive('drag', {
     regainBox()
     // 盒子碰撞检测
     function checkBoxCollision (changeType, size) {
+      // 无自定义盒子和限制
       if (!dragInfo.box && !limitObj) {
         return true
       }
-      if (!dragInfo.box) {
+      if (limitObj) {
         let curCheckProp = limitObj[changeType]
-        let isInArea = curCheckProp === undefined || curCheckProp[0] <= size && size <= curCheckProp[1]
-        if (isInArea) {
-          return true
+        if (curCheckProp) {
+          // 无自定义限制
+          if (curCheckProp.length > 0 && undefined !== curCheckProp[0] && size < curCheckProp[0]) {
+            dragInfo[changeType] = curCheckProp[0]
+            return false
+          }
+          if (curCheckProp.length > 1 && undefined !== curCheckProp[1] && size > curCheckProp[1]) {
+            dragInfo[changeType] = curCheckProp[1]
+            return false
+          }
         }
-        return false
-      } else {
+      }
+      if (dragInfo.box) {
         if (changeType === 'top') {
           if (size + dragInfo.height > boxH) {
             dragInfo.top = boxH - dragInfo.height > 0 ? boxH - dragInfo.height : 0
@@ -171,10 +179,6 @@ Vue.directive('drag', {
             dragInfo.top = boxH - dragInfo.height
             return false
           }
-          if (size < dragInfo.minheight) {
-            dragInfo.height = dragInfo.minheight
-            return false
-          }
         }
         if (changeType === 'right' || changeType === 'left') {
           if (size + dragInfo.width > boxW) {
@@ -183,10 +187,11 @@ Vue.directive('drag', {
           }
           if (size < 0) {
             dragInfo[changeType] = 0
+            return false
           }
         }
-        return true
       }
+      return true
     }
     function regainBox () {
       if (dragInfo.box) {
@@ -278,7 +283,7 @@ Vue.directive('drag', {
         el.className = el.className.replace(/ky-[a-z]+-ing/g, '').replace(/\s+$/, '')
         document.onmousemove = null
         document.onmouseup = null
-        // $(window).unbind('resize')
+        $(window).unbind('resize')
       }
     }
   }

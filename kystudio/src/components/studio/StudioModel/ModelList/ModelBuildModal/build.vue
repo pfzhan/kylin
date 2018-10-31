@@ -3,13 +3,13 @@
     <el-dialog :title="$t('Model Build')" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <div>
         <el-form :model="modelBuildMeta" :rules="rules" ref="buildForm" label-width="100px">
-          <el-form-item :label="$t('构建范围')" prop="dataRangeVal">
+          <el-form-item :label="$t('buildRange')" prop="dataRangeVal">
             <el-date-picker
               v-model="modelBuildMeta.dataRangeVal"
               type="datetimerange"
-              range-separator="至"
-              start-placeholder="开始日期"
-              end-placeholder="结束日期">
+              :range-separator="$t('to')"
+              :start-placeholder="$t('startDate')"
+              :end-placeholder="$t('endDate')">
             </el-date-picker>
           </el-form-item>
         </el-form>
@@ -72,7 +72,7 @@
         if (this.modelDesc.last_build_end) {
           let lastBuildDate = new Date(+this.modelDesc.last_build_end)
           if (lastBuildDate) {
-            this.modelBuildMeta.dataRangeVal.push(lastBuildDate)
+            this.modelBuildMeta.dataRangeVal.push(lastBuildDate, lastBuildDate)
           }
         }
       } else {

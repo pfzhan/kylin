@@ -27,6 +27,11 @@ export function jsPlumbTool () {
       this.setZoom(zoom)
       return plumbInstance
     },
+    lazyRender (cb) {
+      jsPlumb.setSuspendDrawing(true)
+      cb && cb()
+      jsPlumb.setSuspendDrawing(false, true)
+    },
     bindConnectionEvent (cb) {
       plumbInstance.bind('connection', (info, originalEvent) => {
         cb(info.connection, originalEvent)

@@ -72,12 +72,12 @@
           <span class="new-icon">New</span>
         </div>
       </div>
-      <div class="sub-tool-icon-group">
-        <div class="tool-icon" @click.stop="reduceZoom"><i class="el-icon-ksd-shrink" ></i></div>
-        <div class="tool-icon" @click.stop="addZoom"><i class="el-icon-ksd-enlarge"></i></div>
+      <div class="sub-tool-icon-group" v-event-stop>
+        <div class="tool-icon" @click="reduceZoom"><i class="el-icon-ksd-shrink" ></i></div>
+        <div class="tool-icon" @click="addZoom"><i class="el-icon-ksd-enlarge"></i></div>
         <!-- <div class="tool-icon" v-event-stop>{{modelRender.zoom}}0%</div> -->
-        <div class="tool-icon" @click.stop="fullScreen"><i class="el-icon-ksd-full_screen" v-if="!isFullScreen"></i><i class="el-icon-ksd-collapse" v-if="isFullScreen"></i></div>
-        <div class="tool-icon" @click.stop="autoLayout"><i class="el-icon-ksd-auto"></i></div>
+        <div class="tool-icon" @click="fullScreen"><i class="el-icon-ksd-full_screen" v-if="!isFullScreen"></i><i class="el-icon-ksd-collapse" v-if="isFullScreen"></i></div>
+        <div class="tool-icon" @click="autoLayout"><i class="el-icon-ksd-auto"></i></div>
       </div>
       <!-- 右侧面板组 -->
       <!-- <div class="panel-group"> -->
@@ -367,6 +367,7 @@ export default class ModelEdit extends Vue {
     } else if (this.extraoption.action === 'add') {
       this.modelData = {
         name: this.extraoption.modelName,
+        description: this.extraoption.modelDesc,
         project: this.currentSelectedProject
       }
       cb(this.modelData)
@@ -678,17 +679,13 @@ export default class ModelEdit extends Vue {
   }
   handleSaveModel (data) {
     let action = 'saveModel'
-    let para = {
-      project: this.currentSelectedProject,
-      modelDesc: JSON.stringify(data),
-      modelName: data.name
-    }
+    let para = data
     if (data.uuid) {
       action = 'updataModel'
-      para = data
     }
     this[action](para).then((res) => {
       handleSuccess(res, () => {
+        kapMessage(this.$t('kylinLang.common.saveSuccess'))
         this.$router.push({name: 'ModelList'})
       })
     }, (res) => {

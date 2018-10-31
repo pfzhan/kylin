@@ -12,6 +12,7 @@ class NModel {
     this.mode = options.uuid ? 'edit' : 'new' // 当前模式
     this.name = options.name
     this.fact_table = options.fact_table
+    this.description = options.description
     this.project = options.project
     this.uuid = options.uuid || null
     this.tables = {}
@@ -170,14 +171,16 @@ class NModel {
     }
   }
   renderLinks () {
-    for (var guid in this.tables) {
-      var curNT = this.tables[guid]
-      for (var i in curNT.joinInfo) {
-        var primaryGuid = guid
-        var foreignGuid = curNT.joinInfo[i].foreignTable.guid
-        this.renderLink(primaryGuid, foreignGuid)
+    this.plumbTool.lazyRender(() => {
+      for (var guid in this.tables) {
+        var curNT = this.tables[guid]
+        for (var i in curNT.joinInfo) {
+          var primaryGuid = guid
+          var foreignGuid = curNT.joinInfo[i].foreignTable.guid
+          this.renderLink(primaryGuid, foreignGuid)
+        }
       }
-    }
+    })
   }
   renderLink (pid, fid) {
     this.addPlumbPoints(pid, '', '', true)
@@ -208,7 +211,8 @@ class NModel {
         uuid: this.uuid,
         name: this.name,
         owner: this.owner,
-        project: this.project
+        project: this.project,
+        description: this.description
       }
       let factTable = this.getFactTable()
       if (factTable) {
@@ -225,6 +229,7 @@ class NModel {
       metaData.partition_desc = this.partition_desc
       metaData.maintain_model_type = this._mount.maintain_model_type
       metaData.management_type = this.management_type
+      metaData.canvas = this._generateTableRectData()
       resolve(metaData)
     })
   }
@@ -245,9 +250,15 @@ class NModel {
     return [...this._mount.dimensions, ...this.tableIndexColumns]
   }
   _generateTableRectData () {
-    for (let t in this.tables) {
-      console.log(t)
+    let canvasInfo = {
+      coordinate: {}
     }
+    for (let t in this.tables) {
+      let ntable = this.tables[t]
+      canvasInfo.coordinate[ntable.alias] = ntable.getMetaCanvasInfo()
+    }
+    canvasInfo.zoom = this._mount.zoom
+    return canvasInfo
   }
   // end
   // 判断是否table有关联的链接
