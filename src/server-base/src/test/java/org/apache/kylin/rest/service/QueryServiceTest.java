@@ -318,11 +318,11 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
             NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
             NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
-            nDataflowUpdate.setStatus(RealizationStatusEnum.DISABLED);
+            nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
             dataflowManager.updateDataflow(nDataflowUpdate);
             dataflow = dataflowManager.getDataflow("ncube_basic_inner");
             nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
-            nDataflowUpdate.setStatus(RealizationStatusEnum.DISABLED);
+            nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
             dataflowManager.updateDataflow(nDataflowUpdate);
 
             Thread.sleep(1000);
@@ -345,11 +345,11 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
             NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
             NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
-            nDataflowUpdate.setStatus(RealizationStatusEnum.READY);
+            nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
             dataflowManager.updateDataflow(nDataflowUpdate);
             dataflow = dataflowManager.getDataflow("ncube_basic_inner");
             nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
-            nDataflowUpdate.setStatus(RealizationStatusEnum.READY);
+            nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
             dataflowManager.updateDataflow(nDataflowUpdate);
             
             Thread.sleep(1000);

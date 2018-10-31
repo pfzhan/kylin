@@ -25,32 +25,29 @@
 package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.metadata.model.ColumnDesc;
+
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 @Setter
 @Getter
-public class NDataModelResponse extends NDataModel {
+public class SimplifiedMeasureResponse implements Serializable {
 
-    @JsonProperty("status")
-    private RealizationStatusEnum status;
-    @JsonProperty("last_build_end")
-    private String lastBuildEnd;
-    @JsonProperty("simplified_tables")
-    private List<SimplifiedTableResponse> simpleTables;
-    @JsonProperty("simplified_measures")
-    private List<SimplifiedMeasureResponse> simplifiedMeasures;
-
-    public NDataModelResponse() {
-        super();
-    }
-
-    public NDataModelResponse(NDataModel dataMolde) {
-        super(dataMolde);
-    }
-
+    @JsonProperty("id")
+    private int id;
+    @JsonProperty("expression")
+    private String expression;
+    @JsonProperty("name")
+    private String name;
+    @JsonProperty("return_type")
+    private String returnType;
+    @JsonProperty("parameter_value")
+    private List<ParameterResponse> parameterValue;
+    @JsonProperty("converted_columns")
+    private List<ColumnDesc> convertedColumns = new ArrayList<>();
 
 }

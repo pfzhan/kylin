@@ -287,7 +287,7 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
 
                 NDataflowUpdate update = new NDataflowUpdate(copy.getName());
                 update.setToAddSegs(segment);
-                update.setStatus(RealizationStatusEnum.READY);
+                update.setStatus(RealizationStatusEnum.ONLINE);
                 List<NDataCuboid> cuboids = Lists.newArrayList();
                 for (NCuboidDesc cuboidDesc : copy.getCubePlan().getAllCuboids()) {
                     for (NCuboidLayout layout : cuboidDesc.getLayouts()) {

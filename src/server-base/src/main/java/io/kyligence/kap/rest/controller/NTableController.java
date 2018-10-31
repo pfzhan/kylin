@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.controller;
 
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
-import io.kyligence.kap.rest.request.DatabaseLoadRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.FactTableRequest;
 import io.kyligence.kap.rest.request.PushDownModeRequest;
@@ -34,6 +33,7 @@ import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
+import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.service.ModelService;
@@ -59,10 +59,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Controller
 @RequestMapping(value = "/tables")
@@ -151,15 +151,24 @@ public class NTableController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse loadTables(@RequestBody TableLoadRequest tableLoadRequest) throws Exception {
 
-        Set<String>[] sets;
         checkProjectName(tableLoadRequest.getProject());
-        if (tableLoadRequest.getTables() == null || tableLoadRequest.getTables().length == 0) {
-            throw new BadRequestException("you should select at least 1 table to load");
+        if (ArrayUtils.isEmpty(tableLoadRequest.getTables()) && ArrayUtils.isEmpty(tableLoadRequest.getDatabases())) {
+            throw new BadRequestException("You should select at least one table or database to load!!");
         }
-        sets = tableExtService.loadTables(tableLoadRequest.getTables(), tableLoadRequest.getProject(),
-                tableLoadRequest.getDatasourceType());
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        if (ArrayUtils.isNotEmpty(tableLoadRequest.getTables())) {
+            LoadTableResponse loadByTable = tableExtService.loadTables(tableLoadRequest.getTables(), tableLoadRequest.getProject(),
+                    tableLoadRequest.getDatasourceType());
+            loadTableResponse.getFailed().addAll(loadByTable.getFailed());
+            loadTableResponse.getLoaded().addAll(loadByTable.getLoaded());
+        }
+        if (ArrayUtils.isNotEmpty(tableLoadRequest.getDatabases())) {
 
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, sets, "");
+            LoadTableResponse loadByDatabase = tableExtService.loadTablesByDatabase(tableLoadRequest.getProject(), tableLoadRequest.getDatabases(), tableLoadRequest.getDatasourceType());
+            loadTableResponse.getFailed().addAll(loadByDatabase.getFailed());
+            loadTableResponse.getLoaded().addAll(loadByDatabase.getLoaded());
+        }
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, loadTableResponse, "");
     }
 
     @RequestMapping(value = "/data_range", method = {RequestMethod.POST}, produces = {
@@ -183,17 +192,6 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, databases, "");
     }
 
-    @RequestMapping(value = "/databases", method = {RequestMethod.POST}, produces = {
-            "application/vnd.apache.kylin-v2+json"})
-    @ResponseBody
-    public EnvelopeResponse loadtablesByDatabase(@RequestBody DatabaseLoadRequest databaseLoadRequest) throws Exception {
-        checkProjectName(databaseLoadRequest.getProject());
-        if (ArrayUtils.isEmpty(databaseLoadRequest.getDatabases())) {
-            throw new BadRequestException("you should select at least 1 database to load");
-        }
-        tableExtService.loadTablesByDatabase(databaseLoadRequest.getProject(), databaseLoadRequest.getDatabases(), databaseLoadRequest.getDatasourceType());
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
-    }
 
     /**
      * Show all tablesNames

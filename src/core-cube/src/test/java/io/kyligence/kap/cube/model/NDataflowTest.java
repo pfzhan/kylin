@@ -60,7 +60,7 @@ public class NDataflowTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(getTestConfig(), df.getConfig());
         Assert.assertEquals(getTestConfig().hashCode(), df.getConfig().hashCode());
         Assert.assertEquals("test_description", df.getDescription());
-        Assert.assertEquals(RealizationStatusEnum.READY, df.getStatus());
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, df.getStatus());
         Assert.assertEquals("test_owner", df.getOwner());
 
         Segments<NDataSegment> segments = df.getSegments();

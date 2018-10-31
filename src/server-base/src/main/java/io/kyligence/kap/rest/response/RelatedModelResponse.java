@@ -28,27 +28,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import java.util.List;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Setter
 @Getter
-public class NDataModelResponse extends NDataModel {
+public class RelatedModelResponse extends NDataModel {
 
     @JsonProperty("status")
     private RealizationStatusEnum status;
-    @JsonProperty("last_build_end")
-    private String lastBuildEnd;
-    @JsonProperty("simplified_tables")
-    private List<SimplifiedTableResponse> simpleTables;
-    @JsonProperty("simplified_measures")
-    private List<SimplifiedMeasureResponse> simplifiedMeasures;
+    @JsonProperty("segment_ranges")
+    private Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
 
-    public NDataModelResponse() {
+    public RelatedModelResponse() {
         super();
     }
 
-    public NDataModelResponse(NDataModel dataMolde) {
+    public RelatedModelResponse(NDataModel dataMolde) {
         super(dataMolde);
     }
 

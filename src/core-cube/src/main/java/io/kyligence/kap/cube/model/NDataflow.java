@@ -72,7 +72,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         df.setCubePlanName(plan.getName());
         df.setCreateTimeUTC(System.currentTimeMillis());
         df.setSegments(new Segments<NDataSegment>());
-        df.setStatus(RealizationStatusEnum.DISABLED);
+        df.setStatus(RealizationStatusEnum.NEW);
         df.updateRandomUuid();
 
         return df;
@@ -209,7 +209,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
 
     @Override
     public boolean isReady() {
-        return getStatus() == RealizationStatusEnum.READY;
+        return getStatus() == RealizationStatusEnum.ONLINE;
     }
 
     @Override

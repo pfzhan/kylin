@@ -85,7 +85,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         NDataflow df = mgr.getDataflow("ncube_basic");
 
         try {
-            df.setStatus(RealizationStatusEnum.DISABLED);
+            df.setStatus(RealizationStatusEnum.OFFLINE);
             Assert.fail();
         } catch (IllegalStateException ex) {
             // expected
@@ -98,7 +98,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
             // expected
         }
 
-        df.copy().setStatus(RealizationStatusEnum.DISABLED);
+        df.copy().setStatus(RealizationStatusEnum.OFFLINE);
     }
 
     @Test

@@ -43,9 +43,12 @@
 package io.kyligence.kap.rest.service;
 
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.rest.response.LoadTableResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -67,7 +70,6 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 public class TableExtServiceTest extends NLocalFileMetadataTestCase {
@@ -104,8 +106,20 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(result).when(tableService).extractTableMeta(tables, "default", 11);
         Mockito.doNothing().when(tableExtService).loadTable(result.get(0).getFirst(), result.get(0).getSecond(), "default");
         Mockito.doNothing().when(tableExtService).loadTable(result.get(1).getFirst(), result.get(1).getSecond(), "default");
-        Set<String>[] resultSet = tableExtService.loadTables(tables, "default", 11);
-        Assert.assertTrue(resultSet[0].size() == 2);
+        LoadTableResponse response = tableExtService.loadTables(tables, "default", 11);
+        Assert.assertTrue(response.getLoaded().size() == 2);
+    }
+
+    @Test
+    public void testLoadTablesByDatabase() throws Exception {
+        String[] tableIdentities = {"EDW.TEST_CAL_DT", "EDW.TEST_SELLER_TYPE_DIM", "EDW.TEST_SITES"};
+        String[] tableNames = {"TEST_CAL_DT", "TEST_SELLER_TYPE_DIM", "TEST_SITES"};
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        loadTableResponse.setLoaded(Sets.newHashSet(tableIdentities));
+        Mockito.doReturn(Lists.newArrayList(tableNames)).when(tableService).getSourceTableNames("default", "EDW", 11, "");
+        Mockito.doReturn(loadTableResponse).when(tableExtService).loadTables(tableIdentities, "default", 11);
+        LoadTableResponse response = tableExtService.loadTablesByDatabase("default", new String[]{"EDW"}, 11);
+        Assert.assertTrue(response.getLoaded().size() == 3);
     }
 
     @Test

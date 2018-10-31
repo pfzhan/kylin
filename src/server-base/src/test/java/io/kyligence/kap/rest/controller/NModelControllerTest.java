@@ -53,11 +53,15 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -211,7 +215,7 @@ public class NModelControllerTest {
     @Test
     public void testGetRelatedModels() throws Exception {
 
-        Mockito.when(modelService.getRelateModels("default", "TEST_KYLIN_FACT", "model1")).thenReturn(mockModels());
+        Mockito.when(modelService.getRelateModels("default", "TEST_KYLIN_FACT", "model1")).thenReturn(mockRelatedModels());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model", "model1").param("limit", "10")
                 .param("exact", "true").param("owner", "ADMIN").param("status", "NEW").param("sortBy", "last_modify")
@@ -300,19 +304,31 @@ public class NModelControllerTest {
     }
 
     @Test
+    public void testCreateModel() throws Exception {
+        ModelRequest request = new ModelRequest();
+        request.setProject("default");
+        Mockito.doNothing().when(modelService).createModel(request);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).createModel(Mockito.any(ModelRequest.class));
+    }
+
+    @Test
     public void testCloneModel() throws Exception {
         ModelCloneRequest request = new ModelCloneRequest();
         request.setModelName("nmodel_basic");
         request.setNewModelName("new_model");
         request.setProject("default");
         Mockito.doNothing().when(modelService).cloneModel("nmodel_basic", "new_model", "default");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/clone").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).cloneModel(Mockito.any(ModelCloneRequest.class));
         request.setNewModelName("dsf gfdg fds");
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/clone").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
@@ -333,6 +349,35 @@ public class NModelControllerTest {
         Mockito.verify(nModelController).updateModelDataCheckDesc("nmodel_basic", request);
 
     }
+
+    @Test
+    public void testBuildSegments() throws Exception {
+        BuildSegmentsRequest request = new BuildSegmentsRequest();
+        request.setModel("nmodel_basic");
+        request.setProject("default");
+        request.setStart("0");
+        request.setEnd("100");
+        Mockito.doNothing().when(modelService).buildSegmentsManually("default", "nmodel_basci", "0", "100");
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).buildSegmentsManually(Mockito.any(BuildSegmentsRequest.class));
+    }
+
+    @Test
+    public void testUnlinkModel() throws Exception {
+        UnlinkModelRequest request = new UnlinkModelRequest();
+        request.setModelName("nmodel_basic");
+        request.setProject("default");
+        Mockito.doNothing().when(modelService).unlinkModel("default", "nmodel_basci");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/management_type").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).unlinkModel(Mockito.any(UnlinkModelRequest.class));
+    }
+
 
     private List<NForestSpanningTree> mockRelations() {
         final List<NForestSpanningTree> nSpanningTrees = new ArrayList<>();
@@ -380,6 +425,24 @@ public class NModelControllerTest {
         NDataModel model3 = new NDataModel();
         model.setName("model4");
         models.add(new NDataModelResponse(model3));
+
+        return models;
+    }
+
+    private List<RelatedModelResponse> mockRelatedModels() {
+        final List<RelatedModelResponse> models = new ArrayList<>();
+        NDataModel model = new NDataModel();
+        model.setName("model1");
+        models.add(new RelatedModelResponse(model));
+        NDataModel model1 = new NDataModel();
+        model.setName("model2");
+        models.add(new RelatedModelResponse(model1));
+        NDataModel model2 = new NDataModel();
+        model.setName("model3");
+        models.add(new RelatedModelResponse(model2));
+        NDataModel model3 = new NDataModel();
+        model.setName("model4");
+        models.add(new RelatedModelResponse(model3));
 
         return models;
     }

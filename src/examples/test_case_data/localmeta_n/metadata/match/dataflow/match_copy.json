@@ -8,7 +8,7 @@
   "mp_values" : null,
   "cube_plan" : "match_copy",
   "create_time_utc" : 1509791792901,
-  "status" : "DISABLED",
+  "status" : "NEW",
   "cost" : 50,
   "segments" : [],
   "storage_location_identifier" : null

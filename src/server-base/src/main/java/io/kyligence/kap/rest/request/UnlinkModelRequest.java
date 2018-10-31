@@ -22,35 +22,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.response;
+package io.kyligence.kap.rest.request;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import java.util.List;
 
 @Setter
 @Getter
-public class NDataModelResponse extends NDataModel {
-
-    @JsonProperty("status")
-    private RealizationStatusEnum status;
-    @JsonProperty("last_build_end")
-    private String lastBuildEnd;
-    @JsonProperty("simplified_tables")
-    private List<SimplifiedTableResponse> simpleTables;
-    @JsonProperty("simplified_measures")
-    private List<SimplifiedMeasureResponse> simplifiedMeasures;
-
-    public NDataModelResponse() {
-        super();
-    }
-
-    public NDataModelResponse(NDataModel dataMolde) {
-        super(dataMolde);
-    }
-
-
+public class UnlinkModelRequest {
+    private String modelName;
+    private String project;
 }

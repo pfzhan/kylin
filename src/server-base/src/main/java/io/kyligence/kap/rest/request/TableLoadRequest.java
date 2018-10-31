@@ -24,32 +24,15 @@
 
 package io.kyligence.kap.rest.request;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Setter
+@Getter
 public class TableLoadRequest {
     private int datasourceType;
     private String project;
     private String[] tables;
+    private String[] databases;
 
-    public Integer getDatasourceType() {
-        return datasourceType;
-    }
-
-    public void setDatasourceType(Integer datasourceType) {
-        this.datasourceType = datasourceType;
-    }
-
-    public String[] getTables() {
-        return tables;
-    }
-
-    public void setTables(String[] tables) {
-        this.tables = tables;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
-    }
 }

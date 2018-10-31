@@ -159,6 +159,7 @@ public class TableService extends BasicService {
             } else {
                 nTableDesc.setUuid(origTable.getUuid());
                 nTableDesc.setLastModified(origTable.getLastModified());
+                nTableDesc.setFact(origTable.getFact());
             }
 
             tableMetaMgr.saveSourceTable(nTableDesc);

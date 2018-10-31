@@ -32,6 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.rest.request.ModelRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -67,6 +69,8 @@ import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -84,9 +88,22 @@ import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
+import io.kyligence.kap.rest.response.ParameterResponse;
+import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
+import io.kyligence.kap.rest.response.SimplifiedMeasureResponse;
+import io.kyligence.kap.rest.response.SimplifiedTableResponse;
 import io.kylingence.kap.event.manager.EventManager;
+import io.kylingence.kap.event.model.AddSegmentEvent;
 import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
+import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
+
+import org.apache.kylin.metadata.model.TableExtDesc;
+
+import java.util.Set;
 
 @Component("modelService")
 public class ModelService extends BasicService {
@@ -118,7 +135,7 @@ public class ModelService extends BasicService {
                         || (modelStatus.name().toLowerCase().equals(status.toLowerCase()));
 
                 if (isModelStatusMatch) {
-                    NDataModelResponse nDataModelResponse = new NDataModelResponse(modelDesc);
+                    NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
                     nDataModelResponse.setStatus(modelStatus);
                     filterModels.add(nDataModelResponse);
                 }
@@ -134,12 +151,82 @@ public class ModelService extends BasicService {
         return filterModels;
     }
 
+    private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {
+        NDataModelResponse nDataModelResponse = new NDataModelResponse(modelDesc);
+        List<SimplifiedTableResponse> simpleTables = new ArrayList<>();
+        for (TableRef tableRef : modelDesc.getAllTables()) {
+            SimplifiedTableResponse simpleTable = new SimplifiedTableResponse();
+            simpleTable.setTable(tableRef.getTableIdentity());
+            List<SimplifiedColumnResponse> columns = getSimplifiedColumns(projectName, tableRef);
+            simpleTable.setColumns(columns);
+            simpleTables.add(simpleTable);
+        }
+        nDataModelResponse.setSimpleTables(simpleTables);
+        List<SimplifiedMeasureResponse> simplifiedMeasures = getSimplifiedMeasures(modelDesc);
+        nDataModelResponse.setSimplifiedMeasures(simplifiedMeasures);
+        if (modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
+            Segments<NDataSegment> segments = getSegments(modelDesc.getName(), projectName, "0", "" + Long.MAX_VALUE);
+            if (CollectionUtils.isNotEmpty(segments)) {
+                NDataSegment lastSegment = segments.get(segments.size() - 1);
+                nDataModelResponse.setLastBuildEnd(lastSegment.getSegRange().getEnd().toString());
+            } else {
+                nDataModelResponse.setLastBuildEnd("");
+
+            }
+        }
+        return nDataModelResponse;
+    }
+
+    private List<SimplifiedMeasureResponse> getSimplifiedMeasures(NDataModel model) {
+        List<NDataModel.Measure> measures = model.getAllMeasures();
+        List<SimplifiedMeasureResponse> measureResponses = new ArrayList<>();
+        for (NDataModel.Measure measure : measures) {
+            SimplifiedMeasureResponse measureResponse = new SimplifiedMeasureResponse();
+            measureResponse.setId(measure.id);
+            measureResponse.setName(measure.getName());
+            measureResponse.setExpression(measure.getFunction().getExpression());
+            measureResponse.setReturnType(measure.getFunction().getReturnType());
+            List<ParameterResponse> parameters = new ArrayList<>();
+            Set<ParameterDesc.PlainParameter> plainParameters = measure.getFunction().getParameter().getPlainParameters();
+            for (ParameterDesc.PlainParameter plainParameter : plainParameters) {
+                ParameterResponse parameterResponse = new ParameterResponse();
+                parameterResponse.setType(plainParameter.getType());
+                parameterResponse.setValue(plainParameter.getValue());
+                parameters.add(parameterResponse);
+            }
+            measureResponse.setParameterValue(parameters);
+            measureResponses.add(measureResponse);
+        }
+        return measureResponses;
+    }
+
+    private List<SimplifiedColumnResponse> getSimplifiedColumns(String project, TableRef tableRef) {
+        List<SimplifiedColumnResponse> columns = new ArrayList<>();
+        NTableMetadataManager tableMetadataManager = getTableManager(project);
+        for (ColumnDesc columnDesc : tableRef.getTableDesc().getColumns()) {
+            TableExtDesc tableExtDesc = tableMetadataManager.getTableExt(tableRef.getTableDesc());
+            SimplifiedColumnResponse simplifiedColumnResponse = new SimplifiedColumnResponse();
+            simplifiedColumnResponse.setName(columnDesc.getName());
+            simplifiedColumnResponse.setComment(columnDesc.getComment());
+            simplifiedColumnResponse.setDataType(columnDesc.getDatatype());
+            //get column cardinality
+            List<TableExtDesc.ColumnStats> columnStats = tableExtDesc.getColumnStats();
+            for (TableExtDesc.ColumnStats columnStat : columnStats) {
+                if (columnStat.getColumnName().equals(columnDesc.getName())) {
+                    simplifiedColumnResponse.setCardinality(columnStat.getCardinality());
+                }
+            }
+            columns.add(simplifiedColumnResponse);
+        }
+        return columns;
+    }
+
     private RealizationStatusEnum getModelStatus(String modelName, String projectName) {
         List<NCubePlan> cubePlans = getCubePlans(modelName, projectName);
         if (CollectionUtils.isNotEmpty(cubePlans)) {
             return getDataflowManager(projectName).getDataflow(cubePlans.get(0).getName()).getStatus();
         } else {
-            return RealizationStatusEnum.NO_CUBEPLAN;
+            return RealizationStatusEnum.OFFLINE;
         }
     }
 
@@ -249,25 +336,26 @@ public class ModelService extends BasicService {
         return result;
     }
 
-    public List<NDataModelResponse> getRelateModels(String project, String table, String modelName) throws IOException {
+    public List<RelatedModelResponse> getRelateModels(String project, String table, String modelName) throws IOException {
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         NDataModelManager dataModelManager = getDataModelManager(project);
         List<String> models = dataModelManager.getModelsUsingRootTable(tableDesc);
-        List<NDataModelResponse> dataModels = new ArrayList<NDataModelResponse>();
+        List<RelatedModelResponse> relatedModel = new ArrayList<>();
         for (String model : models) {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
             NDataModel dataModelDesc = dataModelManager.getDataModelDesc(model);
             if (StringUtils.isEmpty(modelName) || dataModelDesc.getAlias().toLowerCase().contains(modelName.toLowerCase())) {
-                NDataModelResponse nDataModelResponse = new NDataModelResponse(dataModelDesc);
+                RelatedModelResponse relatedModelResponse = new RelatedModelResponse(dataModelDesc);
                 Segments<NDataSegment> segments = getSegments(model, project, "", "");
                 for (NDataSegment segment : segments) {
                     segmentRanges.put(segment.getSegRange(), segment.getStatus());
                 }
-                nDataModelResponse.setSegmentRanges(segmentRanges);
-                dataModels.add(nDataModelResponse);
+                relatedModelResponse.setStatus(getModelStatus(model, project));
+                relatedModelResponse.setSegmentRanges(segmentRanges);
+                relatedModel.add(relatedModelResponse);
             }
         }
-        return dataModels;
+        return relatedModel;
     }
 
     private List<NCubePlan> getCubePlans(String modelName, String project) {
@@ -301,7 +389,7 @@ public class ModelService extends BasicService {
         for (NCubePlan cubePlan : cubePlans) {
             Segments<NDataSegment> segments = dataflowManager.getDataflow(cubePlan.getName()).getSegments();
             if (CollectionUtils.isNotEmpty(segments)) {
-                throw new IllegalStateException("You should purge your model first before you delete it");
+                throw new IllegalStateException("You should purge your model first before you drop it!");
             }
         }
         for (NCubePlan cubePlan : cubePlans) {
@@ -324,7 +412,7 @@ public class ModelService extends BasicService {
             for (NCubePlan cubePlan : cubePlans) {
                 NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
                 NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
-                nDataflowUpdate.setStatus(RealizationStatusEnum.DISABLED);
+                nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
                 segments.addAll(dataflow.getSegments());
                 NDataSegment[] segmentsArray = new NDataSegment[segments.size()];
                 NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
@@ -365,7 +453,7 @@ public class ModelService extends BasicService {
             copy.setLastModified(0L);
             cubePlanManager.createCubePlan(copy);
             NDataflow nDataflow = new NDataflow();
-            nDataflow.setStatus(RealizationStatusEnum.DISABLED);
+            nDataflow.setStatus(RealizationStatusEnum.OFFLINE);
             nDataflow.setProject(project);
             nDataflow.setCubePlanName(cubePlan.getName());
             dataflowManager.createDataflow(copy.getName(), project, copy, owner);
@@ -385,7 +473,31 @@ public class ModelService extends BasicService {
         modelManager.updateDataModelDesc(modelUpdate);
     }
 
-    public void updateDataModelStatus(String modelName, String project, String status) throws IOException {
+    public void unlinkModel(String modelName, String project) throws IOException {
+        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataModelManager dataModelManager = getDataModelManager(project);
+
+        NDataModel nDataModel = dataModelManager.getDataModelDesc(modelName);
+        if (null == nDataModel) {
+            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelName));
+        }
+        if (nDataModel.getManagementType().equals(ManagementType.MODEL_BASED)) {
+            throw new IllegalStateException("Model " + modelName + " is model based, can not unlink it!");
+        } else {
+            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(nDataModel.getRootFactTable().getTableIdentity());
+            NDataModel modelUpdate = dataModelManager.copyForWrite(nDataModel);
+            if (dataLoadingRange != null) {
+                modelUpdate.setAutoMergeTimeRanges(dataLoadingRange.getAutoMergeTimeRanges());
+                modelUpdate.setAutoMergeEnabled(dataLoadingRange.isAutoMergeEnabled());
+                modelUpdate.setVolatileRange(dataLoadingRange.getVolatileRange());
+            }
+            modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+            dataModelManager.updateDataModelDesc(modelUpdate);
+            return;
+        }
+    }
+
+    public void updateDataModelStatus(String modelName, String project, String status) throws Exception {
         NDataModelManager modelManager = getDataModelManager(project);
         NDataModel nDataModel = modelManager.getDataModelDesc(modelName);
         if (null == nDataModel) {
@@ -395,19 +507,48 @@ public class ModelService extends BasicService {
         NDataflowManager dataflowManager = getDataflowManager(project);
         for (NCubePlan cubePlan : cubePlans) {
             NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
-            boolean needChangeStatus = (status.equals(RealizationStatusEnum.DISABLED.name())
-                    && dataflow.getStatus().equals(RealizationStatusEnum.READY))
-                    || (status.equals(RealizationStatusEnum.READY.name())
-                    && dataflow.getStatus().equals(RealizationStatusEnum.DISABLED));
+            boolean needChangeStatus = (status.equals(RealizationStatusEnum.OFFLINE.name())
+                    && dataflow.getStatus().equals(RealizationStatusEnum.ONLINE))
+                    || (status.equals(RealizationStatusEnum.ONLINE.name())
+                    && dataflow.getStatus().equals(RealizationStatusEnum.OFFLINE));
             if (dataflow.getStatus().equals(RealizationStatusEnum.DESCBROKEN)
                     && !status.equals(RealizationStatusEnum.DESCBROKEN.name())) {
                 throw new BadRequestException(
-                        "DescBroken model " + nDataModel.getName() + "cannot to set disable or enable");
+                        "DescBroken model " + nDataModel.getName() + " can not online or offline!");
             }
             if (needChangeStatus) {
                 NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
-                nDataflowUpdate.setStatus(RealizationStatusEnum.valueOf(status));
+                if (status.equals(RealizationStatusEnum.OFFLINE.name())) {
+                    nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
+                } else if (status.equals(RealizationStatusEnum.ONLINE.name())) {
+                    checkModelAllowedOnline(modelName, project);
+                    nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
+                }
                 dataflowManager.updateDataflow(nDataflowUpdate);
+            }
+        }
+    }
+
+    private void checkModelAllowedOnline(String modelName, String project) throws Exception {
+        NDataModelManager dataModelManager = getDataModelManager(project);
+        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
+        NDataModel dataModel = dataModelManager.getDataModelDesc(modelName);
+        Segments segments = getSegments(modelName, project, "0", "" + Long.MAX_VALUE);
+        Segments readySegments = segments.getSegments(SegmentStatusEnum.READY);
+        if (CollectionUtils.isEmpty(readySegments)) {
+            throw new IllegalStateException("No ready segment in model '" + modelName + "', can not online the model!");
+        }
+        if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(dataModel.getRootFactTableName());
+            long readyStart = Long.parseLong(readySegments.getFirstSegment().getSegRange().getStart().toString());
+            long readyEnd = Long.parseLong(readySegments.getLatestReadySegment().getSegRange().getEnd().toString());
+            if (dataLoadingRange == null) {
+                throw new IllegalStateException("DataloadingRange '" + dataModel.getRootFactTableName() + "' does not exist!");
+            }
+            if (readyStart <= dataLoadingRange.getActualQueryStart() && readyEnd >= dataLoadingRange.getActualQueryEnd()) {
+                return;
+            } else {
+                throw new IllegalStateException("Some segments in model '" + modelName + "' are not ready, can not online the model!");
             }
         }
     }
@@ -430,7 +571,7 @@ public class ModelService extends BasicService {
         Segments<NDataSegment> segments = new Segments<>();
         RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
         long byteSize = 0L;
-        List<NDataModelResponse> models = getRelateModels(project, table, "");
+        List<RelatedModelResponse> models = getRelateModels(project, table, "");
         for (NDataModel model : models) {
             if (model.getManagementType().equals(managementType)) {
                 segments.addAll(getSegments(model.getName(), project, start, end));
@@ -450,7 +591,7 @@ public class ModelService extends BasicService {
         if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
             throw new BadRequestException("Can not refersh, please try again and confirm affected storage!");
         }
-        List<NDataModelResponse> models = getRelateModels(project, table, "");
+        List<RelatedModelResponse> models = getRelateModels(project, table, "");
         for (NDataModel model : models) {
             Segments<NDataSegment> segments = getSegments(model.getName(), project, refreshStart, refreshEnd);
             if (segments.getBuildingSegments().size() > 0) {
@@ -468,6 +609,115 @@ public class ModelService extends BasicService {
         event.setTableName(table);
         eventManager.post(event);
     }
+
+
+    public void createModel(ModelRequest modelRequest) throws IOException {
+        String project = modelRequest.getProject();
+        List<SimplifiedMeasureResponse> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
+        checkAliasExist(modelRequest.getName(), modelRequest.getAlias(), project);
+        //remove some attributes in modelResponse to fit NDataModel
+        NDataModel dataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelRequest), NDataModel.class);
+        dataModel.setUuid(UUID.randomUUID().toString());
+        List<NDataModel.Measure> measures = new ArrayList<>();
+        if (CollectionUtils.isEmpty(simplifiedMeasures)) {
+            NDataModel.Measure measure = new NDataModel.Measure();
+            measure.id = 0;
+            measure.setName("_COUNT_");
+            FunctionDesc functionDesc = new FunctionDesc();
+            ParameterDesc parameterDesc = new ParameterDesc();
+            parameterDesc.setType("constant");
+            parameterDesc.setValue("1");
+            functionDesc.setParameter(parameterDesc);
+            functionDesc.setExpression("COUNT");
+            functionDesc.setReturnType("bigint");
+            measure.setFunction(functionDesc);
+            measures.add(measure);
+        } else {
+            for (SimplifiedMeasureResponse simplifiedMeasure : simplifiedMeasures) {
+                NDataModel.Measure measure = new NDataModel.Measure();
+                measure.id = simplifiedMeasure.getId();
+                measure.setName(simplifiedMeasure.getName());
+                FunctionDesc functionDesc = new FunctionDesc();
+                functionDesc.setReturnType(simplifiedMeasure.getReturnType());
+                functionDesc.setExpression(simplifiedMeasure.getExpression());
+                List<ParameterResponse> parameterResponseList = simplifiedMeasure.getParameterValue();
+                functionDesc.setParameter(enrichParameterDesc(parameterResponseList, null));
+                measure.setFunction(functionDesc);
+                measures.add(measure);
+            }
+        }
+        dataModel.setAllMeasures(measures);
+        enrichAllNamedColumns(dataModel.getAllNamedColumns());
+        getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
+    }
+
+    private void enrichAllNamedColumns(List<NDataModel.NamedColumn> allNamedColumns) {
+        for (int i = 0; i < allNamedColumns.size(); i++) {
+            allNamedColumns.get(i).id = i;
+        }
+    }
+
+    private ParameterDesc enrichParameterDesc(List<ParameterResponse> parameterResponseList, ParameterDesc nextParameterDesc) {
+        if (CollectionUtils.isEmpty(parameterResponseList)) {
+            return nextParameterDesc;
+        }
+        ParameterDesc parameterDesc = new ParameterDesc();
+        parameterDesc.setType(parameterResponseList.get(0).getType());
+        parameterDesc.setValue(parameterResponseList.get(0).getValue());
+        parameterDesc.setNextParameter(nextParameterDesc);
+        if (parameterResponseList.size() >= 1) {
+            return enrichParameterDesc(parameterResponseList.subList(1, parameterResponseList.size()), parameterDesc);
+        } else {
+            return parameterDesc;
+        }
+
+    }
+
+    public void buildSegmentsManually(String project, String model, String start, String end) throws IOException, PersistentException {
+        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(model);
+        if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
+            throw new BadRequestException("Table oriented Model '" + model + "' can not build segments manually!");
+        }
+        List<NCubePlan> cubePlans = getCubePlans(model, project);
+        if (CollectionUtils.isEmpty(cubePlans)) {
+            throw new BadRequestException("No cubeplan exists in model " + model + "!");
+        }
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        EventManager eventManager = getEventManager(project);
+        TableDesc table = getTableManager(project).getTableDesc(modelDesc.getRootFactTableName());
+        SegmentRange segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, end);
+
+        checkSegmentToBuildOverlapsBuilt(project, model, segmentRangeToBuild);
+
+        for (NCubePlan cubePlan : cubePlans) {
+            NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+            NDataSegment newSegment = dataflowManager.appendSegment(dataflow, segmentRangeToBuild);
+            List<Integer> segmentIds = new ArrayList<>();
+            segmentIds.add(newSegment.getId());
+            AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
+            addSegmentEvent.setApproved(true);
+            addSegmentEvent.setSegmentIds(segmentIds);
+            addSegmentEvent.setCubePlanName(cubePlan.getName());
+            addSegmentEvent.setModelName(model);
+            addSegmentEvent.setSegmentRange(segmentRangeToBuild);
+            addSegmentEvent.setProject(project);
+            eventManager.post(addSegmentEvent);
+        }
+    }
+
+    private void checkSegmentToBuildOverlapsBuilt(String project, String model, SegmentRange segmentRangeToBuild) {
+        Segments<NDataSegment> segments = getSegments(model, project, "0", "" + Long.MAX_VALUE);
+        if (CollectionUtils.isEmpty(segments)) {
+            return;
+        } else {
+            for (NDataSegment existedSegment : segments) {
+                if (existedSegment.getSegRange().overlaps(segmentRangeToBuild)) {
+                    throw new BadRequestException("Segments to build overlaps built or building segment(from " + existedSegment.getSegRange().getStart().toString() + " to " + existedSegment.getSegRange().getEnd().toString() + "), please select new data range and try again!");
+                }
+            }
+        }
+    }
+
 
     public void primaryCheck(NDataModel modelDesc) {
         Message msg = MsgPicker.getMsg();
@@ -501,7 +751,7 @@ public class ModelService extends BasicService {
 
     /**
      * check if the computed column expressions are valid ( in hive)
-     *
+     * <p>
      * ccInCheck is optional, if provided, other cc in the model will skip hive check
      */
     public boolean checkComputedColumn(final NDataModel dataModelDesc, String project, String ccInCheck) throws IOException {

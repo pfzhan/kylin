@@ -44,13 +44,13 @@ package io.kyligence.kap.rest.controller;
 
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
-import io.kyligence.kap.rest.request.DatabaseLoadRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.FactTableRequest;
 import io.kyligence.kap.rest.request.PushDownModeRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
+import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
@@ -129,9 +129,10 @@ public class NTableControllerTest {
         final TableLoadRequest tableLoadRequest = new TableLoadRequest();
         tableLoadRequest.setProject("default");
         tableLoadRequest.setDatasourceType(11);
-        String[] tables = {"table1", "table2"};
+        String[] tables = {"table1"};
+        String[] dbs = {"db1"};
         tableLoadRequest.setTables(tables);
-
+        tableLoadRequest.setDatabases(dbs);
         return tableLoadRequest;
     }
 
@@ -239,14 +240,7 @@ public class NTableControllerTest {
     }
 
 
-    private DatabaseLoadRequest mockDatabaseLoadRequest() {
-        String[] databases = {"DEFAULT"};
-        DatabaseLoadRequest databaseLoadRequest = new DatabaseLoadRequest();
-        databaseLoadRequest.setDatabases(databases);
-        databaseLoadRequest.setDatasourceType(11);
-        databaseLoadRequest.setProject("default");
-        return databaseLoadRequest;
-    }
+
 
     private TopTableRequest mockTopTableRequest() {
         TopTableRequest topTableRequest = new TopTableRequest();
@@ -267,15 +261,18 @@ public class NTableControllerTest {
 
     @Test
     public void testLoadTables() throws Exception {
-        String[] tables = {"table1", "table2"};
         Set<String> loaded = new HashSet<String>();
         loaded.add("table1");
-        Set<String>[] result = new Set[3];
-        org.apache.commons.lang.ArrayUtils.add(result, loaded);
-
-        Mockito.when(tableExtService.loadTables(tables, "default", 11)).thenReturn(result);
-
+        Set<String> failed = new HashSet<String>();
+        loaded.add("table2");
+        Set<String> loading = new HashSet<String>();
+        loaded.add("table3");
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        loadTableResponse.setLoaded(loaded);
+        loadTableResponse.setFailed(failed);
         final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
+        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default", 11)).thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases(), 11)).thenReturn(loadTableResponse);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(tableLoadRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -284,41 +281,26 @@ public class NTableControllerTest {
     }
 
     @Test
-    public void testLoadTablesByDatabase() throws Exception {
-        String[] databases = {"DEFAULT"};
-        Mockito.doNothing().when(tableExtService).loadTablesByDatabase("default", databases, 11);
-        final DatabaseLoadRequest databaseLoadRequest = mockDatabaseLoadRequest();
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/databases").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(databaseLoadRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).loadtablesByDatabase(Mockito.any(DatabaseLoadRequest.class));
-    }
-
-    @Test
-    public void testLoadTablesByDatabaseException() throws Exception {
-        String[] databases = {};
-        Mockito.doNothing().when(tableExtService).loadTablesByDatabase("default", databases, 11);
-        final DatabaseLoadRequest databaseLoadRequest = mockDatabaseLoadRequest();
-        databaseLoadRequest.setDatabases(databases);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/databases").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(databaseLoadRequest))
+    public void testLoadTablesException() throws Exception {
+        Set<String> loaded = new HashSet<String>();
+        loaded.add("table1");
+        Set<String> failed = new HashSet<String>();
+        loaded.add("table2");
+        Set<String> loading = new HashSet<String>();
+        loaded.add("table3");
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
+        loadTableResponse.setLoaded(loaded);
+        loadTableResponse.setFailed(failed);
+        final TableLoadRequest tableLoadRequest = mockLoadTableRequest();
+        tableLoadRequest.setTables(null);
+        tableLoadRequest.setDatabases(null);
+        Mockito.when(tableExtService.loadTables(tableLoadRequest.getTables(), "default", 11)).thenReturn(loadTableResponse);
+        Mockito.when(tableExtService.loadTablesByDatabase("default", tableLoadRequest.getDatabases(), 11)).thenReturn(loadTableResponse);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(tableLoadRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
-        Mockito.verify(nTableController).loadtablesByDatabase(Mockito.any(DatabaseLoadRequest.class));
-    }
-
-    @Test
-    public void testLoadTablesByDatabaseException2() throws Exception {
-        String[] databases = null;
-        Mockito.doNothing().when(tableExtService).loadTablesByDatabase("default", databases, 11);
-        final DatabaseLoadRequest databaseLoadRequest = mockDatabaseLoadRequest();
-        databaseLoadRequest.setDatabases(databases);
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/databases").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(databaseLoadRequest))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-        Mockito.verify(nTableController).loadtablesByDatabase(Mockito.any(DatabaseLoadRequest.class));
+        Mockito.verify(nTableController).loadTables(Mockito.any(TableLoadRequest.class));
     }
 
     @Test

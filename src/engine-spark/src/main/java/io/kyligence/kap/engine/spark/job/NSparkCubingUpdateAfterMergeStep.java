@@ -91,7 +91,7 @@ public class NSparkCubingUpdateAfterMergeStep extends AbstractExecutable {
         update.setToUpdateSegs((NDataSegment[]) toUpdateSegments.toArray(new NDataSegment[toUpdateSegments.size()]));
         update.setToAddOrUpdateCuboids(
                 (NDataCuboid[]) toUpdateCuboids.toArray(new NDataCuboid[toUpdateCuboids.size()]));
-        update.setStatus(RealizationStatusEnum.READY);
+        update.setStatus(RealizationStatusEnum.ONLINE);
     }
 
 }

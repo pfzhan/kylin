@@ -286,6 +286,10 @@ public class FunctionDesc implements Serializable {
         return parameter;
     }
 
+    public void setParameter(ParameterDesc parameter) {
+        this.parameter = parameter;
+    }
+
     public int getParameterCount() {
         int count = 0;
         for (ParameterDesc p = parameter; p != null; p = p.getNextParameter()) {

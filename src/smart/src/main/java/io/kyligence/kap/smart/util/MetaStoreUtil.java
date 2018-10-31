@@ -58,7 +58,7 @@ public class MetaStoreUtil {
     public static File prepareLocalMetaStore(String projName, NCubePlan cubePlan)
             throws IOException, URISyntaxException {
         NDataflow dataflow = NDataflow.create(cubePlan.getName(), cubePlan);
-        dataflow.setStatus(RealizationStatusEnum.READY);
+        dataflow.setStatus(RealizationStatusEnum.ONLINE);
 
         NDataModel modelDesc = cubePlan.getModel();
         ProjectInstance projectInstance = new ProjectInstance();

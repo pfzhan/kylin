@@ -55,6 +55,8 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Sets;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  */
@@ -225,7 +227,9 @@ public class ParameterDesc implements Serializable {
      * 1. easy to compare without considering order
      * 2. easy to compare one by one
      */
-    private static class PlainParameter implements Serializable {
+    @Setter
+    @Getter
+    public static class PlainParameter implements Serializable {
         private String type;
         private String value;
         private TblColRef colRef = null;

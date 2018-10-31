@@ -8,7 +8,7 @@
   "mp_values" : null,
   "cube_plan" : "ut_inner_join_cube_partial",
   "create_time_utc" : 1509791792901,
-  "status" : "DISABLED",
+  "status" : "NEW",
   "cost" : 50,
   "segments" : [],
   "cuboids" : [{

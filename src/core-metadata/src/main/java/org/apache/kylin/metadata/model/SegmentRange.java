@@ -67,7 +67,6 @@ import com.google.common.collect.Maps;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS, include = JsonTypeInfo.As.PROPERTY, property = "@class")
 abstract public class SegmentRange<T extends Comparable> implements Comparable<SegmentRange>, Serializable {
-
     protected T start;
     protected T end;
 

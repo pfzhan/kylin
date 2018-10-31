@@ -321,7 +321,7 @@ public class NDataLoadingRangeManager {
             for (NCubePlan cubePlan : matchingCubePlans) {
                 NDataflow df = NDataflowManager.getInstance(config, project).getDataflow(cubePlan.getName());
                 RealizationStatusEnum statusEnum = df.getStatus();
-                if (!RealizationStatusEnum.READY.equals(statusEnum)) {
+                if (!RealizationStatusEnum.ONLINE.equals(statusEnum)) {
                     continue;
                 }
                 List<SegmentRange> readySegmentRangeList = calcReadySegmentRangeList(df);

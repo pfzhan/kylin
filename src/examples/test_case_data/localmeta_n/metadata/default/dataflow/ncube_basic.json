@@ -8,7 +8,7 @@
   "mp_values" : null,
   "cube_plan" : "ncube_basic",
   "create_time_utc" : 1509791792901,
-  "status" : "READY",
+  "status" : "ONLINE",
   "cost" : 50,
   "segments" : [ {
     "id" : 0,

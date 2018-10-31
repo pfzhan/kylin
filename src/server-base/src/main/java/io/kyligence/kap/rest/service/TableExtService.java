@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 
 import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.shaded.influxdb.com.google.common.common.base.Function;
 import io.kyligence.kap.shaded.influxdb.com.google.common.common.collect.Lists;
 import org.apache.kylin.common.util.Pair;
@@ -60,11 +61,11 @@ public class TableExtService extends BasicService {
      * [2] : tables that didn't load due to other error
      * @throws Exception if reading hive metadata error
      */
-    public Set<String>[] loadTables(String[] tables, String project, Integer sourceType) throws Exception {
+    public LoadTableResponse loadTables(String[] tables, String project, Integer sourceType) throws Exception {
         List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project,
                 sourceType);
+        LoadTableResponse loadTableResponse = new LoadTableResponse();
         Set<String> loaded = Sets.newLinkedHashSet();
-        Set<String> running = Sets.newLinkedHashSet();//for table sample
         Set<String> failed = Sets.newLinkedHashSet();
         for (Pair<TableDesc, TableExtDesc> pair : extractTableMeta) {
             TableDesc tableDesc = pair.getFirst();
@@ -80,7 +81,9 @@ public class TableExtService extends BasicService {
             }
             (ok ? loaded : failed).add(tableName);
         }
-        return new Set[]{loaded, running, failed};
+        loadTableResponse.setLoaded(loaded);
+        loadTableResponse.setFailed(failed);
+        return loadTableResponse;
     }
 
     /**
@@ -110,7 +113,8 @@ public class TableExtService extends BasicService {
 
     }
 
-    public void loadTablesByDatabase(String project, final String[] databases, int datasourceType) throws Exception {
+    public LoadTableResponse loadTablesByDatabase(String project, final String[] databases, int datasourceType) throws Exception {
+        LoadTableResponse loadTableByDatabaseResponse = new LoadTableResponse();
         for (final String database : databases) {
             List<String> tables = tableService.getSourceTableNames(project, database, datasourceType, "");
             List<String> identities = Lists.transform(tables, new Function<String, String>() {
@@ -120,7 +124,10 @@ public class TableExtService extends BasicService {
                 }
             });
             String[] tableToLoad = new String[identities.size()];
-            loadTables(identities.toArray(tableToLoad), project, datasourceType);
+            LoadTableResponse loadTableResponse = loadTables(identities.toArray(tableToLoad), project, datasourceType);
+            loadTableByDatabaseResponse.getLoaded().addAll(loadTableResponse.getLoaded());
+            loadTableByDatabaseResponse.getFailed().addAll(loadTableResponse.getFailed());
         }
+        return loadTableByDatabaseResponse;
     }
 }
