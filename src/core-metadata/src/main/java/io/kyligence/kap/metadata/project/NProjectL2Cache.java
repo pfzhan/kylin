@@ -48,7 +48,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 /**
  * This is a second level cache that is built on top of first level cached objects,

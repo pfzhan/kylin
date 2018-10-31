@@ -28,7 +28,7 @@ import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 

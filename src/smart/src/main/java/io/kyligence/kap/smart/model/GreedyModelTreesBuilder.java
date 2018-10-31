@@ -47,7 +47,7 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.util.JoinDescUtil;

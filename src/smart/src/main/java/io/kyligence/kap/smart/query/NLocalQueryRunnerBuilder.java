@@ -34,7 +34,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 class NLocalQueryRunnerBuilder {

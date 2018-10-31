@@ -294,6 +294,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         validateCube(0);
         validateTableIndex(0);
+        // TODO validate model analysis
     }
 
     @Test
@@ -337,8 +338,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         job.cancelJob();
         Assert.assertEquals(false, threadToInterrupt.containsKey(job.getId()));
         //FIXME Unstable, will fix in #7302
-//        waitThreadInterrupt(thread, 60000);
-//        Assert.assertEquals(true, thread.isInterrupted());
+        //        waitThreadInterrupt(thread, 60000);
+        //        Assert.assertEquals(true, thread.isInterrupted());
         df = dsMgr.getDataflow("ncube_basic");
         Assert.assertEquals(0, df.getSegments().size());
         execMgr.discardJob(job.getId());
@@ -360,11 +361,11 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         long start = SegmentRange.dateToLong("2011-01-01");
         long end = SegmentRange.dateToLong("2012-06-01");
         buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.<NCuboidLayout>newLinkedHashSet(layouts));
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
         buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.<NCuboidLayout>newLinkedHashSet(layouts));
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
         df = dsMgr.getDataflow("ncube_basic");
         NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2010-01-02"), SegmentRange.dateToLong("2013-01-01")), false);

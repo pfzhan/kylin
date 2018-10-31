@@ -59,6 +59,19 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.model.DataCheckDesc;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
+import io.kylingence.kap.event.manager.EventDao;
+import io.kylingence.kap.event.model.Event;
+import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -91,20 +104,9 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
-import io.kyligence.kap.rest.response.CuboidDescResponse;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
-import io.kylingence.kap.event.manager.EventDao;
-import io.kylingence.kap.event.model.Event;
-import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
 
 public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
@@ -309,14 +311,16 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         SegmentRange segmentRange = modelService.getSegmentRangeByModel("default", "nmodel_basic", "0", "2322442");
         Assert.assertTrue(segmentRange instanceof SegmentRange.TimePartitionedSegmentRange);
         SegmentRange segmentRange2 = modelService.getSegmentRangeByModel("default", "nmodel_basic", "", "");
-        Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
+        Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange
+                && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
     }
 
     @Test
     public void testGetRelatedModels() throws IOException {
         List<NDataModelResponse> models = modelService.getRelateModels("default", "EDW.TEST_CAL_DT", "");
         Assert.assertTrue(models.size() == 0);
-        List<NDataModelResponse> models2 = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT", "nmodel_basic_inner");
+        List<NDataModelResponse> models2 = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
+                "nmodel_basic_inner");
         Assert.assertEquals(1, models2.size());
     }
 
@@ -332,7 +336,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(result.size() == 2);
     }
 
-
     @Test
     public void testRefreshSegments() throws IOException, PersistentException {
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "9223372036854775807");
@@ -341,7 +344,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         boolean flag = false;
         for (Event event : events) {
             if (event instanceof LoadingRangeRefreshEvent) {
-                if (event.getSegmentRange().getStart().toString().equals("0") && event.getSegmentRange().getEnd().toString().equals("12223334")) {
+                if (event.getSegmentRange().getStart().toString().equals("0")
+                        && event.getSegmentRange().getEnd().toString().equals("12223334")) {
                     flag = true;
                 }
             }
@@ -391,7 +395,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
             }
         });
- 
+
         Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
 
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
@@ -492,7 +496,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
-        
+
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
@@ -1290,6 +1294,18 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         ccDesc2.setExpression("CC1 * 3");
         modelService.preProcessBeforeModelSave(updated, "default");
         Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 3 ", ccDesc2.getInnerExpression());
+    }
+
+    @Test
+    public void testUpdateModelDataCheckDesc() throws IOException {
+        modelService.updateModelDataCheckDesc("default", "nmodel_basic", 7, 10, 2);
+        final NDataModel dataModel = NDataModelManager.getInstance(getTestConfig(), "default")
+                .getDataModelDesc("nmodel_basic");
+
+        final DataCheckDesc dataCheckDesc = dataModel.getDataCheckDesc();
+        Assert.assertEquals(7, dataCheckDesc.getCheckOptions());
+        Assert.assertEquals(10, dataCheckDesc.getFaultThreshold());
+        Assert.assertEquals(2, dataCheckDesc.getFaultActions());
     }
 
 }

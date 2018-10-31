@@ -43,7 +43,7 @@
 package io.kyligence.kap.rest.service;
 
 
-import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
 import org.apache.kylin.common.KylinConfig;

@@ -49,7 +49,7 @@ import org.apache.kylin.query.util.QueryUtil;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.acl.ColumnACLManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 

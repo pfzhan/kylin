@@ -55,7 +55,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE //
         , getterVisibility = JsonAutoDetect.Visibility.NONE //

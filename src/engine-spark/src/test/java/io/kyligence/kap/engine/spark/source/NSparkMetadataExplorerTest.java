@@ -33,7 +33,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
 

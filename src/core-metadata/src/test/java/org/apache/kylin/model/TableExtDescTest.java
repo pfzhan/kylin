@@ -1,0 +1,151 @@
+/*
+ * Copyright (C) 2016 Kyligence Inc. All rights reserved.
+ *
+ * http://kyligence.io
+ *
+ * This software is the confidential and proprietary information of
+ * Kyligence Inc. ("Confidential Information"). You shall not disclose
+ * such Confidential Information and shall use it only in accordance
+ * with the terms of the license agreement you entered into with
+ * Kyligence Inc.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.apache.kylin.model;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.kylin.measure.hllc.HLLCSerializer;
+import org.apache.kylin.measure.hllc.HLLCounter;
+import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
+import static io.kyligence.kap.metadata.model.NTableMetadataManager.getInstance;
+
+public class TableExtDescTest extends NLocalFileMetadataTestCase {
+
+    private static final HLLCSerializer HLLC_SERIALIZER = new HLLCSerializer(DataType.getType("hllc14"));
+
+    private String project = "default";
+    private String tableName = "DEFAULT.TEST_KYLIN_FACT";
+    private NTableMetadataManager tableMetadataManager;
+
+    @Before
+    public void setUp() throws Exception {
+        createTestMetadata();
+        tableMetadataManager = getInstance(getTestConfig(), project);
+    }
+
+    @After
+    public void after() throws Exception {
+        cleanupTestMetadata();
+    }
+
+    @Test
+    public void testBasic() throws IOException {
+        final TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
+        TableExtDesc tableExtDesc = tableMetadataManager.getTableExt(tableName);
+
+        final List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>(tableDesc.getColumnCount());
+        final SegmentRange segRange_1 = new SegmentRange.TimePartitionedSegmentRange(0L, 10L);
+        TableExtDesc.ColumnStats colStats = new TableExtDesc.ColumnStats();
+        colStats.setColumnName("col_1");
+        HLLCounter col_hllc = mockHLLCounter(2, 5);
+        columnStatsList.add(updateColStats(colStats, 10, segRange_1, col_hllc, 1000d, -1000d, 4, 2, "9999", "99"));
+
+        tableExtDesc.setColumnStats(columnStatsList);
+        tableMetadataManager.saveTableExt(tableExtDesc);
+
+        columnStatsList.clear();
+        tableExtDesc = tableMetadataManager.getTableExt(tableName);
+        colStats = tableExtDesc.getColumnStats(0);
+        Assert.assertEquals("col_1", colStats.getColumnName());
+        Assert.assertEquals(4L, colStats.getTotalCardinality());
+        Assert.assertEquals(10, colStats.getNullCount());
+
+        final SegmentRange segRange_2 = new SegmentRange.TimePartitionedSegmentRange(10L, 20L);
+        col_hllc = mockHLLCounter(6, 10);
+        columnStatsList.add(updateColStats(colStats, 11, segRange_2, col_hllc, 9999d, -9999d, 5, 1, "99999", "9"));
+
+        tableExtDesc.setColumnStats(columnStatsList);
+        tableMetadataManager.saveTableExt(tableExtDesc);
+
+        tableExtDesc = tableMetadataManager.getTableExt(tableName);
+        colStats = tableExtDesc.getColumnStats(0);
+        Assert.assertEquals("col_1", colStats.getColumnName());
+        Assert.assertEquals(9L, colStats.getTotalCardinality());
+        Assert.assertEquals(21, colStats.getNullCount());
+        Assert.assertEquals(9999d, colStats.getMaxNumeral(), 0.0001);
+        Assert.assertEquals(-9999d, colStats.getMinNumeral(), 0.0001);
+        Assert.assertEquals(5, colStats.getMaxLength().intValue());
+        Assert.assertEquals(1, colStats.getMinLength().intValue());
+        Assert.assertEquals("99999", colStats.getMaxLengthValue());
+        Assert.assertEquals("9", colStats.getMinLengthValue());
+
+    }
+
+    private TableExtDesc.ColumnStats updateColStats(TableExtDesc.ColumnStats colStats, long nullCount,
+            SegmentRange segRange, HLLCounter hllc, double maxValue, double minValue, int maxLength, int minLength,
+            String maxLengthValue, String minLengthValue) {
+
+        colStats.addNullCount(nullCount);
+
+        final ByteBuffer buffer = ByteBuffer.allocate(hllc.maxLength());
+        HLLC_SERIALIZER.serialize(hllc, buffer);
+        colStats.addRangeHLLC(segRange, buffer.array());
+
+        colStats.updateBasicStats(maxValue, minValue, maxLength, minLength, maxLengthValue, minLengthValue);
+
+        return colStats;
+    }
+
+    private HLLCounter mockHLLCounter(int min, int max) {
+        final HLLCounter hllCounter = new HLLCounter(14);
+        for (int i = min; i <= max; i++) {
+            hllCounter.add(RandomStringUtils.randomAlphanumeric(i));
+        }
+
+        return hllCounter;
+    }
+}

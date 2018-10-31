@@ -25,7 +25,6 @@
 package io.kyligence.kap.metadata.model;
 
 import com.google.common.base.Preconditions;
-import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;

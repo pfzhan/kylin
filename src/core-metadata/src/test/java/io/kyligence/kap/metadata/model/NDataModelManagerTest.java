@@ -42,7 +42,6 @@ import org.junit.rules.ExpectedException;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 
 public class NDataModelManagerTest extends NLocalFileMetadataTestCase {

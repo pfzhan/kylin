@@ -53,6 +53,7 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
@@ -315,6 +316,22 @@ public class NModelControllerTest {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
+    }
+
+    @Test
+    public void testUpdateModelDataCheckDesc() throws Exception {
+        final ModelCheckRequest request = new ModelCheckRequest();
+        request.setProject("default");
+        request.setCheckOptions(7);
+        request.setFaultThreshold(10);
+        request.setFaultActions(2);
+        Mockito.doNothing().when(modelService).updateModelDataCheckDesc("default", "nmodel_basic", 7, 10, 2);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{name}/data_check", "nmodel_basic")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).updateModelDataCheckDesc("nmodel_basic", request);
+
     }
 
     private List<NForestSpanningTree> mockRelations() {

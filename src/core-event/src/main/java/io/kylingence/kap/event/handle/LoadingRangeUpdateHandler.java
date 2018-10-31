@@ -32,7 +32,7 @@ import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kylingence.kap.event.model.AddSegmentEvent;
 import io.kylingence.kap.event.model.LoadingRangeUpdateEvent;

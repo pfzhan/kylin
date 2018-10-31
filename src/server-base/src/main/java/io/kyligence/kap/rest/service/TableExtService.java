@@ -25,7 +25,7 @@
 package io.kyligence.kap.rest.service;
 
 import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.shaded.influxdb.com.google.common.common.base.Function;
 import io.kyligence.kap.shaded.influxdb.com.google.common.common.collect.Lists;
 import org.apache.kylin.common.util.Pair;

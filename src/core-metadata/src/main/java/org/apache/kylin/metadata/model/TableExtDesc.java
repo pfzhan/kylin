@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,12 +43,17 @@
 package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.Data;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
@@ -58,10 +62,15 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.apache.kylin.measure.hllc.HLLCSerializer;
+import org.apache.kylin.measure.hllc.HLLCounter;
+import org.apache.kylin.metadata.datatype.DataType;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class TableExtDesc extends RootPersistentEntity {
+
+    private static final HLLCSerializer HLLC_SERIALIZER = new HLLCSerializer(DataType.getType("hllc14"));
 
     public static String concatRawResourcePath(String nameOnPath) {
         return ResourceStore.TABLE_EXD_RESOURCE_ROOT + "/" + nameOnPath + ".json";
@@ -102,6 +111,9 @@ public class TableExtDesc extends RootPersistentEntity {
 
     private String project;
 
+    @JsonProperty("loading_range")
+    private List<SegmentRange> loadingRange = new ArrayList<>();
+
     public TableExtDesc() {
     }
 
@@ -128,6 +140,11 @@ public class TableExtDesc extends RootPersistentEntity {
     @Override
     public String getResourcePath() {
         return concatResourcePath(getIdentity(), getProject());
+    }
+
+    public void updateLoadingRange(final SegmentRange segmentRange) {
+        loadingRange.add(segmentRange);
+        Collections.sort(loadingRange);
     }
 
     public String getProject() {
@@ -222,6 +239,13 @@ public class TableExtDesc extends RootPersistentEntity {
         return this.columnStats;
     }
 
+    public ColumnStats getColumnStats(final int colIdx) {
+        if (getColumnStats().size() > colIdx) {
+            return getColumnStats().get(colIdx);
+        }
+        return null;
+    }
+
     public void setColumnStats(List<ColumnStats> columnStats) {
         this.columnStats = null;
         this.columnStats = columnStats;
@@ -247,6 +271,10 @@ public class TableExtDesc extends RootPersistentEntity {
         this.project = project;
         if (this.tableIdentity != null)
             this.tableIdentity = this.tableIdentity.toUpperCase();
+
+        for (final ColumnStats colStats : this.columnStats) {
+            colStats.init();
+        }
     }
 
     public void setLastModifiedTime(long lastModifiedTime) {
@@ -260,6 +288,10 @@ public class TableExtDesc extends RootPersistentEntity {
     public boolean isPartitioned() {
         return this.dataSourceProps.get("partition_column") == null ? false
                 : !this.dataSourceProps.get("partition_column").isEmpty();
+    }
+
+    public List<SegmentRange> getLoadingRange() {
+        return loadingRange;
     }
 
     @Override
@@ -280,6 +312,7 @@ public class TableExtDesc extends RootPersistentEntity {
                 + ", columns_samples=" + (null == columnStats ? "null" : Arrays.toString(columnStats.toArray()));
     }
 
+    @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class ColumnStats implements Comparable<ColumnStats>, Serializable {
 
@@ -289,11 +322,23 @@ public class TableExtDesc extends RootPersistentEntity {
         @JsonProperty("column_name")
         private String columnName;
 
+        @JsonProperty("max_numeral")
+        private double maxNumeral = Double.NaN;
+
+        @JsonProperty("min_numeral")
+        private double minNumeral = Double.NaN;
+
         @JsonProperty("max_value")
         private String maxValue;
 
         @JsonProperty("min_value")
         private String minValue;
+
+        @JsonProperty("max_length")
+        private Integer maxLength;
+
+        @JsonProperty("min_length")
+        private Integer minLength;
 
         @JsonProperty("max_length_value")
         private String maxLengthValue;
@@ -316,6 +361,15 @@ public class TableExtDesc extends RootPersistentEntity {
         @JsonProperty("data_skew_samples")
         private Map<String, Long> dataSkewSamples = new HashMap<>();
 
+        @JsonProperty("range_hllc")
+        private Map<String, byte[]> rangeHLLC = new HashMap<>();
+
+        @JsonIgnore
+        private transient HLLCounter totalHLLC;
+
+        @JsonIgnore
+        private transient long totalCardinality;
+
         @Override
         public int compareTo(ColumnStats o) {
             return 0;
@@ -324,76 +378,54 @@ public class TableExtDesc extends RootPersistentEntity {
         public ColumnStats() {
         }
 
-        public void setExceedPrecisionMaxLengthValue(String value) {
-            this.exceedPrecisionMaxLengthValue = value;
+        void init() {
+            if (rangeHLLC.isEmpty()) {
+                return;
+            }
+
+            final Iterator<byte[]> hllcIterator = rangeHLLC.values().iterator();
+
+            totalHLLC = HLLC_SERIALIZER.deserialize(ByteBuffer.wrap(hllcIterator.next()));
+            while (hllcIterator.hasNext()) {
+                totalHLLC.merge(HLLC_SERIALIZER.deserialize(ByteBuffer.wrap(hllcIterator.next())));
+            }
+
+            totalCardinality = totalHLLC.getCountEstimate();
         }
 
-        public String getExceedPrecisionMaxLengthValue() {
-            return this.exceedPrecisionMaxLengthValue;
+        public void addRangeHLLC(SegmentRange segRange, byte[] hllcBytes) {
+            final String key = segRange.getStart() + "," + segRange.getEnd();
+            rangeHLLC.put(key, hllcBytes);
         }
 
-        public void setExceedPrecisionCount(long exceedPrecisionCount) {
-            this.exceedPrecisionCount = exceedPrecisionCount;
+        public void updateBasicStats(double maxNumeral, double minNumeral, int maxLength, int minLength,
+                String maxLengthValue, String minLengthValue) {
+            if (Double.isNaN(this.maxNumeral) || maxNumeral > this.maxNumeral) {
+                this.maxNumeral = maxNumeral;
+            }
+
+            if (Double.isNaN(this.minNumeral) || minNumeral < this.minNumeral) {
+                this.minNumeral = minNumeral;
+            }
+
+            if (this.maxLength == null || maxLength > this.maxLength) {
+                this.maxLength = maxLength;
+                this.maxLengthValue = maxLengthValue;
+            }
+
+            if (this.minLength == null || minLength < this.minLength) {
+                this.minLength = minLength;
+                this.minLengthValue = minLengthValue;
+            }
         }
 
-        public long getExceedPrecisionCount() {
-            return this.exceedPrecisionCount;
+        @JsonIgnore
+        public long getTotalCardinality() {
+            return totalCardinality;
         }
 
-        public void setColumnName(String columnName) {
-            this.columnName = columnName;
-        }
-
-        public String getColumnName() {
-            return this.columnName;
-        }
-
-        public void setMaxValue(String maxValue) {
-            this.maxValue = maxValue;
-        }
-
-        public String getMaxValue() {
-            return this.maxValue;
-        }
-
-        public void setMinValue(String minValue) {
-            this.minValue = minValue;
-        }
-
-        public String getMinValue() {
-            return this.minValue;
-        }
-
-        public void setMaxLengthValue(String maxLengthValue) {
-            this.maxLengthValue = maxLengthValue;
-        }
-
-        public String getMaxLengthValue() {
-            return this.maxLengthValue;
-        }
-
-        public void setMinLengthValue(String minLengthValue) {
-            this.minLengthValue = minLengthValue;
-        }
-
-        public String getMinLengthValue() {
-            return this.minLengthValue;
-        }
-
-        public void setCardinality(long cardinality) {
-            this.cardinality = cardinality;
-        }
-
-        public long getCardinality() {
-            return this.cardinality;
-        }
-
-        public void setDataSkewSamples(Map<String, Long> dataSkewSamples) {
-            this.dataSkewSamples = dataSkewSamples;
-        }
-
-        public Map<String, Long> getDataSkewSamples() {
-            return this.dataSkewSamples;
+        public void addNullCount(long incre) {
+            this.nullCount += incre;
         }
 
         public void setColumnSamples(String max, String min, String maxLenValue, String minLenValue) {
@@ -401,14 +433,6 @@ public class TableExtDesc extends RootPersistentEntity {
             this.minValue = min;
             this.maxLengthValue = maxLenValue;
             this.minLengthValue = minLenValue;
-        }
-
-        public long getNullCount() {
-            return nullCount;
-        }
-
-        public void setNullCount(long nullCount) {
-            this.nullCount = nullCount;
         }
     }
 }

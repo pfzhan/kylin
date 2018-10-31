@@ -71,6 +71,7 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -567,7 +568,7 @@ public class ModelService extends BasicService {
         forCC.append(" ");
         NJoinedFlatTable.appendJoinStatement(flatTableDesc, forCC, false);
 
-        
+
         String ccSql = KeywordDefaultDirtyHack.transform(forCC.toString());
         ccSql = KapQueryUtil.massageComputedColumn(ccSql, project, "DEFAULT", modelDesc);
 
@@ -584,5 +585,17 @@ public class ModelService extends BasicService {
             String ccExpression = massageComputedColumn(model, project, ccDesc);
             ccDesc.setInnerExpression(ccExpression);
         }
+    }
+
+    public void updateModelDataCheckDesc(String project, String modelName, long checkOptions, long faultThreshold,
+            long faultActions) throws IOException {
+
+        final NDataModel dataModel = getDataModelManager(project).getDataModelDesc(modelName);
+        if (dataModel == null) {
+            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelName));
+        }
+
+        dataModel.setDataCheckDesc(DataCheckDesc.valueOf(checkOptions, faultThreshold, faultActions));
+        getDataModelManager(project).updateDataModelDesc(dataModel);
     }
 }

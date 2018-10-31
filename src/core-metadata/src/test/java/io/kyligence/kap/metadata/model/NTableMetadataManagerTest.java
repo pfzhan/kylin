@@ -22,9 +22,9 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata;
+package io.kyligence.kap.metadata.model;
 
-import static io.kyligence.kap.metadata.NTableMetadataManager.getInstance;
+import static io.kyligence.kap.metadata.model.NTableMetadataManager.getInstance;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -39,7 +39,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.model.NTableExtDesc;
 
 /**
  */

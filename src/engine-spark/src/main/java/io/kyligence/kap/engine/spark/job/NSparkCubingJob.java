@@ -58,7 +58,8 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         return create(segments, layouts, submitter, JobTypeEnum.INDEX_BUILD);
     }
 
-    public static NSparkCubingJob create(Set<NDataSegment> segments, Set<NCuboidLayout> layouts, String submitter, JobTypeEnum jobType) {
+    public static NSparkCubingJob create(Set<NDataSegment> segments, Set<NCuboidLayout> layouts, String submitter,
+            JobTypeEnum jobType) {
         Preconditions.checkArgument(segments.size() > 0);
         Preconditions.checkArgument(layouts.size() > 0);
         Preconditions.checkArgument(submitter != null);
@@ -78,13 +79,33 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         job.setTargetSubject(segments.iterator().next().getModel().getName());
         job.setProject(df.getProject());
         job.setSubmitter(submitter);
+        job.addSparkAnalysisStep(segments, layouts);
         job.addSparkCubingStep(segments, layouts);
         job.addUpdateAfterBuildStep();
         return job;
     }
 
+    public NSparkAnalysisStep getSparkAnalysisStep() {
+        return (NSparkAnalysisStep) getTasks().get(0);
+    }
+
     public NSparkCubingStep getSparkCubingStep() {
-        return (NSparkCubingStep) getTasks().get(0);
+        return (NSparkCubingStep) getTasks().get(1);
+    }
+
+    private void addSparkAnalysisStep(Set<NDataSegment> segments, Set<NCuboidLayout> layouts) {
+        final NSparkAnalysisStep step = new NSparkAnalysisStep();
+        NDataflow df = segments.iterator().next().getDataflow();
+        KylinConfigExt config = df.getConfig();
+        step.setName(ExecutableConstants.STEP_NAME_DATA_PROFILING);
+        step.setJobId(getId());
+        step.setProject(getProject());
+        step.setProjectParam();
+        step.setDataflowName(df.getName());
+        step.setSegmentIds(NSparkCubingUtil.toSegmentIds(segments));
+        step.setCuboidLayoutIds(NSparkCubingUtil.toCuboidLayoutIds(layouts));
+        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(step.getId()).toString());
+        this.addTask(step);
     }
 
     private void addSparkCubingStep(Set<NDataSegment> segments, Set<NCuboidLayout> layouts) {

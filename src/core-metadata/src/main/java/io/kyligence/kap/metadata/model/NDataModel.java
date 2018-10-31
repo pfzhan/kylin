@@ -198,6 +198,9 @@ public class NDataModel extends RootPersistentEntity {
     private VolatileRange volatileRange = new VolatileRange();
 
 
+    @JsonProperty("data_check_desc")
+    private DataCheckDesc dataCheckDesc;
+
     // computed attributes
     private TableRef rootFactTableRef;
 
@@ -244,6 +247,8 @@ public class NDataModel extends RootPersistentEntity {
         this.autoMergeEnabled = other.autoMergeEnabled;
         this.autoMergeTimeRanges = other.autoMergeTimeRanges;
         this.volatileRange = other.volatileRange;
+        this.dataCheckDesc = other.dataCheckDesc;
+
     }
 
     public KylinConfig getConfig() {
@@ -374,6 +379,17 @@ public class NDataModel extends RootPersistentEntity {
 
     public JoinsGraph getJoinsGraph() {
         return joinsGraph;
+    }
+
+    public DataCheckDesc getDataCheckDesc() {
+        if (dataCheckDesc == null) {
+            return new DataCheckDesc();
+        }
+        return dataCheckDesc;
+    }
+
+    public void setDataCheckDesc(DataCheckDesc dataCheckDesc) {
+        this.dataCheckDesc = dataCheckDesc;
     }
 
     @Deprecated

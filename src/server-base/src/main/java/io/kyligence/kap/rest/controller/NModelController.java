@@ -31,6 +31,7 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
+import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
@@ -268,6 +269,17 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse getComputedColumnUsage(@RequestParam(value = "project", required = true) String project) {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.getComputedColumnUsages(project),
                 "");
+    }
+
+    @RequestMapping(value = "/{name}/data_check", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateModelDataCheckDesc(@PathVariable("name") String modelName,
+            @RequestBody ModelCheckRequest request) throws IOException {
+        request.checkSelf();
+        modelService.updateModelDataCheckDesc(request.getProject(), modelName, request.getCheckOptions(),
+                request.getFaultThreshold(), request.getFaultActions());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
 }
