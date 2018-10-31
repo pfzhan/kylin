@@ -181,6 +181,14 @@ export default class AggregateModal extends Vue {
   get modalTitle () {
     return titleMaps[this.editType]
   }
+  get isFormVaild () {
+    const { aggregateArray } = this.form
+    for (const { includes } of aggregateArray) {
+      if (!includes.length) {
+        return false
+      }
+    }
+  }
   getUnusedDimensions (aggregateIdx) {
     const aggregate = this.form.aggregateArray[aggregateIdx]
     const includes = aggregate.includes
@@ -294,16 +302,24 @@ export default class AggregateModal extends Vue {
   }
   async handleSubmit () {
     try {
-      const data = this.getSubmitData()
-      await this.submit(data)
-      this.$message({
-        type: 'success',
-        message: this.$t('kylinLang.common.saveSuccess')
-      })
-      this.handleClose(true)
+      if (this.checkFormVaild()) {
+        const data = this.getSubmitData()
+        await this.submit(data)
+        this.$message({
+          type: 'success',
+          message: this.$t('kylinLang.common.saveSuccess')
+        })
+        this.handleClose(true)
+      }
     } catch (e) {
       e && handleError(e)
     }
+  }
+  checkFormVaild () {
+    if (!this.isFormVaild) {
+      this.$message(this.$t('includesEmpty'))
+    }
+    return this.isFormVaild
   }
   submit (data) {
     switch (this.editType) {

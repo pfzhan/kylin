@@ -5,15 +5,14 @@
         {{$t('kylinLang.common.dataSource')}}
       </div>
       <div class="header-icons">
-        <i class="el-icon-ksd-add_data_source" v-if="isShowLoadSource" @click="importDataSource(sourceTypes.NEW, currentProjectData)"></i>
         <i class="el-icon-ksd-table_setting" v-if="isShowSettings" @click="importDataSource(sourceTypes.SETTING, currentProjectData)"></i>
       </div>
     </section>
 
     <section class="body">
-      <div v-if="isShowBtnLoad" class="btn-group">
-        <el-button plain size="medium" type="primary" icon="el-icon-ksd-load" @click="importDataSource(sourceTypes.NEW, currentProjectData)">
-          {{$t('kylinLang.common.dataSource')}}
+      <div v-if="isShowLoadSource" class="btn-group">
+        <el-button plain size="medium" type="primary" icon="el-icon-ksd-add_data_source" @click="importDataSource(sourceTypes.NEW, currentProjectData)">
+          {{$t('addDatasource')}}
         </el-button>
       </div>
       <TreeList
@@ -162,7 +161,7 @@ export default class DataSourceBar extends Vue {
     this.freshAutoCompleteWords()
     this.defaultExpandedKeys = this.allWords
       .filter(word => this.expandNodeTypes.includes(word.meta))
-      .map(word => word.caption)
+      .map(word => word.id)
   }
   @Watch('projectName')
   @Watch('currentSourceTypes')
@@ -349,6 +348,8 @@ export default class DataSourceBar extends Vue {
   }
   .body .btn-group .el-button {
     width: 100%;
+    margin-bottom: 10px;
+    text-align: left;
   }
   // datasource tree样式
   .el-tree {

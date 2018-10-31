@@ -313,11 +313,19 @@ export default class TreeList extends Vue {
   width: 100%;
   .filter-box {
     margin-bottom: 10px;
+    .el-input-group__append .el-icon-search:hover {
+      color: inherit;
+    }
   }
   .filter-box .el-input__inner {
     border: 1px solid #8E9FA8;
     border-top-left-radius: 2px;
     border-bottom-left-radius: 2px;
+    +.el-input-group__append {
+      border-color: #8E9FA8;
+      border-top-right-radius: 2px;
+      border-bottom-right-radius: 2px;
+    }
     &:focus+.el-input-group__append {
       border-color: #8E9FA8;
       border-top-right-radius: 2px;

@@ -3,12 +3,14 @@ export default {
     searchTable: 'Search Table',
     to: 'to',
     dataRange: 'Data Range:',
-    source: 'Source'
+    source: 'Source',
+    addDatasource: 'Add data source'
   },
   'zh-cn': {
     searchTable: '搜索数据源',
     to: '至',
     dataRange: '数据范围:',
-    source: '数据源'
+    source: '数据源',
+    addDatasource: '添加数据源'
   }
 }

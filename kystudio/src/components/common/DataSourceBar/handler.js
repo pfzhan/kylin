@@ -190,8 +190,9 @@ function getColumnObjArray (that, tableObj) {
 export function getWordsData (data) {
   return {
     meta: data.type,
-    caption: data.id,
+    caption: data.label,
     value: data.label,
+    id: data.id,
     scope: 1
   }
 }

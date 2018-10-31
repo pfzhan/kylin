@@ -7,7 +7,8 @@ export default {
     'include': 'Include',
     'mandatory': 'Mandatory',
     'hierarchy': 'Hierarchy',
-    'joint': 'Joint'
+    'joint': 'Joint',
+    'includesEmpty': 'Each aggregation group can\'t be empty.'
   },
   'zh-cn': {
     'addAggregateGroup': 'Add Aggregate Group',
@@ -17,6 +18,7 @@ export default {
     'include': 'Include',
     'mandatory': 'Mandatory',
     'hierarchy': 'Hierarchy',
-    'joint': 'Joint'
+    'joint': 'Joint',
+    'includesEmpty': '任意聚合组不能为空。'
   }
 }
