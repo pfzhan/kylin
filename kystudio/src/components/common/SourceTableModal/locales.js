@@ -31,7 +31,10 @@ export default {
     pushdownRange: 'Pushdown Range',
     pushdownDesc: 'To keep query result consistent, system by default regards data range as the source table\'s pushdown range.',
     isPushdown: 'Sure, pushdown range should be equal to data range',
-    notPushdown: 'System doesn\'t need to handle pushdown range anymore'
+    notPushdown: 'System doesn\'t need to handle pushdown range anymore',
+    emptyInput: 'Please input data range',
+    minValueInvaild: 'Start date can\'t be bigger than range start date which is building',
+    maxValueInvaild: 'End date can\'t be smaller than range end date which is building'
   },
   'zh-cn': {
     incrementalLoading: 'Incremental Load',
@@ -65,6 +68,9 @@ export default {
     pushdownRange: 'Pushdown Range',
     pushdownDesc: 'To keep query result consistent, system by default regards data range as the source table\'s pushdown range.',
     isPushdown: 'Sure, pushdown range should be equal to data range',
-    notPushdown: 'System doesn\'t need to handle pushdown range anymore'
+    notPushdown: 'System doesn\'t need to handle pushdown range anymore',
+    emptyInput: '请选择数据范围',
+    minValueInvaild: '开始时间不能大于正在构建的起始时间',
+    maxValueInvaild: '结束时间不能大于正在构建的结束时间'
   }
 }

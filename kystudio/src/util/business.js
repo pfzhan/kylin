@@ -15,6 +15,9 @@ export function handleSuccess (res, callback, errorcallback) {
 // 失败回调入口
 export function handleError (res, errorcallback) {
   var responseData = res && res.data || null
+  if (res === 'cancel' || res === true || res === false) {
+    return
+  }
   // 服务器超时和无response的情况
   if (res.status === 504 || !res.status) {
     if (typeof errorcallback === 'function') {

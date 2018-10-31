@@ -3,7 +3,7 @@
     :title="$t(modalTitle)"
     :visible="isShow"
     @close="isShow && closeHandler(false)">
-    <el-form :model="form" ref="form" v-if="isFormShow" label-position="top">
+    <el-form :model="form" :rules="rules" ref="form" v-if="isFormShow" label-position="top">
       <!-- Partition Column Selector -->
       <el-form-item class="margin-bottom-20" prop="partitionColumn" v-if="isFieldShow('partitionColumn')">
         <span class="font-medium" slot="label">
@@ -129,7 +129,7 @@
         </el-row>
         <el-row>
           <el-col class="margin-right-5" :span="8">
-            <el-form-item class="margin-bottom-0" prop="volatileConfig">
+            <el-form-item class="margin-bottom-0" prop="volatileConfig.value">
               <el-input
                 size="medium"
                 :value="form.volatileConfig.value"
@@ -139,7 +139,7 @@
             </el-form-item>
           </el-col>
           <el-col :span="11">
-            <el-form-item class="margin-bottom-0" prop="volatileConfig">
+            <el-form-item class="margin-bottom-0" prop="volatileConfig.type">
               <el-select
                 size="medium"
                 :value="form.volatileConfig.type"
@@ -182,9 +182,9 @@ import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
 import vuex from '../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { fieldVisiableMaps, titleMaps, editTypes, autoMergeTypes, volatileTypes } from './handler'
-import { handleError, handleSuccessAsync } from '../../../util'
 import { set } from '../../../util/object'
+import { handleError, handleSuccessAsync } from '../../../util'
+import { fieldVisiableMaps, titleMaps, editTypes, autoMergeTypes, volatileTypes, validate, validateTypes } from './handler'
 
 const {
   INCREMENTAL_SETTING,
@@ -193,6 +193,8 @@ const {
   DATA_MERGE,
   PUSHDOWN_CONFIG
 } = editTypes
+
+const { NEW_DATA_RANGE, PARTITION_COLUMN, VOLATILE_VALUE } = validateTypes
 
 vuex.registerModule(['modals', 'SourceTableModal'], store)
 
@@ -239,20 +241,13 @@ export default class SourceTableModal extends Vue {
   isFormShow = false
   autoMergeTypes = autoMergeTypes
   volatileTypes = volatileTypes
+  rules = {
+    [NEW_DATA_RANGE]: [{ validator: this.validate(NEW_DATA_RANGE), trigger: 'blur' }],
+    [PARTITION_COLUMN]: [{ validator: this.validate(PARTITION_COLUMN), trigger: 'blur' }],
+    [VOLATILE_VALUE]: [{ validator: this.validate(VOLATILE_VALUE), trigger: 'blur' }]
+  }
   get modalTitle () {
     return titleMaps[this.editType]
-  }
-  get autoMergeGroups () {
-    const autoMergeGroups = []
-    this.autoMergeTypes.forEach((autoMergeType, index) => {
-      if (index % 3 === 0) {
-        autoMergeGroups.push([autoMergeType])
-      } else {
-        const groupIdx = Math.floor(index / 3)
-        autoMergeGroups[groupIdx].push(autoMergeType)
-      }
-    })
-    return autoMergeGroups
   }
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
@@ -286,18 +281,15 @@ export default class SourceTableModal extends Vue {
   }
   async handleSubmit () {
     try {
-      const data = this.getSubmitData()
       await this.$refs['form'].validate()
+
+      const data = this.getSubmitData()
+      const message = this.$t('kylinLang.common.saveSuccess')
       await this.submit(data)
-      this.$message({
-        type: 'success',
-        message: this.$t('kylinLang.common.saveSuccess')
-      })
-      // 关闭模态框，通知父组件成功
+      this.$message({ type: 'success', message })
       this.closeHandler(true)
     } catch (e) {
-      // 异常处理
-      e !== 'cancel' && handleError(e)
+      handleError(e)
     }
   }
   async submit (data) {
@@ -366,6 +358,9 @@ export default class SourceTableModal extends Vue {
       default:
         return null
     }
+  }
+  validate (type) {
+    return validate[type].bind(this)
   }
 }
 </script>

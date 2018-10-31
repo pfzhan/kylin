@@ -55,8 +55,8 @@ export default {
   mutations: {
     [types.SET_MODAL_FORM]: (state, payload) => {
       state.form = { ...state.form, ...payload }
-      fixDataRange(state.form.newDataRange)
-      fixDataRange(state.form.freshDataRange)
+      fixDataRange(state.form.newDataRange || [])
+      fixDataRange(state.form.freshDataRange || [])
     },
     [types.SHOW_MODAL]: (state) => {
       state.isShow = true
@@ -73,21 +73,18 @@ export default {
       }
     },
     [types.INIT_FORM]: (state, payload = {}) => {
-      if (state.table) {
-        const [ startTime, endTime ] = state.table.userRange
-        state.form.newDataRange = [ new Date(startTime), new Date(endTime) ]
-        state.form.freshDataRange = [ new Date(startTime), new Date(endTime) ]
-      }
       for (const [ key, value ] of Object.entries(payload)) {
-        switch (key) {
-          case 'newDataRange':
-            state.form[key] = [ new Date(value[0]), new Date(value[1]) ]
-            break
-          default:
-            state.form[key] = value
-            break
+        if (!['newDataRange', 'freshDataRange'].includes(key)) {
+          state.form[key] = value
         }
       }
+      const tableRange = state.table && state.table.userRange || []
+      const inputDateRange = payload && payload.newDataRange || []
+      state.form.newDataRange = state.form.newDataRange.map((date, index) => {
+        const newDate = inputDateRange[index] || tableRange[index]
+        return newDate ? new Date(newDate) : ''
+      })
+      state.form.freshDataRange = [ new Date(tableRange[0]), new Date(tableRange[1]) ]
     }
   },
   actions: {

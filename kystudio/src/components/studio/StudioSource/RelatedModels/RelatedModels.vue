@@ -30,16 +30,20 @@
                   <template v-if="relatedModel.management_type !== 'MODEL_BASED'">
                     <el-tag v-if="relatedModel.status === 'DESCBROKEN'" size="small" type="info">Broken</el-tag>
                     <el-tag v-if="relatedModel.status === 'ONLINE'" size="small" type="success">Online</el-tag>
-                    <el-tag v-if="relatedModel.status === 'OFFLINE'" size="small" type="danger">Offline</el-tag>
+                    <el-tag v-if="~['OFFLINE', 'NEW'].indexOf(relatedModel.status)" size="small" type="danger">Offline</el-tag>
                   </template>
                 </el-col>
                 <el-col class="range-time" :span="24">
                   <div class="lable">Start Time :</div>
-                  {{getGMTDate(relatedModel.startTime)}}
+                  <span v-if="!isNaN(new Date(relatedModel.startTime).getTime())">
+                    {{getGMTDate(relatedModel.startTime)}}
+                  </span>
                 </el-col>
                 <el-col class="range-time" :span="24">
                   <div class="lable">End Time :</div>
-                  {{getGMTDate(relatedModel.endTime)}}
+                  <span v-if="!isNaN(new Date(relatedModel.endTime).getTime())">
+                    {{getGMTDate(relatedModel.endTime)}}
+                  </span>
                 </el-col>
               </el-row>
               <div class="discard" v-if="relatedModel.management_type !== 'MODEL_BASED'" @click="handleDiscard(relatedModel)">Discard</div>
@@ -191,6 +195,7 @@ export default class RelatedModels extends Vue {
     padding: 20px;
     margin-bottom: 10px;
     position: relative;
+    box-sizing: border-box;
     &:hover {
       box-shadow: 0 2px 4px 0 #CFD8DC, 0 0 6px 0 #CFD8DC;
       .discard {
@@ -238,6 +243,7 @@ export default class RelatedModels extends Vue {
   .range-time {
     margin-bottom: 10px;
     line-height: 18px;
+    padding-right: 50px;
     .lable {
       float: left;
       width: 70px;

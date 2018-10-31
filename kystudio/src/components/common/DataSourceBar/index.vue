@@ -37,7 +37,7 @@ import Vue from 'vue'
 import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
-import { sourceTypes } from '../../../config'
+import { sourceTypes, sourceNameMapping } from '../../../config'
 import TreeList from '../TreeList/index.vue'
 import locales from './locales'
 import { getDatasourceObj, getDatabaseObj, getTableObj, getFirstTableData, getWordsData, freshTreeOrder } from './handler'
@@ -155,6 +155,10 @@ export default class DataSourceBar extends Vue {
       const currentPK = table.__data.primary_key.map(primaryKey => `${table.datasource}.${table.database}.${primaryKey}`)
       return [...primaryKeys, ...currentPK]
     }, [])
+  }
+  @Watch('$lang')
+  onLanguageChange () {
+    this.freshDatasourceTitle()
   }
   @Watch('columnArray')
   onTreeDataChange () {
@@ -305,6 +309,13 @@ export default class DataSourceBar extends Vue {
 
     const isSubmit = await this.callDataSourceModal({ sourceType, project })
     isSubmit && this.loadTables({ isReset: true })
+  }
+  freshDatasourceTitle () {
+    this.datasources.forEach(datasource => {
+      const sourceName = sourceTypes[datasource.sourceType]
+      const sourceNameStr = sourceNameMapping[sourceName]
+      datasource.label = `${this.$t('source')} : ${sourceNameStr}`
+    })
   }
 }
 </script>
