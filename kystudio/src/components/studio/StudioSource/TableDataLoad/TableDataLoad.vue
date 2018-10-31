@@ -12,23 +12,16 @@
       <el-row class="info-row">
         <div class="info-label font-medium">
           <span>{{$t('loadingType')}}</span>
-          <i class="el-icon-ksd-what" @click="isLoadingTypeShow = !isLoadingTypeShow"></i>
           <span>{{$t(':')}}</span>
         </div>
         <div class="info-value">
-          <el-radio :value="isIncremental" :label="true" @click.native="handleChangeType(true)" :disabled="!partitionColumns.length">{{$t('incrementalLoading')}}</el-radio>
+          <el-tooltip effect="dark" :content="$t('incrementalDesc')" placement="top">
+            <el-radio :value="isIncremental" :label="true" @click.native="handleChangeType(true)" :disabled="!partitionColumns.length">{{$t('incrementalLoading')}}</el-radio>
+          </el-tooltip>
           <el-radio :value="isIncremental" :label="false" @click.native="handleChangeType(false)">{{$t('fullTable')}}</el-radio>
         </div>
       </el-row>
     </el-row>
-    <el-collapse-transition>
-      <div class="table-remind" v-show="isLoadingTypeShow">
-        <div class="table-remind-row">
-          <h1 class="remind-header font-medium">{{$t('incrementalTitle')}}</h1>
-          <p>{{$t('incrementalDesc')}}</p>
-        </div>
-      </div>
-    </el-collapse-transition>
     <el-row class="info-group" v-if="false">
       <el-row class="info-row">
         <div class="info-label font-medium">
@@ -82,7 +75,9 @@
       <el-row class="info-row data-range">
         <div class="info-label font-medium">
           <span>{{$t('dataRange')}}</span>
-          <i class="el-icon-ksd-what" @click="isDataRangeShow = !isDataRangeShow"></i>
+          <el-tooltip effect="dark" :content="$t('dataRangeTip')" placement="top">
+            <i class="el-icon-ksd-what" @click="isDataRangeShow = !isDataRangeShow"></i>
+          </el-tooltip>
           <span>{{$t(':')}}</span>
         </div>
         <div class="info-value">
@@ -99,13 +94,10 @@
       </el-row>
       <!-- Table数据区间操作 -->
       <el-row class="info-row">
-        <div class="info-label font-medium" style="line-height: 28px;">
-          <span>{{$t('modifyDateRange')}}</span>&ensp;<span>{{$t(':')}}</span>
-        </div>
         <div class="info-value">
           <el-button size="small" icon="el-icon-ksd-data_range" @click="handleChangeDataRange(table.userRange)">{{$t('incrementalLoading')}}</el-button>
-          <el-button size="small" icon="el-icon-ksd-table_refresh" @click="handleRefreshTable">{{$t('kylinLang.common.refresh')}}</el-button>
-          <el-button size="small" icon="el-icon-ksd-merge" @click="handleTableMerge">{{$t('dataMerge')}}</el-button>
+          <el-button size="small" icon="el-icon-ksd-table_refresh" @click="handleRefreshTable">{{$t('refreshData')}}</el-button>
+          <el-button size="small" icon="el-icon-ksd-merge" @click="handleTableMerge">{{$t('mergeData')}}</el-button>
         </div>
       </el-row>
     </el-row>
@@ -163,7 +155,6 @@ export default class TableDataLoad extends Vue {
   }
   filterModelName = null
   relatedModels = []
-  isLoadingTypeShow = true
   isSchemaChangeShow = true
   isDataRangeShow = false
   get minDataRangeStr () {
@@ -201,7 +192,7 @@ export default class TableDataLoad extends Vue {
     }
   }
   async handleRefreshTable () {
-    const isSubmit = await this.callSourceTableModal({ editType: 'refreshRange', table: this.table })
+    const isSubmit = await this.callSourceTableModal({ editType: 'refreshData', table: this.table })
     isSubmit && this.$emit('fresh-tables')
   }
   async handleTableMerge () {

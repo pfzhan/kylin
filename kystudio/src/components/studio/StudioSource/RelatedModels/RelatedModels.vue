@@ -23,7 +23,7 @@
           <el-col v-for="relatedModel in modelCardGroup" :key="relatedModel.uuid" :span="span">
             <div class="model-card" :class="{ 'is-discard': relatedModel.management_type === 'MODEL_BASED' }">
               <el-row class="model-header">
-                <span class="model-name">{{relatedModel.name}}</span>
+                <span class="model-name">{{relatedModel.alias}}</span>
               </el-row>
               <el-row class="model-body">
                 <el-col class="model-status" :span="24">
@@ -46,7 +46,7 @@
                   </span>
                 </el-col>
               </el-row>
-              <div class="discard" v-if="relatedModel.management_type !== 'MODEL_BASED'" @click="handleDiscard(relatedModel)">Discard</div>
+              <div class="discard" v-if="relatedModel.management_type !== 'MODEL_BASED'" @click="handleDiscard(relatedModel)">{{$t('discard')}}</div>
             </div>
           </el-col>
         </el-row>

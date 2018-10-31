@@ -33,8 +33,7 @@
       <!-- New/Change Data Range Picker -->
       <el-form-item class="margin-bottom-0" prop="newDataRange" v-if="isFieldShow('newDataRange')">
         <span class="font-medium" slot="label">
-          {{$t('newDataRange')}}
-          <i class="el-icon-ksd-what"></i>
+          {{$t('loadingRange')}}
         </span>
         <el-row>
           <el-col :span="22">
@@ -55,8 +54,10 @@
       <!-- Refresh Data Range Picker -->
       <el-form-item class="margin-bottom-0" prop="freshDataRange" v-if="isFieldShow('freshDataRange')">
         <span class="font-medium" slot="label">
-          {{$t('dataRange')}}
-          <i class="el-icon-ksd-what"></i>
+          {{$t('refreshRange')}}
+          <el-tooltip effect="dark" :content="$t('refreshRangeTip')" placement="top" popper-class="source-table-modal-tooltip">
+            <i class="el-icon-ksd-what"></i>
+          </el-tooltip>
         </span>
         <el-row>
           <el-col :span="22">
@@ -81,18 +82,20 @@
         </span>
         <el-switch
           :value="form.isMergeable"
-          :active-text="$t('kylinLang.common.OFF')"
-          :inactive-text="$t('kylinLang.common.ON')"
+          :active-text="$t('OFF')"
+          :inactive-text="$t('ON')"
           @input="value => handleInput('isMergeable', value)">
         </el-switch>
       </el-form-item>
       <!-- Auto Merge Configs -->
       <template v-if="isFieldShow('autoMergeConfigs')">
-        <el-row class="el-form-item__label margin-bottom-5">{{$t('mergePreference')}}</el-row>
+        <!-- <el-row class="el-form-item__label margin-bottom-5">{{$t('mergePreference')}}</el-row> -->
         <el-form-item class="margin-bottom-5" prop="autoMergeConfigs">
           <el-row class="font-medium el-form-item__label">
             {{$t('autoMerge')}}
-            <i class="el-icon-ksd-what"></i>
+            <el-tooltip effect="dark" :content="$t('autoMergeTip')" placement="top" popper-class="source-table-modal-tooltip">
+              <i class="el-icon-ksd-what"></i>
+            </el-tooltip>
           </el-row>
           <el-row v-for="(autoMergeConfig, index) in form.autoMergeConfigs" :key="index" :gutter="10">
             <el-col :span="17">
@@ -125,7 +128,9 @@
       <template v-if="isFieldShow('volatileConfig')">
         <el-row class="el-form-item__label">
           {{$t('volatile')}}
-          <i class="el-icon-ksd-what"></i>
+          <el-tooltip effect="dark" :content="$t('volatileTip')" placement="top" popper-class="source-table-modal-tooltip">
+            <i class="el-icon-ksd-what"></i>
+          </el-tooltip>
         </el-row>
         <el-row>
           <el-col class="margin-right-5" :span="8">
@@ -371,6 +376,7 @@ export default class SourceTableModal extends Vue {
   .el-dialog__title {
     font-size: 16px;
     font-weight: 500;
+    color: #263238;
   }
   .el-date-editor--datetimerange.el-input__inner {
     width: 100%;
@@ -417,5 +423,8 @@ export default class SourceTableModal extends Vue {
   .margin-right-5 {
     margin-right: 5px;
   }
+}
+.source-table-modal-tooltip {
+  max-width: 300px;
 }
 </style>

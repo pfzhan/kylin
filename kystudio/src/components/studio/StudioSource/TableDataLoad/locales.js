@@ -6,14 +6,15 @@ export default {
     dataRange: 'Data Range',
     startTime: 'Start Time',
     endTime: 'End Time',
-    incrementalLoading: 'Incremental Loading',
-    fullTable: 'Full Table',
+    incrementalLoading: 'Incremental Load',
+    fullTable: 'Full Load',
     partition: 'Partition Column',
-    modifyDateRange: 'Modify Date Range',
     dateRange: 'Date Range',
-    dataMerge: 'Data Merge',
-    incrementalTitle: 'Incremental Loading',
-    incrementalDesc: '开启增量加载功能后，需要设定映射的数据范围/将来数据加载的范围 （ data range ）,否则默认加载全部数据。',
+    refreshData: 'Refresh Data',
+    refreshRange: 'Refresh Range',
+    mergeData: 'Merge Data',
+    incrementalTitle: 'Incremental Load',
+    incrementalDesc: 'Incrementally load new records from the source table into this system.',
     modelName: 'Model Name',
     status: 'Status',
     dataRangeTooSmall: 'Cannot select the date range smaller than the table\'s.',
@@ -24,7 +25,8 @@ export default {
     scd1Title: 'Type 1 : Overwrite',
     scd1Desc: 'This methodology overwrites old with new data, and therefore does not track historical data.',
     scd2Title: 'Type 2 : Add New Row',
-    scd2Desc: 'This method tracks historical data by creating multiple records for a given natural key in the dimensional tables with separate surrogate keys and/or different version numbers. Unlimited history is preserved for each insert.'
+    scd2Desc: 'This method tracks historical data by creating multiple records for a given natural key in the dimensional tables with separate surrogate keys and/or different version numbers. Unlimited history is preserved for each insert.',
+    dataRangeTip: 'The range of source data ready to load and query.'
   },
   'zh-cn': {
     ':': '：',
@@ -36,11 +38,12 @@ export default {
     incrementalLoading: '增量加载',
     fullTable: '全量加载',
     partition: '分区列',
-    modifyDateRange: 'Modify Date Range',
     dateRange: '时间范围',
-    dataMerge: '数据合并',
+    refreshData: '刷新数据',
+    refreshRange: '刷新范围',
+    mergeData: '合并数据',
     incrementalTitle: '增量加载 （Incremental Loading）',
-    incrementalDesc: '开启增量加载功能后，需要设定映射的数据范围/将来数据加载的范围 （ data range ）,否则默认加载全部数据。',
+    incrementalDesc: '将新产生的交易记录从数据源中增量地抽取到本系统。',
     modelName: '模型名称',
     status: '模型状态',
     dataRangeTooSmall: '不可选择比数据表更小的时间区间。',
@@ -51,6 +54,7 @@ export default {
     scd1Title: 'Type 1 : Overwrite',
     scd1Desc: 'This methodology overwrites old with new data, and therefore does not track historical data.',
     scd2Title: 'Type 2 : Add New Row',
-    scd2Desc: 'This method tracks historical data by creating multiple records for a given natural key in the dimensional tables with separate surrogate keys and/or different version numbers. Unlimited history is preserved for each insert.'
+    scd2Desc: 'This method tracks historical data by creating multiple records for a given natural key in the dimensional tables with separate surrogate keys and/or different version numbers. Unlimited history is preserved for each insert.',
+    dataRangeTip: '数据源表上，可以加载至本系统的一段数据。'
   }
 }
