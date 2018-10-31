@@ -590,14 +590,22 @@ class NModel {
   }
   // 添加度量
   addMeasure (measureObj) {
-    this._mount.all_measures.push(measureObj)
+    return new Promise((resolve, reject) => {
+      if (indexOfObjWithSomeKey(this._mount.all_measures, 'name', measureObj.name) <= 0) {
+        measureObj.guid = sampleGuid()
+        this._mount.all_measures.push(measureObj)
+        resolve(measureObj)
+      } else {
+        reject()
+      }
+    })
   }
   // 编辑度量
   editMeasure (measureObj) {
-    this._mount.all_measures.forEach((m) => {
-      if (m.name === measureObj.name) {
-        m = measureObj
-      }
+    return new Promise((resolve, reject) => {
+      let index = indexOfObjWithSomeKey(this._mount.all_measures, 'guid', measureObj.guid)
+      Object.assign(this._mount.dimensions[index], measureObj)
+      resolve()
     })
   }
   // 检查是否有同名

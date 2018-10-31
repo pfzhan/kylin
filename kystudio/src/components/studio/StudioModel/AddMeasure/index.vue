@@ -36,61 +36,32 @@
             'measures-width': measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'}"
             size="medium" v-model="measure.parameterValue.value" :placeholder="$t('kylinLang.common.pleaseSelect')"
             filterable @change="changeParamValue" :disabled="isEdit">
-              <el-option
-                v-for="(item, index) in getParameterValue"
-                :key="index"
-                :label="item.name"
-                :value="item.name">
-                <span>{{item.name}}</span>
-                <span class="option-left ksd-fs-13" style="float: right">{{item.datatype}}</span>
-              </el-option>
-              <el-option
-                v-for="(item, index) in ccGroups"
-                :key="index + 'cc'"
-                :label="item.name"
-                :value="item">
-                <span>{{item.name}}</span>
-                <span class="option-left ksd-fs-13" style="float: right">{{item.datatype}}</span>
-              </el-option>
+              <el-option-group key="column" :label="$t('columns')">
+                <el-option
+                  v-for="(item, index) in getParameterValue"
+                  :key="index"
+                  :label="item.name"
+                  :value="item.name">
+                  <span>{{item.name}}</span>
+                  <span class="option-left ksd-fs-13" style="float: right">{{item.datatype}}</span>
+                </el-option>
+              </el-option-group>
+              <el-option-group key="ccolumn" :label="$t('ccolumns')">
+                <el-option
+                  v-for="item in ccGroups"
+                  :key="item.guid"
+                  :label="item.tableAlias + '.' + item.columnName"
+                  :value="item.tableAlias + '.' + item.columnName">
+                  <span>{{item.tableAlias}}.{{item.columnName}}</span>
+                  <span class="option-left ksd-fs-13" style="float: right">{{item.datatype}}</span>
+                </el-option>
+              </el-option-group>
             </el-select>
             <el-button size="medium" v-if="measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N'" icon="el-icon-ksd-auto_computed_column" type="primary" plain @click="newCC" class="ksd-ml-6" :disabled="isEdit&&ccVisible"></el-button>
           </div>
           <el-button type="primary" size="medium" icon="el-icon-ksd-add" plain circle v-if="measure.expression === 'COUNT_DISTINCT'" class="ksd-ml-10" @click="addNewProperty"></el-button>
         </div>
-        <el-form :model="ccObject" class="cc-block" :class="{'editCC': !isEdit}" label-position="top" :rules="ccRules" ref="ccForm" v-show="ccVisible">
-          <el-form-item prop="name" class="ksd-mb-10">
-            <span slot="label">Column Name <span v-if="!isEdit">: {{ccObject.name}}</span></span>
-            <el-input class="measures-width" size="medium" v-model="ccObject.name" v-if="isEdit" @blur="upperCaseCCName"></el-input>
-
-          </el-form-item>
-          <el-form-item prop="returnType" class="ksd-mb-10">
-            <span slot="label">Return Type <span v-if="!isEdit">: {{ccObject.returnType}}</span></span>
-            <el-select :popper-append-to-body="false" size="medium" v-model="ccObject.returnType" class="measures-width" v-if="isEdit">
-              <el-option
-                v-for="(item, index) in allReturnTypes"
-                :key="index"
-                :label="item"
-                :value="item">
-              </el-option>
-            </el-select>
-          </el-form-item>
-          <el-form-item label="Expression" prop="expression" class="ksd-mb-10">
-            <kap_editor ref="ccSql" height="100" lang="sql" theme="chrome" v-model="ccObject.expression">
-            </kap_editor>
-          </el-form-item>
-          <div class="btn-group clearfix">
-            <el-button size="small" plain @click="delCC" class="ksd-fleft">{{$t('kylinLang.common.delete')}}</el-button>
-            <el-button type="primary" size="small" plain @click="addCC" class="ksd-fright" v-if="isEdit">
-              {{$t('kylinLang.common.save')}}
-            </el-button>
-            <el-button size="small" plain @click="resetCC" class="ksd-fright" v-if="isEdit">
-              {{$t('kylinLang.query.clear')}}
-            </el-button>
-            <el-button size="small" plain @click="editCC" class="ksd-fright" v-else>
-              {{$t('kylinLang.common.edit')}}
-            </el-button>
-          </div>
-        </el-form>
+        <CCEditForm v-if="ccVisible" @saveSuccess="saveCC" @delSuccess="delCC" :ccDesc="ccObject" :modelInstance="modelInstance"></CCEditForm>
       </el-form-item>
       <el-form-item :label="isGroupBy">
         <div class="measure-flex-row" v-if="measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
@@ -110,25 +81,30 @@
           <el-button size="medium" icon="el-icon-ksd-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
         </div>
         <div v-if="measure.expression ==='CORR'" class="ksd-mt-10">
-          <el-select class="measures-addCC" size="medium" v-model="measure.convertedColumns[0].value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable>
-            <el-option
-              v-for="(item, index) in getParameterValue"
-              :key="index"
-              :label="item.name"
-              :value="item.name">
-              <span>{{item.name}}</span>
-              <span class="option-left ksd-fs-13" style="float: right">{{item.datatype}}</span>
-            </el-option>
-            <el-option
-              v-for="(item, index) in ccGroups"
-              :key="index + 'cc'"
-              :label="item.name"
-              :value="item">
-              <span>{{item.name}}</span>
-              <span class="option-left ksd-fs-13" style="float: right">{{item.datatype}}</span>
-            </el-option>
+          <el-select class="measures-addCC" size="medium" v-model="measure.convertedColumns[0].value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable @change="changeCORRParamValue" :disabled="isCorrCCEdit">
+            <el-option-group key="column" :label="$t('columns')">
+              <el-option
+                v-for="(item, index) in getParameterValue"
+                :key="index"
+                :label="item.name"
+                :value="item.name">
+                <span>{{item.name}}</span>
+                <span class="option-left ksd-fs-13" style="float: right">{{item.datatype}}</span>
+              </el-option>
+            </el-option-group>
+            <el-option-group key="ccolumn" :label="$t('ccolumns')">
+              <el-option
+                v-for="item in ccGroups"
+                :key="item.guid"
+                :label="item.tableAlias + '.' + item.columnName"
+                :value="item.tableAlias + '.' + item.columnName">
+                <span>{{item.tableAlias}}.{{item.columnName}}</span>
+                <span class="option-left ksd-fs-13" style="float: right">{{item.datatype}}</span>
+              </el-option>
+            </el-option-group>
           </el-select>
-          <el-button size="medium" icon="el-icon-ksd-auto_computed_column" type="primary" plain class="ksd-ml-6" @click="newCC"></el-button>
+          <el-button size="medium" icon="el-icon-ksd-auto_computed_column" type="primary" plain class="ksd-ml-6" @click="newCorrCC" :disabled="isCorrCCEdit && corrCCVisible"></el-button>
+          <CCEditForm v-if="corrCCVisible" @saveSuccess="saveCorrCC" @delSuccess="delCorrCC" :ccDesc="corrCCObject" :modelInstance="modelInstance"></CCEditForm>
         </div>
       </el-form-item>
     </el-form>
@@ -144,12 +120,16 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { measuresDataType } from '../../../../config'
 import { objectClone } from '../../../../util/index'
+import CCEditForm from '../ComputedColumnForm/ccform.vue'
 import $ from 'jquery'
 @Component({
-  props: ['isShow', 'modelTables', 'allMeasures', 'isEditMeasure', 'measureObj'],
+  props: ['isShow', 'isEditMeasure', 'measureObj', 'modelInstance'],
+  components: {
+    CCEditForm
+  },
   locales: {
-    'en': {requiredName: 'The measure name is required.', name: 'Name', expression: 'Expression', returnType: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredReturnType: 'The return type is required.', requiredExpress: 'The expression is required.'},
-    'zh-cn': {requiredName: '请输入度量名称', name: '名称', expression: '表达式', returnType: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入列表名称', requiredReturnType: '请选择度量返回类型', requiredExpress: '请输入表达式。'}
+    'en': {requiredName: 'The measure name is required.', name: 'Name', expression: 'Expression', returnType: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredReturnType: 'The return type is required.', requiredExpress: 'The expression is required.', columns: 'Columns', ccolumns: 'Computed Columns'},
+    'zh-cn': {requiredName: '请输入度量名称', name: '名称', expression: '表达式', returnType: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入列表名称', requiredReturnType: '请选择度量返回类型', requiredExpress: '请输入表达式。', columns: '列', ccolumns: '计算列'}
   }
 })
 export default class AddMeasure extends Vue {
@@ -173,15 +153,14 @@ export default class AddMeasure extends Vue {
     returnType: [{ required: true, message: this.$t('requiredReturnType'), trigger: 'change' }],
     expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }]
   }
-  ccObject = {
-    name: '',
-    returnType: '',
-    expression: ''
-  }
-  activeCCIndex = null
+  ccObject = null
+  corrCCObject = null
   isEdit = false
+  isCorrCCEdit = false
   ccVisible = false
+  corrCCVisible = false
   ccGroups = []
+  allTableColumns = []
   expressionsConf = [
     {label: 'SUM (column)', value: 'SUM(column)'},
     {label: 'SUM (constant)', value: 'SUM(constant)'},
@@ -220,8 +199,8 @@ export default class AddMeasure extends Vue {
     if (!value) {
       callback(new Error(this.$t('requiredName')))
     } else {
-      for (let i = 0; i < this.allMeasures.length; i++) {
-        if (this.allMeasures[i].name.toLocaleUpperCase() === this.measure.name.toLocaleUpperCase() && !this.isEditMeasure) {
+      for (let i = 0; i < this.modelInstance.all_measures.length; i++) {
+        if (this.modelInstance.all_measures[i].name.toLocaleUpperCase() === this.measure.name.toLocaleUpperCase() && !this.isEditMeasure) {
           callback(new Error(this.$t('nameReuse')))
         } else {
           callback()
@@ -232,10 +211,6 @@ export default class AddMeasure extends Vue {
 
   upperCaseName () {
     this.measure.name = this.measure.name.toLocaleUpperCase()
-  }
-
-  upperCaseCCName () {
-    this.ccObject.name = this.ccObject.name.toLocaleUpperCase()
   }
 
   changeExpression () {
@@ -271,45 +246,74 @@ export default class AddMeasure extends Vue {
     this.measure.convertedColumns.splice(index, 1)
   }
 
+  getCCObj (value) {
+    const measureNamed = value.split('.')
+    const alias = measureNamed[0]
+    const column = measureNamed[1]
+    const ccObj = this.modelInstance.getCCObj(alias, column)
+    return ccObj
+  }
+
   changeParamValue (value) {
-    const index = this.ccGroups.indexOf(value)
-    if (index > -1) {
-      this.activeCCIndex = index
-      this.ccObject = this.ccGroups[index]
+    const ccObj = this.getCCObj(value)
+    if (ccObj) {
+      this.ccObject = ccObj
       this.ccVisible = true
+      this.isEdit = false
+    } else {
+      this.ccVisible = false
       this.isEdit = false
     }
   }
 
+  changeCORRParamValue (value) {
+    const ccObj = this.getCCObj(value)
+    if (ccObj) {
+      this.corrCCObject = ccObj
+      this.corrCCVisible = true
+      this.isCorrCCEdit = false
+    } else {
+      this.corrCCVisible = false
+      this.isCorrCCEdit = false
+    }
+  }
+
+  resetCCVisble () {
+    this.isEdit = false
+    this.isCorrCCEdit = false
+    this.ccVisible = false
+    this.corrCCVisible = false
+    this.ccObject = null
+    this.corrCCObject = null
+  }
+
   newCC () {
+    this.resetCCVisble()
     this.isEdit = true
     this.ccVisible = true
-    this.$refs['ccForm'].resetFields()
   }
-  delCC () {
-    if (this.activeCCIndex > -1) {
-      this.$nextTick(() => {
-        this.ccGroups.splice(this.activeCCIndex, 1)
-      })
-    }
+  newCorrCC () {
+    this.resetCCVisble()
+    this.isCorrCCEdit = true
+    this.corrCCVisible = true
+  }
+  saveCC (cc) {
+    this.measure.parameterValue.value = cc.tableAlias + '.' + cc.columnName
+    this.isEdit = false
+  }
+  saveCorrCC (cc) {
+    this.measure.convertedColumns[0].value = cc.tableAlias + '.' + cc.columnName
+    this.isCorrCCEdit = false
+  }
+  delCC (cc) {
     this.measure.parameterValue.value = ''
     this.ccVisible = false
     this.isEdit = false
   }
-  addCC () {
-    this.$refs['ccForm'].validate((valid) => {
-      if (valid) {
-        this.activeCCIndex = this.ccGroups.push(this.ccObject) - 1
-        this.measure.parameterValue.value = this.ccObject.name
-        this.isEdit = false
-      }
-    })
-  }
-  editCC () {
-    this.isEdit = true
-  }
-  resetCC () {
-    this.$refs['ccForm'].resetFields()
+  delCorrCC (cc) {
+    this.measure.convertedColumns[0].value = ''
+    this.corrCCVisible = false
+    this.isCorrCCEdit = false
   }
 
   get isOrderBy () {
@@ -346,16 +350,14 @@ export default class AddMeasure extends Vue {
 
   get getParameterValue () {
     let targetColumns = []
-    if (this.modelTables) {
-      $.each(this.modelTables, (index, table) => {
-        $.each(table.columns, (index, column) => {
-          const returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
-          const returnValue = returnRegex.exec(column.datatype)
-          if (measuresDataType.indexOf(returnValue[1]) >= 0) {
-            const columnObj = {name: table.alias + '.' + column.name, datatype: column.datatype}
-            targetColumns.push(columnObj)
-          }
-        })
+    if (this.allTableColumns) {
+      $.each(this.allTableColumns, (index, column) => {
+        const returnRegex = new RegExp('(\\w+)(?:\\((\\w+?)(?:\\,(\\w+?))?\\))?')
+        const returnValue = returnRegex.exec(column.datatype)
+        if (measuresDataType.indexOf(returnValue[1]) >= 0) {
+          const columnObj = {name: column.table_alias + '.' + column.name, datatype: column.datatype}
+          targetColumns.push(columnObj)
+        }
       })
     }
     return targetColumns
@@ -366,13 +368,21 @@ export default class AddMeasure extends Vue {
     this.$emit('closeAddMeasureDia')
   }
   checkMeasure () {
-    // this.$refs.measureForm.validate((valid) => {
-      // if (valid) {
-    this.$emit('saveNewMeasure', this.measure, this.ccObject, this.isEditMeasure)
-    this.resetMeasure()
-    this.handleHide()
-      // }
-    // })
+    this.$refs.measureForm.validate((valid) => {
+      if (valid) {
+        if (this.isEditMeasure) {
+          this.modelInstance.editMeasure(this.measure).then(() => {
+            this.resetMeasure()
+            this.handleHide()
+          })
+        } else {
+          this.modelInstance.addMeasure(this.measure).then(() => {
+            this.resetMeasure()
+            this.handleHide()
+          })
+        }
+      }
+    })
   }
 
   resetMeasure () {
@@ -385,11 +395,6 @@ export default class AddMeasure extends Vue {
     }
     this.ccVisible = false
     this.isEdit = false
-    this.ccObject = {
-      name: '',
-      returnType: '',
-      expression: ''
-    }
   }
 
   initExpression () {
@@ -404,6 +409,8 @@ export default class AddMeasure extends Vue {
     if (this.measureVisible) {
       this.resetMeasure()
       this.measure = objectClone(this.measureObj)
+      this.allTableColumns = this.modelInstance && this.modelInstance.getTableColumns()
+      this.ccGroups = this.modelInstance.computed_columns
       this.initExpression()
     }
   }

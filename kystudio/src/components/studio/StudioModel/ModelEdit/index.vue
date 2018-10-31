@@ -31,10 +31,9 @@
     <TableJoinModal/>
     <AddMeasure
       :isShow="measureVisible"
-      :modelTables="modelRender && modelRender.tables || []"
-      :allMeasures="modelRender && modelRender.all_measures"
+      :isEditMeasure="isEditMeasure"
       :measureObj="measureObj"
-      @saveNewMeasure="saveMeasure"
+      :modelInstance="modelInstance"
       v-on:closeAddMeasureDia="closeAddMeasureDia">
     </AddMeasure>
     <SingleDimensionModal/>
@@ -116,8 +115,7 @@
               <span class="close" @click="toggleMenu('measure')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
-              <span><i class="el-icon-ksd-add" @click="measureVisible = true"></i></span>
-              <span @click="addCCMeasure"><i class="el-icon-ksd-computed"></i></span>
+              <span><i class="el-icon-ksd-add" @click="addNewMeasure"></i></span>
               <span><i class="el-icon-ksd-table_delete"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
@@ -263,6 +261,7 @@ export default class ModelEdit extends Vue {
   globalLoading = loadingBox()
   renderBox = modelRenderConfig.drawBox
   measureVisible = false
+  isEditMeasure = false
   allColumns = []
   // baseIndex = modelRenderConfig.baseIndex
   autoSetting = true
@@ -385,8 +384,9 @@ export default class ModelEdit extends Vue {
       modelInstance: this.modelInstance
     })
   }
-  addCCMeasure () {
+  addNewMeasure () {
     this.measureVisible = true
+    this.isEditMeasure = false
   }
   saveMeasure (measureObj, ccObj, isEdit) {
     if (isEdit) {
@@ -413,6 +413,7 @@ export default class ModelEdit extends Vue {
       this.measureObj = m
     })
     this.measureVisible = true
+    this.isEditMeasure = true
   }
   // 拖动画布
   dragBox (x, y) {
@@ -555,6 +556,7 @@ export default class ModelEdit extends Vue {
     }
     if (select.action === 'addmeasure') {
       this.measureVisible = true
+      this.isEditMeasure = false
     }
     if (select.action === 'editdimension') {
       let columnName = moreInfo.name
@@ -565,6 +567,7 @@ export default class ModelEdit extends Vue {
     }
     if (select.action === 'editmeasure') {
       this.measureVisible = true
+      this.isEditMeasure = true
     }
     if (select.action === 'editjoin') {
       this.callJoinDialog()
