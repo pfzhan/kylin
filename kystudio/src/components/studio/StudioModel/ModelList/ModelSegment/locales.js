@@ -13,7 +13,8 @@ export default {
     segmentSetting: 'Segment Setting',
     selectContinueSegments: 'Please select continuous segments',
     pleaseSelectSegments: 'Please select at least one segment',
-    confirmDeleteSegments: 'Are you sure delete?'
+    confirmDeleteSegments: 'Are you sure delete?',
+    pleaseSelectStartOrEndSegments: 'Please select first or last continuous segments.'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',
@@ -29,6 +30,7 @@ export default {
     segmentSetting: 'Segment管理参数',
     selectContinueSegments: '请选择时间相邻的segment',
     pleaseSelectSegments: '至少选择一个segment',
-    confirmDeleteSegments: '确认是否删除？'
+    confirmDeleteSegments: '确认是否删除？',
+    pleaseSelectStartOrEndSegments: '请选择第一个开始或最后一个结束的连续segments。'
   }
 }

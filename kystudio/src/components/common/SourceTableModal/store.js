@@ -90,35 +90,39 @@ export default {
   actions: {
     [types.CALL_MODAL] ({ commit }, { editType, projectName = null, table = null, model = null, newDataRange = null }) {
       const { dispatch } = this
-      return new Promise(async resolve => {
-        const tableFullName = getTableName(table, model)
-        const modelName = (!tableFullName && model) ? model.name : null
+      return new Promise(async (resolve, reject) => {
+        try {
+          const tableFullName = getTableName(table, model)
+          const modelName = (!tableFullName && model) ? model.name : null
 
-        commit(types.SET_MODAL, { editType, table, model, callback: resolve })
+          commit(types.SET_MODAL, { editType, table, model, callback: resolve })
 
-        switch (editType) {
-          case editTypes.DATA_MERGE: {
-            const response = await dispatch('FETCH_MERGE_CONFIG', { projectName, modelName, tableFullName })
-            const payload = formatMergeConfig(await handleSuccessAsync(response))
-            commit(types.INIT_FORM, payload)
-            break
+          switch (editType) {
+            case editTypes.DATA_MERGE: {
+              const response = await dispatch('FETCH_MERGE_CONFIG', { projectName, modelName, tableFullName })
+              const payload = formatMergeConfig(await handleSuccessAsync(response))
+              commit(types.INIT_FORM, payload)
+              break
+            }
+            case editTypes.PUSHDOWN_CONFIG: {
+              const tableFullName = `${table.database}.${table.name}`
+              const response = await dispatch('FETCH_PUSHDOWN_CONFIG', { projectName, tableFullName })
+              const isPushdownSync = await handleSuccessAsync(response)
+              commit(types.INIT_FORM, { isPushdownSync })
+              break
+            }
+            case editTypes.INCREMENTAL_LOADING: {
+              commit(types.INIT_FORM, { newDataRange })
+              break
+            }
+            default: {
+              commit(types.INIT_FORM)
+            }
           }
-          case editTypes.PUSHDOWN_CONFIG: {
-            const tableFullName = `${table.database}.${table.name}`
-            const response = await dispatch('FETCH_PUSHDOWN_CONFIG', { projectName, tableFullName })
-            const isPushdownSync = await handleSuccessAsync(response)
-            commit(types.INIT_FORM, { isPushdownSync })
-            break
-          }
-          case editTypes.INCREMENTAL_LOADING: {
-            commit(types.INIT_FORM, { newDataRange })
-            break
-          }
-          default: {
-            commit(types.INIT_FORM)
-          }
+          commit(types.SHOW_MODAL)
+        } catch (e) {
+          reject(e)
         }
-        commit(types.SHOW_MODAL)
       })
     }
   },

@@ -227,14 +227,28 @@ export default class ModelSegment extends Vue {
     }
   }
   async handleMergeSegment () {
-    const projectName = this.currentSelectedProject
-    const model = this.model
-    await this.callSourceTableModal({ editType: 'dataMerge', model, projectName })
+    try {
+      const projectName = this.currentSelectedProject
+      const model = this.model
+      await this.callSourceTableModal({ editType: 'dataMerge', model, projectName })
+    } catch (e) {
+      handleError(e)
+    }
+  }
+  isStartOrEndSegment (segmentIds) {
+    const startAndEndIds = this.segments.filter((segment, index) => {
+      return index === 0 || index === this.segments.length - 1
+    }).map(segment => segment.id)
+    return segmentIds.some(segmentId => startAndEndIds.includes(segmentId))
   }
   async handleDeleteSegment () {
     try {
       const segmentIds = this.selectedSegmentIds
-      if (segmentIds.length) {
+      if (!segmentIds.length) {
+        this.$message(this.$t('pleaseSelectSegments'))
+      } else if (!this.isStartOrEndSegment(segmentIds)) {
+        this.$message(this.$t('pleaseSelectStartOrEndSegments'))
+      } else {
         const projectName = this.currentSelectedProject
         const modelName = this.model.name
         const confirmTitle = this.$t('kylinLang.common.notice')
@@ -245,8 +259,6 @@ export default class ModelSegment extends Vue {
         await this.deleteSegments({ projectName, modelName, segmentIds })
         this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
         await this.loadSegments()
-      } else {
-        this.$message(this.$t('pleaseSelectSegments'))
       }
     } catch (e) {
       e !== 'cancel' && handleError(e)

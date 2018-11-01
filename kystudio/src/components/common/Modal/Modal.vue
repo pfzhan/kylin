@@ -10,6 +10,9 @@
 import Vue from 'vue'
 import { mapGetters } from 'vuex'
 import { Component } from 'vue-property-decorator'
+import UserEditModal from '../UserEditModal/index.vue'
+import DataSourceModal from '../DataSourceModal/index.vue'
+import SourceTableModal from '../SourceTableModal/SourceTableModal.vue'
 
 @Component({
   computed: {
@@ -18,9 +21,9 @@ import { Component } from 'vue-property-decorator'
     ])
   },
   components: {
-    UserEditModal: () => import('../UserEditModal/index.vue'),
-    DataSourceModal: () => import('../DataSourceModal/index.vue'),
-    SourceTableModal: () => import('../SourceTableModal/SourceTableModal.vue')
+    UserEditModal,
+    DataSourceModal,
+    SourceTableModal
   }
 })
 export default class Modal extends Vue {

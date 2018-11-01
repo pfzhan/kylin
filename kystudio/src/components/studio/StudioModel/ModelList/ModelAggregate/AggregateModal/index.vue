@@ -386,15 +386,15 @@ export default class AggregateModal extends Vue {
     margin: 0 10px 10px 0;
   }
   .dimension.disable {
-    background: #F1F7FA;
-    border: 1px solid #B0BEC5;
+    background: @grey-4;
+    border: 1px solid @text-secondary-color;
     border-radius: 2px;
   }
   .dimension-buttons {
     text-align: center;
     margin: 0 -20px;
     padding: 10px 0 20px 0;
-    border-bottom: 1px solid #CFD8DC;
+    border-bottom: 1px solid @text-placeholder-color;
   }
   .less {
     transform: rotate(180deg);
@@ -408,11 +408,11 @@ export default class AggregateModal extends Vue {
       margin-bottom: 25px;
     }
     .title {
-      color: #263238;
+      color: @text-title-color;
       margin-bottom: 7px;
     }
     .body {
-      border: 1px solid #CFD8DC;
+      border: 1px solid @text-placeholder-color;
       border-radius: 2px;
       padding: 20px;
     }
@@ -425,7 +425,7 @@ export default class AggregateModal extends Vue {
       right: 0;
       font-size: 16px;
       i {
-        color: #263238;
+        color: @text-title-color;
       }
     }
   }
@@ -439,10 +439,12 @@ export default class AggregateModal extends Vue {
     width: 100%;
   }
   [data-tag='used'] {
-    background: @base-color-11;
-    color: @fff;
+    background: @grey-4;
+    border: 1px solid @text-secondary-color;
+    border-radius: 2px;
+    color: @text-normal-color;
     .el-icon-close {
-      color: @fff;
+      color: @text-normal-color;
     }
   }
   .el-button {
@@ -467,18 +469,18 @@ export default class AggregateModal extends Vue {
       float: left;
     }
     .delete {
-      background: #FFFFFF;
-      border: 1px solid #B0BEC5;
-      color: #8E9FA8;
+      background: @fff;
+      border: 1px solid @text-secondary-color;
+      color: @text-disabled-color;
       &:hover {
-        background: #FFFFFF;
-        border: 1px solid #B0BEC5;
-        color: #8E9FA8;
+        background: @fff;
+        border: 1px solid @text-secondary-color;
+        color: @text-disabled-color;
       }
       &.is-disabled {
-        background: #F1F7FA;
+        background: @grey-4;
         &:hover {
-          background: #F1F7FA;
+          background: @grey-4;
         }
       }
     }
