@@ -157,7 +157,7 @@ export default {
     return Vue.resource(apiUrl + 'tables').get({project, database, table, pageOffset, pageSize, isFuzzy, ext})
   },
   fetchDatabases (project, datasourceType) {
-    return Vue.resource(apiUrl + 'tables/databases').get({project, datasourceType})
+    return Vue.resource(apiUrl + 'tables/loaded_databases').get({project, datasourceType})
   },
   importDatabases (project, datasourceType, databases) {
     return Vue.resource(apiUrl + 'tables/databases').save({project, datasourceType, databases})

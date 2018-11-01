@@ -212,9 +212,7 @@ export default class DataSourceBar extends Vue {
     const results = await handleSuccessAsync(responses)
     // 组装database进datasource
     this.datasources.forEach((datasource, index) => {
-      for (const resultDatabse of results[index]) {
-        datasource.children.push(getDatabaseObj(this, datasource, resultDatabse))
-      }
+      datasource.children = results[index].map(resultDatabse => getDatabaseObj(this, datasource, resultDatabse))
     })
   }
   async loadTables (params) {
@@ -313,7 +311,10 @@ export default class DataSourceBar extends Vue {
     event && event.preventDefault()
 
     const isSubmit = await this.callDataSourceModal({ sourceType, project })
-    isSubmit && this.loadTables({ isReset: true })
+    if (isSubmit) {
+      await this.loadDataBases()
+      await this.loadTables({ isReset: true })
+    }
   }
   freshDatasourceTitle () {
     this.datasources.forEach(datasource => {
