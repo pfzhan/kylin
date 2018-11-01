@@ -199,12 +199,16 @@ export default class AddMeasure extends Vue {
     if (!value) {
       callback(new Error(this.$t('requiredName')))
     } else {
-      for (let i = 0; i < this.modelInstance.all_measures.length; i++) {
-        if (this.modelInstance.all_measures[i].name.toLocaleUpperCase() === this.measure.name.toLocaleUpperCase() && !this.isEditMeasure) {
-          callback(new Error(this.$t('nameReuse')))
-        } else {
-          callback()
+      if (this.modelInstance.all_measures.length) {
+        for (let i = 0; i < this.modelInstance.all_measures.length; i++) {
+          if (this.modelInstance.all_measures[i].name.toLocaleUpperCase() === this.measure.name.toLocaleUpperCase() && !this.isEditMeasure) {
+            callback(new Error(this.$t('nameReuse')))
+          } else {
+            callback()
+          }
         }
+      } else {
+        callback()
       }
     }
   }

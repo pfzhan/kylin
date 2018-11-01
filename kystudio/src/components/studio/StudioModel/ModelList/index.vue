@@ -146,8 +146,8 @@
           <p style="text-indent:25px; line-height: 26px;" v-html="$t('speedTip', {queryCount: modelSpeedEvents ,modelCount: modelSpeedModelsCount})"></p>
         </el-col>
         <el-col :span="10" class="animateImg">
-          <img class="notice_img notice_img1" src="../../../../assets/img/noticeImg1.png" height="150" width="150">
-          <img class="notice_img notice_img2" src="../../../../assets/img/noticeImg2.png" height="150" width="150">
+          <img class="notice_img notice_img1" :class="{'rotate1': rotateVisibel}" src="../../../../assets/img/noticeImg1.png" height="150" width="150">
+          <img class="notice_img notice_img2" :class="{'rotate2': rotateVisibel}" src="../../../../assets/img/noticeImg2.png" height="150" width="150">
           <img class="notice_img" src="../../../../assets/img/noticeImg3.png" height="150" width="150">
         </el-col>
       </el-row>
@@ -201,7 +201,8 @@ import '../../../../util/fly.js'
       return this.$store.state.model.modelSpeedEvents
     },
     reachThreshold () {
-      return this.$store.state.model.reachThreshold
+      // return this.$store.state.model.reachThreshold
+      return true
     },
     modelSpeedModelsCount () {
       return this.$store.state.model.modelSpeedModelsCount
@@ -265,6 +266,7 @@ export default class ModelList extends Vue {
   dataRangeVal = []
   btnLoading = false
   btnLoadingCancel = false
+  rotateVisibel = false
   createModelFormRule = {
     modelName: [
       {required: true, message: this.$t('inputModelName'), trigger: 'blur'},
@@ -450,6 +452,14 @@ export default class ModelList extends Vue {
       })
     })
   }
+  @Watch('reachThreshold', {immediate: true})
+  onReachThreshold (val) {
+    if (val) {
+      setTimeout(() => {
+        this.rotateVisibel = true
+      })
+    }
+  }
   onSortChange ({ column, prop, order }) {
     if (prop === 'gmtTime') {
       this.filterArgs.sortBy = 'last_modify'
@@ -504,14 +514,6 @@ export default class ModelList extends Vue {
   created () {
     this.filterArgs.project = this.currentSelectedProject
     this.loadModelsList()
-  }
-  mounted () {
-    this.$nextTick(() => {
-      if ($('.animateImg .notice_img')) {
-        $('.animateImg .notice_img1').addClass('rotate1')
-        $('.animateImg .notice_img2').addClass('rotate2')
-      }
-    })
   }
 }
 </script>
