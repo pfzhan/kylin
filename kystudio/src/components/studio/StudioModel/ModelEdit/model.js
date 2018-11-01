@@ -626,7 +626,23 @@ class NModel {
   delMeasure (i) {
     this._mount.all_measures.splice(i, 1)
   }
-  _delMeasureByAlias () {
+
+  // measure parameterValue 临时结构
+  _delMeasureByAlias (alias) {
+    let measures = this._mount.all_measures.filter((item) => {
+      if (item.parameter_value[0] && item.parameter_value[0].type === 'column' && item.parameter_value[0].value.split('.')[0] !== alias) {
+        if (item.converted_columns && item.converted_columns.length > 0) {
+          const finalConvertedColumns = item.converted_columns.filter((column) => {
+            return column.type === 'column' && column.value.split('.')[0] !== alias
+          })
+          item.converted_columns.splice(0, item.converted_columns.length)
+          item.converted_columns.push(...finalConvertedColumns)
+        }
+        return item
+      }
+    })
+    this._mount.all_measures.splice(0, this._mount.all_measures.length)
+    this._mount.all_measures.push(...measures)
   }
   // 添加度量
   addMeasure (measureObj) {

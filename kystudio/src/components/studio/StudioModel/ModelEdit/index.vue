@@ -123,7 +123,7 @@
                 <li v-for="(m, i) in modelRender.all_measures" :key="m.name">
                 <el-checkbox v-model="measureSelectedList" :label="i">{{m.name|omit(18,'...')}}</el-checkbox>
                   <i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i>
-                  <i class="el-icon-ksd-table_delete" @click="deleteMeasure(m, i)"></i>
+                  <i class="el-icon-ksd-table_delete" @click="deleteMeasure(i)"></i>
                   <span class="li-type ky-option-sub-info">{{m.return_type}}</span>
                 </li>
               </ul>
