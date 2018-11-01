@@ -28,6 +28,9 @@
       <el-button size="small" plain @click="resetCC" class="ksd-fright" v-if="isEdit">
         {{$t('kylinLang.query.clear')}}
       </el-button>
+      <el-button size="small" plain @click="checkRemoteCC" class="ksd-fleft" v-if="isEdit">
+        {{$t('kylinLang.common.check')}}
+      </el-button>
       <el-button size="small" plain @click="editCC" class="ksd-fright" v-else>
         {{$t('kylinLang.common.edit')}}
       </el-button>
@@ -37,11 +40,17 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { mapActions } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 import { computedDataType } from 'config/index'
+import { handleError, kapMessage } from 'util/business'
 // import $ from 'jquery'
 @Component({
   props: ['isShow', 'ccDesc', 'modelInstance'],
+  computed: {
+    ...mapGetters([
+      'currentSelectedProject'
+    ])
+  },
   methods: {
     // 后台接口请求
     ...mapActions({
@@ -50,8 +59,8 @@ import { computedDataType } from 'config/index'
     })
   },
   locales: {
-    'en': {columnName: 'Column Name', requiredName: 'The measure name is required.', name: 'Name', expression: 'Expression', returnType: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredReturnType: 'The return type is required.', requiredExpress: 'The expression is required.'},
-    'zh-cn': {columnName: '列名', requiredName: '请输入度量名称', name: '名称', expression: '表达式', returnType: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入列表名称', requiredReturnType: '请选择度量返回类型', requiredExpress: '请输入表达式。'}
+    'en': {sameName: 'Has same computed column name', columnName: 'Column Name', name: 'Name', expression: 'Expression', returnType: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredReturnType: 'The return type is required.', requiredExpress: 'The expression is required.'},
+    'zh-cn': {sameName: '有同名的可计算列', columnName: '列名', name: '名称', expression: '表达式', returnType: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入名称', requiredReturnType: '请选择返回类型', requiredExpress: '请输入表达式。'}
   }
 })
 export default class CCForm extends Vue {
@@ -89,31 +98,40 @@ export default class CCForm extends Vue {
   cancelCC () {
     this.$emit('delSuccess', this.ccObject)
   }
+  errorMsg = ''
   checkRemoteCC () {
     this.modelInstance.generateMetadata().then((data) => {
-      this.checkCC(data).then((res) => {
-        console.log(res)
+      let ccMeta = this.modelInstance.generateCCMeta(this.ccObject)
+      data.computed_columns.push(ccMeta)
+      this.checkCC({
+        model_desc: data,
+        project: this.currentSelectedProject,
+        cc_in_check: this.modelInstance.getFactTable().alias + '.' + this.ccObject.columnName,
+        is_seeking_expr_advice: false
+      }).then((res) => {
+        kapMessage(this.$t('kyinLang.common.checkSuccess'))
       }, (res) => {
-        console.log(res)
+        handleError(res)
       })
     })
   }
+
   addCC () {
     this.$refs['ccForm'].validate((valid) => {
-      this.checkRemoteCC()
       if (valid) {
         if (this.ccObject.guid) {
           this.modelInstance.editCC(this.ccObject).then((cc) => {
             this.$emit('saveSuccess', cc)
             this.isEdit = false
           }, () => {
-            // 提示已经有同名的CC
+            kapMessage(this.$t('sameName'), { type: 'warning' })
           })
         } else {
           this.modelInstance.addCC(this.ccObject).then((cc) => {
             this.$emit('saveSuccess', cc)
             this.isEdit = false
           }, () => {
+            kapMessage(this.$t('sameName'), { type: 'warning' })
             // 提示已经有同名的CC
           })
         }

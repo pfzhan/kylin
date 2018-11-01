@@ -2,11 +2,11 @@
   <div class="mode-edit-tabs">
     <kap-tab class="studio-top-tab" v-on:addtab="addTab" v-on:reload="reloadTab" v-on:removetab="delTab" :tabslist="modelEditPanels"  :active="activeName" v-on:clicktab="checkTab">
     </kap-tab>
-    <component :is="p.content" v-for="p in modelEditPanels" :key="p.name" v-on:addtabs="addTab" v-on:reload="reloadTab" v-on:removetabs="delTab" :extraoption="p.extraoption" :ref="p.content" v-if="p.name === activeName"></component>
+    <component :is="p.content" v-for="p in modelEditPanels" :key="p.name" v-on:saveRequestEnd="requestEnd" v-on:addtabs="addTab" v-on:reload="reloadTab" v-on:removetabs="delTab" :extraoption="p.extraoption" :ref="p.content" v-if="p.name === activeName"></component>
     <div class="footer">
       <div class="btn-group">
         <el-button @click="goModelList">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button type="primary" @click="saveModel">{{$t('kylinLang.common.save')}}</el-button>
+          <el-button type="primary" @click="saveModel" :loading="saveBtnLoading">{{$t('kylinLang.common.save')}}</el-button>
         </div>
     </div>
   </div>
@@ -52,7 +52,7 @@ import ModelEdit from '../ModelEdit/index.vue'
 export default class ModelTabs extends Vue {
   activeName = ''
   modelEditPanels = []
-
+  saveBtnLoading = false
   get currentModel () {
     return this.$route.params.modelName
   }
@@ -67,6 +67,9 @@ export default class ModelTabs extends Vue {
   delTab () {
     this.goModelList()
   }
+  requestEnd () {
+    this.saveBtnLoading = false
+  }
   checkTab (name) {
     this.toggleFullScreen(false)// 关闭全屏模式
     this.activeName = name
@@ -76,6 +79,7 @@ export default class ModelTabs extends Vue {
     this.$router.push({name: 'ModelList'})
   }
   saveModel () {
+    this.saveBtnLoading = true
     this.$refs[this.modelEditPanels[0].content][0].$emit('saveModel', null)
   }
   mounted () {

@@ -17,7 +17,7 @@
     <div class="ky-list-title ksd-mt-20">{{$t('kylinLang.model.modelList')}}</div>
     <div v-if="showSearchResult">
       <div  class="ksd-mb-14 ksd-fright ksd-mt-8">
-        <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:400px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model"  @input="searchModels" class="show-search-btn" >
+        <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model"  @input="searchModels" class="show-search-btn" >
         </el-input>
       </div>
       <el-button icon="el-icon-plus" type="primary" size="medium" plain class="ksd-mb-14 ksd-mt-8" id="addModel" v-visible="isAdmin || hasPermissionOfProject()" @click="showAddModelDialog"><span>{{$t('kylinLang.common.model')}}</span></el-button>

@@ -71,6 +71,7 @@
         this.modelBuildMeta.dataRangeVal = []
         if (this.modelDesc.last_build_end) {
           let lastBuildDate = new Date(+this.modelDesc.last_build_end)
+          debugger
           if (lastBuildDate) {
             this.modelBuildMeta.dataRangeVal.push(lastBuildDate, lastBuildDate)
           }

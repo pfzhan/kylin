@@ -8,6 +8,8 @@ let regexApiUrl
 let pageCount = 10
 let pageSizes = [5, 10, 20, 30, 40]
 
+let speedInfoTimer = 5000
+
 let tooltipDelayTime = 400
 if (process.env.NODE_ENV === 'development') {
   apiUrl = '/kylin/api/'
@@ -25,7 +27,8 @@ export {
   regexApiUrl,
   pageCount,
   pageSizes,
-  tooltipDelayTime
+  tooltipDelayTime,
+  speedInfoTimer
 }
 export const menusData = [
   // {name: 'dashboard', path: '/dashboard', icon: 'el-icon-ksd-dashboard'},

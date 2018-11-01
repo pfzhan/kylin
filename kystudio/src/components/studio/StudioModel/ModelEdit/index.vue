@@ -253,7 +253,7 @@ import { modelRenderConfig } from './config'
 })
 export default class ModelEdit extends Vue {
   datasource = []
-  modelRender = {}
+  modelRender = {tables: {}}
   dimensionSelectedList = []
   measureSelectedList = []
   modelInstance = null // 模型实例对象
@@ -700,7 +700,10 @@ export default class ModelEdit extends Vue {
       this.modelInstance.generateMetadata().then((data) => {
         this.handleSaveModel(data)
       }, (errMsg) => {
-        kapMessage(errMsg, {type: 'warning'})
+        kapMessage(this.$t(errMsg), {type: 'warning'})
+        this.$emit('saveRequestEnd')
+      }).catch(() => {
+        this.$emit('saveRequestEnd')
       })
     })
   }
@@ -713,9 +716,13 @@ export default class ModelEdit extends Vue {
     this[action](para).then((res) => {
       handleSuccess(res, () => {
         kapMessage(this.$t('kylinLang.common.saveSuccess'))
-        this.$router.push({name: 'ModelList'})
+        this.$emit('saveRequestEnd')
+        setTimeout(() => {
+          this.$router.push({name: 'ModelList'})
+        }, 1000)
       })
-    }, (res) => {
+    }).catch((res) => {
+      this.$emit('saveRequestEnd')
       handleError(res)
     })
   }

@@ -28,7 +28,7 @@ import { Component } from 'vue-property-decorator'
 import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
 import vuex from '../../../../../store'
 import { NamedRegex } from 'config'
-// import { handleError } from 'util/business'
+import { handleError, handleSuccess } from 'util/business'
 import locales from './locales'
 import store, { types } from './store'
 vuex.registerModule(['modals', 'ModelAddModal'], store)
@@ -42,7 +42,7 @@ vuex.registerModule(['modals', 'ModelAddModal'], store)
   },
   methods: {
     ...mapActions({
-      addModel: ''
+      getModelByModelName: 'LOAD_MODEL_INFO'
     }),
     ...mapMutations('ModelAddModal', {
       setModal: types.SET_MODAL,
@@ -58,15 +58,27 @@ export default class ModelAddModal extends Vue {
   createModelMeta = {
     newName: '',
     modelDesc: ''
-  };
+  }
   rules = {
     newName: [{ validator: this.checkName, trigger: 'blur' }]
-  };
+  }
   checkName (rule, value, callback) {
     if (!NamedRegex.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
     } else {
-      callback()
+      this.btnLoading = true
+      this.getModelByModelName({model: value, project: this.currentSelectedProject}).then((response) => {
+        handleSuccess(response, (data) => {
+          this.btnLoading = false
+          if (data.models && data.models.length) {
+            callback(new Error(this.$t('kylinLang.model.sameModelName')))
+          } else {
+            callback()
+          }
+        })
+      }, (res) => {
+        handleError(res)
+      })
     }
   }
   closeModal (isSubmit) {
@@ -84,7 +96,6 @@ export default class ModelAddModal extends Vue {
         return
       }
       var modelName = this.createModelMeta.newName
-      // this.btnLoading = true
       this.closeModal(true)
       this.$router.push({name: 'ModelEdit', params: { modelName: modelName, action: 'add', modelDesc: this.createModelMeta.modelDesc }})
     })

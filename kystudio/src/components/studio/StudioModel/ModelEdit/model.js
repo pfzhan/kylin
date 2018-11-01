@@ -1,7 +1,7 @@
 import NTable from './table.js'
 import store from '../../../../store'
 import { jsPlumbTool } from '../../../../util/plumb'
-import { parsePath, sampleGuid, indexOfObjWithSomeKey, indexOfObjWithSomeKeys } from '../../../../util'
+import { parsePath, sampleGuid, indexOfObjWithSomeKey, indexOfObjWithSomeKeys, objectClone } from '../../../../util'
 import { modelRenderConfig } from './config'
 import ModelTree from './layout'
 import $ from 'jquery'
@@ -212,30 +212,35 @@ class NModel {
   // 生成供后台使用的数据结构
   generateMetadata () {
     return new Promise((resolve, reject) => {
-      let metaData = {
-        uuid: this.uuid,
-        name: this.name,
-        owner: this.owner,
-        project: this.project,
-        description: this.description
+      try {
+        let metaData = {
+          uuid: this.uuid,
+          name: this.name,
+          owner: this.owner,
+          project: this.project,
+          description: this.description
+        }
+        let factTable = this.getFactTable()
+        if (factTable) {
+          metaData.fact_table = factTable.name
+        } else {
+          return reject('noFactTable')
+        }
+        // this.all_measures.push()
+        metaData.join_tables = this._generateLookups()
+        metaData.all_named_columns = this._generateAllColumns()
+        metaData.simplified_measures = this._mount.all_measures
+        metaData.computed_columns = objectClone(this.computed_columns)
+        metaData.last_modified = this.last_modified
+        metaData.filter_condition = this.filter_condition
+        metaData.partition_desc = this.partition_desc
+        metaData.maintain_model_type = this._mount.maintain_model_type
+        metaData.management_type = this.management_type
+        metaData.canvas = this._generateTableRectData()
+        resolve(metaData)
+      } catch (e) {
+        reject(e)
       }
-      let factTable = this.getFactTable()
-      if (factTable) {
-        metaData.fact_table = factTable.name
-      } else {
-        return reject(this.$t('noFactTable'))
-      }
-      metaData.join_tables = this._generateLookups()
-      metaData.all_named_columns = this._generateAllColumns()
-      metaData.simplified_measures = this.simplified_measures
-      metaData.computed_columns = this.computed_columns
-      metaData.last_modified = this.last_modified
-      metaData.filter_condition = this.filter_condition
-      metaData.partition_desc = this.partition_desc
-      metaData.maintain_model_type = this._mount.maintain_model_type
-      metaData.management_type = this.management_type
-      metaData.canvas = this._generateTableRectData()
-      resolve(metaData)
     })
   }
   _generateLookups () {
@@ -668,18 +673,22 @@ class NModel {
   _checkSameCCName (name) {
     return indexOfObjWithSomeKey(this._mount.computed_columns, 'name', name) < 0
   }
+  generateCCMeta (ccObj) {
+    let ccBase = {
+      tableIdentity: this.fact_table,
+      tableAlias: this.fact_table.split('.')[1]
+    }
+    ccObj.guid = sampleGuid()
+    Object.assign(ccBase, ccObj)
+    return ccBase
+  }
   // 添加CC
   addCC (ccObj) {
     return new Promise((resolve, reject) => {
       if (this._checkSameCCName) {
-        let ccBase = {
-          tableIdentity: this.fact_table,
-          tableAlias: this.fact_table.split('.')[1]
-        }
-        ccObj.guid = sampleGuid()
-        Object.assign(ccBase, ccObj)
-        this._mount.computed_columns.push(ccBase)
-        resolve(ccBase)
+        let ccMeta = this.generateCCMeta(ccObj)
+        this._mount.computed_columns.push(ccMeta)
+        resolve(ccMeta)
       } else {
         reject()
       }

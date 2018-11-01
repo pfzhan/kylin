@@ -120,7 +120,7 @@ import { Component, Watch } from 'vue-property-decorator'
 // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
 import { handleError, kapConfirm, hasRole, hasPermission } from '../../util/business'
 import { objectClone, getQueryString, cacheSessionStorage, cacheLocalStorage } from '../../util/index'
-import { permissions, menusData } from '../../config'
+import { permissions, menusData, speedInfoTimer } from '../../config'
 import { mapActions, mapMutations, mapGetters } from 'vuex'
 import projectSelect from '../project/project_select'
 import projectEdit from '../project/project_edit'
@@ -448,7 +448,7 @@ export default class LayoutLeftRightTop extends Vue {
         return
       }
       this.circleLoadSpeedInfo()
-    }, 50000)
+    }, speedInfoTimer)
   }
   mounted () {
     // 接受cloud的参数

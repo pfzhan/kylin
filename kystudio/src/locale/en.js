@@ -101,6 +101,7 @@ exports.default = {
     checkDraft: 'Detected the unsaved content, are you going to continue the last edit?',
     copySuccess: 'Content has been copied to the Clipboard.',
     copyfail: 'Failed to copy! Your browser does not support paste boards!',
+    checkSuccess: 'Great, the expression is valid.',
     // placeholder
     pleaseInput: 'Please input here',
     pleaseFilter: 'Filter...',
