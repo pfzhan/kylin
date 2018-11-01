@@ -113,6 +113,19 @@ public class EventDao {
         }
     }
 
+    //for UT
+    public void deleteAllEvents() throws PersistentException {
+        List<Event> events = getEvents();
+        try {
+            for (Event event : events) {
+                store.deleteResource(resourceRootPath + "/" + event.getUuid());
+            }
+        } catch (IOException e) {
+            logger.error("error get all events:", e);
+            throw new PersistentException(e);
+        }
+    }
+
     public List<Event> getEventsUnApproved() throws PersistentException {
         List<Event> unApprovedEvents = new ArrayList<>();
 

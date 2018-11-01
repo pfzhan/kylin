@@ -295,6 +295,10 @@ abstract public class KylinConfigBase implements Serializable {
         return getOptional("kylin.metrics.prefix", "KYLIN").toUpperCase();
     }
 
+    public String getFirstDayOfWeek() {
+        return getOptional("kylin.metadata.first-day-of-week", "monday");
+    }
+
     public String getKylinMetricsActiveReservoirDefaultClass() {
         return getOptional("kylin.metrics.active-reservoir-default-class",
                 "org.apache.kylin.metrics.lib.impl.StubReservoir");

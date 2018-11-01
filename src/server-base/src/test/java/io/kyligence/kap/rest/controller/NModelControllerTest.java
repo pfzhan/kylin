@@ -58,6 +58,7 @@ import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
@@ -84,7 +85,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
 public class NModelControllerTest {
 
@@ -294,13 +294,55 @@ public class NModelControllerTest {
     }
 
     @Test
-    public void testPurgeModel() throws Exception {
+    public void testDeleteSegmentsAll() throws Exception {
         Mockito.doNothing().when(modelService).purgeModel("nmodel_basic", "default");
         mockMvc.perform(
                 MockMvcRequestBuilders.delete("/api/models/segments/{project}/{model}", "default", "nmodel_basic")
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isOk()).andDo(print());
-        Mockito.verify(nModelController).purgeModel("default", "nmodel_basic");
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).deleteSegments("default", "nmodel_basic", null);
+    }
+
+    @Test
+    public void testDeleteSegmentsByIds() throws Exception {
+        SegmentsRequest request = mockSegmentRequest();
+        Mockito.doNothing().when(modelService).deleteSegmentById("nmodel_basic", "default", request.getIds());
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/segments/{project}/{model}", "default", "nmodel_basic")
+                .param("ids", "0")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).deleteSegments("default", "nmodel_basic", request.getIds());
+    }
+
+    @Test
+    public void testRefreshSegmentsById() throws Exception {
+        SegmentsRequest request = mockSegmentRequest();
+        Mockito.doNothing().when(modelService).refreshSegmentById("nmodel_basic", "default", request.getIds());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).refreshSegmentsByIds(Mockito.any(SegmentsRequest.class));
+    }
+
+    @Test
+    public void testRefreshSegmentsByIdException() throws Exception {
+        SegmentsRequest request = mockSegmentRequest();
+        request.setIds(null);
+        Mockito.doNothing().when(modelService).refreshSegmentById("nmodel_basic", "default", request.getIds());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nModelController).refreshSegmentsByIds(Mockito.any(SegmentsRequest.class));
+    }
+
+    private SegmentsRequest mockSegmentRequest() {
+        SegmentsRequest segmentsRequest = new SegmentsRequest();
+        segmentsRequest.setIds(new int[]{ 0 });
+        segmentsRequest.setModelName("nmodel_basic");
+        segmentsRequest.setProject("default");
+        return segmentsRequest;
     }
 
     @Test

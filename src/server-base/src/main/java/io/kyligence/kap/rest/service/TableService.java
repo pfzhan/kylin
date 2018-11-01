@@ -106,7 +106,7 @@ public class TableService extends BasicService {
                     if (StringUtils.isEmpty(database)) {
                         return true;
                     }
-                    return tableDesc.getDatabase().equals(database);
+                    return tableDesc.getDatabase().equalsIgnoreCase(database);
                 }
             }).filter(new Predicate<TableDesc>() {
                 @Override
@@ -609,5 +609,15 @@ public class TableService extends BasicService {
         dataLoadingRange.setVolatileRange(volatileRange);
         NDataLoadingRange dataLoadingRangeUpdate = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
         dataLoadingRangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
+    }
+
+    public Set<String> getLoadedDatabases(String project) {
+        NTableMetadataManager tableManager = getTableManager(project);
+        List<TableDesc> tables = tableManager.listAllTables();
+        Set<String> loadedDatabases = new HashSet<>();
+        for (TableDesc table : tables) {
+            loadedDatabases.add(table.getDatabase());
+        }
+        return loadedDatabases;
     }
 }

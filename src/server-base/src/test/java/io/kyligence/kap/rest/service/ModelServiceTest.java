@@ -81,6 +81,7 @@ import io.kylingence.kap.event.manager.EventDao;
 import io.kylingence.kap.event.model.AddSegmentEvent;
 import io.kylingence.kap.event.model.Event;
 import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
+import io.kylingence.kap.event.model.RemoveSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -90,6 +91,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -243,11 +245,21 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testPurgeModel() throws IOException {
-        modelService.purgeModel("nmodel_basic", "default");
-        List<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", "0", "" + Long.MAX_VALUE);
+        modelService.purgeModel("test_encoding", "default");
+        List<NDataSegment> segments = modelService.getSegments("test_encoding", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
-        RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", ManagementType.TABLE_ORIENTED);
-        Assert.assertEquals(2252800L, response.getByteSize());
+    }
+
+    @Test
+    public void testGetAffectedSegmentsResponse_NoSegments_Exception() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("No segments to refresh, please select new range and try again!");
+        modelService.purgeModel("test_encoding", "default");
+        List<NDataSegment> segments = modelService.getSegments("test_encoding", "default", "0", "" + Long.MAX_VALUE);
+        Assert.assertTrue(CollectionUtils.isEmpty(segments));
+        RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse("default",
+                "DEFAULT.TEST_ENCODING", "0", "12223334", ManagementType.TABLE_ORIENTED);
+        Assert.assertEquals(0L, response.getByteSize());
     }
 
     @Test
@@ -260,7 +272,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCloneModelException() throws IOException {
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("model alias nmodel_basic_inner already exists");
+        thrown.expectMessage("Model alias nmodel_basic_inner already exists");
         modelService.cloneModel("nmodel_basic", "nmodel_basic_inner", "default");
     }
 
@@ -296,7 +308,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRenameModelException2() throws IOException {
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("model alias nmodel_basic_inner already exists");
+        thrown.expectMessage("Model alias nmodel_basic_inner already exists");
         modelService.renameDataModel("default", "nmodel_basic", "nmodel_basic_inner");
     }
 
@@ -310,37 +322,31 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testUpdateDataModelStatusException() throws Exception {
+    public void testUpdateDataModelStatus_ModelNotExist_Exception() throws Exception {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Data Model with name 'nmodel_basic222' not found");
         modelService.updateDataModelStatus("nmodel_basic222", "default", "OFFLINE");
     }
 
     @Test
-    public void testUpdateDataModelStatusException2() throws Exception {
+    public void testUpdateDataModelStatus_NoReadySegments_Exception() throws Exception {
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("No ready segment in model 'nmodel_basic', can not online the model!");
-        Segments segments = new Segments<>();
-        Mockito.doReturn(segments).when(modelService).getSegments("nmodel_basic", "default", "0", "" + Long.MAX_VALUE);
-        modelService.updateDataModelStatus("nmodel_basic", "default", "ONLINE");
+        thrown.expectMessage("No ready segment in model 'nmodel_basic_inner', can not online the model!");
+        modelService.updateDataModelStatus("nmodel_basic_inner", "default", "ONLINE");
     }
 
     @Test
-    public void testUpdateDataModelStatusException3() throws Exception {
-        thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("DataloadingRange 'DEFAULT.TEST_KYLIN_FACT' does not exist!");
-        modelService.updateDataModelStatus("nmodel_basic", "default", "ONLINE");
-    }
-
-    @Test
-    public void testUpdateDataModelStatusException4() throws Exception {
+    public void testUpdateDataModelStatus_SmallerThanQueryRange_Exception() throws Exception {
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("Some segments in model 'nmodel_basic' are not ready, can not online the model!");
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
         dataLoadingRange.setUuid(UUID.randomUUID().toString());
         dataLoadingRange.setColumnName("CAL_DT");
-        NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), "default").createDataLoadingRange(dataLoadingRange);
+        dataLoadingRange.setActualQueryStart(-1);
+        dataLoadingRange.setActualQueryEnd(1309891513769L);
+        NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .createDataLoadingRange(dataLoadingRange);
         modelService.updateDataModelStatus("nmodel_basic", "default", "ONLINE");
     }
 
@@ -374,16 +380,16 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(result.size() == 2);
     }
 
-
     @Test
-    public void testRefreshSegments() throws IOException, PersistentException {
+    public void testRefreshSegmentsByDataRange() throws IOException, PersistentException {
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "9223372036854775807");
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         List<Event> events = eventDao.getEvents();
         boolean flag = false;
         for (Event event : events) {
             if (event instanceof LoadingRangeRefreshEvent) {
-                if (event.getSegmentRange().getStart().toString().equals("0") && event.getSegmentRange().getEnd().toString().equals("12223334")) {
+                if (event.getSegmentRange().getStart().toString().equals("0")
+                        && event.getSegmentRange().getEnd().toString().equals("12223334")) {
                     flag = true;
                 }
             }
@@ -392,19 +398,173 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testRefreshSegmentsException() throws IOException, PersistentException {
+    public void testRefreshSegments_AffectedSegmentRangeChanged_Exception() throws IOException, PersistentException {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Can not refersh, please try again and confirm affected storage!");
+        RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
+        response.setAffectedStart("12");
+        response.setAffectedEnd("120");
+        Mockito.doReturn(response).when(modelService).getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT",
+                "0", "12223334", ManagementType.TABLE_ORIENTED);
         modelService.refreshSegments("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", "0", "12223334");
     }
 
+    @Test
+    public void testDeleteSegmentById_SegmentToDeleteOverlapsBuilding_Exception()
+            throws PersistentException, IOException {
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel dataModel = dataModelManager.getDataModelDesc("nmodel_basic_inner");
+        NDataModel modelUpdate = dataModelManager.copyForWrite(dataModel);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        dataModelManager.updateDataModelDesc(modelUpdate);
+        NDataflow df = dataflowManager.getDataflow("ncube_basic_inner");
+        // remove the existed seg
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(update);
+        long start = SegmentRange.dateToLong("2010-01-01");
+        long end = SegmentRange.dateToLong("2010-01-02");
+        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+        Segments<NDataSegment> segments = new Segments<>();
+        df = dataflowManager.getDataflow("ncube_basic_inner");
+        NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
+
+        dataSegment.setStatus(SegmentStatusEnum.NEW);
+        dataSegment.setSegmentRange(segmentRange);
+        segments.add(dataSegment);
+        update = new NDataflowUpdate(df.getName());
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        dataflowManager.updateDataflow(update);
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Can not remove segment (ID:0), because this segment overlaps building segments!");
+        modelService.deleteSegmentById("nmodel_basic_inner", "default", new int[] { 0 });
+    }
 
     @Test
-    public void testCreateModelException_existed_alias() throws IOException {
+    public void testDeleteSegmentById_TableOrientedModel_Exception() throws PersistentException, IOException {
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        NDataflow df = dataflowManager.getDataflow("ncube_basic_inner");
+        // remove the existed seg
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(update);
+        long start = SegmentRange.dateToLong("2010-01-01");
+        long end = SegmentRange.dateToLong("2010-01-02");
+        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+        Segments<NDataSegment> segments = new Segments<>();
+        df = dataflowManager.getDataflow("ncube_basic_inner");
+        NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
+
+        dataSegment.setStatus(SegmentStatusEnum.NEW);
+        dataSegment.setSegmentRange(segmentRange);
+        segments.add(dataSegment);
+        update = new NDataflowUpdate(df.getName());
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        dataflowManager.updateDataflow(update);
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Model 'nmodel_basic_inner' is table table oriented, can not remove segments manually!");
+        modelService.deleteSegmentById("nmodel_basic_inner", "default", new int[] { 0 });
+    }
+
+    @Test
+    public void testDeleteSegmentById_SegmentToRefreshOverlapsBuilding_Exception()
+            throws PersistentException, IOException {
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        NDataflow df = dataflowManager.getDataflow("ncube_basic_inner");
+        // remove the existed seg
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(update);
+        long start = SegmentRange.dateToLong("2010-01-01");
+        long end = SegmentRange.dateToLong("2010-01-02");
+        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+        Segments<NDataSegment> segments = new Segments<>();
+        df = dataflowManager.getDataflow("ncube_basic_inner");
+        NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
+        dataSegment.setStatus(SegmentStatusEnum.NEW);
+        dataSegment.setSegmentRange(segmentRange);
+        dataSegment.setId(0);
+        segments.add(dataSegment);
+
+        start = SegmentRange.dateToLong("2010-01-02");
+        end = SegmentRange.dateToLong("2010-01-03");
+        segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+        df = dataflowManager.getDataflow("ncube_basic_inner");
+        dataSegment = dataflowManager.appendSegment(df, segmentRange);
+        dataSegment.setStatus(SegmentStatusEnum.READY);
+        dataSegment.setSegmentRange(segmentRange);
+        dataSegment.setId(1);
+        segments.add(dataSegment);
+        update = new NDataflowUpdate(df.getName());
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        dataflowManager.updateDataflow(update);
+        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        eventDao.deleteAllEvents();
+        //refresh normally
+        modelService.refreshSegmentById("nmodel_basic_inner", "default", new int[] { 1 });
+        List<Event> events = eventDao.getEvents();
+        Assert.assertEquals(1, events.size());
+        Assert.assertEquals(SegmentRange.dateToLong("2010-01-02"), events.get(0).getSegmentRange().getStart());
+        Assert.assertEquals(SegmentRange.dateToLong("2010-01-03"), events.get(0).getSegmentRange().getEnd());
+
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Can not remove segment (ID:0), because this segment overlaps building segments!");
+        //refresh exception
+        modelService.refreshSegmentById("nmodel_basic_inner", "default", new int[] { 0 });
+    }
+
+    @Test
+    public void testDeleteSegmentById_UnconsecutiveSegmentsToDelete_Exception()
+            throws PersistentException, IOException {
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        NDataModel dataModel = dataModelManager.getDataModelDesc("nmodel_basic_inner");
+        NDataModel modelUpdate = dataModelManager.copyForWrite(dataModel);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        dataModelManager.updateDataModelDesc(modelUpdate);
+        NDataflow df = dataflowManager.getDataflow("ncube_basic_inner");
+        // remove the existed seg
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dataflowManager.updateDataflow(update);
+        Segments<NDataSegment> segments = new Segments<>();
+        long start;
+        long end;
+        for (int i = 0; i <= 6; i++) {
+            //01-01 friday
+            start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
+            end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
+            SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+            df = dataflowManager.getDataflow("ncube_basic_inner");
+            NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
+            dataSegment.setStatus(SegmentStatusEnum.READY);
+            dataSegment.setId(i);
+            segments.add(dataSegment);
+        }
+        update = new NDataflowUpdate(df.getName());
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        dataflowManager.updateDataflow(update);
+        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        eventDao.deleteAllEvents();
+        //remove normally
+        modelService.deleteSegmentById("nmodel_basic_inner", "default", new int[] { 0 });
+        List<Event> events = eventDao.getEvents();
+        //2 dataflows
+        Assert.assertEquals(1, events.size());
+        int removedSegmentId = ((RemoveSegmentEvent) events.get(0)).getSegmentIds().get(0);
+        Assert.assertEquals(0, removedSegmentId);
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Only consecutive segments in head or tail can be removed!");
+        modelService.deleteSegmentById("nmodel_basic_inner", "default", new int[] { 2, 3 });
+    }
+
+    @Test
+    public void testCreateModel_ExistedAlias_Exception() throws IOException {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("model alias nmodel_basic already exists");
+        thrown.expectMessage("Model alias nmodel_basic already exists!");
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setName("new_model");
         modelRequest.setLastModified(0L);
@@ -441,12 +601,12 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         NDataModel newModel = modelManager.getDataModelDesc("new_model");
         Assert.assertEquals("new_model", newModel.getName());
         List<NDataModelResponse> models = modelService.getModels("new_model", "default", false, "ADMIN", "", "", false);
-        Assert.assertEquals("_COUNT_", models.get(0).getSimplifiedMeasures().get(0).getName());
+        Assert.assertEquals("COUNT_ALL", models.get(0).getSimplifiedMeasures().get(0).getName());
         modelManager.dropModel(newModel);
     }
 
     @Test
-    public void testBuildSegmentsManuallyException() throws IOException, PersistentException {
+    public void testBuildSegmentsManually_TableOrientedModel_Exception() throws IOException, PersistentException {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Table oriented Model 'nmodel_basic' can not build segments manually!");
         modelService.buildSegmentsManually("default", "nmodel_basic", "0", "100");
@@ -468,7 +628,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         ComputedColumnUsageResponse usages = modelService.getComputedColumnUsages("default");
         Assert.assertTrue(usages.getUsageMap().get("TEST_KYLIN_FACT.DEAL_AMOUNT").getModels().size() == 2);
         Assert.assertTrue(usages.getUsageMap().get("TEST_KYLIN_FACT.SELLER_COUNTRY_ABBR") == null);
-        Assert.assertTrue(usages.getUsageMap().get("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR").getModels().size() == 1);
+        Assert.assertTrue(
+                usages.getUsageMap().get("TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR").getModels().size() == 1);
     }
 
     @Rule
@@ -491,8 +652,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                         && ccException.getAdvise().equals("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT")
                         && ccException.getConflictingModel().equals("nmodel_basic_inner")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.DEAL_AMOUNT")
-                        && ccException.getMessage()
-                                .equals("Column name for computed column TEST_KYLIN_FACT.DEAL_AMOUNT is already used in model nmodel_basic_inner,"
+                        && ccException.getMessage().equals(
+                                "Column name for computed column TEST_KYLIN_FACT.DEAL_AMOUNT is already used in model nmodel_basic_inner,"
                                         + " you should apply the same expression as ' TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT ' here,"
                                         + " or use a different computed column name.");
 
@@ -521,8 +682,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testFailureModelUpdateDueToComputedColumnConflict2()
             throws IOException, NoSuchFieldException, IllegalAccessException {
         expectedEx.expect(IllegalArgumentException.class);
-        expectedEx.expectMessage(
-                "There is already a column named cal_dt on table DEFAULT.TEST_KYLIN_FACT,"
+        expectedEx.expectMessage("There is already a column named cal_dt on table DEFAULT.TEST_KYLIN_FACT,"
                 + " please change your computed column name");
 
         Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
@@ -574,7 +734,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         expectedEx.expect(BadModelException.class);
         expectedEx.expectMessage(
                 "A computed column should be defined on root fact table if its expression is not referring its hosting alias table,"
-                + " cc: BUYER_ACCOUNT.DEAL_AMOUNT");
+                        + " cc: BUYER_ACCOUNT.DEAL_AMOUNT");
         Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
@@ -625,8 +785,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                         && ccException.getAdvise().equals("TEST_KYLIN_FACT")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("SELLER_ACCOUNT.LEFTJOIN_SELLER_COUNTRY_ABBR")
-                        && ccException.getMessage()
-                                .equals("Computed column LEFTJOIN_SELLER_COUNTRY_ABBR is already defined in model nmodel_basic,"
+                        && ccException.getMessage().equals(
+                                "Computed column LEFTJOIN_SELLER_COUNTRY_ABBR is already defined in model nmodel_basic,"
                                         + " to reuse it you have to define it on alias table: TEST_KYLIN_FACT");
             }
         });
@@ -851,8 +1011,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
-                        && ccException.getAdvise()
-                                .equals("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)")
+                        && ccException.getAdvise().equals("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
@@ -958,8 +1117,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
-                        && ccException.getAdvise()
-                                .equals("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)")
+                        && ccException.getAdvise().equals("CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
@@ -1042,8 +1200,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
-                        && ccException.getAdvise() == null
-                        && ccException.getConflictingModel().equals("nmodel_basic")
+                        && ccException.getAdvise() == null && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME")
                         && ccException.getMessage().equals(
                                 "Column name for computed column TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME is already used in model nmodel_basic, you should apply the same expression like ' CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME) ' here, or use a different computed column name.");
@@ -1083,8 +1240,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                 }
                 BadModelException ccException = (BadModelException) item;
                 return ccException.getCauseType().equals(BadModelException.CauseType.SAME_NAME_DIFF_EXPR)
-                        && ccException.getAdvise()
-                                .equals("CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)")
+                        && ccException.getAdvise().equals("CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)")
                         && ccException.getConflictingModel().equals("nmodel_basic")
                         && ccException.getBadCC().equals("TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME")
 
@@ -1341,8 +1497,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
             modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
             //TODO modelService.updateModelToResourceStore(deserialized, "default");
 
-            List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_cc_test", "default", true,
-                    null, null, "", false);
+            List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_cc_test", "default", true, null,
+                    null, "", false);
             Assert.assertTrue(dataModelDescs.size() == 1);
 
             contents = StringUtils.reverse(StringUtils.reverse(contents).replaceFirst(
@@ -1388,21 +1544,24 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals("CC1 * 2", ccDesc2.getInnerExpression());
         modelService.preProcessBeforeModelSave(updated, "default");
-        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1) * 2 ", ccDesc2.getInnerExpression());
+        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1) * 2 ",
+                ccDesc2.getInnerExpression());
 
         ccDesc1.setExpression("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2");
         modelService.preProcessBeforeModelSave(updated, "default");
-        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 2 ", ccDesc2.getInnerExpression());
+        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 2 ",
+                ccDesc2.getInnerExpression());
 
         ccDesc2.setExpression("CC1 * 3");
         modelService.preProcessBeforeModelSave(updated, "default");
-        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 3 ", ccDesc2.getInnerExpression());
+        Assert.assertEquals("(TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 2) * 3 ",
+                ccDesc2.getInnerExpression());
     }
 
-
     @Test
-    public void testBuildSegmentsManuallyException1() throws IOException, PersistentException {
-        NDataModel model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "match").getDataModelDesc("match");
+    public void testBuildSegmentsManually_NoCubeplans_Exception() throws IOException, PersistentException {
+        NDataModel model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "match")
+                .getDataModelDesc("match");
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setName("new_model");
         modelRequest.setAlias("new_model");
@@ -1410,7 +1569,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelRequest.setLastModified(0L);
         modelRequest.setProject("match");
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("No cubeplan exists in model new_model!");
+        thrown.expectMessage("Can not build segments, please define table index or aggregate index first!");
         modelService.createModel(modelRequest);
         modelService.buildSegmentsManually("match", "new_model", "0", "100");
     }
@@ -1423,7 +1582,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Segments to build overlaps built or building segment(from 0 to 9223372036854775807), please select new data range and try again!");
+        thrown.expectMessage(
+                "Segments to build overlaps built or building segment(from 0 to 9223372036854775807), please select new data range and try again!");
         modelService.buildSegmentsManually("default", "nmodel_full_measure_test", "0", "100");
     }
 
@@ -1449,7 +1609,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         boolean flag = false;
         for (Event event : eventDao.getEvents()) {
             if (event instanceof AddSegmentEvent) {
-                if (event.getSegmentRange().getEnd().toString().equals("100") && event.getSegmentRange().getStart().toString().equals("0")) {
+                if (event.getSegmentRange().getEnd().toString().equals("100")
+                        && event.getSegmentRange().getStart().toString().equals("0")) {
                     flag = true;
                 }
             }

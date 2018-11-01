@@ -24,14 +24,25 @@
 package io.kylingence.kap.event.handle;
 
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kylingence.kap.event.manager.EventManager;
+import io.kylingence.kap.event.model.Event;
+import io.kylingence.kap.event.model.MergeSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.slf4j.Logger;
@@ -64,6 +75,43 @@ public class AddSegmentHandler extends AbstractEventWithJobHandler {
         NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
         NDataflow df = dfMgr.getDataflow(cubePlanName);
         updateDataLoadingRange(df);
+        autoMergeSegments(df, project, event.getModelName());
+    }
+
+    private void autoMergeSegments(NDataflow df, String project, String modelName)
+            throws IOException, PersistentException {
+        NDataModel model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataModelDesc(modelName);
+        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project);
+
+        Segments segments = df.getSegments();
+        SegmentRange rangeToMerge = null;
+        EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
+            rangeToMerge = segments.autoMergeSegments(model.isAutoMergeEnabled(), model.getName(), model.getAutoMergeTimeRanges(),
+                    model.getVolatileRange());
+        } else if (model.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager
+                    .getDataLoadingRange(model.getRootFactTableName());
+            if (dataLoadingRange == null) {
+                return;
+            }
+            rangeToMerge = segments.autoMergeSegments(dataLoadingRange.isAutoMergeEnabled(), model.getName(),
+                    dataLoadingRange.getAutoMergeTimeRanges(), dataLoadingRange.getVolatileRange());
+        }
+        if (rangeToMerge == null) {
+            return;
+        } else {
+            Event mergeEvent = new MergeSegmentEvent();
+            mergeEvent.setApproved(true);
+            mergeEvent.setCubePlanName(df.getCubePlanName());
+            mergeEvent.setModelName(model.getName());
+            mergeEvent.setProject(project);
+            mergeEvent.setSegmentRange(rangeToMerge);
+            eventManager.post(mergeEvent);
+        }
+        
     }
 
     @Override

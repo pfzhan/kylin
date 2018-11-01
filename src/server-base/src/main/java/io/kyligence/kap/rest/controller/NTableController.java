@@ -63,6 +63,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Controller
 @RequestMapping(value = "/tables")
@@ -190,6 +191,15 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         List<String> databases = tableService.getSourceDbNames(project, datasourceType);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, databases, "");
+    }
+
+    @RequestMapping(value = "/loaded_databases", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getLoadedDatabases(@RequestParam(value = "project", required = true) String project) {
+        checkProjectName(project);
+        Set<String> loadedDatabases = tableService.getLoadedDatabases(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, loadedDatabases, "");
     }
 
 

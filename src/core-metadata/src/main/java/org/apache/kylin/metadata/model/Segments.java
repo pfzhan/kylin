@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,11 +46,16 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.TimeZone;
 
+import com.google.common.collect.FluentIterable;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.VolatileRange;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
@@ -193,80 +197,199 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         return result;
     }
 
-    public SegmentRange autoMergeCubeSegments(boolean needAutoMerge, String cubeName, long[] timeRanges)
-            throws IOException {
-        if (!needAutoMerge) {
-            logger.debug("Cube " + cubeName + " doesn't need auto merge");
+    public SegmentRange autoMergeSegments(boolean isAutoMergeEnabled, String modelName,
+            List<AutoMergeTimeEnum> autoMergeTimeEnums, VolatileRange volatileRange) throws IOException {
+        if (!isAutoMergeEnabled) {
             return null;
         }
-
-        int buildingSize = getBuildingSegments().size();
-        if (buildingSize > 0) {
-            logger.debug("Cube " + cubeName + " has " + buildingSize + " building segments");
-        }
-
         Segments<T> readySegs = getSegments(SegmentStatusEnum.READY);
-
-        Segments mergingSegs = new Segments();
-        if (buildingSize > 0) {
-
-            for (ISegment building : getBuildingSegments()) {
-                // exclude those under-merging segs
-                for (ISegment ready : readySegs) {
-                    if (building.getSegRange().contains(ready.getSegRange())) {
-                        mergingSegs.add(ready);
-                    }
+        if (volatileRange.isVolatileRangeEnabled()) {
+            removeSegmentsByVolatileRange(readySegs, volatileRange);
+        }
+        //building segments overlaps， can not merge
+        Segments segsOverlapsWithBuilding = new Segments();
+        for (ISegment buildingSeg : getBuildingSegments()) {
+            // exclude those under-building segs
+            for (ISegment readySeg : readySegs) {
+                if (buildingSeg.getSegRange().overlaps(readySeg.getSegRange())) {
+                    segsOverlapsWithBuilding.add(readySeg);
                 }
             }
         }
-
         // exclude those already under merging segments
-        readySegs.removeAll(mergingSegs);
-
-        Arrays.sort(timeRanges);
-
-        for (int i = timeRanges.length - 1; i >= 0; i--) {
-            long toMergeRange = timeRanges[i];
-
-            for (int s = 0; s < readySegs.size(); s++) {
-                ISegment seg = readySegs.get(s);
-                TimeRange range = new TimeRange(seg.getTSRange().start, seg.getTSRange().start + toMergeRange);
-                Pair<T, T> p = readySegs.getSubList(s, readySegs.size()) //
-                        .findMergeOffsetsByDateRange(range, toMergeRange);
-                if (p != null && p.getSecond().getTSRange().end - p.getFirst().getTSRange().start >= toMergeRange)
-                    return p.getFirst().getSegRange().coverWith(p.getSecond().getSegRange());
+        readySegs.removeAll(segsOverlapsWithBuilding);
+        if (readySegs.size() < 2) {
+            return null;
+        }
+        List<AutoMergeTimeEnum> sortedAutoMergeTimeEnums = sortTimeRanges(autoMergeTimeEnums);
+        for (int i = 0; i < sortedAutoMergeTimeEnums.size(); i++) {
+            AutoMergeTimeEnum autoMergeTimeEnum = sortedAutoMergeTimeEnums.get(i);
+            SegmentRange segmentRangeToMerge = readySegs.findMergeSegmentsRange(autoMergeTimeEnum);
+            if (segmentRangeToMerge != null) {
+                return segmentRangeToMerge;
             }
         }
-
         return null;
     }
 
-    public Pair<T, T> findMergeOffsetsByDateRange(TimeRange range, long skipSegDateRangeCap) {
-        // must be offset cube
-        Segments result = new Segments();
-        for (ISegment seg : this) {
+    private long getMergeEnd(long start, AutoMergeTimeEnum autoMergeTimeEnum) {
+        Calendar calendar = Calendar.getInstance();
+        TimeZone zone = TimeZone.getTimeZone("GMT");
+        calendar.setTimeZone(zone);
+        calendar.setTimeInMillis(start);
+        int month = calendar.get(Calendar.MONTH);
+        String weekFirstDay = KylinConfig.getInstanceFromEnv().getFirstDayOfWeek();
+        switch (autoMergeTimeEnum) {
+        case HOUR:
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.add(Calendar.HOUR_OF_DAY, 1);
+            break;
+        case DAY:
+            calendar.add(Calendar.DAY_OF_MONTH, 1);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            break;
+        case WEEK:
+           
+            if (weekFirstDay.equalsIgnoreCase("monday")) {
+                if (calendar.get(Calendar.DAY_OF_WEEK) != 1) {
+                    calendar.add(Calendar.WEEK_OF_MONTH, 1);
+                }
+                calendar.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+            } else {
+                calendar.add(Calendar.WEEK_OF_MONTH, 1);
+                calendar.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY);
 
-            TimeRange timeRange = seg.getTSRange();
+            }
+            if (calendar.get(Calendar.MONTH) > month) {
+                calendar.set(Calendar.DAY_OF_MONTH, 0);
+            }
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            break;
+        case MONTH:
+            calendar.set(Calendar.DAY_OF_MONTH, 1);
+            calendar.add(Calendar.MONTH, 1);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            break;
+        case YEAR:
+            calendar.set(Calendar.DAY_OF_MONTH, 1);
+            calendar.set(Calendar.MONTH, 0);
+            calendar.add(Calendar.YEAR, 1);
+            calendar.set(Calendar.MINUTE, 0);
+            calendar.set(Calendar.SECOND, 0);
+            calendar.set(Calendar.HOUR_OF_DAY, 0);
+            break;
+        default:
+            break;
+        }
+        return calendar.getTimeInMillis();
+    }
 
-            // include if date range overlaps
-            if (range.getStart() < timeRange.end && timeRange.start < range.getEnd()) {
+    private List<AutoMergeTimeEnum> sortTimeRanges(List<AutoMergeTimeEnum> autoMergeTimeEnums) {
+        List<AutoMergeTimeEnum> sortedList = Lists
+                .newArrayList(FluentIterable.from(autoMergeTimeEnums).toSortedList(new Comparator<AutoMergeTimeEnum>() {
+                    @Override
+                    public int compare(AutoMergeTimeEnum o1, AutoMergeTimeEnum o2) {
+                        return o1.getCode() < o2.getCode() ? 1 : -1;
+                    }
+                }));
+        return sortedList;
+    }
 
-                // reject too big segment
-                if (timeRange.duration() > skipSegDateRangeCap)
-                    break;
+    private long getMillisecondByType(AutoMergeTimeEnum autoMergeTimeEnum) {
+        long time = 0;
+        switch (autoMergeTimeEnum) {
+        case HOUR:
+            time = 3600000L;
+            break;
+        case DAY:
+            time = 86400000L;
+            break;
+        case WEEK:
+            time = 604800000L;
+            break;
+        default:
+            break;
 
-                // reject holes
-                if (result.size() > 0 && !result.getLast().getSegRange().connects(seg.getSegRange()))
-                    break;
+        }
+        return time;
+    }
 
-                result.add(seg);
+    public void removeSegmentsByVolatileRange(Segments<T> segs, VolatileRange volatileRange) {
+        if (volatileRange.getVolatileRangeNumber() <= 0 || volatileRange.getVolatileRangeType() == null) {
+            return;
+        }
+        Long latestSegEnd = Long.parseLong(segs.getLast().getSegRange().getEnd().toString());
+
+        Segments volatileSegs = new Segments();
+        long volatileTime = getMillisecondByType(volatileRange.getVolatileRangeType());
+        if (volatileTime > 0) {
+            for (T seg : segs) {
+                if (Long.parseLong(seg.getSegRange().getEnd().toString())
+                        + volatileTime * volatileRange.getVolatileRangeNumber() >= latestSegEnd) {
+                    volatileSegs.add(seg);
+                }
             }
         }
+        segs.removeAll(volatileSegs);
+    }
 
-        if (result.size() <= 1)
+    public SegmentRange findMergeSegmentsRange(AutoMergeTimeEnum autoMergeTimeEnum) {
+        SegmentRange gapRange;
+        long mergeStart = Long.parseLong(this.getFirst().getSegRange().start.toString());
+        SegmentRange rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeStart,
+                getMergeEnd(mergeStart, autoMergeTimeEnum));
+        if (this.getLast().getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) < 0) {
             return null;
-        else
-            return (Pair<T, T>) Pair.newPair(result.getFirst(), result.getLast());
+        }
+        Segments segmentsToMerge = new Segments();
+        for (ISegment seg : this) {
+            long mergeEnd = Long.parseLong(rangeToMerge.getEnd().toString());
+            SegmentRange segmentRange = seg.getSegRange();
+            // include if segment range contained
+            if (rangeToMerge.getStart().compareTo(segmentRange.getStart()) <= 0
+                    && segmentRange.getEnd().compareTo(rangeToMerge.getEnd()) <= 0) {
+                // segment has gap, compute next section
+                if (segmentsToMerge.size() > 0 && !segmentsToMerge.getLast().getSegRange().connects(segmentRange)) {
+                    rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeEnd,
+                            getMergeEnd(mergeEnd, autoMergeTimeEnum));
+                    segmentsToMerge.clear();
+                    if (this.getLast().getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) < 0) {
+                        return null;
+                    }
+                    continue;
+                } else {
+                    segmentsToMerge.add(seg);
+                }
+            }
+
+            if (seg.getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) >= 0) {
+                if (segmentsToMerge.getLast().equals(seg)) {
+                    break;
+                } else {
+                    if (segmentsToMerge.size() > 1 && segmentsToMerge.getLast().getSegRange().connects(segmentRange)) {
+                        break;
+                    } else {
+                        //this section can not merge,but has next section data,compute next section
+                        rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeEnd,
+                                getMergeEnd(mergeEnd, autoMergeTimeEnum));
+                        segmentsToMerge.clear();
+                        if (this.getLast().getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) < 0) {
+                            return null;
+                        }
+                        continue;
+                    }
+                }
+
+            }
+        }
+        return segmentsToMerge.getFirst().getSegRange().coverWith(segmentsToMerge.getLast().getSegRange());
     }
 
     /**
@@ -506,4 +629,5 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         }
 
     }
+
 }

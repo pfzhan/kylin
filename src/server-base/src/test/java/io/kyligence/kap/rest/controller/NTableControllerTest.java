@@ -441,6 +441,16 @@ public class NTableControllerTest {
         Mockito.verify(nTableController).setPushdownMode(Mockito.any(PushDownModeRequest.class));
     }
 
+    @Test
+    public void testGetLoadedDatabases() throws Exception {
+        Mockito.doReturn(null).when(tableService).getLoadedDatabases("default");
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/loaded_databases")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).getLoadedDatabases("default");
+    }
+
     private List<TablesAndColumnsResponse> mockTableAndColumns() {
         List<TablesAndColumnsResponse> result = new ArrayList<>();
         result.add(new TablesAndColumnsResponse());

@@ -30,6 +30,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.StringUtil;
@@ -38,6 +39,7 @@ import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableRef;
@@ -272,6 +274,32 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
                     maxIndex = i;
             }
             return existing.get(maxIndex);
+        }
+    }
+
+    public boolean checkAllowedOnline() {
+        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getConfig(),
+                getProject());
+        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager
+                .getDataLoadingRange(getModel().getRootFactTableName());
+        if (dataLoadingRange == null) {
+            return true;
+        } else {
+            Segments readySegments = this.getSegments(SegmentStatusEnum.READY);
+            if (CollectionUtils.isEmpty(readySegments)) {
+                return false;
+            }
+            SegmentRange readyRange = readySegments.getFirstSegment().getSegRange()
+                    .coverWith(readySegments.getLatestReadySegment().getSegRange());
+            if (dataLoadingRange.getActualQueryStart() == -1 && dataLoadingRange.getActualQueryEnd() == -1) {
+                return true;
+            }
+            if (Long.parseLong(readyRange.getStart().toString()) <= dataLoadingRange.getActualQueryStart()
+                    && Long.parseLong(readyRange.getEnd().toString()) >= dataLoadingRange.getActualQueryEnd()) {
+                return true;
+            } else {
+                return false;
+            }
         }
     }
 

@@ -253,9 +253,9 @@ public class NDataLoadingRangeManager {
     public void updateDataLoadingRangeWaterMark(String tableName) throws IOException {
         try (AutoLock lock = rangeMapLock.lockForWrite()) {
             NDataLoadingRange dataLoadingRange = getDataLoadingRange(tableName);
-            if (dataLoadingRange == null)
-                throw new IllegalArgumentException("NDataLoadingRange '" + tableName + "' does not exist");
-
+            if (dataLoadingRange == null) {
+                return;
+            }
             dataLoadingRange = copyForWrite(dataLoadingRange);
 
             TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);

@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Set;
 
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
@@ -424,6 +425,12 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         tableService.setPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT", true);
         boolean result = tableService.getPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertTrue(result);
+    }
+
+    @Test
+    public void testGetLoadedDatabases() {
+        Set<String> loadedDatabases = tableService.getLoadedDatabases("default");
+        Assert.assertEquals(loadedDatabases.size(), 2);
     }
 
 

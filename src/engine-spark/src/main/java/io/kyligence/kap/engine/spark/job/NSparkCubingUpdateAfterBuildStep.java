@@ -29,19 +29,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.cube.model.NDataLoadingRange;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.ExecuteResult.State;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
@@ -122,7 +118,7 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
             return;
         } else {
             if (model.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-                if (!checkAllowedOnline(distDataflow, model)) {
+                if (!distDataflow.checkAllowedOnline()) {
                     return;
                 } else {
                     update.setStatus(RealizationStatusEnum.ONLINE);
@@ -134,27 +130,6 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
         }
     }
 
-    private boolean checkAllowedOnline(NDataflow dtaflow, NDataModel model) {
-        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getConfig(), getProject());
-        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(model.getRootFactTableName());
-        if (dataLoadingRange == null) {
-            return true;
-        } else {
-            Segments readySegments = dtaflow.getSegments(SegmentStatusEnum.READY);
-            if (CollectionUtils.isEmpty(readySegments)) {
-                return false;
-            }
-            SegmentRange readyRange = readySegments.getFirstSegment().getSegRange().coverWith(readySegments.getLatestReadySegment().getSegRange());
-            if (dataLoadingRange.getActualQueryStart() == -1 && dataLoadingRange.getActualQueryEnd() == -1) {
-                return true;
-            }
-            if (Long.parseLong(readyRange.getStart().toString()) <= dataLoadingRange.getActualQueryStart() && Long.parseLong(readyRange.getEnd().toString()) >= dataLoadingRange.getActualQueryEnd()) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
 
     public static List<NDataSegment> getToRemoveSegs(NDataflow dataflow, NDataSegment segment) {
         Segments tobe = dataflow.calculateToBeSegments(segment);

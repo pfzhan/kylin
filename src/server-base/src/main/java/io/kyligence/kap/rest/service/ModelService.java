@@ -33,6 +33,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import com.google.common.primitives.Ints;
+import io.kylingence.kap.event.model.Event;
+import io.kylingence.kap.event.model.RefreshSegmentEvent;
+import io.kylingence.kap.event.model.RemoveSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -371,7 +375,7 @@ public class ModelService extends BasicService {
             if (!StringUtils.isNotEmpty(modelName) && model.getName().equals(modelName)) {
                 continue;
             } else if (model.getAlias().equals(newAlias)) {
-                throw new BadRequestException("model alias " + newAlias + " already exists");
+                throw new BadRequestException("Model alias " + newAlias + " already exists!");
             }
         }
     }
@@ -506,6 +510,10 @@ public class ModelService extends BasicService {
         NDataflowManager dataflowManager = getDataflowManager(project);
         for (NCubePlan cubePlan : cubePlans) {
             NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+            if (dataflow.getStatus().equals(RealizationStatusEnum.NEW)) {
+                throw new IllegalStateException(
+                        "No ready segment in model '" + modelName + "', can not online the model!");
+            }
             boolean needChangeStatus = (status.equals(RealizationStatusEnum.OFFLINE.name())
                     && dataflow.getStatus().equals(RealizationStatusEnum.ONLINE))
                     || (status.equals(RealizationStatusEnum.ONLINE.name())
@@ -520,37 +528,18 @@ public class ModelService extends BasicService {
                 if (status.equals(RealizationStatusEnum.OFFLINE.name())) {
                     nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
                 } else if (status.equals(RealizationStatusEnum.ONLINE.name())) {
-                    checkModelAllowedOnline(modelName, project);
-                    nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
+                    if (!dataflow.checkAllowedOnline()) {
+                        throw new IllegalStateException(
+                                "Some segments in model '" + modelName + "' are not ready, can not online the model!");
+                    } else {
+                        nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
+                    }
                 }
                 dataflowManager.updateDataflow(nDataflowUpdate);
             }
         }
     }
 
-    private void checkModelAllowedOnline(String modelName, String project) throws Exception {
-        NDataModelManager dataModelManager = getDataModelManager(project);
-        NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
-        NDataModel dataModel = dataModelManager.getDataModelDesc(modelName);
-        Segments segments = getSegments(modelName, project, "0", "" + Long.MAX_VALUE);
-        Segments readySegments = segments.getSegments(SegmentStatusEnum.READY);
-        if (CollectionUtils.isEmpty(readySegments)) {
-            throw new IllegalStateException("No ready segment in model '" + modelName + "', can not online the model!");
-        }
-        if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(dataModel.getRootFactTableName());
-            long readyStart = Long.parseLong(readySegments.getFirstSegment().getSegRange().getStart().toString());
-            long readyEnd = Long.parseLong(readySegments.getLatestReadySegment().getSegRange().getEnd().toString());
-            if (dataLoadingRange == null) {
-                throw new IllegalStateException("DataloadingRange '" + dataModel.getRootFactTableName() + "' does not exist!");
-            }
-            if (readyStart <= dataLoadingRange.getActualQueryStart() && readyEnd >= dataLoadingRange.getActualQueryEnd()) {
-                return;
-            } else {
-                throw new IllegalStateException("Some segments in model '" + modelName + "' are not ready, can not online the model!");
-            }
-        }
-    }
 
     public SegmentRange getSegmentRangeByModel(String project, String modelName, String start, String end) {
         TableRef tableRef = getDataModelManager(project).getDataModelDesc(modelName).getRootFactTable();
@@ -566,7 +555,8 @@ public class ModelService extends BasicService {
         return getDataModelManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table));
     }
 
-    public RefreshAffectedSegmentsResponse getAffectedSegmentsResponse(String project, String table, String start, String end, ManagementType managementType) throws IOException {
+    public RefreshAffectedSegmentsResponse getAffectedSegmentsResponse(String project, String table, String start,
+            String end, ManagementType managementType) throws IOException {
         Segments<NDataSegment> segments = new Segments<>();
         RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
         long byteSize = 0L;
@@ -576,17 +566,26 @@ public class ModelService extends BasicService {
                 segments.addAll(getSegments(model.getName(), project, start, end));
             }
         }
-        response.setAffectedStart(segments.getFirstSegment().getSegRange().getStart().toString());
-        response.setAffectedEnd(segments.getLatestReadySegment().getSegRange().getEnd().toString());
-        for (NDataSegment segment : segments) {
-            byteSize += ((NDataSegmentResponse) segment).getBytesSize();
+
+        if (CollectionUtils.isEmpty(segments)) {
+            throw new BadRequestException("No segments to refresh, please select new range and try again!");
+        } else {
+            String affectedStart = segments.getFirstSegment().getSegRange().getStart().toString();
+            String affectedEnd = segments.getLatestReadySegment().getSegRange().getEnd().toString();
+            for (NDataSegment segment : segments) {
+                byteSize += ((NDataSegmentResponse) segment).getBytesSize();
+            }
+            response.setAffectedStart(affectedStart);
+            response.setAffectedEnd(affectedEnd);
+            response.setByteSize(byteSize);
         }
-        response.setByteSize(byteSize);
         return response;
     }
 
-    public void refreshSegments(String project, String table, String refreshStart, String refreshEnd, String affectedStart, String affectedEnd) throws IOException, PersistentException {
-        RefreshAffectedSegmentsResponse response = getAffectedSegmentsResponse(project, table, refreshStart, refreshEnd, ManagementType.TABLE_ORIENTED);
+    public void refreshSegments(String project, String table, String refreshStart, String refreshEnd,
+            String affectedStart, String affectedEnd) throws IOException, PersistentException {
+        RefreshAffectedSegmentsResponse response = getAffectedSegmentsResponse(project, table, refreshStart, refreshEnd,
+                ManagementType.TABLE_ORIENTED);
         if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
             throw new BadRequestException("Can not refersh, please try again and confirm affected storage!");
         }
@@ -594,7 +593,8 @@ public class ModelService extends BasicService {
         for (NDataModel model : models) {
             Segments<NDataSegment> segments = getSegments(model.getName(), project, refreshStart, refreshEnd);
             if (segments.getBuildingSegments().size() > 0) {
-                throw new BadRequestException("Can not refresh, some segments is building during the range you want to refresh!");
+                throw new BadRequestException(
+                        "Can not refresh, some segments is building during the range you want to refresh!");
 
             }
         }
@@ -617,7 +617,7 @@ public class ModelService extends BasicService {
         NDataModel dataModel = convertToDataModel(modelRequest);
         getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
     }
-    
+
     public static NDataModel convertToDataModel(ModelRequest modelRequest) throws IOException {
         //remove some attributes in modelResponse to fit NDataModel
         NDataModel dataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelRequest), NDataModel.class);
@@ -643,7 +643,7 @@ public class ModelService extends BasicService {
             measure.setFunction(functionDesc);
             measure = CubeUtils.newMeasure(functionDesc, simplifiedMeasure.getName(), id++);
             measures.add(measure);
-            
+
         }
         if (!hasCount) {
             FunctionDesc functionDesc = new FunctionDesc();
@@ -662,7 +662,7 @@ public class ModelService extends BasicService {
         for (int i = 0; i < allNamedColumns.size(); i++) {
             allNamedColumns.get(i).id = i;
         }
-        
+
         return dataModel;
     }
 
@@ -682,14 +682,16 @@ public class ModelService extends BasicService {
 
     }
 
-    public void buildSegmentsManually(String project, String model, String start, String end) throws IOException, PersistentException {
+    public void buildSegmentsManually(String project, String model, String start, String end)
+            throws IOException, PersistentException {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(model);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new BadRequestException("Table oriented Model '" + model + "' can not build segments manually!");
         }
         List<NCubePlan> cubePlans = getCubePlans(model, project);
         if (CollectionUtils.isEmpty(cubePlans)) {
-            throw new BadRequestException("No cubeplan exists in model " + model + "!");
+            throw new BadRequestException(
+                    "Can not build segments, please define table index or aggregate index first!");
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);
@@ -854,4 +856,104 @@ public class ModelService extends BasicService {
         dataModel.setDataCheckDesc(DataCheckDesc.valueOf(checkOptions, faultThreshold, faultActions));
         getDataModelManager(project).updateDataModelDesc(dataModel);
     }
+
+    public void deleteSegmentById(String model, String project, int[] ids) throws PersistentException {
+        NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
+        if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+            throw new BadRequestException(
+                    "Model '" + model + "' is table table oriented, can not remove segments manually!");
+        }
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        EventManager eventManager = getEventManager(project);
+        checkSegmentsOverlapWithBuilding(model, project, ids);
+        checkDeleteSegmentLegally(model, project, ids);
+        for (NCubePlan cubePlan : getCubePlans(model, project)) {
+            NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+            List<Integer> idsToDelete = new ArrayList<>();
+            for (int id : ids) {
+                if (dataflow.getSegment(id) != null) {
+                    idsToDelete.add(id);
+                }
+            }
+            if (CollectionUtils.isEmpty(idsToDelete)) {
+                continue;
+            }
+            RemoveSegmentEvent event = new RemoveSegmentEvent();
+            event.setSegmentIds(idsToDelete);
+            event.setCubePlanName(cubePlan.getName());
+            event.setModelName(model);
+            event.setApproved(true);
+            event.setProject(project);
+            eventManager.post(event);
+        }
+    }
+
+    private void checkSegmentsOverlapWithBuilding(String model, String project, int[] ids) {
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        for (NCubePlan cubePlan : getCubePlans(model, project)) {
+            NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+            Segments<NDataSegment> buildingSegments = dataflow.getSegments().getBuildingSegments();
+            if (buildingSegments.size() > 0) {
+                for (NDataSegment segment : buildingSegments) {
+                    for (int id : ids) {
+                        if (segment.getSegRange().overlaps(dataflow.getSegment(id).getSegRange())) {
+                            throw new BadRequestException("Can not remove segment (ID:" + id
+                                    + "), because this segment overlaps building segments!");
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+    private void checkDeleteSegmentLegally(String model, String project, int[] ids) {
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        List<NCubePlan> cubePlans = getCubePlans(model, project);
+        List<Integer> idsToDelete = Ints.asList(ids);
+        for (NCubePlan cubePlan : cubePlans) {
+            NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+            Segments<NDataSegment> allSegments = dataflow.getSegments();
+            if (allSegments.size() <= 2) {
+                continue;
+            } else {
+                for (int i = 0; i < allSegments.size(); i++) {
+                    for (int id : idsToDelete) {
+                        if (id == allSegments.get(i).getId() && i >= 1 && i < allSegments.size() - 1) {
+                            if (!idsToDelete.contains(allSegments.get(i - 1).getId())
+                                    || !idsToDelete.contains(allSegments.get(i + 1).getId())) {
+                                throw new BadRequestException(
+                                        "Only consecutive segments in head or tail can be removed!");
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+    }
+
+
+    public void refreshSegmentById(String modelName, String project, int[] ids) throws PersistentException {
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        EventManager eventManager = getEventManager(project);
+        checkSegmentsOverlapWithBuilding(modelName, project, ids);
+        for (NCubePlan cubePlan : getCubePlans(modelName, project)) {
+            NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+            for (int id : ids) {
+                NDataSegment segment = dataflow.getSegment(id);
+                if (dataflow.getSegment(id) != null) {
+                    Event event = new RefreshSegmentEvent();
+                    event.setSegmentRange(segment.getSegRange());
+                    event.setProject(project);
+                    event.setApproved(true);
+                    event.setModelName(modelName);
+                    event.setCubePlanName(segment.getCubePlan().getName());
+                    eventManager.post(event);
+
+                }
+            }
+        }
+    }
+
 }

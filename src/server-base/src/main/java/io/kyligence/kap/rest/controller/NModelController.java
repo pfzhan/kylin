@@ -37,9 +37,11 @@ import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
+import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.service.ModelService;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.model.Segments;
@@ -243,10 +245,15 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/segments/{project}/{model}", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse purgeModel(@PathVariable("project") String project, @PathVariable("model") String model)
-            throws IOException {
+    public EnvelopeResponse deleteSegments(@PathVariable("project") String project,
+                                           @PathVariable("model") String model,
+                                           @RequestParam(value = "ids", required = false) int[] ids) throws IOException, PersistentException {
         checkProjectName(project);
-        modelService.purgeModel(model, project);
+        if (ArrayUtils.isEmpty(ids)) {
+            modelService.purgeModel(model, project);
+        } else {
+            modelService.deleteSegmentById(model, project, ids);
+        }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -265,6 +272,18 @@ public class NModelController extends NBasicController {
         modelService.cloneModel(request.getModelName(), request.getNewModelName(), request.getProject());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
 
+    }
+
+    @RequestMapping(value = "/segments", method = {RequestMethod.PUT}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse refreshSegmentsByIds(@RequestBody SegmentsRequest request) throws IOException, PersistentException {
+        checkProjectName(request.getProject());
+        if (ArrayUtils.isEmpty(request.getIds())) {
+            throw new BadRequestException("You should choose at least one segment to refresh!");
+        }
+        modelService.refreshSegmentById(request.getModelName(), request.getProject(), request.getIds());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "/segments", method = RequestMethod.POST, produces = {
