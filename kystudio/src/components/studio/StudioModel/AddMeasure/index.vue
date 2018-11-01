@@ -59,7 +59,7 @@
             </el-select>
             <el-button size="medium" v-if="measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N'" icon="el-icon-ksd-auto_computed_column" type="primary" plain @click="newCC" class="ksd-ml-6" :disabled="isEdit&&ccVisible"></el-button>
           </div>
-          <el-button type="primary" size="medium" icon="el-icon-ksd-add" plain circle v-if="measure.expression === 'COUNT_DISTINCT'" class="ksd-ml-10" @click="addNewProperty"></el-button>
+          <el-button type="primary" size="medium" icon="el-icon-plus" plain circle v-if="measure.expression === 'COUNT_DISTINCT'" class="ksd-ml-10" @click="addNewProperty"></el-button>
         </div>
         <CCEditForm v-if="ccVisible" @saveSuccess="saveCC" @delSuccess="delCC" :ccDesc="ccObject" :modelInstance="modelInstance"></CCEditForm>
       </el-form-item>
@@ -77,8 +77,8 @@
               </el-option>
             </el-select>
           </div>
-          <el-button type="primary" size="medium" v-if="measure.expression === 'TOP_N' && index == 0" icon="el-icon-ksd-add" plain circle @click="addNewProperty" class="ksd-ml-10"></el-button>
-          <el-button size="medium" icon="el-icon-ksd-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.converted_columns.length == 1"></el-button>
+          <el-button type="primary" size="medium" v-if="measure.expression === 'TOP_N' && index == 0" icon="el-icon-plus" plain circle @click="addNewProperty" class="ksd-ml-10"></el-button>
+          <el-button size="medium" icon="el-icon-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.converted_columns.length == 1"></el-button>
         </div>
         <div v-if="measure.expression ==='CORR'" class="ksd-mt-10">
           <el-select class="measures-addCC" size="medium" v-model="measure.converted_columns[0].value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable @change="changeCORRParamValue" :disabled="isCorrCCEdit">
@@ -438,7 +438,7 @@ export default class AddMeasure extends Vue {
     .el-button--primary.is-plain.is-disabled {
       background-color: @grey-4;
       color: @line-border-color;
-      .el-icon-ksd-minus {
+      .el-icon-minus {
         cursor: not-allowed;
       }
       :hover {

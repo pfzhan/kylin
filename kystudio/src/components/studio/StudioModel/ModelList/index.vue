@@ -140,10 +140,17 @@
     </div>
 
     <el-dialog width="440px" :title="$t('kylinLang.common.notice')" :visible.sync="reachThreshold" :show-close="false">
-      <div>
-        {{$t('hello', {user: currentUser.username})}}<br/>
-        <p style="text-indent:25px; line-height: 26px;" v-html="$t('speedTip', {queryCount: modelSpeedEvents ,modelCount: modelSpeedModelsCount})"></p>
-      </div>
+      <el-row>
+        <el-col :span="14">
+          {{$t('hello', {user: currentUser.username})}}<br/>
+          <p style="text-indent:25px; line-height: 26px;" v-html="$t('speedTip', {queryCount: modelSpeedEvents ,modelCount: modelSpeedModelsCount})"></p>
+        </el-col>
+        <el-col :span="10" class="animateImg">
+          <img class="notice_img notice_img1" src="../../../../assets/img/noticeImg1.png" height="150" width="150">
+          <img class="notice_img notice_img2" src="../../../../assets/img/noticeImg2.png" height="150" width="150">
+          <img class="notice_img" src="../../../../assets/img/noticeImg3.png" height="150" width="150">
+        </el-col>
+      </el-row>
       <div slot="footer" class="dialog-footer">
         <el-button size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
         <el-button size="medium" type="primary" plain @click="applySpeed" :loading="btnLoading">{{$t('apply')}}</el-button>
@@ -498,6 +505,14 @@ export default class ModelList extends Vue {
     this.filterArgs.project = this.currentSelectedProject
     this.loadModelsList()
   }
+  mounted () {
+    this.$nextTick(() => {
+      if ($('.animateImg .notice_img')) {
+        $('.animateImg .notice_img1').addClass('rotate1')
+        $('.animateImg .notice_img2').addClass('rotate2')
+      }
+    })
+  }
 }
 </script>
 <style lang="less">
@@ -599,6 +614,26 @@ export default class ModelList extends Vue {
   }
   .el-tabs__content {
     overflow: initial;
+  }
+  .animateImg {
+    position: relative;
+    height: 150px;
+    left: 12px;
+    .notice_img {
+      position: absolute;
+      &.rotate1 {
+        -webkit-transform:rotate(360deg);
+        transform:rotate(360deg);
+        -webkit-transition:-webkit-transform 1s ease-in-out;
+        transition:transform 1s ease-in-out;
+      }
+      &.rotate2 {
+        -webkit-transform:rotate(-360deg);
+        transform:rotate(-360deg);
+        -webkit-transition:-webkit-transform 1s ease-in-out;
+        transition:transform 1s ease-in-out;
+      }
+    }
   }
 }
 </style>
