@@ -20,9 +20,9 @@
                     <el-select v-model="tableIndexMeta.col_order[index]" filterable style="width:420px">
                       <el-option
                         v-for="item in allColumns"
-                        :key="item.table_alias + '.' + item.name"
-                        :label="item.table_alias + '.' + item.name"
-                        :value="item.table_alias + '.' + item.name">
+                        :key="item.full_colname"
+                        :label="item.full_colname"
+                        :value="item.full_colname">
                       </el-option>
                     </el-select>
                     <!-- <el-input style="width:430px" size="medium" v-model="tableIndexMeta.col_order[index]"></el-input> -->
@@ -50,7 +50,7 @@
                     <span class="sort-icon ksd-mr-10">{{index + 1}}</span>
                     <el-select v-model="tableIndexMeta.sort_by_columns[index]" filterable style="width:420px" placeholder="请选择">
                       <el-option
-                        v-for="item in selectedColumns"
+                        v-for="item in sortByColumns"
                         :key="item"
                         :label="item"
                         :value="item">
@@ -155,11 +155,20 @@
       if (this.modelInstance) {
         modelUsedTables = this.modelInstance.getTableColumns() || []
       }
-      return modelUsedTables
+      return modelUsedTables.filter((item) => {
+        return !this.selectedColumns.includes(item.full_colname)
+      })
     }
     // get pagerShowOrder () {
     //   return this.tableIndexMeta.col_order.slice(this.pager * 10, 10 + 10 * this.pager)
     // }
+    get sortByColumns () {
+      let arr = Vue.filter('filterArr')(this.tableIndexMeta.col_order, '')
+      let sortColumns = this.tableIndexMeta.sort_by_columns
+      return arr.filter((item) => {
+        return !sortColumns.includes(item)
+      })
+    }
     get selectedColumns () {
       return Vue.filter('filterArr')(this.tableIndexMeta.col_order, '')
     }
@@ -192,10 +201,9 @@
       this.tableIndexMeta.shard_by_columns = []
     }
     selectAll () {
+      this.tableIndexMeta.col_order = []
       this.allColumns.forEach((col) => {
-        if (!this.tableIndexMeta.col_order.includes(col.name)) { // 需要加上table的alias
-          this.tableIndexMeta.col_order.push(col.name)
-        }
+        this.tableIndexMeta.col_order.push(col.full_colname)
       })
     }
     addCol (dataSet, i) {

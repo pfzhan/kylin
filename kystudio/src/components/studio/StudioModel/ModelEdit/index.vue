@@ -91,15 +91,15 @@
             <div class="panel-sub-title">
               <span @click="batchSetDimension"><i class="el-icon-ksd-batch"></i></span>
               <span @click="addCCDimension"><i class="el-icon-ksd-project_add"></i></span>
-              <span><i class="el-icon-ksd-table_delete"></i></span>
+              <span><i class="el-icon-ksd-table_delete" @click="deleteDimenisons"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="dimension-list">
                 <li v-for="(d, i) in allDimension" :key="d.name">
-                  <el-checkbox v-model="dimensionSelectedList"></el-checkbox>{{d.name|omit(18,'...')}}
+                  <el-checkbox v-model="dimensionSelectedList" :label="i">{{d.name|omit(18,'...')}}</el-checkbox>
                   <i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i>
                   <i class="el-icon-ksd-table_delete" @click="deleteDimenison(d, i)"></i>
-                  <span class="li-type">{{getColumnType(d.column.split('.')[0], d.column)}}</span>
+                  <span class="li-type ky-option-sub-info">{{d.datatype}}</span>
                 </li>
               </ul>
             </div>
@@ -120,7 +120,9 @@
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="measure-list">
-                <li v-for="m in modelRender.all_measures" :key="m.name">{{m.name|omit(18,'...')}}<i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i><i class="el-icon-ksd-table_delete"></i><span>{{m.function.returntype}}</span></li>
+                <li v-for="m in modelRender.all_measures" :key="m.name">{{m.name|omit(18,'...')}}
+                  <i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i>
+                  <i class="el-icon-ksd-table_delete"></i><span>{{m.function.returntype}}</span></li>
               </ul>
             </div>
             <div class="panel-footer" v-drag:change.height="panelAppear.measure"><i class="el-icon-ksd-bottom_bar"></i></div>
@@ -406,8 +408,16 @@ export default class ModelEdit extends Vue {
       modelInstance: this.modelInstance
     })
   }
-  deleteDimenison (dimension, i) {
-    this.modelInstance.delDimension(dimension, i)
+  deleteDimenison (i) {
+    this.modelInstance.delDimension(i)
+  }
+  // 批量删除
+  deleteDimenisons () {
+    this.dimensionSelectedList.reverse()
+    this.dimensionSelectedList && this.dimensionSelectedList.forEach((i) => {
+      this.deleteDimenison(i)
+    })
+    this.dimensionSelectedList = []
   }
   editMeasure (m) {
     this.$nextTick(() => {
@@ -793,8 +803,9 @@ export default class ModelEdit extends Vue {
             height:28px;
             padding-left: 9px;
             padding-right: 8px;
-            span{
-              float:right;
+            .li-type{
+              position:absolute;
+              right:4px;
               font-size:12px;
               color:@text-disabled-color;
             }
@@ -807,6 +818,9 @@ export default class ModelEdit extends Vue {
             &:hover {
               .li-type{
                 display:none;
+              }
+              .ky-option-sub-info {
+
               }
               background-color:@base-color-10;
               i{

@@ -68,7 +68,7 @@
           <el-table-column
             show-overflow-tooltip
             :label="$t('dataType')"
-            prop="dataType"
+            prop="columnType"
             header-align="center"
             align="center"
             width="110"> 
@@ -76,6 +76,7 @@
           <el-table-column
           :label="$t('Sort')"
           header-align="center"
+          prop="sort"
           align="center">
             </el-table-column>
           <el-table-column
@@ -110,6 +111,9 @@ import NModel from '../ModelEdit/model.js'
     ...mapGetters([
       'currentSelectedProject'
     ]),
+    modelInstance () {
+      return new NModel(this.modelDesc)
+    },
     // 当天的数据
     todayTableIndex () {
       return this.tableIndexBaseList.filter((t) => {
@@ -162,7 +166,8 @@ import NModel from '../ModelEdit/model.js'
         let newitem = {
           id: 15 * (this.currentPage - 1) + i + 1,
           column: item,
-          sort: this.currentShowTableIndex.sort_by_columns.includes(item),
+          columnType: this.modelInstance.getColumnType(item),
+          sort: this.currentShowTableIndex.sort_by_columns.indexOf(item) + 1 || '',
           shared: this.currentShowTableIndex.shard_by_columns.includes(item)
         }
         return newitem
@@ -245,7 +250,7 @@ export default class TableIndex extends Vue {
   sortTable () {}
   editTableIndex (isNew) {
     this.showTableIndexEditModal({
-      modelInstance: new NModel(this.modelDesc),
+      modelInstance: this.modelInstance,
       tableIndexDesc: isNew ? null : this.currentShowTableIndex
     }).then(() => {
       this.getAllTableIndex()

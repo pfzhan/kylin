@@ -167,3 +167,4 @@ Vue.filter('arrayToStr', function (data) {
     return data.join(',')
   }
 })
+

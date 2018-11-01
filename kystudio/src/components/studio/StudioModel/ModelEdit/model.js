@@ -43,6 +43,7 @@ class NModel {
           x.isCC = true
           x.cc = this.computed_columns[k]
         }
+        x.datatype = this.getColumnType(x.column)
         return x
       }
     })
@@ -104,6 +105,10 @@ class NModel {
     }
     this.allConnInfo = {}
     this.render()
+    this.dimensions = this.dimensions.filter((x) => {
+      x.datatype = this.getColumnType(x.column)
+      return x
+    })
   }
   render () {
     this.renderTable()
@@ -388,6 +393,7 @@ class NModel {
       columns && columns.forEach((col) => {
         col.guid = i // 永久指纹
         col.table_alias = this.tables[i].alias // 临时
+        col.full_colname = col.table_alias + '.' + col.name
         result.push(col)
       })
     }
@@ -550,6 +556,15 @@ class NModel {
       if (this.tables[i].alias === alias) {
         return this.tables[i]
       }
+    }
+  }
+  getColumnType (fullName) {
+    let named = fullName.split('.')
+    if (named && named.length) {
+      let alias = named[0]
+      let tableName = named[1]
+      let ntable = this.getTableByAlias(alias)
+      return ntable && ntable.getColumnType(tableName)
     }
   }
   getCCObj (tableAlias, column) {
