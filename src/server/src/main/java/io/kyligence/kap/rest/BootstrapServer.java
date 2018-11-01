@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kylingence.kap.event.handle.AddCuboidHandler;
 import io.kylingence.kap.event.handle.AddSegmentHandler;
 import io.kylingence.kap.event.handle.CubePlanRuleUpdateHandler;
@@ -44,6 +45,7 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.SchedulerException;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.source.jdbc.H2Database;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparkSession;
@@ -139,15 +141,19 @@ public class BootstrapServer {
         new CubePlanRuleUpdateHandler();
         new PostCubePlanRuleUpdateHandler();
 
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance("default");
-        try {
-            scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
-        } catch (SchedulerException e) {
-            throw new RuntimeException(e);
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        for (ProjectInstance projectInstance : projectManager.listAllProjects()) {
+            NDefaultScheduler scheduler = NDefaultScheduler.getInstance(projectInstance.getName());
+            try {
+                scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+            } catch (SchedulerException e) {
+                throw new RuntimeException(e);
+            }
+            if (!scheduler.hasStarted()) {
+                throw new RuntimeException("Scheduler for " +projectInstance.getName() + " has not been started");
+            }
         }
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
+
     }
 
     private static void setLocalEnvs() {

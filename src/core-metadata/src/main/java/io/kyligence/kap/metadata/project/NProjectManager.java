@@ -37,6 +37,7 @@ import java.util.TreeSet;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.FederatedResourceStore;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
@@ -133,7 +134,12 @@ public class NProjectManager {
     }
 
     private Set<String> getProjectsFromResource() throws IOException {
-        NavigableSet<String> resources = getStore().listResources("/");
+        ResourceStore store = getStore();
+        if (store instanceof FederatedResourceStore) {
+            // or will fetch prj in dict/table snapshot dir.
+            store = ((FederatedResourceStore) getStore()).getBase();
+        }
+        NavigableSet<String> resources = store.listResources("/");
         NavigableSet<String> projects = new TreeSet<>();
         //resources have all dirs and files need to filter
         //need reconstruction (will be a blunder?)

@@ -28,6 +28,8 @@ if [ "${PACKAGE_SPARK}" = "1" ]; then
     cp -rf spark ${package_name}/
 fi
 
+cp -rf influxdb ${package_name}/
+
 # Add min/prod profiles
 mkdir ${package_name}/conf
 
@@ -79,6 +81,7 @@ find ${package_name} -type d -exec chmod 755 {} \;
 find ${package_name} -type f -exec chmod 644 {} \;
 find ${package_name} -type f -name "*.sh" -exec chmod 755 {} \;
 find ${package_name}/spark -type f -exec chmod 755 {} \;
+find ${package_name}/influxdb -type f -exec chmod 755 {} \;
 
 rm -rf ../dist
 mkdir -p ../dist

@@ -51,6 +51,10 @@ import io.kylingence.kap.event.model.EventContext;
 import io.kylingence.kap.event.manager.EventOrchestratorManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.exception.SchedulerException;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.lock.MockJobLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,9 +72,18 @@ public class ProjectHandler extends AbstractEventHandler {
             KylinConfig kylinConfig = eventContext.getConfig();
             checkNotNull(NProjectManager.getInstance(kylinConfig).getProject(project));
             EventOrchestratorManager.instance.addProject(event.getProject());
+            NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+            try {
+                scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+            } catch (SchedulerException e) {
+                throw new RuntimeException(e);
+            }
+            if (!scheduler.hasStarted()) {
+                throw new RuntimeException("Scheduler for " + project + " has not been started");
+            }
             logger.info("ProjectHandler process ....");
         } else {
-            throw new RuntimeException("this event miss the project info !!!");
+            throw new RuntimeException("Event " + event.getId() + " miss the project info !!!");
         }
     }
 

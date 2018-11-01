@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -77,8 +78,11 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
 
     @Override
     public List<String> listTables(String database) throws Exception {
-        String filter = String.format("database='%s'", database);
-        Dataset<Row> dataset = ss.sql("show tables").filter(filter);
+        String sql = "show tables";
+        if (StringUtils.isNotBlank(database)) {
+            sql = String.format(sql + " in %s", database);
+        }
+        Dataset<Row> dataset = ss.sql(sql);
         return datasetRow2String(dataset, "tableName");
     }
 

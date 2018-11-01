@@ -9,7 +9,7 @@ exportProjectVersions
 echo "copy lib file"
 rm -rf build/lib build/tool
 mkdir build/lib build/tool
-cp src/assembly/target/ke-assembly-${kap_version}-job.jar build/lib/newten-job.jar
+cp src/assembly/target/kap-assembly-${kap_version}-job.jar build/lib/newten-job.jar
 cp src/storage-parquet/target/kap-storage-parquet-${kap_version}-spark.jar build/lib/kylin-storage-parquet-kap-${release_version}.jar
 
 # Copied file becomes 000 for some env (e.g. Cygwin)

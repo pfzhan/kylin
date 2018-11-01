@@ -81,11 +81,15 @@ sh build/script_newten/build.sh $@             || { exit 1; }
 echo "BUILD STAGE 3 - Prepare spark..."
 sh build/script_newten/download-spark.sh      || { exit 1; }
 
-echo "BUILD STAGE 4 - Prepare and compress package..."
+echo "BUILD STAGE 4 - Prepare influxdb..."
+sh build/script_newten/download-influxdb.sh      || { exit 1; }
+
+
+echo "BUILD STAGE 5 - Prepare and compress package..."
 sh build/script_newten/prepare.sh ${MVN_PROFILE} || { exit 1; }
 sh build/script_newten/compress.sh               || { exit 1; }
 
-echo "BUILD STAGE 5 - Clean up..."
+echo "BUILD STAGE 6 - Clean up..."
 
 # restore the removals if noPlus mode ran before
 for file in src/core-common/src/main/resources/kylin-defaults0.properties build/conf/profile_min/kylin.properties
