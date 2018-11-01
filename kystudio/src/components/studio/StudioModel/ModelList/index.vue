@@ -182,7 +182,6 @@ import ModelCheckDataModal from './ModelCheckData/checkdata.vue'
 import ModelBuildModal from './ModelBuildModal/build.vue'
 import ModelPartitionModal from './ModelPartitionModal/index.vue'
 import { mockSQL } from './mock'
-import NModel from '../ModelEdit/model.js'
 import '../../../../util/fly.js'
 @Component({
   computed: {
@@ -214,7 +213,8 @@ import '../../../../util/fly.js'
       disableModel: 'DISABLE_MODEL',
       enableModel: 'ENABLE_MODEL',
       getSpeedInfo: 'GET_SPEED_INFO',
-      ignoreSpeedInfo: 'IGNORE_SPEED_INFO'
+      ignoreSpeedInfo: 'IGNORE_SPEED_INFO',
+      updataModel: 'UPDATE_MODEL'
     }),
     ...mapActions('ModelRenameModal', {
       callRenameModelDialog: 'CALL_MODAL'
@@ -368,7 +368,11 @@ export default class ModelList extends Vue {
       })
     } else if (command === 'dataLoad') {
       this.callModelPartitionDialog({
-        modelDesc: new NModel(modelDesc)
+        modelDesc: modelDesc
+      }).then((res) => {
+        if (res.isSubmit) {
+          this.handleSaveModel(modelDesc)
+        }
       })
     } else if (command === 'rename') {
       const isSubmit = await this.callRenameModelDialog(objectClone(modelDesc))
@@ -393,6 +397,13 @@ export default class ModelList extends Vue {
         this.handleEnableModel(objectClone(modelDesc))
       })
     }
+  }
+  handleSaveModel (modelDesc) {
+    this.updataModel(modelDesc).then(() => {
+      kapMessage(this.$t('kylinLang.common.saveSuccess'))
+    }, (res) => {
+      handleError(res)
+    })
   }
   handleModel (action, modelDesc, successTip) {
     this[action]({modelName: modelDesc.name, project: this.currentSelectedProject}).then(() => {

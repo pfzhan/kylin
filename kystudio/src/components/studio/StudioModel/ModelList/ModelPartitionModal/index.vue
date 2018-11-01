@@ -38,7 +38,7 @@
           <el-select v-model="partitionMeta.column" placeholder="列" filterable style="width:248px">
           <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
             <span style="float: left">{{ t.name }}</span>
-            <span class="ksd-fright">{{ t.datatype }}</span>
+            <span class="ky-option-sub-info">{{ t.datatype }}</span>
           </el-option>
         </el-select>
         </el-col>
@@ -56,7 +56,7 @@
     </el-form>
     <div class="ky-line"></div>
     <div class="ky-list-title ksd-mt-16">Where 条件设置</div>
-    <el-input type="textarea" class="where-area"></el-input>
+    <el-input type="textarea" class="where-area" v-model="filterCondition"></el-input>
     <div class="ksd-mt-10">Please input : “column_name = value”, i.e. Region = Beijing</div>
     <div slot="footer" class="dialog-footer">
       <!-- <span class="ksd-fleft up-performance"><i class="el-icon-ksd-arrow_up"></i>提升<i>5%</i></span> -->
@@ -76,6 +76,7 @@ import vuex from '../../../../../store'
 import locales from './locales'
 import store, { types } from './store'
 import { DatePartitionRule, timeDataType } from '../../../../../config'
+import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
 // import { handleSuccessAsync, handleError } from '../../../util'
 
@@ -89,7 +90,9 @@ vuex.registerModule(['modals', 'ModelPartitionModal'], store)
     // Store数据注入
     ...mapState('ModelPartitionModal', {
       isShow: state => state.isShow,
-      modelDesc: state => state.form.modelDesc
+      modelDesc: state => state.form.modelDesc,
+      modelInstance: state => new NModel(state.form.modelDesc),
+      callback: state => state.callback
     })
   },
   methods: {
@@ -122,6 +125,7 @@ export default class ModelPartitionModal extends Vue {
     column: '',
     format: ''
   }
+  filterCondition = ''
   dateFormat = [
     {label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'},
     {label: 'yyyyMMdd', value: 'yyyyMMdd'},
@@ -137,8 +141,8 @@ export default class ModelPartitionModal extends Vue {
   ]
   get partitionTables () {
     let result = ['']
-    if (this.isShow && this.modelDesc) {
-      Object.values(this.modelDesc.tables).forEach((nTable) => {
+    if (this.isShow && this.modelInstance) {
+      Object.values(this.modelInstance.tables).forEach((nTable) => {
         if (nTable.kind === 'FACT') {
           result.push(nTable)
         }
@@ -201,10 +205,13 @@ export default class ModelPartitionModal extends Vue {
   }
   @Watch('isShow')
   initModeDesc () {
-    if (this.isShow && this.modelDesc.partition_date_column) {
-      this.partitionMeta.table = this.modelDesc.partition_date_column.split('.')[0]
-      this.partitionMeta.column = this.modelDesc.partition_date_column.split('.')[1]
-      this.partitionMeta.format = this.modelDesc.partition_date_format
+    if (this.isShow && this.modelDesc.partition_desc.partition_date_column) {
+      this.partitionMeta.table = this.modelDesc.partition_desc.partition_date_column.split('.')[0]
+      this.partitionMeta.column = this.modelDesc.partition_desc.partition_date_column.split('.')[1]
+      this.partitionMeta.format = this.modelDesc.partition_desc.partition_date_format
+      this.partitionMeta.filter_condition = this.modelDesc.filter_condition
+    } else {
+      this.resetForm()
     }
   }
   @Watch('partitionMeta.table')
@@ -212,16 +219,29 @@ export default class ModelPartitionModal extends Vue {
     this.partitionMeta.column = ''
     this.partitionMeta.format = ''
   }
+  resetForm () {
+    this.partitionMeta = {
+      table: '',
+      column: '',
+      format: ''
+    }
+    this.filterCondition = ''
+  }
   savePartition () {
-    this.modelDesc.partition_date_column = this.partitionMeta.table + '.' + this.partitionMeta.column
-    this.modelDesc.partition_date_format = this.partitionMeta.format
+    this.modelDesc.partition_desc.partition_date_column = this.partitionMeta.table + '.' + this.partitionMeta.column
+    this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
+    this.modelDesc.filter_condition = this.filterCondition
+    this.modelDesc.project = this.currentSelectedProject
     this.handleClose(true)
   }
   handleClose (isSubmit) {
     this.hideModal()
     setTimeout(() => {
       this.resetModalForm()
-      this.callback && this.callback(isSubmit)
+      this.callback && this.callback({
+        isSubmit: isSubmit,
+        data: this.partitionMeta
+      })
     }, 300)
   }
 }

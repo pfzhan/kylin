@@ -98,7 +98,7 @@
                 <li v-for="(d, i) in allDimension" :key="d.name">
                   <el-checkbox v-model="dimensionSelectedList" :label="i">{{d.name|omit(18,'...')}}</el-checkbox>
                   <i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i>
-                  <i class="el-icon-ksd-table_delete" @click="deleteDimenison(d, i)"></i>
+                  <i class="el-icon-ksd-table_delete" @click="deleteDimenison(i)"></i>
                   <span class="li-type ky-option-sub-info">{{d.datatype}}</span>
                 </li>
               </ul>
@@ -295,7 +295,6 @@ export default class ModelEdit extends Vue {
   }
   delTable (guid) {
     this.modelInstance.delTable(guid).then(() => {
-
     }, () => {
       kapMessage(this.$t('delTableTip'), {type: 'warning'})
     })
@@ -417,7 +416,7 @@ export default class ModelEdit extends Vue {
   }
   // 批量删除
   deleteDimenisons () {
-    this.dimensionSelectedList.reverse()
+    this.dimensionSelectedList.sort((a, b) => b - a)
     this.dimensionSelectedList && this.dimensionSelectedList.forEach((i) => {
       this.deleteDimenison(i)
     })
@@ -427,7 +426,7 @@ export default class ModelEdit extends Vue {
     this.modelInstance.delMeasure(i)
   }
   deleteMeasures () {
-    this.measureSelectedList.reverse()
+    this.measureSelectedList.sort((a, b) => b - a)
     this.measureSelectedList && this.measureSelectedList.forEach((i) => {
       this.deleteMeasure(i)
     })

@@ -29,6 +29,7 @@ export default {
     },
     [types.SET_MODAL]: (state, payload) => {
       state.form.modelDesc = payload.modelDesc
+      state.callback = payload.callback
     },
     // 还原Modal中的值为初始值
     [types.RESET_MODAL_FORM]: (state) => {
@@ -38,7 +39,7 @@ export default {
   actions: {
     [types.CALL_MODAL] ({ commit }, { modelDesc }) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL, { modelDesc: modelDesc })
+        commit(types.SET_MODAL, { modelDesc: modelDesc, callback: resolve })
         commit(types.SHOW_MODAL)
       })
     }

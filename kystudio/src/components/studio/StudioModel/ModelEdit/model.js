@@ -362,13 +362,26 @@ class NModel {
   delTable (guid) {
     return new Promise((resolve, reject) => {
       if (!this.isConnectedTable(guid)) {
+        this._delTableRelated(guid)
         this.$delete(this.tables, guid)
-        resolve()
+        return resolve()
       } else {
         // 有连接的情况下
-        reject()
+        return reject()
       }
     })
+  }
+  _delTableRelated (guid) {
+    let ntable = this.getTableByGuid(guid)
+    if (ntable) {
+      let alias = ntable.alias
+      // 删除对应的 dimension
+      this._delDimensionByAlias(alias)
+      // 删除对应的 measure
+      this._delMeasureByAlias(alias)
+      // 删除对应的 cc
+      this._delCCByAlias(alias)
+    }
   }
   getTable (key, val) {
     for (var i in this.tables) {
@@ -603,8 +616,17 @@ class NModel {
   delDimension (i) {
     this._mount.dimensions.splice(i, 1)
   }
+  _delDimensionByAlias (alias) {
+    let dimensions = this._mount.dimensions.filter((item) => {
+      return item.column && item.column.split('.')[0] !== alias
+    })
+    this._mount.dimensions.splice(0, this._mount.dimensions.length)
+    this._mount.dimensions.push(...dimensions)
+  }
   delMeasure (i) {
     this._mount.all_measures.splice(i, 1)
+  }
+  _delMeasureByAlias () {
   }
   // 添加度量
   addMeasure (measureObj) {
@@ -674,6 +696,8 @@ class NModel {
         }
       }
     })
+  }
+  _delCCByAlias () {
   }
   autoCalcLayer (root, result, deep) {
     var factTable = this.getFactTable()
