@@ -24,6 +24,7 @@
         :is-show-filter="isShowFilter"
         :is-expand-on-click-node="isExpandOnClickNode"
         :on-filter="handleFilter"
+        :empty-text="$t('emptyText')"
         @click="handleClick"
         @drag="handleDrag"
         @load-more="handleLoadMore">
@@ -484,6 +485,15 @@ export default class DataSourceBar extends Vue {
         border-top: 1px solid #CFD8DC;
       }
     }
+  }
+  .el-tree__empty-block {
+    text-align: left;
+  }
+  .el-tree__empty-text {
+    position: initial;
+    transform: none;
+    top: 0;
+    left: 0;
   }
 }
 </style>

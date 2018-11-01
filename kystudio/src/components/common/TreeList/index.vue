@@ -1,9 +1,8 @@
 <template>
   <div class="tree-list" :style="{ width: `${treeStyle.width}px` }">
-    <div class="filter-box">
+    <div class="filter-box" v-if="isShowFilter && data.length">
       <el-input
         size="medium"
-        v-if="isShowFilter && data.length"
         v-model="filterText"
         :placeholder="placeholder"
         @keyup.native="handleInput">
