@@ -30,20 +30,23 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.rest.request.ModelRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.ModifiedOrder;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
@@ -75,35 +78,31 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
+import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasureResponse;
 import io.kyligence.kap.rest.response.SimplifiedTableResponse;
+import io.kyligence.kap.smart.util.CubeUtils;
 import io.kylingence.kap.event.manager.EventManager;
 import io.kylingence.kap.event.model.AddSegmentEvent;
 import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
-import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.ParameterDesc;
-
-import org.apache.kylin.metadata.model.TableExtDesc;
-
-import java.util.Set;
 
 @Component("modelService")
 public class ModelService extends BasicService {
@@ -613,16 +612,40 @@ public class ModelService extends BasicService {
 
     public void createModel(ModelRequest modelRequest) throws IOException {
         String project = modelRequest.getProject();
-        List<SimplifiedMeasureResponse> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
         checkAliasExist(modelRequest.getName(), modelRequest.getAlias(), project);
+        //remove some attributes in modelResponse to fit NDataModel
+        NDataModel dataModel = convertToDataModel(modelRequest);
+        getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
+    }
+    
+    public static NDataModel convertToDataModel(ModelRequest modelRequest) throws IOException {
         //remove some attributes in modelResponse to fit NDataModel
         NDataModel dataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelRequest), NDataModel.class);
         dataModel.setUuid(UUID.randomUUID().toString());
+
+        List<SimplifiedMeasureResponse> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
         List<NDataModel.Measure> measures = new ArrayList<>();
-        if (CollectionUtils.isEmpty(simplifiedMeasures)) {
+        boolean hasCount = false;
+        int id = NDataModel.MEASURE_ID_BASE;
+        for (SimplifiedMeasureResponse simplifiedMeasure : simplifiedMeasures) {
             NDataModel.Measure measure = new NDataModel.Measure();
-            measure.id = 0;
-            measure.setName("_COUNT_");
+            measure.id = simplifiedMeasure.getId();
+            measure.setName(simplifiedMeasure.getName());
+            FunctionDesc functionDesc = new FunctionDesc();
+            functionDesc.setReturnType(simplifiedMeasure.getReturnType());
+            functionDesc.setExpression(simplifiedMeasure.getExpression());
+            List<ParameterResponse> parameterResponseList = simplifiedMeasure.getParameterValue();
+            functionDesc.setParameter(enrichParameterDesc(parameterResponseList, null));
+            // TODO just check count(*), update this logic when count(col) is implemented
+            if (functionDesc.isCount()) {
+                hasCount = true;
+            }
+            measure.setFunction(functionDesc);
+            measure = CubeUtils.newMeasure(functionDesc, simplifiedMeasure.getName(), id++);
+            measures.add(measure);
+            
+        }
+        if (!hasCount) {
             FunctionDesc functionDesc = new FunctionDesc();
             ParameterDesc parameterDesc = new ParameterDesc();
             parameterDesc.setType("constant");
@@ -630,34 +653,20 @@ public class ModelService extends BasicService {
             functionDesc.setParameter(parameterDesc);
             functionDesc.setExpression("COUNT");
             functionDesc.setReturnType("bigint");
-            measure.setFunction(functionDesc);
+            NDataModel.Measure measure = CubeUtils.newMeasure(functionDesc, "COUNT_ALL", id);
             measures.add(measure);
-        } else {
-            for (SimplifiedMeasureResponse simplifiedMeasure : simplifiedMeasures) {
-                NDataModel.Measure measure = new NDataModel.Measure();
-                measure.id = simplifiedMeasure.getId();
-                measure.setName(simplifiedMeasure.getName());
-                FunctionDesc functionDesc = new FunctionDesc();
-                functionDesc.setReturnType(simplifiedMeasure.getReturnType());
-                functionDesc.setExpression(simplifiedMeasure.getExpression());
-                List<ParameterResponse> parameterResponseList = simplifiedMeasure.getParameterValue();
-                functionDesc.setParameter(enrichParameterDesc(parameterResponseList, null));
-                measure.setFunction(functionDesc);
-                measures.add(measure);
-            }
         }
         dataModel.setAllMeasures(measures);
-        enrichAllNamedColumns(dataModel.getAllNamedColumns());
-        getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
-    }
 
-    private void enrichAllNamedColumns(List<NDataModel.NamedColumn> allNamedColumns) {
+        List<NDataModel.NamedColumn> allNamedColumns = dataModel.getAllNamedColumns();
         for (int i = 0; i < allNamedColumns.size(); i++) {
             allNamedColumns.get(i).id = i;
         }
+        
+        return dataModel;
     }
 
-    private ParameterDesc enrichParameterDesc(List<ParameterResponse> parameterResponseList, ParameterDesc nextParameterDesc) {
+    private static ParameterDesc enrichParameterDesc(List<ParameterResponse> parameterResponseList, ParameterDesc nextParameterDesc) {
         if (CollectionUtils.isEmpty(parameterResponseList)) {
             return nextParameterDesc;
         }
@@ -665,7 +674,7 @@ public class ModelService extends BasicService {
         parameterDesc.setType(parameterResponseList.get(0).getType());
         parameterDesc.setValue(parameterResponseList.get(0).getValue());
         parameterDesc.setNextParameter(nextParameterDesc);
-        if (parameterResponseList.size() >= 1) {
+        if (!parameterResponseList.isEmpty()) {
             return enrichParameterDesc(parameterResponseList.subList(1, parameterResponseList.size()), parameterDesc);
         } else {
             return parameterDesc;
@@ -754,7 +763,7 @@ public class ModelService extends BasicService {
      * <p>
      * ccInCheck is optional, if provided, other cc in the model will skip hive check
      */
-    public boolean checkComputedColumn(final NDataModel dataModelDesc, String project, String ccInCheck) throws IOException {
+    public void checkComputedColumn(final NDataModel dataModelDesc, String project, String ccInCheck) {
 
         dataModelDesc.setDraft(false);
         if (dataModelDesc.getUuid() == null)
@@ -792,10 +801,7 @@ public class ModelService extends BasicService {
 
             logger.debug("Spent {} ms to visit data source to validate computed column expression: {}",
                     (System.currentTimeMillis() - ts), cc.getExpression());
-        }
-
-        return true;
-    }
+        }    }
 
     static void checkCCName(String name) {
         if (PushDownConverterKeyWords.CALCITE.contains(name.toUpperCase())

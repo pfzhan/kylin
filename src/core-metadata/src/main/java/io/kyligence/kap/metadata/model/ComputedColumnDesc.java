@@ -129,7 +129,7 @@ public class ComputedColumnDesc implements Serializable {
         }
     }
 
-    public void simpleParserCheck(final String expr, final Set<String> aliasSet) {
+    public static void simpleParserCheck(final String expr, final Set<String> aliasSet) {
 
         SqlNode sqlNode = CalciteParser.getExpNode(expr);
 

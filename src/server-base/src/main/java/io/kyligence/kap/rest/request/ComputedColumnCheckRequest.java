@@ -26,7 +26,6 @@ package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Data;
 
 @Data
@@ -36,7 +35,7 @@ public class ComputedColumnCheckRequest {
     private String project;
 
     @JsonProperty("model_desc")
-    private NDataModel modelDesc;
+    private ModelRequest modelDesc;
 
     @JsonProperty("cc_in_check")
     private String ccInCheck;

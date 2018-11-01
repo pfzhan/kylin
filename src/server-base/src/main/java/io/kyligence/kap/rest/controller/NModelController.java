@@ -280,12 +280,11 @@ public class NModelController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse checkComputedColumns(@RequestBody ComputedColumnCheckRequest modelRequest) throws IOException {
-
-        NDataModel modelDesc = modelRequest.getModelDesc();
-        modelDesc.setSeekingCCAdvice(modelRequest.isSeekingExprAdvice());
-
-        modelService.primaryCheck(modelDesc);
         try {
+            NDataModel modelDesc = modelService.convertToDataModel(modelRequest.getModelDesc());
+            modelDesc.setSeekingCCAdvice(modelRequest.isSeekingExprAdvice());
+
+            modelService.primaryCheck(modelDesc);
             modelService.checkComputedColumn(modelDesc, modelRequest.getProject(), modelRequest.getCcInCheck());
         } catch (BadModelException e) {
             return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, e, e.getMessage());
