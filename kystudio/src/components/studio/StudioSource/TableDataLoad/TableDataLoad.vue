@@ -18,7 +18,9 @@
           <el-tooltip effect="dark" :content="$t('incrementalDesc')" placement="top">
             <el-radio :value="isIncremental" :label="true" @click.native="handleChangeType(true)" :disabled="!partitionColumns.length">{{$t('incrementalLoading')}}</el-radio>
           </el-tooltip>
-          <el-radio :value="isIncremental" :label="false" @click.native="handleChangeType(false)">{{$t('fullTable')}}</el-radio>
+          <el-tooltip effect="dark" :content="$t('fullDesc')" placement="top">
+            <el-radio :value="isIncremental" :label="false">{{$t('fullTable')}}</el-radio>
+          </el-tooltip>
         </div>
       </el-row>
     </el-row>

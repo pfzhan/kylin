@@ -10,7 +10,7 @@ export const render = {
         <div class="datasource font-medium">
           <span>{label}</span>
           <div class="right">
-            { this.isShowLoadSource ? (
+            { this.isShowLoadTable ? (
               <i class="tree-icon table-action el-icon-ksd-add_table" onClick={event => this.importDataSource(sourceType, project, event)}></i>
             ) : null}
           </div>

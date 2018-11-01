@@ -72,6 +72,10 @@ import { handleSuccessAsync } from '../../../util'
       type: Boolean,
       default: false
     },
+    isShowLoadTable: {
+      type: Boolean,
+      default: true
+    },
     isShowSettings: {
       type: Boolean,
       default: false
