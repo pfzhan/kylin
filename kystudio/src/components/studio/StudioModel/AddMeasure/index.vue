@@ -369,13 +369,20 @@ export default class AddMeasure extends Vue {
   checkMeasure () {
     this.$refs.measureForm.validate((valid) => {
       if (valid) {
+        const measureClone = objectClone(this.measure)
+        if (measureClone.expression.indexOf('SUM') !== -1) {
+          measureClone.expression = 'SUM'
+        }
+        if (measureClone.expression.indexOf('COUNT') !== -1) {
+          measureClone.expression = 'COUNT'
+        }
         if (this.isEditMeasure) {
-          this.modelInstance.editMeasure(this.measure).then(() => {
+          this.modelInstance.editMeasure(measureClone).then(() => {
             this.resetMeasure()
             this.handleHide()
           })
         } else {
-          this.modelInstance.addMeasure(this.measure).then(() => {
+          this.modelInstance.addMeasure(measureClone).then(() => {
             this.resetMeasure()
             this.handleHide()
           })
