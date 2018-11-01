@@ -247,7 +247,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         List<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
         RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse("default", "DEFAULT.TEST_KYLIN_FACT", "0", "12223334", ManagementType.TABLE_ORIENTED);
-        Assert.assertEquals(2502656L, response.getByteSize());
+        Assert.assertEquals(2252800L, response.getByteSize());
     }
 
     @Test
@@ -498,7 +498,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
             }
         });
- 
+
         Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
 
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_basic", "default", true, null, null,
@@ -599,7 +599,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         String contents = StringUtils.join(Files.readAllLines(
                 new File("src/test/resources/ut_meta/cc_test/default/model_desc/nmodel_cc_test.json").toPath(),
                 Charset.defaultCharset()), "\n");
-        
+
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");

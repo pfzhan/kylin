@@ -27,13 +27,10 @@ package io.kyligence.kap.query.relnode;
 import java.util.Set;
 
 import org.apache.calcite.plan.RelOptCluster;
-import org.apache.calcite.plan.RelOptCost;
-import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelFieldCollation;
 import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rex.RexNode;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.SQLDigest;
@@ -65,11 +62,6 @@ public class KapSortRel extends OLAPSortRel implements KapRel {
     public KapSortRel copy(RelTraitSet traitSet, RelNode newInput, RelCollation newCollation, RexNode offset,
             RexNode fetch) {
         return new KapSortRel(getCluster(), traitSet, newInput, newCollation, offset, fetch);
-    }
-
-    @Override
-    public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
-        return super.computeSelfCost(planner, mq);
     }
 
     @Override
@@ -109,6 +101,17 @@ public class KapSortRel extends OLAPSortRel implements KapRel {
         this.columnRowType = buildColumnRowType();
         if (context != null && this == context.getTopNode() && !context.isHasAgg())
             KapContext.amendAllColsIfNoAgg(this);
+
+        if (context != null) {
+            for (RelFieldCollation fieldCollation : this.collation.getFieldCollations()) {
+                int index = fieldCollation.getFieldIndex();
+                SQLDigest.OrderEnum order = getOrderEnum(fieldCollation.getDirection());
+                OLAPRel olapChild = (OLAPRel) this.getInput();
+                TblColRef orderCol = olapChild.getColumnRowType().getAllColumns().get(index);
+                this.context.addSort(orderCol, order);
+                this.context.storageContext.markSort();
+            }
+        }
     }
 
     @Override
@@ -120,15 +123,6 @@ public class KapSortRel extends OLAPSortRel implements KapRel {
             // Occurs in sub-query like "select ... from (...) inner join (...) order by ..."
             if (this.context.realization == null)
                 return;
-
-            for (RelFieldCollation fieldCollation : this.collation.getFieldCollations()) {
-                int index = fieldCollation.getFieldIndex();
-                SQLDigest.OrderEnum order = getOrderEnum(fieldCollation.getDirection());
-                OLAPRel olapChild = (OLAPRel) this.getInput();
-                TblColRef orderCol = olapChild.getColumnRowType().getAllColumns().get(index);
-                this.context.addSort(orderCol, order);
-                this.context.storageContext.markSort();
-            }
 
             this.rowType = this.deriveRowType();
             this.columnRowType = buildColumnRowType();

@@ -94,6 +94,10 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     @JsonProperty("update_time")
     private long updateTime;
 
+    @Setter
+    @JsonProperty("draft_version")
+    private String draftVersion;
+
     // computed fields below
 
     /**
@@ -108,15 +112,12 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     @Setter
     private int version;
 
-    public NCuboidLayout() {
-    }
-
     /**
      * @return  0 for auto agg; 1 for rule based agg; 2 for auto table index; 3 for manual table index
      */
 
     @EqualsAndHashCode.Include
-    public long getIndexType() {
+    long getIndexType() {
         return id / NCuboidDesc.CUBOID_ID_SIZE;
     }
 
@@ -260,7 +261,7 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     }
 
     public boolean isCachedAndShared() {
-        return cuboidDesc == null ? false : cuboidDesc.isCachedAndShared();
+        return cuboidDesc != null && cuboidDesc.isCachedAndShared();
     }
 
     public void checkIsNotCachedAndShared() {
@@ -273,4 +274,20 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
         return Objects.toStringHelper(this).add("id", id).toString();
     }
 
+    public boolean isDraft() {
+        return this.draftVersion != null;
+    }
+
+    public void publish() {
+        this.draftVersion = null;
+    }
+
+    // TODO check if this layout is used by other query
+    public boolean hasExternalRef() {
+        return false;
+    }
+
+    public boolean matchDraftVersion(String draftVersion) {
+        return isDraft() && this.draftVersion.equals(draftVersion);
+    }
 }

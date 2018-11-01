@@ -45,12 +45,16 @@ public class NProposerProvider {
     public NAbstractCubeProposer getCuboidProposer() {
         return new NCuboidProposer(context);
     }
-    
+
     public NAbstractCubeProposer getCuboidReducer() {
         return new NCuboidReducer(context);
     }
-    
+
     public NAbstractCubeProposer getDimensionReducer() {
         return new NDimensionReducer(context);
+    }
+
+    public NAbstractCubeProposer getCuboidRefresher() {
+        return new NCuboidRefresher(context);
     }
 }

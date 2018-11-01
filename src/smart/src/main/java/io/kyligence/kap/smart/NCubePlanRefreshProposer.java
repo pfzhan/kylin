@@ -22,30 +22,33 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.model;
+package io.kyligence.kap.smart;
 
-import java.util.Collection;
-import java.util.Map;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.smart.cube.NCubeMaster;
 
-import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.metadata.model.TableRef;
-import org.apache.kylin.query.relnode.OLAPContext;
+class NCubePlanRefreshProposer extends NAbstractProposer {
 
-import lombok.Getter;
+    NCubePlanRefreshProposer(NSmartContext modelCtx) {
+        super(modelCtx);
+    }
 
-@Getter
-public class ModelTree {
-    private final Collection<OLAPContext> olapContexts;
-    private final Map<String, JoinTableDesc> joins;
-    private final Map<TableRef, String> tableRefAliasMap;
-    private final TableDesc rootFactTable;
+    @Override
+    void propose() {
+        if (context.getModelContexts() == null) {
+            return;
+        }
 
-    public ModelTree(TableDesc rootFactTable, Collection<OLAPContext> contexts, Map<String, JoinTableDesc> joins,
-            Map<TableRef, String> tableRefAliasMap) {
-        this.rootFactTable = rootFactTable;
-        this.olapContexts = contexts;
-        this.joins = joins;
-        this.tableRefAliasMap = tableRefAliasMap;
+        for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
+            if (modelCtx.getOrigModel() == null || modelCtx.getOrigCubePlan() == null
+                    || modelCtx.getTargetCubePlan() == null) {
+                continue;
+            }
+
+            NCubeMaster cubeMaster = new NCubeMaster(modelCtx);
+            NCubePlan cubePlan = modelCtx.getTargetCubePlan();
+            cubePlan = cubeMaster.refreshCuboids(cubePlan);
+            modelCtx.setTargetCubePlan(cubePlan);
+        }
     }
 }

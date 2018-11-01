@@ -242,7 +242,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         round1.add(df.getCubePlan().getCuboidLayout(1_000_001L));
         round1.add(df.getCubePlan().getCuboidLayout(3001L));
         round1.add(df.getCubePlan().getCuboidLayout(1002L));
-        round1.add(df.getCubePlan().getCuboidLayout(2L));
 
         NSpanningTree nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(round1, df.getName());
         for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
@@ -272,7 +271,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         List<NCuboidLayout> round2 = new ArrayList<>();
         round2.add(df.getCubePlan().getCuboidLayout(1L));
         round2.add(df.getCubePlan().getCuboidLayout(20_000_000_001L));
-        round2.add(df.getCubePlan().getCuboidLayout(20_000_001_001L));
         round2.add(df.getCubePlan().getCuboidLayout(2001L));
         round2.add(df.getCubePlan().getCuboidLayout(1001L));
 
@@ -596,7 +594,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         // check row count in NDataSegDetails
         Assert.assertEquals(10000, seg.getCuboid(1).getRows());
-        Assert.assertEquals(10000, seg.getCuboid(2).getRows());
         Assert.assertEquals(10000, seg.getCuboid(1001).getRows());
         Assert.assertEquals(10000, seg.getCuboid(1002).getRows());
 

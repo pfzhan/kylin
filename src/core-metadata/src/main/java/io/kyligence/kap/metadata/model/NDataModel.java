@@ -56,6 +56,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import lombok.Getter;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -120,11 +121,11 @@ import lombok.EqualsAndHashCode;
 public class NDataModel extends RootPersistentEntity {
     private static final Logger logger = LoggerFactory.getLogger(NDataModel.class);
 
-    public static enum TableKind implements Serializable {
+    public enum TableKind implements Serializable {
         FACT, LOOKUP
     }
 
-    public static enum RealizationCapacity implements Serializable {
+    public enum RealizationCapacity implements Serializable {
         SMALL, MEDIUM, LARGE
     }
 
@@ -957,6 +958,7 @@ public class NDataModel extends RootPersistentEntity {
     @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
     @EqualsAndHashCode
     public static class NamedColumn implements Serializable, IKeep {
+        @Getter
         @JsonProperty("id")
         public int id;
 
@@ -974,6 +976,7 @@ public class NDataModel extends RootPersistentEntity {
 
     @EqualsAndHashCode
     public static class Measure extends MeasureDesc implements IKeep {
+        @Getter
         @JsonProperty("id")
         public int id;
         // logical delete symbol

@@ -204,4 +204,8 @@ public class SmartConfig {
     public boolean enableModelInnerJoinExactlyMatch() {
         return getOptional("model.inner-join.exactly-match", strategy.enableModelInnerJoinExactlyMatch());
     }
+
+    public int getProposeRetryMax() {
+        return getOptional("propose.retry-max", strategy.getProposeRetryMax());
+    }
 }

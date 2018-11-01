@@ -28,19 +28,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import javax.annotation.Nullable;
-
-import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
@@ -76,24 +71,11 @@ public class NCuboidReducer extends NAbstractCubeProposer {
         }
 
         // remove cuboids
-        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(context.getSmartContext().getKylinConfig(),
-                cubePlan.getProject());
         Map<NCuboidIdentifier, List<NCuboidLayout>> cuboidLayoutMap = Maps.newHashMap();
         for (Entry<NCuboidIdentifier, NCuboidDesc> entry : proposedCuboids.entrySet()) {
             cuboidLayoutMap.put(entry.getKey(), entry.getValue().getLayouts());
         }
-        cubePlan.removeLayouts(cuboidLayoutMap, new Predicate<NCuboidLayout>() {
-            @Override
-            public boolean apply(@Nullable NCuboidLayout input) {
-                // TODO check if this layout is used by other query
-                boolean hasExternalRef = false;
-                return hasExternalRef;
-            }
-        }, new Predicate2<NCuboidLayout, NCuboidLayout>() {
-            @Override
-            public boolean apply(NCuboidLayout o1, NCuboidLayout o2) {
-                return CuboidSuggester.compareLayouts(o1, o2);
-            }
-        });
+
+        cubePlan.removeLayouts(cuboidLayoutMap, NCuboidLayout::hasExternalRef, NCuboidLayout::equals);
     }
 }

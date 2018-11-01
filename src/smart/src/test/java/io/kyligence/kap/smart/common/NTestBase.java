@@ -26,6 +26,8 @@ package io.kyligence.kap.smart.common;
 
 import java.io.File;
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -33,22 +35,26 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.junit.After;
 import org.junit.Before;
 
+import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.smart.query.Utils;
 
 public abstract class NTestBase {
-    protected String metaDir = "src/test/resources/nsmart/learn_kylin/meta";
+
     protected String proj = "learn_kylin";
     protected File tmpMeta;
     protected KylinConfig kylinConfig;
 
     @Before
     public void setUp() throws Exception {
+        String metaDir = "src/test/resources/nsmart/learn_kylin/meta";
         tmpMeta = Files.createTempDir();
         FileUtils.copyDirectory(new File(metaDir), tmpMeta);
 
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getAbsolutePath());
+        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
     }
 
@@ -60,11 +66,17 @@ public abstract class NTestBase {
         ResourceStore.clearCache(kylinConfig);
     }
 
-    protected <T> int countInnerObj(Collection<T>... list) {
-        int i = 0;
-        for (Collection<T> l : list) {
-            i += l.size();
+    protected <T> int countInnerObj(Collection<Collection<T>> collections) {
+        if (collections == null)
+            return 0;
+        return collections.stream().flatMap(Collection::stream).collect(Collectors.toList()).size();
+    }
+
+    protected List<NCuboidLayout> collectAllLayouts(List<NCuboidDesc> cuboidDescs) {
+        List<NCuboidLayout> layouts = Lists.newArrayList();
+        for (NCuboidDesc cuboidDesc : cuboidDescs) {
+            layouts.addAll(cuboidDesc.getLayouts());
         }
-        return i;
+        return layouts;
     }
 }

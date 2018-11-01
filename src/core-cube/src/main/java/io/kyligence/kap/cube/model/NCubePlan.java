@@ -163,9 +163,6 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
      */
     private List<String> errors = Lists.newLinkedList();
 
-    public NCubePlan() {
-    }
-
     public void initAfterReload(KylinConfig config) {
         checkArgument(StringUtils.isNotBlank(name), "NCubePlan name is blank");
         checkArgument(StringUtils.isNotBlank(modelName), "NCubePlan (%s) has blank model name", name);
@@ -327,6 +324,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         return dimEncodingMap.get(model.getColId(dimColRef));
     }
 
+    @Override
     public String getResourcePath() {
         return new StringBuilder().append("/").append(project).append(CUBE_PLAN_RESOURCE_ROOT).append("/")
                 .append(getName()).append(MetadataConstants.FILE_SURFIX).toString();
@@ -424,11 +422,9 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
             return null;
 
         for (NDictionaryDesc desc : dictionaries) {
-            if (desc.getBuilderClass() != null) {
-                // column that reuses other's dict need not be built, thus should not reach here
-                if (col.equals(desc.getColumnRef())) {
-                    return desc.getBuilderClass();
-                }
+            // column that reuses other's dict need not be built, thus should not reach here
+            if (desc.getBuilderClass() != null && col.equals(desc.getColumnRef())) {
+                return desc.getBuilderClass();
             }
         }
         return null;
@@ -456,7 +452,6 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
         ret.addAll(ruleBasedCuboids);
         return ret;
     }
-
 
     public List<NCuboidLayout> getAllCuboidLayouts() {
         List<NCuboidLayout> r = Lists.newArrayList();
@@ -649,7 +644,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     }
 
     public void removeLayouts(Map<NCuboidDesc.NCuboidIdentifier, List<NCuboidLayout>> cuboids,
-                              Predicate<NCuboidLayout> isSkip, Predicate2<NCuboidLayout, NCuboidLayout> equal) {
+            Predicate<NCuboidLayout> isSkip, Predicate2<NCuboidLayout, NCuboidLayout> equal) {
         Map<NCuboidDesc.NCuboidIdentifier, NCuboidDesc> originalCuboidsMap = getWhiteListCuboidsMap();
         for (Map.Entry<NCuboidDesc.NCuboidIdentifier, List<NCuboidLayout>> cuboidEntity : cuboids.entrySet()) {
             NCuboidDesc.NCuboidIdentifier cuboidKey = cuboidEntity.getKey();
@@ -673,12 +668,11 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
      * @param comparator      compare if two layouts is equal
      */
     public void removeLayouts(Map<NCuboidDesc.NCuboidIdentifier, List<NCuboidLayout>> cuboidLayoutMap,
-                              Predicate2<NCuboidLayout, NCuboidLayout> comparator) {
+            Predicate2<NCuboidLayout, NCuboidLayout> comparator) {
         removeLayouts(cuboidLayoutMap, null, comparator);
     }
 
-    public void removeLayouts(Set<Long> cuboidLayoutIds,
-                              Predicate2<NCuboidLayout, NCuboidLayout> comparator) {
+    public void removeLayouts(Set<Long> cuboidLayoutIds, Predicate2<NCuboidLayout, NCuboidLayout> comparator) {
         val cuboidMap = Maps.newHashMap(getWhiteListCuboidsMap());
         val toRemovedMap = Maps.<NCuboidDesc.NCuboidIdentifier, List<NCuboidLayout>> newHashMap();
         for (Map.Entry<NCuboidDesc.NCuboidIdentifier, NCuboidDesc> cuboidDescEntry : cuboidMap.entrySet()) {

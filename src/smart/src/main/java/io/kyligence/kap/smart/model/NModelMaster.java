@@ -26,14 +26,13 @@ package io.kyligence.kap.smart.model;
 
 import java.util.ArrayList;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.util.CubeUtils;
 
@@ -58,7 +57,7 @@ public class NModelMaster {
         modelDesc.setDescription(StringUtils.EMPTY);
         modelDesc.setFilterCondition(StringUtils.EMPTY);
         modelDesc.setPartitionDesc(new PartitionDesc());
-        modelDesc.setComputedColumnDescs(new ArrayList<ComputedColumnDesc>());
+        modelDesc.setComputedColumnDescs(new ArrayList<>());
 
         FunctionDesc countStar = CubeUtils.newCountStarFuncDesc(modelDesc);
         NDataModel.Measure countStarMeasure = CubeUtils.newMeasure(countStar, "COUNT_ALL", NDataModel.MEASURE_ID_BASE);
@@ -73,7 +72,7 @@ public class NModelMaster {
     public NDataModel proposeScope(NDataModel modelDesc) {
         return proposerProvider.getScopeProposer().propose(modelDesc);
     }
-    
+
     public NDataModel proposePartition(NDataModel modelDesc) {
         return proposerProvider.getPartitionProposer().propose(modelDesc);
     }

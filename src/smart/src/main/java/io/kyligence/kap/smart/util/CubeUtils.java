@@ -24,15 +24,51 @@
 
 package io.kyligence.kap.smart.util;
 
+import java.util.Map;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.routing.RealizationChooser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.common.SmartConfig;
+import io.kyligence.kap.smart.cube.CuboidSuggester;
+import io.kyligence.kap.smart.model.ModelTree;
 
 public class CubeUtils {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(CubeUtils.class);
+
+    private static final String BIG_INT = "bigint";
+
+    private CubeUtils() {
+    }
+
+    public static void proposeCuboidDescMap(NSmartContext.NModelContext context, NCubePlan cubePlan,
+            Map<NCuboidDesc.NCuboidIdentifier, NCuboidDesc> originalCuboidsMap) {
+        NDataModel model = context.getTargetModel();
+        ModelTree modelTree = context.getModelTree();
+        CuboidSuggester suggester = new CuboidSuggester(context.getSmartContext(), model, cubePlan, originalCuboidsMap);
+        for (OLAPContext ctx : modelTree.getOlapContexts()) {
+            Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
+            ctx.fixModel(model, aliasMap);
+            try {
+                suggester.ingest(ctx, model);
+            } catch (Exception e) {
+                LOGGER.error("Unable to suggest cuboid for CubePlan", e);
+                continue;
+            }
+            ctx.unfixModel();
+        }
+    }
 
     public static FunctionDesc newFunctionDesc(NDataModel modelDesc, String expression, ParameterDesc param,
             String colDataType) {
@@ -42,7 +78,7 @@ public class CubeUtils {
             if (colDataType != null) {
                 DataType type = DataType.getType(returnType);
                 if (type.isIntegerFamily()) {
-                    returnType = "bigint";
+                    returnType = BIG_INT;
                 } else if (type.isDecimal()) {
                     returnType = String.format("decimal(19,%d)", type.getScale());
                 }
@@ -51,10 +87,10 @@ public class CubeUtils {
             }
             break;
         case FunctionDesc.FUNC_COUNT:
-            returnType = "bigint";
+            returnType = BIG_INT;
             break;
         case FunctionDesc.FUNC_COUNT_DISTINCT:
-            returnType = SmartConfig.wrap(KylinConfig.getInstanceFromEnv()).getMeasureCountDistinctType(); //"hllc(10)";
+            returnType = SmartConfig.wrap(KylinConfig.getInstanceFromEnv()).getMeasureCountDistinctType(); //"hllc(10)"
             break;
         case FunctionDesc.FUNC_PERCENTILE:
             returnType = "percentile(100)";
@@ -69,14 +105,14 @@ public class CubeUtils {
     }
 
     public static FunctionDesc newCountStarFuncDesc(NDataModel modelDesc) {
-        return newFunctionDesc(modelDesc, FunctionDesc.FUNC_COUNT, ParameterDesc.newInstance("1"), "bigint");
+        return newFunctionDesc(modelDesc, FunctionDesc.FUNC_COUNT, ParameterDesc.newInstance("1"), BIG_INT);
     }
 
     public static NDataModel.Measure newMeasure(FunctionDesc func, String name, int id) {
         NDataModel.Measure measure = new NDataModel.Measure();
         measure.setName(name);
         measure.setFunction(func);
-        measure.id = NDataModel.MEASURE_ID_BASE;
+        measure.id = id;
         return measure;
     }
 }

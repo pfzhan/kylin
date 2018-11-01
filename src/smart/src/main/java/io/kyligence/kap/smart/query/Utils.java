@@ -85,6 +85,7 @@ public class Utils {
         } catch (Exception e) {
             logger.warn("Pass KylinConfig export exception", e);
             props = new Properties();
+            props.put("kylin.query.schema-factory", "io.kyligence.kap.query.schema.KapSchemaFactory");
         }
         setLargeCuboidCombinationConf(props);
         props.setProperty("kylin.env", "DEV");

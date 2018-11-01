@@ -24,16 +24,13 @@
 
 package io.kyligence.kap.smart.cube;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -150,12 +147,19 @@ public class CuboidSuggester {
         return shardBy;
     }
 
-    private List<Integer> suggestSortBy(Collection<Integer> dimIds) {
-        if (!dimIds.isEmpty()) {
-            // TODO choose reasonable sort key(s)
-            return Arrays.asList(dimIds.iterator().next());
+    private List<Integer> suggestSortBy(OLAPContext ctx) {
+        // TODO need a more proper fix
+        if (CollectionUtils.isEmpty(ctx.getSortColumns())) {
+            return Lists.newArrayList();
         }
-        return Lists.newArrayList();
+
+        List<Integer> ret = Lists.newArrayList();
+        for (TblColRef col : ctx.getSortColumns()) {
+            final Integer id = colIdMap.get(col);
+            Preconditions.checkNotNull(id);
+            ret.add(id);
+        }
+        return ret;
     }
 
     private Map<Integer, Double> getDimScores(OLAPContext ctx) {
@@ -206,22 +210,12 @@ public class CuboidSuggester {
         }
     }
 
-    static boolean compareLayouts(NCuboidLayout l1, NCuboidLayout l2) {
-        // TODO: currently it's exact equals, we should tolerate some order and cf inconsistency
-        //TODO: https://stackoverflow.com/questions/124585/java-equals-to-reflect-or-not-to-reflect use EqualsBuilder
-        return Objects.equals(l1.getColOrder(), l2.getColOrder())
-                && Objects.equals(l1.getLayoutOverrideIndices(), l2.getLayoutOverrideIndices())
-                && Objects.equals(l1.getStorageType(), l2.getStorageType())
-                && Objects.equals(l1.getShardByColumns(), l2.getShardByColumns())
-                && Objects.equals(l1.getSortByColumns(), l2.getSortByColumns());
-    }
-
-    void ingest(OLAPContext ctx, NDataModel model) {
+    public void ingest(OLAPContext ctx, NDataModel model) {
         final Map<Integer, Double> dimScores = getDimScores(ctx);
         SortedSet<Integer> measureIds = Sets.newTreeSet();
 
-        boolean useTableIndex = ctx.getSQLDigest().isRawQuery;
-        NCuboidDesc cuboidDesc = useTableIndex ? createTableIndex(ctx, dimScores)
+        boolean isTableIndex = ctx.getSQLDigest().isRawQuery;
+        NCuboidDesc cuboidDesc = isTableIndex ? createTableIndex(ctx, dimScores)
                 : createAggregatedIndex(ctx, dimScores, measureIds);
 
         final NCuboidIdentifier cuboidIdentifier = cuboidDesc.createCuboidIdentifier();
@@ -233,27 +227,22 @@ public class CuboidSuggester {
 
         List<Integer> shardBy = Lists.newArrayList();
         List<Integer> sortBy = Lists.newArrayList();
-        if (useTableIndex) {
+        if (isTableIndex) {
             shardBy = suggestShardBy(dimScores.keySet());
-            sortBy = suggestSortBy(dimScores.keySet());
-            // compare shardbyColumns and sortByColumns of existing layouts with current computed
-            for (NCuboidLayout lay : cuboidDesc.getLayouts()) {
-                if (Objects.equals(lay.getSortByColumns(), sortBy) &&Objects.equals(lay.getShardByColumns(), shardBy)) {
-                    return;
-                }
-            }
+            sortBy = suggestSortBy(ctx);
         }
 
         NCuboidLayout layout = new NCuboidLayout();
         layout.setId(suggestLayoutId(cuboidDesc));
         layout.setLayoutOverrideIndices(suggestIndexMap(ctx, dimScores, model.getEffectiveColsMap()));
-        layout.setColOrder(suggestColOrder(dimScores, measureIds));
+        layout.setColOrder(suggestColOrder(dimScores, measureIds, isTableIndex));
         layout.setCuboidDesc(cuboidDesc);
         layout.setShardByColumns(shardBy);
         layout.setSortByColumns(sortBy);
+        layout.setDraftVersion(context.getDraftVersion());
 
         for (NCuboidLayout l : cuboidDesc.getLayouts()) {
-            if (compareLayouts(l, layout))
+            if (l.equals(layout))
                 return;
         }
 
@@ -267,7 +256,7 @@ public class CuboidSuggester {
             dimScores.put(model.getColumnIdByColumnName(col.getIdentity()), -1D);
         }
 
-        return createCuboidDesc(dimScores.keySet(), new HashSet<Integer>(), true);
+        return createCuboidDesc(dimScores.keySet(), new HashSet<>(), true);
     }
 
     private NCuboidDesc createAggregatedIndex(OLAPContext ctx, Map<Integer, Double> dimScores,
@@ -331,21 +320,20 @@ public class CuboidSuggester {
         return cuboidDesc;
     }
 
-    private List<Integer> suggestColOrder(final Map<Integer, Double> dimScores, Set<Integer> measureIds) {
+    private List<Integer> suggestColOrder(final Map<Integer, Double> dimScores, Set<Integer> measureIds,
+            boolean isTableIndex) {
         List<Integer> colOrder = Lists.newArrayList();
 
         colOrder.addAll(dimScores.keySet());
-        Collections.sort(colOrder, new Comparator<Integer>() {
-            @Override
-            public int compare(Integer c1, Integer c2) {
+        colOrder.sort((c1, c2) -> {
+            if (!isTableIndex) {
                 if (dimScores.get(c1) < dimScores.get(c2)) {
                     return 1;
                 } else if (dimScores.get(c1) > dimScores.get(c2)) {
                     return -1;
-                } else {
-                    return Integer.compare(c1, c2);
                 }
             }
+            return Integer.compare(c1, c2);
         });
 
         colOrder.addAll(measureIds);
@@ -353,7 +341,36 @@ public class CuboidSuggester {
     }
 
     private long suggestDescId(boolean isTableIndex) {
-        return findLargestCuboidDescId(collector.values(), isTableIndex) + NCuboidDesc.CUBOID_DESC_ID_STEP;
+        return findAvailableCuboidDescId(isTableIndex);
+    }
+
+    private long findAvailableCuboidDescId(boolean isTableIndex) {
+        final Collection<NCuboidDesc> cuboidDescs = collector.values();
+        long result = isTableIndex ? NCuboidDesc.TABLE_INDEX_START_ID : 0;
+        List<Long> cuboidIds = Lists.newArrayList();
+        for (NCuboidDesc cuboidDesc : cuboidDescs) {
+            long cuboidDescId = cuboidDesc.getId();
+            if ((isTableIndex && cuboidDescId >= NCuboidDesc.TABLE_INDEX_START_ID)
+                    || (!isTableIndex && cuboidDescId < NCuboidDesc.TABLE_INDEX_START_ID)) {
+                cuboidIds.add(cuboidDescId);
+            }
+        }
+
+        if (cuboidIds.isEmpty()) {
+            return result;
+        }
+
+        Collections.sort(cuboidIds);
+        for (Long cuboidId : cuboidIds) {
+            // exist cuboid gap
+            if (cuboidId - result > NCuboidDesc.CUBOID_DESC_ID_STEP) {
+                break;
+            } else {
+                result = cuboidId;
+            }
+        }
+
+        return result + NCuboidDesc.CUBOID_DESC_ID_STEP;
     }
 
     private long suggestLayoutId(NCuboidDesc cuboidDesc) {
@@ -362,29 +379,5 @@ public class CuboidSuggester {
             s++;
         }
         return s;
-    }
-
-    private long findLargestCuboidDescId(Collection<NCuboidDesc> cuboidDescs, boolean isTableIndex) {
-        if (isTableIndex) {
-            long maxId = NCuboidDesc.TABLE_INDEX_START_ID - NCuboidDesc.CUBOID_DESC_ID_STEP;
-            for (NCuboidDesc cuboidDesc : cuboidDescs) {
-                long cuboidId = cuboidDesc.getId();
-                if (cuboidId < NCuboidDesc.TABLE_INDEX_START_ID) {
-                    continue;
-                }
-                maxId = Math.max(maxId, cuboidId);
-            }
-            return maxId;
-        } else {
-            long maxId = 0 - NCuboidDesc.CUBOID_DESC_ID_STEP;
-            for (NCuboidDesc cuboidDesc : cuboidDescs) {
-                long cuboidId = cuboidDesc.getId();
-                if (cuboidId >= NCuboidDesc.TABLE_INDEX_START_ID) {
-                    continue;
-                }
-                maxId = Math.max(maxId, cuboidId);
-            }
-            return maxId;
-        }
     }
 }

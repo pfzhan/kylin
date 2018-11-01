@@ -29,17 +29,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.Sets;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
@@ -50,9 +48,9 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 
 public class NSmartMaster {
 
-    private static final String MODEL_NAME_PREFIX = "AUTO_MODEL_";
-    @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NSmartMaster.class);
+
+    private static final String MODEL_NAME_PREFIX = "AUTO_MODEL_";
 
     private NSmartContext context;
     private NProposerProvider proposerProvider;
@@ -60,6 +58,12 @@ public class NSmartMaster {
 
     public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls) {
         this.context = new NSmartContext(kylinConfig, project, sqls);
+        this.proposerProvider = NProposerProvider.create(context);
+        this.dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
+    }
+
+    public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls, String draftVersion) {
+        this.context = new NSmartContext(kylinConfig, project, sqls, draftVersion);
         this.proposerProvider = NProposerProvider.create(context);
         this.dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
     }
@@ -87,11 +91,11 @@ public class NSmartMaster {
     public void optimizeCubePlan() {
         proposerProvider.getCubePlanOptProposer().propose();
     }
-    
+
     public void shrinkCubePlan() {
         proposerProvider.getCubePlanShrinkProposer().propose();
     }
-    
+
     public void shrinkModel() {
         proposerProvider.getModelShrinkProposer().propose();
     }
@@ -116,6 +120,34 @@ public class NSmartMaster {
                 targetModel.setAlias(originalModel.getAlias());
             }
         }
+    }
+
+    public void refreshCubePlan() {
+        proposerProvider.getCubePlanRefreshProposer().propose();
+    }
+
+    public void refreshCubePlanWithRetry() throws IOException {
+        int maxRetry = context.getSmartConfig().getProposeRetryMax();
+        for (int i = 0; i <= maxRetry; i++) {
+            try {
+                selectModelAndCubePlan();
+                refreshCubePlan();
+                saveModel();
+                saveCubePlan();
+                logger.debug("save successfully after refresh");
+                return;
+            } catch (IllegalStateException e) {
+                logger.warn("save error after refresh, have retried " + i + " times", e);
+            }
+        }
+
+        throw new IllegalStateException("refreshCubePlanWithRetry exceed max retry count: " + maxRetry);
+    }
+
+    public void selectModelAndCubePlan() {
+        analyzeSQLs();
+        selectModel();
+        selectCubePlan();
     }
 
     public void runAll() throws IOException {
@@ -149,13 +181,12 @@ public class NSmartMaster {
 
             for (NDataSegment seg : df.getSegments()) {
                 Map<Long, NDataCuboid> cuboidMap = seg.getCuboidsMap();
-                for (NCuboidDesc desc : cubePlan.getAllCuboids()) {
-                    for (NCuboidLayout layout : desc.getLayouts()) {
-                        if (!cuboidMap.containsKey(layout.getId())) {
-                            toAddCuboids.add(NDataCuboid.newDataCuboid(df, seg.getId(), layout.getId()));
-                        }
+
+                cubePlan.getAllCuboids().forEach(desc -> desc.getLayouts().forEach(layout -> {
+                    if (!cuboidMap.containsKey(layout.getId())) {
+                        toAddCuboids.add(NDataCuboid.newDataCuboid(df, seg.getId(), layout.getId()));
                     }
-                }
+                }));
             }
 
             update.setToAddOrUpdateCuboids(toAddCuboids.toArray(new NDataCuboid[0]));

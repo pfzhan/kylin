@@ -30,7 +30,6 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
@@ -47,15 +46,8 @@ public class NCuboidProposer extends NAbstractCubeProposer {
 
     @Override
     void doPropose(NCubePlan cubePlan) {
-        Map<NCuboidIdentifier, NCuboidDesc> cuboidDescMap = Maps.newLinkedHashMap();
-        for (NCuboidDesc cuboidDesc : cubePlan.getAllCuboids()) {
-            NCuboidIdentifier identifier = cuboidDesc.createCuboidIdentifier();
-            if (!cuboidDescMap.containsKey(identifier)) {
-                cuboidDescMap.put(identifier, cuboidDesc);
-            } else {
-                cuboidDescMap.get(identifier).getLayouts().addAll(cuboidDesc.getLayouts());
-            }
-        }
+
+        Map<NCuboidIdentifier, NCuboidDesc> cuboidDescMap = cubePlan.getWhiteListCuboidsMap();
 
         NDataModel model = context.getTargetModel();
         ModelTree modelTree = context.getModelTree();

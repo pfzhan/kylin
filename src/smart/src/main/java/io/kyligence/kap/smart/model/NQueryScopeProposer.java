@@ -25,7 +25,6 @@
 package io.kyligence.kap.smart.model;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -155,12 +154,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             allTableColumns.addAll(tableColumns);
 
             TblColRef[] colArray = ctx.allColumns.toArray(new TblColRef[0]);
-            Arrays.sort(colArray, new Comparator<TblColRef>() {
-                @Override
-                public int compare(TblColRef o1, TblColRef o2) {
-                    return o1.getIdentity().compareTo(o2.getIdentity());
-                }
-            });
+            Arrays.sort(colArray, Comparator.comparing(TblColRef::getIdentity));
             Set<TblColRef> allColumns = Sets.newLinkedHashSet(Arrays.asList(colArray));
 
             if (allColumns == null || allColumns.isEmpty()) {
@@ -188,7 +182,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             }
             return this;
         }
-        
+
         private ScopeBuilder collectCtxMeasures(OLAPContext ctx) {
             List<FunctionDesc> aggregations = Lists.newLinkedList(ctx.aggregations);
             for (FunctionDesc agg : aggregations) {
@@ -203,12 +197,9 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 }
                 if (checkFunctionDesc(agg)) {
                     FunctionDesc newFunc = copyFunctionDesc(agg);
-                    NDataModel.Measure measure = new NDataModel.Measure();
-                    measure.id = ++maxMeasureId;
-                    String type = newFunc.getExpression();
-                    String columnName = newFunc.getParameter().getColRef().getName();
-                    measure.setName(type + "_" + columnName);
-                    measure.setFunction(newFunc);
+                    String name = String.format("%s_%s", newFunc.getExpression(),
+                            newFunc.getParameter().getColRef().getName());
+                    NDataModel.Measure measure = CubeUtils.newMeasure(newFunc, name, ++maxMeasureId);
                     measureCandidate.put(newFunc, measure);
                 }
             }
@@ -248,27 +239,16 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
             FunctionDesc countStar = CubeUtils.newCountStarFuncDesc(nDataModel);
             if (!measureCandidate.containsKey(countStar)) {
-                NDataModel.Measure measure = new NDataModel.Measure();
-                measure.id = ++maxMeasureId;
-                measureCandidate.put(countStar, measure);
+                final Measure newMeasure = CubeUtils.newMeasure(countStar, "COUNT_ALL", ++maxMeasureId);
+                measureCandidate.put(countStar, newMeasure);
             }
 
             List<NDataModel.NamedColumn> namedColumns = Lists.newArrayList(namedColsCandidate.values());
-            Collections.sort(namedColumns, new Comparator<NDataModel.NamedColumn>() {
-                @Override
-                public int compare(NDataModel.NamedColumn o1, NDataModel.NamedColumn o2) {
-                    return o1.id - o2.id;
-                }
-            });
+            namedColumns.sort(Comparator.comparingInt(NDataModel.NamedColumn::getId));
             nDataModel.setAllNamedColumns(namedColumns);
 
             List<NDataModel.Measure> measures = Lists.newArrayList(measureCandidate.values());
-            Collections.sort(measures, new Comparator<NDataModel.Measure>() {
-                @Override
-                public int compare(NDataModel.Measure o1, NDataModel.Measure o2) {
-                    return o1.id - o2.id;
-                }
-            });
+            measures.sort(Comparator.comparingInt(NDataModel.Measure::getId));
             nDataModel.setAllMeasures(measures);
         }
 
@@ -292,11 +272,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 }
             }
 
-            if (functionDesc.isGrouping()) {
-                return false;
-            }
-
-            return true;
+            return !functionDesc.isGrouping();
         }
 
         private ParameterDesc copyParameterDesc(ParameterDesc param) {

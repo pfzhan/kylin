@@ -186,7 +186,7 @@ public class OLAPContext {
     public List<JoinDesc> joins = new LinkedList<>();
     public JoinsTree joinsTree;
     @Getter @Setter private JoinsGraph joinsGraph;
-    List<TblColRef> sortColumns;
+    @Getter @Setter private List<TblColRef> sortColumns;
     List<SQLDigest.OrderEnum> sortOrders;
 
     // rewrite info
@@ -216,7 +216,7 @@ public class OLAPContext {
     }
 
     public boolean hasPrecalculatedFields() {
-        //        return realization instanceof DataFlow;
+        // return realization instanceof DataFlow
         return true;
     }
 
@@ -345,7 +345,6 @@ public class OLAPContext {
     // ============================================================================
 
     public interface IAccessController {
-        public void check(List<OLAPContext> contexts, OLAPRel tree, KylinConfig config) throws IllegalStateException;
+        void check(List<OLAPContext> contexts, OLAPRel tree, KylinConfig config);
     }
-
 }

@@ -26,8 +26,12 @@ package io.kyligence.kap.smart;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.Assert;
@@ -39,9 +43,9 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.NTestBase;
 import io.kyligence.kap.smart.model.ModelTree;
@@ -87,8 +91,7 @@ public class NSmartMasterTest extends NTestBase {
             smartMaster.analyzeSQLs();
             NSmartContext ctx = smartMaster.getContext();
             Assert.assertEquals(1, ctx.getModelContexts().size());
-            Assert.assertEquals(expectedEffectiveOLAPCtxNum,
-                    countInnerObj(ctx.getOlapContexts().values().toArray(new Collection[0])));
+            Assert.assertEquals(expectedEffectiveOLAPCtxNum, countInnerObj(ctx.getOlapContexts().values()));
 
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
             Assert.assertNotNull(mdCtx.getModelTree());
@@ -139,7 +142,7 @@ public class NSmartMasterTest extends NTestBase {
 
             List<NCuboidDesc> cuboidDescs = cubePlan.getAllCuboids();
             Assert.assertEquals(2, cuboidDescs.size());
-            Assert.assertEquals(3, countInnerObj(cuboidDescs.get(0).getLayouts(), cuboidDescs.get(1).getLayouts()));
+            Assert.assertEquals(3, collectAllLayouts(cuboidDescs).size());
         }
 
         // save
@@ -180,8 +183,7 @@ public class NSmartMasterTest extends NTestBase {
             smartMaster.analyzeSQLs();
             NSmartContext ctx = smartMaster.getContext();
             Assert.assertEquals(1, ctx.getModelContexts().size());
-            Assert.assertEquals(expectedEffectiveOLAPCtxNum,
-                    countInnerObj(ctx.getOlapContexts().values().toArray(new Collection[0])));
+            Assert.assertEquals(expectedEffectiveOLAPCtxNum, countInnerObj(ctx.getOlapContexts().values()));
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
             Assert.assertNotNull(mdCtx.getModelTree());
         }
@@ -228,8 +230,7 @@ public class NSmartMasterTest extends NTestBase {
 
             List<NCuboidDesc> cuboidDescs = cubePlan.getAllCuboids();
             Assert.assertEquals(4, cuboidDescs.size());
-            Assert.assertEquals(6, countInnerObj(cuboidDescs.get(0).getLayouts(), cuboidDescs.get(1).getLayouts(),
-                    cuboidDescs.get(2).getLayouts(), cuboidDescs.get(3).getLayouts()));
+            Assert.assertEquals(6, collectAllLayouts(cuboidDescs));
         }
 
         // save
@@ -592,16 +593,15 @@ public class NSmartMasterTest extends NTestBase {
             model1 = proposeModel(sqlStatements);
         }
         {
-            String[] sqlStatements = new String[] { "SELECT f.leaf_categ_id FROM kylin_sales f left join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN'" };
+            String[] sqlStatements = new String[] {
+                    "SELECT f.leaf_categ_id FROM kylin_sales f left join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN'" };
             model2 = proposeModel(sqlStatements);
         }
         {
-            String[] sqlStatements = new String[] {
-                    "SELECT t1.leaf_categ_id, COUNT(*) AS nums"
-                            + " FROM (SELECT f.leaf_categ_id FROM kylin_sales f inner join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN') t1"
-                            + " INNER JOIN (SELECT leaf_categ_id FROM kylin_sales f INNER JOIN KYLIN_ACCOUNT o ON f.buyer_id = o.account_id WHERE buyer_id > 100) t2"
-                            + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id"
-            };
+            String[] sqlStatements = new String[] { "SELECT t1.leaf_categ_id, COUNT(*) AS nums"
+                    + " FROM (SELECT f.leaf_categ_id FROM kylin_sales f inner join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN') t1"
+                    + " INNER JOIN (SELECT leaf_categ_id FROM kylin_sales f INNER JOIN KYLIN_ACCOUNT o ON f.buyer_id = o.account_id WHERE buyer_id > 100) t2"
+                    + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id" };
             model3 = proposeModel(sqlStatements);
         }
         String model1Alias = model1.getAlias();
@@ -612,33 +612,110 @@ public class NSmartMasterTest extends NTestBase {
         Assert.assertEquals("AUTO_MODEL_KYLIN_SALES_2", model3Alias);
     }
 
+    /**
+     * Refer to: <ref>NCuboidRefresherTest.testParallelTimeLineRetryWithMultiThread()</ref>
+     */
+    @Test
+    public void testRefreshCubePlanWithRetry() throws IOException, ExecutionException, InterruptedException {
+        String[] sqlsA = new String[] {
+                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
+                        + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name",
+                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
+                        + "where part_dt = '2012-01-02' group by part_dt, lstg_format_name",
+                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
+                        + "where lstg_format_name > 'ABIN' group by part_dt, lstg_format_name",
+                "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt",
+                "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
+        String draftVersionA = UUID.randomUUID().toString();
+        NSmartMaster smartMasterA = new NSmartMaster(kylinConfig, proj, sqlsA, draftVersionA);
+        smartMasterA.runAll();
+
+        String draftVersionB = UUID.randomUUID().toString();
+        String[] sqlsB = new String[] {
+
+                "select lstg_format_name, part_dt, price from kylin_sales where part_dt = '2012-01-01'",
+                "select lstg_format_name, part_dt, price, item_count from kylin_sales where part_dt = '2012-01-01'" };
+        NSmartMaster smartMasterB = new NSmartMaster(kylinConfig, proj, sqlsB, draftVersionB);
+        smartMasterB.runAll();
+
+        String draftVersionC = UUID.randomUUID().toString();
+        String[] sqlsC = new String[] {
+
+                "select lstg_format_name, price from kylin_sales where price = 100" };
+        NSmartMaster smartMasterC = new NSmartMaster(kylinConfig, proj, sqlsC, draftVersionC);
+        smartMasterC.runAll();
+
+        ExecutorService service = Executors.newCachedThreadPool();
+        Future futureA = service.submit(() -> {
+            try {
+                smartMasterA.refreshCubePlanWithRetry();
+            } catch (IOException e) {
+                Assert.fail();
+            }
+        });
+
+        Future futureB = service.submit(() -> {
+            try {
+                smartMasterB.refreshCubePlanWithRetry();
+            } catch (IOException e) {
+                Assert.fail();
+            }
+        });
+
+        Future futureC = service.submit(() -> {
+            try {
+                smartMasterC.refreshCubePlanWithRetry();
+            } catch (IOException e) {
+                Assert.fail();
+            }
+        });
+
+        futureA.get();
+        futureB.get();
+        futureC.get();
+
+        final NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig, proj);
+        final List<NCubePlan> cubePlans = cubePlanManager.listAllCubePlans();
+        Assert.assertEquals(1, cubePlans.size());
+
+        final List<NCuboidDesc> allCuboids = cubePlans.get(0).getAllCuboids();
+        Assert.assertEquals(5, allCuboids.size());
+        Assert.assertEquals(6, collectAllLayouts(allCuboids).size());
+    }
+
+    @Test
+    public void testRefreshCubePlanWithRetryFail() {
+        kylinConfig.setProperty("kap.smart.conf.propose.retry-max", "0");
+        try {
+
+            testRefreshCubePlanWithRetry();
+            Assert.fail();
+        } catch (Exception e) {
+            Assert.assertTrue(e instanceof ExecutionException);
+            Assert.assertTrue(e.getCause() instanceof IllegalStateException);
+        }
+    }
+
     @Ignore
     @Test
     public void testRenameAllColumns() throws Exception {
         // test all named columns rename
-        String[] sqlStatements = new String[] {
-                "SELECT\n" +
-                "BUYER_ACCOUNT.ACCOUNT_COUNTRY, SELLER_ACCOUNT.ACCOUNT_COUNTRY " +
-                "FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT \n" +
-                "INNER JOIN TEST_ORDER as TEST_ORDER\n" +
-                "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" +
-                "INNER JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n" +
-                "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n" +
-                "INNER JOIN TEST_ACCOUNT as SELLER_ACCOUNT\n" +
-                "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID\n" +
-                "INNER JOIN EDW.TEST_CAL_DT as TEST_CAL_DT\n" +
-                "ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n" +
-                "INNER JOIN TEST_CATEGORY_GROUPINGS as TEST_CATEGORY_GROUPINGS\n" +
-                "ON TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID\n" +
-                "INNER JOIN EDW.TEST_SITES as TEST_SITES\n" +
-                "ON TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_SITES.SITE_ID\n" +
-                "INNER JOIN EDW.TEST_SELLER_TYPE_DIM as TEST_SELLER_TYPE_DIM\n" +
-                "ON TEST_KYLIN_FACT.SLR_SEGMENT_CD = TEST_SELLER_TYPE_DIM.SELLER_TYPE_CD\n" +
-                "INNER JOIN TEST_COUNTRY as BUYER_COUNTRY\n" +
-                "ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY\n" +
-                "INNER JOIN TEST_COUNTRY as SELLER_COUNTRY\n" +
-                "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY"
-        };
+        String[] sqlStatements = new String[] { "SELECT\n"
+                + "BUYER_ACCOUNT.ACCOUNT_COUNTRY, SELLER_ACCOUNT.ACCOUNT_COUNTRY "
+                + "FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT \n" + "INNER JOIN TEST_ORDER as TEST_ORDER\n"
+                + "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + "INNER JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n"
+                + "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n" + "INNER JOIN TEST_ACCOUNT as SELLER_ACCOUNT\n"
+                + "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID\n"
+                + "INNER JOIN EDW.TEST_CAL_DT as TEST_CAL_DT\n" + "ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n"
+                + "INNER JOIN TEST_CATEGORY_GROUPINGS as TEST_CATEGORY_GROUPINGS\n"
+                + "ON TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID\n"
+                + "INNER JOIN EDW.TEST_SITES as TEST_SITES\n" + "ON TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_SITES.SITE_ID\n"
+                + "INNER JOIN EDW.TEST_SELLER_TYPE_DIM as TEST_SELLER_TYPE_DIM\n"
+                + "ON TEST_KYLIN_FACT.SLR_SEGMENT_CD = TEST_SELLER_TYPE_DIM.SELLER_TYPE_CD\n"
+                + "INNER JOIN TEST_COUNTRY as BUYER_COUNTRY\n"
+                + "ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY\n"
+                + "INNER JOIN TEST_COUNTRY as SELLER_COUNTRY\n"
+                + "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY" };
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, "newten", sqlStatements);
         smartMaster.analyzeSQLs();
         smartMaster.selectModel();
@@ -668,219 +745,219 @@ public class NSmartMasterTest extends NTestBase {
         return modelContext.getTargetModel();
     }
 
-/*
+    /*
     public void testNewtenDemoScript() throws Exception {
         metaDir = "src/test/resources/nsmart/newten/meta";
         proj = "newten";
         setupManagers();
-
+    
         String[] sqls = new String[] { 
-
-"select lstg_format_name, sum(price) as GMV "
-+ " from test_kylin_fact "
-+ " where test_kylin_fact.seller_id in ( 10000002, 10000003, 10000004,10000005,10000006,10000008,10000009,10000001,10000010,10000011)"
-+ " group by lstg_format_name"
-,
-"select sum(PRICE) as GMV, LSTG_FORMAT_NAME as FORMAT_NAME"
-+ " from test_kylin_fact"
-+ " where (LSTG_FORMAT_NAME in ('ABIN')) or (LSTG_FORMAT_NAME>='FP-GTC' and LSTG_FORMAT_NAME<='Others')"
-+ " group by LSTG_FORMAT_NAME"
-,
-"select test_kylin_fact.cal_dt, count(*) as mmm"
-+ " from test_kylin_fact inner JOIN edw.test_cal_dt as test_cal_dt"
-+ " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
-+ " inner JOIN test_category_groupings"
-+ " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
-+ " inner JOIN edw.test_sites as test_sites"
-+ " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
-+ " where lstg_format_name = 'Others' "
-+ " group by test_kylin_fact.cal_dt order by test_kylin_fact.cal_dt"
-,
-"select test_kylin_fact.cal_dt,test_kylin_fact.seller_id, sum(test_kylin_fact.price) as GMV, count(*) as TRANS_CNT "
-+ " from test_kylin_fact"
-+ " where DATE '2012-09-01' <= test_kylin_fact.cal_dt and test_kylin_fact.seller_id = 10000002"
-+ " group by test_kylin_fact.cal_dt, test_kylin_fact.seller_id"
-,
-"select sum(price) as GMV, count(*) as TRANS_CNT "
-+ " FROM test_kylin_fact"
-+ " inner JOIN edw.test_cal_dt as test_cal_dt"
-+ " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
-+ " inner JOIN test_category_groupings"
-+ " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id"
-+ " AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id "
-+ " where test_kylin_fact.cal_dt < DATE '2012-05-01' or test_kylin_fact.cal_dt > DATE '2013-05-01'"
-,
-"select test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt,sum(test_kylin_fact.price) as GMV, count(*) as TRANS_CNT "
-+ " from test_kylin_fact "
-+ " inner JOIN edw.test_cal_dt as test_cal_dt"
-+ " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
-+ " inner JOIN test_category_groupings"
-+ " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
-+ " inner JOIN edw.test_sites as test_sites"
-+ " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
-+ " where  DATE '2013-03-24'  <= test_cal_dt.week_beg_dt"
-+ " group by test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt"
-,
-"select count(*) as x"
-+ " FROM test_kylin_fact"
-+ " inner JOIN edw.test_cal_dt as test_cal_dt"
-+ " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
-+ " inner JOIN test_category_groupings"
-+ " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
-+ " inner JOIN edw.test_sites as test_sites"
-+ " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
-+ " where( META_CATEG_NAME IN ('jenny','esrzongguan','Baby') "
-+ "   AND ( META_CATEG_NAME IN ('non_existing_dict_value1', 'Baby', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
-+ "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
-+ "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3')"
-+ "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
-+ "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
-+ "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
-+ "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
-+ "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
-+ "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
-+ "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
-+ "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
-+ "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
-+ "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
-+ "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
-+ "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
-+ "   OR 'administrators' IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1' ))"
-+ "   and ( META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
-+ "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
-+ "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
-+ "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
-+ "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
-+ "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
-+ "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
-+ "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
-+ "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
-+ "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
-+ "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
-+ "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
-+ "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
-+ "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
-+ "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
-+ "   OR 'administrators' IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
-+ "     'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1' )) )"
-,
-"select meta_categ_name, count(1) as cnt, sum(price) as GMV "
-+ " from test_kylin_fact "
-+ " inner JOIN edw.test_cal_dt as test_cal_dt"
-+ " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
-+ " inner JOIN test_category_groupings"
-+ " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
-+ " inner JOIN edw.test_sites as test_sites"
-+ " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
-+ " where meta_categ_name not in ('', 'a')"
-+ " group by meta_categ_name"
-,
-"select test_cal_dt.week_beg_dt, sum(test_kylin_fact.price) as GMV , count(*) as TRANS_CNT "
-+ " from test_kylin_fact "
-+ " inner JOIN edw.test_cal_dt as test_cal_dt"
-+ " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
-+ " inner JOIN test_category_groupings"
-+ " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
-+ " inner JOIN edw.test_sites as test_sites"
-+ " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
-+ " where (test_kylin_fact.lstg_format_name='FP-GTC') and extract(MONTH from test_cal_dt.week_beg_dt) = 12"
-+ " group by test_cal_dt.week_beg_dt"
-,
-"select max(cal_dt) as cnt from test_kylin_fact"
-,
-"select test_cal_dt.week_beg_dt,sum(test_kylin_fact.price) as GMV, count(1) as TRANS_CNT"
-+ " from test_kylin_fact "
-+ " left JOIN edw.test_cal_dt as test_cal_dt "
-+ " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt "
-+ " left JOIN test_category_groupings "
-+ " on test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id and test_kylin_fact.lstg_site_id = test_category_groupings.site_id "
-+ " left JOIN edw.test_sites as test_sites "
-+ " on test_kylin_fact.lstg_site_id = test_sites.site_id "
-+ " left JOIN edw.test_seller_type_dim as test_seller_type_dim "
-+ " on test_kylin_fact.slr_segment_cd = test_seller_type_dim.seller_type_cd "
-+ " where test_kylin_fact.lstg_format_name='FP-GTC' and test_cal_dt.week_beg_dt between DATE '2013-05-01'"
-+ " and DATE '2013-08-01' and test_cal_dt.cal_dt between DATE '2013-06-01' and DATE '2013-09-01' "
-+ " group by test_cal_dt.week_beg_dt"
-,
-"select meta_categ_name, count(1) as cnt, sum(price) as GMV "
-+ " from test_kylin_fact "
-+ " inner JOIN edw.test_cal_dt as test_cal_dt"
-+ " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
-+ " inner JOIN test_category_groupings"
-+ " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
-+ " inner JOIN edw.test_sites as test_sites"
-+ " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
-+ " where meta_categ_name is not null"
-+ " group by meta_categ_name"
-,
-"select test_kylin_fact.lstg_format_name, sum(price) as GMV, count(seller_id) as TRANS_CNT "
-+ " from test_kylin_fact where test_kylin_fact.lstg_format_name <= 'ABZ' "
-+ " group by test_kylin_fact.lstg_format_name having count(seller_id) > 2"
-,
-"select fact.lstg_format_name"
-+ " from (select * from test_kylin_fact where cal_dt > date'2010-01-01' ) as fact"
-+ " group by fact.lstg_format_name"
-+ " order by CASE WHEN fact.lstg_format_name IS NULL THEN 'sdf' ELSE fact.lstg_format_name END"
-,
-"select test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt,sum(test_kylin_fact.price) as GMV, count(*) as TRANS_CNT ,sum(test_kylin_fact.item_count) as total_items"
-+ " from test_kylin_fact "
-+ " inner JOIN edw.test_cal_dt as test_cal_dt"
-+ " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
-+ " inner JOIN test_category_groupings"
-+ " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
-+ " inner JOIN edw.test_sites as test_sites"
-+ " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
-+ " where  1 < 3"
-+ " group by test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt"
-,
-"select test_kylin_fact.lstg_format_name, sum(price) as GMV, count(seller_id) as TRANS_CNT "
-+ " from test_kylin_fact where test_kylin_fact.lstg_format_name > 'AB' "
-+ " group by test_kylin_fact.lstg_format_name having count(seller_id) > 2"
-,
-"select concat(meta_categ_name, lstg_format_name) as c1, concat(meta_categ_name, 'CONST') as c2,"
-+ " concat(meta_categ_name, concat(test_sites.site_name, lstg_format_name)) as c3, count(1) as cnt, sum(price) as GMV "
-+ " from test_kylin_fact"
-+ " left JOIN edw.test_cal_dt as test_cal_dt"
-+ " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
-+ " left JOIN test_category_groupings"
-+ " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
-+ " left JOIN edw.test_sites as test_sites"
-+ " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
-+ " where not ( meta_categ_name not in ('', 'a','Computers') or meta_categ_name not in ('Crafts','Computers'))"
-+ " group by concat(meta_categ_name, lstg_format_name), concat(meta_categ_name, 'CONST'),"
-+ " concat(meta_categ_name, concat(test_sites.site_name, lstg_format_name))"
-,
-"select test_kylin_fact.lstg_format_name, sum(price) as GMV, count(*) as TRANS_CNT"
-+ " from test_kylin_fact "
-+ " where test_kylin_fact.lstg_format_name = 'GGGG'"
-+ " group by test_kylin_fact.lstg_format_name"
-,
-"SELECT test_category_groupings.meta_categ_name, sum(test_kylin_fact.price) as GMV, count(*) as trans_cnt "
-+ " FROM test_kylin_fact "
-+ " inner JOIN edw.test_cal_dt as test_cal_dt"
-+ " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
-+ " inner JOIN test_category_groupings"
-+ " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
-+ " inner JOIN edw.test_sites as test_sites"
-+ " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
-+ " group by test_category_groupings.meta_categ_name"
+    
+    "select lstg_format_name, sum(price) as GMV "
+    + " from test_kylin_fact "
+    + " where test_kylin_fact.seller_id in ( 10000002, 10000003, 10000004,10000005,10000006,10000008,10000009,10000001,10000010,10000011)"
+    + " group by lstg_format_name"
+    ,
+    "select sum(PRICE) as GMV, LSTG_FORMAT_NAME as FORMAT_NAME"
+    + " from test_kylin_fact"
+    + " where (LSTG_FORMAT_NAME in ('ABIN')) or (LSTG_FORMAT_NAME>='FP-GTC' and LSTG_FORMAT_NAME<='Others')"
+    + " group by LSTG_FORMAT_NAME"
+    ,
+    "select test_kylin_fact.cal_dt, count(*) as mmm"
+    + " from test_kylin_fact inner JOIN edw.test_cal_dt as test_cal_dt"
+    + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
+    + " inner JOIN test_category_groupings"
+    + " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
+    + " inner JOIN edw.test_sites as test_sites"
+    + " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
+    + " where lstg_format_name = 'Others' "
+    + " group by test_kylin_fact.cal_dt order by test_kylin_fact.cal_dt"
+    ,
+    "select test_kylin_fact.cal_dt,test_kylin_fact.seller_id, sum(test_kylin_fact.price) as GMV, count(*) as TRANS_CNT "
+    + " from test_kylin_fact"
+    + " where DATE '2012-09-01' <= test_kylin_fact.cal_dt and test_kylin_fact.seller_id = 10000002"
+    + " group by test_kylin_fact.cal_dt, test_kylin_fact.seller_id"
+    ,
+    "select sum(price) as GMV, count(*) as TRANS_CNT "
+    + " FROM test_kylin_fact"
+    + " inner JOIN edw.test_cal_dt as test_cal_dt"
+    + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
+    + " inner JOIN test_category_groupings"
+    + " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id"
+    + " AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id "
+    + " where test_kylin_fact.cal_dt < DATE '2012-05-01' or test_kylin_fact.cal_dt > DATE '2013-05-01'"
+    ,
+    "select test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt,sum(test_kylin_fact.price) as GMV, count(*) as TRANS_CNT "
+    + " from test_kylin_fact "
+    + " inner JOIN edw.test_cal_dt as test_cal_dt"
+    + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
+    + " inner JOIN test_category_groupings"
+    + " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
+    + " inner JOIN edw.test_sites as test_sites"
+    + " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
+    + " where  DATE '2013-03-24'  <= test_cal_dt.week_beg_dt"
+    + " group by test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt"
+    ,
+    "select count(*) as x"
+    + " FROM test_kylin_fact"
+    + " inner JOIN edw.test_cal_dt as test_cal_dt"
+    + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
+    + " inner JOIN test_category_groupings"
+    + " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
+    + " inner JOIN edw.test_sites as test_sites"
+    + " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
+    + " where( META_CATEG_NAME IN ('jenny','esrzongguan','Baby') "
+    + "   AND ( META_CATEG_NAME IN ('non_existing_dict_value1', 'Baby', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
+    + "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
+    + "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3')"
+    + "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
+    + "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
+    + "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
+    + "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
+    + "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
+    + "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
+    + "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
+    + "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
+    + "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
+    + "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
+    + "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
+    + "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
+    + "   OR 'administrators' IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1' ))"
+    + "   and ( META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
+    + "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
+    + "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
+    + "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
+    + "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
+    + "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
+    + "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
+    + "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
+    + "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
+    + "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
+    + "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
+    + "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
+    + "   OR META_CATEG_NAME IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2',"
+    + "     'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value2', 'non_existing_dict_value3', 'non_existing_dict_value3',"
+    + "     'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3', 'non_existing_dict_value3' )"
+    + "   OR 'administrators' IN ('non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1',"
+    + "     'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1', 'non_existing_dict_value1' )) )"
+    ,
+    "select meta_categ_name, count(1) as cnt, sum(price) as GMV "
+    + " from test_kylin_fact "
+    + " inner JOIN edw.test_cal_dt as test_cal_dt"
+    + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
+    + " inner JOIN test_category_groupings"
+    + " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
+    + " inner JOIN edw.test_sites as test_sites"
+    + " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
+    + " where meta_categ_name not in ('', 'a')"
+    + " group by meta_categ_name"
+    ,
+    "select test_cal_dt.week_beg_dt, sum(test_kylin_fact.price) as GMV , count(*) as TRANS_CNT "
+    + " from test_kylin_fact "
+    + " inner JOIN edw.test_cal_dt as test_cal_dt"
+    + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
+    + " inner JOIN test_category_groupings"
+    + " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
+    + " inner JOIN edw.test_sites as test_sites"
+    + " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
+    + " where (test_kylin_fact.lstg_format_name='FP-GTC') and extract(MONTH from test_cal_dt.week_beg_dt) = 12"
+    + " group by test_cal_dt.week_beg_dt"
+    ,
+    "select max(cal_dt) as cnt from test_kylin_fact"
+    ,
+    "select test_cal_dt.week_beg_dt,sum(test_kylin_fact.price) as GMV, count(1) as TRANS_CNT"
+    + " from test_kylin_fact "
+    + " left JOIN edw.test_cal_dt as test_cal_dt "
+    + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt "
+    + " left JOIN test_category_groupings "
+    + " on test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id and test_kylin_fact.lstg_site_id = test_category_groupings.site_id "
+    + " left JOIN edw.test_sites as test_sites "
+    + " on test_kylin_fact.lstg_site_id = test_sites.site_id "
+    + " left JOIN edw.test_seller_type_dim as test_seller_type_dim "
+    + " on test_kylin_fact.slr_segment_cd = test_seller_type_dim.seller_type_cd "
+    + " where test_kylin_fact.lstg_format_name='FP-GTC' and test_cal_dt.week_beg_dt between DATE '2013-05-01'"
+    + " and DATE '2013-08-01' and test_cal_dt.cal_dt between DATE '2013-06-01' and DATE '2013-09-01' "
+    + " group by test_cal_dt.week_beg_dt"
+    ,
+    "select meta_categ_name, count(1) as cnt, sum(price) as GMV "
+    + " from test_kylin_fact "
+    + " inner JOIN edw.test_cal_dt as test_cal_dt"
+    + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
+    + " inner JOIN test_category_groupings"
+    + " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
+    + " inner JOIN edw.test_sites as test_sites"
+    + " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
+    + " where meta_categ_name is not null"
+    + " group by meta_categ_name"
+    ,
+    "select test_kylin_fact.lstg_format_name, sum(price) as GMV, count(seller_id) as TRANS_CNT "
+    + " from test_kylin_fact where test_kylin_fact.lstg_format_name <= 'ABZ' "
+    + " group by test_kylin_fact.lstg_format_name having count(seller_id) > 2"
+    ,
+    "select fact.lstg_format_name"
+    + " from (select * from test_kylin_fact where cal_dt > date'2010-01-01' ) as fact"
+    + " group by fact.lstg_format_name"
+    + " order by CASE WHEN fact.lstg_format_name IS NULL THEN 'sdf' ELSE fact.lstg_format_name END"
+    ,
+    "select test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt,sum(test_kylin_fact.price) as GMV, count(*) as TRANS_CNT ,sum(test_kylin_fact.item_count) as total_items"
+    + " from test_kylin_fact "
+    + " inner JOIN edw.test_cal_dt as test_cal_dt"
+    + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
+    + " inner JOIN test_category_groupings"
+    + " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
+    + " inner JOIN edw.test_sites as test_sites"
+    + " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
+    + " where  1 < 3"
+    + " group by test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt"
+    ,
+    "select test_kylin_fact.lstg_format_name, sum(price) as GMV, count(seller_id) as TRANS_CNT "
+    + " from test_kylin_fact where test_kylin_fact.lstg_format_name > 'AB' "
+    + " group by test_kylin_fact.lstg_format_name having count(seller_id) > 2"
+    ,
+    "select concat(meta_categ_name, lstg_format_name) as c1, concat(meta_categ_name, 'CONST') as c2,"
+    + " concat(meta_categ_name, concat(test_sites.site_name, lstg_format_name)) as c3, count(1) as cnt, sum(price) as GMV "
+    + " from test_kylin_fact"
+    + " left JOIN edw.test_cal_dt as test_cal_dt"
+    + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
+    + " left JOIN test_category_groupings"
+    + " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
+    + " left JOIN edw.test_sites as test_sites"
+    + " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
+    + " where not ( meta_categ_name not in ('', 'a','Computers') or meta_categ_name not in ('Crafts','Computers'))"
+    + " group by concat(meta_categ_name, lstg_format_name), concat(meta_categ_name, 'CONST'),"
+    + " concat(meta_categ_name, concat(test_sites.site_name, lstg_format_name))"
+    ,
+    "select test_kylin_fact.lstg_format_name, sum(price) as GMV, count(*) as TRANS_CNT"
+    + " from test_kylin_fact "
+    + " where test_kylin_fact.lstg_format_name = 'GGGG'"
+    + " group by test_kylin_fact.lstg_format_name"
+    ,
+    "SELECT test_category_groupings.meta_categ_name, sum(test_kylin_fact.price) as GMV, count(*) as trans_cnt "
+    + " FROM test_kylin_fact "
+    + " inner JOIN edw.test_cal_dt as test_cal_dt"
+    + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt"
+    + " inner JOIN test_category_groupings"
+    + " ON test_kylin_fact.leaf_categ_id = test_category_groupings.leaf_categ_id AND test_kylin_fact.lstg_site_id = test_category_groupings.site_id"
+    + " inner JOIN edw.test_sites as test_sites"
+    + " ON test_kylin_fact.lstg_site_id = test_sites.site_id"
+    + " group by test_category_groupings.meta_categ_name"
         };
-
+    
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
         {
             smartMaster.analyzeSQLs();
@@ -916,5 +993,5 @@ public class NSmartMasterTest extends NTestBase {
             smartMaster.saveModel();
         }
     }
-*/
+    */
 }

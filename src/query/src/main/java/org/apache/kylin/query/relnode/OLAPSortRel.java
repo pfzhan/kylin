@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -98,12 +97,19 @@ public class OLAPSortRel extends Sort implements OLAPRel {
 
         this.context = implementor.getContext();
         this.columnRowType = buildColumnRowType();
+
+        for (RelFieldCollation fieldCollation : this.collation.getFieldCollations()) {
+            int index = fieldCollation.getFieldIndex();
+            SQLDigest.OrderEnum order = getOrderEnum(fieldCollation.getDirection());
+            OLAPRel olapChild = (OLAPRel) this.getInput();
+            TblColRef orderCol = olapChild.getColumnRowType().getAllColumns().get(index);
+            this.context.addSort(orderCol, order);
+            this.context.storageContext.markSort();
+        }
     }
 
     protected ColumnRowType buildColumnRowType() {
-        OLAPRel olapChild = (OLAPRel) getInput();
-        ColumnRowType inputColumnRowType = olapChild.getColumnRowType();
-        return inputColumnRowType;
+        return ((OLAPRel) getInput()).getColumnRowType();
     }
 
     @Override
@@ -114,15 +120,6 @@ public class OLAPSortRel extends Sort implements OLAPRel {
         // Occurs in sub-query like "select ... from (...) inner join (...) order by ..."
         if (this.context.realization == null)
             return;
-
-        for (RelFieldCollation fieldCollation : this.collation.getFieldCollations()) {
-            int index = fieldCollation.getFieldIndex();
-            SQLDigest.OrderEnum order = getOrderEnum(fieldCollation.getDirection());
-            OLAPRel olapChild = (OLAPRel) this.getInput();
-            TblColRef orderCol = olapChild.getColumnRowType().getAllColumns().get(index);
-            this.context.addSort(orderCol, order);
-            this.context.storageContext.markSort();
-        }
 
         this.rowType = this.deriveRowType();
         this.columnRowType = buildColumnRowType();

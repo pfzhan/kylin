@@ -71,12 +71,7 @@ public class NCubePlanSelectProposer extends NAbstractProposer {
         }
         //TODO order by cost in the future
         // keep order by name of realization, so that can get consistent result under different circumstance
-        TreeSet<IRealization> realizations = new TreeSet<>(new Comparator<IRealization>() {
-            @Override
-            public int compare(IRealization r1, IRealization r2) {
-                return r1.getName().compareTo(r2.getName());
-            }
-        });
+        TreeSet<IRealization> realizations = new TreeSet<>(Comparator.comparing(IRealization::getName));
         realizations.addAll(iRealizations);
 
         for (IRealization realization : realizations) {

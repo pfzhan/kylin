@@ -24,8 +24,16 @@
 
 package io.kyligence.kap.cube.model;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+import java.util.UUID;
+import java.util.Vector;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -34,18 +42,11 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Test;
 import org.junit.Ignore;
+import org.junit.Test;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Random;
-import java.util.UUID;
-import java.util.Vector;
-import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.junit.Assert.fail;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     private String projectDefault = "default";
@@ -200,13 +201,12 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetDataflow(){
+    public void testGetDataflow() {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
         Assert.assertNotNull(mgr.getDataflowByUuid("0aeb985d-aec5-488a-a9b7-a5a564004433"));
         Assert.assertNotNull(mgr.getDataflowsByCubePlan("ncube_basic"));
     }
-
 
     @Test
     public void testMergeSegmentsFail() throws IOException {
@@ -296,14 +296,14 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         NDataflow df = mgr.getDataflow("ncube_basic");
 
         // test cuboid remove
-        Assert.assertEquals(9, df.getSegment(0).getCuboidsMap().size());
+        Assert.assertEquals(8, df.getSegment(0).getCuboidsMap().size());
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
         update.setToRemoveCuboids(df.getSegment(0).getCuboid(1001L));
         mgr.updateDataflow(update);
 
         // verify after remove
         df = mgr.getDataflow("ncube_basic");
-        Assert.assertEquals(8, df.getSegment(0).getCuboidsMap().size());
+        Assert.assertEquals(7, df.getSegment(0).getCuboidsMap().size());
 
         // test cuboid add
         NDataSegment seg = df.getSegment(0);
@@ -315,7 +315,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         mgr.updateDataflow(update);
 
         df = mgr.getDataflow("ncube_basic");
-        Assert.assertEquals(9, df.getSegment(0).getCuboidsMap().size());
+        Assert.assertEquals(8, df.getSegment(0).getCuboidsMap().size());
     }
 
     @Test
@@ -345,7 +345,8 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         long start2 = SegmentRange.dateToLong("2013-01-01");
         long end2 = SegmentRange.dateToLong("2015-01-01");
-        NDataSegment seg2 = mgr.appendSegment(updatedDataflow, new SegmentRange.TimePartitionedSegmentRange(start2, end2));
+        NDataSegment seg2 = mgr.appendSegment(updatedDataflow,
+                new SegmentRange.TimePartitionedSegmentRange(start2, end2));
         seg2.setStatus(SegmentStatusEnum.READY);
         NDataflowUpdate update2 = new NDataflowUpdate(newDataflow.getName());
         update2.setToUpdateSegs(seg2);
@@ -472,11 +473,11 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
 
         NDataflow df = mgr.getDataflowByUuid(uuid);
-        Assert.assertEquals(uuid.equals(df.getUuid()), true);
+        Assert.assertTrue(uuid.equals(df.getUuid()));
 
         List<NDataflow> dataflows = mgr.getDataflowsByCubePlan(cubePlanName);
         for (NDataflow dataflow : dataflows) {
-            Assert.assertEquals(dataflow.getCubePlanName().equals(cubePlanName), true);
+            Assert.assertTrue(dataflow.getCubePlanName().equals(cubePlanName));
         }
 
     }
@@ -497,7 +498,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         List<NDataSegment> dataSegments = mgr.calculateHoles(dataFlowName);
 
-        Assert.assertEquals(dataSegments.size() == 2, true);
+        Assert.assertEquals(2, dataSegments.size());
 
     }
 }

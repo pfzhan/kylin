@@ -54,13 +54,16 @@ public class NProposerProvider {
     public NAbstractProposer getCubePlanOptProposer() {
         return new NCubePlanOptProposer(context);
     }
-    
+
     public NAbstractProposer getCubePlanShrinkProposer() {
         return new NCubePlanShrinkProposer(context);
     }
-    
+
     public NAbstractProposer getModelShrinkProposer() {
         return new NModelShrinkProposer(context);
     }
+
+    public NAbstractProposer getCubePlanRefreshProposer() {
+        return new NCubePlanRefreshProposer(context);
+    }
 }
-    

@@ -40,26 +40,41 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.model.ModelTree;
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
 public class NSmartContext {
     private final KylinConfig kylinConfig;
     private final SmartConfig smartConfig;
     private final String project;
     private final String[] sqls;
 
+    // only used in auto-modeling
+    private String draftVersion;
+
+    @Setter(AccessLevel.PACKAGE)
     private Map<Integer, Collection<OLAPContext>> olapContexts;
+    @Setter(AccessLevel.PACKAGE)
     private List<NModelContext> modelContexts;
 
     private final NTableMetadataManager tableMetadataManager;
     private final Map<String, TableExtDesc.ColumnStats> columnStatsCache = Maps.newConcurrentMap();
 
+    @Getter
     public static class NModelContext {
+        @Setter
         private ModelTree modelTree; // query
 
+        @Setter(AccessLevel.PACKAGE)
         private NDataModel targetModel; // output model
+        @Setter(AccessLevel.PACKAGE)
         private NDataModel origModel; // used when update existing models
 
+        @Setter(AccessLevel.PACKAGE)
         private NCubePlan targetCubePlan;
+        @Setter(AccessLevel.PACKAGE)
         private NCubePlan origCubePlan;
 
         private NSmartContext smartContext;
@@ -67,50 +82,11 @@ public class NSmartContext {
         public NModelContext(NSmartContext smartContext) {
             this.smartContext = smartContext;
         }
+    }
 
-        public NSmartContext getSmartContext() {
-            return smartContext;
-        }
-
-        public ModelTree getModelTree() {
-            return modelTree;
-        }
-
-        public void setModelTree(ModelTree modelTree) {
-            this.modelTree = modelTree;
-        }
-
-        public NDataModel getTargetModel() {
-            return targetModel;
-        }
-
-        public void setTargetModel(NDataModel targetModel) {
-            this.targetModel = targetModel;
-        }
-
-        public NDataModel getOrigModel() {
-            return origModel;
-        }
-
-        public void setOrigModel(NDataModel origModel) {
-            this.origModel = origModel;
-        }
-
-        public NCubePlan getTargetCubePlan() {
-            return targetCubePlan;
-        }
-
-        public void setTargetCubePlan(NCubePlan targetCubePlan) {
-            this.targetCubePlan = targetCubePlan;
-        }
-
-        public NCubePlan getOrigCubePlan() {
-            return origCubePlan;
-        }
-
-        public void setOrigCubePlan(NCubePlan origCubePlan) {
-            this.origCubePlan = origCubePlan;
-        }
+    public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls, String draftVersion) {
+        this(kylinConfig, project, sqls);
+        this.draftVersion = draftVersion;
     }
 
     public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls) {
@@ -120,38 +96,6 @@ public class NSmartContext {
         this.smartConfig = SmartConfig.wrap(this.kylinConfig);
 
         tableMetadataManager = NTableMetadataManager.getInstance(this.kylinConfig, project);
-    }
-
-    public KylinConfig getKylinConfig() {
-        return kylinConfig;
-    }
-
-    public SmartConfig getSmartConfig() {
-        return smartConfig;
-    }
-
-    public String[] getSqls() {
-        return sqls;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public Map<Integer, Collection<OLAPContext>> getOlapContexts() {
-        return olapContexts;
-    }
-
-    public void setOlapContexts(Map<Integer, Collection<OLAPContext>> olapContexts) {
-        this.olapContexts = olapContexts;
-    }
-
-    public List<NModelContext> getModelContexts() {
-        return modelContexts;
-    }
-
-    public void setModelContexts(List<NModelContext> modelContexts) {
-        this.modelContexts = modelContexts;
     }
 
     // =======================
