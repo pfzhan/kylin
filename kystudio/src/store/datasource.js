@@ -32,9 +32,6 @@ export default {
           return response
         })
     },
-    [types.IMPORT_DATABASE]: function ({commit}, para) {
-      return api.datasource.importDatabases(para.projectName, para.sourceType, para.databaseNames)
-    },
     [types.LOAD_DATASOURCE_EXT]: function ({commit}, para) {
       return api.datasource.loadDataSourceExt({ext: true, project: para.project, table: para.tableName})
     },
@@ -45,7 +42,7 @@ export default {
       return api.datasource.loadChildTablesOfDatabase(para.projectName, para.sourceType, para.databaseName, para.tableName, para.pageOffset, para.pageSize)
     },
     [types.LOAD_HIVE_IN_PROJECT]: function ({commit}, para) {
-      return api.datasource.loadHiveInProject(para.projectName, para.sourceType, para.tableNames)
+      return api.datasource.loadHiveInProject(para.projectName, para.sourceType, para.tableNames, para.databaseNames)
     },
     [types.UN_LOAD_HIVE_IN_PROJECT]: function ({commit}, data) {
       return api.datasource.unLoadHiveInProject(data)
