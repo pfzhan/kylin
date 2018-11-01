@@ -40,16 +40,17 @@ public class NumericalColumnAnalysisDelegate extends AbstractColumnAnalysisDeleg
     }
 
     @Override
-    public void analyze(Row row, String colValue) {
-        if (StringUtils.isBlank(colValue)) {
+    public void analyze(Row row, Object colValue) {
+        final String strValue = colValue == null ? null : colValue.toString();
+        if (StringUtils.isBlank(strValue)) {
             return;
         }
 
-        if (!NumberUtils.isNumber(colValue)) {
+        if (!NumberUtils.isNumber(strValue)) {
             return;
         }
 
-        final double value = NumberUtils.createDouble(colValue);
+        final double value = NumberUtils.createDouble(strValue);
         if (Double.isNaN(maxValue) || value > maxValue) {
             maxValue = value;
         }

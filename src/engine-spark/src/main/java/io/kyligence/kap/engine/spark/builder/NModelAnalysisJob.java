@@ -49,8 +49,10 @@ public class NModelAnalysisJob extends NDataflowJob {
         final NDataModel dataModel = dataflow.getModel();
 
         final ModelAnalyzer modelAnalyzer = new ModelAnalyzer(dataModel, config);
+        logger.info("Start to analysis model {}", dataflow.getName());
         for (int segId : segmentIds) {
             NDataSegment seg = dataflow.getSegment(segId);
+            logger.info("Analysis segment {}", seg.getName());
             modelAnalyzer.analyze(seg, ss);
         }
     }

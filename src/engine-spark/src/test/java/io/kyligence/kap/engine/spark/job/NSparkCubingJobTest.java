@@ -32,6 +32,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
@@ -43,6 +45,7 @@ import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.percentile.PercentileCounter;
 import org.apache.kylin.measure.topn.TopNCounter;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.junit.After;
@@ -292,7 +295,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         validateCube(0);
         validateTableIndex(0);
-        // TODO validate model analysis
+        validateTableExt();
     }
 
     @Test
@@ -637,5 +640,18 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("Australia", resultFromLayout.get(1)[1].toString());
         Assert.assertEquals("英国", resultFromLayout.get(9998)[1].toString());
         Assert.assertEquals("英国", resultFromLayout.get(9999)[1].toString());
+    }
+
+    private void validateTableExt() {
+        final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, getProject());
+        final NDataflowManager dataflowManager = NDataflowManager.getInstance(config, getProject());
+
+        final NDataModel dataModel = dataflowManager.getDataflow("ncube_basic").getModel();
+
+        final TableExtDesc tableExt = tableMetadataManager
+                .getTableExtIfExists(dataModel.getRootFactTable().getTableDesc());
+        Assert.assertNotNull(tableExt);
+        Assert.assertEquals(11, tableExt.getColumnStats().size());
+        Assert.assertTrue(tableExt.getTotalRows() > 0);
     }
 }

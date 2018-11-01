@@ -24,11 +24,15 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import com.google.common.collect.Sets;
 import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.builder.NModelAnalysisJob;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TableRef;
 
 import java.util.Set;
 
@@ -40,8 +44,20 @@ public class NSparkAnalysisStep extends NSparkExecutable {
 
     @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {
+        final Set<String> dumpList = Sets.newHashSet();
         NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow(getDataflowName());
-        return df.collectPrecalculationResource();
+        dumpList.addAll(df.collectPrecalculationResource());
+
+        // dump table ext
+        final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, getProject());
+        for (final TableRef tableRef : df.getModel().getAllTables()) {
+            final TableExtDesc tableExtDesc = tableMetadataManager.getTableExtIfExists(tableRef.getTableDesc());
+            if (tableExtDesc == null) {
+                continue;
+            }
+            dumpList.add(tableExtDesc.getResourcePath());
+        }
+        return dumpList;
     }
 
     void setDataflowName(String dataflowName) {

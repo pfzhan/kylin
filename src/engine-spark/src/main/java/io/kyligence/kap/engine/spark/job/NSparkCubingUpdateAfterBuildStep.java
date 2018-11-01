@@ -29,8 +29,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -38,8 +39,10 @@ import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.apache.kylin.job.execution.ExecuteResult.State;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.collect.Lists;
@@ -72,6 +75,10 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
         } catch (IOException e) {
             throw new ExecuteException("failed to update NDataflow " + dataflowName, e);
         }
+
+        // update local TableExtDesc
+        final NSparkAnalysisStep analysisStep = parent.getSparkAnalysisStep();
+        updateTableExtDesc(context.getConfig(), analysisStep);
 
         return new ExecuteResult(State.SUCCEED);
     }
@@ -153,4 +160,34 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
         return toRemoveSegs;
     }
 
+    private void updateTableExtDesc(final KylinConfig localConfig, NSparkAnalysisStep analysisStep)
+            throws ExecuteException {
+        // the config from distributed metadata
+        final KylinConfig remoteConfig = KylinConfig.createKylinConfig(localConfig);
+        remoteConfig.setMetadataUrl(analysisStep.getDistMetaUrl());
+
+        final NTableMetadataManager remoteTblMgr = NTableMetadataManager.getInstance(remoteConfig, getProject());
+        final NTableMetadataManager localTblMgr = NTableMetadataManager.getInstance(localConfig, getProject());
+
+        final NDataModel dataModel = NDataflowManager.getInstance(localConfig, getProject())
+                .getDataflow(analysisStep.getDataflowName()).getModel();
+
+        mergeAndUpdateTableExt(localTblMgr, remoteTblMgr, dataModel.getRootFactTableName());
+        for (final JoinTableDesc lookupDesc : dataModel.getJoinTables()) {
+            mergeAndUpdateTableExt(localTblMgr, remoteTblMgr, lookupDesc.getTable());
+        }
+
+    }
+
+    private void mergeAndUpdateTableExt(NTableMetadataManager localTblMgr, NTableMetadataManager remoteTblMgr,
+            String tableName) throws ExecuteException {
+        final TableExtDesc localFactTblExt = localTblMgr.getTableExt(tableName);
+        final TableExtDesc remoteFactTblExt = remoteTblMgr.getTableExt(tableName);
+
+        try {
+            localTblMgr.mergeAndUpdateTableExt(localFactTblExt, remoteFactTblExt);
+        } catch (IOException e) {
+            throw new ExecuteException("failed to update tableExt: " + tableName, e);
+        }
+    }
 }

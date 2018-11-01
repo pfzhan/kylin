@@ -25,7 +25,6 @@
 package io.kyligence.kap.engine.spark.stats.analyzer;
 
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
 import io.kyligence.kap.engine.spark.stats.analyzer.delegate.AbstractColumnAnalysisDelegate;
 import io.kyligence.kap.engine.spark.stats.analyzer.delegate.ColumnCardinalityAnalysisDelegate;
 import io.kyligence.kap.engine.spark.stats.analyzer.delegate.ColumnSchemaAnalysisDelegate;
@@ -45,10 +44,10 @@ public class TableAnalyzerResult implements Serializable {
 
     private long rowCount;
 
-    private Table<Class<?>, Integer, AbstractColumnAnalysisDelegate> colDelegateTable;
+    private HashBasedTable<Class<?>, Integer, AbstractColumnAnalysisDelegate> colDelegateTable;
 
     public TableAnalyzerResult(TableDesc tableDesc, long rowCount,
-            Table<Class<?>, Integer, AbstractColumnAnalysisDelegate> colDelegateTable) {
+                               HashBasedTable<Class<?>, Integer, AbstractColumnAnalysisDelegate> colDelegateTable) {
 
         this.tableDesc = tableDesc;
         this.columnDescs = tableDesc.getColumns();
@@ -64,7 +63,7 @@ public class TableAnalyzerResult implements Serializable {
 
         final long rowCount = r1.rowCount + r2.rowCount;
 
-        final Table<Class<?>, Integer, AbstractColumnAnalysisDelegate> reduceColDelegate = HashBasedTable.create();
+        final HashBasedTable<Class<?>, Integer, AbstractColumnAnalysisDelegate> reduceColDelegate = HashBasedTable.create();
         for (int colIdx = 0; colIdx < r1.columnDescs.length; colIdx++) {
             if (r1.columnDescs[colIdx].isComputedColumn()) {
                 continue;

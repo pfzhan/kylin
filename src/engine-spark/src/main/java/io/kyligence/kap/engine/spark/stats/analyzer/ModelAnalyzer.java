@@ -45,7 +45,6 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.source.SourceFactory;
-import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -56,12 +55,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 public class ModelAnalyzer implements Serializable {
 
-    private transient final Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final NDataModel dataModel;
 
@@ -85,11 +83,11 @@ public class ModelAnalyzer implements Serializable {
 
         // analysis lookup tables
         for (final JoinTableDesc lookupDesc : dataModel.getJoinTables()) {
-            final TableExtDesc tableExt = tableMetadataManager.getTableExt(lookupDesc.getTable());
+            final TableRef lookupTableRef = lookupDesc.getTableRef();
+            final TableExtDesc tableExt = tableMetadataManager.getTableExtIfExists(lookupTableRef.getTableDesc());
             if (tableExt == null || CollectionUtils.isEmpty(tableExt.getColumnStats())
                     || checkDesc.checkForceAnalysisLookup()) {
 
-                final TableRef lookupTableRef = lookupDesc.getTableRef();
                 final Dataset<Row> lookupTableData = getTableData(lookupTableRef, ss);
                 final TableAnalyzerResult lookupTableAnalyzerResult = analysisTable(lookupTableData,
                         lookupTableRef.getTableDesc());
@@ -113,18 +111,21 @@ public class ModelAnalyzer implements Serializable {
         final PartitionDesc partitionDesc = getPartitionDesc(dataModel);
         if (partitionDesc == null || partitionDesc.getPartitionDateColumnRef() == null) {
             // TODO full check or sample?
+            logger.warn("Can not found model {}'s date partition desc, full check", dataModel.getName());
             return dataset;
         }
 
         final SegmentRange segRange = segment.getSegRange();
         if (segRange == null || segRange.isInfinite()) {
             // TODO full check or sample?
+            logger.warn("Segment {}'s range is infinite, full check", segment.getName());
             return dataset;
         }
 
         final String dateRangeCondition = NJoinedFlatTable.replaceDot(
                 partitionDesc.getPartitionConditionBuilder().buildDateRangeCondition(partitionDesc, segment, segRange),
                 dataModel);
+        logger.info("Select date range condition [{}]", dateRangeCondition);
 
         return dataset.where(dateRangeCondition);
     }
@@ -158,19 +159,25 @@ public class ModelAnalyzer implements Serializable {
                 .createEngineAdapter(tableDesc, NSparkCubingEngine.NSparkCubingSource.class)
                 .getSourceData(tableDesc, ss).alias(tableRef.getAlias());
 
+        logger.info("Loading table {} sampling data. \n {}", tableDesc.getName(), dataset.schema().treeString());
+
         return NJoinedFlatTable.changeSchemaToAliasDotName(dataset, tableRef.getAlias());
     }
 
     private TableAnalyzerResult analysisTable(final Dataset<Row> tableDS, final TableDesc tableDesc) {
-        return tableDS.toJavaRDD().repartition(NDataflowBuildJob.estimatePartitions(tableDS, config))
-                .mapPartitions((FlatMapFunction<Iterator<Row>, TableAnalyzerResult>) rowIterator -> {
-                    final TableAnalyzer tableAnalyzer = new TableAnalyzer(tableDesc);
-                    while (rowIterator.hasNext()) {
-                        tableAnalyzer.analyze(rowIterator.next());
-                    }
-                    return Iterators.singletonIterator(tableAnalyzer.getResult());
-                })
-                .reduce((Function2<TableAnalyzerResult, TableAnalyzerResult, TableAnalyzerResult>) TableAnalyzerResult::reduce);
+        final int partition = NDataflowBuildJob.estimatePartitions(tableDS, config);
+        logger.info("Analysing table {}, repartition with size {}", tableDesc.getName(), partition);
+        return tableDS.toJavaRDD().repartition(partition).mapPartitionsWithIndex((index, rowIterator) -> {
+            final TableAnalyzer tableAnalyzer = new TableAnalyzer(tableDesc);
+            while (rowIterator.hasNext()) {
+                tableAnalyzer.analyze(rowIterator.next());
+            }
+            final TableAnalyzerResult analyzerResult = tableAnalyzer.getResult();
+            System.out.println("Analysing table " + tableDesc.getName() + " with partition " + partition
+                    + ", row size: " + analyzerResult.getRowCount());
+            return Iterators.singletonIterator(analyzerResult);
+        }, false).reduce(
+                (Function2<TableAnalyzerResult, TableAnalyzerResult, TableAnalyzerResult>) TableAnalyzerResult::reduce);
     }
 
     private void saveOrUpdateTableStats(TableAnalyzerResult analyzerResult, SegmentRange segRange) throws IOException {
@@ -236,6 +243,7 @@ public class ModelAnalyzer implements Serializable {
 
         tableExt.setColumnStats(columnStatsList);
         tableMetadataManager.saveTableExt(tableExt);
+        logger.info("Table {} analysis finished, update table ext desc done.", tableDesc.getName());
     }
 
 }

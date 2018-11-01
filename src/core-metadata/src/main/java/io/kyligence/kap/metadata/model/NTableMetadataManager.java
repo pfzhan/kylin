@@ -310,6 +310,12 @@ public class NTableMetadataManager {
         }
     }
 
+    public TableExtDesc getTableExtIfExists(TableDesc t) {
+        try (AutoLock ignored = srcExtMapLock.lockForRead()) {
+            return srcExtMap.get(t.getIdentity());
+        }
+    }
+
     public void saveTableExt(TableExtDesc tableExt) throws IOException {
         try (AutoLock ignored = srcExtMapLock.lockForWrite()) {
             if (tableExt.getUuid() == null || tableExt.getIdentity() == null) {
@@ -324,6 +330,20 @@ public class NTableMetadataManager {
                 store.deleteResource(path);
 
             srcExtCrud.save(tableExt);
+        }
+    }
+
+    public void mergeAndUpdateTableExt(TableExtDesc origin, TableExtDesc other) throws IOException {
+        try (AutoLock ignored = srcExtMapLock.lockForWrite()) {
+            final boolean isAppend = origin.getLoadingRange().size() < other.getLoadingRange().size();
+            if (isAppend) {
+                // TODO merge new range if refresh
+                origin.setLoadingRange(other.getLoadingRange());
+                origin.setTotalRows(other.getTotalRows());
+                origin.setColumnStats(other.getColumnStats());
+            }
+
+            saveTableExt(origin);
         }
     }
 
@@ -416,9 +436,10 @@ public class NTableMetadataManager {
             extFilterCrud.save(desc);
         }
     }
+
     public void updateTableDesc(TableDesc tableDesc) throws IOException {
         try (AutoLock lock = srcTableMapLock.lockForWrite()) {
-            if(!srcTableMap.containsKey(tableDesc.getIdentity())){
+            if (!srcTableMap.containsKey(tableDesc.getIdentity())) {
                 throw new IllegalStateException("tableDesc " + tableDesc.getName() + "does not exist");
             }
             saveSourceTable(tableDesc);

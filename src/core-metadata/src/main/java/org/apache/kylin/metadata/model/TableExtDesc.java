@@ -294,6 +294,10 @@ public class TableExtDesc extends RootPersistentEntity {
         return loadingRange;
     }
 
+    public void setLoadingRange(List<SegmentRange> loadingRange) {
+        this.loadingRange = loadingRange;
+    }
+
     @Override
     public int hashCode() {
         return getIdentity().hashCode();

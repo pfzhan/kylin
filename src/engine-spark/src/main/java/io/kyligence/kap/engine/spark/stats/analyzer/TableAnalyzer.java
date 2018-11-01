@@ -25,7 +25,6 @@
 package io.kyligence.kap.engine.spark.stats.analyzer;
 
 import com.google.common.collect.HashBasedTable;
-import com.google.common.collect.Table;
 import io.kyligence.kap.engine.spark.stats.analyzer.delegate.AbstractColumnAnalysisDelegate;
 import io.kyligence.kap.engine.spark.stats.analyzer.delegate.ColumnCardinalityAnalysisDelegate;
 import io.kyligence.kap.engine.spark.stats.analyzer.delegate.ColumnDataTypeQualityAnalysisDelegate;
@@ -48,7 +47,7 @@ public class TableAnalyzer {
     /**
      * <AbstractColumnAnalysisDelegate.class, colIdx, AbstractColumnAnalysisDelegate.instance>
      */
-    private final Table<Class<?>, Integer, AbstractColumnAnalysisDelegate> colDelegateTable;
+    private final HashBasedTable<Class<?>, Integer, AbstractColumnAnalysisDelegate> colDelegateTable;
 
     public TableAnalyzer(TableDesc tableDesc) {
         this.tableDesc = tableDesc;
@@ -88,7 +87,7 @@ public class TableAnalyzer {
             if (columns[colIdx].isComputedColumn()) {
                 continue;
             }
-            final String colValue = row.getString(colIdx);
+            final Object colValue = row.get(colIdx);
 
             for (final Class delegateClass : colDelegateTable.rowKeySet()) {
                 final AbstractColumnAnalysisDelegate delegate = colDelegateTable.get(delegateClass, colIdx);

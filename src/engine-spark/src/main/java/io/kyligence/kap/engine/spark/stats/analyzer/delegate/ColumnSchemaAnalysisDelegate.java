@@ -52,7 +52,7 @@ public class ColumnSchemaAnalysisDelegate extends AbstractColumnAnalysisDelegate
     }
 
     @Override
-    public void analyze(Row row, String colValue) {
+    public void analyze(Row row, Object colValue) {
         if (once) {
             // check schema
             if (columnDesc.getName().startsWith("_")

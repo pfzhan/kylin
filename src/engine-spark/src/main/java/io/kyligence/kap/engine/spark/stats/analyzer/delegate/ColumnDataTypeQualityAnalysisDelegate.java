@@ -46,26 +46,26 @@ public class ColumnDataTypeQualityAnalysisDelegate
     }
 
     @Override
-    public void analyze(Row row, String colValue) {
-
+    public void analyze(Row row, Object colValue) {
+        final String strValue = colValue == null ? null : colValue.toString();
         if (dataType.isDateTimeFamily()) {
-            if ((!DateTimeCheckUtils.isDate(colValue) || !DateTimeCheckUtils.isTime(colValue))) {
+            if ((!DateTimeCheckUtils.isDate(strValue) || !DateTimeCheckUtils.isTime(strValue))) {
                 illegalValueCounter++;
             }
 
         } else if (dataType.isNumberFamily()) {
-            if ((!NumberUtils.isNumber(colValue))) {
+            if ((!NumberUtils.isNumber(strValue))) {
                 illegalValueCounter++;
             }
 
         } else if (dataType.isStringFamily()) {
-            if ((StringUtils.isNotBlank(colValue) && colValue.length() > dataType.getPrecision())) {
+            if ((StringUtils.isNotBlank(strValue) && strValue.length() > dataType.getPrecision())) {
                 illegalValueCounter++;
             }
 
         } else if (dataType.isBoolean()) {
-            if (StringUtils.isBlank(colValue)
-                    || (!"true".equalsIgnoreCase(colValue) && !"false".equalsIgnoreCase(colValue))) {
+            if (StringUtils.isBlank(strValue)
+                    || (!"true".equalsIgnoreCase(strValue) && !"false".equalsIgnoreCase(strValue))) {
                 illegalValueCounter++;
             }
 

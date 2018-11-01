@@ -39,7 +39,7 @@ public abstract class AbstractColumnAnalysisDelegate<T extends AbstractColumnAna
         this.columnDesc = columnDesc;
     }
 
-    public abstract void analyze(Row row, String colValue);
+    public abstract void analyze(Row row, Object colValue);
 
     public T reduce(final T another) {
         if (!this.getClass().equals(another.getClass())) {

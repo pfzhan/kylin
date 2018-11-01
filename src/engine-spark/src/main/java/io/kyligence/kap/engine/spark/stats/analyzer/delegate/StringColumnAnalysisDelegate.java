@@ -62,23 +62,24 @@ public class StringColumnAnalysisDelegate extends AbstractColumnAnalysisDelegate
     }
 
     @Override
-    public void analyze(Row row, String colValue) {
+    public void analyze(Row row, Object colValue) {
+        final String strValue = colValue == null ? null : colValue.toString();
         final int colValueLength;
-        if (StringUtils.isBlank(colValue)) {
+        if (StringUtils.isBlank(strValue)) {
             nullOrBlankCounter++;
             colValueLength = 0;
         } else {
-            colValueLength = StringUtil.utf8Length(colValue);
+            colValueLength = StringUtil.utf8Length(strValue);
         }
 
         if (colValueLength > maxLength) {
             maxLength = colValueLength;
-            maxLengthValue = colValue;
+            maxLengthValue = strValue;
         }
 
         if (colValueLength < minLength) {
             minLength = colValueLength;
-            minLengthValue = colValue;
+            minLengthValue = strValue;
         }
     }
 

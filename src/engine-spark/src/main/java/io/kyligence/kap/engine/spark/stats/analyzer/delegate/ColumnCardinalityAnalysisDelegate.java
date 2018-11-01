@@ -47,13 +47,14 @@ public class ColumnCardinalityAnalysisDelegate
     }
 
     @Override
-    public void analyze(Row row, String colValue) {
-        if (StringUtils.isBlank(colValue)) {
+    public void analyze(Row row, Object colValue) {
+        final String strValue = colValue == null ? null : colValue.toString();
+        if (StringUtils.isBlank(strValue)) {
             hasNullOrBlank = true;
             return;
         }
 
-        hllCounter.add(colValue);
+        hllCounter.add(strValue);
     }
 
     @Override
