@@ -603,6 +603,9 @@ class NModel {
   delDimension (i) {
     this._mount.dimensions.splice(i, 1)
   }
+  delMeasure (i) {
+    this._mount.all_measures.splice(i, 1)
+  }
   // 添加度量
   addMeasure (measureObj) {
     return new Promise((resolve, reject) => {
@@ -619,7 +622,7 @@ class NModel {
   editMeasure (measureObj) {
     return new Promise((resolve, reject) => {
       let index = indexOfObjWithSomeKey(this._mount.all_measures, 'guid', measureObj.guid)
-      Object.assign(this._mount.dimensions[index], measureObj)
+      Object.assign(this._mount.all_measures[index], measureObj)
       resolve()
     })
   }

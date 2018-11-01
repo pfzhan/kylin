@@ -116,13 +116,16 @@
             </div>
             <div class="panel-sub-title">
               <span><i class="el-icon-ksd-project_add" @click="addNewMeasure"></i></span>
-              <span><i class="el-icon-ksd-table_delete"></i></span>
+              <span><i class="el-icon-ksd-table_delete" @click="deleteMeasures"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="measure-list">
-                <li v-for="m in modelRender.all_measures" :key="m.name">{{m.name|omit(18,'...')}}
+                <li v-for="(m, i) in modelRender.all_measures" :key="m.name">
+                <el-checkbox v-model="measureSelectedList" :label="i">{{m.name|omit(18,'...')}}</el-checkbox>
                   <i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i>
-                  <i class="el-icon-ksd-table_delete"></i><span>{{m.function.returntype}}</span></li>
+                  <i class="el-icon-ksd-table_delete" @click="deleteMeasure(m, i)"></i>
+                  <span class="li-type ky-option-sub-info">{{m.return_type}}</span>
+                </li>
               </ul>
             </div>
             <div class="panel-footer" v-drag:change.height="panelAppear.measure"><i class="el-icon-ksd-bottom_bar"></i></div>
@@ -252,6 +255,7 @@ export default class ModelEdit extends Vue {
   datasource = []
   modelRender = {}
   dimensionSelectedList = []
+  measureSelectedList = []
   modelInstance = null // 模型实例对象
   currentDragTable = '' // 当前拖拽的表
   currentDragColumn = '' // 当前拖拽的列
@@ -271,9 +275,9 @@ export default class ModelEdit extends Vue {
   measureObj = {
     name: '',
     expression: 'SUM(column)',
-    parameterValue: {type: 'column', value: ''},
-    convertedColumns: [],
-    returntype: ''
+    parameter_value: [{type: 'column', value: ''}],
+    converted_columns: [],
+    return_type: ''
   }
   panelAppear = modelRenderConfig.pannelsLayout()
   radio = 1
@@ -418,6 +422,16 @@ export default class ModelEdit extends Vue {
       this.deleteDimenison(i)
     })
     this.dimensionSelectedList = []
+  }
+  deleteMeasure (i) {
+    this.modelInstance.delMeasure(i)
+  }
+  deleteMeasures () {
+    this.measureSelectedList.reverse()
+    this.measureSelectedList && this.measureSelectedList.forEach((i) => {
+      this.deleteMeasure(i)
+    })
+    this.measureSelectedList = []
   }
   editMeasure (m) {
     this.$nextTick(() => {

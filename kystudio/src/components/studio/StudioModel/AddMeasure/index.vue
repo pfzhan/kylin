@@ -16,8 +16,8 @@
           </el-option>
         </el-select>
       </el-form-item>
-      <el-form-item v-if="measure.expression === 'TOP_N'|| measure.expression === 'PERCENTILE_APPROX' || measure.expression === 'COUNT_DISTINCT'" :label="$t('returnType')" >
-        <el-select :popper-append-to-body="false" size="medium" v-model="measure.returntype" class="measures-width">
+      <el-form-item v-if="measure.expression === 'TOP_N'|| measure.expression === 'PERCENTILE_APPROX' || measure.expression === 'COUNT_DISTINCT'" :label="$t('return_type')" >
+        <el-select :popper-append-to-body="false" size="medium" v-model="measure.return_type" class="measures-width">
           <el-option
             v-for="(item, index) in getSelectDataType"
             :key="index"
@@ -34,7 +34,7 @@
             <el-select :class="{
             'measures-addCC': measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N',
             'measures-width': measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'}"
-            size="medium" v-model="measure.parameterValue.value" :placeholder="$t('kylinLang.common.pleaseSelect')"
+            size="medium" v-model="measure.parameter_value[0].value" :placeholder="$t('kylinLang.common.pleaseSelect')"
             filterable @change="changeParamValue" :disabled="isEdit">
               <el-option-group key="column" :label="$t('columns')">
                 <el-option
@@ -64,7 +64,7 @@
         <CCEditForm v-if="ccVisible" @saveSuccess="saveCC" @delSuccess="delCC" :ccDesc="ccObject" :modelInstance="modelInstance"></CCEditForm>
       </el-form-item>
       <el-form-item :label="isGroupBy">
-        <div class="measure-flex-row" v-if="measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
+        <div class="measure-flex-row" v-if="measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'" v-for="(column, index) in measure.converted_columns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
           <div class="flex-item">
             <el-select class="measures-width" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable>
               <el-option
@@ -78,10 +78,10 @@
             </el-select>
           </div>
           <el-button type="primary" size="medium" v-if="measure.expression === 'TOP_N' && index == 0" icon="el-icon-ksd-add" plain circle @click="addNewProperty" class="ksd-ml-10"></el-button>
-          <el-button size="medium" icon="el-icon-ksd-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
+          <el-button size="medium" icon="el-icon-ksd-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.converted_columns.length == 1"></el-button>
         </div>
         <div v-if="measure.expression ==='CORR'" class="ksd-mt-10">
-          <el-select class="measures-addCC" size="medium" v-model="measure.convertedColumns[0].value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable @change="changeCORRParamValue" :disabled="isCorrCCEdit">
+          <el-select class="measures-addCC" size="medium" v-model="measure.converted_columns[0].value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable @change="changeCORRParamValue" :disabled="isCorrCCEdit">
             <el-option-group key="column" :label="$t('columns')">
               <el-option
                 v-for="(item, index) in getParameterValue"
@@ -128,8 +128,8 @@ import $ from 'jquery'
     CCEditForm
   },
   locales: {
-    'en': {requiredName: 'The measure name is required.', name: 'Name', expression: 'Expression', returnType: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredReturnType: 'The return type is required.', requiredExpress: 'The expression is required.', columns: 'Columns', ccolumns: 'Computed Columns'},
-    'zh-cn': {requiredName: '请输入度量名称', name: '名称', expression: '表达式', returnType: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入列表名称', requiredReturnType: '请选择度量返回类型', requiredExpress: '请输入表达式。', columns: '普通列', ccolumns: '计算列'}
+    'en': {requiredName: 'The measure name is required.', name: 'Name', expression: 'Expression', return_type: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredreturn_type: 'The return type is required.', requiredExpress: 'The expression is required.', columns: 'Columns', ccolumns: 'Computed Columns'},
+    'zh-cn': {requiredName: '请输入度量名称', name: '名称', expression: '表达式', return_type: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入列表名称', requiredreturn_type: '请选择度量返回类型', requiredExpress: '请输入表达式。', columns: '普通列', ccolumns: '计算列'}
   }
 })
 export default class AddMeasure extends Vue {
@@ -138,9 +138,9 @@ export default class AddMeasure extends Vue {
   measure = {
     name: '',
     expression: 'SUM(column)',
-    parameterValue: {type: 'column', value: ''},
-    convertedColumns: [],
-    returntype: ''
+    parameter_value: [{type: 'column', value: ''}],
+    converted_columns: [],
+    return_type: ''
   }
   rules = {
     name: [
@@ -150,7 +150,7 @@ export default class AddMeasure extends Vue {
   }
   ccRules = {
     name: [{ required: true, message: this.$t('requiredCCName'), trigger: 'blur' }],
-    returnType: [{ required: true, message: this.$t('requiredReturnType'), trigger: 'change' }],
+    return_type: [{ required: true, message: this.$t('requiredreturn_type'), trigger: 'change' }],
     expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }]
   }
   ccObject = null
@@ -214,36 +214,36 @@ export default class AddMeasure extends Vue {
   }
 
   changeExpression () {
-    this.measure.returntype = ''
+    this.measure.return_type = ''
     if (this.measure.expression === 'SUM(constant)' || this.measure.expression === 'COUNT(constant)') {
-      this.measure.parameterValue.type = 'constant'
-      this.measure.parameterValue.value = 1
+      this.measure.parameter_value[0].type = 'constant'
+      this.measure.parameter_value[0].value = 1
     } else {
-      this.measure.parameterValue.type = 'column'
+      this.measure.parameter_value[0].type = 'column'
     }
     if (this.measure.expression === 'TOP_N') {
-      this.measure.convertedColumns = [{type: 'column', value: ''}]
-      this.measure.returntype = 'topn(100)'
+      this.measure.converted_columns = [{type: 'column', value: ''}]
+      this.measure.return_type = 'topn(100)'
     }
     if (this.measure.expression === 'CORR') {
-      this.measure.convertedColumns = [{type: 'column', value: ''}]
+      this.measure.converted_columns = [{type: 'column', value: ''}]
     }
     if (this.measure.expression === 'COUNT_DISTINCT') {
-      this.measure.convertedColumns = []
-      this.measure.returntype = 'hllc(10)'
+      this.measure.converted_columns = []
+      this.measure.return_type = 'hllc(10)'
     }
     if (this.measure.expression === 'PERCENTILE_APPROX') {
-      this.measure.returntype = 'percentile(100)'
+      this.measure.return_type = 'percentile(100)'
     }
   }
 
   addNewProperty () {
     const GroupBy = {type: 'column', value: ''}
-    this.measure.convertedColumns.push(GroupBy)
+    this.measure.converted_columns.push(GroupBy)
   }
 
   deleteProperty (index) {
-    this.measure.convertedColumns.splice(index, 1)
+    this.measure.converted_columns.splice(index, 1)
   }
 
   getCCObj (value) {
@@ -298,20 +298,20 @@ export default class AddMeasure extends Vue {
     this.corrCCVisible = true
   }
   saveCC (cc) {
-    this.measure.parameterValue.value = cc.tableAlias + '.' + cc.columnName
+    this.measure.parameter_value[0].value = cc.tableAlias + '.' + cc.columnName
     this.isEdit = false
   }
   saveCorrCC (cc) {
-    this.measure.convertedColumns[0].value = cc.tableAlias + '.' + cc.columnName
+    this.measure.converted_columns[0].value = cc.tableAlias + '.' + cc.columnName
     this.isCorrCCEdit = false
   }
   delCC (cc) {
-    this.measure.parameterValue.value = ''
+    this.measure.parameter_value[0].value = ''
     this.ccVisible = false
     this.isEdit = false
   }
   delCorrCC (cc) {
-    this.measure.convertedColumns[0].value = ''
+    this.measure.converted_columns[0].value = ''
     this.corrCCVisible = false
     this.isCorrCCEdit = false
   }
@@ -331,11 +331,6 @@ export default class AddMeasure extends Vue {
       return ''
     }
   }
-
-  get allReturnTypes () {
-    return [].concat(this.integerType, this.floatType, this.otherType)
-  }
-
   get getSelectDataType () {
     if (this.measure.expression === 'TOP_N') {
       return this.topNTypes
@@ -389,9 +384,9 @@ export default class AddMeasure extends Vue {
     this.measure = {
       name: '',
       expression: 'SUM(column)',
-      parameterValue: {type: 'column', value: ''},
-      convertedColumns: [],
-      returntype: ''
+      parameter_value: [{type: 'column', value: ''}],
+      converted_columns: [],
+      return_type: ''
     }
     this.ccVisible = false
     this.isEdit = false
@@ -399,7 +394,7 @@ export default class AddMeasure extends Vue {
 
   initExpression () {
     if (this.measure.expression === 'SUM' || this.measure.expression === 'COUNT') {
-      this.measure.expression = `${this.measure.expression}(${this.measure.parameterValue.type})`
+      this.measure.expression = `${this.measure.expression}(${this.measure.parameter_value[0].type})`
     }
   }
 
@@ -439,21 +434,6 @@ export default class AddMeasure extends Vue {
     .value-label {
       color: @text-title-color;
     }
-    .cc-block {
-      border: 1px solid @line-border-color;
-      padding: 20px;
-      background-color: @table-stripe-color;
-      margin-top: 10px;
-      .el-form-item__label {
-        padding: 0;
-      }
-      .el-form-item.is-required .el-form-item__label:before {
-        display: inline-block;
-      }
-      &.editCC .el-form-item.is-required .el-form-item__label:before {
-        display: none;
-      }
-    }
     .el-button.is-disabled,
     .el-button--primary.is-plain.is-disabled {
       background-color: @grey-4;
@@ -465,43 +445,6 @@ export default class AddMeasure extends Vue {
         background-color: @grey-4;
         color: @line-border-color;
       }
-    }
-    .option-left {
-      color: @text-secondary-color;
-    }
-    .el-tag--info {
-      background-color: @base-background-color;
-      color: @text-secondary-color;
-      cursor: not-allowed;
-    }
-    .select-returntype {
-      .el-select{
-        float:left;
-        width: 30%;
-      }
-      .decimal{
-        float: left;
-        width: 60%;
-        span{
-          float: left;
-          margin-left: 5px;
-          font-size: 25px;
-        }
-        .el-input{
-          float: left;
-          margin-left: 5px;
-          width: 20%;
-        }
-        .douhao{
-          margin-top: 5px;
-        }
-      }
-    }
-    .distinctWidth {
-      width: 80%
-    }
-    .topnWidth {
-      width: 100%
     }
   }
 </style>
