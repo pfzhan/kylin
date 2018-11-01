@@ -72,7 +72,6 @@ import java.util.Set;
 import javax.annotation.PostConstruct;
 
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
-import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -130,7 +129,6 @@ import org.apache.kylin.shaded.htrace.org.apache.htrace.TraceScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -163,10 +161,6 @@ public class QueryService extends BasicService {
 
     @Autowired
     private AclEvaluate aclEvaluate;
-
-    @Autowired
-    @Qualifier("queryHistoryService")
-    private QueryHistoryService queryHistoryService;
 
     public QueryService() {
         queryStore = ResourceStore.getKylinMetaStore(getConfig());
@@ -415,10 +409,6 @@ public class QueryService extends BasicService {
                 recordMetric(sqlRequest, sqlResponse);
             } catch (Throwable th) {
                 logger.warn("Write metric error.", th);
-            }
-
-            if (!isCreateTempStatement && !isQueryInspect) {
-                queryHistoryService.upsertQueryHistory(sqlRequest, sqlResponse, startTime);
             }
 
             return sqlResponse;

@@ -25,40 +25,24 @@
 package io.kyligence.kap.smart;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryManager;
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 
-import com.google.common.collect.Sets;
-
 public class NSmartController {
+    // todo: change the way of getting sqls
     public static synchronized void optimizeFromPushdown(KylinConfig kylinConfig, String project) throws IOException {
-        QueryHistoryManager manager = QueryHistoryManager.getInstance(kylinConfig, project);
-        List<QueryHistory> entries = manager.getAllQueryHistories();
-        Set<QueryHistory> toOptimize = Sets.newHashSetWithExpectedSize(entries.size());
+        /*
+        QueryHistoryManager manager = QueryHistoryManager.getInstance(kylinConfig);
+        List<QueryHistory> entries = manager.getAllQueryHistories(project);
 
         List<String> sqls = new ArrayList<>(entries.size());
         for (QueryHistory entry : entries) {
-            // TODO
-            if (!StringUtils.equals(entry.getAccelerateStatus(), QueryHistory.QUERY_HISTORY_ACCELERATED) &&
-                    entry.getRealization() != null && StringUtils.equals(entry.getRealization().get(0), QueryHistory.ADJ_PUSHDOWN)) {
-                sqls.add(entry.getSql());
-                toOptimize.add(entry);
+            if (!entry.getAccelerateStatus().equals(QueryHistory.QUERY_HISTORY_ACCELERATED)) {
+                sqls.add(entry.getSqlPattern());
             }
         }
 
         NSmartMaster master = new NSmartMaster(kylinConfig, project, sqls.toArray(new String[0]));
         master.runAll();
-
-        for (QueryHistory entry : toOptimize) {
-            entry.setAccelerateStatus(QueryHistory.QUERY_HISTORY_ACCELERATED);
-        }
-
-        manager.saveAll(toOptimize);
+        */
     }
 }

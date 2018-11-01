@@ -43,17 +43,12 @@
 package org.apache.kylin.rest.service;
 
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.concurrent.ConcurrentMap;
 
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryManager;
-import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,7 +109,6 @@ public class SlowQueryDetector extends Thread {
 
     private void initNotifiers() {
         this.notifiers.add(new LoggerNotifier());
-        this.notifiers.add(new PersistenceNotifier());
     }
 
     public void registerNotifier(Notifier notifier) {
@@ -220,27 +214,6 @@ public class SlowQueryDetector extends Thread {
                 String user, Thread t) {
             logger.info("{} query has been running {} seconds (project:{}, thread: 0x{}, user:{}) -- {}", QueryHistory.ADJ_SLOW,
                     runningSec, project, Long.toHexString(t.getId()), user, sql);
-        }
-    }
-
-    private class PersistenceNotifier implements Notifier {
-        String serverHostname;
-
-        public PersistenceNotifier() {
-            try {
-                serverHostname = InetAddress.getLocalHost().getHostName();
-            } catch (UnknownHostException e) {
-                serverHostname = "Unknow";
-                logger.warn("Error in get current hostname.", e);
-            }
-        }
-
-        @Override
-        public void slowQueryFound(float runningSec, long startTime, String project, String sql, String user, Thread t) throws IOException {
-                QueryHistory entry = new QueryHistory(QueryContext.current().getQueryId(), sql, startTime, (long) runningSec,
-                        serverHostname, t.getName(), user);
-                entry.setQueryStatus(QueryHistoryStatusEnum.FAILED);
-                QueryHistoryManager.getInstance(kylinConfig, project).save(entry);
         }
     }
 

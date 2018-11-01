@@ -24,118 +24,77 @@
 package io.kyligence.kap.metadata.favorite;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
+import lombok.Getter;
+import lombok.Setter;
 
-public class FavoriteQuery extends RootPersistentEntity implements Comparable<FavoriteQuery> {
-
-    @JsonProperty("sql")
-    private String sql;
+@Getter
+@Setter
+public class FavoriteQuery {
+    @JsonProperty("sql_pattern")
+    private String sqlPattern;
+    @JsonProperty("sql_pattern_hash")
+    private int sqlPatternHash;
     @JsonProperty("last_query_time")
     private long lastQueryTime;
     @JsonProperty("success_rate")
     private float successRate;
-    @JsonProperty("frequency")
-    private int frequency;
+    @JsonProperty("totalCount")
+    private int totalCount;
     @JsonProperty("average_duration")
     private float averageDuration;
-    @JsonProperty("model_name")
-    private String modelName;
     @JsonProperty("status")
     private FavoriteQueryStatusEnum status;
+    @JsonProperty("project")
+    private String project;
+
+    @JsonProperty("success_count")
+    private int successCount;
+    @JsonProperty("total_duration")
+    private long totalDuration;
 
     public FavoriteQuery() {
-        updateRandomUuid();
     }
 
-    public FavoriteQuery(final String sql) {
-        this.updateRandomUuid();
-        this.sql = sql;
-        this.setStatus(FavoriteQueryStatusEnum.WAITING);
+    public FavoriteQuery(final String sqlPattern, final int sqlPatternHash, final String project) {
+        this.sqlPattern = sqlPattern;
+        this.sqlPatternHash = sqlPatternHash;
+        this.totalCount = 1;
+        this.project = project;
+        this.lastQueryTime = System.currentTimeMillis();
+        this.status = FavoriteQueryStatusEnum.WAITING;
     }
 
-    public String getSql() {
-        return sql;
-    }
-
-    public void setSql(String sql) {
-        this.sql = sql;
-    }
-
-    public long getLastQueryTime() {
-        return lastQueryTime;
-    }
-
-    public void setLastQueryTime(long lastQueryTime) {
+    public FavoriteQuery(final String sqlPattern, final int sqlPatternHash, final String project, long lastQueryTime, int totalCount, long totalDuration) {
+        this.sqlPattern = sqlPattern;
+        this.sqlPatternHash = sqlPatternHash;
+        this.project = project;
         this.lastQueryTime = lastQueryTime;
+        this.totalCount = totalCount;
+        this.totalDuration = totalDuration;
+        this.status = FavoriteQueryStatusEnum.WAITING;
     }
 
-    public float getSuccessRate() {
-        return successRate;
+    public void increaseTotalCountByOne() {
+        this.totalCount ++;
     }
 
-    public void setSuccessRate(float successRate) {
-        this.successRate = successRate;
+    public void increaseSuccessCountByOne() {
+        this.successCount ++;
     }
 
-    public int getFrequency() {
-        return frequency;
-    }
-
-    public void setFrequency(int frequency) {
-        this.frequency = frequency;
-    }
-
-    public float getAverageDuration() {
-        return averageDuration;
-    }
-
-    public void setAverageDuration(float averageDuration) {
-        this.averageDuration = averageDuration;
-    }
-
-    public String getModelName() {
-        return modelName;
-    }
-
-    public void setModelName(String modelName) {
-        this.modelName = modelName;
-    }
-
-    public FavoriteQueryStatusEnum getStatus() {
-        return status;
-    }
-
-    public void setStatus(FavoriteQueryStatusEnum status) {
-        this.status = status;
+    public void increaseTotalDuration(long totalDuration) {
+        this.totalDuration += totalDuration;
     }
 
     @Override
-    public int compareTo(FavoriteQuery obj) {
-        int comp = Long.compare(this.lastQueryTime, obj.getLastQueryTime());
-        if (comp != 0)
-            return comp;
-        else
-            return this.sql.compareTo(obj.sql);
-    }
+    public boolean equals(Object obj) {
+        FavoriteQuery that = (FavoriteQuery) obj;
 
-    @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-        if (!super.equals(o))
-            return false;
-
-        FavoriteQuery that = (FavoriteQuery) o;
-
-        return sql.equals(that.sql);
+        return this.sqlPattern.equals(that.getSqlPattern()) && this.project.equals(that.getProject());
     }
 
     @Override
     public int hashCode() {
-        int result = super.hashCode();
-        result = 31 * result + sql.hashCode();
-        return result;
+        return (this.project + this.sqlPattern).hashCode();
     }
 }

@@ -4,20 +4,9 @@
   "version" : "3.0.0.0",
   "enabled" : "true",
   "conds" : [ {
-    "field" : "user",
-    "rightThreshold" : "ADMIN"
-  }, {
-    "field" : "latency",
-    "rightThreshold" : "1000",
-    "leftThreshold" : null
-  }, {
-    "field" : "sql",
-    "rightThreshold" : "test_table_1",
-    "leftThreshold" : null
-  }, {
     "field" : "frequency",
-    "rightThreshold" : "4",
+    "rightThreshold" : "0.1",
     "leftThreshold" : null
   } ],
-  "name" : "test"
+  "name" : "frequency"
 }

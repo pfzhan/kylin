@@ -21,27 +21,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.metadata.favorite;
 
-package org.apache.kylin.rest.request;
-
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.io.Serializable;
-import java.util.List;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 @Getter
 @Setter
-public class QueryFilterRequest implements Serializable {
+public class QueryHistoryTimeOffset extends RootPersistentEntity {
+    @JsonProperty("auto_mark_time_offset")
+    private long autoMarkTimeOffset;
+    @JsonProperty("favorite_query_update_time_offset")
+    private long favoriteQueryUpdateTimeOffset;
 
-    private String project;
-    private boolean enable;
-    private String freqValue;
-    private String[] durationValue;
-    private List<String> users;
-    private List<String> groups;
+    public QueryHistoryTimeOffset() {
 
-    public QueryFilterRequest() {
+    }
 
+    public QueryHistoryTimeOffset(long autoMarkTimeOffset, long favoriteQueryUpdateTimeOffset) {
+        this.autoMarkTimeOffset = autoMarkTimeOffset;
+        this.favoriteQueryUpdateTimeOffset = favoriteQueryUpdateTimeOffset;
     }
 }

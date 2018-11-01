@@ -56,8 +56,8 @@ public class AddCuboidEvent extends Event {
     @JsonProperty("layout_ids")
     private List<Long> layoutIds;
 
-    @JsonProperty("sql_ids")
-    private List<String> sqlIdList;
+    @JsonProperty("sql_patterns")
+    private List<String> sqlPatterns;
 
     public AddCuboidEvent() {
         super();

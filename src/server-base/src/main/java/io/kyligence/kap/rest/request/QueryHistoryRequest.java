@@ -22,26 +22,39 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.apache.kylin.rest.request;
+package io.kyligence.kap.rest.request;
 
 import lombok.Getter;
-import lombok.Setter;
 
-import java.io.Serializable;
 import java.util.List;
 
 @Getter
-@Setter
-public class QueryFilterRequest implements Serializable {
+public class QueryHistoryRequest {
 
     private String project;
-    private boolean enable;
-    private String freqValue;
-    private String[] durationValue;
-    private List<String> users;
-    private List<String> groups;
 
-    public QueryFilterRequest() {
+    private long startTimeFrom;
+    private long startTimeTo;
+    private long latencyFrom;
+    private long latencyTo;
+    private String sql;
 
+    List<String> realizations;
+    List<String> accelerateStatuses;
+
+    public QueryHistoryRequest() {
+
+    }
+
+    public QueryHistoryRequest(String project, long startTimeFrom, long startTimeTo, long latencyFrom, long latencyTo,
+                               String sql, List<String> realizations, List<String> accelerateStatuses) {
+        this.project = project;
+        this.startTimeFrom = startTimeFrom;
+        this.startTimeTo = startTimeTo;
+        this.latencyFrom = latencyFrom;
+        this.latencyTo = latencyTo;
+        this.sql = sql;
+        this.realizations = realizations;
+        this.accelerateStatuses = accelerateStatuses;
     }
 }

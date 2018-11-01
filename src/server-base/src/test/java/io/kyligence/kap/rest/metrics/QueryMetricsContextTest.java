@@ -202,7 +202,7 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
             final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
             Assert.assertEquals(queryContext.getQueryId(), influxdbFields.get("query_id"));
             Assert.assertEquals("select * from test_with_pushdown", influxdbFields.get("sql_text"));
-            Assert.assertEquals(100L, influxdbFields.get("query_duration"));
+            Assert.assertEquals(100L, influxdbFields.get("duration"));
             Assert.assertEquals(999L, influxdbFields.get("total_scan_bytes"));
 
             // assert realizations

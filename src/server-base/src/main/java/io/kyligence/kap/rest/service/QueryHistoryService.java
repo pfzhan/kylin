@@ -25,263 +25,95 @@
 package io.kyligence.kap.rest.service;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
+import io.kyligence.kap.common.metric.MetricWriter;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryFilterRule;
-import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
+import io.kyligence.kap.metadata.query.QueryHistoryManager;
+import io.kyligence.kap.rest.request.QueryHistoryRequest;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
-import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.rest.request.SQLRequest;
-import org.apache.kylin.rest.response.SQLResponse;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.net.InetAddress;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 @Component("queryHistoryService")
 public class QueryHistoryService extends BasicService {
-    private static String localIp;
 
-    public void upsertQueryHistory(SQLRequest sqlRequest, SQLResponse sqlResponse, long startTime) throws IOException {
-        String project = sqlRequest.getProject();
-        QueryHistory queryHistory = new QueryHistory(QueryContext.current().getQueryId(), sqlRequest.getSql(),
-                startTime, sqlResponse.getDuration(), getLocalIP(), Thread.currentThread().getName(),
-                sqlRequest.getUsername());
+    private QueryHistoryManager queryHistoryManager = QueryHistoryManager.getInstance(getConfig());
 
-        if (sqlResponse.getColumnMetas() != null) {
-            List<String> columns = Lists.newArrayList();
-            for (SelectedColumnMeta columnMeta : sqlResponse.getColumnMetas()) {
-                columns.add(columnMeta.getName());
-            }
-            queryHistory.setContent(columns);
-        }
-
-        queryHistory.setTotalScanBytes(sqlResponse.getTotalScanBytes());
-        queryHistory.setTotalScanCount(sqlResponse.getTotalScanCount());
-
-        if (sqlResponse.isHitExceptionCache() || sqlResponse.isStorageCacheUsed()) {
-            queryHistory.setCacheHit(true);
-        }
-
-        if (sqlResponse.getIsException()) {
-            queryHistory.setQueryStatus(QueryHistoryStatusEnum.FAILED);
-            queryHistory.setAccelerateStatus(QueryHistory.QUERY_HISTORY_UNACCELERATED);
-            getQueryHistoryManager(project).save(queryHistory);
-            return;
-        }
-
-        if (sqlResponse.getResults() != null)
-            queryHistory.setResultRowCount(sqlResponse.getResults().size());
-
-        if (sqlResponse.isPushDown()) {
-            queryHistory.setRealization(Lists.newArrayList(QueryContext.current().getPushdownEngine()));
-            queryHistory.setAccelerateStatus(QueryHistory.QUERY_HISTORY_UNACCELERATED);
-        } else {
-            queryHistory.setCubeHit(true);
-
-            Set<String> modelNames = new HashSet<>();
-            List<String> realization = Lists.newArrayList();
-            if (OLAPContext.getThreadLocalContexts() != null) {
-                for (final OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
-                    if (ctx.realization != null) {
-                        modelNames.add(ctx.realization.getModel().getName());
-                        realization.add(String.valueOf(ctx.storageContext.getCandidate().getCuboidLayout().getId()));
-                    }
-                }
-            }
-
-            queryHistory.setRealization(realization);
-            queryHistory.setModelName(modelNames.toString());
-            queryHistory.setAccelerateStatus(QueryHistory.QUERY_HISTORY_ACCELERATED);
-        }
-
-        queryHistory.setQueryStatus(QueryHistoryStatusEnum.SUCCEEDED);
-        getQueryHistoryManager(project).save(queryHistory);
-    }
-
-    synchronized private String getLocalIP() throws IOException {
-        if (localIp == null) {
-            localIp = InetAddress.getLocalHost().getHostAddress();
-        }
-        return localIp;
-    }
-
-    public List<QueryHistory> getQueryHistories(final String project) throws IOException {
-        Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
-        return getQueryHistoryManager(project).getAllQueryHistories();
-    }
-
-    private boolean compare(final QueryFilterRule.QueryHistoryCond cond, QueryHistory queryHistory,
-            List<QueryHistory> queryHistories) {
-        switch (cond.getField()) {
-        case QueryFilterRule.START_TIME:
-            return queryHistory.getStartTime() > Long.valueOf(cond.getLeftThreshold())
-                    && queryHistory.getStartTime() < Long.valueOf(cond.getRightThreshold());
-        case QueryFilterRule.FREQUENCY:
-            return Collections.frequency(getDailyQueriesSqls(queryHistories), queryHistory.getSql()) > Integer
-                    .valueOf(cond.getRightThreshold());
-        case QueryFilterRule.LATENCY:
-            if (cond.getLeftThreshold() == null)
-                return queryHistory.getLatency() > Long.valueOf(cond.getRightThreshold()) * 1000L;
-            else
-                return queryHistory.getLatency() > Long.valueOf(cond.getLeftThreshold()) * 1000L
-                        && queryHistory.getLatency() < Long.valueOf(cond.getRightThreshold()) * 1000L;
-        case QueryFilterRule.ACCELERATE_STATUS:
-            if (queryHistory.getAccelerateStatus() == null)
-                return false;
-            return queryHistory.getAccelerateStatus().equals(cond.getRightThreshold());
-        case QueryFilterRule.SQL:
-            return queryHistory.getSql().contains(cond.getRightThreshold());
-        case QueryFilterRule.ANSWERED_BY:
-            if (queryHistory.getRealization() == null)
-                return false;
-            if (cond.getRightThreshold().equals(QueryHistory.ADJ_PUSHDOWN))
-                return queryHistory.getRealization().equals(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
-            else if (cond.getRightThreshold().equals("model"))
-                return !queryHistory.getRealization().equals(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
-            return false;
-        case QueryFilterRule.USER:
-            return queryHistory.getUser().equals(cond.getRightThreshold());
-        default:
-            throw new IllegalArgumentException(String.format("The field of %s is not yet supported.", cond.getField()));
+    private void checkMetricWriterType() {
+        if (!MetricWriter.Type.INFLUX.name().equals(KapConfig.wrap(getConfig()).diagnosisMetricWriterType())) {
+            throw new IllegalStateException(MsgPicker.getMsg().getNOT_SET_INFLUXDB());
         }
     }
 
-    public List<QueryHistory> getQueryHistoriesByRules(final List<QueryFilterRule> rules,
-            final List<QueryHistory> queryHistories) {
-        List<Predicate<QueryHistory>> andPredicates = Lists.newArrayList();
-        List<Predicate<QueryHistory>> orPredicates = Lists.newArrayList();
-        Predicate<QueryHistory> predicate = null;
+    public List<QueryHistory> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
+        Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
+        checkMetricWriterType();
 
-        if (rules == null || rules.size() == 0)
-            return queryHistories;
-
-        for (final QueryFilterRule rule : rules) {
-            andPredicates.clear();
-            // handle the case when multiple conds filter the same field
-            Map<String, List<QueryFilterRule.QueryHistoryCond>> condsMap = Maps.newHashMap();
-            for (QueryFilterRule.QueryHistoryCond cond : rule.getConds()) {
-                if (!condsMap.containsKey(cond.getField())) {
-                    condsMap.put(cond.getField(), Lists.newArrayList(cond));
-                } else {
-                    List<QueryFilterRule.QueryHistoryCond> conds = condsMap.get(cond.getField());
-                    conds.add(cond);
-                    condsMap.put(cond.getField(), conds);
-                }
-            }
-
-            for (final Map.Entry<String, List<QueryFilterRule.QueryHistoryCond>> entry : condsMap.entrySet()) {
-                predicate = new Predicate<QueryHistory>() {
-                    @Override
-                    public boolean apply(@Nullable QueryHistory queryHistory) {
-                        List<QueryFilterRule.QueryHistoryCond> conds = entry.getValue();
-                        int count = 0;
-                        while (count < conds.size() && !compare(conds.get(count), queryHistory, queryHistories)) {
-                            count ++;
-                        }
-
-                        return count < conds.size() ? true : false;
-                    }
-                };
-
-                andPredicates.add(predicate);
-            }
-
-            orPredicates.add(Predicates.and(andPredicates));
-        }
-
-        return Lists.newArrayList(Iterables.filter(queryHistories, Predicates.or(orPredicates)));
+        final String query = getQueryHistorySql(request, limit, offset);
+        return queryHistoryManager.getQueryHistoriesBySql(query, QueryHistory.class);
     }
 
-    private List<String> getDailyQueriesSqls(List<QueryHistory> queryHistories) {
-        List<String> sqls = Lists.newArrayList();
-        Calendar now = Calendar.getInstance();
-        now.setTime(new Date());
-        Calendar queryStartTime = Calendar.getInstance();
-        for (QueryHistory queryHistory : queryHistories) {
-            queryStartTime.setTime(new Date(queryHistory.getStartTime()));
-            if (now.get(Calendar.YEAR) == queryStartTime.get(Calendar.YEAR)
-                    && now.get(Calendar.DAY_OF_YEAR) == queryStartTime.get(Calendar.DAY_OF_YEAR)) {
-                sqls.add(queryHistory.getSql());
-            }
+    private String getQueryHistorySql(QueryHistoryRequest request, final int limit, final int offset) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("SELECT * FROM %s WHERE project = '%s' ", QueryHistory.QUERY_MEASUREMENT,
+                request.getProject()));
+
+        // filter by time
+        sb.append(String.format("AND (query_time >= %d AND query_time < %d) ", request.getStartTimeFrom(),
+                request.getStartTimeTo()));
+        // filter by duration
+        sb.append(String.format("AND (\"duration\" >= %d AND \"duration\" < %d) ", request.getLatencyFrom() * 1000L,
+                request.getLatencyTo() * 1000L));
+
+        if (StringUtils.isNotEmpty(request.getSql())) {
+            sb.append(String.format("AND sql_text =~ /%s/ ", request.getSql()));
         }
 
-        return sqls;
-    }
-
-    public QueryFilterRule parseQueryFilterRuleRequest(long startTimeFrom, long startTimeTo, long latencyFrom,
-            long latencyTo, String sql, List<String> realizations, List<String> accelerateStatuses) {
-        List<QueryFilterRule.QueryHistoryCond> conds = Lists.newArrayList();
-
-        QueryFilterRule.QueryHistoryCond startTimeCond = new QueryFilterRule.QueryHistoryCond();
-        startTimeCond.setField(QueryFilterRule.START_TIME);
-        startTimeCond.setLeftThreshold(String.valueOf(startTimeFrom));
-        startTimeCond.setRightThreshold(String.valueOf(startTimeTo));
-        conds.add(startTimeCond);
-
-        QueryFilterRule.QueryHistoryCond latencyCond = new QueryFilterRule.QueryHistoryCond();
-        latencyCond.setField(QueryFilterRule.LATENCY);
-        latencyCond.setLeftThreshold(String.valueOf(latencyFrom));
-        latencyCond.setRightThreshold(String.valueOf(latencyTo));
-        conds.add(latencyCond);
-
-        if (StringUtils.isNotBlank(sql)) {
-            QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
-            cond.setField(QueryFilterRule.SQL);
-            cond.setRightThreshold(sql);
-            conds.add(cond);
-        }
-
-        if (realizations != null && realizations.size() != 0) {
-            for (String realization : realizations) {
-                if (realization == null)
-                    continue;
-
-                QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
-                cond.setField(QueryFilterRule.ANSWERED_BY);
-                if (realization.equals(QueryHistory.ADJ_PUSHDOWN)) {
-                    cond.setRightThreshold(QueryHistory.ADJ_PUSHDOWN);
-                    conds.add(cond);
-                } else if (realization.equals("modelName")) {
-                    cond.setRightThreshold("model");
-                    conds.add(cond);
-                } else
+        if (request.getRealizations() != null && !request.getRealizations().isEmpty()) {
+            sb.append("AND (");
+            for (int i = 0; i < request.getRealizations().size(); i++) {
+                switch (request.getRealizations().get(i)) {
+                case "pushdown":
+                    sb.append("cube_hit = 'false' OR ");
+                    break;
+                case "modelName":
+                    sb.append("cube_hit = 'true' OR ");
+                    break;
+                default:
                     throw new IllegalArgumentException(
-                            String.format("Not supported filter condition: %s", realization));
-            }
+                            String.format("Illegal realization type %s", request.getRealizations().get(i)));
+                }
 
+                if (i == request.getRealizations().size() - 1) {
+                    sb.setLength(sb.length() - 4);
+                    sb.append(") ");
+                }
+            }
         }
 
-        if (accelerateStatuses != null && accelerateStatuses.size() != 0) {
-            for (String accelerateStatus : accelerateStatuses) {
-                QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
-                cond.setField(QueryFilterRule.ACCELERATE_STATUS);
-                cond.setRightThreshold(accelerateStatus);
-                conds.add(cond);
+        if (request.getAccelerateStatuses() != null && !request.getAccelerateStatuses().isEmpty()) {
+            sb.append("AND (");
+            for (int i = 0; i < request.getAccelerateStatuses().size(); i++) {
+                if (i == request.getAccelerateStatuses().size() - 1)
+                    sb.append(String.format("accelerate_status = '%s') ", request.getAccelerateStatuses().get(i)));
+                else
+                    sb.append(String.format("accelerate_status = '%s' OR ", request.getAccelerateStatuses().get(i)));
             }
-
         }
 
-        if (conds.size() == 0)
-            return null;
+        sb.append(String.format("ORDER BY time DESC LIMIT %d OFFSET %d", limit, offset));
+        return sb.toString();
+    }
 
-        QueryFilterRule rule = new QueryFilterRule();
-        rule.setConds(conds);
-        return rule;
+    public List<QueryHistory> getQueryHistories(long startTime, long endTime) {
+        checkMetricWriterType();
+
+        String sql = String.format("SELECT * FROM %s WHERE time >= %dms AND time < %dms",
+                QueryHistory.QUERY_MEASUREMENT, startTime, endTime);
+
+        return queryHistoryManager.getQueryHistoriesBySql(sql, QueryHistory.class);
     }
 }

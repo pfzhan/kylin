@@ -43,264 +43,144 @@
 package io.kyligence.kap.metadata.query;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.common.util.DateFormat;
+import io.kyligence.kap.common.metric.InfluxDBWriter;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Measurement;
+import lombok.Getter;
+import lombok.Setter;
 
-import java.util.List;
-import java.util.Objects;
+import java.time.Instant;
 
 @SuppressWarnings("serial")
-public class QueryHistory extends RootPersistentEntity implements Comparable<QueryHistory> {
+@Measurement(name = "query_metric")
+@Getter
+@Setter
+public class QueryHistory {
     public static final String ADJ_SLOW = "Slow";
-    public static final String ADJ_PUSHDOWN = "pushdown";
-    public static final String QUERY_HISTORY_UNACCELERATED = "NEW";
+    public static final String QUERY_HISTORY_SUCCEEDED = "SUCCEEDED";
+    public static final String QUERY_HISTORY_FAILED = "FAILED";
+    public static final String QUERY_HISTORY_UNACCELERATED = "UNACCELERATED";
+    public static final String QUERY_HISTORY_PARTLY_ACCELERATED = "PARTLY_ACCELERATED";
     public static final String QUERY_HISTORY_ACCELERATED = "FULLY_ACCELERATED";
 
-    @JsonProperty("sql")
+    // database name
+    public static final String DB_NAME = InfluxDBWriter.DEFAULT_DATABASE;
+
+    // table names
+    public static final String QUERY_MEASUREMENT = "query_metric";
+    public static final String REALIZATION_MEASUREMENT = "realization_metric";
+
+    public static final String QUERY_ID = "query_id";
+    public static final String SQL_TEXT = "sql_text";
+    public static final String SQL_PATTERN = "sql_pattern";
+    public static final String QUERY_DURATION = "duration";
+    public static final String TOTAL_SCAN_BYTES = "total_scan_bytes";
+    public static final String TOTAL_SCAN_COUNT = "total_scan_count";
+    public static final String RESULT_ROW_COUNT = "result_row_count";
+    public static final String SUBMITTER = "submitter";
+    public static final String PROJECT = "project";
+    public static final String MODEL = "model";
+    public static final String REALIZATIONS = "realizations";
+    public static final String REALIZATION_NAME = "realization_name";
+    public static final String REALIZATION_TYPE = "realization_type";
+    public static final String QUERY_HOSTNAME = "hostname";
+    public static final String SUITE = "suite";
+    public static final String ERROR_TYPE = "error_type";
+    public static final String ENGINE_TYPE = "engine_type";
+    public static final String IS_CACHE_HIT = "cache_hit";
+    public static final String QUERY_STATUS = "query_status";
+    public static final String ACCELERATE_STATUS = "accelerate_status";
+    public static final String ANSWERED_BY = "answered_by";
+    public static final String IS_CUBE_HIT = "cube_hit";
+    public static final String QUERY_TIME = "query_time";
+
+    @JsonProperty(SQL_TEXT)
+    @Column(name = SQL_TEXT)
     private String sql;
-    @JsonProperty("start_time")
-    private long startTime;
-    @JsonProperty("latency")
-    private long latency;
-    @JsonProperty("realization")
-    private List<String> realization;
-    @JsonProperty("query_node")
-    private String queryNode;
-    @JsonProperty("thread")
-    private String thread;
-    @JsonProperty("user")
-    private String user;
-    @JsonProperty("query_status")
-    private QueryHistoryStatusEnum queryStatus;
-    @JsonProperty("favorite")
-    private String favorite;
-    @JsonProperty("unfavorite")
-    private boolean unfavorite = false;
-    @JsonProperty("accelerate_status")
+
+    @JsonProperty(SQL_PATTERN)
+    @Column(name = SQL_PATTERN)
+    private String sqlPattern;
+
+    @JsonProperty(QUERY_TIME)
+    @Column(name = QUERY_TIME)
+    private long queryTime;
+
+    @Column(name = "time")
+    private Instant insertTime;
+
+    @JsonProperty(QUERY_DURATION)
+    @Column(name = QUERY_DURATION)
+    private long duration;
+
+    @JsonProperty(REALIZATIONS)
+    @Column(name = REALIZATIONS)
+    private String realization;
+
+    @JsonProperty(QUERY_HOSTNAME)
+    @Column(name = QUERY_HOSTNAME, tag = true)
+    private String hostName;
+
+    @JsonProperty(SUBMITTER)
+    @Column(name = SUBMITTER)
+    private String querySubmitter;
+
+    @JsonProperty(QUERY_STATUS)
+    @Column(name = QUERY_STATUS)
+    private String queryStatus;
+
+    @JsonProperty(ACCELERATE_STATUS)
+    @Column(name = ACCELERATE_STATUS)
     private String accelerateStatus;
 
     //query details
-    @JsonProperty("query_id")
+    @JsonProperty(QUERY_ID)
+    @Column(name = QUERY_ID)
     private String queryId;
-    @JsonProperty("model_name")
-    private String modelName;
-    @JsonProperty("content")
-    private List<String> content;
-    @JsonProperty("total_scan_count")
+
+    @JsonProperty(TOTAL_SCAN_COUNT)
+    @Column(name = TOTAL_SCAN_COUNT)
     private long totalScanCount;
-    @JsonProperty("total_scan_bytes")
+
+    @JsonProperty(TOTAL_SCAN_BYTES)
+    @Column(name = TOTAL_SCAN_BYTES)
     private long totalScanBytes;
-    @JsonProperty("result_row_count")
+
+    @JsonProperty(RESULT_ROW_COUNT)
+    @Column(name = RESULT_ROW_COUNT)
     private long resultRowCount;
-    @JsonProperty("cube_hit")
-    private boolean isCubeHit = false;
-    @JsonProperty("cache_hit")
-    private boolean cacheHit = false;
 
+    @JsonProperty(IS_CACHE_HIT)
+    @Column(name = IS_CACHE_HIT)
+    private boolean cacheHit;
 
-    public QueryHistory(String queryId, String sql, long startTime, long latency, String queryNode, String thread,
-                        String user) {
-        this.queryId = queryId;
-        this.updateRandomUuid();
-        this.sql = sql;
-        this.startTime = startTime;
-        this.latency = latency;
-        this.queryNode = queryNode;
-        this.thread = thread;
-        this.user = user;
-    }
+    @JsonProperty(ANSWERED_BY)
+    @Column(name = ANSWERED_BY, tag = true)
+    private String answeredBy;
+
+    @Column(name = PROJECT, tag = true)
+    private String queryProject;
 
     public QueryHistory() {
-        updateRandomUuid();
     }
 
-    public String getQueryId() {
-        return queryId;
+    public QueryHistory(String sqlPattern) {
+        this.sqlPattern = sqlPattern;
     }
 
-    public void setQueryId(String queryId) {
-        this.queryId = queryId;
+    public String getProject() {
+       return this.queryProject;
     }
 
-    public String getSql() {
-        return sql;
+    public void setProject(String project) {
+        this.queryProject = project;
     }
 
-    public void setSql(String sql) {
-        this.sql = sql;
+    public boolean isException() {
+        return queryStatus.equals(QUERY_HISTORY_FAILED);
     }
 
-    public long getStartTime() {
-        return startTime;
-    }
-
-    public void setStartTime(long startTime) {
-        this.startTime = startTime;
-    }
-
-    public long getLatency() {
-        return latency;
-    }
-
-    public void setLatency(long latency) {
-        this.latency = latency;
-    }
-
-    public List<String> getRealization() {
-        return realization;
-    }
-
-    public void setRealization(List<String> realization) {
-        this.realization = realization;
-    }
-
-    public String getQueryNode() {
-        return queryNode;
-    }
-
-    public void setQueryNode(String queryNode) {
-        this.queryNode = queryNode;
-    }
-
-    public String getThread() {
-        return thread;
-    }
-
-    public void setThread(String thread) {
-        this.thread = thread;
-    }
-
-    public String getUser() {
-        return user;
-    }
-
-    public void setUser(String user) {
-        this.user = user;
-    }
-
-    public QueryHistoryStatusEnum getQueryStatus() {
-        return queryStatus;
-    }
-
-    public void setQueryStatus(QueryHistoryStatusEnum queryStatus) {
-        this.queryStatus = queryStatus;
-    }
-
-    public String getFavorite() {
-        return favorite;
-    }
-
-    public void setFavorite(String favorite) {
-        this.favorite = favorite;
-    }
-
-    public boolean isFavorite() {
-        return this.favorite != null;
-    }
-
-    public boolean isUnfavorite() {
-        return unfavorite;
-    }
-
-    public void setUnfavorite(boolean unfavorite) {
-        this.unfavorite = unfavorite;
-    }
-
-    public String getAccelerateStatus() {
-        return accelerateStatus;
-    }
-
-    public void setAccelerateStatus(String accelerateStatus) {
-        this.accelerateStatus = accelerateStatus;
-    }
-
-    public String getModelName() {
-        return modelName;
-    }
-
-    public void setModelName(String modelName) {
-        this.modelName = modelName;
-    }
-
-    public List<String> getContent() {
-        return content;
-    }
-
-    public void setContent(List<String> content) {
-        this.content = content;
-    }
-
-    public long getTotalScanCount() {
-        return totalScanCount;
-    }
-
-    public void setTotalScanCount(long totalScanCount) {
-        this.totalScanCount = totalScanCount;
-    }
-
-    public long getTotalScanBytes() {
-        return totalScanBytes;
-    }
-
-    public void setTotalScanBytes(long totalScanBytes) {
-        this.totalScanBytes = totalScanBytes;
-    }
-
-    public void setResultRowCount(long resultRowCount) {
-        this.resultRowCount = resultRowCount;
-    }
-
-    public boolean isCubeHit() {
-        return isCubeHit;
-    }
-
-    public void setCubeHit(boolean cubeHit) {
-        isCubeHit = cubeHit;
-    }
-
-    public boolean isCacheHit() {
-        return cacheHit;
-    }
-
-    public void setCacheHit(boolean cacheHit) {
-        this.cacheHit = cacheHit;
-    }
-
-    @Override
-    public int compareTo(QueryHistory obj) {
-        int comp = Long.compare(this.startTime, obj.startTime);
-        if (comp != 0)
-            return comp;
-        else
-            return this.sql.compareTo(obj.sql);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-
-        QueryHistory entry = (QueryHistory) o;
-
-        if (startTime != entry.startTime)
-            return false;
-
-        if (!sql.equals(entry.sql))
-            return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(sql, startTime);
-    }
-
-    @Override
-    public String toString() {
-        return "QueryHistory [ realization =" + realization + ", query node =" + queryNode + ", startTime="
-                + DateFormat.formatToTimeStr(startTime) + " ]";
+    public long getInsertTime() {
+        return this.insertTime.toEpochMilli();
     }
 }

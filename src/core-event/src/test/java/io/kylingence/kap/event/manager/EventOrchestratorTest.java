@@ -24,10 +24,10 @@
 package io.kylingence.kap.event.manager;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.kylingence.kap.event.model.AccelerateEvent;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
 import org.junit.Assert;
@@ -42,7 +42,6 @@ import io.kylingence.kap.event.model.AddSegmentEvent;
 import io.kylingence.kap.event.model.Event;
 import io.kylingence.kap.event.model.LoadingRangeUpdateEvent;
 import io.kylingence.kap.event.model.MergeSegmentEvent;
-import io.kylingence.kap.event.model.ModelUpdateEvent;
 import io.kylingence.kap.event.model.RemoveCuboidBySqlEvent;
 import io.kylingence.kap.event.model.RemoveSegmentEvent;
 
@@ -121,25 +120,25 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
         initEvents.add(addSegmentEvent);
 
         Thread.sleep(10);
-        ModelUpdateEvent modelUpdateEvent = new ModelUpdateEvent();
-        modelUpdateEvent.setProject(DEFAULT_PROJECT);
-        modelUpdateEvent.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT", "1");}});
-        modelUpdateEvent.setApproved(true);
-        initEvents.add(modelUpdateEvent);
+        AccelerateEvent accelerateEvent = new AccelerateEvent();
+        accelerateEvent.setProject(DEFAULT_PROJECT);
+        accelerateEvent.setSqlPatterns(Lists.newArrayList("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT"));
+        accelerateEvent.setApproved(true);
+        initEvents.add(accelerateEvent);
 
         Thread.sleep(10);
-        modelUpdateEvent = new ModelUpdateEvent();
-        modelUpdateEvent.setProject(DEFAULT_PROJECT);
-        modelUpdateEvent.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", "2");}});
-        modelUpdateEvent.setApproved(true);
-        initEvents.add(modelUpdateEvent);
+        accelerateEvent = new AccelerateEvent();
+        accelerateEvent.setProject(DEFAULT_PROJECT);
+        accelerateEvent.setSqlPatterns(Lists.newArrayList("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME"));
+        accelerateEvent.setApproved(true);
+        initEvents.add(accelerateEvent);
 
         Thread.sleep(10);
-        modelUpdateEvent = new ModelUpdateEvent();
-        modelUpdateEvent.setProject(DEFAULT_PROJECT);
-        modelUpdateEvent.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", "3");}});
-        modelUpdateEvent.setApproved(true);
-        initEvents.add(modelUpdateEvent);
+        accelerateEvent = new AccelerateEvent();
+        accelerateEvent.setProject(DEFAULT_PROJECT);
+        accelerateEvent.setSqlPatterns(Lists.newArrayList("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME"));
+        accelerateEvent.setApproved(true);
+        initEvents.add(accelerateEvent);
 
         Thread.sleep(10);
         MergeSegmentEvent mergeSegmentEvent = new MergeSegmentEvent();

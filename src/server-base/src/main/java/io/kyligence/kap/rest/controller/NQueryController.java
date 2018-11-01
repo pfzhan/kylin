@@ -38,10 +38,9 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.query.QueryFilterRule;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.PagingUtil;
+import io.kyligence.kap.rest.request.QueryHistoryRequest;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.commons.io.IOUtils;
@@ -88,7 +87,6 @@ import com.google.common.collect.Maps;
 @RestController
 @RequestMapping(value = "/query")
 public class NQueryController extends NBasicController {
-
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(NQueryController.class);
 
@@ -164,25 +162,18 @@ public class NQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getQueryHistories(@RequestParam(value = "project") String project,
             @RequestParam(value = "startTimeFrom", required = false, defaultValue = "0") long startTimeFrom,
-            @RequestParam(value = "startTimeTo", required = false, defaultValue = Long.MAX_VALUE + "") long startTimeTo,
+            @RequestParam(value = "startTimeTo", required = false, defaultValue = Long.MAX_VALUE / 1000000 + "") long startTimeTo,
             @RequestParam(value = "latencyFrom", required = false, defaultValue = "0") long latencyFrom,
             @RequestParam(value = "latencyTo", required = false, defaultValue = Integer.MAX_VALUE + "") long latencyTo,
             @RequestParam(value = "sql", required = false) String sql,
             @RequestParam(value = "realization[]", required = false) List<String> realizations,
             @RequestParam(value = "accelerateStatus[]", required = false) List<String> accelerateStatuses,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) throws IOException {
+            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         HashMap<String, Object> data = new HashMap<>();
-        QueryFilterRule rule = queryHistoryService.parseQueryFilterRuleRequest(startTimeFrom, startTimeTo, latencyFrom,
-                latencyTo, sql, realizations, accelerateStatuses);
-        List<QueryHistory> queryHistories;
-        if (rule != null)
-            queryHistories = queryHistoryService.getQueryHistoriesByRules(Lists.newArrayList(rule),
-                    queryHistoryService.getQueryHistories(project));
-        else
-            queryHistories = queryHistoryService.getQueryHistories(project);
-
-        data.put("query_histories", PagingUtil.cutPage(queryHistories, offset, limit));
+        QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom, latencyTo, sql, realizations, accelerateStatuses);
+        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories(request, limit, offset);
+        data.put("query_histories", queryHistories);
         data.put("size", queryHistories.size());
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");

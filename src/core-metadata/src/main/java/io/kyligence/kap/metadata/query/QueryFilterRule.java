@@ -25,21 +25,26 @@
 package io.kyligence.kap.metadata.query;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
+import java.io.Serializable;
 import java.util.List;
 
 public class QueryFilterRule extends RootPersistentEntity {
-    public static final String START_TIME = "startTime";
     public static final String FREQUENCY = "frequency";
-    public static final String LATENCY = "latency";
-    public static final String ACCELERATE_STATUS = "accelerateStatus";
-    public static final String SQL = "sql";
-    public static final String ANSWERED_BY = "answeredBy";
-    public static final String USER = "user";
+    public static final String DURATION = "duration";
+    public static final String SUBMITTER = "submitter";
+
+    public static final String FREQUENCY_RULE_NAME = "frequency";
+    public static final String DURATION_RULE_NAME = "duration";
+    public static final String SUBMITTER_RULE_NAME = "submitter";
+
+    public static final String ENABLE = "enable";
 
     public QueryFilterRule() {
         updateRandomUuid();
+        this.conds = Lists.newArrayList();
     }
 
     public QueryFilterRule(List<QueryHistoryCond> conds, String name, boolean isEnabled) {
@@ -80,7 +85,7 @@ public class QueryFilterRule extends RootPersistentEntity {
         this.enabled = enabled;
     }
 
-    public static class QueryHistoryCond {
+    public static class QueryHistoryCond implements Serializable {
         private String field;
         private String rightThreshold;
         private String leftThreshold;

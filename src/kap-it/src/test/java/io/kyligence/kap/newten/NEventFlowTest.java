@@ -25,7 +25,6 @@ package io.kyligence.kap.newten;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +36,7 @@ import io.kylingence.kap.event.handle.AddSegmentHandler;
 import io.kylingence.kap.event.handle.LoadingRangeRefreshHandler;
 import io.kylingence.kap.event.handle.RefreshSegmentHandler;
 import io.kylingence.kap.event.handle.RemoveCuboidBySqlHandler;
+import io.kylingence.kap.event.model.AccelerateEvent;
 import io.kylingence.kap.event.model.EventContext;
 import io.kylingence.kap.event.model.LoadingRangeRefreshEvent;
 import io.kylingence.kap.event.model.RefreshSegmentEvent;
@@ -73,7 +73,6 @@ import io.kylingence.kap.event.model.AddSegmentEvent;
 import io.kylingence.kap.event.model.Event;
 import io.kylingence.kap.event.model.EventStatus;
 import io.kylingence.kap.event.model.LoadingRangeUpdateEvent;
-import io.kylingence.kap.event.model.ModelUpdateEvent;
 
 public class NEventFlowTest extends NLocalWithSparkSessionTest {
 
@@ -221,10 +220,10 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
         layoutCount += cubePlan1.getAllCuboidLayouts().size();
 
-        ModelUpdateEvent event = new ModelUpdateEvent();
+        AccelerateEvent event = new AccelerateEvent();
         event.setProject(getProject());
         event.setFavoriteMark(false);
-        event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT", "1");}});
+        event.setSqlPatterns(Lists.newArrayList("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT"));
         event.setApproved(true);
         eventManager.post(event);
 
@@ -305,21 +304,21 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
         layoutCount += cubePlan1.getAllCuboidLayouts().size();
 
-        ModelUpdateEvent event = new ModelUpdateEvent();
+        AccelerateEvent event = new AccelerateEvent();
         event.setProject(getProject());
-        event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT", "bd3285c9-55e3-4f2d-a12c-742a8d631195");}});
+        event.setSqlPatterns(Lists.newArrayList("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT"));
         event.setApproved(true);
         eventManager.post(event);
 
-        event = new ModelUpdateEvent();
+        event = new AccelerateEvent();
         event.setProject(getProject());
-        event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", "bd3285c9-55e3-4f2d-a12c-742a8d631195");}});
+        event.setSqlPatterns(Lists.newArrayList("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME"));
         event.setApproved(true);
         eventManager.post(event);
 
-        event = new ModelUpdateEvent();
+        event = new AccelerateEvent();
         event.setProject(getProject());
-        event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", "bd3285c9-55e3-4f2d-a12c-742a8d631195");}});
+        event.setSqlPatterns(Lists.newArrayList("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME"));
         event.setApproved(true);
         eventManager.post(event);
 

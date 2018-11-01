@@ -23,19 +23,19 @@
  */
 package io.kylingence.kap.event.handle;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kylingence.kap.event.manager.EventDao;
+import io.kylingence.kap.event.model.AccelerateEvent;
 import io.kylingence.kap.event.model.Event;
 import io.kylingence.kap.event.model.EventContext;
-import io.kylingence.kap.event.model.ModelUpdateEvent;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.HashMap;
 import java.util.List;
 
 public class ModelUpdateHandlerTest extends NLocalFileMetadataTestCase {
@@ -56,14 +56,14 @@ public class ModelUpdateHandlerTest extends NLocalFileMetadataTestCase {
 
         getTestConfig().setProperty("kylin.server.mode", "query");
 
-        ModelUpdateEvent event = new ModelUpdateEvent();
+        AccelerateEvent event = new AccelerateEvent();
         event.setFavoriteMark(true);
         event.setProject(DEFAULT_PROJECT);
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
         int layoutCount1 = cubePlan1.getAllCuboidLayouts().size();
 
-        event.setSqlMap(new HashMap<String, String>(){{put("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME", "1");}});
+        event.setSqlPatterns(Lists.newArrayList("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME"));
         EventContext eventContext = new EventContext(event, getTestConfig());
         ModelUpdateHandler handler = new ModelUpdateHandler();
         // add favorite sql to update model and post an new AddCuboidEvent

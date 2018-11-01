@@ -51,6 +51,7 @@ package io.kyligence.kap.rest.service;
 import java.net.UnknownHostException;
 
 import io.kyligence.kap.common.metric.MetricWriter;
+import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
@@ -75,7 +76,7 @@ import io.kyligence.kap.common.metric.MetricWriterStrategy;
 public class KapQueryService extends QueryService {
     private static final Logger logger = LoggerFactory.getLogger(KapQueryService.class);
 
-    private static final String STATISTICS_SQL = "SELECT COUNT(query_id), MEAN(query_duration) FROM query_metric WHERE (time >= %dms AND time <= %dms) AND error_type = '' GROUP BY engine_type";
+    private static final String STATISTICS_SQL = "SELECT COUNT(query_id), MEAN(duration) FROM query_metric WHERE (time >= %dms AND time <= %dms) AND error_type = '' GROUP BY engine_type";
 
     private final KapConfig kapConfig = KapConfig.getInstanceFromEnv();
 
@@ -109,16 +110,16 @@ public class KapQueryService extends QueryService {
             final QueryMetricsContext queryMetricsContext = QueryMetricsContext.collect(sqlRequest, sqlResponse,
                     QueryContext.current());
 
-            MetricWriterStrategy.INSTANCE.write(QueryMetricsContext.DB_NAME, QueryMetricsContext.QUERY_MEASUREMENT,
+            MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME, QueryHistory.QUERY_MEASUREMENT,
                     queryMetricsContext.getInfluxdbTags(), queryMetricsContext.getInfluxdbFields(),
-                    QueryContext.current().getQueryStartMillis());
+                    System.currentTimeMillis());
 
             for (final QueryMetricsContext.RealizationMetrics realizationMetrics : queryMetricsContext
                     .getRealizationMetrics()) {
 
-                MetricWriterStrategy.INSTANCE.write(QueryMetricsContext.DB_NAME,
-                        QueryMetricsContext.REALIZATION_MEASUREMENT, realizationMetrics.getInfluxdbTags(),
-                        realizationMetrics.getInfluxdbFields(), QueryContext.current().getQueryStartMillis());
+                MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME, QueryHistory.REALIZATION_MEASUREMENT,
+                        realizationMetrics.getInfluxdbTags(), realizationMetrics.getInfluxdbFields(),
+                        System.currentTimeMillis());
             }
         }
 
@@ -132,7 +133,7 @@ public class KapQueryService extends QueryService {
 
         final String statisticsQuery = String.format(STATISTICS_SQL, startTime, endTime);
 
-        final QueryResult result = getInfluxDB().query(new Query(statisticsQuery, QueryMetricsContext.DB_NAME));
+        final QueryResult result = getInfluxDB().query(new Query(statisticsQuery, QueryHistory.DB_NAME));
         final InfluxDBResultMapper mapper = new InfluxDBResultMapper();
         return QueryStatisticsResponse.valueOf(mapper.toPOJO(result, QueryStatisticsResponse.QueryStatistics.class));
     }

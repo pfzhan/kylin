@@ -30,7 +30,6 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-smart</artifactId>
         </dependency>
-
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-engine-spark</artifactId>
@@ -72,6 +71,13 @@
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+            <!--MRUnit relies on older version of mockito, so cannot manage it globally-->
+            <version>${mockito.version}</version>
         </dependency>
 
     </dependencies>

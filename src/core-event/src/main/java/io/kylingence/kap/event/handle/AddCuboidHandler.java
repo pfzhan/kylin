@@ -28,6 +28,10 @@ import static com.google.common.base.Preconditions.checkNotNull;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -36,7 +40,6 @@ import org.apache.kylin.metadata.model.Segments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCubePlan;
@@ -48,9 +51,6 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kylingence.kap.event.model.AddCuboidEvent;
 import io.kylingence.kap.event.model.EventContext;
@@ -70,16 +70,21 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
         NDataflow df = dfMgr.getDataflow(cubePlanName);
         updateDataLoadingRange(df);
 
-        List<String> sqlList = event.getSqlIdList();
+        List<String> sqlList = event.getSqlPatterns();
         if (CollectionUtils.isNotEmpty(sqlList)) {
-            FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, project);
-            for (String favoriteId : sqlList) {
-                FavoriteQuery favoriteQuery = favoriteQueryManager.get(favoriteId);
+            List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
+            for (String sqlPattern : sqlList) {
+                FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern, sqlPattern.hashCode(), project);
                 favoriteQuery.setStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED);
-                favoriteQueryManager.update(favoriteQuery);
+                favoriteQueries.add(favoriteQuery);
             }
+            getFavoriteQueryDao().batchUpdateStatus(favoriteQueries);
         }
 
+    }
+
+    FavoriteQueryJDBCDao getFavoriteQueryDao() {
+        return FavoriteQueryJDBCDao.getInstance(KylinConfig.getInstanceFromEnv());
     }
 
     @Override

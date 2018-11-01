@@ -44,35 +44,23 @@
 package io.kylingence.kap.event.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.Setter;
 
-import java.util.Map;
+import java.util.List;
 
-public class ModelUpdateEvent extends Event {
+@Getter
+@Setter
+public class AccelerateEvent extends Event {
 
-    @JsonProperty("sql_map")
-    private Map<String, String> sqlMap;
+    @JsonProperty("sql_patterns")
+    private List<String> sqlPatterns;
 
     @JsonProperty("favorite_mark")
     private boolean favoriteMark = true;
 
-    public ModelUpdateEvent() {
+    public AccelerateEvent() {
         super();
         setTriggerType(TriggerType.SPACE_WISE);
-    }
-
-    public boolean isFavoriteMark() {
-        return favoriteMark;
-    }
-
-    public void setFavoriteMark(boolean favoriteMark) {
-        this.favoriteMark = favoriteMark;
-    }
-
-    public Map<String, String> getSqlMap() {
-        return sqlMap;
-    }
-
-    public void setSqlMap(Map<String, String> sqlMap) {
-        this.sqlMap = sqlMap;
     }
 }

@@ -19,7 +19,7 @@
 
     <properties>
         <!-- General Properties -->
-        <javaVersion>1.7</javaVersion>
+        <javaVersion>1.8</javaVersion>
         <maven-model.version>3.3.9</maven-model.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>

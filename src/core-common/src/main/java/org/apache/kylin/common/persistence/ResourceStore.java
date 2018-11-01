@@ -92,15 +92,14 @@ public abstract class ResourceStore {
     public static final String EXECUTE_RESOURCE_ROOT = "/execute";
     public static final String EXECUTE_OUTPUT_RESOURCE_ROOT = "/execute_output";
     public static final String STREAMING_RESOURCE_ROOT = "/streaming";
-    public static final String QUERY_HISTORY_RESOURCE_ROOT = "/query_history";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
     public static final String USER_ROOT = "/user";
     public static final String EVENT_RESOURCE_ROOT = "/event";
     public static final String DATA_LOADING_RANGE_RESOURCE_ROOT = "/loading_range";
     public static final String QUERY_FILTER_RULE_RESOURCE_ROOT = "/rule";
-    public static final String FAVORITE_QUERY_RESOURCE_ROOT = "/favorite_query";
 
     public static final String METASTORE_UUID_TAG = "/UUID";
+    public static final String QUERY_HISTORY_TIME_OFFSET = "/query_history_time_offset.json";
 
     private static final Map<KylinConfig, ResourceStore> META_CACHE = new ConcurrentHashMap<>();
 

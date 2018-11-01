@@ -24,20 +24,16 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.query.QueryFilterRule;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
-import io.kyligence.kap.rest.service.QueryHistoryService;
+import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.QueryFilterRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -57,19 +53,10 @@ public class FavoriteQueryController extends NBasicController {
     @Autowired
     private FavoriteQueryService favoriteQueryService;
 
-    @Autowired
-    @Qualifier("queryHistoryService")
-    private QueryHistoryService queryHistoryService;
-
     @RequestMapping(value = "", method = RequestMethod.POST)
     @ResponseBody
-    public EnvelopeResponse favorite(@RequestBody FavoriteRequest request) throws IOException {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteQueryService.favorite(request.getProject(), request.getUuids()), "");
-    }
-
-    @RequestMapping(value = "/unfavorite", method = RequestMethod.POST)
-    public EnvelopeResponse unFavorite(@RequestBody FavoriteRequest request) throws Exception {
-        favoriteQueryService.unFavorite(request.getProject(), request.getUuids());
+    public EnvelopeResponse manualFavorite(@RequestBody FavoriteRequest request) throws PersistentException {
+        favoriteQueryService.manualFavorite(request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -77,38 +64,11 @@ public class FavoriteQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse listFavoriteQuery(@RequestParam(value = "project") String project,
                                   @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-                                  @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) throws IOException {
-        List<FavoriteQuery> favoriteQueries = favoriteQueryService.getAllFavoriteQueries(project);
+                                  @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+        List<FavoriteQuery> favoriteQueries = favoriteQueryService.getFavoriteQueriesByPage(project, limit, offset);
         HashMap<String, Object> data = Maps.newHashMap();
-        data.put("favorite_queries", PagingUtil.cutPage(favoriteQueries, offset, limit));
+        data.put("favorite_queries", favoriteQueries);
         data.put("size", favoriteQueries.size());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
-    }
-
-    @RequestMapping(value = "/candidates", method = RequestMethod.GET, produces = {
-            "application/vnd.apache.kylin-v2+json" })
-    @ResponseBody
-    public EnvelopeResponse getCandidates(@RequestParam(value = "project") String project,
-                                              @RequestParam(value = "startTimeFrom", required = false, defaultValue = "0") long startTimeFrom,
-                                              @RequestParam(value = "startTimeTo", required = false, defaultValue = Long.MAX_VALUE + "") long startTimeTo,
-                                              @RequestParam(value = "latencyFrom", required = false, defaultValue = "0") long latencyFrom,
-                                              @RequestParam(value = "latencyTo", required = false, defaultValue = Integer.MAX_VALUE + "") long latencyTo,
-                                              @RequestParam(value = "sql", required = false) String sql,
-                                              @RequestParam(value = "realization[]", required = false) List<String> realizations,
-                                              @RequestParam(value = "accelerateStatus[]", required = false) List<String> accelerateStatuses,
-                                              @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-                                              @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit)
-            throws IOException {
-        HashMap<String, Object> data = new HashMap<>();
-        QueryFilterRule rule = queryHistoryService.parseQueryFilterRuleRequest(startTimeFrom, startTimeTo, latencyFrom, latencyTo, sql, realizations, accelerateStatuses);
-        List<QueryHistory> queryHistories;
-        if (rule != null)
-            queryHistories = queryHistoryService.getQueryHistoriesByRules(Lists.newArrayList(rule), favoriteQueryService.getCandidates(project));
-        else
-            queryHistories = favoriteQueryService.getCandidates(project);
-
-        data.put("candidates", PagingUtil.cutPage(queryHistories, offset, limit));
-        data.put("size", queryHistories.size());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
@@ -133,64 +93,42 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/rules", method = RequestMethod.GET)
+    @RequestMapping(value = "/rules/frequency", method = RequestMethod.GET)
     @ResponseBody
-    public EnvelopeResponse getFilterRule(@RequestParam(value = "project") String project) {
-
-        List<QueryFilterRule> rules = favoriteQueryService.getQueryFilterRules(project);
-        HashMap<String, Object> data = Maps.newHashMap();
-        data.put("rules", rules);
-        data.put("size", rules.size());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+    public EnvelopeResponse getFrequencyRule(@RequestParam(value = "project") String project) {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteQueryService.getFrequencyRule(project), "");
     }
 
-    @RequestMapping(value = "/rules", method = RequestMethod.POST)
+    @RequestMapping(value = "/rules/submitter", method = RequestMethod.GET)
     @ResponseBody
-    public EnvelopeResponse saveFilterRule(@RequestBody QueryFilterRequest request) throws IOException {
-        favoriteQueryService.saveQueryFilterRule(request.getProject(), request.getRule());
+    public EnvelopeResponse getSubmitterRule(@RequestParam(value = "project") String project) {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteQueryService.getSubmitterRule(project), "");
+    }
+
+    @RequestMapping(value = "/rules/duration", method = RequestMethod.GET)
+    @ResponseBody
+    public EnvelopeResponse getDurationRule(@RequestParam(value = "project") String project) {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteQueryService.getDurationRule(project), "");
+    }
+
+    @RequestMapping(value = "/rules/frequency", method = RequestMethod.PUT)
+    @ResponseBody
+    public EnvelopeResponse updateFrequencyRule(@RequestBody QueryFilterRequest request) throws IOException {
+        favoriteQueryService.updateQueryFilterRule(request, QueryFilterRule.FREQUENCY_RULE_NAME);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/rules", method = RequestMethod.PUT)
+    @RequestMapping(value = "/rules/submitter", method = RequestMethod.PUT)
     @ResponseBody
-    public EnvelopeResponse updateFilterRule(@RequestBody QueryFilterRequest request) throws IOException {
-        favoriteQueryService.saveQueryFilterRule(request.getProject(), request.getRule());
+    public EnvelopeResponse updateSubmitterRule(@RequestBody QueryFilterRequest request) throws IOException {
+        favoriteQueryService.updateQueryFilterRule(request, QueryFilterRule.SUBMITTER_RULE_NAME);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/rules/enable/{project}/{uuid}", method = RequestMethod.PUT)
+    @RequestMapping(value = "/rules/duration", method = RequestMethod.PUT)
     @ResponseBody
-    public EnvelopeResponse enableRule(@PathVariable(value = "project") String project,
-                                       @PathVariable(value = "uuid") String uuid) throws IOException {
-        favoriteQueryService.enableQueryFilterRule(project, uuid);
+    public EnvelopeResponse updateDurationRule(@RequestBody QueryFilterRequest request) throws IOException {
+        favoriteQueryService.updateQueryFilterRule(request, QueryFilterRule.DURATION_RULE_NAME);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    @RequestMapping(value = "/rules/{project}/{uuid}", method = RequestMethod.DELETE)
-    @ResponseBody
-    public EnvelopeResponse deleteFilterRule(@PathVariable(value = "project") String project,
-                                             @PathVariable(value = "uuid") String uuid) throws IOException {
-        favoriteQueryService.deleteQueryFilterRule(project, uuid);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    @RequestMapping(value = "/rules/apply/{project}", method = RequestMethod.PUT)
-    @ResponseBody
-    public EnvelopeResponse applyAll(@PathVariable("project") String project) throws IOException {
-        favoriteQueryService.applyAll(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    @RequestMapping(value = "/rules/automatic/{project}", method = RequestMethod.PUT)
-    @ResponseBody
-    public EnvelopeResponse setAutoMarkFavorite(@PathVariable("project") String project) throws IOException {
-        favoriteQueryService.markAutomatic(project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    @RequestMapping(value = "/rules/automatic", method = RequestMethod.GET)
-    @ResponseBody
-    public EnvelopeResponse getAutoMarkFavorite(@RequestParam(value = "project") String project) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteQueryService.getMarkAutomatic(project), "");
     }
 }

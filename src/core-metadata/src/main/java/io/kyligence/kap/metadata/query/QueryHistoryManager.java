@@ -42,125 +42,59 @@
 
 package io.kyligence.kap.metadata.query;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
-import org.apache.commons.lang.StringUtils;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.impl.InfluxDBResultMapper;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.metadata.MetadataConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 public class QueryHistoryManager {
-    public static final Serializer<QueryHistory> QUERY_HISTORY_INSTANCE_SERIALIZER = new JsonSerializer<>(
-            QueryHistory.class);
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryManager.class);
+    private volatile InfluxDB influxDB;
 
-    public static QueryHistoryManager getInstance(KylinConfig config, String project) {
-        return config.getManager(project, QueryHistoryManager.class);
+    public static QueryHistoryManager getInstance(KylinConfig config) {
+        return config.getManager(QueryHistoryManager.class);
     }
 
-    // called by reflection
-    static QueryHistoryManager newInstance(KylinConfig config, String project) throws IOException {
-        return new QueryHistoryManager(config, project);
+    static QueryHistoryManager newInstance(KylinConfig kylinConfig) {
+        return new QueryHistoryManager(kylinConfig);
     }
 
-    private KylinConfig kylinConfig;
-    private String project;
+    private KapConfig kapConfig;
 
-    public QueryHistoryManager(KylinConfig config, String project) {
+    private QueryHistoryManager(KylinConfig config) {
         logger.info("Initializing QueryHistoryManager with config " + config);
-        this.kylinConfig = config;
-        this.project = project;
+        this.kapConfig = KapConfig.wrap(config);
     }
 
-    public QueryHistory findQueryHistory(String queryHistoryId) throws IOException {
-        if (queryHistoryId == null || StringUtils.isEmpty(queryHistoryId))
-            throw new IllegalArgumentException();
+    public InfluxDB getInfluxDB() {
+        if (influxDB == null) {
+            synchronized (this) {
+                if (influxDB != null) {
+                    return this.influxDB;
+                }
 
-        for (QueryHistory queryHistory : getAllQueryHistories()) {
-            if (queryHistoryId.equals(queryHistory.getUuid()))
-                return queryHistory;
+                this.influxDB = InfluxDBFactory.connect("http://" + kapConfig.influxdbAddress(),
+                        kapConfig.influxdbUsername(), kapConfig.influxdbPassword());
+            }
         }
 
-        return null;
+        return this.influxDB;
     }
 
-    public List<QueryHistory> getUnFavoriteQueryHistoryForAuto() throws IOException {
-        Predicate<QueryHistory> predicate = new Predicate<QueryHistory>() {
-            @Override
-            public boolean apply(QueryHistory queryHistory) {
-                Preconditions.checkArgument(queryHistory != null);
-                return !queryHistory.isFavorite() && !queryHistory.isUnfavorite();
-            }
-        };
+    public <T> List<T> getQueryHistoriesBySql(String query, Class clazz) {
+        if (!getInfluxDB().databaseExists(QueryHistory.DB_NAME))
+            return Lists.newArrayList();
+        final QueryResult result = getInfluxDB().query(new Query(query, QueryHistory.DB_NAME));
+        final InfluxDBResultMapper mapper = new InfluxDBResultMapper();
 
-        return Lists.newArrayList(Iterators.filter(getAllQueryHistories().iterator(), predicate));
-    }
-
-    public List<QueryHistory> getUnFavoriteQueryHistoryForManual() throws IOException {
-        Predicate<QueryHistory> predicate = new Predicate<QueryHistory>() {
-            @Override
-            public boolean apply(QueryHistory queryHistory) {
-                Preconditions.checkArgument(queryHistory != null);
-                return !queryHistory.isFavorite();
-            }
-        };
-
-        return Lists.newArrayList(Iterators.filter(getAllQueryHistories().iterator(), predicate));
-    }
-
-    public List<QueryHistory> findQueryHistoryByFavorite(final String favoriteUuid) throws IOException {
-        Predicate<QueryHistory> predicate = new Predicate<QueryHistory>() {
-            @Override
-            public boolean apply(@Nullable QueryHistory queryHistory) {
-                if (queryHistory.getFavorite() == null)
-                    return false;
-                return queryHistory.getFavorite().equals(favoriteUuid);
-            }
-        };
-        return Lists.newArrayList(Iterators.filter(getAllQueryHistories().iterator(), predicate));
-    }
-
-    private ResourceStore getStore() {
-        return ResourceStore.getKylinMetaStore(this.kylinConfig);
-    }
-
-    public List<QueryHistory> getAllQueryHistories() throws IOException {
-        List<QueryHistory> queryHistories = getStore().getAllResources(getRootPath(),
-                QueryHistory.class, QUERY_HISTORY_INSTANCE_SERIALIZER);
-        Collections.sort(queryHistories, Collections.reverseOrder());
-
-        logger.debug("Loaded " + queryHistories.size() + " Query(s)");
-        return queryHistories;
-    }
-
-    private String getRootPath() {
-        return "/" + project + ResourceStore.QUERY_HISTORY_RESOURCE_ROOT;
-    }
-
-    public String getResourcePathForQueryHistory(String resouceName) {
-        return getRootPath() + "/" + resouceName + MetadataConstants.FILE_SURFIX;
-    }
-
-    public void save(QueryHistory queryHistory) throws IOException {
-        saveAll(Lists.newArrayList(queryHistory));
-    }
-
-    public void saveAll(Collection<QueryHistory> queryHistories) throws IOException {
-        for (QueryHistory queryHistory : queryHistories) {
-            Preconditions.checkArgument(queryHistory != null && queryHistory.resourceName() != null);
-            getStore().putResource(getResourcePathForQueryHistory(queryHistory.resourceName()), queryHistory, QUERY_HISTORY_INSTANCE_SERIALIZER);
-        }
+        return mapper.toPOJO(result, clazz);
     }
 }

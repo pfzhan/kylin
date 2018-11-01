@@ -27,8 +27,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
+import io.kylingence.kap.event.model.AccelerateEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -46,7 +46,6 @@ import io.kyligence.kap.smart.model.ModelTree;
 import io.kylingence.kap.event.manager.EventManager;
 import io.kylingence.kap.event.model.AddCuboidEvent;
 import io.kylingence.kap.event.model.EventContext;
-import io.kylingence.kap.event.model.ModelUpdateEvent;
 import io.kylingence.kap.event.model.RemoveCuboidBySqlEvent;
 
 public class ModelUpdateHandler extends AbstractEventHandler {
@@ -55,15 +54,14 @@ public class ModelUpdateHandler extends AbstractEventHandler {
 
     @Override
     public void doHandle(EventContext eventContext) throws Exception {
-        ModelUpdateEvent event = (ModelUpdateEvent) eventContext.getEvent();
+        AccelerateEvent event = (AccelerateEvent) eventContext.getEvent();
         String project = event.getProject();
         KylinConfig kylinConfig = eventContext.getConfig();
         boolean eventAutoApproved = kylinConfig.getEventAutoApproved();
-        Map<String, String> sqlMap = event.getSqlMap();
-        if (sqlMap == null || sqlMap.size() == 0) {
+        List<String> sqlList = event.getSqlPatterns();
+        if (sqlList == null || sqlList.size() == 0) {
             return;
         }
-        List<String> sqlList = Lists.newArrayList(sqlMap.keySet());
         if (CollectionUtils.isNotEmpty(sqlList)) {
             // need parse sql
             NSmartMaster master = new NSmartMaster(kylinConfig, project, sqlList.toArray(new String[0]));
@@ -86,7 +84,6 @@ public class ModelUpdateHandler extends AbstractEventHandler {
             for (NSmartContext.NModelContext modelContext : modelContexts) {
 
                 List<String> sqls = getRelatedSqlsFromModelContext(modelContext);
-                List<String> sqlIdList = getSqlIdList(sqls, sqlMap);
                 NCubePlan origCubePlan = modelContext.getOrigCubePlan();
                 NCubePlan targetCubePlan = modelContext.getTargetCubePlan();
                 Pair<List<Long>, List<Long>> updatedLayoutsPair = calcUpdatedLayoutIds(origCubePlan, targetCubePlan);
@@ -102,7 +99,7 @@ public class ModelUpdateHandler extends AbstractEventHandler {
                     addCuboidEvent.setSegmentRange(event.getSegmentRange());
                     addCuboidEvent.setLayoutIds(addedLayoutIds);
                     addCuboidEvent.setParentId(event.getId());
-                    addCuboidEvent.setSqlIdList(sqlIdList);
+                    addCuboidEvent.setSqlPatterns(sqls);
                     eventManager.post(addCuboidEvent);
                 }
 
@@ -141,19 +138,6 @@ public class ModelUpdateHandler extends AbstractEventHandler {
         }
 
         return sqls;
-    }
-
-    private List<String> getSqlIdList(List<String> sqls, Map<String, String> sqlMap) {
-        List<String> sqlIdList = Lists.newArrayList();
-        if (sqls == null || sqls.size() == 0) {
-            return sqlIdList;
-        }
-
-        for (String sql : sqls) {
-            sqlIdList.add(sqlMap.get(sql));
-        }
-
-        return sqlIdList;
     }
 
     private Pair<List<Long>, List<Long>> calcUpdatedLayoutIds(NCubePlan origCubePlan, NCubePlan targetCubePlan) {
@@ -203,6 +187,6 @@ public class ModelUpdateHandler extends AbstractEventHandler {
 
     @Override
     public Class<?> getEventClassType() {
-        return ModelUpdateEvent.class;
+        return AccelerateEvent.class;
     }
 }

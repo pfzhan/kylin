@@ -24,35 +24,26 @@
 
 package org.apache.kylin.rest.request;
 
-import java.io.Serializable;
-import java.util.List;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.io.Serializable;
+
+@Getter
+@Setter
 public class FavoriteRequest implements Serializable {
     private String project;
-    private List<String> uuids;
+    private String sqlPattern;
+    private long queryTime;
+    private String queryStatus;
 
     public FavoriteRequest() {
 
     }
 
-    public FavoriteRequest(String project, List<String> uuids) {
+    public FavoriteRequest(String project, String sqlPattern, long queryTime) {
         this.project = project;
-        this.uuids = uuids;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
-    }
-
-    public List<String> getUuids() {
-        return uuids;
-    }
-
-    public void setUuids(List<String> uuids) {
-        this.uuids = uuids;
+        this.sqlPattern = sqlPattern;
+        this.queryTime = queryTime;
     }
 }

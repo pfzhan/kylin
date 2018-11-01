@@ -46,20 +46,15 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryStatusEnum;
-import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class SlowQueryDetectorTest extends NLocalFileMetadataTestCase {
-
-    private QueryHistoryService queryHistoryService = new QueryHistoryService();
 
     @Before
     public void setup() {
@@ -93,10 +88,9 @@ public class SlowQueryDetectorTest extends NLocalFileMetadataTestCase {
         {
             SQLRequest sqlRequest = new SQLRequest();
             sqlRequest.setSql(mockSql);
-            sqlRequest.setProject("default");
             slowQueryDetector.queryStart(Thread.currentThread(), sqlRequest, "ADMIN", System.currentTimeMillis());
 
-            // make sure slow query check happens once
+            // make sure slow query check happens twice
             Thread.sleep((alertRunningSec * 2 + 4) * 1000);
 
             slowQueryDetector.queryEnd(Thread.currentThread());
@@ -107,11 +101,6 @@ public class SlowQueryDetectorTest extends NLocalFileMetadataTestCase {
         assertEquals(2, alerts.size());
         // second check founds a Slow
         assertArrayEquals(new String[] { QueryHistory.ADJ_SLOW, mockSql }, alerts.get(0));
-
-        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories("default");
-        QueryHistory slowQuery = queryHistories.get(0);
-
-        assertEquals(mockSql, slowQuery.getSql());
-        assertEquals(QueryHistoryStatusEnum.FAILED, queryHistories.get(0).getQueryStatus());
+        assertArrayEquals(new String[] { QueryHistory.ADJ_SLOW, mockSql }, alerts.get(0));
     }
 }

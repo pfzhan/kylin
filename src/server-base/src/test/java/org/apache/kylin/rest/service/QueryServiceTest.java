@@ -104,7 +104,6 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.rest.service.QueryHistoryService;
 import net.sf.ehcache.CacheManager;
 
 
@@ -116,12 +115,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Mock
     private CacheManager cacheManager = Mockito.spy(CacheManager.create(ClassLoader.getSystemResourceAsStream("ehcache-test.xml")));
 
-    @Mock
-    private QueryHistoryService queryHistoryService = Mockito.spy(QueryHistoryService.class);
-
     @InjectMocks
     private QueryService queryService = Mockito.spy(new QueryService());
-
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -137,7 +132,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(queryService, "cacheManager", cacheManager);
-        ReflectionTestUtils.setField(queryService, "queryHistoryService", queryHistoryService);
     }
 
     private void stubQueryConnection(final String sql, final String project) throws SQLException {

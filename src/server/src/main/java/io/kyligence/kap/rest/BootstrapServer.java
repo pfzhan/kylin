@@ -158,6 +158,9 @@ public class BootstrapServer {
         // pass checkHadoopHome
         System.setProperty("hadoop.home.dir", localMetadata.getAbsolutePath() + "/working-dir");
 
+        // set influx config
+        System.setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
+
         // enable push down
         System.setProperty("kylin.query.pushdown.runner-class-name",
                 "org.apache.kylin.query.adhoc.PushDownRunnerJdbcImpl");

@@ -42,10 +42,7 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.service.KapQueryService;
-import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -84,9 +81,6 @@ public class NQueryControllerTest {
 
     @Mock
     private KapQueryService kapQueryService;
-
-    @Mock
-    private QueryHistoryService queryHistoryService;
 
     @InjectMocks
     private NQueryController nQueryController = Mockito.spy(new NQueryController());
@@ -182,41 +176,6 @@ public class NQueryControllerTest {
         queries.add(new Query("10", PROJECT, "", ""));
 
         return queries;
-    }
-
-    private List<QueryHistory> mockQueryHistories() {
-        final List<QueryHistory> queries = Lists.newArrayList();
-        queries.add(new QueryHistory("0", "", 1, 100, "", "", ""));
-        queries.add(new QueryHistory("1", "", 2, 100, "", "", ""));
-        queries.add(new QueryHistory("2", "", 3, 100, "", "", ""));
-        queries.add(new QueryHistory("3", "", 4, 100, "", "", ""));
-        queries.add(new QueryHistory("4", "", 5, 100, "", "", ""));
-        queries.add(new QueryHistory("5", "", 6, 100, "", "", ""));
-        queries.add(new QueryHistory("6", "", 7, 100, "", "", ""));
-        queries.add(new QueryHistory("7", "", 8, 100, "", "", ""));
-        queries.add(new QueryHistory("8", "", 9, 100, "", "", ""));
-        queries.add(new QueryHistory("9", "", 10, 100, "", "", ""));
-
-        return queries;
-    }
-
-    @Test
-    public void testGetQueryHistories() throws Exception {
-        Mockito.when(queryHistoryService.parseQueryFilterRuleRequest(0, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null, null, null)).thenReturn(null);
-        Mockito.when(queryHistoryService.getQueryHistories(PROJECT)).thenReturn(mockQueryHistories());
-        Mockito.when(queryHistoryService.getQueryHistoriesByRules(null, mockQueryHistories())).thenReturn(mockQueryHistories());
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/history_queries").contentType(MediaType.APPLICATION_JSON)
-                .param("project", PROJECT)
-                .param("offset", "2").param("limit", "3")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(10))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories.length()").value(3))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[0].start_time").value(7))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[1].start_time").value(8))
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.query_histories[2].start_time").value(9));
-
-        Mockito.verify(nQueryController).getQueryHistories(PROJECT, 0, Long.MAX_VALUE, 0, Integer.MAX_VALUE, null, null, null, 2, 3);
     }
 
     @Test

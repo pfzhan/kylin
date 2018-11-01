@@ -75,12 +75,26 @@ public class ProjectService extends BasicService {
         getEventManager(createdProject.getName()).post(projectEvent);
         logger.debug("New project created.");
 
-        // create default rule
-        QueryFilterRule.QueryHistoryCond cond = new QueryFilterRule.QueryHistoryCond();
-        cond.setField(QueryFilterRule.ANSWERED_BY);
-        cond.setRightThreshold("pushdown");
-        QueryFilterRule rule = new QueryFilterRule(Lists.newArrayList(cond), "Pushdown_all_query", true);
-        getQueryFilterRuleManager(projectName).save(rule);
+        // create default rules
+        // frequency rule
+        QueryFilterRule.QueryHistoryCond freqCond = new QueryFilterRule.QueryHistoryCond();
+        freqCond.setField(QueryFilterRule.FREQUENCY);
+        freqCond.setRightThreshold("0.1");
+        QueryFilterRule freqRule = new QueryFilterRule(Lists.newArrayList(freqCond), QueryFilterRule.FREQUENCY_RULE_NAME, true);
+        getQueryFilterRuleManager(projectName).save(freqRule);
+        // submitter rule
+        QueryFilterRule.QueryHistoryCond submitterCond = new QueryFilterRule.QueryHistoryCond();
+        submitterCond.setField(QueryFilterRule.SUBMITTER);
+        submitterCond.setRightThreshold("ADMIN");
+        QueryFilterRule submitterRule = new QueryFilterRule(Lists.newArrayList(submitterCond), QueryFilterRule.SUBMITTER_RULE_NAME, true);
+        getQueryFilterRuleManager(projectName).save(submitterRule);
+        // duration rule
+        QueryFilterRule.QueryHistoryCond durationCond = new QueryFilterRule.QueryHistoryCond();
+        durationCond.setField(QueryFilterRule.DURATION);
+        durationCond.setLeftThreshold("0");
+        durationCond.setRightThreshold("180");
+        QueryFilterRule durationRule = new QueryFilterRule(Lists.newArrayList(durationCond), QueryFilterRule.DURATION_RULE_NAME, false);
+        getQueryFilterRuleManager(projectName).save(durationRule);
 
         return createdProject;
     }

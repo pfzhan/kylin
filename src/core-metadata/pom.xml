@@ -26,6 +26,11 @@
             <version>${project.version}</version>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-jdbc</artifactId>
+        </dependency>
+
         <!--Env & Test-->
         <dependency>
             <groupId>io.kyligence.ke</groupId>

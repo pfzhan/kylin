@@ -30,15 +30,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -63,7 +58,6 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.smart.NSmartController;
 
 //import io.kyligence.kap.smart.NSmartController;
 
@@ -151,6 +145,7 @@ public class KapSparkSession extends SparkSession {
         return r;
     }
 
+    /*
     public void collectQueries(String sqlText) {
         // collect queries
         try {
@@ -161,15 +156,15 @@ public class KapSparkSession extends SparkSession {
         }
     }
 
-    private void collectQueryHistory(String sql) throws IOException {
+    private void collectQueryHistory(String sql) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        final QueryHistoryManager manager = QueryHistoryManager.getInstance(config, project);
-        QueryHistory queryEntry = new QueryHistory();
-        queryEntry.updateRandomUuid();
-        queryEntry.setSql(sql);
-        queryEntry.setRealization(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
+        final QueryHistoryManager manager = QueryHistoryManager.getInstance(config);
+        QueryHistory queryEntry = new QueryHistory(sql);
+        queryEntry.setProject(project);
+        queryEntry.setAnsweredBy("RDBMS");
         manager.save(queryEntry);
     }
+    */
 
     public Dataset<Row> queryCube(String sql) throws Exception {
         return read().jdbc("jdbc:calcite:", NSparkCubingUtil.formatSQL(sql), prop);
@@ -179,6 +174,7 @@ public class KapSparkSession extends SparkSession {
         return super.read().csv(path);
     }
 
+    /*
     public void speedUp() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
@@ -196,6 +192,7 @@ public class KapSparkSession extends SparkSession {
         use(project);
         logger.info("Job finished. Come on! Query me!");
     }
+    */
 
     public void buildAllCubes(KylinConfig kylinConfig, String proj) throws IOException, InterruptedException {
         kylinConfig.clearManagers();

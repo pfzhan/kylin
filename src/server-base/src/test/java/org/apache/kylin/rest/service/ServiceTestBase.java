@@ -42,8 +42,11 @@
 
 package org.apache.kylin.rest.service;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.rest.constant.Constant;
@@ -54,6 +57,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.TestingAuthenticationToken;
@@ -81,6 +85,15 @@ public class ServiceTestBase extends NLocalFileMetadataTestCase {
         staticCreateTestMetadata();
         Authentication authentication = new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
+
+        FavoriteQueryJDBCDao favoriteQueryJDBCDao = Mockito.mock(FavoriteQueryJDBCDao.class);
+
+        KylinConfig kylinConfig = getTestConfig();
+        ConcurrentHashMap<Class, Object> wantedManagersCache = new ConcurrentHashMap<>();
+        wantedManagersCache.put(FavoriteQueryJDBCDao.class, favoriteQueryJDBCDao);
+        Field managersCache = kylinConfig.getClass().getDeclaredField("managersCache");
+        managersCache.setAccessible(true);
+        managersCache.set(getTestConfig(), wantedManagersCache);
     }
 
     @AfterClass

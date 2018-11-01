@@ -29,6 +29,7 @@ import java.util.List;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kylingence.kap.event.model.AddCuboidEvent;
@@ -37,16 +38,30 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kylingence.kap.event.manager.EventDao;
 import io.kylingence.kap.event.model.Event;
 import io.kylingence.kap.event.model.EventContext;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 
 public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
+    @Mock
+    private FavoriteQueryJDBCDao favoriteQueryJDBCDao = Mockito.mock(FavoriteQueryJDBCDao.class);
+    @InjectMocks
+    private AddCuboidHandler handler = Mockito.spy(new AddCuboidHandler());
 
     private static final String DEFAULT_PROJECT = "default";
+
+    @BeforeClass
+    public static void setupResource() throws Exception {
+        staticCreateTestMetadata();
+    }
+
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
@@ -63,7 +78,8 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.server.mode", "query");
 
         // first add cuboid layouts
-        List<String> sqls = Lists.<String>newArrayList("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT");
+        String sqlPattern = "select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT";
+        List<String> sqls = Lists.<String>newArrayList(sqlPattern);
         NSmartMaster master = new NSmartMaster(getTestConfig(), DEFAULT_PROJECT, sqls.toArray(new String[0]));
         master.runAll();
 
@@ -76,10 +92,10 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         event.setModelName("nmodel_basic");
         event.setCubePlanName("ncube_basic");
         event.setLayoutIds(Lists.<Long>newArrayList(addedCuboidLayoutIds));
-        event.setSqlIdList(Lists.<String>newArrayList());
+        event.setSqlPatterns(Lists.<String>newArrayList());
         EventContext eventContext = new EventContext(event, getTestConfig());
-        AddCuboidHandler handler = new AddCuboidHandler();
 
+        Mockito.doReturn(favoriteQueryJDBCDao).when(handler).getFavoriteQueryDao();
         handler.handle(eventContext);
 
         List<Event> events = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT).getEvents();

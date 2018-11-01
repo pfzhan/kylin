@@ -1454,12 +1454,20 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.valueOf(this.getOptional("kylin.favorite.query-accelerate-threshold", "20"));
     }
 
-    public boolean isAutoMarkFavorite() {
-        return Boolean.parseBoolean(this.getOptional("kylin.favorite.auto-mark", "true"));
+    public int getAutoMarkFavoriteInterval() {
+        return Integer.parseInt(this.getOptional("kylin.favorite.auto-mark-detection-interval", "60"));
     }
 
-    public int getAutoMarkFavoriteDetectionInterval() {
-        return Integer.parseInt(this.getOptional("kylin.favorite.auto-mark-detection-interval", "30"));
+    public int getFavoriteStatisticsCollectionInterval() {
+        return Integer.parseInt(this.getOptional("kylin.favorite.statistics-collection-interval", "60"));
+    }
+
+    public StorageURL getFavoriteStorageUrl() {
+        return StorageURL.valueOf(this.getOptional("kylin.favorite.storage-url", "kylin_favorite@jdbc,url=jdbc:mysql://localhost:3306/kylin,username=root,password="));
+    }
+
+    public int getFavoriteAccelerateBatchSize() {
+        return Integer.valueOf(this.getOptional("kylin.favorite.batch-accelerate-size", "500"));
     }
 
     /**

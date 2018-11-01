@@ -35,7 +35,8 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import io.kyligence.kap.common.metric.InfluxDBWriter;
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.StringUtils;
@@ -55,36 +56,16 @@ public class QueryMetricsContext {
     private static final Logger logger = LoggerFactory.getLogger(QueryMetricsContext.class);
 
     protected static final KapConfig kapConfig = KapConfig.getInstanceFromEnv().getInstanceFromEnv();
-
-    public static final String UNKNOWN = "Unknown";
-
-    public static final String DB_NAME = InfluxDBWriter.DEFAULT_DATABASE;
-    public static final String QUERY_MEASUREMENT = "query_metric";
-    public static final String REALIZATION_MEASUREMENT = "realization_metric";
-
-    private static final String QUERY_ID_METRIC = "query_id";
-    private static final String SQL_TEXT_METRIC = "sql_text";
-    private static final String QUERY_DURATION_METRIC = "query_duration";
-    private static final String TOTAL_SCAN_BYTES_METRIC = "total_scan_bytes";
-    private static final String SUBMITTER_METRIC = "submitter";
-    private static final String PROJECT_METRIC = "project";
-    private static final String MODEL_METRIC = "model";
-    private static final String REALIZATION_NAME_METRIC = "realization_name";
-    private static final String REALIZATION_TYPE_METRIC = "realization_type";
-    private static final String HOSTNAME_METRIC = "hostname";
-    private static final String SUITE_METRIC = "suite";
-    private static final String ERROR_TYPE_METRIC = "error_type";
-    private static final String ENGINE_TYPE_METRIC = "engine_type";
-
-    private static final String REALIZATIONS_METRIC = "realizations";
-
     private static final String LOG_METRIC = "log";
+    public static final String UNKNOWN = "Unknown";
 
     private static final InheritableThreadLocal<QueryMetricsContext> contexts = new InheritableThreadLocal<>();
 
     private final String queryId;
+    private long queryTime;
 
     private String sql;
+    private String sqlPattern;
 
     private String submitter;
     private String project;
@@ -93,10 +74,18 @@ public class QueryMetricsContext {
 
     private long queryDuration;
     private long totalScanBytes;
+    private long totalScanCount;
+    private long resultRowCount;
 
     private String errorType;
 
     private String engineType;
+
+    private boolean isCacheHit;
+    private boolean isCubeHit;
+    private String queryStatus;
+    private String accelerateStatus;
+    private String answeredBy;
 
     private final List<RealizationMetrics> realizationMetrics = new ArrayList<>();
 
@@ -153,6 +142,13 @@ public class QueryMetricsContext {
 
     private void doCollect(final SQLRequest request, final SQLResponse response, final QueryContext context) {
         this.sql = request.getSql();
+        try {
+            this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(sql);
+        } catch (SqlParseException e) {
+            logger.error("Caught sql parse error", e);
+            throw new RuntimeException(e);
+        }
+        this.queryTime = QueryContext.current().getQueryStartMillis();
 
         this.submitter = request.getUsername();
         this.project = request.getProject();
@@ -162,10 +158,31 @@ public class QueryMetricsContext {
 
         this.queryDuration = response.getDuration();
         this.totalScanBytes = response.getTotalScanBytes();
+        this.totalScanCount = response.getTotalScanCount();
+
+        if (response.getIsException())
+            this.queryStatus = QueryHistory.QUERY_HISTORY_FAILED;
+        else
+            this.queryStatus = QueryHistory.QUERY_HISTORY_SUCCEEDED;
+
+        if (response.isHitExceptionCache() || response.isStorageCacheUsed()) {
+            this.isCacheHit = true;
+        }
+
+        if (response.getResults() != null)
+            this.resultRowCount = response.getResults().size();
+
+        if (response.isPushDown())
+            this.isCubeHit = false;
+
+        if (response.getIsException() || response.isPushDown()) {
+            this.accelerateStatus = QueryHistory.QUERY_HISTORY_UNACCELERATED;
+        } else
+            this.accelerateStatus = QueryHistory.QUERY_HISTORY_ACCELERATED;
 
         collectErrorType(context);
         collectRealizationMetrics(response, context);
-        collectEngineType(response, context);
+        collectEngineTypeAndAnsweredBy(response, context);
 
         logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter, project,
                 hostname, suite, queryDuration, totalScanBytes, errorType, engineType);
@@ -219,22 +236,35 @@ public class QueryMetricsContext {
                 project, modelName, realizationName, realizationType);
     }
 
-    private void collectEngineType(final SQLResponse response, final QueryContext context) {
+    private void collectEngineTypeAndAnsweredBy(final SQLResponse response, final QueryContext context) {
         if (response.isPushDown()) {
             this.engineType = context.getPushdownEngine();
+            this.answeredBy = context.getPushdownEngine();
         } else if (!realizationMetrics.isEmpty()) {
             this.engineType = realizationMetrics.iterator().next().realizationType;
+            final Collection<String> modelNames = Collections2.transform(realizationMetrics,
+                    new Function<RealizationMetrics, String>() {
+                        @Override
+                        public String apply(RealizationMetrics input) {
+                            return input.modelName;
+                        }
+                    });
+            this.answeredBy = Joiner.on(",").join(modelNames);
         } else {
             this.engineType = UNKNOWN;
+            this.answeredBy = UNKNOWN;
         }
     }
 
     public Map<String, String> getInfluxdbTags() {
         final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder() //
-                .put(SUBMITTER_METRIC, submitter) //
-                .put(PROJECT_METRIC, project) //
-                .put(SUITE_METRIC, suite == null ? UNKNOWN : suite) //
-                .put(ENGINE_TYPE_METRIC, engineType);
+                .put(QueryHistory.SUBMITTER, submitter) //
+                .put(QueryHistory.PROJECT, project) //
+                .put(QueryHistory.SUITE, suite == null ? UNKNOWN : suite) //
+                .put(QueryHistory.ENGINE_TYPE, engineType)
+                .put(QueryHistory.ANSWERED_BY, answeredBy)
+                .put(QueryHistory.IS_CUBE_HIT, String.valueOf(isCubeHit))
+                .put(QueryHistory.ACCELERATE_STATUS, accelerateStatus);
 
         if (StringUtils.isBlank(hostname)) {
             try {
@@ -243,10 +273,10 @@ public class QueryMetricsContext {
                 hostname = UNKNOWN;
             }
         }
-        builder.put(HOSTNAME_METRIC, hostname);
+        builder.put(QueryHistory.QUERY_HOSTNAME, hostname);
 
         if (StringUtils.isNotBlank(this.errorType)) {
-            builder.put(ERROR_TYPE_METRIC, errorType);
+            builder.put(QueryHistory.ERROR_TYPE, errorType);
         }
 
         return builder.build();
@@ -254,11 +284,17 @@ public class QueryMetricsContext {
 
     public Map<String, Object> getInfluxdbFields() {
         final ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object> builder() //
-                .put(QUERY_ID_METRIC, queryId) //
-                .put(SQL_TEXT_METRIC, sql) //
-                .put(QUERY_DURATION_METRIC, queryDuration) //
-                .put(TOTAL_SCAN_BYTES_METRIC, totalScanBytes);
-
+                .put(QueryHistory.SQL_TEXT, sql) //
+                .put(QueryHistory.QUERY_ID, queryId) //
+                .put(QueryHistory.QUERY_DURATION, queryDuration)
+                .put(QueryHistory.TOTAL_SCAN_BYTES, totalScanBytes)
+                .put(QueryHistory.TOTAL_SCAN_COUNT, totalScanCount)
+                .put(QueryHistory.RESULT_ROW_COUNT, resultRowCount)
+                .put(QueryHistory.IS_CACHE_HIT, isCacheHit)
+                .put(QueryHistory.QUERY_STATUS, queryStatus)
+                .put(QueryHistory.QUERY_TIME, queryTime)
+                .put(QueryHistory.SQL_PATTERN, sqlPattern);
+        
         if (!realizationMetrics.isEmpty()) {
             final Collection<String> realizations = Collections2.transform(realizationMetrics,
                     new Function<RealizationMetrics, String>() {
@@ -268,7 +304,7 @@ public class QueryMetricsContext {
                         }
                     });
 
-            builder.put(REALIZATIONS_METRIC, Joiner.on(",").join(realizations));
+            builder.put(QueryHistory.REALIZATIONS, Joiner.on(",").join(realizations));
         }
 
         if (StringUtils.isNotBlank(this.log)) {
@@ -304,16 +340,16 @@ public class QueryMetricsContext {
 
         public Map<String, String> getInfluxdbTags() {
             return ImmutableMap.<String, String> builder() //
-                    .put(SUITE_METRIC, suite) //
-                    .put(PROJECT_METRIC, project) //
-                    .put(MODEL_METRIC, modelName) //
-                    .put(REALIZATION_NAME_METRIC, realizationName) //
-                    .put(REALIZATION_TYPE_METRIC, realizationType) //
+                    .put(QueryHistory.SUITE, suite) //
+                    .put(QueryHistory.PROJECT, project) //
+                    .put(QueryHistory.MODEL, modelName) //
+                    .put(QueryHistory.REALIZATION_NAME, realizationName) //
+                    .put(QueryHistory.REALIZATION_TYPE, realizationType) //
                     .build();
         }
 
         public Map<String, Object> getInfluxdbFields() {
-            return ImmutableMap.<String, Object> builder().put(QUERY_ID_METRIC, queryId).build();
+            return ImmutableMap.<String, Object> builder().put(QueryHistory.QUERY_ID, queryId).build();
         }
     }
 }

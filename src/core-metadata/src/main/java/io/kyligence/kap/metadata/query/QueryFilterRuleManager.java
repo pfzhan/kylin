@@ -131,9 +131,12 @@ public class QueryFilterRuleManager {
         return enabledRules;
     }
 
-    public QueryFilterRule get(String id) {
-        try (AutoReadWriteLock.AutoLock lock = autoLock.lockForRead()) {
-            return cache.get(id);
+    public QueryFilterRule getByName(String name) {
+        for (QueryFilterRule rule : getAll()) {
+            if (rule.getName().equals(name))
+                return rule;
         }
+
+        return null;
     }
 }
