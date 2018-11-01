@@ -201,8 +201,7 @@ import '../../../../util/fly.js'
       return this.$store.state.model.modelSpeedEvents
     },
     reachThreshold () {
-      // return this.$store.state.model.reachThreshold
-      return true
+      return this.$store.state.model.reachThreshold
     },
     modelSpeedModelsCount () {
       return this.$store.state.model.modelSpeedModelsCount
