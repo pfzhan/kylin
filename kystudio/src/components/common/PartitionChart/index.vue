@@ -91,7 +91,6 @@ export default class PartitionChart extends Vue {
     const width = this.elementWidth
     const height = this.elementHeight - 30
     const radius = Math.min(width, height) / 2
-    const color = d3.scale.category20c()
     let isShowDefaultChart = false
 
     const svg = d3.select(this.$refs['svg'])
@@ -115,7 +114,6 @@ export default class PartitionChart extends Vue {
       .attr('display', function (d) { return d.depth ? null : 'none' }) // hide inner ring
       .attr('d', arc)
       .style('stroke', '#fff')
-      .style('fill', function (d) { return color(d.name) })
       .style('fill-rule', 'evenodd')
       .each(stash)
 
@@ -176,6 +174,43 @@ export default class PartitionChart extends Vue {
     }
 
     d3.select(self.frameElement).style('height', height + 'px')
+    this.updatePathColor(this.data[0])
+  }
+  updatePathColor (data) {
+    const { children } = data
+    const startHue = 50
+    const endHue = 340
+    const startLight = 30
+    const hueStep = (endHue - startHue) / children.length
+    children.forEach((child, index) => {
+      const hue = hueStep * index + startHue
+      child.color = d3.hcl(hue, 100, startLight).toString()
+      if (child.children) {
+        child.children.forEach(updateChildrenColor)
+      }
+    })
+
+    this.d3data.path.each(function (d) {
+      d3.select(this).style('fill', function (d) { return d.color })
+    })
+    function updateChildrenColor (child, index) {
+      const lightStep = (100 - startLight) / child.maxLevel
+      const lightness = lightStep * child.depth + startLight
+      const parent = child.parent
+      const hcl = d3.hcl(parent.color)
+      const parentHue = hcl.h
+      const parentChroma = hcl.c
+      const parentLightness = hcl.l
+      const currentLightness = (lightness - parentLightness) * Math.random() + parentLightness
+      child.color = d3.hcl(parentHue, parentChroma, currentLightness)
+      if (child.children) {
+        child.children.forEach(updateChildrenColor)
+      }
+    }
+    // for (let i = 0; i < 1000; i += 10) {
+    //   const color = d3.hcl(i, 100, 50)
+    //   console.log('%c%s', `color:${color.toString()};`, String(i))
+    // }
   }
 }
 </script>

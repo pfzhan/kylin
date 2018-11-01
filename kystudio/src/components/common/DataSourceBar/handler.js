@@ -64,7 +64,7 @@ export const render = {
               class="tree-icon table-date-tip top"
               onClick={event => this.handleToggleTop(data, node, event)}
               slot="reference"
-              { ...{class: data.isTopSet ? ['el-icon-ksd-arrow_up-clean'] : ['el-icon-ksd-arrow_up']} }></i>
+              { ...{class: data.isTopSet ? ['el-icon-ksd-arrow_up-copy-2'] : ['el-icon-ksd-arrow_up']} }></i>
             { dateRange ? (
               <el-popover
                 placement="right"
@@ -156,7 +156,7 @@ export function getTableObj (that, database, table) {
     database: databaseName,
     datasource,
     isCentral: table.fact,
-    isTopSet: table.top_set,
+    isTopSet: table.top,
     dateRange,
     isSelected: false,
     parent: database,

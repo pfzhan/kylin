@@ -1,9 +1,9 @@
 export function formatFlowerJson (data) {
   let flowers = []
   let rootLevel = 0
+  let maxLevel = 0
 
   data.forEach(roots => {
-    let maxLevel = 0
     // 获取树的最大level
     Object.values(roots.nodes).forEach(node => {
       node.level > maxLevel && (maxLevel = node.level)
@@ -39,11 +39,13 @@ function getFlowerData (parent, maxLevel, isRoot) {
   if (isRoot) {
     parent.name = parent.cuboid.id
     parent.size = (maxLevel - parent.level) ** 2 * 200 + 2500
+    parent.maxLevel = maxLevel
   }
   parent.children = parent.children.map((child) => {
     child.name = child.cuboid.id
     child.size = (maxLevel - child.level) ** 2 * 200 + 2500
     child.children && child.children.length && getFlowerData(child, maxLevel)
+    child.maxLevel = maxLevel
     return child
   })
 

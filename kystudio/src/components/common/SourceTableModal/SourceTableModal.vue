@@ -258,6 +258,11 @@ export default class SourceTableModal extends Vue {
   onModalShow (newVal, oldVal) {
     newVal ? (this.isFormShow = true) : setTimeout(() => (this.isFormShow = false), 300)
   }
+  @Watch('form.isMergeable')
+  onMergeableChange (newValue) {
+    this.handleInput('isAutoMerge', newValue)
+    this.handleInput('isVolatile', newValue)
+  }
   isFieldShow (fieldName) {
     return fieldVisiableMaps[this.editType].includes(fieldName)
   }

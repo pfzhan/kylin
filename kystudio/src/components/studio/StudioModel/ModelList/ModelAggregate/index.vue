@@ -1,12 +1,12 @@
 <template>
   <div class="model-aggregate" v-if="model">
     <div class="aggregate-actions">
-      <el-button type="primary" icon="el-icon-ksd-table_refresh">
+      <!-- <el-button type="primary" icon="el-icon-ksd-table_refresh">
         {{$t('kylinLang.common.refresh')}}
       </el-button>
       <el-button type="primary" icon="el-icon-ksd-table_delete">
         {{$t('kylinLang.common.delete')}}
-      </el-button>
+      </el-button> -->
       <el-button type="primary" icon="el-icon-ksd-backup" @click="handleAggregateGroup">
         {{$t('aggregateGroup')}}
       </el-button>

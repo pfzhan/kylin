@@ -62,6 +62,7 @@ export default class SegmentChart extends Vue {
   selectedSegmentIds = []
   timer = null
   isFullInitilized = true
+  containerWidth = 0
   get selectedSegments () {
     return this.segments.filter(segment => this.selectedSegmentIds.includes(segment.id))
   }
@@ -79,8 +80,7 @@ export default class SegmentChart extends Vue {
     return this.xTicks[this.xTicks.length - 1]
   }
   get xTicks () {
-    const { formatType, scaleType, segments, gridWidth } = this
-    const containerWidth = this.$refs['container'] ? this.$refs['container'].clientWidth : 0
+    const { formatType, scaleType, segments, gridWidth, containerWidth } = this
     const segmentCount = segments.length - 1
     const startTime = segments[0] && segments[0].startTime
     const endTime = segments[segmentCount] && segments[segmentCount].endTime
@@ -89,7 +89,7 @@ export default class SegmentChart extends Vue {
     const diff = endTick.diff(startTick, scaleType)
     const isTickFull = diff * gridWidth > containerWidth
     const xTicks = []
-    const tickCount = isTickFull ? diff : Math.floor(containerWidth / gridWidth)
+    const tickCount = isTickFull ? diff : Math.ceil(containerWidth / gridWidth)
 
     let currentTick = startTick
     for (let i = 0; i < tickCount; i++) {
@@ -144,7 +144,9 @@ export default class SegmentChart extends Vue {
       const segmentRight = this.getSegmentRight(lastSegment)
       const isSegmentFull = containerWidth < segmentRight
 
-      !isSegmentFull && this.$emit('load-more')
+      setTimeout(() => {
+        !isSegmentFull && this.$emit('load-more')
+      }, 100)
     }
 
     this.clearSelectedSegments()
@@ -203,6 +205,9 @@ export default class SegmentChart extends Vue {
     this.selectedSegmentIds = []
     this.$emit('input', this.selectedSegmentIds, true)
   }
+  initContainer () {
+    this.containerWidth = this.$refs['container'] ? this.$refs['container'].clientWidth : 0
+  }
   handleScroll () {
     clearTimeout(this.timer)
 
@@ -244,6 +249,7 @@ export default class SegmentChart extends Vue {
   }
   mounted () {
     this.handleScroll()
+    this.initContainer()
   }
 }
 </script>

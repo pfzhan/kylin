@@ -188,6 +188,7 @@ export default class AggregateModal extends Vue {
         return false
       }
     }
+    return true
   }
   getUnusedDimensions (aggregateIdx) {
     const aggregate = this.form.aggregateArray[aggregateIdx]

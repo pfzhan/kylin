@@ -96,7 +96,7 @@
       <el-row class="info-row">
         <div class="info-value">
           <el-button size="small" icon="el-icon-ksd-data_range" @click="handleChangeDataRange(table.userRange)">{{$t('incrementalLoading')}}</el-button>
-          <el-button size="small" icon="el-icon-ksd-table_refresh" @click="handleRefreshTable">{{$t('refreshData')}}</el-button>
+          <!-- <el-button size="small" icon="el-icon-ksd-table_refresh" @click="handleRefreshTable">{{$t('refreshData')}}</el-button> -->
           <el-button size="small" icon="el-icon-ksd-merge" @click="handleTableMerge">{{$t('mergeData')}}</el-button>
         </div>
       </el-row>
@@ -183,7 +183,12 @@ export default class TableDataLoad extends Vue {
   }
   async handleChangeDataRange (newDataRange) {
     const isSubmit = await this.callSourceTableModal({ editType: 'changeDataRange', table: this.table, newDataRange })
-    isSubmit && this.$emit('fresh-tables')
+    if (isSubmit) {
+      this.$emit('fresh-tables')
+    } else {
+      this.table.allRange = [...this.table.allRange]
+      this.table.userRange = [...this.table.userRange]
+    }
   }
   async handleChangeType () {
     if (!this.isIncremental && this.partitionColumns.length) {
