@@ -448,7 +448,7 @@ export default class LayoutLeftRightTop extends Vue {
         return
       }
       this.circleLoadSpeedInfo()
-    }, 5000)
+    }, 50000)
   }
   mounted () {
     // 接受cloud的参数

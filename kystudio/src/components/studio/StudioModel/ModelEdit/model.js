@@ -68,8 +68,8 @@ class NModel {
         return x
       }
     })
-    this.lookups = options.lookups || []
-    this.all_measures = options.all_measures || []
+    this.lookups = options.lookups || options.join_tables || []
+    this.all_measures = options.simplified_measures || []
     this.project = options.project
     this.maintain_model_type = options.maintain_model_type
     this.management_type = options.management_type
@@ -130,7 +130,7 @@ class NModel {
         kind: 'FACT',
         table: this.fact_table
       }
-      initTableOptions.drawSize = this.getTableCoordinate(this.fact_table) // 获取坐标信息
+      initTableOptions.drawSize = this.getTableCoordinate(initTableOptions.alias) // 获取坐标信息
       this.addTable(initTableOptions)
       this.lookups.forEach((tableObj) => {
         let tableInfo = this._getTableOriginInfo(tableObj.table)
@@ -220,9 +220,9 @@ class NModel {
       } else {
         return reject(this.$t('noFactTable'))
       }
-      metaData.lookups = this._generateLookups()
+      metaData.join_tables = this._generateLookups()
       metaData.all_named_columns = this._generateAllColumns()
-      metaData.simplified_measures = this.all_measures
+      metaData.simplified_measures = this.simplified_measures
       metaData.computed_columns = this.computed_columns
       metaData.last_modified = this.last_modified
       metaData.filter_condition = this.filter_condition
@@ -399,8 +399,8 @@ class NModel {
         if (i === alias) {
           let _info = this.canvas.coordinate[i]
           return {
-            left: _info.x_position,
-            top: _info.y_position,
+            left: _info.x,
+            top: _info.y,
             width: _info.width,
             height: _info.height
           }

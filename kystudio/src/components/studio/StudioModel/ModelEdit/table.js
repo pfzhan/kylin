@@ -85,8 +85,8 @@ class NTable {
   // 获取符合元数据格式的模型坐标位置信息
   getMetaCanvasInfo () {
     return {
-      x_position: this.drawSize.left,
-      y_position: this.drawSize.top,
+      x: this.drawSize.left,
+      y: this.drawSize.top,
       width: this.drawSize.width,
       height: this.drawSize.height
     }

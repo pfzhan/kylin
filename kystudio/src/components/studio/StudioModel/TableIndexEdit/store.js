@@ -10,7 +10,7 @@ const initialState = JSON.stringify({
   isShow: false,
   form: {
     data: {
-      modelDesc: null,
+      modelInstance: null,
       tableIndexDesc: null
     }
   },

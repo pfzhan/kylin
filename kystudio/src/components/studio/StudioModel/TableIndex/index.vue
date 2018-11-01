@@ -103,7 +103,7 @@ import locales from './locales'
 import { handleSuccess, handleError, transToGmtTime, kapConfirm } from 'util/business'
 import { isToday, isThisWeek, isLastWeek } from 'util/index'
 import TableIndexEdit from '../TableIndexEdit/tableindex_edit'
-
+import NModel from '../ModelEdit/model.js'
 @Component({
   props: ['modelDesc'],
   computed: {
@@ -245,7 +245,7 @@ export default class TableIndex extends Vue {
   sortTable () {}
   editTableIndex (isNew) {
     this.showTableIndexEditModal({
-      modelDesc: this.modelDesc,
+      modelInstance: new NModel(this.modelDesc),
       tableIndexDesc: isNew ? null : this.currentShowTableIndex
     }).then(() => {
       this.getAllTableIndex()

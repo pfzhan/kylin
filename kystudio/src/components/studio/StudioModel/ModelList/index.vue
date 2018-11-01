@@ -356,46 +356,46 @@ export default class ModelList extends Vue {
       callback()
     }
   }
-  setModelBuldRange (modelInstance) {
+  setModelBuldRange (modelDesc) {
     this.callModelBuildDialog({
-      modelDesc: modelInstance
+      modelDesc: modelDesc
     })
   }
-  async handleCommand (command, modelInstance) {
+  async handleCommand (command, modelDesc) {
     if (command === 'dataCheck') {
       this.checkModelData({
-        modelDesc: modelInstance
+        modelDesc: modelDesc
       })
     } else if (command === 'dataLoad') {
       this.callModelPartitionDialog({
-        modelDesc: new NModel(modelInstance)
+        modelDesc: new NModel(modelDesc)
       })
     } else if (command === 'rename') {
-      const isSubmit = await this.callRenameModelDialog(objectClone(modelInstance))
+      const isSubmit = await this.callRenameModelDialog(objectClone(modelDesc))
       isSubmit && this.loadModelsList()
     } else if (command === 'delete') {
       kapConfirm(this.$t('delModelTip')).then(() => {
-        this.handleDrop(modelInstance)
+        this.handleDrop(modelDesc)
       })
     } else if (command === 'purge') {
       kapConfirm(this.$t('pergeModelTip')).then(() => {
-        this.handlePurge(modelInstance)
+        this.handlePurge(modelDesc)
       })
     } else if (command === 'clone') {
-      const isSubmit = await this.callCloneModelDialog(objectClone(modelInstance))
+      const isSubmit = await this.callCloneModelDialog(objectClone(modelDesc))
       isSubmit && this.loadModelsList()
     } else if (command === 'offline') {
       kapConfirm(this.$t('disbaleModelTip')).then(() => {
-        this.handleDisableModel(objectClone(modelInstance))
+        this.handleDisableModel(objectClone(modelDesc))
       })
     } else if (command === 'online') {
       kapConfirm(this.$t('enableModelTip')).then(() => {
-        this.handleEnableModel(objectClone(modelInstance))
+        this.handleEnableModel(objectClone(modelDesc))
       })
     }
   }
-  handleModel (action, modelInstance, successTip) {
-    this[action]({modelName: modelInstance.name, project: this.currentSelectedProject}).then(() => {
+  handleModel (action, modelDesc, successTip) {
+    this[action]({modelName: modelDesc.name, project: this.currentSelectedProject}).then(() => {
       kapMessage(successTip)
       this.loadModelsList()
     }, (res) => {
@@ -403,20 +403,20 @@ export default class ModelList extends Vue {
     })
   }
   // 禁用model
-  handleDisableModel (modelInstance) {
-    this.handleModel('disableModel', modelInstance, this.$t('disbaleModelSuccessTip'))
+  handleDisableModel (modelDesc) {
+    this.handleModel('disableModel', modelDesc, this.$t('disbaleModelSuccessTip'))
   }
   // 启用model
-  handleEnableModel (modelInstance) {
-    this.handleModel('enableModel', modelInstance, this.$t('enabledModelSuccessTip'))
+  handleEnableModel (modelDesc) {
+    this.handleModel('enableModel', modelDesc, this.$t('enabledModelSuccessTip'))
   }
   // 删除model
-  handleDrop (modelInstance) {
-    this.handleModel('delModel', modelInstance, this.$t('deleteModelSuccessTip'))
+  handleDrop (modelDesc) {
+    this.handleModel('delModel', modelDesc, this.$t('deleteModelSuccessTip'))
   }
   // 清理model
-  handlePurge (modelInstance) {
-    this.handleModel('purgeModel', modelInstance, this.$t('purgeModelSuccessTip'))
+  handlePurge (modelDesc) {
+    this.handleModel('purgeModel', modelDesc, this.$t('purgeModelSuccessTip'))
   }
   // 编辑model
   handleEditModel (modelName) {

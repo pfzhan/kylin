@@ -20,9 +20,9 @@
                     <el-select v-model="tableIndexMeta.col_order[index]" filterable style="width:420px">
                       <el-option
                         v-for="item in allColumns"
-                        :key="item.alias + '.' + item.name"
-                        :label="item.alias + '.' + item.name"
-                        :value="item.alias + '.' + item.name">
+                        :key="item.table_alias + '.' + item.name"
+                        :label="item.table_alias + '.' + item.name"
+                        :value="item.table_alias + '.' + item.name">
                       </el-option>
                     </el-select>
                     <!-- <el-input style="width:430px" size="medium" v-model="tableIndexMeta.col_order[index]"></el-input> -->
@@ -114,7 +114,7 @@
       ]),
       ...mapState('TableIndexEditModal', {
         isShow: state => state.isShow,
-        modelDesc: state => state.form.data.modelDesc,
+        modelInstance: state => state.form.data.modelInstance,
         tableIndexDesc: state => objectClone(state.form.data.tableIndexDesc),
         callback: state => state.callback
       })
@@ -151,17 +151,11 @@
       ]
     }
     get allColumns () {
-      // mock
-      let modelUsedTables = this.$store.state.datasource.dataSource[this.currentSelectedProject] // mock
-      // let modelUsedTables = this.modelDesc.simple_tables
-      var result = []
-      modelUsedTables && modelUsedTables.forEach((tableObj) => {
-        tableObj.columns.forEach((col) => {
-          col.alias = tableObj.name
-          result.push(col)
-        })
-      })
-      return result
+      let modelUsedTables = []
+      if (this.modelInstance) {
+        modelUsedTables = this.modelInstance.getTableColumns() || []
+      }
+      return modelUsedTables
     }
     // get pagerShowOrder () {
     //   return this.tableIndexMeta.col_order.slice(this.pager * 10, 10 + 10 * this.pager)
@@ -240,7 +234,7 @@
         // 按照sort选中列的顺序对col_order进行重新排序
         this.tableIndexMeta.col_order = arrSortByArr(this.tableIndexMeta.col_order, this.tableIndexMeta.sort_by_columns)
         this.tableIndexMeta.project = this.currentSelectedProject
-        this.tableIndexMeta.model = this.modelDesc.name
+        this.tableIndexMeta.model = this.modelInstance.name
         if (this.tableIndexMeta.id) {
           this.editTableIndex(this.tableIndexMeta).then(successCb, errorCb)
         } else {

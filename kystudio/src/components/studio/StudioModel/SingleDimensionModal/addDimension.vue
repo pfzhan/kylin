@@ -7,10 +7,18 @@
         </el-form-item>
         <el-form-item :label="$t('dimensionCandidate')" prop="column">
           <el-select filterable style="width:350px" place-holder="" v-model="dimensionInfo.column">
-            <el-option v-for="(item, index) in allColumns" 
+            <el-option-group
+              v-for="(columns, key) in allColumnsGroup"
+              :key="key"
+              :label="$t(key)">
+              <el-option v-for="(item, index) in columns" 
               :key="index"
               :label="item.table_alias + '.' + item.name"
-              :value="item.table_alias + '.' + item.name"></el-option>
+              :value="item.table_alias + '.' + item.name">
+                <span>{{item.name}}</span>
+                <span class="ky-option-sub-info">{{item.datatype}}</span>
+              </el-option>
+            </el-option-group>
           </el-select>
           <el-button size="medium" @click="showCC=true" icon="el-icon-ksd-auto_computed_column" class="ksd-ml-10" type="primary" plain></el-button>
           <CCEditForm v-if="showCC" @saveSuccess="saveCC" @delSuccess="delCC" :ccDesc="ccDesc" :modelInstance="modelInstance"></CCEditForm>
@@ -112,14 +120,17 @@ export default class SingleDimensionModal extends Vue {
     this.dimensionInfo.column = ''
     this.dimensionInfo.cc = null
   }
-  get allColumns () {
+  get allColumnsGroup () {
     let cloneCCList = objectClone(this.ccColumns)
     cloneCCList = cloneCCList.map((x) => {
       x.name = x.columnName
       x.table_alias = x.tableAlias
       return x
     })
-    return [...this.allBaseColumns, ...cloneCCList]
+    return {
+      columns: this.allBaseColumns,
+      ccColumns: cloneCCList
+    }
   }
   @Watch('isShow')
   onModalShow (newVal, oldVal) {

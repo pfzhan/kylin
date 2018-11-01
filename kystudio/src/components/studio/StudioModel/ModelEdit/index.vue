@@ -65,7 +65,7 @@
       <div class="tool-icon-group" v-event-stop>
         <div class="tool-icon" :class="{active: panelAppear.dimension.display}" @click="toggleMenu('dimension')">D</div>
         <div class="tool-icon" :class="{active: panelAppear.measure.display}" @click="toggleMenu('measure')">M</div>
-        <div class="tool-icon" :class="{active: panelAppear.setting.display}" @click="toggleMenu('setting')"><i class="el-icon-ksd-setting"></i></div>
+        <!-- <div class="tool-icon" :class="{active: panelAppear.setting.display}" @click="toggleMenu('setting')"><i class="el-icon-ksd-setting"></i></div> -->
         <div class="tool-icon" :class="{active: panelAppear.search.display}" @click="toggleMenu('search')">
           <i class="el-icon-ksd-search"></i>
           <span class="new-icon">New</span>
@@ -84,22 +84,22 @@
         <transition name="bounceright">
           <div class="panel-box panel-dimension" @mousedown.stop="activePanel('dimension')" :style="panelStyle('dimension')" v-if="panelAppear.dimension.display">
             <div class="panel-title" @mousedown="activePanel('dimension')" v-drag:change.right.top="panelAppear.dimension">
-              <span><i class="el-icon-ksd-dimansion"></i></span>
+              <span><i class="el-icon-ksd-dimension"></i></span>
               <span class="title">{{$t('kylinLang.common.dimension')}}</span>
               <span class="close" @click="toggleMenu('dimension')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
-              <span @click="batchSetDimension"><i class="el-icon-ksd-add"></i></span>
-              <span @click="addCCDimension"><i class="el-icon-ksd-computed"></i></span>
+              <span @click="batchSetDimension"><i class="el-icon-ksd-batch"></i></span>
+              <span @click="addCCDimension"><i class="el-icon-ksd-project_add"></i></span>
               <span><i class="el-icon-ksd-table_delete"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="dimension-list">
                 <li v-for="(d, i) in allDimension" :key="d.name">
-                  {{d.name|omit(18,'...')}}
+                  <el-checkbox v-model="dimensionSelectedList"></el-checkbox>{{d.name|omit(18,'...')}}
                   <i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i>
                   <i class="el-icon-ksd-table_delete" @click="deleteDimenison(d, i)"></i>
-                  <span>{{getColumnType(d.column.split('.')[0], d.column)}}</span>
+                  <span class="li-type">{{getColumnType(d.column.split('.')[0], d.column)}}</span>
                 </li>
               </ul>
             </div>
@@ -115,7 +115,7 @@
               <span class="close" @click="toggleMenu('measure')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
-              <span><i class="el-icon-ksd-add" @click="addNewMeasure"></i></span>
+              <span><i class="el-icon-ksd-project_add" @click="addNewMeasure"></i></span>
               <span><i class="el-icon-ksd-table_delete"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
@@ -249,6 +249,7 @@ import { modelRenderConfig } from './config'
 export default class ModelEdit extends Vue {
   datasource = []
   modelRender = {}
+  dimensionSelectedList = []
   modelInstance = null // 模型实例对象
   currentDragTable = '' // 当前拖拽的表
   currentDragColumn = '' // 当前拖拽的列
@@ -804,7 +805,7 @@ export default class ModelEdit extends Vue {
               font-size:12px;
             }
             &:hover {
-              span{
+              .li-type{
                 display:none;
               }
               background-color:@base-color-10;

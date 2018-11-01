@@ -9,7 +9,7 @@
             <i class="el-icon-ksd-what"></i>
           </el-tooltip>
         </template>
-        <el-row v-clickoutside="resetEditValue">
+        <el-row>
           <el-col :span="18" class="rules-conds">
             <div class="conds" :class="{'disabled': !frequencyObj.enable}">
               <div class="conds-title">
@@ -301,7 +301,7 @@ import $ from 'jquery'
 import { handleSuccessAsync, handleError } from '../../util/index'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../util/business'
 import { loadLiquidFillGauge, liquidFillGaugeDefaultSettings } from '../../util/liquidFillGauge'
-import Clickoutside from 'kyligence-ui/src/utils/clickoutside'
+// import Clickoutside from 'kyligence-ui/src/utils/clickoutside'
 import sqlFormatter from 'sql-formatter'
 @Component({
   methods: {
@@ -319,7 +319,7 @@ import sqlFormatter from 'sql-formatter'
       updatePreferrence: 'UPDATE_PREFERRENCE'
     })
   },
-  directives: { Clickoutside },
+  // directives: { Clickoutside },
   computed: {
     ...mapGetters([
       'currentSelectedProject'
