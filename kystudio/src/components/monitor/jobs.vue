@@ -568,6 +568,7 @@ export default class JobsList extends Vue {
       right: 0;
         &.el-card {
           border-radius: 0;
+          padding: 20px;
         }
       .table-bordered {
         border: 1px solid @border-color-base;
