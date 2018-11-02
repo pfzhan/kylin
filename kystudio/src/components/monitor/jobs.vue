@@ -63,7 +63,7 @@
         :width="180"
         :label="$t('ProgressStatus')">
         <template slot-scope="scope">
-          <kap-progress :percent="scope.row.step_ratio | number(0)" :status="scope.row.job_status"></kap-progress>
+          <kap-progress :percent="scope.row.step_ratio * 100 | number(0)" :status="scope.row.job_status"></kap-progress>
         </template>
       </el-table-column>
       <el-table-column
@@ -148,7 +148,7 @@
       </p>
       <ul class="timeline">
 
-        <li v-for="(step, index) in selectedJob.details" :class="{'finished' : step.step_status=='FINISHED'}">
+        <li v-for="(step, index) in selectedJob.details" :key="index" :class="{'finished' : step.step_status=='FINISHED'}">
           <el-popover
             placement="left"
             width="300"
@@ -559,6 +559,10 @@ export default class JobsList extends Vue {
       height: 25px;
       width: 25px;
       text-align: center;
+    }
+    .el-progress-bar__innerText {
+      top: -1px;
+      position: relative;
     }
     .job-step {
       width: 30%;

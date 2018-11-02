@@ -37,11 +37,11 @@ export const menusData = [
   // {name: 'insight', path: '/insight', icon: 'el-icon-ksd-insight'},
   {name: 'overview', path: '/overview', icon: 'el-icon-ksd-overview'},
   {
-    name: 'insight',
+    name: 'query',
     path: '/query',
     icon: 'el-icon-ksd-insight',
     children: [
-      {name: 'new_query', path: '/query/new_query'},
+      {name: 'insight', path: '/query/new_query'},
       {name: 'query_history', path: '/query/query_history'},
       {name: 'favorite_query', path: '/query/favorite_query'}
     ]

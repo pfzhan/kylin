@@ -3,7 +3,7 @@
     <el-row :gutter="20">
       <el-col :span="16">
         <el-card class="statistics">
-          <div slot="header"><i class="el-icon-ksd-Total-Query-Statistics"></i> {{$t('statistics')}}</div>
+          <div slot="header"><i class="el-icon-ksd-total_query_statistics"></i> {{$t('statistics')}}</div>
           <div class="statistics-body">
             <!-- <img src="../../assets/img/overview.png" height="700" width="750"> -->
             <div class="statistics-center">
@@ -83,7 +83,7 @@
       <el-col :span="8">
         <el-card class="messages">
           <div slot="header">
-            <i class="el-icon-ksd-Messages"></i> <router-link :to="'messages'" class="view-more">{{$t('messages')}}(10)</router-link>
+            <i class="el-icon-ksd-message"></i> <router-link :to="'messages'" class="view-more">{{$t('messages')}}(10)</router-link>
           </div>
           <div class="messages-body">
             <section data-scrollbar id="message_scroll_box">
@@ -104,7 +104,7 @@
         </el-card>
         <router-link :to="'messages'" class="view-more"><div class="view-more-btn">{{$t('viewAll')}}</div></router-link>
         <el-card class="documentation ksd-mt-20">
-          <div slot="header"><i class="el-icon-ksd-Document"></i> {{$t('documentation')}}</div>
+          <div slot="header"><i class="el-icon-ksd-document"></i> {{$t('documentation')}}</div>
           <div class="documentation-body">
             <div v-for="o in manualList" :key="o.title" class="item">
               <a :href="o.link" target="_blank">{{$t(o.title)}}</a>
@@ -211,6 +211,9 @@ export default class Overview extends Vue {
   @import "../../assets/styles/variables.less";
   #overview{
 	  margin: 40px 30px;
+    .el-card__header {
+      font-weight: bolder;
+    }
     .statistics {
       height: 843px;
       .statistics-body {
@@ -357,7 +360,7 @@ export default class Overview extends Vue {
         }
       }
       #message_scroll_box {
-        height: 400px;
+        height: 460px;
         .message-item {
           padding: 12px 20px;
           position: relative;
@@ -375,7 +378,7 @@ export default class Overview extends Vue {
             color: @text-disabled-color;
           }
           .item-content {
-            padding: 0 30px 0 8px;
+            padding: 0 45px 0 8px;
             display: table-cell;
             word-break: break-word;
             a {

@@ -293,11 +293,13 @@ export default class AddMeasure extends Vue {
 
   newCC () {
     this.resetCCVisble()
+    this.measure.parameter_value[0].value = ''
     this.isEdit = true
     this.ccVisible = true
   }
   newCorrCC () {
     this.resetCCVisble()
+    this.measure.converted_columns[0].value = ''
     this.isCorrCCEdit = true
     this.corrCCVisible = true
   }
