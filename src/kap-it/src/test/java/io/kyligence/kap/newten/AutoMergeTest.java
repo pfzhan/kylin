@@ -629,4 +629,44 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
 
     }
 
+    @Test
+    public void testAutoMergeSegmentsByWeek_FirstWeekNoSegment_NotMerge() throws Exception {
+        removeAllSegments();
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataModel model = dataModelManager.getDataModelDesc("nmodel_basic");
+
+        List<NDataSegment> segments = new ArrayList<>();
+        long start;
+        long end;
+        //2010/10/04 2010/10/05
+        for (int i = 0; i <= 1; i++) {
+            //01-01 friday
+            start = SegmentRange.dateToLong("2010-01-03") + i * 86400000 * 2;
+            end = SegmentRange.dateToLong("2010-01-05") + i * 86400000 * 2;
+            SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+            df = dataflowManager.getDataflow("ncube_basic");
+            NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
+            dataSegment.setStatus(SegmentStatusEnum.READY);
+            dataSegment.setId(i);
+            segments.add(dataSegment);
+        }
+
+        NDataModel modelUpdate = dataModelManager.copyForWrite(model);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        dataModelManager.updateDataModelDesc(modelUpdate);
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        dataflowManager.updateDataflow(update);
+
+        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        eventDao.deleteAllEvents();
+
+        mockAddSegmentSuccess();
+        List<Event> events = eventDao.getEvents();
+        Assert.assertEquals(0, events.size());
+
+    }
+
 }

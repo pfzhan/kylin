@@ -246,21 +246,36 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testPurgeModel() throws IOException {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel dataModel = modelManager.getDataModelDesc("test_encoding");
+        NDataModel modelUpdate = modelManager.copyForWrite(dataModel);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        modelManager.updateDataModelDesc(modelUpdate);
         modelService.purgeModel("test_encoding", "default");
         List<NDataSegment> segments = modelService.getSegments("test_encoding", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
     }
 
     @Test
+    public void testPurgeModel_TableOriented_Exception() throws IOException {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel dataModel = modelManager.getDataModelDesc("test_encoding");
+        NDataModel modelUpdate = modelManager.copyForWrite(dataModel);
+        modelUpdate.setManagementType(ManagementType.TABLE_ORIENTED);
+        modelManager.updateDataModelDesc(modelUpdate);
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Model 'test_encoding' is table oriented, can not pruge the model!");
+        modelService.purgeModel("test_encoding", "default");
+    }
+
+    @Test
     public void testGetAffectedSegmentsResponse_NoSegments_Exception() throws IOException {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("No segments to refresh, please select new range and try again!");
-        modelService.purgeModel("test_encoding", "default");
         List<NDataSegment> segments = modelService.getSegments("test_encoding", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
         RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse("default",
                 "DEFAULT.TEST_ENCODING", "0", "12223334", ManagementType.TABLE_ORIENTED);
-        Assert.assertEquals(0L, response.getByteSize());
     }
 
     @Test
@@ -466,7 +481,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Model 'nmodel_basic_inner' is table table oriented, can not remove segments manually!");
+        thrown.expectMessage("Model 'nmodel_basic_inner' is table oriented, can not remove segments manually!");
         modelService.deleteSegmentById("nmodel_basic_inner", "default", new int[] { 0 });
     }
 
@@ -611,7 +626,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBuildSegmentsManually_TableOrientedModel_Exception() throws IOException, PersistentException {
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Table oriented Model 'nmodel_basic' can not build segments manually!");
+        thrown.expectMessage("Table oriented model 'nmodel_basic' can not build segments manually!");
         modelService.buildSegmentsManually("default", "nmodel_basic", "0", "100");
     }
 

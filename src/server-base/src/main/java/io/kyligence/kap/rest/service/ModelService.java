@@ -69,6 +69,9 @@ import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -406,6 +409,9 @@ public class ModelService extends BasicService {
         if (null == dataModelDesc) {
             throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), model));
         }
+        if(dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)){
+            throw new BadRequestException("Model '"+model+"' is table oriented, can not pruge the model!!");
+        }
         NDataflowManager dataflowManager = getDataflowManager(project);
         List<NCubePlan> cubePlans = getCubePlans(model, project);
         List<NDataSegment> segments = new ArrayList<>();
@@ -607,6 +613,10 @@ public class ModelService extends BasicService {
     }
 
     public void createModel(ModelRequest modelRequest) throws IOException {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+            modelRequest.setOwner(((UserDetails) authentication.getPrincipal()).getUsername());
+        }
         String project = modelRequest.getProject();
         checkAliasExist(modelRequest.getName(), modelRequest.getAlias(), project);
         //remove some attributes in modelResponse to fit NDataModel
@@ -683,7 +693,7 @@ public class ModelService extends BasicService {
             throws IOException, PersistentException {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(model);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            throw new BadRequestException("Table oriented Model '" + model + "' can not build segments manually!");
+            throw new BadRequestException("Table oriented model '" + model + "' can not build segments manually!");
         }
         List<NCubePlan> cubePlans = getCubePlans(model, project);
         if (CollectionUtils.isEmpty(cubePlans)) {
@@ -858,7 +868,7 @@ public class ModelService extends BasicService {
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
         if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
             throw new BadRequestException(
-                    "Model '" + model + "' is table table oriented, can not remove segments manually!");
+                    "Model '" + model + "' is table oriented, can not remove segments manually!");
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);

@@ -341,7 +341,6 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     }
 
     public SegmentRange findMergeSegmentsRange(AutoMergeTimeEnum autoMergeTimeEnum) {
-        SegmentRange gapRange;
         long mergeStart = Long.parseLong(this.getFirst().getSegRange().start.toString());
         SegmentRange rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeStart,
                 getMergeEnd(mergeStart, autoMergeTimeEnum));
@@ -370,21 +369,18 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             }
 
             if (seg.getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) >= 0) {
-                if (segmentsToMerge.getLast().equals(seg)) {
+                if (segmentsToMerge.size() > 1 && (segmentsToMerge.getLast().equals(seg)
+                        || segmentsToMerge.getLast().getSegRange().connects(segmentRange))) {
                     break;
                 } else {
-                    if (segmentsToMerge.size() > 1 && segmentsToMerge.getLast().getSegRange().connects(segmentRange)) {
-                        break;
-                    } else {
-                        //this section can not merge,but has next section data,compute next section
-                        rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeEnd,
-                                getMergeEnd(mergeEnd, autoMergeTimeEnum));
-                        segmentsToMerge.clear();
-                        if (this.getLast().getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) < 0) {
-                            return null;
-                        }
-                        continue;
+                    //this section can not merge,but has next section data,compute next section
+                    rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeEnd,
+                            getMergeEnd(mergeEnd, autoMergeTimeEnum));
+                    segmentsToMerge.clear();
+                    if (this.getLast().getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) < 0) {
+                        return null;
                     }
+                    continue;
                 }
 
             }
