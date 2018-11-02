@@ -528,6 +528,7 @@
   "computed_columns": [
     {
       "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "DEAL_AMOUNT",
       "expression": "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
       "datatype": "decimal",
@@ -575,6 +576,7 @@
     },
     {
       "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "NEST1",
       "expression": "TEST_KYLIN_FACT.PRICE + 11",
       "datatype": "decimal",
@@ -582,6 +584,7 @@
     },
     {
       "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "NEST2",
       "expression": "TEST_KYLIN_FACT.NEST1 * 12",
       "innerExpression": "(TEST_KYLIN_FACT.PRICE + 11) * 12",
@@ -590,6 +593,7 @@
     },
     {
       "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "NEST3",
       "expression": "round(TEST_KYLIN_FACT.NEST2, 0)",
       "innerExpression": "round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0)",
@@ -598,6 +602,7 @@
     },
     {
       "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "NEST4",
       "expression": "TEST_KYLIN_FACT.NEST3 * TEST_KYLIN_FACT.ITEM_COUNT",
       "innerExpression": "round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0) * TEST_KYLIN_FACT.ITEM_COUNT",

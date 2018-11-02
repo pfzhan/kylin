@@ -101,6 +101,7 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -662,7 +663,7 @@ public class ModelService extends BasicService {
             val tableRef = new TableRef(dataModel, alias, tableDesc, !isFact);
             for (TblColRef column : tableRef.getColumns()) {
                 val namedColumn = new NDataModel.NamedColumn();
-                namedColumn.id = id;
+                namedColumn.id = id++;
                 namedColumn.name = column.getName();
                 namedColumn.aliasDotColumn = alias + "." + column.getName();
                 namedColumn.status = NDataModel.ColumnStatus.EXIST;
@@ -672,8 +673,19 @@ public class ModelService extends BasicService {
                     namedColumn.name = dimension.name;
                 }
                 columns.add(namedColumn);
-                id++;
             }
+        }
+        for (ComputedColumnDesc computedColumnDesc : dataModel.getComputedColumnDescs()) {
+            NamedColumn namedColumn = new NDataModel.NamedColumn();
+            namedColumn.id = id++;
+            namedColumn.name = computedColumnDesc.getColumnName();
+            namedColumn.aliasDotColumn = computedColumnDesc.getTableAlias() + "." + namedColumn.name;
+            namedColumn.status = NDataModel.ColumnStatus.EXIST;
+            if (dataModel.getAllNamedColumns().stream().anyMatch(c -> c.aliasDotColumn.equals(namedColumn.aliasDotColumn))) {
+                // cc already used as dimension
+                continue;
+            }
+            columns.add(namedColumn);
         }
         dataModel.setAllNamedColumns(columns);
         return dataModel;

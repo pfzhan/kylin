@@ -1554,18 +1554,23 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
         NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
         NDataModel updated = NDataModel.getCopyOf(deserialized);
+        List<ComputedColumnDesc> newCCs1 = Lists.newArrayList(deserialized.getComputedColumnDescs());
         ComputedColumnDesc ccDesc1 = new ComputedColumnDesc();
         ccDesc1.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
         ccDesc1.setColumnName("CC1");
         ccDesc1.setExpression("TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT + 1");
         ccDesc1.setDatatype("decimal");
-        updated.setComputedColumnDescs(Lists.newArrayList(ccDesc1));
+        newCCs1.add(ccDesc1);
+        updated.setComputedColumnDescs(newCCs1);
+        List<ComputedColumnDesc> newCCs2 = Lists.newArrayList(deserialized.getComputedColumnDescs());
         ComputedColumnDesc ccDesc2 = new ComputedColumnDesc();
         ccDesc2.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
         ccDesc2.setColumnName("CC2");
         ccDesc2.setExpression("CC1 * 2");
         ccDesc2.setDatatype("decimal");
-        updated.setComputedColumnDescs(Lists.newArrayList(ccDesc1, ccDesc2));
+        newCCs2.add(ccDesc1);
+        newCCs2.add(ccDesc2);
+        updated.setComputedColumnDescs(newCCs2);
 
         Assert.assertEquals("CC1 * 2", ccDesc2.getInnerExpression());
         modelService.preProcessBeforeModelSave(updated, "default");

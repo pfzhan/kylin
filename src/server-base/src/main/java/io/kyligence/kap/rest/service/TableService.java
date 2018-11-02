@@ -257,7 +257,8 @@ public class TableService extends BasicService {
             ColumnDesc[] columuDescs = tableDescResponse.getColumns();
             for (int i = 0; i < columuDescs.length; i++) {
                 ColumnDesc columnDesc = columuDescs[i];
-                cardinality.put(columnDesc.getName(), Long.parseLong(cardinalities[i]));
+                long card = i < cardinalities.length ? Long.parseLong(cardinalities[i]) : 0L;
+                cardinality.put(columnDesc.getName(), card);
             }
             tableDescResponse.setCardinality(cardinality);
         }

@@ -292,6 +292,16 @@
       "id": 32,
       "name": "LEFTJOIN_SELLER_COUNTRY_ABBR",
       "column": "TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR"
+    },
+    {
+      "id": 33,
+      "name": "ID_PLUS_1",
+      "column": "TEST_ORDER.ID_PLUS_1"
+    },
+    {
+      "id": 34,
+      "name": "ORDER_ID_PLUS_1",
+      "column": "TEST_KYLIN_FACT.ORDER_ID_PLUS_1"
     }
   ],
   "all_measures": [
@@ -452,6 +462,7 @@
   "computed_columns": [
     {
       "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "DEAL_AMOUNT",
       "expression": "PRICE * ITEM_COUNT",
       "datatype": "decimal",
@@ -467,6 +478,7 @@
     },
     {
       "tableIdentity": "DEFAULT.TEST_ORDER",
+      "tableAlias": "TEST_ORDER",
       "columnName": "ID_PLUS_1",
       "expression": "TEST_ORDER.ORDER_ID + 1",
       "datatype": "bigint"

@@ -142,6 +142,7 @@ public class FunctionDesc implements Serializable {
         if (!Strings.isEmpty(returnType)) {
             returnDataType = DataType.getType(returnType);
         }
+        returnType = returnDataType.toString();
     }
 
     private void reInitMeasureType() {
