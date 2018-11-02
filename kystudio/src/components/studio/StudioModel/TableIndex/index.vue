@@ -16,7 +16,7 @@
               <el-carousel-item v-for="item in tableIndex" :key="item.name" @click.native="showTableIndexDetal(item)">
                 <div :class="{'empty-table-index': item.status === 'Empty'}">
                   <div class="slider-content-above ">
-                    <div class="main-title" :title="item.name">{{$t('tableIndexName')}} {{item.name|omit(10, '...')}}</div>
+                    <div class="main-title" :title="item.name">{{item.name|omit(30, '...')}}</div>
                     <div class="status-list">
                       <div v-if="item.status === 'Broken'" class="broken-icon">Broken</div>
                       <div v-if="item.status === 'Empty'" class="empty-icon">[Empty]</div>
@@ -231,6 +231,7 @@ export default class TableIndex extends Vue {
       handleSuccess(res, (data) => {
         this.tableIndexBaseList.splice(0, this.tableIndexBaseList.length - 1)
         this.tableIndexBaseList = data.table_indexs
+        this.currentShowTableIndex = data.table_indexs[data.table_indexs.length - 1]
       })
     }, (res) => {
       handleError(res)
