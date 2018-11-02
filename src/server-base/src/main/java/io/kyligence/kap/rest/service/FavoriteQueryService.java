@@ -246,6 +246,9 @@ public class FavoriteQueryService extends BasicService {
             FrequencyStatus newStatus = new FrequencyStatus(startTime);
 
             for (QueryHistory queryHistory : queryHistories) {
+                if (queryHistory.isException())
+                    continue;
+
                 String project = queryHistory.getProject();
                 String sqlPattern = queryHistory.getSqlPattern();
 
