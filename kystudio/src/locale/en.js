@@ -304,7 +304,7 @@ exports.default = {
     latency: 'Duration',
     clear: 'Clear',
     applyRule: 'Favorite Rule',
-    lastModefied: 'Last Excuting',
+    lastModefied: 'Last Executed',
     rate: 'Success Rate',
     frequency: 'Frequency',
     avgDuration: 'Average Duration'
