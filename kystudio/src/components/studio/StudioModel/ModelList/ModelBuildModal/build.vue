@@ -1,6 +1,6 @@
 <template>
   <!-- 模型构建 -->
-    <el-dialog :title="$t('modelBuild')" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+    <el-dialog :title="$t('Model Build')" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <div>
         <el-form :model="modelBuildMeta" :rules="rules" ref="buildForm" label-width="100px">
           <el-form-item :label="$t('buildRange')" prop="dataRangeVal">
@@ -71,7 +71,6 @@
         this.modelBuildMeta.dataRangeVal = []
         if (this.modelDesc.last_build_end) {
           let lastBuildDate = new Date(+this.modelDesc.last_build_end)
-          debugger
           if (lastBuildDate) {
             this.modelBuildMeta.dataRangeVal.push(lastBuildDate, lastBuildDate)
           }

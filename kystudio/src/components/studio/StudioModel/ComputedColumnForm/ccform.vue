@@ -109,7 +109,7 @@ export default class CCForm extends Vue {
         cc_in_check: this.modelInstance.getFactTable().alias + '.' + this.ccObject.columnName,
         is_seeking_expr_advice: false
       }).then((res) => {
-        kapMessage(this.$t('kyinLang.common.checkSuccess'))
+        kapMessage(this.$t('kylinLang.common.checkSuccess'))
       }, (res) => {
         handleError(res)
       })

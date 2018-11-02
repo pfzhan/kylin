@@ -412,6 +412,16 @@ export default class ModelEdit extends Vue {
     })
   }
   deleteDimenison (i) {
+    let indexInSelected = this.dimensionSelectedList.indexOf(i)
+    if (indexInSelected >= 0) {
+      this.dimensionSelectedList.splice(indexInSelected, 1)
+    }
+    this.dimensionSelectedList = this.dimensionSelectedList.map((k) => {
+      if (k > i) {
+        return k - 1
+      }
+      return k
+    })
     this.modelInstance.delDimension(i)
   }
   // 批量删除
@@ -423,6 +433,16 @@ export default class ModelEdit extends Vue {
     this.dimensionSelectedList = []
   }
   deleteMeasure (i) {
+    let indexInSelected = this.measureSelectedList.indexOf(i)
+    if (indexInSelected >= 0) {
+      this.measureSelectedList.splice(indexInSelected, 1)
+    }
+    this.measureSelectedList = this.measureSelectedList.map((k) => {
+      if (k > i) {
+        return k - 1
+      }
+      return k
+    })
     this.modelInstance.delMeasure(i)
   }
   deleteMeasures () {
