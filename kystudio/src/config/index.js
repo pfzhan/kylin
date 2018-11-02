@@ -641,7 +641,5 @@ export const pageSizeMapping = {
   SEGMENT_CHART: 50
 }
 
-export const partitionColumnTypes = [
-  'timestamp', 'date'
-]
+export const partitionColumnTypes = DatePartitionRule
 export { projectCfgs } from './projectCfgs'
