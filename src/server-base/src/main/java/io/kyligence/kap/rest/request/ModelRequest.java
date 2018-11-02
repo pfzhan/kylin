@@ -30,7 +30,6 @@ import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.ArrayList;
 import java.util.List;
 
 @Getter

@@ -73,7 +73,6 @@ import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventStatus;
 import io.kyligence.kap.event.model.LoadingRangeUpdateEvent;
-import io.kyligence.kap.event.model.ModelUpdateEvent;
 
 public class NEventFlowTest extends NLocalWithSparkSessionTest {
 

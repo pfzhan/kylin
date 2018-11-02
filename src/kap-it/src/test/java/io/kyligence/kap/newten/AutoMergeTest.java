@@ -49,11 +49,11 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.VolatileRange;
-import io.kylingence.kap.event.handle.AddSegmentHandler;
-import io.kylingence.kap.event.manager.EventDao;
-import io.kylingence.kap.event.model.AddSegmentEvent;
-import io.kylingence.kap.event.model.Event;
-import io.kylingence.kap.event.model.EventContext;
+import io.kyligence.kap.event.handle.AddSegmentHandler;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.EventContext;
 
 public class AutoMergeTest extends NLocalFileMetadataTestCase {
 
