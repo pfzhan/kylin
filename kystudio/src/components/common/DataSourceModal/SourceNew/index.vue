@@ -5,13 +5,13 @@
         <div class="datasource-icon">
           <i class="el-icon-ksd-hive_normal"></i>
         </div>
-        <div class="datasouce-name">Hive</div>
+        <div class="datasource-name">Hive</div>
       </li>
       <li class="datasouce disabled">
         <div class="datasource-icon">
           <i class="el-icon-ksd-mysql"></i>
         </div>
-        <div class="datasouce-name">MySQL</div>
+        <div class="datasource-name">MySQL</div>
         <div class="status">
           <span>{{$t('upcoming')}}</span>
         </div>
@@ -20,7 +20,7 @@
         <div class="datasource-icon">
           <i class="el-icon-ksd-kafka_normal"></i>
         </div>
-        <div class="datasouce-name">Kafka</div>
+        <div class="datasource-name">Kafka</div>
         <div class="status">
           <span>{{$t('upcoming')}}</span>
         </div>
@@ -31,7 +31,7 @@
         <div class="datasource-icon">
           <i class="el-icon-ksd-greenplum"></i>
         </div>
-        <div class="datasouce-name">Greenplum</div>
+        <div class="datasource-name">Greenplum</div>
         <div class="status">
           <span>{{$t('upcoming')}}</span>
         </div>
@@ -40,7 +40,7 @@
         <div class="datasource-icon">
           <i class="el-icon-ksd-SQL-server"></i>
         </div>
-        <div class="datasouce-name">SQL Server</div>
+        <div class="datasource-name">SQL Server</div>
         <div class="status">
           <span>{{$t('upcoming')}}</span>
         </div>
@@ -49,7 +49,7 @@
         <div class="datasource-icon">
           <i class="el-icon-ksd-csv"></i>
         </div>
-        <div class="datasouce-name">CSV</div>
+        <div class="datasource-name">CSV</div>
         <div class="status">
           <span>{{$t('upcoming')}}</span>
         </div>
@@ -134,7 +134,7 @@ export default class SourceNew extends Vue {
       color: @fff;
       background: @base-color;
     }
-    .datasouce-name {
+    .datasource-name {
       color: @base-color;
       font-weight: 500;
     }
@@ -143,6 +143,14 @@ export default class SourceNew extends Vue {
     .datasource-icon {
       color: @text-secondary-color;
       cursor: not-allowed;
+    }
+    .datasource-name {
+      color: @text-secondary-color;
+    }
+    &:hover {
+      .datasource-icon {
+        border-color: transparent;
+      }
     }
     * {
       cursor: inherit;
@@ -156,6 +164,10 @@ export default class SourceNew extends Vue {
     margin-bottom: 10px;
     color: @base-color;
     cursor: pointer;
+    border: 1px solid transparent;
+  }
+  .datasource-name {
+    color: @text-normal-color;
   }
   .status {
     background: @text-placeholder-color;

@@ -98,7 +98,7 @@
       <el-row class="info-row">
         <div class="info-value">
           <el-button size="small" icon="el-icon-ksd-data_range" @click="handleChangeDataRange(table.userRange)">{{$t('incrementalLoading')}}</el-button>
-          <!-- <el-button size="small" icon="el-icon-ksd-table_refresh" @click="handleRefreshTable">{{$t('refreshData')}}</el-button> -->
+          <el-button size="small" icon="el-icon-ksd-table_refresh" @click="handleRefreshTable">{{$t('refreshData')}}</el-button>
           <el-button size="small" icon="el-icon-ksd-merge" @click="handleTableMerge">{{$t('mergeData')}}</el-button>
         </div>
       </el-row>

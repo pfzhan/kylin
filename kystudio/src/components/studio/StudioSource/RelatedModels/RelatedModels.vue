@@ -15,6 +15,7 @@
           <el-input
             size="medium"
             class="search-box"
+            prefix-icon="el-icon-search"
             v-model="filterText"
             :placeholder="$t('searchModel')">
           </el-input>
@@ -169,6 +170,7 @@ export default class RelatedModels extends Vue {
     }
     .count {
       font-weight: normal;
+      font-size: 14px;
     }
   }
   .search-box {
@@ -212,6 +214,7 @@ export default class RelatedModels extends Vue {
     font-size: 14px;
     color: #263238;
     line-height: 24px;
+    font-weight: 500;
   }
   .model-body {
     font-size: 12px;
@@ -244,6 +247,7 @@ export default class RelatedModels extends Vue {
     margin-bottom: 10px;
     line-height: 18px;
     padding-right: 50px;
+    font-size: 14px;
     .lable {
       float: left;
       width: 70px;

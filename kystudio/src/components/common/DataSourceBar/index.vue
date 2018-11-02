@@ -375,7 +375,6 @@ export default class DataSourceBar extends Vue {
   .body .btn-group .el-button {
     width: 100%;
     margin-bottom: 10px;
-    text-align: left;
   }
   // datasource tree样式
   .el-tree {

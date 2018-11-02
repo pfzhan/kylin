@@ -3,10 +3,10 @@
     <div class="filter-box" v-if="isShowFilter && data.length">
       <el-input
         size="medium"
+        prefix-icon="el-icon-search"
         v-model="filterText"
         :placeholder="placeholder"
         @keyup.native="handleInput">
-        <el-button slot="append" icon="el-icon-search" @click="handleFilter"></el-button>
       </el-input>
     </div>
     <el-tree
@@ -118,6 +118,7 @@ export default class TreeList extends Vue {
   isLoading = false
   resizeFrom = 0
   movement = 0
+  timer = 0
   treeStyle = {
     width: null
   }
@@ -145,8 +146,13 @@ export default class TreeList extends Vue {
     this.isLoading = false
   }
   handleInput (event) {
+    clearTimeout(this.timer)
     if (event.which === 13) {
       this.handleFilter()
+    } else {
+      this.timer = setTimeout(() => {
+        this.handleFilter()
+      }, 1000)
     }
   }
   async handleFilter () {

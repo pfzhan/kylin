@@ -126,13 +126,13 @@
       </template>
       <!-- Volatile Config -->
       <template v-if="isFieldShow('volatileConfig')">
-        <el-row class="el-form-item__label">
+        <el-row class="el-form-item__label margin-bottom-5">
           {{$t('volatile')}}
           <el-tooltip effect="dark" :content="$t('volatileTip')" placement="top" popper-class="source-table-modal-tooltip">
             <i class="el-icon-ksd-what"></i>
           </el-tooltip>
         </el-row>
-        <el-row>
+        <el-row class="margin-bottom-10">
           <el-col class="margin-right-5" :span="8">
             <el-form-item class="margin-bottom-0" prop="volatileConfig.value">
               <el-input
@@ -376,12 +376,20 @@ export default class SourceTableModal extends Vue {
 </script>
 
 <style lang="less">
+@import '../../../assets/styles/variables.less';
 .source-table-modal {
-  .el-form-item__label,
   .el-dialog__title {
     font-size: 16px;
     font-weight: 500;
     color: #263238;
+  }
+  .el-form-item__label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #263238;
+  }
+  .el-icon-ksd-what {
+    color: @text-normal-color;
   }
   .el-date-editor--datetimerange.el-input__inner {
     width: 100%;
@@ -395,15 +403,16 @@ export default class SourceTableModal extends Vue {
     line-height: 21px;
   }
   .el-switch {
-    transform: scale(0.636);
+    transform: scale(0.91);
     transform-origin: left;
   }
   .el-select {
     width: 100%;
   }
   .start-merge {
-    margin: -10px 0 20px 0;
+    margin: -10px 0 10px 0;
   }
+  .el-form-item__label.no-padding,
   .no-padding {
     padding: 0;
   }
