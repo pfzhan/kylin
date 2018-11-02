@@ -93,6 +93,8 @@ public class QueryContext {
     private Throwable errorCause;
     private String pushdownEngine;
 
+    private String correctedSql;
+
     private QueryContext() {
         // use QueryContext.current() instead
         queryStartMillis = System.currentTimeMillis();
@@ -193,5 +195,13 @@ public class QueryContext {
 
     public void setPushdownEngine(String pushdownEngine) {
         this.pushdownEngine = pushdownEngine;
+    }
+
+    public String getCorrectedSql() {
+        return correctedSql;
+    }
+
+    public void setCorrectedSql(String correctedSql) {
+        this.correctedSql = correctedSql;
     }
 }

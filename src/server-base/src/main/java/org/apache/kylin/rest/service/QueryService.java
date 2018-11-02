@@ -576,6 +576,9 @@ public class QueryService extends BasicService {
 
             String correctedSql = QueryUtil.massageSql(sqlRequest.getSql(), sqlRequest.getProject(),
                     sqlRequest.getLimit(), sqlRequest.getOffset(), conn.getSchema());
+
+            QueryContext.current().setCorrectedSql(correctedSql);
+
             if (!correctedSql.equals(sqlRequest.getSql())) {
                 logger.info("The corrected query: " + correctedSql);
 

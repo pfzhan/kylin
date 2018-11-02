@@ -141,7 +141,7 @@ public class QueryMetricsContext {
     }
 
     private void doCollect(final SQLRequest request, final SQLResponse response, final QueryContext context) {
-        this.sql = request.getSql();
+        this.sql = QueryContext.current().getCorrectedSql();
         try {
             this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(sql);
         } catch (SqlParseException e) {
