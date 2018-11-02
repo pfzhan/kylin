@@ -94,35 +94,37 @@ public class TableService extends BasicService {
     @Autowired
     private ModelService modelService;
 
-    public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database, boolean isFuzzy) throws IOException {
+    public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
+            boolean isFuzzy) throws IOException {
         NTableMetadataManager nTableMetadataManager = getTableManager(project);
         List<TableDesc> tables = new ArrayList<>();
         //get table not fuzzy,can use getTableDesc(tableName)
         if (StringUtils.isNotEmpty(tableName) && !isFuzzy) {
             tables.add(nTableMetadataManager.getTableDesc(database + "." + tableName));
         } else {
-            tables.addAll(Lists.newArrayList(FluentIterable.from(nTableMetadataManager.listAllTables()).filter(new Predicate<TableDesc>() {
-                @Override
-                public boolean apply(TableDesc tableDesc) {
-                    if (StringUtils.isEmpty(database)) {
-                        return true;
-                    }
-                    return tableDesc.getDatabase().equalsIgnoreCase(database);
-                }
-            }).filter(new Predicate<TableDesc>() {
-                @Override
-                public boolean apply(TableDesc tableDesc) {
-                    if (StringUtils.isEmpty(tableName)) {
-                        return true;
-                    }
-                    return tableDesc.getName().toLowerCase().contains(tableName.toLowerCase());
-                }
-            }).toSortedList(new Comparator<TableDesc>() {
-                @Override
-                public int compare(TableDesc o1, TableDesc o2) {
-                    return compareTableDesc(o1, o2);
-                }
-            })));
+            tables.addAll(Lists.newArrayList(
+                    FluentIterable.from(nTableMetadataManager.listAllTables()).filter(new Predicate<TableDesc>() {
+                        @Override
+                        public boolean apply(TableDesc tableDesc) {
+                            if (StringUtils.isEmpty(database)) {
+                                return true;
+                            }
+                            return tableDesc.getDatabase().equalsIgnoreCase(database);
+                        }
+                    }).filter(new Predicate<TableDesc>() {
+                        @Override
+                        public boolean apply(TableDesc tableDesc) {
+                            if (StringUtils.isEmpty(tableName)) {
+                                return true;
+                            }
+                            return tableDesc.getName().toLowerCase().contains(tableName.toLowerCase());
+                        }
+                    }).toSortedList(new Comparator<TableDesc>() {
+                        @Override
+                        public int compare(TableDesc o1, TableDesc o2) {
+                            return compareTableDesc(o1, o2);
+                        }
+                    })));
         }
         tables = getTablesResponse(tables, project, withExt);
         return tables;
@@ -166,7 +168,7 @@ public class TableService extends BasicService {
 
             tableMetaMgr.saveSourceTable(nTableDesc);
             if (extDesc != null) {
-                TableExtDesc origExt = tableMetaMgr.getTableExt(tableDesc.getIdentity());
+                TableExtDesc origExt = tableMetaMgr.getTableExtIfExists(tableDesc);
                 NTableExtDesc nTableExtDesc = new NTableExtDesc(extDesc);
                 if (origExt == null || origExt.getProject() == null) {
                     nTableExtDesc.setUuid(UUID.randomUUID().toString());
@@ -224,25 +226,27 @@ public class TableService extends BasicService {
         return explr.listDatabases();
     }
 
-    public List<String> getSourceTableNames(String project, String database, int dataSourceType, final String table) throws Exception {
+    public List<String> getSourceTableNames(String project, String database, int dataSourceType, final String table)
+            throws Exception {
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
-        List<String> tables = Lists.newArrayList(FluentIterable.from(explr.listTables(database)).filter(new Predicate<String>() {
-            @Override
-            public boolean apply(String s) {
-                if (StringUtils.isEmpty(table)) {
-                    return true;
-                } else if (s.toLowerCase().contains(table.toLowerCase())) {
-                    return true;
-                }
-                return false;
-            }
-        }));
+        List<String> tables = Lists
+                .newArrayList(FluentIterable.from(explr.listTables(database)).filter(new Predicate<String>() {
+                    @Override
+                    public boolean apply(String s) {
+                        if (StringUtils.isEmpty(table)) {
+                            return true;
+                        } else if (s.toLowerCase().contains(table.toLowerCase())) {
+                            return true;
+                        }
+                        return false;
+                    }
+                }));
         return tables;
     }
 
     private TableDescResponse getTableResponse(TableDesc table, String project) {
-        TableExtDesc tableExtDesc = getTableManager(project).getTableExt(table.getIdentity());
+        TableExtDesc tableExtDesc = getTableManager(project).getOrCreateTableExt(table.getIdentity());
         // get TableDescResponse
         TableDescResponse tableDescResponse = new TableDescResponse(table);
         Map<String, Long> cardinality = new HashMap<String, Long>();
@@ -375,10 +379,12 @@ public class TableService extends BasicService {
         String table = dateRangeRequest.getTable();
         SegmentRange segmentRange = getSegmentRangeByTable(dateRangeRequest);
         NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(dateRangeRequest.getProject(), dateRangeRequest.getTable());
+        NDataLoadingRange dataLoadingRange = getDataLoadingRange(dateRangeRequest.getProject(),
+                dateRangeRequest.getTable());
         NTableMetadataManager tableManager = getTableManager(project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
-        SegmentRange newSegmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
+        SegmentRange newSegmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(dateRangeRequest.getStart(),
+                dateRangeRequest.getEnd());
         SegmentRange readyRange = dataLoadingRange.getCoveredReadySegmentRange();
         SegmentRange allRange = dataLoadingRange.getCoveredSegmentRange();
 
@@ -401,8 +407,12 @@ public class TableService extends BasicService {
             return;
         } else {
             NDataLoadingRange dataLoadingRangeUpdate = rangeManager.copyForWrite(dataLoadingRange);
-            long start = newSegmentRange.getStart().compareTo(readyRange.getStart()) < 0 ? Long.parseLong(readyRange.getStart().toString()) : Long.parseLong(newSegmentRange.getStart().toString());
-            long end = newSegmentRange.getEnd().compareTo(readyRange.getEnd()) < 0 ? Long.parseLong(newSegmentRange.getEnd().toString()) : Long.parseLong(readyRange.getEnd().toString());
+            long start = newSegmentRange.getStart().compareTo(readyRange.getStart()) < 0
+                    ? Long.parseLong(readyRange.getStart().toString())
+                    : Long.parseLong(newSegmentRange.getStart().toString());
+            long end = newSegmentRange.getEnd().compareTo(readyRange.getEnd()) < 0
+                    ? Long.parseLong(newSegmentRange.getEnd().toString())
+                    : Long.parseLong(readyRange.getEnd().toString());
             dataLoadingRangeUpdate.setActualQueryStart(start);
             dataLoadingRangeUpdate.setActualQueryEnd(end);
             rangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
@@ -410,20 +420,23 @@ public class TableService extends BasicService {
 
     }
 
-    private void checkShrinkRangeInBuildingSide(SegmentRange allRange, SegmentRange readyRange, SegmentRange newSegmentRange) {
+    private void checkShrinkRangeInBuildingSide(SegmentRange allRange, SegmentRange readyRange,
+            SegmentRange newSegmentRange) {
         if (allRange == null) {
             return;
         } else {
             //having some building segments in tail
             if (readyRange == null || readyRange.getEnd().compareTo(allRange.getEnd()) < 0) {
                 if (newSegmentRange.getEnd().compareTo(allRange.getEnd()) < 0)
-                    throw new BadRequestException("Some segments is building, can not set data range smaller than before");
+                    throw new BadRequestException(
+                            "Some segments is building, can not set data range smaller than before");
             }
 
             //having some building segments in head
             if (readyRange == null || readyRange.getStart().compareTo(allRange.getStart()) > 0) {
                 if (newSegmentRange.getStart().compareTo(allRange.getStart()) > 0)
-                    throw new BadRequestException("Some segments is building, can not set data range smaller than before");
+                    throw new BadRequestException(
+                            "Some segments is building, can not set data range smaller than before");
             }
         }
     }
@@ -457,7 +470,8 @@ public class TableService extends BasicService {
         String table = dateRangeRequest.getTable();
         NTableMetadataManager nProjectManager = getTableManager(project);
         TableDesc tableDesc = nProjectManager.getTableDesc(table);
-        return SourceFactory.getSource(tableDesc).getSegmentRange(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
+        return SourceFactory.getSource(tableDesc).getSegmentRange(dateRangeRequest.getStart(),
+                dateRangeRequest.getEnd());
 
     }
 
@@ -478,15 +492,13 @@ public class TableService extends BasicService {
     public List<TablesAndColumnsResponse> getTableAndColomns(String project) {
         List<TableDesc> tables = getTableManager(project).listAllTables();
         List<TablesAndColumnsResponse> result = new ArrayList<>();
-        for (TableDesc table : tables
-                ) {
+        for (TableDesc table : tables) {
             TablesAndColumnsResponse response = new TablesAndColumnsResponse();
             response.setTable(table.getName());
             response.setDatabase(table.getDatabase());
             ColumnDesc[] columns = table.getColumns();
             List<String> columnNames = new ArrayList<>();
-            for (ColumnDesc column : columns
-                    ) {
+            for (ColumnDesc column : columns) {
                 columnNames.add(column.getName());
             }
             response.setColumns(columnNames);
@@ -514,7 +526,8 @@ public class TableService extends BasicService {
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
         if (dataLoadingRange == null) {
-            throw new IllegalStateException("this table can not set date range, please check table " + table + " is fact or not");
+            throw new IllegalStateException(
+                    "this table can not set date range, please check table " + table + " is fact or not");
         }
         return dataLoadingRange;
     }
@@ -555,7 +568,6 @@ public class TableService extends BasicService {
         return mergeConfig;
     }
 
-
     public void setAutoMergeConfigByModel(AutoMergeRequest autoMergeRequest) throws IOException {
         String project = autoMergeRequest.getProject();
         String modelName = autoMergeRequest.getModel();
@@ -586,7 +598,6 @@ public class TableService extends BasicService {
 
         }
     }
-
 
     public boolean getPushDownMode(String project, String table) {
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);

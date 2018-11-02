@@ -47,7 +47,6 @@ import java.util.Set;
 public class TableExtService extends BasicService {
     private static final Logger logger = LoggerFactory.getLogger(TableExtService.class);
 
-
     @Autowired
     @Qualifier("tableService")
     private TableService tableService;
@@ -104,7 +103,10 @@ public class TableExtService extends BasicService {
     public void removeJobIdFromTableExt(String jobId, String project) throws IOException {
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         for (TableDesc desc : tableMetadataManager.listAllTables()) {
-            TableExtDesc extDesc = tableMetadataManager.getTableExt(desc);
+            TableExtDesc extDesc = tableMetadataManager.getTableExtIfExists(desc);
+            if (extDesc == null) {
+                continue;
+            }
             if (extDesc.getJodID() != null && jobId.equals(extDesc.getJodID())) {
                 extDesc.setJodID(null);
                 tableMetadataManager.saveTableExt(extDesc);
@@ -113,7 +115,8 @@ public class TableExtService extends BasicService {
 
     }
 
-    public LoadTableResponse loadTablesByDatabase(String project, final String[] databases, int datasourceType) throws Exception {
+    public LoadTableResponse loadTablesByDatabase(String project, final String[] databases, int datasourceType)
+            throws Exception {
         LoadTableResponse loadTableByDatabaseResponse = new LoadTableResponse();
         for (final String database : databases) {
             List<String> tables = tableService.getSourceTableNames(project, database, datasourceType, "");

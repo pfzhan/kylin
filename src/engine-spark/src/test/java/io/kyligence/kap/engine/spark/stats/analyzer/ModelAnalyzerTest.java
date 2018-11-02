@@ -62,13 +62,13 @@ public class ModelAnalyzerTest extends NLocalWithSparkSessionTest {
         final List<SegmentRange> segmentRanges = new ArrayList<>();
 
         final ModelAnalyzer modelAnalyzer = new ModelAnalyzer(dataModel, getTestConfig());
-        TableExtDesc tableExtDesc = tableMetadataManager.getTableExt(dataModel.getRootFactTableName());
+        TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(dataModel.getRootFactTableName());
         assertTableExtDescEquals(tableExtDesc, 0L, 0, segmentRanges);
 
         // analysis round 1
         NDataSegment segment = buildDataSegment(segmentRanges, 1325347200000L, 1326124800000L);
         modelAnalyzer.analyze(segment, ss);
-        tableExtDesc = tableMetadataManager.getTableExt(dataModel.getRootFactTableName());
+        tableExtDesc = tableMetadataManager.getOrCreateTableExt(dataModel.getRootFactTableName());
         assertTableExtDescEquals(tableExtDesc, 101L, 11, segmentRanges);
         assertColStatsEquals(tableExtDesc.getColumnStats(1), 1, segment.getSegRange(), 98L, 98L, 0, 4988.0d, 19.0d, 4,
                 2, "4709", "19");
@@ -76,7 +76,7 @@ public class ModelAnalyzerTest extends NLocalWithSparkSessionTest {
         // analysis round 2
         segment = buildDataSegment(segmentRanges, 1326124800000L, 1326988800000L);
         modelAnalyzer.analyze(segment, ss);
-        tableExtDesc = tableMetadataManager.getTableExt(dataModel.getRootFactTableName());
+        tableExtDesc = tableMetadataManager.getOrCreateTableExt(dataModel.getRootFactTableName());
         assertTableExtDescEquals(tableExtDesc, 251L, 11, segmentRanges);
         assertColStatsEquals(tableExtDesc.getColumnStats(1), 2, segment.getSegRange(), 147L, 241L, 0, 4997.0d, 4.0d, 4,
                 1, "4709", "4");
@@ -84,7 +84,7 @@ public class ModelAnalyzerTest extends NLocalWithSparkSessionTest {
         // analysis round 3
         segment = buildDataSegment(segmentRanges, 1326988800000L, 1327852800000L);
         modelAnalyzer.analyze(segment, ss);
-        tableExtDesc = tableMetadataManager.getTableExt(dataModel.getRootFactTableName());
+        tableExtDesc = tableMetadataManager.getOrCreateTableExt(dataModel.getRootFactTableName());
         assertTableExtDescEquals(tableExtDesc, 377L, 11, segmentRanges);
         assertColStatsEquals(tableExtDesc.getColumnStats(1), 3, segment.getSegRange(), 123L, 356L, 0, 4997.0d, 4.0d, 4,
                 1, "4709", "4");
@@ -92,7 +92,7 @@ public class ModelAnalyzerTest extends NLocalWithSparkSessionTest {
         // analysis round 4, Repeat the round 2's segment range
         segment = buildDataSegment(segmentRanges, 1326124800000L, 1326988800000L);
         modelAnalyzer.analyze(segment, ss);
-        tableExtDesc = tableMetadataManager.getTableExt(dataModel.getRootFactTableName());
+        tableExtDesc = tableMetadataManager.getOrCreateTableExt(dataModel.getRootFactTableName());
         assertTableExtDescEquals(tableExtDesc, 377L, 11, segmentRanges);
         assertColStatsEquals(tableExtDesc.getColumnStats(1), 3, segment.getSegRange(), 147L, 356L, 0, 4997.0d, 4.0d, 4,
                 1, "4709", "4");

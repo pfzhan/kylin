@@ -94,7 +94,7 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testTableSample() throws IOException {
-        TableExtDesc tableExtDesc = mgrDefault.getTableExt(tableKylinFact);
+        TableExtDesc tableExtDesc = mgrDefault.getOrCreateTableExt(tableKylinFact);
         Assert.assertNotNull(tableExtDesc);
 
         List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>();
@@ -104,7 +104,7 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
         tableExtDesc.setColumnStats(columnStatsList);
         mgrDefault.saveTableExt(tableExtDesc);
 
-        TableExtDesc tableExtDesc1 = mgrDefault.getTableExt(tableKylinFact);
+        TableExtDesc tableExtDesc1 = mgrDefault.getOrCreateTableExt(tableKylinFact);
         Assert.assertNotNull(tableExtDesc1);
 
         List<TableExtDesc.ColumnStats> columnStatsList1 = tableExtDesc1.getColumnStats();

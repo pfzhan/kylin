@@ -284,15 +284,15 @@ public class NTableMetadataManager {
      * @param tableName
      * @return
      */
-    public TableExtDesc getTableExt(String tableName) {
+    public TableExtDesc getOrCreateTableExt(String tableName) {
         TableDesc t = getTableDesc(tableName);
         if (t == null)
             return null;
 
-        return getTableExt(t);
+        return getOrCreateTableExt(t);
     }
 
-    public TableExtDesc getTableExt(TableDesc t) {
+    public TableExtDesc getOrCreateTableExt(TableDesc t) {
         try (AutoLock ignored = srcExtMapLock.lockForRead()) {
             TableExtDesc result = srcExtMap.get(t.getIdentity());
 
@@ -303,9 +303,6 @@ public class NTableMetadataManager {
                 result.setUuid(UUID.randomUUID().toString());
                 result.setLastModified(0);
                 result.init(t.getProject());
-
-                // TODO: No need write lock? -- ETHER
-                srcExtMap.put(t.getIdentity(), result);
             }
             return result;
         }
@@ -351,7 +348,7 @@ public class NTableMetadataManager {
     public void removeTableExt(String tableName) throws IOException {
         try (AutoLock ignored = srcExtMapLock.lockForWrite()) {
             // note, here assume always delete TableExtDesc first, then TableDesc
-            TableExtDesc t = getTableExt(tableName);
+            TableExtDesc t = getTableExtIfExists(getTableDesc(tableName));
             if (t == null)
                 return;
 

@@ -185,7 +185,7 @@ public class ModelAnalyzer implements Serializable {
 
         final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config,
                 dataModel.getProject());
-        final TableExtDesc tableExt = tableMetadataManager.getTableExt(tableDesc);
+        final TableExtDesc tableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
 
         // for lookup table
         boolean isLookup = false;

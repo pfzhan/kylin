@@ -181,8 +181,8 @@ public class NSparkCubingUpdateAfterBuildStep extends AbstractExecutable {
 
     private void mergeAndUpdateTableExt(NTableMetadataManager localTblMgr, NTableMetadataManager remoteTblMgr,
             String tableName) throws ExecuteException {
-        final TableExtDesc localFactTblExt = localTblMgr.getTableExt(tableName);
-        final TableExtDesc remoteFactTblExt = remoteTblMgr.getTableExt(tableName);
+        final TableExtDesc localFactTblExt = localTblMgr.getOrCreateTableExt(tableName);
+        final TableExtDesc remoteFactTblExt = remoteTblMgr.getOrCreateTableExt(tableName);
 
         try {
             localTblMgr.mergeAndUpdateTableExt(localFactTblExt, remoteFactTblExt);

@@ -395,6 +395,8 @@ public class TableExtDesc extends RootPersistentEntity {
             }
 
             totalCardinality = totalHLLC.getCountEstimate();
+
+            cardinality = totalCardinality;
         }
 
         public void addRangeHLLC(SegmentRange segRange, byte[] hllcBytes) {

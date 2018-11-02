@@ -207,7 +207,7 @@ public class ModelService extends BasicService {
         List<SimplifiedColumnResponse> columns = new ArrayList<>();
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         for (ColumnDesc columnDesc : tableRef.getTableDesc().getColumns()) {
-            TableExtDesc tableExtDesc = tableMetadataManager.getTableExt(tableRef.getTableDesc());
+            TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableRef.getTableDesc());
             SimplifiedColumnResponse simplifiedColumnResponse = new SimplifiedColumnResponse();
             simplifiedColumnResponse.setName(columnDesc.getName());
             simplifiedColumnResponse.setComment(columnDesc.getComment());

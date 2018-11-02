@@ -85,7 +85,7 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasic() throws IOException {
         final TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
-        TableExtDesc tableExtDesc = tableMetadataManager.getTableExt(tableName);
+        TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
 
         final List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>(tableDesc.getColumnCount());
         final SegmentRange segRange_1 = new SegmentRange.TimePartitionedSegmentRange(0L, 10L);
@@ -98,7 +98,7 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
         tableMetadataManager.saveTableExt(tableExtDesc);
 
         columnStatsList.clear();
-        tableExtDesc = tableMetadataManager.getTableExt(tableName);
+        tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
         colStats = tableExtDesc.getColumnStats(0);
         Assert.assertEquals("col_1", colStats.getColumnName());
         Assert.assertEquals(4L, colStats.getTotalCardinality());
@@ -111,7 +111,7 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
         tableExtDesc.setColumnStats(columnStatsList);
         tableMetadataManager.saveTableExt(tableExtDesc);
 
-        tableExtDesc = tableMetadataManager.getTableExt(tableName);
+        tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
         colStats = tableExtDesc.getColumnStats(0);
         Assert.assertEquals("col_1", colStats.getColumnName());
         Assert.assertEquals(9L, colStats.getTotalCardinality());

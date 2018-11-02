@@ -138,7 +138,7 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         tableMetadataManager.saveTableExt(tableExtDesc);
         tableMetadataManager.saveSourceTable(tableDesc);
         tableExtService.removeJobIdFromTableExt("test", "default");
-        TableExtDesc tableExtDesc1 = tableMetadataManager.getTableExt("DEFAULT.TEST_REMOVE");
+        TableExtDesc tableExtDesc1 = tableMetadataManager.getOrCreateTableExt("DEFAULT.TEST_REMOVE");
         Assert.assertTrue(tableExtDesc1.getJodID() == null);
     }
 
