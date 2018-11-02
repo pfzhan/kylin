@@ -19,7 +19,7 @@
               </div>
               <div class="conds-content clearfix">
                 <div class="desc">{{$t('frequencyDesc')}}</div>
-                <el-slider :class="{'show-only': !isFrequencyEdit}" v-model="frequencyObj.freqValue":step="0.1" button-type="sharp" :min="0" :max="1" show-dynamic-values :disabled="!isFrequencyEdit" :format-tooltip="formatTooltip"></el-slider>
+                <el-slider :class="{'show-only': !isFrequencyEdit}" v-model="frequencyObj.freqValue" :step="0.1" button-type="sharp" :min="0" :max="1" show-dynamic-values :disabled="!isFrequencyEdit" :format-tooltip="formatTooltip"></el-slider>
                 <div class="ksd-fright ksd-mt-10">TopX% {{$t('queryFrequency')}}</div>
               </div>
               <div class="conds-footer" v-if="isFrequencyEdit">
@@ -139,7 +139,6 @@
         <template slot-scope="props">
           {{props.row.success_rate * 100 | number(2)}}%
         </template>
-      </el-table-column>
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.frequency')" prop="totalCount" sortable align="center" width="120"></el-table-column>
       <el-table-column :label="$t('kylinLang.query.avgDuration')" prop="average_duration" sortable align="center" width="160">
@@ -1040,7 +1039,7 @@ select a.placepointid, --门店id
       .el-collapse-item__content {
         padding-bottom: 0;
         .rules-conds {
-          min-heght: 185px;
+          min-height: 185px;
           border: 1px solid @line-border-color;
           margin-top: 10px;
           border-radius: 2px;
@@ -1071,7 +1070,7 @@ select a.placepointid, --门店id
                 width: 95%;
               }
               .show-only {
-                width: 100%;
+                width: 98%;
                 .el-slider__runway {
                   border-radius: 0;
                 }
@@ -1080,7 +1079,7 @@ select a.placepointid, --门店id
                 }
                 .el-slider__valueStop,
                 .el-slider__button {
-                  display: none;
+                  opacity: 0;
                 }
                 .el-slider__values:last-child {
                   margin-left: -20px;
@@ -1088,17 +1087,16 @@ select a.placepointid, --门店id
               }
               .users {
                 margin: 10px 0;
-                .el-icon-ksd-table_admin,
+                .el-icon-ksd-table_admin {
+                  font-size: 16px;
+                }
                 .el-icon-ksd-table_group {
                   font-size: 16px;
+                  margin-left: 10px;
                 }
               }
             }
             .vip-users-block {
-              // .vip-users {
-              //   max-height: 50px;
-              //   overflow-y: scroll;
-              // }
               .user-label {
                 font-size: 14px;
                 margin-right: 8px;
@@ -1168,7 +1166,7 @@ select a.placepointid, --门店id
         .setting {
           margin-top: 5px;
           font-size: 14px;
-          font-color: @text-title-color;
+          color: @text-title-color;
         }
         .acce-input {
           width: 50px;
