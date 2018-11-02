@@ -92,7 +92,7 @@ export default class SourceNew extends Vue {
     // 设置默认数据源
     // this.clickHandler(this.globalDefaultDatasource)
     // for newten 设置CSV为默认数据源
-    this.clickHandler(11)
+    this.clickHandler(sourceTypes.HIVE)
   }
 }
 </script>

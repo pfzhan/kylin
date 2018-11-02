@@ -12,7 +12,13 @@ export default {
   },
   mutations: {
     [types.CACHE_DATASOURCE]: function (state, { data, project, isReset = true }) {
-      state.dataSource[project] = !isReset ? [...state.dataSource[project], ...data.tables] : data.tables
+      if (isReset) {
+        state.dataSource[project] = data.tables
+      } else {
+        data.tables.forEach(table => {
+          state.dataSource[project].push(table)
+        })
+      }
     },
     [types.CACHE_ENCODINGS]: function (state, { data, project }) {
       state.encodings = data
@@ -187,7 +193,9 @@ export default {
     [types.FETCH_TABLES]: function ({commit}, para) {
       return api.datasource.fetchTables(para.projectName, para.databaseName, para.tableName, para.pageOffset, para.pageSize, para.isFuzzy, para.isExt)
         .then((response) => {
-          commit(types.CACHE_DATASOURCE, { data: response.data.data, project: para.projectName, isReset: para.pageOffset === 0 })
+          if (!para.isFuzzy) {
+            commit(types.CACHE_DATASOURCE, { data: response.data.data, project: para.projectName, isReset: para.pageOffset === 0 })
+          }
           return response
         })
     },

@@ -52,8 +52,7 @@
             :expand-node-types="['datasource', 'database']"
             :draggable-node-types="['table']"
             :searchable-node-types="['table']"
-            @drag="dragTable"
-            :datasource="datasource">
+            @drag="dragTable">
           </DataSourceBar>
         </div>
       </transition>

@@ -136,8 +136,7 @@ export default class ModelAggregate extends Vue {
       this.cuboidDetail.dateTo = this.cuboidDetail.dateTo.split(' GMT')[0]
     }
   }
-
-  async mounted () {
+  async freshCuboids () {
     const projectName = this.projectName
     const modelName = this.model.name
     const res = await this.fetchCuboids({ modelName, projectName })
@@ -145,9 +144,13 @@ export default class ModelAggregate extends Vue {
     this.cuboids = formatFlowerJson(data)
     this.cuboidCount = getCuboidCounts(data)
   }
+  async mounted () {
+    await this.freshCuboids()
+  }
   async handleAggregateGroup () {
     const { projectName, model } = this
-    await this.callAggregateModal({ editType: 'edit', model, projectName })
+    const isSubmit = await this.callAggregateModal({ editType: 'edit', model, projectName })
+    isSubmit && await this.freshCuboids()
   }
 }
 </script>

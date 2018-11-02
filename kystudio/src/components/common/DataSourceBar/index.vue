@@ -35,7 +35,7 @@
 
 <script>
 import Vue from 'vue'
-import { mapActions, mapGetters } from 'vuex'
+import { mapActions, mapGetters, mapMutations } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import { sourceTypes, sourceNameMapping } from '../../../config'
@@ -116,6 +116,9 @@ import { handleSuccessAsync } from '../../../util'
       fetchDatabases: 'FETCH_DATABASES',
       fetchTables: 'FETCH_TABLES',
       updateTopTable: 'UPDATE_TOP_TABLE'
+    }),
+    ...mapMutations({
+      cacheDatasource: 'CACHE_DATASOURCE'
     })
   },
   locales
@@ -236,7 +239,13 @@ export default class DataSourceBar extends Vue {
       database.isHidden = !this.getChildrenCount(database)
       this.addPagination(database)
       this.hideLoading(database)
+      this.cacheDatasourceInStore(index, resultTables, isReset)
     })
+  }
+  cacheDatasourceInStore (index, tables, isSourceReset) {
+    const isReset = isSourceReset && index === 0
+    const project = this.projectName
+    this.cacheDatasource({ data: { tables }, project, isReset })
   }
   getChildrenCount (data) {
     return data.children.filter(data => !['isMore', 'isLoading'].includes(data.type)).length

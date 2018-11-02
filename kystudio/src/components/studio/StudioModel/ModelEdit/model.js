@@ -74,7 +74,7 @@ class NModel {
     this.project = options.project
     this.maintain_model_type = options.maintain_model_type
     this.management_type = options.management_type
-    this.globalDataSource = store.state.datasource.dataSource[this.project] // 全局数据源表数据
+    this.globalDataSource = store.state.datasource.dataSource // 全局数据源表数据
     this.datasource = options.simplified_tables || [] // 当前模型使用的数据源表数据
     if (_) {
       this.vm = _
@@ -545,19 +545,20 @@ class NModel {
   }
   _getTableOriginInfo (tableFullName) {
     let tableNamed = tableFullName.split('.')
+    const currentDatasource = this.globalDataSource[this.project]
     if (this.datasource) {
       let i = indexOfObjWithSomeKey(this.datasource, 'table', tableFullName)
       if (i >= 0) {
         return this.datasource[i]
       }
     }
-    if (this.globalDataSource) {
-      let i = indexOfObjWithSomeKeys(this.globalDataSource, 'database', tableNamed[0], 'name', tableNamed[1])
+    if (currentDatasource) {
+      let i = indexOfObjWithSomeKeys(currentDatasource, 'database', tableNamed[0], 'name', tableNamed[1])
       if (i >= 0) {
-        let globalTableInfo = this.globalDataSource[i]
+        let globalTableInfo = currentDatasource[i]
         globalTableInfo.table = globalTableInfo.database + '.' + globalTableInfo.name
         this.datasource.push(globalTableInfo)
-        return this.globalDataSource[i]
+        return currentDatasource[i]
       }
     }
     return []// 需要报错
