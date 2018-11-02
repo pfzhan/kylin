@@ -199,7 +199,7 @@ import TableJoinModal from '../TableJoinModal/index.vue'
 import SingleDimensionModal from '../SingleDimensionModal/addDimension.vue'
 import PartitionModal from '../ModelList/ModelPartitionModal/index.vue'
 import NModel from './model.js'
-import { modelRenderConfig } from './config'
+import { modelRenderConfig, modelErrorMsg } from './config'
 @Component({
   props: ['extraoption'],
   computed: {
@@ -526,9 +526,11 @@ export default class ModelEdit extends Vue {
         columnName: col && col.name || ''
       }
     }
+    let fTable = this.modelRender.tables[this.currentDragColumnData.guid]
     this.callJoinDialog({
       foreignTable: this.modelRender.tables[this.currentDragColumnData.guid],
       primaryTable: table,
+      ftableName: fTable.alias + '.' + this.currentDragColumnData.columnName,
       tables: this.modelRender.tables
     })
   }
@@ -546,11 +548,13 @@ export default class ModelEdit extends Vue {
     var fGuid = data.selectF
     var joinData = data.joinData
     var joinType = data.joinType
+    debugger
     var fcols = joinData.foreign_key
     var pcols = joinData.primary_key
+    var fTable = this.modelInstance.tables[fGuid]
     var pTable = this.modelInstance.tables[pGuid]
     // 给table添加连接数据
-    pTable.addLinkData(pTable, fcols, pcols, joinType)
+    pTable.addLinkData(fTable, fcols, pcols, joinType)
     this.currentDragColumnData = {}
     this.currentDropColumnData = {}
     this.currentDragColumn = null
@@ -719,7 +723,7 @@ export default class ModelEdit extends Vue {
       this.modelInstance.generateMetadata().then((data) => {
         this.handleSaveModel(data)
       }, (errMsg) => {
-        kapMessage(this.$t(errMsg), {type: 'warning'})
+        kapMessage(this.$t(modelErrorMsg[errMsg]), {type: 'warning'})
         this.$emit('saveRequestEnd')
       }).catch(() => {
         this.$emit('saveRequestEnd')

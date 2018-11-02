@@ -17,7 +17,7 @@ export const modelRenderConfig = {
   tableBoxHeight: 195, // table盒子高度
   tableBoxLeft: 50, // table盒子相对于左侧兄弟元素距离
   tableBoxTop: 50, // table盒子相对于顶部兄弟元素距离
-  zoom: 8,
+  zoom: 10,
   rootBox: rootBox, // 根元素
   drawBox: '.model-edit', // 绘制区域
   joinKind: {

@@ -17,9 +17,6 @@
         </el-select>
       </el-col>
     </el-row>
-    <el-row class="ksd-mt-12">
-      <el-button type="primary"  icon="el-icon-plus" @click="addJoinConditionColumns"></el-button>
-    </el-row>
     <!-- 列的关联 -->
     <el-row :gutter="10"  class="ksd-mt-20" v-for="(key, val) in joinColumns.foreign_key" :key="val">
       <el-col :span="10">
@@ -108,6 +105,12 @@ export default class TableJoinModal extends Vue {
         this.joinType = 'INNER'
         this.$set(this.joinColumns, 'foreign_key', [''])
         this.$set(this.joinColumns, 'primary_key', [''])
+      }
+      if (this.form.ftableName && !this.joinColumns.foreign_key.includes(this.form.ftableName)) {
+        if (this.joinColumns.foreign_key[0]) {
+          this.joinColumns.foreign_key.push(this.form.ftableName)
+        }
+        this.joinColumns.foreign_key[0] = this.form.ftableName
       }
       if (this.form.foreignTable) {
         this.selectF = this.form.foreignTable.guid
