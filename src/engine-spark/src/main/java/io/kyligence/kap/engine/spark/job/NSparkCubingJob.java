@@ -76,7 +76,7 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         job.setName(jobType.toString());
         job.setDataRangeStart(startTime);
         job.setDataRangeEnd(endTime);
-        job.setTargetSubject(segments.iterator().next().getModel().getName());
+        job.setTargetSubject(segments.iterator().next().getModel().getAlias());
         job.setProject(df.getProject());
         job.setSubmitter(submitter);
         job.addSparkAnalysisStep(segments, layouts);

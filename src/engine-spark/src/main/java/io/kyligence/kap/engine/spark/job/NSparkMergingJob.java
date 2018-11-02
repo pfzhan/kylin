@@ -75,7 +75,7 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
         job.setName(JobTypeEnum.INDEX_MERGE.toString());
         job.setDataRangeStart(Long.parseLong(mergedSegment.getSegRange().getStart().toString()));
         job.setDataRangeEnd(Long.parseLong(mergedSegment.getSegRange().getEnd().toString()));
-        job.setTargetSubject(mergedSegment.getModel().getName());
+        job.setTargetSubject(mergedSegment.getModel().getAlias());
         job.setProject(mergedSegment.getProject());
         job.setSubmitter(submitter);
         job.addSparkMergingStep(mergedSegment, layouts);

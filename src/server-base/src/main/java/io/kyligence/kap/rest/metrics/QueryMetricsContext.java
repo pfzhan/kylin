@@ -224,7 +224,7 @@ public class QueryMetricsContext {
                 final String realizationType = ctx.storageContext.getCandidate().getCuboidLayout().getCuboidDesc()
                         .isTableIndex() ? "Table Index" : "Agg Index";
                 addRealizationMetrics(ctx.storageContext.getCuboidId().toString(), realizationType,
-                        ctx.realization.getModel().getName());
+                        ctx.realization.getModel().getAlias());
             }
         }
     }

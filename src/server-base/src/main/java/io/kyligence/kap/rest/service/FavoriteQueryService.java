@@ -503,7 +503,7 @@ public class FavoriteQueryService extends BasicService {
         val master = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project, sqls.toArray(new String[0]));
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         List<String> models = Lists.newArrayList();
-        for (NSmartContext.NModelContext modelContext : master.getModelContext(favoriteMark)) {
+        for (NSmartContext.NModelContext modelContext : master.getModelContext(false)) {
             val model = modelContext.getOrigModel();
             if (model == null) {
                 continue;

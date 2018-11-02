@@ -105,7 +105,7 @@ public class SparkExecutorPreAggFunction implements FlatMapFunction<Iterator<Tup
         String executorId = (SparkEnv.get() == null) ? Thread.currentThread().getName() : SparkEnv.get().executorId();
 
         logger.info("Start to record executor's JVM Info");
-        System.setProperty("kap.metric.diagnosis.graph-writer-type", diagnosisMetricWriterType);
+//        System.setProperty("kap.metric.diagnosis.graph-writer-type", diagnosisMetricWriterType);
         JVMInfoCollector.init(executorId);
         logger.info("end to record executor's JVM Info");
         TraceScope scope = null;
