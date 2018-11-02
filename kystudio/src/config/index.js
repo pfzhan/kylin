@@ -60,9 +60,9 @@ export const menusData = [
     path: '/monitor',
     icon: 'el-icon-ksd-monitor',
     children: [
-      {name: 'job', path: '/monitor/job'},
-      {name: 'cluster', path: '/monitor/cluster'},
-      {name: 'admin', path: '/monitor/admin'}
+      {name: 'job', path: '/monitor/job'}
+      // {name: 'cluster', path: '/monitor/cluster'},
+      // {name: 'admin', path: '/monitor/admin'}
     ]
   },
   {

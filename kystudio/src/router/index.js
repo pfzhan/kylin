@@ -15,8 +15,8 @@ import favoriteQuery from 'components/query/favorite_query'
 import overview from 'components/overview'
 import messages from 'components/messages'
 // import groupDetail from 'components/security/groupDetail'
-import cluster from 'components/monitor/cluster'
-import admin from 'components/monitor/admin'
+// import cluster from 'components/monitor/cluster'
+// import admin from 'components/monitor/admin'
 import jobs from 'components/monitor/jobs'
 Vue.use(Router)
 
@@ -103,16 +103,16 @@ export default new Router({
         path: 'monitor/job',
         component: jobs
       },
-      {
-        name: 'Cluster',
-        path: 'monitor/cluster',
-        component: cluster
-      },
-      {
-        name: 'Admin',
-        path: 'monitor/admin',
-        component: admin
-      },
+      // {
+      //   name: 'Cluster',
+      //   path: 'monitor/cluster',
+      //   component: cluster
+      // },
+      // {
+      //   name: 'Admin',
+      //   path: 'monitor/admin',
+      //   component: admin
+      // },
       {
         name: 'Setting',
         path: 'setting',
