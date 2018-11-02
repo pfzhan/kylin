@@ -995,7 +995,7 @@ public class ModelService extends BasicService {
         val df = dataflowManager.getDataflowByModelName(request.getName());
         Preconditions.checkState(!df.isReconstructing(), "model " + request.getName() + " is reconstructing ");
         val copyModel = modelManager.copyForWrite(originModel);
-        BeanUtils.copyProperties(request, copyModel);
+        BeanUtils.copyProperties(request, copyModel, "allNamedColumns");
         updateModelColumns(copyModel, request);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
