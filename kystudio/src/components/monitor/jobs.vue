@@ -63,7 +63,7 @@
         :width="180"
         :label="$t('ProgressStatus')">
         <template slot-scope="scope">
-          <kap-progress :percent="scope.row.progress | number(0)" :status="scope.row.job_status"></kap-progress>
+          <kap-progress :percent="scope.row.step_ratio | number(0)" :status="scope.row.job_status"></kap-progress>
         </template>
       </el-table-column>
       <el-table-column
