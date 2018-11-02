@@ -31,6 +31,7 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +62,7 @@ public class ModelUpdateHandler extends AbstractEventHandler implements DeriveEv
         boolean eventAutoApproved = kylinConfig.getEventAutoApproved();
         List<String> sqlList = event.getSqlPatterns();
         if (sqlList == null || sqlList.size() == 0) {
-            fireEvent(new PostModelSemanticUpdateEvent(), event, eventContext.getConfig());
+            releaseDataflow(event.getModels(), eventContext);
             return;
         }
         if (CollectionUtils.isNotEmpty(sqlList)) {
@@ -69,7 +70,7 @@ public class ModelUpdateHandler extends AbstractEventHandler implements DeriveEv
             NSmartMaster master = new NSmartMaster(kylinConfig, project, sqlList.toArray(new String[0]));
             List<NSmartContext.NModelContext> modelContexts = master.getModelContext(event.isFavoriteMark());
             if (CollectionUtils.isEmpty(modelContexts)) {
-                fireEvent(new PostModelSemanticUpdateEvent(), event, eventContext.getConfig());
+                releaseDataflow(event.getModels(), eventContext);
                 return;
             }
             EventManager eventManager = EventManager.getInstance(kylinConfig, project);
@@ -108,8 +109,13 @@ public class ModelUpdateHandler extends AbstractEventHandler implements DeriveEv
 
             }
         }
+        releaseDataflow(event.getModels(), eventContext);
+    }
 
-        fireEvent(new PostModelSemanticUpdateEvent(), event, eventContext.getConfig());
+    private void releaseDataflow(List<String> models, EventContext context) throws PersistentException {
+        for (String model : models) {
+            fireEvent(new PostModelSemanticUpdateEvent(), context.getEvent(), context.getConfig(), e -> e.setModelName(model));
+        }
     }
 
     private List<String> getRelatedSqlsFromModelContext(NSmartContext.NModelContext modelContext) {

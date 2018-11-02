@@ -59,6 +59,9 @@ public class AccelerateEvent extends Event {
     @JsonProperty("favorite_mark")
     private boolean favoriteMark = true;
 
+    @JsonProperty("models")
+    private List<String> models;
+
     public AccelerateEvent() {
         super();
         setTriggerType(TriggerType.SPACE_WISE);

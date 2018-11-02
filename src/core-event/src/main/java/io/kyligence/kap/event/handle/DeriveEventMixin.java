@@ -30,9 +30,16 @@ import org.apache.kylin.job.exception.PersistentException;
 import io.kyligence.kap.event.manager.EventManager;
 import lombok.val;
 
+import java.util.function.Consumer;
+
 public interface DeriveEventMixin {
 
     default void fireEvent(Event newEvent, Event originEvent, KylinConfig kylinConfig)
+            throws PersistentException {
+        fireEvent(newEvent, originEvent, kylinConfig, null);
+    }
+
+    default void fireEvent(Event newEvent, Event originEvent, KylinConfig kylinConfig, Consumer<Event> enhancer)
             throws PersistentException {
         val eventManager = EventManager.getInstance(kylinConfig, originEvent.getProject());
         val eventAutoApproved = kylinConfig.getEventAutoApproved();
@@ -42,6 +49,9 @@ public interface DeriveEventMixin {
         newEvent.setModelName(originEvent.getModelName());
         newEvent.setCubePlanName(originEvent.getCubePlanName());
         newEvent.setParentId(originEvent.getId());
+        if (enhancer != null) {
+            enhancer.accept(newEvent);
+        }
         eventManager.post(newEvent);
     }
 

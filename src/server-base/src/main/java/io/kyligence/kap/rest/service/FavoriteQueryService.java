@@ -160,7 +160,6 @@ public class FavoriteQueryService extends BasicService {
         final String sqlPattern = request.getSqlPattern();
         final int sqlPatternHash = sqlPattern.hashCode();
         long queryTime = request.getQueryTime();
-        String queryStatus = request.getQueryStatus();
 
         Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
 
@@ -169,33 +168,31 @@ public class FavoriteQueryService extends BasicService {
             return;
 
         if (existFavorite == null) {
-            final FavoriteQuery newfavoriteQuery = new FavoriteQuery(sqlPattern, sqlPatternHash, project);
-            newfavoriteQuery.setLastQueryTime(queryTime);
-            newfavoriteQuery.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
+            scheduler.schedule(new Runnable() {
+                @Override
+                public void run() {
+                    final FavoriteQuery newfavoriteQuery = new FavoriteQuery(sqlPattern, sqlPatternHash, project);
+                    newfavoriteQuery.setLastQueryTime(queryTime);
+                    newfavoriteQuery.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
 
-            if (queryStatus.equals(QueryHistory.QUERY_HISTORY_SUCCEEDED))
-                newfavoriteQuery.setSuccessCount(1);
-            favoriteQueryJDBCDao.batchInsert(Lists.newArrayList(newfavoriteQuery));
+                    favoriteQueryJDBCDao.batchInsert(Lists.newArrayList(newfavoriteQuery));
+
+                    // update sql pattern hash set
+                    Set<Integer> sqlPatternInProj = FavoriteQueryJDBCDao.sqlPatternHashSet.get(project);
+                    if (sqlPatternInProj == null)
+                        sqlPatternInProj = new HashSet<>();
+
+                    sqlPatternInProj.add(sqlPatternHash);
+
+                    FavoriteQueryJDBCDao.sqlPatternHashSet.put(project, sqlPatternInProj);
+                }
+            }, 0, TimeUnit.SECONDS);
         } else {
             existFavorite.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
             favoriteQueryJDBCDao.batchUpdateStatus(Lists.newArrayList(existFavorite));
         }
 
         post(project, Lists.newArrayList(sqlPattern), true);
-
-        // update sql pattern hash set
-        scheduler.schedule(new Runnable() {
-            @Override
-            public void run() {
-                Set<Integer> sqlPatternInProj = FavoriteQueryJDBCDao.sqlPatternHashSet.get(project);
-                if (sqlPatternInProj == null)
-                    sqlPatternInProj = new HashSet<>();
-
-                sqlPatternInProj.add(sqlPatternHash);
-
-                FavoriteQueryJDBCDao.sqlPatternHashSet.put(project, sqlPatternInProj);
-            }
-        }, 0, TimeUnit.SECONDS);
     }
 
     private void internalFavorite(final Set<FavoriteQuery> favoriteQueries) {
@@ -239,10 +236,11 @@ public class FavoriteQueryService extends BasicService {
         boolean isMaxTimeUpdated = false;
         long maxTime = queryHistoryTimeOffset.getAutoMarkTimeOffset();
         long currentTime = System.currentTimeMillis();
+        long fetchCount = (currentTime - maxTime) / fetchQueryHistoryGapTime + 1;
         Set<FavoriteQuery> candidates = new HashSet<>();
         long startTime = maxTime;
         long endTime = startTime + fetchQueryHistoryGapTime;
-        while (endTime < currentTime) {
+        for (int i = 0; i < fetchCount; i++) {
             List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories(startTime, endTime);
 
             FrequencyStatus newStatus = new FrequencyStatus(startTime);
@@ -254,8 +252,6 @@ public class FavoriteQueryService extends BasicService {
                 if (matchRuleBySingleRecord(queryHistory)) {
                     final FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern, sqlPattern.hashCode(), project);
                     favoriteQuery.setLastQueryTime(queryHistory.getQueryTime());
-                    if (!queryHistory.isException())
-                        favoriteQuery.setSuccessCount(1);
                     candidates.add(favoriteQuery);
                 }
 
@@ -278,6 +274,9 @@ public class FavoriteQueryService extends BasicService {
 
         if (isMaxTimeUpdated)
             queryHistoryTimeOffset.setAutoMarkTimeOffset(maxTime);
+        else
+            queryHistoryTimeOffset.setAutoMarkTimeOffset(currentTime);
+
         queryHistoryTimeOffsetManager.save(queryHistoryTimeOffset);
     }
 
@@ -429,6 +428,7 @@ public class FavoriteQueryService extends BasicService {
     }
 
     public HashMap<String, Object> getAccelerateTips(String project) {
+        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
         HashMap<String, Object> data = Maps.newHashMap();
         List<String> unAcceleratedSqls = favoriteQueryJDBCDao.getUnAcceleratedSqlPattern(project);
         int optimizedModelNum = 0;
@@ -502,12 +502,17 @@ public class FavoriteQueryService extends BasicService {
     void post(String project, List<String> sqls, boolean favoriteMark) throws PersistentException, IOException {
         val master = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project, sqls.toArray(new String[0]));
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        List<String> models = Lists.newArrayList();
         for (NSmartContext.NModelContext modelContext : master.getModelContext(favoriteMark)) {
             val model = modelContext.getOrigModel();
+            if (model == null) {
+                continue;
+            }
             val df = dataflowManager.getDataflowByModelName(model.getName());
             if (df.isReconstructing()) {
                 throw new IllegalStateException("model " + model.getName() + " is reconstructing");
             }
+            models.add(model.getName());
             dataflowManager.updateDataflow(df.getName(), copy -> copy.setReconstructing(true));
         }
         AccelerateEvent accelerateEvent = new AccelerateEvent();
@@ -515,6 +520,7 @@ public class FavoriteQueryService extends BasicService {
         accelerateEvent.setProject(project);
         accelerateEvent.setSqlPatterns(sqls);
         accelerateEvent.setApproved(true);
+        accelerateEvent.setModels(models);
         getEventManager(project).post(accelerateEvent);
     }
 
@@ -630,16 +636,13 @@ public class FavoriteQueryService extends BasicService {
 
         @Override
         public void run() {
-            boolean isMaxTimeUpdated = false;
-            long maxTime = System.currentTimeMillis();
+            long currentTime = System.currentTimeMillis();
             Map<String, Map<Integer, FavoriteQuery>> favoritesAboutToUpdate = Maps.newHashMap();
             List<QueryHistory> queryHistories = queryHistoryService
-                    .getQueryHistories(queryHistoryTimeOffset.getFavoriteQueryUpdateTimeOffset(), maxTime);
+                    .getQueryHistories(queryHistoryTimeOffset.getFavoriteQueryUpdateTimeOffset(), currentTime);
 
             for (QueryHistory queryHistory : queryHistories) {
                 updateFavoriteStatistics(queryHistory, favoritesAboutToUpdate);
-                maxTime = queryHistory.getInsertTime();
-                isMaxTimeUpdated = true;
             }
 
             List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
@@ -650,9 +653,7 @@ public class FavoriteQueryService extends BasicService {
             }
 
             favoriteQueryJDBCDao.batchUpdate(favoriteQueries);
-
-            if (isMaxTimeUpdated)
-                queryHistoryTimeOffset.setFavoriteQueryUpdateTimeOffset(maxTime);
+            queryHistoryTimeOffset.setFavoriteQueryUpdateTimeOffset(currentTime);
             try {
                 queryHistoryTimeOffsetManager.save(queryHistoryTimeOffset);
             } catch (IOException e) {

@@ -58,7 +58,6 @@ public class FavoriteQuery {
     public FavoriteQuery(final String sqlPattern, final int sqlPatternHash, final String project) {
         this.sqlPattern = sqlPattern;
         this.sqlPatternHash = sqlPatternHash;
-        this.totalCount = 1;
         this.project = project;
         this.lastQueryTime = System.currentTimeMillis();
         this.status = FavoriteQueryStatusEnum.WAITING;

@@ -76,7 +76,7 @@ import io.kyligence.kap.common.metric.MetricWriterStrategy;
 public class KapQueryService extends QueryService {
     private static final Logger logger = LoggerFactory.getLogger(KapQueryService.class);
 
-    private static final String STATISTICS_SQL = "SELECT COUNT(query_id), MEAN(duration) FROM query_metric WHERE (time >= %dms AND time <= %dms) AND error_type = '' GROUP BY engine_type";
+    private static final String STATISTICS_SQL = "SELECT COUNT(query_id), MEAN(\"duration\") FROM query_metric WHERE (time >= %dms AND time <= %dms) AND error_type = '' GROUP BY engine_type";
 
     private final KapConfig kapConfig = KapConfig.getInstanceFromEnv();
 

@@ -336,6 +336,9 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
                 if (favoriteQuery.getTotalCount() != 0) {
                     preparedStatement.setFloat(7, favoriteQuery.getSuccessCount() / favoriteQuery.getTotalCount());
                     preparedStatement.setFloat(9, favoriteQuery.getTotalDuration() / favoriteQuery.getTotalCount());
+                } else {
+                    preparedStatement.setFloat(7, 0);
+                    preparedStatement.setFloat(9, 0);
                 }
                 preparedStatement.setLong(8, favoriteQuery.getTotalDuration());
                 preparedStatement.setString(10, favoriteQuery.getStatus().toString());
