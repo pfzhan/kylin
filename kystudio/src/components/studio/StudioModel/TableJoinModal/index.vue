@@ -17,6 +17,9 @@
         </el-select>
       </el-col>
     </el-row>
+    <el-row class="ksd-mt-12">
+      <el-button type="primary"  icon="el-icon-plus" @click="addJoinConditionColumns"></el-button>
+    </el-row>
     <!-- 列的关联 -->
     <el-row :gutter="10"  class="ksd-mt-20" v-for="(key, val) in joinColumns.foreign_key" :key="val">
       <el-col :span="10">
@@ -36,7 +39,7 @@
       </el-col>
       <el-col :span="4" class="ksd-center">
         <el-button  icon="el-icon-plus" @click="addJoinConditionColumns" circle></el-button>
-          <el-button  icon="el-icon-delete" @click="removeJoinConditionColumn(val)" circle></el-button>
+        <el-button  icon="el-icon-delete" @click="removeJoinConditionColumn(val)" circle></el-button>
       </el-col>
     </el-row>
     <span slot="footer" class="dialog-footer">
@@ -128,7 +131,7 @@ export default class TableJoinModal extends Vue {
   }
   checkLinkCompelete () {
     if (!this.selectF || !this.selectP || this.joinColumns.foreign_key.indexOf('') >= 0 || this.joinColumns.primary_key.indexOf('') >= 0) {
-      return false
+      return true
     }
     return true
   }
