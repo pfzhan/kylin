@@ -212,7 +212,7 @@ export default class Overview extends Vue {
   #overview{
 	  margin: 40px 30px;
     .el-card__header {
-      font-weight: bolder;
+      font-weight: 500;
     }
     .statistics {
       height: 843px;

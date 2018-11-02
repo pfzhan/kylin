@@ -1049,6 +1049,9 @@ select a.placepointid, --门店id
             width: 33.34%;
             padding: 0 10px;
             border-right: 1px solid @line-border-color;
+            .el-slider__button-wrapper .el-slider__value {
+              bottom: -8px;
+            }
             &:last-child {
               border-right: 0;
             }
