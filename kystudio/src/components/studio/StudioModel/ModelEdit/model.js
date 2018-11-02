@@ -224,7 +224,7 @@ class NModel {
         if (factTable) {
           metaData.fact_table = factTable.name
         } else {
-          return reject('noFactTable')
+          return reject('000')
         }
         // this.all_measures.push()
         metaData.join_tables = this._generateLookups()
@@ -674,13 +674,16 @@ class NModel {
     return indexOfObjWithSomeKey(this._mount.computed_columns, 'name', name) < 0
   }
   generateCCMeta (ccObj) {
-    let ccBase = {
-      tableIdentity: this.fact_table,
-      tableAlias: this.fact_table.split('.')[1],
-      guid: sampleGuid()
+    let factTable = this.getFactTable()
+    if (factTable) {
+      let ccBase = {
+        tableIdentity: factTable.alias,
+        tableAlias: factTable.alias,
+        guid: sampleGuid()
+      }
+      Object.assign(ccBase, ccObj)
+      return ccBase
     }
-    Object.assign(ccBase, ccObj)
-    return ccBase
   }
   // 添加CC
   addCC (ccObj) {

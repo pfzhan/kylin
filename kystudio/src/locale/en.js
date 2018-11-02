@@ -206,7 +206,8 @@ exports.default = {
     sameCCExpression1: 'In this model, there has been a computed column "',
     sameCCExpression2: '" defined as expression.Please define another one.',
     ccWrongPosition: 'The computed column should be defined in table "',
-    addModel: 'Add Model'
+    addModel: 'Add Model',
+    hasNoFact: 'Fact Table is mandatory for model'
   },
   cube: {
     tableIndex: 'Table Index',

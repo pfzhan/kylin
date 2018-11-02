@@ -109,3 +109,6 @@ export const modelRenderConfig = {
     }
   }
 }
+export const modelErrorMsg = {
+  '000': 'kylinLang.model.hasNoFact'
+}

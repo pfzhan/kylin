@@ -44,6 +44,7 @@ import { mapActions, mapGetters } from 'vuex'
 import { computedDataType } from 'config/index'
 import { handleError, kapMessage } from 'util/business'
 import { objectClone } from 'util/index'
+import { modelErrorMsg } from '../ModelEdit/config'
 // import $ from 'jquery'
 @Component({
   props: ['isShow', 'ccDesc', 'modelInstance'],
@@ -119,11 +120,18 @@ export default class CCForm extends Vue {
         this.checkBtnLoading = false
         handleError(res)
       })
+    }).catch((code) => {
+      kapMessage(this.$t(modelErrorMsg[code]), { type: 'warning' })
     })
   }
   addCC () {
     this.$refs['ccForm'].validate((valid) => {
       if (valid) {
+        let factTable = this.modelInstance.getFactTable()
+        if (!factTable) {
+          kapMessage(this.$t(modelErrorMsg['000']), { type: 'warning' })
+          return
+        }
         if (this.ccObject.guid) {
           this.modelInstance.editCC(this.ccObject).then((cc) => {
             this.$emit('saveSuccess', cc)
@@ -137,7 +145,6 @@ export default class CCForm extends Vue {
             this.isEdit = false
           }, () => {
             kapMessage(this.$t('sameName'), { type: 'warning' })
-            // 提示已经有同名的CC
           })
         }
       }

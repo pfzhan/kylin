@@ -203,7 +203,8 @@ exports.default = {
     sameCCExpression1: '当前模型下，该表达式已被定义为可计算列 "',
     sameCCExpression2: '" 。您可以创建表达式不同的可计算列。',
     ccWrongPosition: '该可计算列，应该定义在当前模型的表"',
-    addModel: '添加模型'
+    addModel: '添加模型',
+    hasNoFact: '模型需要有一个事实表'
   },
   cube: {
     tableIndex: '表索引',
