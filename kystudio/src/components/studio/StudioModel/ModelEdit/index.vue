@@ -45,7 +45,7 @@
           <DataSourceBar
             class="tree-box"
             :project-name="currentSelectedProject"
-            :is-show-load-source="false"
+            :is-show-load-source="true"
             :is-show-settings="false"
             :is-show-action-group="false"
             :is-expand-on-click-node="false"

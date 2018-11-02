@@ -167,11 +167,6 @@ export default class TableJoinModal extends Vue {
   }
   mounted () {
   }
-  destroyed () {
-    if (!module.hot) {
-      vuex.unregisterModule(['modals', 'TableJoinModal'])
-    }
-  }
 }
 </script>
 
