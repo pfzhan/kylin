@@ -125,11 +125,11 @@ import { handleSuccess, handleError } from '../../util/business'
 @Component({
   methods: {
     ...mapActions({
-      loadProjects: 'LOAD_ALL_PROJECT',
-      getCubesList: 'GET_CUBES_LIST',
-      loadModels: 'LOAD_MODEL_LIST',
-      loadJobsList: 'LOAD_JOBS_LIST',
-      loadUsersList: 'LOAD_USERS_LIST',
+      // loadProjects: 'LOAD_ALL_PROJECT',
+      // getCubesList: 'GET_CUBES_LIST',
+      // loadModels: 'LOAD_MODEL_LIST',
+      // loadJobsList: 'LOAD_JOBS_LIST',
+      // loadUsersList: 'LOAD_USERS_LIST',
       loadStatistics: 'LOAD_STATISTICS'
     })
   },
@@ -182,19 +182,19 @@ export default class Overview extends Vue {
     })
   }
   created () {
-    var params = {pageSize: 1, pageOffset: 0, projectName: this.$store.state.project.selected_project}
-    this.loadProjects({
-      ignoreAccess: true
-    })
+    // var params = {pageSize: 1, pageOffset: 0, projectName: this.$store.state.project.selected_project}
+    // this.loadProjects({
+    //   ignoreAccess: true
+    // })
     // for newten
     // this.getCubesList(params)
-    this.loadModels(params)
-    this.loadJobsList({pageSize: 1, pageOffset: 0, timeFilter: 4, projectName: this.$store.state.project.selected_project})
-    if (this.isAdmin) {
-      this.loadUsersList(params)
-    } else {
-      this.$store.state.user.usersSize = 0
-    }
+    // this.loadModels(params)
+    // this.loadJobsList({pageSize: 1, pageOffset: 0, timeFilter: 4, projectName: this.$store.state.project.selected_project})
+    // if (this.isAdmin) {
+    //   this.loadUsersList(params)
+    // } else {
+    //   this.$store.state.user.usersSize = 0
+    // }
 
     this.loadStatistics({start_time: new Date().setHours(0, 0, 0, 0), end_time: new Date().setHours(23, 59, 59, 999)}).then((res) => {
       handleSuccess(res, (data) => {

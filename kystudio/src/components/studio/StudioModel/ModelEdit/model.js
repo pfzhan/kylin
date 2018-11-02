@@ -224,7 +224,7 @@ class NModel {
         if (factTable) {
           metaData.fact_table = factTable.name
         } else {
-          return reject('000')
+          return reject('noFact')
         }
         // this.all_measures.push()
         metaData.join_tables = this._generateLookups()
@@ -670,7 +670,7 @@ class NModel {
       resolve()
     })
   }
-  // 检查是否有同名
+  // 检查是否有同名, 通过重名检测返回true
   _checkSameCCName (name) {
     return indexOfObjWithSomeKey(this._mount.computed_columns, 'name', name) < 0
   }
@@ -689,7 +689,7 @@ class NModel {
   // 添加CC
   addCC (ccObj) {
     return new Promise((resolve, reject) => {
-      if (this._checkSameCCName) {
+      if (this._checkSameCCName(ccObj.columnName)) {
         let ccMeta = this.generateCCMeta(ccObj)
         this._mount.computed_columns.push(ccMeta)
         resolve(ccMeta)

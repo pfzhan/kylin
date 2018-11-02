@@ -54,6 +54,7 @@ import { modelRenderConfig } from '../ModelEdit/config'
 import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
+import { kapMessage } from 'util/business'
 vuex.registerModule(['modals', 'TableJoinModal'], store)
 @Component({
   computed: {
@@ -125,17 +126,29 @@ export default class TableJoinModal extends Vue {
     this.joinColumns.foreign_key.splice(i, 1)
     this.joinColumns.primary_key.splice(i, 1)
   }
+  checkLinkCompelete () {
+    if (!this.selectF || !this.selectP || this.joinColumns.foreign_key.indexOf('') >= 0 || this.joinColumns.primary_key.indexOf('') >= 0) {
+      return false
+    }
+    return true
+  }
   saveJoinCondition () {
     var joinData = this.joinColumns // 修改后的连接关系
     var selectF = this.selectF // 外键表名
     var selectP = this.selectP // 主键表名
-    // 传出处理后的结果
-    this.handleClose(true, {
-      selectF: selectF,
-      selectP: selectP,
-      joinData: joinData,
-      joinType: this.joinType
-    })
+    if (this.checkLinkCompelete()) {
+      // 传出处理后的结果
+      this.handleClose(true, {
+        selectF: selectF,
+        selectP: selectP,
+        joinData: joinData,
+        joinType: this.joinType
+      })
+    } else {
+      kapMessage(this.$t('checkCompleteLink'), {
+        type: 'warning'
+      })
+    }
   }
   handleClose (isSubmit, data) {
     this.hideModal()

@@ -39,7 +39,7 @@
 </template>
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { computedDataType } from 'config/index'
 import { handleError, kapMessage } from 'util/business'
@@ -129,7 +129,7 @@ export default class CCForm extends Vue {
       if (valid) {
         let factTable = this.modelInstance.getFactTable()
         if (!factTable) {
-          kapMessage(this.$t(modelErrorMsg['000']), { type: 'warning' })
+          kapMessage(this.$t(modelErrorMsg['noFact']), { type: 'warning' })
           return
         }
         if (this.ccObject.guid) {
@@ -157,7 +157,8 @@ export default class CCForm extends Vue {
     this.$refs['ccForm'].resetFields()
     this.ccObject = JSON.parse(this.ccMeta)
   }
-  mounted () {
+  @Watch('ccDesc')
+  initCCDesc () {
     if (this.ccDesc) {
       this.isEdit = false
     } else {
@@ -165,6 +166,9 @@ export default class CCForm extends Vue {
     }
     this.ccObject = JSON.parse(this.ccMeta)
     Object.assign(this.ccObject, this.ccDesc)
+  }
+  mounted () {
+    this.initCCDesc()
   }
 }
 </script>
