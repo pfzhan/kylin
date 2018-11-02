@@ -41,7 +41,7 @@
     <div class="tool-icon icon-ds" :class="{active: panelAppear.datasource.display}" @click.stop="toggleMenu('datasource')"><i class="el-icon-ksd-data_source"></i></div>
       <transition name="bounceleft">
         <div class="panel-box panel-datasource" v-show="panelAppear.datasource.display" :style="panelStyle('datasource')" v-event-stop>
-          <div class="panel-title"><span>{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
+          <div class="panel-title"><span class="title">{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
           <DataSourceBar
             class="tree-box"
             :project-name="currentSelectedProject"
@@ -548,7 +548,6 @@ export default class ModelEdit extends Vue {
     var fGuid = data.selectF
     var joinData = data.joinData
     var joinType = data.joinType
-    debugger
     var fcols = joinData.foreign_key
     var pcols = joinData.primary_key
     var fTable = this.modelInstance.tables[fGuid]
@@ -823,7 +822,7 @@ export default class ModelEdit extends Vue {
         .close{
           float: right;
           margin-right:10px;
-          font-size:12px;
+          font-size:14px;
           transform: scale(0.8);
         }
       }
@@ -1106,7 +1105,7 @@ export default class ModelEdit extends Vue {
         .close {  
           float:right;
           border-radius:50%;
-          font-size:12px;
+          font-size:14px;
           width:20px;
           height:20px;
           line-height:20px;

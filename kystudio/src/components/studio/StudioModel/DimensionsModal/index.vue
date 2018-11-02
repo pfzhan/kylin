@@ -297,8 +297,9 @@ export default class DimensionsModal extends Vue {
 @import '../../../../assets/styles/variables.less';
 .dimension-modal{
   .table-title {
-    font-size: 16px;
+    font-size: 14px;
     margin-left: 5px;
+    font-weight:@font-medium;
   }
   .table-header {
     border-bottom:solid 1px @line-border-color;
