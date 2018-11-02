@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
+import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -421,8 +422,8 @@ public class NModelControllerTest {
     }
 
 
-    private List<NForestSpanningTree> mockRelations() {
-        final List<NForestSpanningTree> nSpanningTrees = new ArrayList<>();
+    private List<NSpanningTree> mockRelations() {
+        final List<NSpanningTree> nSpanningTrees = new ArrayList<>();
         Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids = new HashMap<>();
         NCuboidDesc cuboidDesc = new NCuboidDesc();
         cuboidDesc.setId(1234);

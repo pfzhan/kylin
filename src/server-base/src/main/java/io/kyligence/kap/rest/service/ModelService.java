@@ -34,11 +34,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.google.common.primitives.Ints;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
-import io.kyligence.kap.event.model.RemoveSegmentEvent;
-import io.kyligence.kap.smart.util.CubeUtils;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -78,9 +73,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.primitives.Ints;
 
-import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
@@ -96,8 +92,11 @@ import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.LoadingRangeRefreshEvent;
 import io.kyligence.kap.event.model.ModelSemanticUpdateEvent;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.event.model.RemoveSegmentEvent;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.ManagementType;
@@ -118,6 +117,7 @@ import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.rest.response.SimplifiedTableResponse;
+import io.kyligence.kap.smart.util.CubeUtils;
 import lombok.val;
 import lombok.var;
 
@@ -324,17 +324,17 @@ public class ModelService extends BasicService {
         return JsonUtil.writeValueAsIndentString(modelDesc);
     }
 
-    public List<NForestSpanningTree> getModelRelations(String modelName, String project) {
+    public List<NSpanningTree> getModelRelations(String modelName, String project) {
         List<NCubePlan> cubePlans = getCubePlans(modelName, project);
-        List<NForestSpanningTree> result = new ArrayList<NForestSpanningTree>();
-        if (cubePlans == null) {
-            return result;
-        }
+        List<NSpanningTree> result = new ArrayList<>();
         for (NCubePlan cubeplan : cubePlans) {
-            NSpanningTree spanningTree = cubeplan.getSpanningTree();
-            NForestSpanningTree nForestSpanningTree = new NForestSpanningTree(spanningTree.getCuboids(),
-                    spanningTree.getCuboidCacheKey());
-            result.add(nForestSpanningTree);
+            if (cubeplan.getRuleBasedCuboidsDesc() == null) {
+                continue;
+            }
+            val rule = cubeplan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid() == null ? cubeplan.getRuleBasedCuboidsDesc() :
+                    cubeplan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid();
+            val tree = NSpanningTreeFactory.fromCuboidLayouts(rule.genCuboidLayouts(), cubeplan.getName());
+            result.add(tree);
         }
         return result;
     }
@@ -679,7 +679,8 @@ public class ModelService extends BasicService {
         return dataModel;
     }
 
-    private static ParameterDesc enrichParameterDesc(List<ParameterResponse> parameterResponseList, ParameterDesc nextParameterDesc) {
+    private static ParameterDesc enrichParameterDesc(List<ParameterResponse> parameterResponseList,
+            ParameterDesc nextParameterDesc) {
         if (CollectionUtils.isEmpty(parameterResponseList)) {
             return nextParameterDesc;
         }
@@ -817,7 +818,8 @@ public class ModelService extends BasicService {
 
             logger.debug("Spent {} ms to visit data source to validate computed column expression: {}",
                     (System.currentTimeMillis() - ts), cc.getExpression());
-        }    }
+        }
+    }
 
     static void checkCCName(String name) {
         if (PushDownConverterKeyWords.CALCITE.contains(name.toUpperCase())
@@ -945,7 +947,6 @@ public class ModelService extends BasicService {
             }
         }
     }
-
 
     public void refreshSegmentById(String modelName, String project, int[] ids) throws PersistentException {
         NDataflowManager dataflowManager = getDataflowManager(project);

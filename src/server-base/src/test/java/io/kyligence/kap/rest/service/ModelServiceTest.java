@@ -60,6 +60,7 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -217,7 +218,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModelRelations() {
-        List<NForestSpanningTree> relations = modelService.getModelRelations("nmodel_basic", "default");
+        List<NSpanningTree> relations = modelService.getModelRelations("nmodel_basic", "default");
         Assert.assertEquals(1, relations.size());
     }
 
