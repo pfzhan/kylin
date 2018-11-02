@@ -64,15 +64,7 @@
             header-align="center"
             prop="column"
             align="center">
-          </el-table-column>
-          <el-table-column
-            show-overflow-tooltip
-            :label="$t('dataType')"
-            prop="columnType"
-            header-align="center"
-            align="center"
-            width="110"> 
-          </el-table-column>  
+          </el-table-column> 
           <el-table-column
           :label="$t('Sort')"
           header-align="center"
@@ -166,7 +158,6 @@ import NModel from '../ModelEdit/model.js'
         let newitem = {
           id: 15 * (this.currentPage - 1) + i + 1,
           column: item,
-          columnType: this.modelInstance.getColumnType(item),
           sort: this.currentShowTableIndex.sort_by_columns.indexOf(item) + 1 || '',
           shared: this.currentShowTableIndex.shard_by_columns.includes(item)
         }

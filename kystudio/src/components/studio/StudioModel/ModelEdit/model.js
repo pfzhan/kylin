@@ -678,7 +678,7 @@ class NModel {
     let factTable = this.getFactTable()
     if (factTable) {
       let ccBase = {
-        tableIdentity: factTable.alias,
+        tableIdentity: factTable.name,
         tableAlias: factTable.alias,
         guid: sampleGuid()
       }
