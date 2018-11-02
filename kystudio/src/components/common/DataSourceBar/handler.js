@@ -23,7 +23,7 @@ export const render = {
       const { label } = data
 
       return (
-        <div class="database font-medium">
+        <div class="database">
           <div class="left">
             <i class="tree-icon el-icon-ksd-data_source"></i>
           </div>
@@ -38,7 +38,7 @@ export const render = {
       const dataRangeTitle = this.$t('dataRange')
       const nodeClass = {
         class: [
-          'table', 'font-medium',
+          'table',
           ...(dateRange ? ['has-range'] : [])
         ]
       }

@@ -323,6 +323,7 @@ export default class DataSourceBar extends Vue {
     if (isSubmit) {
       await this.loadDataBases()
       await this.loadTables({ isReset: true })
+      freshTreeOrder(this)
     }
   }
   freshDatasourceTitle () {
