@@ -28,7 +28,7 @@
       <el-button size="small" plain @click="resetCC" class="ksd-fright" v-if="isEdit">
         {{$t('kylinLang.query.clear')}}
       </el-button>
-      <el-button size="small" plain @click="checkRemoteCC" class="ksd-fleft" v-if="isEdit">
+      <el-button size="small" plain @click="checkRemoteCC" :loading="checkBtnLoading" class="ksd-fleft" v-if="isEdit">
         {{$t('kylinLang.common.check')}}
       </el-button>
       <el-button size="small" plain @click="editCC" class="ksd-fright" v-else>
@@ -43,6 +43,7 @@ import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { computedDataType } from 'config/index'
 import { handleError, kapMessage } from 'util/business'
+import { objectClone } from 'util/index'
 // import $ from 'jquery'
 @Component({
   props: ['isShow', 'ccDesc', 'modelInstance'],
@@ -65,6 +66,7 @@ import { handleError, kapMessage } from 'util/business'
 })
 export default class CCForm extends Vue {
   computedRetrunType = computedDataType
+  checkBtnLoading = false
   ccRules = {
     columnName: [{ required: true, message: this.$t('requiredCCName'), trigger: 'blur' }],
     datatype: [{ required: true, message: this.$t('requiredReturnType'), trigger: 'change' }],
@@ -101,21 +103,24 @@ export default class CCForm extends Vue {
   errorMsg = ''
   checkRemoteCC () {
     this.modelInstance.generateMetadata().then((data) => {
+      let resData = objectClone(data)
       let ccMeta = this.modelInstance.generateCCMeta(this.ccObject)
-      data.computed_columns.push(ccMeta)
+      resData.computed_columns.push(ccMeta)
+      this.checkBtnLoading = true
       this.checkCC({
-        model_desc: data,
+        model_desc: resData,
         project: this.currentSelectedProject,
         cc_in_check: this.modelInstance.getFactTable().alias + '.' + this.ccObject.columnName,
         is_seeking_expr_advice: false
       }).then((res) => {
+        this.checkBtnLoading = false
         kapMessage(this.$t('kylinLang.common.checkSuccess'))
       }, (res) => {
+        this.checkBtnLoading = false
         handleError(res)
       })
     })
   }
-
   addCC () {
     this.$refs['ccForm'].validate((valid) => {
       if (valid) {

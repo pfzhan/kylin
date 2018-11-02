@@ -84,7 +84,7 @@
           header-align="center"
           align="center">
             <template slot-scope="scope">
-                <i class="el-icon-ksd-good_health ky-success"></i>
+                <i class="el-icon-ksd-good_health ky-success" v-show="scope.row.shared"></i>
             </template>
             </el-table-column>         
           </el-table>

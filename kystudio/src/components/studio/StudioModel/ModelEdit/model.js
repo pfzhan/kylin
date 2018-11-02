@@ -676,9 +676,9 @@ class NModel {
   generateCCMeta (ccObj) {
     let ccBase = {
       tableIdentity: this.fact_table,
-      tableAlias: this.fact_table.split('.')[1]
+      tableAlias: this.fact_table.split('.')[1],
+      guid: sampleGuid()
     }
-    ccObj.guid = sampleGuid()
     Object.assign(ccBase, ccObj)
     return ccBase
   }
