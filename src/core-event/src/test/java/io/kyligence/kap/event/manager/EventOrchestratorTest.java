@@ -121,6 +121,7 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
 
         Thread.sleep(10);
         AccelerateEvent accelerateEvent = new AccelerateEvent();
+        accelerateEvent.setModels(Lists.newArrayList());
         accelerateEvent.setProject(DEFAULT_PROJECT);
         accelerateEvent.setSqlPatterns(Lists.newArrayList("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT"));
         accelerateEvent.setApproved(true);
@@ -128,6 +129,7 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
 
         Thread.sleep(10);
         accelerateEvent = new AccelerateEvent();
+        accelerateEvent.setModels(Lists.newArrayList());
         accelerateEvent.setProject(DEFAULT_PROJECT);
         accelerateEvent.setSqlPatterns(Lists.newArrayList("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME"));
         accelerateEvent.setApproved(true);
@@ -137,6 +139,7 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
         accelerateEvent = new AccelerateEvent();
         accelerateEvent.setProject(DEFAULT_PROJECT);
         accelerateEvent.setSqlPatterns(Lists.newArrayList("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME"));
+        accelerateEvent.setModels(Lists.newArrayList());
         accelerateEvent.setApproved(true);
         initEvents.add(accelerateEvent);
 

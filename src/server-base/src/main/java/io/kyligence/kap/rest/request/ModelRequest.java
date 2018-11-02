@@ -24,13 +24,14 @@
 
 package io.kyligence.kap.rest.request;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
 
 @Getter
 @Setter

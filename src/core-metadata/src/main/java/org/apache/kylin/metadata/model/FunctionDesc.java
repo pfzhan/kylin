@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.Set;
 
 import lombok.Setter;
+import org.apache.directory.api.util.Strings;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureTypeFactory;
 import org.apache.kylin.measure.basic.BasicMeasureType;
@@ -137,6 +138,9 @@ public class FunctionDesc implements Serializable {
         }
         if (returnDataType == null) {
             returnDataType = DataType.getType("bigint");
+        }
+        if (!Strings.isEmpty(returnType)) {
+            returnDataType = DataType.getType(returnType);
         }
     }
 

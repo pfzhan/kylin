@@ -651,6 +651,10 @@ public class ModelService extends BasicService {
         for (JoinTableDesc table : modelRequest.getJoinTables()) {
             allTables.put(table.getTable(), table);
         }
+        Map<String, NDataModel.NamedColumn> nameMap = Maps.newHashMap();
+        for (NDataModel.NamedColumn namedColumn : dataModel.getAllNamedColumns()) {
+            nameMap.put(namedColumn.aliasDotColumn, namedColumn);
+        }
         for (Map.Entry<String, JoinTableDesc> entry : allTables.entrySet()) {
             val tableDesc = tableManager.getTableDesc(entry.getKey());
             boolean isFact = entry.getValue() == null || entry.getValue().getKind() == NDataModel.TableKind.FACT;
@@ -662,8 +666,10 @@ public class ModelService extends BasicService {
                 namedColumn.name = column.getName();
                 namedColumn.aliasDotColumn = alias + "." + column.getName();
                 namedColumn.status = NDataModel.ColumnStatus.EXIST;
-                if (dataModel.getAllNamedColumns().stream().anyMatch(c -> c.aliasDotColumn.equals(namedColumn.aliasDotColumn))) {
+                val dimension = nameMap.get(namedColumn.aliasDotColumn);
+                if (dimension != null) {
                     namedColumn.status = NDataModel.ColumnStatus.DIMENSION;
+                    namedColumn.name = dimension.name;
                 }
                 columns.add(namedColumn);
                 id++;
@@ -1034,7 +1040,7 @@ public class ModelService extends BasicService {
             measure.tomb = matched == 0 || measure.tomb;
         }
 
-        for (NDataModel.NamedColumn newColumn : request.getAllDimensions()) {
+        for (NDataModel.NamedColumn newColumn : request.getDimensions()) {
             // change name does not matter
             val matched = targetModel.getAllNamedColumns().stream()
                     .filter(col -> col.isDimension() && col.aliasDotColumn.equals(newColumn.aliasDotColumn))
@@ -1055,7 +1061,7 @@ public class ModelService extends BasicService {
             if (!column.isDimension()) {
                 continue;
             }
-            val matched = request.getAllDimensions().stream()
+            val matched = request.getDimensions().stream()
                     .filter(col -> col.aliasDotColumn.equals(column.aliasDotColumn)).count();
             if (matched == 0) {
                 column.status = NDataModel.ColumnStatus.EXIST;

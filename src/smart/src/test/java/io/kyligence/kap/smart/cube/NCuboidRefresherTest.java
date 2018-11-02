@@ -76,7 +76,7 @@ public class NCuboidRefresherTest extends NTestBase {
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
             NCubePlan cubePlan = mdCtx.getTargetCubePlan();
             Assert.assertNotNull(cubePlan);
-            Assert.assertNull(mdCtx.getOrigCubePlan());
+            Assert.assertNotNull(mdCtx.getOrigCubePlan());
             Assert.assertEquals(mdCtx.getTargetModel().getName(), cubePlan.getModelName());
 
             List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();
@@ -139,7 +139,7 @@ public class NCuboidRefresherTest extends NTestBase {
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
             NCubePlan cubePlan = mdCtx.getTargetCubePlan();
             Assert.assertNotNull(cubePlan);
-            Assert.assertNull(mdCtx.getOrigCubePlan());
+            Assert.assertNotNull(mdCtx.getOrigCubePlan());
             Assert.assertEquals(mdCtx.getTargetModel().getName(), cubePlan.getModelName());
 
             List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();

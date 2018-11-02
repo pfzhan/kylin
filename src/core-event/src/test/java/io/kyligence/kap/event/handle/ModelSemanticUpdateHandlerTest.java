@@ -114,7 +114,7 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
         val savedIds = ((AddCuboidEvent) events.get(1)).getLayoutIds();
         Assert.assertTrue(CollectionUtils.isEqualCollection(savedIds,
-                Arrays.<Long>asList(1000001L, 1L, 2L, 1001L, 1002L, 2001L, 3001L, 20000001001L)));
+                Arrays.<Long>asList(1000001L, 1L, 1001L, 1002L, 2001L, 3001L, 20000001001L)));
         Assert.assertTrue(events.get(2) instanceof PostModelSemanticUpdateEvent);
     }
 

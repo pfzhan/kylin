@@ -119,7 +119,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         allEvents.sort(Comparator.comparingLong(Event::getCreateTime));
         val addEvent = (AddCuboidEvent) allEvents.get(1);
         Assert.assertTrue(CollectionUtils.isEqualCollection(addEvent.getLayoutIds(),
-                Arrays.<Long>asList(1000001L, 1L, 2L, 1001L, 1002L, 2001L, 3001L, 20000001001L)));
+                Arrays.<Long>asList(1000001L, 1L, 1001L, 1002L, 2001L, 3001L, 20000001001L)));
         Assert.assertFalse(df.isReconstructing());
 
     }
@@ -157,7 +157,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         request.setName(MODEL_NAME);
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
-        request.setAllDimensions(model.getAllNamedColumns().stream()
+        request.setAllNamedColumns(model.getAllNamedColumns().stream()
                 .filter(c -> c.status == NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList()));
         request.setJoinTables(
                 request.getJoinTables().stream().peek(j -> j.getJoin().setType("inner")).collect(Collectors.toList()));

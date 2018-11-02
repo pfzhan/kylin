@@ -56,7 +56,7 @@ public class MockAddSegmentHandler extends AbstractEventHandler {
             newEvent.setAddedInfo(event.getAddedInfo());
             eventManager.post(newEvent);
         }
-        Thread.sleep(2000);
+        Thread.sleep(1000);
     }
 
     @Override

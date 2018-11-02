@@ -71,7 +71,6 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
-import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -138,6 +137,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;

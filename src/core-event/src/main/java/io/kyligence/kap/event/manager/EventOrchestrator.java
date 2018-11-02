@@ -59,6 +59,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -120,8 +121,9 @@ public class EventOrchestrator {
                 logger.debug("project {}: events {}", project, events);
                 Map<String, List<EventSetManager>> eventsToBeProcessed = sectionalizeEvents(events);
                 List<EventSetManager> eventSetManagers;
-                logger.debug("project {}: tobe processsed {}", project, eventsToBeProcessed);
                 for (Map.Entry<String, List<EventSetManager>> eventsEntry : eventsToBeProcessed.entrySet()) {
+                    logger.debug("project {}: tobe processsed {}: {}", project, eventsEntry.getKey(), eventsEntry
+                            .getValue().stream().flatMap(s -> s.getEvents().stream()).collect(Collectors.toList()));
                     eventSetManagers = eventsEntry.getValue();
                     futures.add(eventProcessPool.submit(new EventWorker(eventSetManagers)));
                 }

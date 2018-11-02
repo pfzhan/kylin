@@ -111,12 +111,13 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     @Test
     public void testModelUpdateDimensions() throws Exception {
         val request = newSemanticRequest();
-        request.setAllDimensions(request.getAllDimensions().stream().filter(c -> c.isDimension() && c.id != 25)
+        request.setAllNamedColumns(request.getAllNamedColumns().stream().filter(c -> c.isDimension() && c.id != 25)
                 .collect(Collectors.toList()));
         val newCol = new NDataModel.NamedColumn();
         newCol.name = "PRICE2";
         newCol.aliasDotColumn = "TEST_KYLIN_FACT.PRICE";
-        request.getAllDimensions().add(newCol);
+        newCol.status = NDataModel.ColumnStatus.DIMENSION;
+        request.getAllNamedColumns().add(newCol);
         modelService.updateDataModelSemantic(request);
 
         val model = getTestModel();
@@ -146,8 +147,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             cubeBasic.setRuleBasedCuboidsDesc(rule);
         });
         val request = newSemanticRequest();
-        request.setAllDimensions(
-                request.getAllDimensions().stream().filter(c -> c.id != 26).collect(Collectors.toList()));
+        request.setAllNamedColumns(
+                request.getAllNamedColumns().stream().filter(c -> c.id != 26).collect(Collectors.toList()));
         modelService.updateDataModelSemantic(request);
     }
 
@@ -157,7 +158,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelSemanticUpdateRequest.class);
         request.setProject("default");
         request.setName("nmodel_basic");
-        request.setAllDimensions(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));

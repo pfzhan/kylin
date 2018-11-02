@@ -68,6 +68,7 @@ public class NProjectManager {
     private static final Logger logger = LoggerFactory.getLogger(NProjectManager.class);
     private Serializer<ProjectInstance> serializer;
     private static final String JSON_SUFFIX = ".json";
+
     public static NProjectManager getInstance(KylinConfig config) {
         return config.getManager(NProjectManager.class);
     }
@@ -146,9 +147,10 @@ public class NProjectManager {
 
         for (String resource : resources) {
             // "/" filter dirs  properties  and *.crc
-            if (resource.equals("/@global") || resource.equals("/UUID") || resource.equals("/user") || resource.equals("/user_group")
-                    || resource.contains(".crc") || resource.contains(".properties")
-                    || resource.contains(ResourceStore.QUERY_HISTORY_TIME_OFFSET) || resource.contains(".DS_Store"))
+            if (resource.equals("/@global") || resource.equals("/UUID") || resource.equals("/user")
+                    || resource.equals("/user_group") || resource.equals("/acl") || resource.contains(".crc")
+                    || resource.contains(".properties") || resource.contains(ResourceStore.QUERY_HISTORY_TIME_OFFSET)
+                    || resource.contains(".DS_Store"))
                 continue;
             //remove "/" before dirName
             String dirName = resource.substring(1);

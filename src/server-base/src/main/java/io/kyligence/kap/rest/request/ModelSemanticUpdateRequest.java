@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.request;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.model.Canvas;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -51,7 +52,7 @@ public class ModelSemanticUpdateRequest {
     private PartitionDesc partitionDesc;
 
     @JsonProperty("all_named_columns")
-    private List<NDataModel.NamedColumn> allDimensions = Lists.newArrayList();
+    private List<NDataModel.NamedColumn> allNamedColumns = Lists.newArrayList();
 
     @JsonProperty("simplified_measures")
     private List<SimplifiedMeasure> simplifiedMeasures;
@@ -64,5 +65,9 @@ public class ModelSemanticUpdateRequest {
 
     @JsonProperty("canvas")
     private Canvas canvas;
+
+    public List<NDataModel.NamedColumn> getDimensions() {
+        return allNamedColumns.stream().filter(NDataModel.NamedColumn::isDimension).collect(Collectors.toList());
+    }
 
 }
