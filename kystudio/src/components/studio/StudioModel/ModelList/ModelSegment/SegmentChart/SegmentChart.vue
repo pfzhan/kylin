@@ -84,8 +84,8 @@ export default class SegmentChart extends Vue {
     const segmentCount = segments.length - 1
     const startTime = segments[0] && segments[0].startTime
     const endTime = segments[segmentCount] && segments[segmentCount].endTime
-    const startTick = dayjs(startTime).startOf(DAY)
-    const endTick = dayjs(endTime).add(1, DAY).startOf(DAY)
+    const startTick = dayjs(startTime).startOf(scaleType)
+    const endTick = dayjs(endTime).add(1, DAY).startOf(scaleType)
     const diff = endTick.diff(startTick, scaleType)
     const isTickFull = diff * gridWidth > containerWidth
     const xTicks = []
