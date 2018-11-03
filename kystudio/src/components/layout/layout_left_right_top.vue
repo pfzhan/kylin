@@ -21,7 +21,7 @@
                 <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path">
                   <span style="position:relative;">
                     {{$t('kylinLang.menu.' + child.name)}}
-                    <span id="favo-menu-item" v-if="item.name === 'insight' && child.name === 'favorite_query'"></span>
+                    <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'favorite_query'"></span>
                   </span>
                   <div class="number-icon" v-if="child.name === 'model'  && reachThreshold">1</div>
                 </el-menu-item>

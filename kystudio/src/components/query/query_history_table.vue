@@ -175,7 +175,7 @@ export default class QueryHistoryTable extends Vue {
   }
 
   flyEvent (event) {
-    const targetArea = $('#insight')
+    const targetArea = $('#query')
     const targetDom = this.briefMenuGet ? targetArea.find('.menu-icon') : targetArea.find('#favo-menu-item')
     const offset = targetDom.offset()
     const flyer = $('<span class="fly-box"></span>')
