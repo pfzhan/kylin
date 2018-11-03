@@ -107,7 +107,9 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
     public void assertCollectOtherError() {
         QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         try {
+            final String sql = "select * from test_with_otherError";
             final QueryContext queryContext = QueryContext.current();
+            queryContext.setCorrectedSql(sql);
             QueryMetricsContext.start(queryContext.getQueryId());
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
@@ -115,7 +117,7 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
 
             final SQLRequest request = new SQLRequest();
             request.setProject("default");
-            request.setSql("select * from test_with_otherError");
+            request.setSql(sql);
             request.setUsername("ADMIN");
 
             final SQLResponse response = new SQLResponse();
@@ -142,13 +144,15 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
     public void assertCollectWithoutError() {
         QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         try {
+            String sql = "select * from test_with_otherError";
             final QueryContext queryContext = QueryContext.current();
+            queryContext.setCorrectedSql(sql);
             QueryMetricsContext.start(queryContext.getQueryId());
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
             final SQLRequest request = new SQLRequest();
             request.setProject("default");
-            request.setSql("select * from test_with_otherError");
+            request.setSql(sql);
             request.setUsername("ADMIN");
 
             final SQLResponse response = new SQLResponse();
@@ -171,7 +175,9 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
     public void assertCollectWithPushdown() {
         QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         try {
+            final String sql = "select * from test_with_pushdown";
             final QueryContext queryContext = QueryContext.current();
+            queryContext.setCorrectedSql(sql);
             QueryMetricsContext.start(queryContext.getQueryId());
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
@@ -180,7 +186,7 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
 
             final SQLRequest request = new SQLRequest();
             request.setProject("default");
-            request.setSql("select * from test_with_pushdown");
+            request.setSql(sql);
             request.setUsername("ADMIN");
 
             final SQLResponse response = new SQLResponse(null, null, null, 0, false, null, true, true);
@@ -222,7 +228,9 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
     public void assertCollectWithRealization() {
         QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         try {
+            final String sql = "select * from test_with_realization";
             final QueryContext queryContext = QueryContext.current();
+            queryContext.setCorrectedSql(sql);
             QueryMetricsContext.start(queryContext.getQueryId());
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
@@ -231,7 +239,7 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
 
             final SQLRequest request = new SQLRequest();
             request.setProject("default");
-            request.setSql("select * from test_with_realization");
+            request.setSql(sql);
             request.setUsername("ADMIN");
 
             final SQLResponse response = new SQLResponse();
@@ -283,6 +291,7 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
 
             final NDataModel mockModel = Mockito.spy(new NDataModel());
             Mockito.when(mockModel.getName()).thenReturn("mock_model");
+            Mockito.when(mockModel.getAlias()).thenReturn("mock_model_alias");
             final IRealization mockRealization = Mockito.mock(IRealization.class);
             Mockito.when(mockRealization.getModel()).thenReturn(mockModel);
             mock.realization = mockRealization;

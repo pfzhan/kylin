@@ -35,6 +35,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -224,7 +225,7 @@ public class QueryMetricsContext {
                 final String realizationType = ctx.storageContext.getCandidate().getCuboidLayout().getCuboidDesc()
                         .isTableIndex() ? "Table Index" : "Agg Index";
                 addRealizationMetrics(ctx.storageContext.getCuboidId().toString(), realizationType,
-                        ctx.realization.getModel().getAlias());
+                        ctx.realization.getModel().getName());
             }
         }
     }
@@ -242,14 +243,13 @@ public class QueryMetricsContext {
             this.answeredBy = context.getPushdownEngine();
         } else if (!realizationMetrics.isEmpty()) {
             this.engineType = realizationMetrics.iterator().next().realizationType;
-            final Collection<String> modelNames = Collections2.transform(realizationMetrics,
-                    new Function<RealizationMetrics, String>() {
-                        @Override
-                        public String apply(RealizationMetrics input) {
-                            return input.modelName;
-                        }
-                    });
-            this.answeredBy = Joiner.on(",").join(modelNames);
+            List<String> modelAlias = Lists.newArrayList();
+            for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
+                if (ctx.realization != null) {
+                     modelAlias.add(ctx.realization.getModel().getAlias());
+                }
+            }
+            this.answeredBy = Joiner.on(",").join(modelAlias);
         } else {
             this.engineType = UNKNOWN;
             this.answeredBy = UNKNOWN;
