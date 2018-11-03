@@ -52,10 +52,10 @@ import io.kyligence.kap.smart.model.ModelTree;
 
 public class NSmartMasterTest extends NTestBase {
 
-    NTableMetadataManager tableMetadataManager;
-    NDataModelManager dataModelManager;
-    NCubePlanManager cubePlanManager;
-    NDataflowManager dataflowManager;
+    private NTableMetadataManager tableMetadataManager;
+    private NDataModelManager dataModelManager;
+    private NCubePlanManager cubePlanManager;
+    private NDataflowManager dataflowManager;
 
     @Before
     public void setupManagers() throws Exception {
@@ -502,7 +502,7 @@ public class NSmartMasterTest extends NTestBase {
         /* FIXME KAP-7518
         // 4th round - input complex SQLs, update model and cube_plan
         test4thRound();
-
+        
         // 5th round - unload all queries
         test5thRound();
         */
