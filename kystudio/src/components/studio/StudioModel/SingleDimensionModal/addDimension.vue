@@ -215,11 +215,6 @@ export default class SingleDimensionModal extends Vue {
       })
     }
   }
-  destroyed () {
-    if (!module.hot) {
-      vuex.unregisterModule(['modals', 'SingleDimensionModal'])
-    }
-  }
 }
 </script>
 

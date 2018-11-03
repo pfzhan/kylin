@@ -285,11 +285,6 @@ export default class DimensionsModal extends Vue {
     this.modelDesc.dimensions.push(...result, ...ccDimensionList)
     this.handleClose(true)
   }
-  destroyed () {
-    if (!module.hot) {
-      vuex.unregisterModule(['modals', 'DimensionsModal'])
-    }
-  }
 }
 </script>
 
