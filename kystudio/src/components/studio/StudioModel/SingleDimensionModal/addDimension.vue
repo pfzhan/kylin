@@ -201,6 +201,9 @@ export default class SingleDimensionModal extends Vue {
       this._handleCloseFunc(isSubmit)
       return
     }
+    let dimensionNamed = this.dimensionInfo.column.split('.')
+    let ntable = this.modelInstance.getTableByAlias(dimensionNamed[0])
+    this.dimensionInfo.table_guid = ntable.guid
     if (this.dimension) {
       this.modelInstance.editDimension(this.dimensionInfo, this.dimensionInfo._id).then(() => {
         this._handleCloseFunc(isSubmit)

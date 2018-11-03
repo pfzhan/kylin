@@ -48,13 +48,13 @@ class NModel {
       }
     })
     // 用普通列构建的dimension
-    this.normalDimensions = this.all_named_columns.filter((x) => {
-      let columnNamed = x.column.split('.')
-      let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', columnNamed[1], 'tableAlias', columnNamed[0])
-      if (i < 0 && x.status === 'DIMENSION') {
-        return x
-      }
-    })
+    // this.normalDimensions = this.all_named_columns.filter((x) => {
+    //   let columnNamed = x.column.split('.')
+    //   let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', columnNamed[1], 'tableAlias', columnNamed[0])
+    //   if (i < 0 && x.status === 'DIMENSION') {
+    //     return x
+    //   }
+    // })
     // 用在tableIndex上的列
     this.tableIndexColumns = this.all_named_columns.filter((x) => {
       if (x.status !== 'DIMENSION') {
@@ -62,13 +62,13 @@ class NModel {
       }
     })
     // 可计算列构建的dimension
-    this.ccDimensions = this.all_named_columns.filter((x) => {
-      let columnNamed = x.column.split('.')
-      let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', columnNamed[1], 'tableAlias', columnNamed[0])
-      if (i >= 0 && x.status === 'DIMENSION') {
-        return x
-      }
-    })
+    // this.ccDimensions = this.all_named_columns.filter((x) => {
+    //   let columnNamed = x.column.split('.')
+    //   let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', columnNamed[1], 'tableAlias', columnNamed[0])
+    //   if (i >= 0 && x.status === 'DIMENSION') {
+    //     return x
+    //   }
+    // })
     this.lookups = options.lookups || options.join_tables || []
     this.all_measures = options.simplified_measures || []
     this.project = options.project
@@ -94,9 +94,9 @@ class NModel {
       this.$set(this._mount, 'all_measures', this.all_measures)
       this.$set(this._mount, 'dimensions', this.dimensions)
       this.$set(this._mount, 'zoom', this.canvas && this.canvas.zoom || modelRenderConfig.zoom)
-      this.$set(this._mount, 'normalDimensions', this.normalDimensions)
+      // this.$set(this._mount, 'normalDimensions', this.normalDimensions)
       this.$set(this._mount, 'tableIndexColumns', this.tableIndexColumns)
-      this.$set(this._mount, 'ccDimensions', this.ccDimensions)
+      // this.$set(this._mount, 'ccDimensions', this.ccDimensions)
       this.$set(this._mount, 'maintain_model_type', this.maintain_model_type)
     }
     if (options.renderDom) {
@@ -107,6 +107,15 @@ class NModel {
     this.render()
     this.dimensions = this.dimensions.filter((x) => {
       x.datatype = this.getColumnType(x.column)
+      let alias = x.column.split('.')[0]
+      let guid = this._cacheAliasAndGuid(alias)
+      x.table_guid = guid
+      return x
+    })
+    this.tableIndexColumns = this.tableIndexColumns.filter((x) => {
+      let alias = x.column.split('.')[0]
+      let guid = this._cacheAliasAndGuid(alias)
+      x.table_guid = guid
       return x
     })
   }
@@ -245,6 +254,18 @@ class NModel {
       }
     })
   }
+  _guidCache = {}
+  _cacheAliasAndGuid (alias) {
+    let guid = ''
+    if (this._guidCache[alias]) {
+      guid = this._guidCache[alias]
+    } else {
+      let ntable = this.getTableByAlias(alias)
+      this._guidCache[alias] = ntable.guid
+      guid = this._guidCache[alias]
+    }
+    return guid
+  }
   _generateLookups () {
     let result = []
     for (let key in this.tables) {
@@ -281,6 +302,19 @@ class NModel {
         return true
       }
     }
+  }
+  _replaceAlias (alias, fullName) {
+    return fullName && fullName.replace(/^([^.]+?)/, alias)
+  }
+  // 重新调整alias导致数据改变
+  _changeAliasRelation () {
+    let replaceFuc = (x) => {
+      let guid = x.table_guid
+      let ntable = this.getTableByGuid(guid)
+      x.column = this._replaceAlias(ntable.alias, x.column)
+    }
+    this._mount.dimensions.map(replaceFuc)
+    this.tableIndexColumns.map(replaceFuc)
   }
   // 删除conn相关的主键的连接信息
   removeRenderLink (conn) {

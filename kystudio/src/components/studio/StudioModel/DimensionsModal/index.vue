@@ -272,6 +272,7 @@ export default class DimensionsModal extends Vue {
           result.push({
             guid: col.guid || sampleGuid(),
             name: col.alias,
+            table_guid: table.guid,
             column: table.alias + '.' + col.name,
             status: 'DIMENSION'
           })

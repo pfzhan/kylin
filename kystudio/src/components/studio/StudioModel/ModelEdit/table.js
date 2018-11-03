@@ -69,6 +69,9 @@ class NTable {
   getJoinInfo () {
     return this.joinInfo[this.guid]
   }
+  _replaceAlias (alias, fullName) {
+    return fullName && fullName.replace(/^([^.]+?)/, alias)
+  }
   // 获取符合元数据格式的JoinInfo
   getMetaJoinInfo () {
     let joinInfo = objectClone(this.joinInfo[this.guid])
@@ -76,6 +79,13 @@ class NTable {
     if (joinInfo && joinInfo.table && joinInfo.join) {
       obj.table = joinInfo.table.name
       obj.alias = joinInfo.table.alias
+      let falias = joinInfo.foreignTable.alias
+      joinInfo.join.foreign_key.map((x) => {
+        return this._replaceAlias(falias, x)
+      })
+      joinInfo.join.primary_key.map((x) => {
+        return this._replaceAlias(joinInfo.table.alias, x)
+      })
       obj.join = joinInfo.join
     } else {
       return null

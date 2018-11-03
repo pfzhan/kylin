@@ -283,12 +283,6 @@ export default class ModelEdit extends Vue {
   get allDimension () {
     return this.modelRender.dimensions
   }
-  get normalDimensionColumns () {
-    return this.modelRender.normalDimensions
-  }
-  get ccDimensionColumns () {
-    return this.modelRender.ccDimensions
-  }
   query (className) {
     return $(this.$el.querySelector(className))
   }
