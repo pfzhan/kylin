@@ -498,6 +498,9 @@ public class FavoriteQueryService extends BasicService {
             count++;
         }
 
+        favoriteQueryJDBCDao.batchUpdateStatus(favoriteQueries);
+        post(project, sqlPatterns, true);
+
         if (ignoreCountMap.containsKey(project))
             ignoreCountMap.put(project, 1);
     }
