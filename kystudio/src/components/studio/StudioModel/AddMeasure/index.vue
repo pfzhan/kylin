@@ -420,6 +420,9 @@ export default class AddMeasure extends Vue {
       this.allTableColumns = this.modelInstance && this.modelInstance.getTableColumns()
       this.ccGroups = this.modelInstance.computed_columns
       this.initExpression()
+      if (this.measure.parameter_value[0].value) {
+        this.changeParamValue(this.measure.parameter_value[0].value)
+      }
     }
   }
 }

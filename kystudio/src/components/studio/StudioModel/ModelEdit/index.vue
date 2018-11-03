@@ -392,6 +392,13 @@ export default class ModelEdit extends Vue {
   addNewMeasure () {
     this.measureVisible = true
     this.isEditMeasure = false
+    this.measureObj = {
+      name: '',
+      expression: 'SUM(column)',
+      parameter_value: [{type: 'column', value: ''}],
+      converted_columns: [],
+      return_type: ''
+    }
   }
   saveMeasure (measureObj, ccObj, isEdit) {
     if (isEdit) {
