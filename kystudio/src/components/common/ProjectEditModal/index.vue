@@ -11,7 +11,6 @@
           size="small"
           auto-complete="off"
           :value="form.name"
-          :disabled="editType !== 'new'"
           :placeholder="$t('projectPlace')"
           @input="value => inputHandler('name', value)">
         </el-input>

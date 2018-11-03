@@ -2,7 +2,7 @@
   <div class="project_edit">
     <el-form label-position="top" label-width="110px" :model="projectDesc" :rules="rules" ref="projectForm">
       <el-form-item :label="$t('projectName')" prop="name">
-        <el-input v-model="projectDesc.name" :placeholder="$t('projectPlace')" auto-complete="off" :disabled="isEdit" size="small"></el-input>
+        <el-input v-model="projectDesc.name" :placeholder="$t('projectPlace')" auto-complete="off" size="small"></el-input>
       </el-form-item>
       <el-form-item :label="$t('description')" prop="description">
         <el-input type="textarea" size="small" :placeholder="$t('projectDescription')" v-model="projectDesc.description" auto-complete="off" :disabled="isEdit"></el-input>
