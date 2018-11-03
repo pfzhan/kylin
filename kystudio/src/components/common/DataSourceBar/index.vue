@@ -201,8 +201,8 @@ export default class DataSourceBar extends Vue {
     await this.loadDatasources()
     await this.loadDataBases()
     await this.loadTables({ isReset: true })
-    this.selectFirstTable()
     freshTreeOrder(this)
+    this.selectFirstTable()
   }
   async loadDatasources () {
     this.datasources = this.currentSourceTypes.map(sourceType => getDatasourceObj(this, sourceType))
