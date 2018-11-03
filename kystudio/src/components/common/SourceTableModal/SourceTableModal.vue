@@ -312,16 +312,16 @@ export default class SourceTableModal extends Vue {
       case REFRESH_RANGE: {
         const response = await this.fetchRangeFreshInfo(data)
         const result = await handleSuccessAsync(response)
-        const storageSize = result.byte_size
+        // const storageSize = result.byte_size
         const affectedStart = result.affected_start
         const affectedEnd = result.affected_end
-        const confirmTitle = this.$t('kylinLang.common.notice')
-        const confirmMessage = this.$t('freshStorageCost', { storageSize: Vue.filter('dataSize')(storageSize) })
-        await this.$confirm(confirmMessage, confirmTitle, {
-          confirmButtonText: this.$t('kylinLang.common.ok'),
-          cancelButtonText: this.$t('kylinLang.common.cancel'),
-          type: 'warning'
-        })
+        // const confirmTitle = this.$t('kylinLang.common.notice')
+        // const confirmMessage = this.$t('freshStorageCost', { storageSize: Vue.filter('dataSize')(storageSize) })
+        // await this.$confirm(confirmMessage, confirmTitle, {
+        //   confirmButtonText: this.$t('kylinLang.common.ok'),
+        //   cancelButtonText: this.$t('kylinLang.common.cancel'),
+        //   type: 'warning'
+        // })
         data.affectedStart = affectedStart
         data.affectedEnd = affectedEnd
         return await this.freshRangeData(data)
