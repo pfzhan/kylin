@@ -46,6 +46,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.ColumnStatus;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.util.CubeUtils;
@@ -169,8 +170,12 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             }
 
             for (TblColRef tblColRef : allColumns) {
+                boolean isDimension = (!ctx.getSQLDigest().isRawQuery)
+                        && (ctx.filterColumns.contains(tblColRef) || ctx.groupByColumns.contains(tblColRef));
                 if (namedColsCandidate.containsKey(tblColRef.getIdentity())) {
-                    namedColsCandidate.get(tblColRef.getIdentity()).status = NDataModel.ColumnStatus.DIMENSION;
+                    ColumnStatus oldStatus = namedColsCandidate.get(tblColRef.getIdentity()).status;
+                    namedColsCandidate.get(tblColRef.getIdentity()).status = isDimension
+                            ? NDataModel.ColumnStatus.DIMENSION : oldStatus;
                     continue;
                 }
                 int newId = ++maxColId;
@@ -178,6 +183,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 col.name = tblColRef.getName();
                 col.aliasDotColumn = tblColRef.getIdentity();
                 col.id = newId;
+                col.status = isDimension ? NDataModel.ColumnStatus.DIMENSION : NDataModel.ColumnStatus.EXIST;
                 namedColsCandidate.put(tblColRef.getIdentity(), col);
             }
             return this;

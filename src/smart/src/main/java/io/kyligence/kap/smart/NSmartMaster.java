@@ -28,9 +28,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,7 +132,6 @@ public class NSmartMaster {
             try {
                 selectModelAndCubePlan();
                 refreshCubePlan();
-                saveModel();
                 saveCubePlan();
                 logger.debug("save successfully after refresh");
                 return;
@@ -182,7 +179,8 @@ public class NSmartMaster {
             NCubePlan cubePlan = modelCtx.getTargetCubePlan();
             if (cubePlanManager.getCubePlan(cubePlan.getName()) == null) {
                 cubePlanManager.createCubePlan(cubePlan);
-                dataflowManager.createDataflow(cubePlan.getName(), context.getProject(), cubePlan, null);
+                dataflowManager.createDataflow(cubePlan.getName(), context.getProject(), cubePlan,
+                        cubePlan.getModel().getOwner());
                 continue;
             }
 
@@ -213,18 +211,7 @@ public class NSmartMaster {
             if (dataModelManager.getDataModelDesc(model.getName()) != null) {
                 dataModelManager.updateDataModelDesc(model);
             } else {
-                dataModelManager.createDataModelDesc(model, null);
-
-                val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-                val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-                val nCubePlan = new NCubePlan();
-                nCubePlan.setProject(model.getProject());
-                nCubePlan.setUuid(UUID.randomUUID().toString());
-                nCubePlan.setModelName(model.getName());
-                nCubePlan.setName(model.getName() + "_cube");
-                nCubePlan.setModelName(model.getName());
-                cubePlanManager.createCubePlan(nCubePlan);
-                dataflowManager.createDataflow(nCubePlan.getName(), nCubePlan.getProject(), nCubePlan, model.getOwner());
+                dataModelManager.createDataModelDesc(model, model.getOwner());
             }
             try {
                 Thread.sleep(1000L);
