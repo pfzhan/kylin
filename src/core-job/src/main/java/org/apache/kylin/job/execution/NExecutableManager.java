@@ -349,15 +349,12 @@ public class NExecutableManager {
     }
 
     public void resumeAllRunningJobs() {
-        NProjectManager prjMgr = NProjectManager.getInstance(config);
         try {
-            for (ProjectInstance projectInstance : prjMgr.listAllProjects()) {
-                final List<ExecutableOutputPO> jobOutputs = executableDao.getJobOutputs(projectInstance.getName());
-                for (ExecutableOutputPO executableOutputPO : jobOutputs) {
-                    if (executableOutputPO.getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString())) {
-                        executableOutputPO.setStatus(ExecutableState.READY.toString());
-                        executableDao.updateJobOutput(executableOutputPO, project);
-                    }
+            final List<ExecutableOutputPO> jobOutputs = executableDao.getJobOutputs(project);
+            for (ExecutableOutputPO executableOutputPO : jobOutputs) {
+                if (executableOutputPO.getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString())) {
+                    executableOutputPO.setStatus(ExecutableState.READY.toString());
+                    executableDao.updateJobOutput(executableOutputPO, project);
                 }
             }
         } catch (PersistentException e) {
