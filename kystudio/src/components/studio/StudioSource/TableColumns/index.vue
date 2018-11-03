@@ -89,7 +89,13 @@ export default class TableColumns extends Vue {
   }
   get currentColumns () {
     const { pageOffset, pageSize } = this.pagination
-    return this.columns.slice(pageOffset * pageSize, pageOffset * pageSize + pageSize)
+    return this.columns.slice(pageOffset * pageSize, pageOffset * pageSize + pageSize).map(column => {
+      const cardinality = this.getCardinality(column.name)
+      return { ...column, cardinality }
+    })
+  }
+  getCardinality (columnName) {
+    return this.table.cardinality[columnName]
   }
   handleCurrentChange (pageOffset, pageSize) {
     this.pagination.pageOffset = pageOffset
