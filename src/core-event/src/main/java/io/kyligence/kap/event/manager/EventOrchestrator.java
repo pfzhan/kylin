@@ -295,10 +295,10 @@ public class EventOrchestrator {
         eventProcessPool = new ThreadPoolExecutor(corePoolSize, corePoolSize, Long.MAX_VALUE, TimeUnit.DAYS,
                 new SynchronousQueue<Runnable>(), new NamedThreadFactory("EventOrchestratorPool"));
 
-        int pollSecond = kylinConfig.getSchedulerPollIntervalSecond();
+        int pollSecond = kylinConfig.getEventPollIntervalSecond();
         logger.info("Fetching events every {} seconds", pollSecond);
         fetcher = new FetcherRunner();
-        fetcherPool.scheduleAtFixedRate(fetcher, pollSecond / 10, pollSecond, TimeUnit.SECONDS);
+        fetcherPool.scheduleAtFixedRate(fetcher, pollSecond, pollSecond, TimeUnit.SECONDS);
     }
 
     public void shutdown() {

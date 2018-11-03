@@ -46,6 +46,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.ImportResource;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
@@ -68,7 +70,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 
 @ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
 @SpringBootApplication
-public class BootstrapServer {
+public class BootstrapServer implements ApplicationListener<ApplicationReadyEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapServer.class);
 
@@ -89,7 +91,8 @@ public class BootstrapServer {
         } else {
             setLocalEnvs();
         }
-        initBackend();
+        // set influx config
+        System.setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         initSparkSession();
     }
 
@@ -158,9 +161,6 @@ public class BootstrapServer {
                 throw new RuntimeException("Scheduler for " +projectInstance.getName() + " has not been started");
             }
         }
-
-        // set influx config
-        System.setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
     }
 
     private static void setLocalEnvs() {
@@ -193,4 +193,9 @@ public class BootstrapServer {
         }
     }
 
+    @Override
+    public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
+        initBackend();
+        logger.info("init backend end...");
+    }
 }

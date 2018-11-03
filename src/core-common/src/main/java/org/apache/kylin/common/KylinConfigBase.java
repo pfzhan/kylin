@@ -1520,4 +1520,8 @@ abstract public class KylinConfigBase implements Serializable {
     public boolean isReduceExpressionsRulesEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.query.calcite.reduce-rules-enabled", "true"));
     }
+
+    public int getEventPollIntervalSecond() {
+        return Integer.parseInt(getOptional("kylin.job.event.poll-interval-second", "3"));
+    }
 }
