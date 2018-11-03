@@ -41,7 +41,6 @@ import 'brace/theme/monokai'
 import 'brace/ext/language_tools'
 import './assets/styles/index.less'
 import VueDND from 'awe-dnd'
-import * as types from './store/types'
 Vue.use(VueDND)
 Vue.component('confirm-btn', confirmBtn)
 Vue.component('common-tip', commonTip)
@@ -60,7 +59,6 @@ Vue.component('kap_editor', kapEditor)
 Vue.component('kap-tab', tab)
 Vue.component('kap-validate-editor', kapValidateEditor)
 Vue.component('kap-loading', kapLoading)
-import { menusData } from './config'
 import { getQueryString, cacheSessionStorage, cacheLocalStorage } from './util'
 // Vue.component('draggable', draggable)
 // Vue.component('introJs', introJs)
@@ -85,7 +83,6 @@ Vue.prototype.__KY_DIALOG_CLOSE_EVENT__ = () => {
 }
 var from = getQueryString('from')
 var token = getQueryString('token')
-var selectedProject = store.state.project.selected_project
 store.state.config.platform = from
 if (from === 'cloud') {
   var projectName = getQueryString('projectName')
@@ -123,72 +120,6 @@ Vue.http.interceptors.push(function (request, next) {
       router.replace('/access/login')
     }
   })
-})
-router.beforeEach((to, from, next) => {
-  // 处理在模型添加的业务窗口刷新浏览器
-  if (to.name === 'ModelEdit' && to.params.action === 'add' && from.name === null) {
-    router.push({name: 'ModelList'})
-    return
-  }
-  ElementUI.Message.closeAll() // 切换路由的时候关闭message
-  store.state.config.showLoadingBox = false // 切换路由的时候关闭全局loading
-  if (to.matched && to.matched.length) {
-    store.state.config.layoutConfig.gloalProjectSelectShow = to.name !== 'Overview'
-    // 确保在非点击菜单的路由跳转下还能够正确定位到指定的active name
-    menusData.forEach((menu) => {
-      if (menu.name.toLowerCase() === to.name.toLowerCase()) {
-        store.state.config.routerConfig.currentPathName = menu.path
-      }
-    })
-    // for newten
-    // let configPromise = store.dispatch(types.GET_CONF)
-    let authenticationPromise = store.dispatch(types.LOAD_AUTHENTICATION)
-    let projectPromise = store.dispatch(types.LOAD_ALL_PROJECT)
-    let rootPromise = Promise.all([
-      // for newten
-      // configPromise,
-      authenticationPromise,
-      projectPromise
-    ])
-    // 如果是从登陆过来的，所有信息都要重新获取
-    if (from.name === 'Login' && (to.name !== 'access' && to.name !== 'Login')) {
-      rootPromise.then(() => {
-        let configPromise = store.dispatch(types.GET_CONF, {
-          projectName: selectedProject
-        })
-        configPromise.then(() => {
-          next()
-        })
-      })
-    } else if (from.name !== 'access' && from.name !== 'Login' && to.name !== 'access' && to.name !== 'Login') {
-      // 如果是非登录页过来的，内页之间的路由跳转的话，就需要判断是否已经拿过权限
-      if (store.state.system.authentication === null && store.state.system.serverConfig === null) {
-        rootPromise.then(() => {
-          store.commit(types.SAVE_CURRENT_LOGIN_USER, { user: store.state.system.authentication.data })
-          let configPromise = store.dispatch(types.GET_CONF, {
-            projectName: selectedProject
-          })
-          configPromise.then(() => {
-            next()
-          })
-        }, (res) => {
-          next()
-        })
-      } else {
-        next()
-      }
-    } else {
-      next()
-    }
-  } else {
-    router.replace('/access/login')
-  }
-})
-router.afterEach(route => {
-  var scrollBoxDom = document.getElementById('scrollBox')
-  if (scrollBoxDom) {
-    scrollBoxDom.scrollTop = 0
-  }
 })
 /* eslint-disable no-new */
 window.kapVm = new Vue({

@@ -150,7 +150,9 @@ exports.default = {
     endTime: '结束时间',
     pleaseChoose: '请选择',
     ON: '开',
-    OFF: '关'
+    OFF: '关',
+    willGo: '检测到您有未保存的信息，是否继续跳转？',
+    go: '跳转'
   },
   model: {
     modelName: '模型名称：',

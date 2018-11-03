@@ -199,6 +199,8 @@ class NModel {
         this.removeRenderLink(hasConn)
         return null
       }
+      this.setOverLayLabel(hasConn)
+      this.plumbTool.refreshPlumbInstance()
       return hasConn
     }
     var conn = this.plumbTool.connect(pid, fid, () => {

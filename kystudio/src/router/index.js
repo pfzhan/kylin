@@ -18,9 +18,9 @@ import messages from 'components/messages'
 // import cluster from 'components/monitor/cluster'
 // import admin from 'components/monitor/admin'
 import jobs from 'components/monitor/jobs'
+import { bindRouterGuard } from './routerGuard.js'
 Vue.use(Router)
-
-export default new Router({
+let routerOptions = {
   routes: [
     {
       path: '/access',
@@ -145,4 +145,7 @@ export default new Router({
       }]
     }
   ]
-})
+}
+let router = new Router(routerOptions)
+router = bindRouterGuard(router)
+export default router

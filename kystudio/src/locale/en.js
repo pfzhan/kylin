@@ -151,7 +151,9 @@ exports.default = {
     endTime: 'End Time',
     pleaseChoose: 'Please Choose',
     ON: 'ON',
-    OFF: 'OFF'
+    OFF: 'OFF',
+    willGo: 'You have unsaved information detected, do you want to continue?',
+    go: 'Continue'
   },
   model: {
     draft: 'Draft',
