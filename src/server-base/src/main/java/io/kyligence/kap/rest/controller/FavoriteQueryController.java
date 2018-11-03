@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.controller;
 
 import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.query.QueryFilterRule;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
 import org.apache.kylin.job.exception.PersistentException;
@@ -44,7 +43,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.List;
 
 @RestController
 @RequestMapping(value = "/query/favorite_queries", produces = { "application/vnd.apache.kylin-v2+json" })
@@ -65,10 +63,9 @@ public class FavoriteQueryController extends NBasicController {
     public EnvelopeResponse listFavoriteQuery(@RequestParam(value = "project") String project,
                                   @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
                                   @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-        List<FavoriteQuery> favoriteQueries = favoriteQueryService.getFavoriteQueriesByPage(project, limit, offset);
         HashMap<String, Object> data = Maps.newHashMap();
-        data.put("favorite_queries", favoriteQueries);
-        data.put("size", favoriteQueries.size());
+        data.put("favorite_queries", favoriteQueryService.getFavoriteQueriesByPage(project, limit, offset));
+        data.put("size", favoriteQueryService.getFavoriteQuerySize(project));
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 

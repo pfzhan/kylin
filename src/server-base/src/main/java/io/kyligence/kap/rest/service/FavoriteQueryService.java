@@ -376,6 +376,16 @@ public class FavoriteQueryService extends BasicService {
         return favoriteQueryJDBCDao.getByPage(project, limit, offset);
     }
 
+    public int getFavoriteQuerySize(String project) {
+        Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
+
+        Set<Integer> sqlPatternHashSetInProj = FavoriteQueryJDBCDao.sqlPatternHashSet.get(project);
+        if (sqlPatternHashSetInProj == null)
+            return 0;
+
+        return sqlPatternHashSetInProj.size();
+    }
+
     private int getOptimizedModelNum(String project, String[] sqls) {
         int optimizedModelNum = 0;
         NSmartMaster smartMaster = new NSmartMaster(KylinConfig.getInstanceFromEnv(), project, sqls);

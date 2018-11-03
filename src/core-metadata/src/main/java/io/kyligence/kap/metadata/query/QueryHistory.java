@@ -161,6 +161,9 @@ public class QueryHistory {
     @Column(name = PROJECT, tag = true)
     private String queryProject;
 
+    @Column(name = "count")
+    private int size;
+
     public QueryHistory() {
     }
 

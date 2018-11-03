@@ -35,6 +35,7 @@ import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
 
 @Component("queryHistoryService")
@@ -48,18 +49,30 @@ public class QueryHistoryService extends BasicService {
         }
     }
 
-    public List<QueryHistory> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
+    public HashMap<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
         Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
         checkMetricWriterType();
 
-        final String query = getQueryHistorySql(request, limit, offset);
-        return queryHistoryManager.getQueryHistoriesBySql(query, QueryHistory.class);
+        HashMap<String, Object> data = new HashMap<>();
+        final String query = String.format("SELECT * FROM %s WHERE project = '%s' ", QueryHistory.QUERY_MEASUREMENT,
+                request.getProject()) + getQueryHistoryFilterSql(request)
+                + String.format("ORDER BY time DESC LIMIT %d OFFSET %d", limit, offset * limit);
+        data.put("query_histories", queryHistoryManager.getQueryHistoriesBySql(query, QueryHistory.class));
+
+        final String countQuery = String.format("SELECT count(query_id) FROM %s WHERE project = '%s' ",
+                QueryHistory.QUERY_MEASUREMENT, request.getProject()) + getQueryHistoryFilterSql(request);
+
+        List<QueryHistory> sizeList = queryHistoryManager.getQueryHistoriesBySql(countQuery, QueryHistory.class);
+        if (sizeList == null || sizeList.isEmpty())
+            data.put("size", 0);
+        else
+            data.put("size", sizeList.get(0).getSize());
+
+        return data;
     }
 
-    private String getQueryHistorySql(QueryHistoryRequest request, final int limit, final int offset) {
+    private String getQueryHistoryFilterSql(QueryHistoryRequest request) {
         StringBuilder sb = new StringBuilder();
-        sb.append(String.format("SELECT * FROM %s WHERE project = '%s' ", QueryHistory.QUERY_MEASUREMENT,
-                request.getProject()));
 
         // filter by time
         sb.append(String.format("AND (query_time >= %d AND query_time < %d) ", request.getStartTimeFrom(),
@@ -104,7 +117,6 @@ public class QueryHistoryService extends BasicService {
             }
         }
 
-        sb.append(String.format("ORDER BY time DESC LIMIT %d OFFSET %d", limit, offset));
         return sb.toString();
     }
 

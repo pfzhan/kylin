@@ -271,7 +271,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
     @Override
     public List<FavoriteQuery> getByPage(String project, int limit, int offset) {
         final String sql = String.format("SELECT * FROM %s WHERE project='%s' ORDER BY %s DESC LIMIT %d OFFSET %d",
-                this.tableName, project, LAST_QUERY_TIME, limit, offset);
+                this.tableName, project, LAST_QUERY_TIME, limit, offset*limit);
         return jdbcTemplate.query(sql, new FavoriteRowMapper());
     }
 

@@ -38,7 +38,6 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.request.QueryHistoryRequest;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
@@ -170,13 +169,8 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "accelerateStatus[]", required = false) List<String> accelerateStatuses,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-        HashMap<String, Object> data = new HashMap<>();
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom, latencyTo, sql, realizations, accelerateStatuses);
-        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories(request, limit, offset);
-        data.put("query_histories", queryHistories);
-        data.put("size", queryHistories.size());
-
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryHistoryService.getQueryHistories(request, limit, offset), "");
     }
 
     @RequestMapping(value = "/format/{format}", method = RequestMethod.POST, produces = {
