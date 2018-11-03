@@ -135,7 +135,7 @@ export default class RelatedModels extends Vue {
   }
   async handleDiscard (relatedModel) {
     try {
-      const modelName = relatedModel.alias
+      const modelName = relatedModel.name
       const { projectName } = this
       const message = this.$t('kylinLang.common.updateSuccess')
       const confirmMessage = this.$t('dicardConfirm')

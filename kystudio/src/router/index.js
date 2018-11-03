@@ -59,7 +59,7 @@ export default new Router({
         component: () => import('../components/studio/StudioModel/ModelList/index.vue')
       }, {
         name: 'ModelEdit',
-        path: 'studio/modeledit/:modelName/:action',
+        path: 'studio/model/:modelName/:action',
         // path: 'studio/:subaction',
         // component: modelTab
         meta: {},
