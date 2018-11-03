@@ -329,12 +329,18 @@ public class ModelService extends BasicService {
         List<NCubePlan> cubePlans = getCubePlans(modelName, project);
         List<NSpanningTree> result = new ArrayList<>();
         for (NCubePlan cubeplan : cubePlans) {
-            if (cubeplan.getRuleBasedCuboidsDesc() == null) {
-                continue;
+            val allLayouts = Lists.<NCuboidLayout>newArrayList();
+            if (cubeplan.getRuleBasedCuboidsDesc() != null) {
+                val rule = cubeplan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid() == null
+                        ? cubeplan.getRuleBasedCuboidsDesc()
+                        : cubeplan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid();
+                allLayouts.addAll(rule.genCuboidLayouts());
             }
-            val rule = cubeplan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid() == null ? cubeplan.getRuleBasedCuboidsDesc() :
-                    cubeplan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid();
-            val tree = NSpanningTreeFactory.fromCuboidLayouts(rule.genCuboidLayouts(), cubeplan.getName());
+            val autoLayouts = cubeplan.getWhitelistCuboidLayouts().stream()
+                    .filter(layout -> layout.getId() < NCuboidDesc.RULE_BASED_CUBOID_START_ID)
+                    .collect(Collectors.toList());
+            allLayouts.addAll(autoLayouts);
+            val tree = NSpanningTreeFactory.fromCuboidLayouts(allLayouts, cubeplan.getName());
             result.add(tree);
         }
         return result;
