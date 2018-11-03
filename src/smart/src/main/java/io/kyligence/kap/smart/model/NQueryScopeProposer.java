@@ -46,8 +46,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModel.ColumnStatus;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.util.CubeUtils;
 
@@ -173,9 +173,10 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 boolean isDimension = (!ctx.getSQLDigest().isRawQuery)
                         && (ctx.filterColumns.contains(tblColRef) || ctx.groupByColumns.contains(tblColRef));
                 if (namedColsCandidate.containsKey(tblColRef.getIdentity())) {
-                    ColumnStatus oldStatus = namedColsCandidate.get(tblColRef.getIdentity()).status;
-                    namedColsCandidate.get(tblColRef.getIdentity()).status = isDimension
-                            ? NDataModel.ColumnStatus.DIMENSION : oldStatus;
+                    NamedColumn namedColumn = namedColsCandidate.get(tblColRef.getIdentity());
+                    isDimension = namedColumn.isDimension() || isDimension;
+                    namedColumn.status = isDimension ? NDataModel.ColumnStatus.DIMENSION
+                            : NDataModel.ColumnStatus.EXIST;
                     continue;
                 }
                 int newId = ++maxColId;
@@ -198,7 +199,10 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 }
                 for (TblColRef tblColRef : agg.getParameter().getColRefs()) {
                     if (namedColsCandidate.containsKey(tblColRef.getIdentity())) {
-                        namedColsCandidate.get(tblColRef.getIdentity()).status = NDataModel.ColumnStatus.DIMENSION;
+                        NamedColumn namedCol = namedColsCandidate.get(tblColRef.getIdentity());
+                        if (!namedCol.isExist()) {
+                            namedCol.status = NDataModel.ColumnStatus.EXIST;
+                        }
                     }
                 }
                 if (checkFunctionDesc(agg)) {
