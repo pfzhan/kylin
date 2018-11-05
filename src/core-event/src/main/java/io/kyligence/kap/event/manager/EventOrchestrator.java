@@ -146,7 +146,7 @@ public class EventOrchestrator {
             Collections.sort(events, new Comparator<Event>() {
                 @Override
                 public int compare(Event o1, Event o2) {
-                    if (o1.getCreateTime() <= o2.getCreateTime()) {
+                    if (o1.getCreateTimeNanosecond() <= o2.getCreateTimeNanosecond()) {
                         return -1;
                     } else {
                         return 1;

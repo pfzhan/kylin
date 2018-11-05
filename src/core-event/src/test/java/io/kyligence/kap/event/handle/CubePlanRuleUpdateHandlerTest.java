@@ -108,7 +108,7 @@ public class CubePlanRuleUpdateHandlerTest extends NLocalFileMetadataTestCase {
         handler.handle(eventContext);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTime));
+        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
         Assert.assertEquals(2, events.size());
 
     }

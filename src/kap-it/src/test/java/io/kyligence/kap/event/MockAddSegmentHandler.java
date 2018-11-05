@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.event;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.cube.model.NDataflow;
@@ -33,6 +34,7 @@ import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.EventContext;
 import lombok.val;
 
+@Slf4j
 public class MockAddSegmentHandler extends AbstractEventHandler {
     @Override
     protected void doHandle(EventContext eventContext) throws Exception {
@@ -45,6 +47,7 @@ public class MockAddSegmentHandler extends AbstractEventHandler {
         val eventManager = EventManager.getInstance(kylinConfig, project);
 
         NDataflow df = dfMgr.getDataflow(event.getCubePlanName());
+        log.debug("df {} is reconstructing? {}", df.getName(), df.isReconstructing());
         // repost event
         if (df.isReconstructing()) {
             val newEvent = new AddSegmentEvent();
@@ -56,7 +59,6 @@ public class MockAddSegmentHandler extends AbstractEventHandler {
             newEvent.setAddedInfo(event.getAddedInfo());
             eventManager.post(newEvent);
         }
-        Thread.sleep(1000);
     }
 
     @Override

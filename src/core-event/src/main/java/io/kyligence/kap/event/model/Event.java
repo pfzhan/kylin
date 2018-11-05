@@ -94,11 +94,11 @@ public class Event extends RootPersistentEntity {
     private boolean isParallel = false;
     @JsonProperty("parentId")
     private String parentId;
-    @JsonProperty("create_time")
-    protected long createTime;
+    @JsonProperty("create_time_nanosecond")
+    protected long createTimeNanosecond;
 
     public Event() {
-        createTime = System.currentTimeMillis();
+        createTimeNanosecond = System.nanoTime();
         uuid = UUID.randomUUID().toString();
     }
 

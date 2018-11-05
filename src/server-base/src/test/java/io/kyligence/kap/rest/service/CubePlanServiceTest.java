@@ -25,7 +25,6 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 
@@ -198,12 +197,7 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
 
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
         var allEvents = eventDao.getEvents();
-        Collections.sort(allEvents, new Comparator<Event>() {
-            @Override
-            public int compare(Event o1, Event o2) {
-                return (int) (o1.getCreateTime() - o2.getCreateTime());
-            }
-        });
+        allEvents.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
         Assert.assertEquals(2, allEvents.size());
         val event = allEvents.get(1);
         Assert.assertThat(((RemoveCuboidByIdEvent) event).getLayoutIds(),
@@ -231,12 +225,7 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
         val allEvents = eventDao.getEvents();
-        Collections.sort(allEvents, new Comparator<Event>() {
-            @Override
-            public int compare(Event o1, Event o2) {
-                return (int) (o1.getCreateTime() - o2.getCreateTime());
-            }
-        });
+        allEvents.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
         Assert.assertEquals(3, allEvents.size());
         val event = allEvents.get(1);
         Assert.assertThat(((RemoveCuboidByIdEvent) event).getLayoutIds(),

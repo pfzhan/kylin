@@ -28,12 +28,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.event.model.AddCuboidEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,6 +51,7 @@ import io.kyligence.kap.event.handle.AddSegmentHandler;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventStatus;
@@ -74,6 +73,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     @Before
     public void setupHandlers() {
+        EventOrchestratorManager.destroyInstance();
         val scanner = new ClassPathScanningCandidateComponentProvider(false);
         scanner.addIncludeFilter(new AssignableTypeFilter(AbstractEventHandler.class));
         for (BeanDefinition component : scanner.findCandidateComponents("io.kyligence.kap")) {
@@ -95,11 +95,6 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "3");
     }
 
-    @After
-    public void destroyHandlers() {
-        EventOrchestratorManager.destroyInstance();
-    }
-
     @Test
     public void testSemanticChangedHappy() throws Exception {
         val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
@@ -112,11 +107,11 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         var df = dfManager.getDataflowByModelName(MODEL_NAME);
         Assert.assertTrue(df.isReconstructing());
 
-        val runningEventSize = waitForEventFinished();
+        val runningEventSize = waitForEventFinished(3);
         df = dfManager.getDataflowByModelName(MODEL_NAME);
         Assert.assertEquals(0, runningEventSize);
         val allEvents = eventDao.getEvents();
-        allEvents.sort(Comparator.comparingLong(Event::getCreateTime));
+        allEvents.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
         val addEvent = (AddCuboidEvent) allEvents.get(1);
         Assert.assertTrue(CollectionUtils.isEqualCollection(addEvent.getLayoutIds(),
                 Arrays.<Long>asList(1000001L, 1L, 1001L, 1002L, 2001L, 3001L, 20000001001L)));
@@ -141,9 +136,10 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         val firstStepEvents = eventDao.getEvents();
         Assert.assertEquals(2, firstStepEvents.size());
 
-        waitForEventFinished();
+        waitForEventFinished(6);
         val events = eventDao.getEvents();
-        events.sort(Comparator.comparingLong(e -> e.getCreateTime()));
+        events.sort(Comparator.comparingLong(e -> e.getCreateTimeNanosecond()));
+        log.debug("events are {}", events);
         Assert.assertEquals(6, events.size());
         Assert.assertTrue(events.get(4) instanceof PostModelSemanticUpdateEvent);
         Assert.assertTrue(events.get(5) instanceof AddSegmentEvent);
@@ -181,28 +177,27 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         return jobs;
     }
 
-    private long waitForEventFinished() throws Exception {
-        boolean wait = true;
+    private long waitForEventFinished(int expectedSize) throws Exception {
         EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
         List<Event> events = Lists.newArrayList();
-        while (wait) {
+        val startTime = System.currentTimeMillis();
+        while (true) {
             int finishedEventNum = 0;
             events = eventDao.getEvents();
             for (Event event : events) {
                 EventStatus status = event.getStatus();
                 if (status.equals(EventStatus.SUCCEED) || status.equals(EventStatus.ERROR)) {
                     finishedEventNum++;
-                } else {
-                    Thread.sleep(500);
-                    break;
                 }
-
             }
             log.debug("finished {}, all {}", finishedEventNum, events.size());
-            if (finishedEventNum == events.size()) {
-                wait = false;
+            if (finishedEventNum == events.size() && finishedEventNum == expectedSize) {
+                break;
             }
-
+            if (System.currentTimeMillis() - startTime > 20 * 1000) {
+                break;
+            }
+            Thread.sleep(5000);
         }
         return events.stream().filter(e -> e.getStatus() == EventStatus.READY).count();
     }

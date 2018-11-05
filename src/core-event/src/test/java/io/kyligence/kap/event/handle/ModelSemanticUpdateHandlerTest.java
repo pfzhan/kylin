@@ -51,7 +51,9 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
 
     public static final String MODEL_NAME = "nmodel_basic";
@@ -85,7 +87,8 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         handler.handle(eventContext);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTime));
+        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
+        log.debug("events are {}", events);
         Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
     }
 
@@ -110,7 +113,7 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         handler.handle(eventContext);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTime));
+        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
         Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
         val savedIds = ((AddCuboidEvent) events.get(1)).getLayoutIds();
         Assert.assertTrue(CollectionUtils.isEqualCollection(savedIds,
@@ -133,7 +136,7 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         handler.handle(eventContext);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTime));
+        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
         Assert.assertEquals(2, events.size());
 
     }
@@ -157,7 +160,7 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         handler.handle(eventContext);
 
         var events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTime));
+        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
         Assert.assertEquals(2, events.size());
 
         cubeMgr.updateCubePlan("ncube_basic", copyForWrite -> {
@@ -173,7 +176,7 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         eventContext.setEvent(updateEvent2);
         handler.handle(eventContext);
         events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTime));
+        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
         Assert.assertEquals(4, events.size());
         Assert.assertTrue(events.get(3) instanceof CubePlanRuleUpdateEvent);
 
@@ -204,7 +207,7 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         handler.handle(eventContext);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTime));
+        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
         Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(1) instanceof CubePlanRuleUpdateEvent);
 
@@ -248,7 +251,7 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         handler.handle(eventContext);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTime));
+        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
         Assert.assertEquals(3, events.size());
         Assert.assertTrue(events.get(1) instanceof CubePlanRuleUpdateEvent);
         Assert.assertTrue(events.get(2) instanceof RemoveCuboidByIdEvent);
