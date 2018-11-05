@@ -297,7 +297,7 @@ Vue.directive('drag', {
       }, 2)
     })
     oDiv.onmousedown = function (ev) {
-      let zoom = el.getAttribute('data-zoom') || 1
+      let zoom = el.getAttribute('data-zoom') || 10
       ev.stopPropagation()
       var offsetX = ev.clientX
       var offsetY = ev.clientY

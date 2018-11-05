@@ -1,5 +1,5 @@
 <template>
-  <div class="model-edit-outer" @drop='dropTable($event)' v-drag="{sizeChangeCb:dragBox}" :data-zoom="modelRender.zoom">
+  <div class="model-edit-outer" @drop='dropTable($event)' v-drag="{sizeChangeCb:dragBox}">
     <div class="model-edit"  @dragover='allowDrop($event)' @dragleave="dragLeave">
       <!-- table box -->
       <div class="table-box" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
@@ -23,7 +23,7 @@
             </li>
           </ul>
         </div>
-        <div class="drag-bar" v-drag:change.height="t.drawSize"><i class="el-icon-ksd-bottom_bar"></i></div>
+        <div class="drag-bar" v-drag:change.height="t.drawSize" :data-zoom="modelRender.zoom"><i class="el-icon-ksd-bottom_bar"></i></div>
       </div>
       <!-- table box end -->
     </div>
@@ -190,7 +190,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
-import { handleSuccess, handleError, loadingBox, kapMessage } from '../../../../util/business'
+import { handleSuccess, handleError, loadingBox, kapMessage, kapConfirm } from '../../../../util/business'
 import { isIE, groupData, objectClone } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
@@ -287,10 +287,13 @@ export default class ModelEdit extends Vue {
     return $(this.$el.querySelector(className))
   }
   delTable (guid) {
-    this.modelInstance.delTable(guid).then(() => {
-    }, () => {
-      kapMessage(this.$t('delTableTip'), {type: 'warning'})
+    kapConfirm(this.$t('delTableTip')).then(() => {
+      this.modelInstance.delTable(guid)
     })
+    // this.modelInstance.delTable(guid).then(() => {
+    // }, () => {
+    //   kapMessage(this.$t('delTableTip'), {type: 'warning'})
+    // })
   }
   editAlias (t) {
     this.$set(t, 'aliasIsEdit', true)

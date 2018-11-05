@@ -294,13 +294,15 @@ class NModel {
   }
   // end
   // 判断是否table有关联的链接
-  isConnectedTable (guid) {
+  getAllConnectsByAlias (guid) {
+    let result = []
     var reg = new RegExp('^' + guid + '\\$|\\$' + guid + '$')
     for (let i in this.allConnInfo) {
       if (reg.test(i)) {
-        return true
+        result.push(this.allConnInfo[i])
       }
     }
+    return result.length ? result : false
   }
   _replaceAlias (alias, fullName) {
     console.log(fullName, alias + '.' + fullName.split('.')[1])
@@ -436,14 +438,13 @@ class NModel {
   }
   delTable (guid) {
     return new Promise((resolve, reject) => {
-      if (!this.isConnectedTable(guid)) {
-        this._delTableRelated(guid)
-        this.$delete(this.tables, guid)
-        return resolve()
-      } else {
-        // 有连接的情况下
-        return reject()
-      }
+      let conns = this.getAllConnectsByAlias(guid)
+      conns && conns.forEach((conn) => {
+        this.removeRenderLink(conn)
+      })
+      this._delTableRelated(guid)
+      this.$delete(this.tables, guid)
+      return resolve()
     })
   }
   _delTableRelated (guid) {
