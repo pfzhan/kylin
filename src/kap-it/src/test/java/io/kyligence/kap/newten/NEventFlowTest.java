@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.kyligence.kap.event.handle.PostModelSemanticUpdateHandler;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
@@ -39,7 +40,6 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
@@ -61,7 +61,7 @@ import io.kyligence.kap.event.handle.AddCuboidHandler;
 import io.kyligence.kap.event.handle.AddSegmentHandler;
 import io.kyligence.kap.event.handle.LoadingRangeRefreshHandler;
 import io.kyligence.kap.event.handle.LoadingRangeUpdateHandler;
-import io.kyligence.kap.event.handle.ModelUpdateHandler;
+import io.kyligence.kap.event.handle.AccelerateEventHandler;
 import io.kyligence.kap.event.handle.RefreshSegmentHandler;
 import io.kyligence.kap.event.handle.RemoveCuboidBySqlHandler;
 import io.kyligence.kap.event.manager.EventDao;
@@ -108,7 +108,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "30");
 
         new RemoveCuboidBySqlHandler();
-        new ModelUpdateHandler();
+        new AccelerateEventHandler();
         new LoadingRangeUpdateHandler();
         new LoadingRangeRefreshHandler();
         new PostModelSemanticUpdateHandler();
@@ -136,7 +136,6 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    @Ignore("wait for h2 favoritedao ready")
     @SuppressWarnings("MethodLength")
     public void testEventFlow() throws Exception {
         // mock success job
@@ -149,6 +148,7 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         Mockito.doReturn(successJobs.get(0), successJobs.get(1), successJobs.get(2), successJobs.get(3)).when(addSegmentHandler).createJob(Mockito.any(EventContext.class));
         Mockito.doReturn(successJobs.get(4), successJobs.get(5), successJobs.get(6)).when(addCuboidHandler).createJob(Mockito.any(EventContext.class));
         Mockito.doReturn(successJobs.get(7), successJobs.get(8), successJobs.get(9), successJobs.get(10)).when(refreshSegmentHandler).createJob(Mockito.any(EventContext.class));
+        Mockito.doReturn(Mockito.mock(FavoriteQueryJDBCDao.class)).when(addCuboidHandler).getFavoriteQueryDao();
 
         testLoadingRangeFlow();
         testRefreshFlow();

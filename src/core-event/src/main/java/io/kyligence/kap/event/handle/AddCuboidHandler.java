@@ -83,7 +83,7 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
 
     }
 
-    FavoriteQueryJDBCDao getFavoriteQueryDao() {
+    public FavoriteQueryJDBCDao getFavoriteQueryDao() {
         return FavoriteQueryJDBCDao.getInstance(KylinConfig.getInstanceFromEnv());
     }
 

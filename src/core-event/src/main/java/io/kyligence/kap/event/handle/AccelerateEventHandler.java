@@ -50,9 +50,9 @@ import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.model.ModelTree;
 
-public class ModelUpdateHandler extends AbstractEventHandler implements DeriveEventMixin {
+public class AccelerateEventHandler extends AbstractEventHandler implements DeriveEventMixin {
 
-    private static final Logger logger = LoggerFactory.getLogger(ModelUpdateHandler.class);
+    private static final Logger logger = LoggerFactory.getLogger(AccelerateEventHandler.class);
 
     @Override
     public void doHandle(EventContext eventContext) throws Exception {

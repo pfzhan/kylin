@@ -58,7 +58,7 @@ import io.kyligence.kap.event.handle.LoadingRangeRefreshHandler;
 import io.kyligence.kap.event.handle.LoadingRangeUpdateHandler;
 import io.kyligence.kap.event.handle.MergeSegmentHandler;
 import io.kyligence.kap.event.handle.ModelSemanticUpdateHandler;
-import io.kyligence.kap.event.handle.ModelUpdateHandler;
+import io.kyligence.kap.event.handle.AccelerateEventHandler;
 import io.kyligence.kap.event.handle.PostCubePlanRuleUpdateHandler;
 import io.kyligence.kap.event.handle.PostModelSemanticUpdateHandler;
 import io.kyligence.kap.event.handle.ProjectHandler;
@@ -140,7 +140,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         new RemoveCuboidBySqlHandler();
         new RemoveCuboidByIdHandler();
         new AddCuboidHandler();
-        new ModelUpdateHandler();
+        new AccelerateEventHandler();
         new LoadingRangeUpdateHandler();
         new LoadingRangeRefreshHandler();
         new RefreshSegmentHandler();

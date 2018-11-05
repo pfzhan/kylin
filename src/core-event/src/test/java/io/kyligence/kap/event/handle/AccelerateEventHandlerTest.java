@@ -38,7 +38,7 @@ import org.junit.Test;
 
 import java.util.List;
 
-public class ModelUpdateHandlerTest extends NLocalFileMetadataTestCase {
+public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
 
     private static final String DEFAULT_PROJECT = "default";
     @Before
@@ -66,7 +66,7 @@ public class ModelUpdateHandlerTest extends NLocalFileMetadataTestCase {
 
         event.setSqlPatterns(Lists.newArrayList("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME"));
         EventContext eventContext = new EventContext(event, getTestConfig());
-        ModelUpdateHandler handler = new ModelUpdateHandler();
+        AccelerateEventHandler handler = new AccelerateEventHandler();
         // add favorite sql to update model and post an new AddCuboidEvent
         handler.handle(eventContext);
 
