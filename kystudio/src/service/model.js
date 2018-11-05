@@ -7,7 +7,8 @@ Vue.use(VueResource)
 export default {
   // 获取加速信息
   getSpeedModelInfo: (projectName) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/threshold?project=' + projectName).get()
+    const vm = window.kapVm
+    return vm.$http.get(apiUrl + 'query/favorite_queries/threshold?project=' + projectName, {headers: {'X-Progress-Invisiable': 'true'}})
   },
   // 执行加速
   applySpeedModelInfo: (projectName, size) => {

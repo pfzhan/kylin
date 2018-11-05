@@ -97,6 +97,7 @@ Vue.use(VueClipboard)
 Vue.http.headers.common['Accept-Language'] = localStorage.getItem('kystudio_lang') === 'en' ? 'en' : 'cn'
 Vue.http.options.xhr = { withCredentials: true }
 Vue.http.interceptors.push(function (request, next) {
+  const isProgressVisiable = !request.headers.get('X-Progress-Invisiable')
   request.headers['Cache-Control'] = 'no-cache'
   request.headers['If-Modified-Since'] = '0'
   if (request.url.indexOf('kylin/api/j_spring_security_logout') >= 0) {
@@ -108,13 +109,13 @@ Vue.http.interceptors.push(function (request, next) {
     nprogress.done()
     window.parent.postMessage('requestStart', '*')
   } else {
-    nprogress.start()
+    isProgressVisiable && nprogress.start()
   }
   next(function (response) {
     if (store.state.config.platform === 'cloud') {
       window.parent.postMessage('requestEnd', '*')
     } else {
-      nprogress.done()
+      isProgressVisiable && nprogress.done()
     }
     if (response.status === 401 && router.history.current.name !== 'login') {
       router.replace('/access/login')
