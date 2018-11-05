@@ -112,11 +112,45 @@ class NModel {
       x.table_guid = guid
       return x
     })
+    this.all_measures.forEach((x) => {
+      const alias = x.parameter_value[0].value.split('.')[0]
+      const nTable = this.getTableByAlias(alias)
+      const guid = nTable && nTable.guid
+      x.parameter_value[0].table_guid = guid
+      if (x.converted_columns.length > 0) {
+        x.converted_columns.forEach((y) => {
+          const convertedAlias = y.value.split('.')[0]
+          const convertenTable = this.getTableByAlias(convertedAlias)
+          const convertedGuid = convertenTable && convertenTable.guid
+          y.table_guid = convertedGuid
+        })
+      }
+    })
     this.tableIndexColumns = this.tableIndexColumns.filter((x) => {
       let alias = x.column.split('.')[0]
       let guid = this._cacheAliasAndGuid(alias)
       x.table_guid = guid
       return x
+    })
+  }
+  updateAllMeasuresAlias () {
+    this.all_measures.forEach((x) => {
+      const guid = x.parameter_value[0].table_guid
+      const nTable = guid && this.getTableByGuid(guid)
+      if (nTable) {
+        const finalAlias = nTable.alias
+        x.parameter_value[0].value = finalAlias + '.' + x.parameter_value[0].value.split('.')[1]
+      }
+      if (x.converted_columns.length > 0) {
+        x.converted_columns.forEach((y) => {
+          const convertedGuid = y.table_guid
+          const convertedNTable = convertedGuid && this.getTableByGuid(convertedGuid)
+          if (convertedNTable) {
+            const convertedAlias = convertedNTable.alias
+            y.value = convertedAlias + '.' + y.value.split('.')[1]
+          }
+        })
+      }
     })
   }
   render () {

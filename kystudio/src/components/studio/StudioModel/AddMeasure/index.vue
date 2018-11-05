@@ -138,7 +138,7 @@ export default class AddMeasure extends Vue {
   measure = {
     name: '',
     expression: 'SUM(column)',
-    parameter_value: [{type: 'column', value: ''}],
+    parameter_value: [{type: 'column', value: '', table_guid: null}],
     converted_columns: [],
     return_type: ''
   }
@@ -226,11 +226,11 @@ export default class AddMeasure extends Vue {
       this.measure.parameter_value[0].type = 'column'
     }
     if (this.measure.expression === 'TOP_N') {
-      this.measure.converted_columns = [{type: 'column', value: ''}]
+      this.measure.converted_columns = [{type: 'column', value: '', table_guid: null}]
       this.measure.return_type = 'topn(100)'
     }
     if (this.measure.expression === 'CORR') {
-      this.measure.converted_columns = [{type: 'column', value: ''}]
+      this.measure.converted_columns = [{type: 'column', value: '', table_guid: null}]
     }
     if (this.measure.expression === 'COUNT_DISTINCT') {
       this.measure.converted_columns = []
@@ -242,7 +242,7 @@ export default class AddMeasure extends Vue {
   }
 
   addNewProperty () {
-    const GroupBy = {type: 'column', value: ''}
+    const GroupBy = {type: 'column', value: '', table_guid: null}
     this.measure.converted_columns.push(GroupBy)
   }
 
@@ -259,6 +259,9 @@ export default class AddMeasure extends Vue {
   }
 
   changeParamValue (value) {
+    const alias = value.split('.')[0]
+    const nTable = this.modelInstance.getTableByAlias(alias)
+    this.measure.parameter_value[0].table_guid = nTable.guid
     const ccObj = this.getCCObj(value)
     if (ccObj) {
       this.ccObject = ccObj
@@ -271,6 +274,9 @@ export default class AddMeasure extends Vue {
   }
 
   changeCORRParamValue (value) {
+    const alias = value.split('.')[0]
+    const nTable = this.modelInstance.getTableByAlias(alias)
+    this.measure.converted_columns[0].table_guid = nTable.guid
     const ccObj = this.getCCObj(value)
     if (ccObj) {
       this.corrCCObject = ccObj
@@ -397,7 +403,7 @@ export default class AddMeasure extends Vue {
     this.measure = {
       name: '',
       expression: 'SUM(column)',
-      parameter_value: [{type: 'column', value: ''}],
+      parameter_value: [{type: 'column', value: '', table_guid: null}],
       converted_columns: [],
       return_type: ''
     }

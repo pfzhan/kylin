@@ -274,7 +274,7 @@ export default class ModelEdit extends Vue {
   measureObj = {
     name: '',
     expression: 'SUM(column)',
-    parameter_value: [{type: 'column', value: ''}],
+    parameter_value: [{type: 'column', value: '', table_guid: null}],
     converted_columns: [],
     return_type: ''
   }
@@ -389,7 +389,7 @@ export default class ModelEdit extends Vue {
     this.measureObj = {
       name: '',
       expression: 'SUM(column)',
-      parameter_value: [{type: 'column', value: ''}],
+      parameter_value: [{type: 'column', value: '', table_guid: null}],
       converted_columns: [],
       return_type: ''
     }
