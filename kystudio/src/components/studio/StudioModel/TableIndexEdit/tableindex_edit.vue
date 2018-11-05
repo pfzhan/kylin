@@ -90,7 +90,7 @@
       </div>
       <div slot="footer" class="dialog-footer">
         <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain :loading="btnLoading" size="medium" @click="submit">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button type="primary" plain :loading="btnLoading" size="medium" @click="submit" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
       </div>
   </el-dialog>
 </template>
@@ -159,6 +159,9 @@
         return !this.selectedColumns.includes(item.full_colname)
       })
     }
+    get saveBtnDisable () {
+      return this.sortByColumns.length === 0
+    }
     // get pagerShowOrder () {
     //   return this.tableIndexMeta.col_order.slice(this.pager * 10, 10 + 10 * this.pager)
     // }
@@ -212,7 +215,7 @@
     delCol (dataSet, i) {
       var data = this.tableIndexMeta[dataSet]
       if (data.length === 1) {
-        data[0] = ''
+        data.splice(0, 1, '')
       } else {
         data.splice(i, 1)
       }

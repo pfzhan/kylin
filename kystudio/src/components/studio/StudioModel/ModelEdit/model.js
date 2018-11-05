@@ -743,7 +743,7 @@ class NModel {
   }
   // 检查是否有同名, 通过重名检测返回true
   _checkSameCCName (name) {
-    return indexOfObjWithSomeKey(this._mount.computed_columns, 'name', name) < 0
+    return indexOfObjWithSomeKey(this._mount.computed_columns, 'columnName', name) < 0
   }
   generateCCMeta (ccObj) {
     let factTable = this.getFactTable()
