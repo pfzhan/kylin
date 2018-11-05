@@ -47,28 +47,12 @@ class NModel {
         return x
       }
     })
-    // 用普通列构建的dimension
-    // this.normalDimensions = this.all_named_columns.filter((x) => {
-    //   let columnNamed = x.column.split('.')
-    //   let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', columnNamed[1], 'tableAlias', columnNamed[0])
-    //   if (i < 0 && x.status === 'DIMENSION') {
-    //     return x
-    //   }
-    // })
     // 用在tableIndex上的列
     this.tableIndexColumns = this.all_named_columns.filter((x) => {
       if (x.status !== 'DIMENSION') {
         return x
       }
     })
-    // 可计算列构建的dimension
-    // this.ccDimensions = this.all_named_columns.filter((x) => {
-    //   let columnNamed = x.column.split('.')
-    //   let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', columnNamed[1], 'tableAlias', columnNamed[0])
-    //   if (i >= 0 && x.status === 'DIMENSION') {
-    //     return x
-    //   }
-    // })
     this.lookups = options.lookups || options.join_tables || []
     this.all_measures = options.simplified_measures || []
     this.project = options.project

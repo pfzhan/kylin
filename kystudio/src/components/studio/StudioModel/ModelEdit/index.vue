@@ -1,9 +1,9 @@
 <template>
-  <div class="model-edit-outer" @drop='dropTable($event)' v-drag="{sizeChangeCb:dragBox}">
+  <div class="model-edit-outer" @drop='dropTable($event)' v-drag="{sizeChangeCb:dragBox}" :data-zoom="modelRender.zoom">
     <div class="model-edit"  @dragover='allowDrop($event)' @dragleave="dragLeave">
       <!-- table box -->
       <div class="table-box" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
-        <div class="table-title"  @mousedown="activeTablePanel(t)"   v-drag:change.left.top="t.drawSize" :class="{isLookup:t.kind==='LOOKUP'}">
+        <div class="table-title"  @mousedown="activeTablePanel(t)" :data-zoom="modelRender.zoom"  v-drag:change.left.top="t.drawSize" :class="{isLookup:t.kind==='LOOKUP'}">
           <el-input v-show="t.aliasIsEdit" v-focus="t.aliasIsEdit" v-event-stop v-model="t.alias" @blur="saveNewAlias(t)" @keyup.enter="saveNewAlias(t)"></el-input>
           <span v-show="!t.aliasIsEdit" @click.stop="changeTableType(t)">
             <i class="el-icon-ksd-fact_table kind" v-if="t.kind==='FACT'"></i>

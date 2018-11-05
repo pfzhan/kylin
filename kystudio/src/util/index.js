@@ -422,20 +422,17 @@ export function downloadByFrame (src, cb, errcb) {
   iframe.style.display = 'none'
   iframe.onreadystatechange = () => {
     if (iframe.readyState === 'loading') {
-      console.log('fuck')
       var msg = getFrameHtml(iframe)
       _action(msg)
     }
   }
   if (iframe.attachEvent) {
     iframe.attachEvent('onload', () => {
-      console.log('load1')
       var msg = getFrameHtml(iframe)
       _action(msg)
     })
   } else {
     iframe.onload = () => {
-      console.log('load2')
       var msg = getFrameHtml(iframe)
       _action(msg)
     }
