@@ -756,6 +756,9 @@ export default class ModelEdit extends Vue {
   created () {
     console.log(this.extraoption)
   }
+  beforeDestroy () {
+    this.toggleFullScreen(false)
+  }
   destoryed () {
     $(document).unbind('selectstart')
   }

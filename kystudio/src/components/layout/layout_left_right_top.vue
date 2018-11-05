@@ -7,7 +7,7 @@
         <img v-show="briefMenuGet" src="../../assets/img/small_logo.png" class="logo" @click="goHome">
         <div class="ky-line"></div>
         <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" unique-opened router :collapse="briefMenuGet">
-          <template v-for="(item,index) in menus" >
+          <template v-for="(item,index) in menus">
             <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
               <i :class="item.icon" class="ksd-fs-16"></i>
               <span slot="title">{{$t('kylinLang.menu.' + item.name)}}</span>

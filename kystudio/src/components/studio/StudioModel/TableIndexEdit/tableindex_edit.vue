@@ -160,7 +160,7 @@
       })
     }
     get saveBtnDisable () {
-      return this.sortByColumns.length === 0
+      return Vue.filter('filterArr')(this.tableIndexMeta.col_order, '').length === 0
     }
     // get pagerShowOrder () {
     //   return this.tableIndexMeta.col_order.slice(this.pager * 10, 10 + 10 * this.pager)
