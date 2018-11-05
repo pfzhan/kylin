@@ -128,6 +128,7 @@ export default class CCForm extends Vue {
     this.$refs['ccForm'].validate((valid) => {
       if (valid) {
         let factTable = this.modelInstance.getFactTable()
+        this.ccObject.table_guid = factTable.guid
         if (!factTable) {
           kapMessage(this.$t(modelErrorMsg['noFact']), { type: 'warning' })
           return

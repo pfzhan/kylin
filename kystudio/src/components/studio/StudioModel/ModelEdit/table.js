@@ -70,27 +70,36 @@ class NTable {
     return this.joinInfo[this.guid]
   }
   _replaceAlias (alias, fullName) {
-    return fullName && fullName.replace(/^([^.]+?)/, alias)
+    return alias + '.' + fullName.split('.')[1]
   }
   // 获取符合元数据格式的JoinInfo
-  getMetaJoinInfo () {
+  getMetaJoinInfo (modelInstance) {
     let joinInfo = objectClone(this.joinInfo[this.guid])
     let obj = {}
     if (joinInfo && joinInfo.table && joinInfo.join) {
       obj.table = joinInfo.table.name
       obj.alias = joinInfo.table.alias
-      let falias = joinInfo.foreignTable.alias
-      joinInfo.join.foreign_key.map((x) => {
-        return this._replaceAlias(falias, x)
-      })
-      joinInfo.join.primary_key.map((x) => {
-        return this._replaceAlias(joinInfo.table.alias, x)
-      })
       obj.join = joinInfo.join
     } else {
       return null
     }
     return obj
+  }
+  changeJoinAlias (modelInstance) {
+    let joinInfo = this.joinInfo[this.guid]
+    if (joinInfo && joinInfo.table && joinInfo.join) {
+      let fguid = joinInfo.foreignTable.guid
+      let fntable = modelInstance.getTableByGuid(fguid)
+      joinInfo.join.foreign_key = joinInfo.join.foreign_key.map((x) => {
+        return this._replaceAlias(fntable.alias, x)
+      })
+      let pguid = joinInfo.table.guid
+      let pntable = modelInstance.getTableByGuid(pguid)
+      joinInfo.join.primary_key = joinInfo.join.primary_key.map((x) => {
+        return this._replaceAlias(pntable.alias, x)
+      })
+      joinInfo.table.alias = pntable.alias
+    }
   }
   // 获取符合元数据格式的模型坐标位置信息
   getMetaCanvasInfo () {

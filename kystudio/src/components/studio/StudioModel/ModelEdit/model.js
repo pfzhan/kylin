@@ -133,26 +133,6 @@ class NModel {
       return x
     })
   }
-  updateAllMeasuresAlias () {
-    this.all_measures.forEach((x) => {
-      const guid = x.parameter_value[0].table_guid
-      const nTable = guid && this.getTableByGuid(guid)
-      if (nTable) {
-        const finalAlias = nTable.alias
-        x.parameter_value[0].value = finalAlias + '.' + x.parameter_value[0].value.split('.')[1]
-      }
-      if (x.converted_columns.length > 0) {
-        x.converted_columns.forEach((y) => {
-          const convertedGuid = y.table_guid
-          const convertedNTable = convertedGuid && this.getTableByGuid(convertedGuid)
-          if (convertedNTable) {
-            const convertedAlias = convertedNTable.alias
-            y.value = convertedAlias + '.' + y.value.split('.')[1]
-          }
-        })
-      }
-    })
-  }
   render () {
     this.renderTable()
     this.vm && this.vm.$nextTick(() => {
@@ -271,7 +251,6 @@ class NModel {
         } else {
           return reject('noFact')
         }
-        // this.all_measures.push()
         metaData.join_tables = this._generateLookups()
         metaData.all_named_columns = this._generateAllColumns()
         metaData.simplified_measures = this._mount.all_measures
@@ -295,8 +274,10 @@ class NModel {
       guid = this._guidCache[alias]
     } else {
       let ntable = this.getTableByAlias(alias)
-      this._guidCache[alias] = ntable.guid
-      guid = this._guidCache[alias]
+      if (ntable) {
+        this._guidCache[alias] = ntable.guid
+        guid = this._guidCache[alias]
+      }
     }
     return guid
   }
@@ -305,7 +286,7 @@ class NModel {
     for (let key in this.tables) {
       let t = this.tables[key]
       if (t.alias !== this.fact_table) {
-        var joinInfo = t.getMetaJoinInfo()
+        var joinInfo = t.getMetaJoinInfo(this)
         if (joinInfo) {
           result.push(joinInfo)
         }
@@ -338,17 +319,52 @@ class NModel {
     }
   }
   _replaceAlias (alias, fullName) {
-    return fullName && fullName.replace(/^([^.]+?)/, alias)
+    console.log(fullName, alias + '.' + fullName.split('.')[1])
+    return alias + '.' + fullName.split('.')[1]
+  }
+  _updateAllMeasuresAlias () {
+    this.all_measures.forEach((x) => {
+      const guid = x.parameter_value[0].table_guid
+      const nTable = guid && this.getTableByGuid(guid)
+      if (nTable) {
+        const finalAlias = nTable.alias
+        x.parameter_value[0].value = finalAlias + '.' + x.parameter_value[0].value.split('.')[1]
+      }
+      if (x.converted_columns.length > 0) {
+        x.converted_columns.forEach((y) => {
+          const convertedGuid = y.table_guid
+          const convertedNTable = convertedGuid && this.getTableByGuid(convertedGuid)
+          if (convertedNTable) {
+            const convertedAlias = convertedNTable.alias
+            y.value = convertedAlias + '.' + y.value.split('.')[1]
+          }
+        })
+      }
+    })
   }
   // 重新调整alias导致数据改变
   _changeAliasRelation () {
-    let replaceFuc = (x) => {
+    // 更新join信息
+    Object.values(this.tables).forEach((t) => {
+      t.changeJoinAlias(this)
+    })
+    let replaceFuc = (x, key) => {
+      console.log(x[key])
       let guid = x.table_guid
       let ntable = this.getTableByGuid(guid)
       x.column = this._replaceAlias(ntable.alias, x.column)
     }
-    this._mount.dimensions.map(replaceFuc)
-    this.tableIndexColumns.map(replaceFuc)
+    this._mount.dimensions.forEach(replaceFuc)
+    this.tableIndexColumns.forEach(replaceFuc)
+    this._mount.computed_columns.forEach((x) => {
+      let guid = x.table_guid
+      let ntable = this.getTableByGuid(guid)
+      x.tableAlias = ntable.tableAlias
+    })
+    this._updateAllMeasuresAlias()
+  }
+  changeAlias () {
+    this._changeAliasRelation()
   }
   // 删除conn相关的主键的连接信息
   removeRenderLink (conn) {
@@ -507,6 +523,7 @@ class NModel {
     this.setUniqueAlias(t)
     // 更新facttable的名字
     // 删除原来facttable上的cc
+    this.changeAlias()
   }
   _checkSameAlias (guid, newAlias) {
     var hasAlias = 0

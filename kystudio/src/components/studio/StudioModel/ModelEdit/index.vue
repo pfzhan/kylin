@@ -298,6 +298,7 @@ export default class ModelEdit extends Vue {
   saveNewAlias (t) {
     this.modelInstance.setUniqueAlias(t)
     this.$set(t, 'aliasIsEdit', false)
+    this.modelInstance.changeAlias()
   }
   // 切换悬浮菜单
   toggleMenu (i) {
