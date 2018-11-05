@@ -57,10 +57,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.cube.cuboid.NAggregationGroup;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -77,6 +78,7 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.hamcrest.BaseMatcher;
+import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
 import org.junit.After;
 import org.junit.Assert;
@@ -95,6 +97,8 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
@@ -102,6 +106,7 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
@@ -216,9 +221,40 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetModelRelations() {
+    public void testGetModelRelations() throws IOException {
         List<NSpanningTree> relations = modelService.getModelRelations("nmodel_basic", "default");
         Assert.assertEquals(1, relations.size());
+
+        relations = modelService.getModelRelations("nmodel_basic_inner", "default");
+        Assert.assertEquals(1, relations.size());
+        Assert.assertEquals(7, relations.get(0).getBuildLevel());
+        Assert.assertThat(
+                relations.get(0).getCuboidsByLayer().stream().map(Collection::size).collect(Collectors.toList()),
+                CoreMatchers.is(Lists.newArrayList(1, 1, 4, 4, 3, 3, 1, 1)));
+
+        val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), "default");
+        cubeMgr.updateCubePlan("ncube_basic_inner", copyForWrite -> {
+            val rule = new NRuleBasedCuboidsDesc();
+            rule.setDimensions(Lists.newArrayList(1, 2, 3, 4));
+            rule.setMeasures(Lists.newArrayList(1001, 1002));
+            try {
+                val aggGroup = JsonUtil.readValue("{\n" +
+                        "        \"includes\": [1, 2, 3],\n" +
+                        "        \"select_rule\": {\n" +
+                        "          \"hierarchy_dims\": [],\n" +
+                        "          \"mandatory_dims\": [],\n" +
+                        "          \"joint_dims\": [],\n" +
+                        "          \"dim_cap\": 1\n" +
+                        "        }\n" +
+                        "      }", NAggregationGroup.class);
+                rule.setAggregationGroups(Lists.newArrayList(aggGroup));
+                copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(rule);
+            } catch (IOException ignore) {
+            }
+        });
+        relations = modelService.getModelRelations("nmodel_basic_inner", "default");
+        Assert.assertEquals(1, relations.size());
+        Assert.assertEquals(5, relations.get(0).getBuildLevel());
     }
 
     @Test
