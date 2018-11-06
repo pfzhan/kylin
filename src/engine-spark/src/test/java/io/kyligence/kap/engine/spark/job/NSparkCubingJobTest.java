@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -653,5 +654,32 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertNotNull(tableExt);
         Assert.assertEquals(11, tableExt.getColumnStats().size());
         Assert.assertTrue(tableExt.getTotalRows() > 0);
+    }
+
+    @Test
+    public void testNSparkCubingJobUsingModelAlias() throws IOException {
+        String modelAlias = "nmodel_basic_alias";
+        NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
+        NDataflow df = dsMgr.getDataflow("ncube_basic");
+
+        // set model alias
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(config, getProject());
+        NDataModel dataModel = dataModelManager.getDataModelDesc("nmodel_basic");
+        dataModel.setAlias(modelAlias);
+        dataModelManager.updateDataModelDesc(dataModel);
+
+        // cleanup all segments first
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dsMgr.updateDataflow(update);
+        df = dsMgr.getDataflow("ncube_basic");
+
+        // ready dataflow, segment, cuboid layout
+        NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN");
+
+        String targetSubject =job.getTargetSubject();
+        Assert.assertEquals(modelAlias, targetSubject);
     }
 }

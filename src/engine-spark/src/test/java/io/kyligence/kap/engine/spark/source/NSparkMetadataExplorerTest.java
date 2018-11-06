@@ -52,6 +52,23 @@ public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
+    public void testListTablesInDatabase() throws Exception {
+        String testDataBase = "SSB";
+        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer(ss);
+        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "ssb");
+        sparkMetadataExplorer.createSampleDatabase(testDataBase);
+        Assert.assertTrue(ss.catalog().databaseExists(testDataBase));
+
+        TableDesc tableDesc = tableMgr.getTableDesc("SSB.PART");
+        sparkMetadataExplorer.createSampleTable(tableDesc);
+
+        List<String> tables = sparkMetadataExplorer.listTables(testDataBase);
+
+        Assert.assertTrue(tables != null && tables.size() > 0);
+        Assert.assertEquals(tables.get(0), "part");
+    }
+
+    @Test
     public void testGetTableDesc() throws Exception {
         populateSSWithCSVData(getTestConfig(), "ssb", ss);
 

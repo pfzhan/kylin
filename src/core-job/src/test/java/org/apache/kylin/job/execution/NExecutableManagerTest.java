@@ -185,6 +185,51 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.updateJobOutput(job.getId(), ExecutableState.STOPPED, null, null);
     }
 
+    @Test
+    public void testResumeAllRunningJobsHappyCase(){
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
+
+        AbstractExecutable job = manager.getJob(executable.getId());
+        Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
+
+        manager.resumeAllRunningJobs();
+
+        job = manager.getJob(executable.getId());
+        Assert.assertEquals(job.getStatus(), ExecutableState.READY);
+    }
+
+    @Test
+    public void testResumeAllRunningJobsIsolationWithProject(){
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
+        AbstractExecutable job = manager.getJob(executable.getId());
+        Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
+
+        // another NExecutableManager in project ssb
+        NExecutableManager ssbManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), "ssb");
+        BaseTestExecutable ssbExecutable = new SucceedTestExecutable();
+        ssbManager.addJob(ssbExecutable);
+        ssbManager.updateJobOutput(ssbExecutable.getId(), ExecutableState.RUNNING, null, null);
+
+        AbstractExecutable ssbJob = ssbManager.getJob(ssbExecutable.getId());
+        Assert.assertEquals(ssbJob.getStatus(), ExecutableState.RUNNING);
+
+        manager.resumeAllRunningJobs();
+
+        job = manager.getJob(executable.getId());
+        // it only resume running jobs in project default, so the status of the job convert to ready
+        Assert.assertEquals(job.getStatus(), ExecutableState.READY);
+
+        job = ssbManager.getJob(ssbExecutable.getId());
+        // the status of jobs in project ssb is still running
+        Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
+
+
+    }
+
     private static void assertJobEqual(Executable one, Executable another) {
         assertEquals(one.getClass(), another.getClass());
         assertEquals(one.getId(), another.getId());
