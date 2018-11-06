@@ -55,6 +55,9 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 
 public abstract class BasicService {
 
@@ -110,5 +113,16 @@ public abstract class BasicService {
 
     public QueryFilterRuleManager getQueryFilterRuleManager(String project) {
         return QueryFilterRuleManager.getInstance(getConfig(), project);
+    }
+
+    protected String getUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return null;
+        }
+        if (authentication.getPrincipal() instanceof UserDetails) {
+          return ((UserDetails) authentication.getPrincipal()).getUsername();
+        }
+        return authentication.getPrincipal().toString();
     }
 }

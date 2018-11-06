@@ -266,6 +266,7 @@ class CuboidSuggester {
         layout.setCuboidDesc(cuboidDesc);
         layout.setShardByColumns(shardBy);
         layout.setSortByColumns(sortBy);
+        layout.setAuto(true);
         layout.setDraftVersion(context.getDraftVersion());
 
         for (NCuboidLayout l : cuboidDesc.getLayouts()) {

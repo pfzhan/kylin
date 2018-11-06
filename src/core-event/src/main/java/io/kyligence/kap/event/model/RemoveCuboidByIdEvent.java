@@ -37,4 +37,10 @@ public class RemoveCuboidByIdEvent extends RemoveCuboidEvent {
     @JsonProperty("layout_ids")
     private List<Long> layoutIds;
 
+    @JsonProperty("include_auto")
+    private boolean includeAuto = false;
+
+    @JsonProperty("include_manual")
+    private boolean includeManual = false;
+
 }

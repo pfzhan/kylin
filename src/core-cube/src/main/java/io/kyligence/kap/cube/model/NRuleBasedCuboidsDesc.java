@@ -27,12 +27,10 @@ package io.kyligence.kap.cube.model;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.annotation.Nullable;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -42,7 +40,6 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableSet;
@@ -58,6 +55,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
+import lombok.var;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -93,8 +91,13 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
 
     @Setter
     @Getter
-    @JsonProperty("cuboid_id_mapping")
-    private List<Long> cuboidIdMapping = Lists.newArrayList();
+    @JsonProperty("layout_id_mapping")
+    private List<Long> layoutIdMapping = Lists.newArrayList();
+
+    @Setter
+    @Getter
+    @JsonProperty("cuboid_start_id")
+    private long cuboidStartId;
 
     // computed fields below
 
@@ -124,12 +127,8 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
         this.dimensionBitset = ImmutableBitSet.valueOf(dimensions);
         this.measureBitset = ImmutableBitSet.valueOf(measures);
 
-        this.effectiveDimCols = Maps.filterKeys(model.getEffectiveColsMap(), new Predicate<Integer>() {
-            @Override
-            public boolean apply(@Nullable Integer input) {
-                return input != null && dimensionBitset.get(input);
-            }
-        });
+        this.effectiveDimCols = Maps.filterKeys(model.getEffectiveColsMap(),
+                input -> input != null && dimensionBitset.get(input));
 
         this.dimensionSet = ImmutableSet.copyOf(this.effectiveDimCols.values());
 
@@ -175,18 +174,15 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
     public int getColumnBitIndex(Integer colId) {
         return dim2bitIndex.get(colId);
     }
-    public Set<NCuboidDesc> genCuboidDescs() {
-        Set<NCuboidDesc> result = Sets.newHashSet();
-        genCuboidDescs(NCuboidDesc.RULE_BASED_CUBOID_START_ID, 1, result);
+
+    public Set<NCuboidLayout> genCuboidLayouts(boolean recursive) {
+        val result = Sets.<NCuboidLayout> newHashSet();
+        genCuboidLayouts(result, recursive);
         return result;
     }
 
     public Set<NCuboidLayout> genCuboidLayouts() {
-        val result = Sets.<NCuboidLayout>newHashSet();
-        for (NCuboidDesc genCuboidDesc : genCuboidDescs()) {
-            result.addAll(genCuboidDesc.getLayouts());
-        }
-        return result;
+        return genCuboidLayouts(true);
     }
 
     public int getColumnBitIndex(TblColRef tblColRef) {
@@ -274,61 +270,79 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
         return cuboidBlackSet.contains(cuboidID);
     }
 
-    private void genCuboidDescs(final long advisedStartId, int version, Set<NCuboidDesc> result) {
+    private void genCuboidLayouts(Set<NCuboidLayout> result, boolean recursive) {
         NCuboidScheduler initialCuboidScheduler = getInitialCuboidScheduler();
         List<Long> allCuboidIds = Lists.newArrayList(initialCuboidScheduler.getAllCuboidIds());
 
         Map<NCuboidLayout, Long> layoutIdMap = Maps.newHashMap();
-        for (NCuboidDesc nCuboidDesc : result) {
-            for (NCuboidLayout layout : nCuboidDesc.getLayouts()) {
-                layoutIdMap.put(layout, layout.getId());
-            }
+        for (NCuboidLayout layout : result) {
+            layoutIdMap.put(layout, layout.getId());
         }
-        if (cuboidIdMapping.isEmpty()) {
-            for (int i = 0; i < allCuboidIds.size(); i++) {
-                cuboidIdMapping.add(advisedStartId + i * NCuboidDesc.CUBOID_DESC_ID_STEP);
-            }
+        for (NCuboidLayout layout : cubePlan.getWhitelistCuboidLayouts()) {
+            layoutIdMap.put(layout, layout.getId());
         }
+        val identifierNCuboidDescMap = layoutIdMap.keySet().stream().map(NCuboidLayout::getCuboidDesc).collect(
+                Collectors.groupingBy(NCuboidDesc::createCuboidIdentifier, Collectors.reducing(null, (l, r) -> r)));
+        Map<Long, NCuboidDesc> cuboidDescMap = Maps.newHashMap();
+        for (NCuboidDesc cuboid : cubePlan.getCuboids()) {
+            cuboidDescMap.put(cuboid.getId(), cuboid);
+        }
+        val needAllocationId = layoutIdMapping.isEmpty();
+        long proposalId = cuboidStartId + 1;
 
-        //convert all legacy cuboids generated from rules to NCuboidDesc & NCuboidLayout
+        //convert all legacy cuboids generated from rules to NCuboidLayout
         for (int i = 0; i < allCuboidIds.size(); i++) {
             long cuboidId = allCuboidIds.get(i);
 
-            long nCuboidId = cuboidIdMapping.get(i);
-            long nlayoutId = nCuboidId + 1;
-
             //mock a NCuboidLayout for one legacy cuboid
-            NCuboidLayout layout = new NCuboidLayout();
-            layout.setId(nlayoutId);
-            layout.setVersion(version);
+            val layout = new NCuboidLayout();
+            layout.setManual(true);
 
             List<Integer> colOrder = Lists.newArrayList(tailor(getDimensions(), cuboidId));
             colOrder.addAll(getMeasures());
             layout.setColOrder(colOrder);
             layout.setStorageType(IKapStorageAware.ID_NDATA_STORAGE);
 
+            val dimensionsInLayout = tailor(getDimensions(), cuboidId);
+
+            // if a cuboid is same as the layout's one, then reuse it
+            val cuboidIdentifier = new NCuboidDesc.NCuboidIdentifier(ImmutableBitSet.valueOf(dimensionsInLayout).mutable(),
+                    ImmutableBitSet.valueOf(getMeasures()).mutable(), false);
+            var maybeCuboid = identifierNCuboidDescMap.get(cuboidIdentifier);
             // if two layout is equal, the id should be same
             Long prevId = layoutIdMap.get(layout);
-            if (prevId != null) {
+            if (!needAllocationId) {
+                layout.setId(layoutIdMapping.get(i));
+            } else if (prevId != null) {
                 layout.setId(layoutIdMap.get(layout));
-                cuboidIdMapping.set(i, prevId - 1);
+            } else if (maybeCuboid != null) {
+                val id = maybeCuboid.getLayouts().stream().map(NCuboidLayout::getId).mapToLong(l -> l).max()
+                        .orElse(maybeCuboid.getId());
+                layout.setId(id + 1);
+            } else {
+                layout.setId(proposalId);
+                proposalId += NCuboidDesc.CUBOID_DESC_ID_STEP;
+            }
+            if (needAllocationId) {
+                layoutIdMapping.add(layout.getId());
             }
 
-            //mock a NCuboidDesc for one legacy cuboid
-            NCuboidDesc nCuboidDesc = new NCuboidDesc();
-            layout.setCuboidDesc(nCuboidDesc);
-            nCuboidDesc.setId(nCuboidId);
-            nCuboidDesc.setLayouts(Lists.newArrayList(layout));
-            nCuboidDesc.setDimensions(tailor(getDimensions(), cuboidId));
-            nCuboidDesc.setMeasures(getMeasures());
-            nCuboidDesc.setCubePlan(cubePlan);
-            nCuboidDesc.init();
+            if (maybeCuboid == null) {
+                long cuboidDescId = layout.getId() / NCuboidDesc.CUBOID_DESC_ID_STEP * NCuboidDesc.CUBOID_DESC_ID_STEP;
+                maybeCuboid = new NCuboidDesc();
+                maybeCuboid.setId(cuboidDescId);
+                maybeCuboid.setLayouts(Lists.newArrayList(layout));
+                maybeCuboid.setDimensions(dimensionsInLayout);
+                maybeCuboid.setMeasures(getMeasures());
+                maybeCuboid.setCubePlan(cubePlan);
+                maybeCuboid.init();
+            }
+            layout.setCuboidDesc(maybeCuboid);
 
-            result.add(nCuboidDesc);
+            result.add(layout);
         }
-        if (newRuleBasedCuboid != null) {
-            newRuleBasedCuboid.genCuboidDescs(cuboidIdMapping.isEmpty() ? advisedStartId : Collections.max(cuboidIdMapping) + 1000,
-                    version + 1, result);
+        if (newRuleBasedCuboid != null && recursive) {
+            newRuleBasedCuboid.genCuboidLayouts(result, true);
         }
     }
 
@@ -346,9 +360,6 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
             }
         }
 
-        if (ret.length > 0 && ret[ret.length - 1] == null) {
-            System.out.println();
-        }
         return Arrays.asList(ret);
     }
 }

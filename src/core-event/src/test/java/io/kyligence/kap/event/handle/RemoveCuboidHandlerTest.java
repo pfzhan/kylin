@@ -109,10 +109,11 @@ public class RemoveCuboidHandlerTest extends NLocalFileMetadataTestCase {
         int cuboidLayoutSize = cubePlan.getAllCuboidLayouts().size();
 
         for (NCuboidLayout layout : cubePlan.getAllCuboidLayouts()) {
-            log.warn("layout({}) {} {}", layout.getCuboidDesc().isRuleBased(), layout.getId(), layout);
+            log.warn("layout({}, {}) {} {}", layout.isAuto(), layout.isManual(), layout.getId(), layout);
         }
 
         val event = new RemoveCuboidByIdEvent();
+        event.setIncludeAuto(true);
         event.setApproved(true);
         event.setProject(DEFAULT_PROJECT);
         event.setModelName("nmodel_basic");
@@ -126,11 +127,12 @@ public class RemoveCuboidHandlerTest extends NLocalFileMetadataTestCase {
 
         cubePlan = cubePlanManager.getCubePlan("ncube_basic_inner");
         for (NCuboidLayout layout : cubePlan.getAllCuboidLayouts()) {
-            log.warn("layout({}) {} {}", layout.getCuboidDesc().isRuleBased(), layout.getId(), layout);
+            log.warn("layout({}, {}) {} {}", layout.isAuto(), layout.isManual(), layout.getId(), layout);
         }
         int cuboidLayoutSize2 = cubePlan.getAllCuboidLayouts().size();
 
-        Assert.assertEquals(cuboidLayoutSize - 1, cuboidLayoutSize2);
+        Assert.assertEquals(cuboidLayoutSize, cuboidLayoutSize2);
+        Assert.assertFalse(cubePlan.getCuboidLayout(1000001L).isAuto());
 
         event.getLayoutIds().add(1002L);
         handler.handle(eventContext);

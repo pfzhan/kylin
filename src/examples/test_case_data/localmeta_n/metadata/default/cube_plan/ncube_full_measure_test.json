@@ -48,6 +48,7 @@
       "layouts": [
         {
           "id": 1,
+          "auto": true,
           "col_order": [
             1,
             1000,

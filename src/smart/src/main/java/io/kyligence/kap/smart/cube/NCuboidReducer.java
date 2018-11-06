@@ -66,7 +66,7 @@ class NCuboidReducer extends NAbstractCubeProposer {
 
         proposedCuboids.forEach((key, value) -> cuboidLayoutMap.put(key, value.getLayouts()));
 
-        cubePlan.removeLayouts(cuboidLayoutMap, this::hasExternalRef, NCuboidLayout::equals);
+        cubePlan.removeLayouts(cuboidLayoutMap, this::hasExternalRef, NCuboidLayout::equals, true, false);
 
         // log after shrink cuboids
         cuboidLayoutMap.forEach((cuboidIdentifier, nCuboidLayouts) -> {

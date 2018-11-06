@@ -61,10 +61,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.rest.response.CuboidStatus;
-import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -100,9 +96,11 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -124,7 +122,9 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.CuboidStatus;
 import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
@@ -226,8 +226,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetCuboidById_NoSegments_EMPTYStatus() {
-        CuboidDescResponse cuboid = modelService.getCuboidById("ut_inner_join_cube_partial", "default", 10000005000L);
-        Assert.assertEquals(10000005000L, cuboid.getId());
+        CuboidDescResponse cuboid = modelService.getCuboidById("ut_inner_join_cube_partial", "default", 13000L);
+        Assert.assertEquals(13000L, cuboid.getId());
         Assert.assertEquals(CuboidStatus.EMPTY, cuboid.getStatus());
         Assert.assertEquals(0L, cuboid.getStorageSize());
         Assert.assertEquals(0L, cuboid.getStartTime());
@@ -263,10 +263,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         relations = modelService.getModelRelations("nmodel_basic_inner", "default");
         Assert.assertEquals(1, relations.size());
-        Assert.assertEquals(7, relations.get(0).getBuildLevel());
+        Assert.assertEquals(6, relations.get(0).getBuildLevel());
         Assert.assertThat(
                 relations.get(0).getCuboidsByLayer().stream().map(Collection::size).collect(Collectors.toList()),
-                CoreMatchers.is(Lists.newArrayList(1, 1, 4, 4, 3, 3, 1, 1)));
+                CoreMatchers.is(Lists.newArrayList(1, 4, 4, 3, 3, 1, 1)));
 
         val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), "default");
         cubeMgr.updateCubePlan("ncube_basic_inner", copyForWrite -> {
@@ -274,17 +274,12 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
             rule.setDimensions(Lists.newArrayList(1, 2, 3, 4));
             rule.setMeasures(Lists.newArrayList(1001, 1002));
             try {
-                val aggGroup = JsonUtil.readValue("{\n" +
-                        "        \"includes\": [1, 2, 3],\n" +
-                        "        \"select_rule\": {\n" +
-                        "          \"hierarchy_dims\": [],\n" +
-                        "          \"mandatory_dims\": [],\n" +
-                        "          \"joint_dims\": [],\n" +
-                        "          \"dim_cap\": 1\n" +
-                        "        }\n" +
-                        "      }", NAggregationGroup.class);
+                val aggGroup = JsonUtil.readValue("{\n" + "        \"includes\": [1, 2, 3],\n"
+                        + "        \"select_rule\": {\n" + "          \"hierarchy_dims\": [],\n"
+                        + "          \"mandatory_dims\": [],\n" + "          \"joint_dims\": [],\n"
+                        + "          \"dim_cap\": 1\n" + "        }\n" + "      }", NAggregationGroup.class);
                 rule.setAggregationGroups(Lists.newArrayList(aggGroup));
-                copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(rule);
+                copyForWrite.setNewRuleBasedCuboid(rule);
             } catch (IOException ignore) {
             }
         });

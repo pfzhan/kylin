@@ -800,9 +800,10 @@ public class NCuboidRefresherTest extends NTestBase {
             NCubePlan cubePlan = smartMasterB.getContext().getModelContexts().get(0).getTargetCubePlan();
             List<NCuboidDesc> allCuboidsAfterRefresh = cubePlan.getAllCuboids();
             Assert.assertEquals("unmatched cuboids size", 4, allCuboidsAfterRefresh.size());
+            final NCuboidDesc lastCuboidAfterRefresh = allCuboidsAfterRefresh.get(3);
             allCuboidsAfterRefresh.remove(3);
             checkDraftOfEachLayout(null, allCuboidsAfterRefresh);
-            checkDraftOfEachLayout(null, Lists.newArrayList(lastCuboid));
+            checkDraftOfEachLayout(null, Lists.newArrayList(lastCuboidAfterRefresh));
 
             smartMasterB.saveModel();
             smartMasterB.saveCubePlan();

@@ -94,6 +94,12 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     @JsonProperty("update_time")
     private long updateTime;
 
+    @JsonProperty("manual")
+    private boolean isManual = false;
+
+    @JsonProperty("auto")
+    private boolean isAuto = false;
+
     @Setter
     @JsonProperty("draft_version")
     private String draftVersion;
@@ -109,20 +115,8 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     private ImmutableBiMap<Integer, TblColRef> orderedDimensions;
     private ImmutableBiMap<Integer, Measure> orderedMeasures;
 
-    @Setter
-    private int version;
-
     public NCuboidLayout() {
         // Only used by Jackson
-    }
-
-    /**
-     * @return  0 for auto agg; 1 for rule based agg; 2 for auto table index; 3 for manual table index
-     */
-
-    @EqualsAndHashCode.Include
-    long getIndexType() {
-        return id / NCuboidDesc.CUBOID_ID_SIZE;
     }
 
     public ImmutableBiMap<Integer, TblColRef> getOrderedDimensions() { // dimension order abides by rowkey_col_desc
@@ -262,6 +256,20 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
     public void setOwner(String owner) {
         checkIsNotCachedAndShared();
         this.owner = owner;
+    }
+
+    public void setManual(boolean manual) {
+        checkIsNotCachedAndShared();
+        isManual = manual;
+    }
+
+    public void setAuto(boolean auto) {
+        checkIsNotCachedAndShared();
+        isAuto = auto;
+    }
+
+    public boolean isExpired() {
+        return !isAuto && !isManual;
     }
 
     public boolean containMeasures(NCuboidLayout other) {

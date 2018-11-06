@@ -140,15 +140,15 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NCubePlan cube = mgr.getCubePlan("ut_inner_join_cube_partial");
         cube = JsonUtil.deepCopy(cube, NCubePlan.class);
+        cube.setCuboids(Lists.<NCuboidDesc> newArrayList());
+        cube.setProject(DEFAULT_PROJECT);
+        cube.setModelName("nmodel_basic");
+        cube.initAfterReload(getTestConfig());
         val rule = new NRuleBasedCuboidsDesc();
         rule.setDimensions(Lists.<Integer>newArrayList());
         rule.setMeasures(Lists.<Integer>newArrayList());
         rule.setCubePlan(cube);
         cube.setRuleBasedCuboidsDesc(rule);
-        cube.setCuboids(Lists.<NCuboidDesc> newArrayList());
-        cube.setProject(DEFAULT_PROJECT);
-        cube.setModelName("nmodel_basic");
-        cube.initAfterReload(getTestConfig());
         val scheduler = (NKapCuboidScheduler243) cube.getRuleBasedCuboidsDesc().getInitialCuboidScheduler();
         Assert.assertEquals(0, scheduler.getAllCuboidIds().size());
     }

@@ -25,7 +25,6 @@ package io.kyligence.kap.event.handle;
 
 import java.util.ArrayList;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 
@@ -64,9 +63,8 @@ public class CubePlanRuleUpdateHandler extends AbstractEventHandler implements D
             return;
         }
 
-        val allLayouts = ruleBasedCuboidDesc.genCuboidLayouts();
-        val originLayouts = allLayouts.stream().filter(input -> input.getVersion() == 1).collect(Collectors.toSet());
-        val targetLayouts = allLayouts.stream().filter(input -> input.getVersion() == 2).collect(Collectors.toSet());
+        val originLayouts = ruleBasedCuboidDesc.genCuboidLayouts(false);
+        val targetLayouts = ruleBasedCuboidDesc.getNewRuleBasedCuboid().genCuboidLayouts(false);
 
         if (!onlyRemoveMeasures(originLayouts, targetLayouts)) {
             val difference = Maps.difference(Maps.asMap(originLayouts, Functions.identity()),
@@ -90,6 +88,7 @@ public class CubePlanRuleUpdateHandler extends AbstractEventHandler implements D
                 for (NCuboidLayout removedLayout : difference.entriesOnlyOnLeft().keySet()) {
                     layoutIds.add(removedLayout.getId());
                 }
+                removeCuboidEvent.setIncludeManual(true);
                 removeCuboidEvent.setLayoutIds(layoutIds);
                 fireEvent(removeCuboidEvent, event, kylinConfig);
             }

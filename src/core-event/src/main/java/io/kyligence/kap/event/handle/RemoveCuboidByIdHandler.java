@@ -25,17 +25,15 @@ package io.kyligence.kap.event.handle;
 
 import java.io.IOException;
 
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.RemoveCuboidByIdEvent;
-import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.RemoveCuboidByIdEvent;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -57,18 +55,9 @@ public class RemoveCuboidByIdHandler extends AbstractEventHandler {
         val dfMgr = NDataflowManager.getInstance(kylinConfig, project);
         val df = dfMgr.getDataflow(event.getCubePlanName());
         val cpMgr = NCubePlanManager.getInstance(kylinConfig, project);
-        cpMgr.updateCubePlan(event.getCubePlanName(), new NCubePlanManager.NCubePlanUpdater() {
-            @Override
-            public void modify(NCubePlan copyForWrite) {
-                copyForWrite.removeLayouts(Sets.newHashSet(event.getLayoutIds()),
-                        new Predicate2<NCuboidLayout, NCuboidLayout>() {
-                            @Override
-                            public boolean apply(NCuboidLayout o1, NCuboidLayout o2) {
-                                return o1.equals(o2);
-                            }
-                        });
-            }
-        });
+        cpMgr.updateCubePlan(event.getCubePlanName(),
+                copyForWrite -> copyForWrite.removeLayouts(Sets.newHashSet(event.getLayoutIds()), NCuboidLayout::equals,
+                        event.isIncludeAuto(), event.isIncludeManual()));
         dfMgr.removeLayouts(df, event.getLayoutIds());
     }
 

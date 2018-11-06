@@ -35,9 +35,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
-import io.kyligence.kap.rest.response.CuboidStatus;
-import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -80,6 +77,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 
+import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.cube.model.NCubePlan;
@@ -115,8 +113,10 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelSemanticUpdateRequest;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.CuboidStatus;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
@@ -348,7 +348,7 @@ public class ModelService extends BasicService {
         List<NCubePlan> cubePlans = getCubePlans(modelName, project);
         List<NSpanningTree> result = new ArrayList<>();
         for (NCubePlan cubeplan : cubePlans) {
-            val allLayouts = Lists.<NCuboidLayout>newArrayList();
+            val allLayouts = Lists.<NCuboidLayout> newArrayList();
             if (cubeplan.getRuleBasedCuboidsDesc() != null) {
                 val rule = cubeplan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid() == null
                         ? cubeplan.getRuleBasedCuboidsDesc()
@@ -356,8 +356,7 @@ public class ModelService extends BasicService {
                 allLayouts.addAll(rule.genCuboidLayouts());
             }
             val autoLayouts = cubeplan.getWhitelistCuboidLayouts().stream()
-                    .filter(layout -> layout.getId() < NCuboidDesc.RULE_BASED_CUBOID_START_ID)
-                    .collect(Collectors.toList());
+                    .filter(layout -> layout.getId() < NCuboidDesc.TABLE_INDEX_START_ID).collect(Collectors.toList());
             allLayouts.addAll(autoLayouts);
             val tree = NSpanningTreeFactory.fromCuboidLayouts(allLayouts, cubeplan.getName());
             result.add(tree);
@@ -372,6 +371,7 @@ public class ModelService extends BasicService {
         }
         return result;
     }
+
     private NSpanningTreeResponse simplifyNSpanningTreeResponse(NSpanningTree tree, String modelName, String project) {
         NSpanningTreeResponse spanningTreeResponse = new NSpanningTreeResponse();
         NForestSpanningTree forestSpanningTree = (NForestSpanningTree) tree;
@@ -412,7 +412,6 @@ public class ModelService extends BasicService {
         simplifiedCuboidResponse.setStorageSize(cuboidDescResponse.getStorageSize());
         return simplifiedCuboidResponse;
     }
-
 
     public List<RelatedModelResponse> getRelateModels(String project, String table, String modelName)
             throws IOException {
@@ -755,7 +754,7 @@ public class ModelService extends BasicService {
         }
 
     }
-    
+
     private List<NDataModel.NamedColumn> convertNamedColumns(String project, NDataModel dataModel) {
         NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 project);
@@ -798,7 +797,8 @@ public class ModelService extends BasicService {
             namedColumn.name = computedColumnDesc.getColumnName();
             namedColumn.aliasDotColumn = computedColumnDesc.getFullName();
             namedColumn.status = NDataModel.ColumnStatus.EXIST;
-            if (dataModel.getAllNamedColumns().stream().anyMatch(c -> c.aliasDotColumn.equals(namedColumn.aliasDotColumn))) {
+            if (dataModel.getAllNamedColumns().stream()
+                    .anyMatch(c -> c.aliasDotColumn.equals(namedColumn.aliasDotColumn))) {
                 // cc already used as named column
                 continue;
             }
@@ -986,8 +986,7 @@ public class ModelService extends BasicService {
     public void deleteSegmentById(String model, String project, int[] ids) throws PersistentException {
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
         if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new BadRequestException(
-                    "Model '" + model + "' is table oriented, can not remove segments manually!");
+            throw new BadRequestException("Model '" + model + "' is table oriented, can not remove segments manually!");
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);
@@ -1142,14 +1141,17 @@ public class ModelService extends BasicService {
                     m -> m.getName().equals(measure.getName()) && m.getFunction().equals(measure.getFunction()))) {
                 val measureCopy = JsonUtil.deepCopy(measure, NDataModel.Measure.class);
                 measureCopy.id = maxMeasureId;
+                measureCopy.getFunction().init(targetModel);
                 newMeasures.add(measureCopy);
                 maxMeasureId++;
             }
         }
         targetModel.getAllMeasures().addAll(newMeasures);
         for (NDataModel.Measure measure : targetModel.getAllMeasures()) {
-            boolean unused = request.getSimplifiedMeasures().stream().map(SimplifiedMeasure::toMeasure)
-                    .noneMatch(m -> m.getName().equals(measure.getName()) && m.getFunction().equals(measure.getFunction()));
+            boolean unused = request.getSimplifiedMeasures().stream().map(SimplifiedMeasure::toMeasure).noneMatch(m -> {
+                m.getFunction().init(targetModel);
+                return m.getName().equals(measure.getName()) && m.getFunction().equals(measure.getFunction());
+            });
             measure.tomb = unused || measure.tomb;
         }
 

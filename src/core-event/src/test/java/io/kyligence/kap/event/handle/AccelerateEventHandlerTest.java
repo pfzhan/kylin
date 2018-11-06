@@ -27,10 +27,12 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.event.model.AccelerateEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.manager.EventDao;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -38,6 +40,7 @@ import org.junit.Test;
 
 import java.util.List;
 
+@Slf4j
 public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
 
     private static final String DEFAULT_PROJECT = "default";
@@ -62,6 +65,7 @@ public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
         event.setProject(DEFAULT_PROJECT);
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
+        logLayouts(cubePlan1);
         int layoutCount1 = cubePlan1.getAllCuboidLayouts().size();
 
         event.setSqlPatterns(Lists.newArrayList("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME"));
@@ -71,6 +75,7 @@ public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
         handler.handle(eventContext);
 
         NCubePlan cubePlan2 = cubePlanManager.getCubePlan("all_fixed_length");
+        logLayouts(cubePlan2);
         int layoutCount2 = cubePlan2.getAllCuboidLayouts().size();
         Assert.assertEquals(layoutCount1 + 1, layoutCount2);
 
@@ -100,5 +105,14 @@ public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.server.mode", "all");
 
     }
+
+    private void logLayouts(NCubePlan cubePlan) {
+        for (NCuboidLayout layout : cubePlan.getAllCuboidLayouts()) {
+            log.debug("layout id:{} -- {}, auto:{}, manual:{}, col:{}, sort:{}", layout.getId(),
+                    layout.getCuboidDesc().getId(), layout.isAuto(), layout.isManual(), layout.getColOrder(),
+                    layout.getSortByColumns());
+        }
+    }
+
 
 }

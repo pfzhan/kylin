@@ -31,6 +31,7 @@ import java.util.BitSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.kylin.common.util.ImmutableBitSet;
@@ -40,7 +41,6 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Predicate;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
@@ -50,30 +50,36 @@ import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.EqualsAndHashCode;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class NCuboidDesc implements Serializable, IKeep {
     /**
      * Here suppose cuboid's number is not bigger than 1_000_000, so if the id is bigger than 1_000_000 * 1_000
      * means it should be a table index cuboid.
      */
-    public static final long CUBOID_ID_SIZE = 10_000_000_000L;
-    public static final long RULE_BASED_CUBOID_START_ID = CUBOID_ID_SIZE;
-    public static final long TABLE_INDEX_START_ID = 2 * CUBOID_ID_SIZE;
-    public static final long MANUAL_TABLE_INDEX_START_ID = 3 * CUBOID_ID_SIZE;
+    public static final long TABLE_INDEX_START_ID = 20_000_000_000L;
     public static final long CUBOID_DESC_ID_STEP = 1000L;
     public static final long CUBOID_LAYOUT_ID_STEP = 1L;
 
     @JsonBackReference
     private NCubePlan cubePlan;
 
+    @EqualsAndHashCode.Include
     @JsonProperty("id")
     private long id;
+
+    @EqualsAndHashCode.Include
     @JsonProperty("dimensions")
     private List<Integer> dimensions = Lists.newArrayList();
+
+    @EqualsAndHashCode.Include
     @JsonProperty("measures")
     private List<Integer> measures = Lists.newArrayList();
+
+    @EqualsAndHashCode.Include
     @JsonManagedReference
     @JsonProperty("layouts")
     private List<NCuboidLayout> layouts = Lists.newArrayList();
@@ -230,33 +236,28 @@ public class NCuboidDesc implements Serializable, IKeep {
         return id >= TABLE_INDEX_START_ID;
     }
 
-    public boolean isRuleBased() {
-        return id >= RULE_BASED_CUBOID_START_ID && id < TABLE_INDEX_START_ID;
-    }
-
-    public boolean isManualTableIndex() {
-        return id >= MANUAL_TABLE_INDEX_START_ID;
-    }
-
     void removeLayoutsInCuboid(List<NCuboidLayout> deprecatedLayouts, Predicate<NCuboidLayout> isSkip,
-            Predicate2<NCuboidLayout, NCuboidLayout> equal) {
+            Predicate2<NCuboidLayout, NCuboidLayout> equal, boolean deleteAuto, boolean deleteManual) {
+        checkIsNotCachedAndShared();
         List<NCuboidLayout> toRemoveLayouts = Lists.newArrayList();
         for (NCuboidLayout cuboidLayout : deprecatedLayouts) {
-            if (isSkip != null && isSkip.apply(cuboidLayout)) {
+            if (isSkip != null && isSkip.test(cuboidLayout)) {
                 continue;
             }
-            NCuboidLayout toRemoveLayout = null;
-            for (NCuboidLayout originalLayout : getLayouts()) {
-                if (equal.apply(originalLayout, cuboidLayout)) {
-                    toRemoveLayout = originalLayout;
-                    break;
+            NCuboidLayout toRemoveLayout = getLayouts().stream()
+                    .filter(originLayout -> equal.apply(originLayout, cuboidLayout)).findFirst().orElse(null);
+            if (toRemoveLayout != null) {
+                if (deleteAuto) {
+                    toRemoveLayout.setAuto(false);
+                }
+                if (deleteManual) {
+                    toRemoveLayout.setManual(false);
+                }
+                if (toRemoveLayout.isExpired()) {
+                    toRemoveLayouts.add(toRemoveLayout);
                 }
             }
-            if (toRemoveLayout != null) {
-                toRemoveLayouts.add(toRemoveLayout);
-            }
         }
-        //        logger.debug("to remove {}", toRemoveLayouts);
         getLayouts().removeAll(toRemoveLayouts);
     }
 
@@ -264,7 +265,7 @@ public class NCuboidDesc implements Serializable, IKeep {
     // NCuboidIdentifier used for auto-modeling
     // ============================================================================
 
-    public class NCuboidIdentifier {
+    public static class NCuboidIdentifier {
         BitSet dimBitSet;
         BitSet measureBitSet;
         boolean isTableIndex;

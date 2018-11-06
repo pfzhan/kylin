@@ -27,6 +27,7 @@ package io.kyligence.kap.cube.model;
 import java.io.IOException;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -188,7 +189,7 @@ public class NCubePlanManager implements IKeepNames {
                 throw new IllegalArgumentException(cubePlan.getErrorMsg());
             }
 
-            return crud.save(cubePlan);
+            return saveCube(cubePlan);
         }
     }
 
@@ -229,7 +230,7 @@ public class NCubePlanManager implements IKeepNames {
                 throw new IllegalArgumentException(cubePlan.getErrorMsg());
             }
 
-            return crud.save(cubePlan);
+            return saveCube(cubePlan);
         }
     }
 
@@ -244,4 +245,12 @@ public class NCubePlanManager implements IKeepNames {
         return ResourceStore.getKylinMetaStore(this.config);
     }
 
+    private NCubePlan saveCube(NCubePlan cubePlan) throws IOException {
+        cubePlan.setCuboids(cubePlan.getCuboids().stream()
+                .peek(cuboid -> cuboid.setLayouts(cuboid.getLayouts().stream()
+                        .filter(l -> l.isAuto() || l.getId() >= NCuboidDesc.TABLE_INDEX_START_ID)
+                        .collect(Collectors.toList())))
+                .filter(cuboid -> cuboid.getLayouts().size() > 0).collect(Collectors.toList()));
+        return crud.save(cubePlan);
+    }
 }

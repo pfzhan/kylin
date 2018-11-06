@@ -76,7 +76,7 @@ public class NCubeMasterTest extends NTestBase {
 
         cubePlan = cubeMaster.proposeCuboids(cubePlan);
         {
-            List<NCuboidDesc> cuboidDescs = cubePlan.getAllCuboids();
+            List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();
             Assert.assertEquals(4, cuboidDescs.size());
 
             for (NCuboidDesc c : cuboidDescs) {

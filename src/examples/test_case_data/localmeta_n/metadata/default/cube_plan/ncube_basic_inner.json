@@ -145,6 +145,7 @@
         }
       }
     ],
+    "cuboid_start_id": 1001000,
     "storage_type": 20
   },
   "cubeplan_override_encodings": {
@@ -211,6 +212,7 @@
       "layouts": [
         {
           "id": 1000001,
+          "auto": true,
           "col_order": [
             0,
             1,
@@ -270,6 +272,7 @@
       "layouts": [
         {
           "id": 1,
+          "auto": true,
           "col_order": [
             1,
             0,
@@ -293,6 +296,7 @@
       "layouts": [
         {
           "id": 1001,
+          "auto": true,
           "col_order": [
             1,
             0,
@@ -303,6 +307,7 @@
         },
         {
           "id": 1002,
+          "auto": true,
           "col_order": [
             1,
             2,
@@ -327,6 +332,7 @@
       "layouts": [
         {
           "id": 2001,
+          "auto": true,
           "col_order": [
             1,
             0,
@@ -354,6 +360,7 @@
       "layouts": [
         {
           "id": 3001,
+          "auto": true,
           "col_order": [
             1,
             0,
@@ -379,6 +386,7 @@
       "layouts": [
         {
           "id": 20000000001,
+          "auto": true,
           "col_order": [
             1,
             0,
@@ -403,6 +411,7 @@
       "layouts": [
         {
           "id": 20000001001,
+          "auto": true,
           "col_order": [
             1,
             0,
@@ -455,6 +464,7 @@
       "layouts": [
         {
           "id": 20000002001,
+          "auto": true,
           "col_order": [
             0,
             1,

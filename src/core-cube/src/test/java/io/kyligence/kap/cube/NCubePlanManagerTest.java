@@ -32,15 +32,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import javax.annotation.Nullable;
-
-import org.apache.calcite.linq4j.function.Predicate2;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.google.common.base.Predicate;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -54,7 +50,9 @@ import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NCubePlanManagerTest {
     private static final String DEFAULT_PROJECT = "default";
     private static final String TEST_MODEL_NAME = "nmodel_basic";
@@ -122,7 +120,22 @@ public class NCubePlanManagerTest {
     }
 
     @Test
-    public void testRemoveLayout() {
+    public void testSaveWithManualLayouts() throws Exception {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        NCubePlanManager manager = NCubePlanManager.getInstance(config, DEFAULT_PROJECT);
+        var cube = manager.getCubePlan("ncube_basic_inner");
+        val originCuboidSize = cube.getCuboids().size();
+
+        cube = manager.updateCubePlan("ncube_basic_inner", copyForWrite -> {
+            copyForWrite.setCuboids(copyForWrite.getAllCuboids());
+        });
+        val savedCuboidSize = cube.getCuboids().size();
+
+        Assert.assertEquals(originCuboidSize, savedCuboidSize);
+    }
+
+    @Test
+    public void testRemoveLayout() throws IOException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NCubePlanManager manager = NCubePlanManager.getInstance(config, DEFAULT_PROJECT);
 
@@ -131,9 +144,6 @@ public class NCubePlanManagerTest {
         val cuboidMap = Maps.newHashMap(cube.getWhiteListCuboidsMap());
         val toRemovedMap = Maps.<NCuboidIdentifier, List<NCuboidLayout>> newHashMap();
         for (Map.Entry<NCuboidIdentifier, NCuboidDesc> cuboidDescEntry : cuboidMap.entrySet()) {
-            if (cuboidDescEntry.getValue().isRuleBased()) {
-                continue;
-            }
             val layouts = cuboidDescEntry.getValue().getLayouts();
             val filteredLayouts = Lists.<NCuboidLayout> newArrayList();
             for (NCuboidLayout layout : layouts) {
@@ -144,43 +154,44 @@ public class NCubePlanManagerTest {
 
             toRemovedMap.put(cuboidDescEntry.getKey(), filteredLayouts);
         }
-        cube.removeLayouts(toRemovedMap, new Predicate2<NCuboidLayout, NCuboidLayout>() {
-            @Override
-            public boolean apply(NCuboidLayout nCuboidLayout, NCuboidLayout nCuboidLayout2) {
-                return nCuboidLayout.equals(nCuboidLayout2);
-            }
-        });
-        Assert.assertEquals(originalSize - 2, cube.getAllCuboidLayouts().size());
+        cube.removeLayouts(toRemovedMap, NCuboidLayout::equals, true, true);
+        Assert.assertEquals(originalSize - 1, cube.getAllCuboidLayouts().size());
 
         cube = manager.getCubePlan("ncube_basic_inner").copy();
-        cube.removeLayouts(toRemovedMap, new Predicate<NCuboidLayout>() {
-            @Override
-            public boolean apply(@Nullable NCuboidLayout input) {
-                return input != null && input.getId() == 1002L;
-            }
-        }, new Predicate2<NCuboidLayout, NCuboidLayout>() {
-            @Override
-            public boolean apply(NCuboidLayout nCuboidLayout, NCuboidLayout nCuboidLayout2) {
-                return nCuboidLayout.equals(nCuboidLayout2);
-            }
-        });
-        Assert.assertEquals(originalSize - 1, cube.getAllCuboidLayouts().size());
+        cube.removeLayouts(toRemovedMap, input -> input != null && input.getId() == 1002L, NCuboidLayout::equals, true,
+                true);
+        Assert.assertEquals(originalSize, cube.getAllCuboidLayouts().size());
+
     }
 
     @Test
-    public void testRemoveLayout2() {
+    public void testRemoveLayout2() throws IOException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NCubePlanManager manager = NCubePlanManager.getInstance(config, DEFAULT_PROJECT);
 
-        var cube = manager.getCubePlan("ncube_basic_inner").copy();
+        var cube = manager.getCubePlan("ncube_basic_inner");
+        logLayouts(cube);
+        log.debug("-------------");
         val originalSize = cube.getAllCuboidLayouts().size();
-        cube.removeLayouts(Sets.newHashSet(1000001L, 1002L), new Predicate2<NCuboidLayout, NCuboidLayout>() {
-            @Override
-            public boolean apply(NCuboidLayout nCuboidLayout, NCuboidLayout nCuboidLayout2) {
-                return nCuboidLayout.equals(nCuboidLayout2);
-            }
+        val layout = cube.getCuboidLayout(1000001L);
+        Assert.assertTrue(layout.isAuto());
+        Assert.assertTrue(layout.isManual());
+        cube = manager.updateCubePlan(cube.getName(), copyForWrite -> {
+            copyForWrite.removeLayouts(Sets.newHashSet(1000001L, 1002L), NCuboidLayout::equals, true, true);
         });
-        Assert.assertEquals(originalSize - 2, cube.getAllCuboidLayouts().size());
+        logLayouts(cube);
+        Assert.assertEquals(originalSize - 1, cube.getAllCuboidLayouts().size());
+        val layout2 = cube.getCuboidLayout(1000001L);
+        Assert.assertFalse(layout2.isAuto());
+        Assert.assertTrue(layout2.isManual());
+    }
+
+    private void logLayouts(NCubePlan cubePlan) {
+        for (NCuboidLayout layout : cubePlan.getAllCuboidLayouts()) {
+            log.debug("layout id:{} -- {}, auto:{}, manual:{}, col:{}, sort:{}", layout.getId(),
+                    layout.getCuboidDesc().getId(), layout.isAuto(), layout.isManual(), layout.getColOrder(),
+                    layout.getSortByColumns());
+        }
     }
 
 }

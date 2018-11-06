@@ -83,12 +83,7 @@ public class CubePlanService extends BasicService {
         val cubePlan = cubePlanManager.updateCubePlan(originCubePlan.getName(), copyForWrite -> {
             val newRuleBasedCuboid = new NRuleBasedCuboidsDesc();
             BeanUtils.copyProperties(request, newRuleBasedCuboid);
-            if (copyForWrite.getRuleBasedCuboidsDesc() == null) {
-                copyForWrite.setRuleBasedCuboidsDesc(new NRuleBasedCuboidsDesc());
-            }
-            newRuleBasedCuboid
-                    .setMeasures(Lists.newArrayList(copyForWrite.getModel().getEffectiveMeasureMap().keySet()));
-            copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(newRuleBasedCuboid);
+            copyForWrite.setNewRuleBasedCuboid(newRuleBasedCuboid);
         });
         val event = new CubePlanRuleUpdateEvent();
         event.setApproved(true);
@@ -109,33 +104,13 @@ public class CubePlanService extends BasicService {
     public void createTableIndex(CreateTableIndexRequest request) throws PersistentException, IOException {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val cubePlanManager = NCubePlanManager.getInstance(kylinConfig, request.getProject());
-        val modelManager = NDataModelManager.getInstance(kylinConfig, request.getProject());
         val eventManager = EventManager.getInstance(kylinConfig, request.getProject());
 
         val cubePlan = getCubePlan(request.getProject(), request.getModel());
         NDataModel model = cubePlan.getModel();
 
-        int maxId = -1;
-        for (NDataModel.NamedColumn column : model.getAllNamedColumns()) {
-            maxId = Math.max(maxId, column.id);
-        }
-        val newColumns = Lists.<NDataModel.NamedColumn> newArrayList();
-        for (String col : request.getColOrder()) {
-            if (model.getColumnIdByColumnName(col) == -1) {
-                val newCol = new NDataModel.NamedColumn();
-                newCol.id = maxId + 1;
-                newCol.aliasDotColumn = col;
-                newColumns.add(newCol);
-                maxId++;
-            }
-        }
-        if (CollectionUtils.isNotEmpty(newColumns)) {
-            model.getAllNamedColumns().addAll(newColumns);
-            model = modelManager.updateDataModelDesc(model);
-        }
-
         val newLayout = new NCuboidLayout();
-        long maxCuboidId = NCuboidDesc.MANUAL_TABLE_INDEX_START_ID - NCuboidDesc.CUBOID_DESC_ID_STEP;
+        long maxCuboidId = NCuboidDesc.TABLE_INDEX_START_ID - NCuboidDesc.CUBOID_DESC_ID_STEP;
         for (NCuboidDesc cuboid : cubePlan.getAllCuboids()) {
             if (cuboid.isTableIndex()) {
                 maxCuboidId = Math.max(maxCuboidId, cuboid.getId());
@@ -153,7 +128,9 @@ public class CubePlanService extends BasicService {
         newLayout.setShardByColumns(convertColumn(request.getShardByColumns(), model));
         newLayout.setSortByColumns(convertColumn(request.getSortByColumns(), model));
         newLayout.setUpdateTime(System.currentTimeMillis());
-        newLayout.setOwner("ADMIN");
+        newLayout.setOwner(getUsername());
+        newLayout.setManual(true);
+
         Map<Integer, String> layoutOverride = Maps.newHashMap();
         if (request.getLayoutOverrideIndices() != null) {
             for (Map.Entry<String, String> entry : request.getLayoutOverrideIndices().entrySet()) {
@@ -162,46 +139,63 @@ public class CubePlanService extends BasicService {
         }
         newLayout.setLayoutOverrideIndices(layoutOverride);
         for (NCuboidLayout cuboidLayout : cubePlan.getAllCuboidLayouts()) {
-            if (cuboidLayout.equals(newLayout)) {
+            if (cuboidLayout.equals(newLayout) && cuboidLayout.isManual()) {
                 throw new IllegalStateException("Already exists same layout");
 
             }
         }
-        cubePlanManager.updateCubePlan(cubePlan.getName(), copyForWrite -> {
-            val newCuboid = new NCuboidDesc();
-            newCuboid.setId(newLayout.getId() - 1);
-            newCuboid.setDimensions(Lists.newArrayList(newLayout.getColOrder()));
-            newCuboid.setLayouts(Arrays.asList(newLayout));
-            newCuboid.setCubePlan(copyForWrite);
-            copyForWrite.getCuboids().add(newCuboid);
-        });
-        val addEvent = new AddCuboidEvent();
-        addEvent.setApproved(true);
-        addEvent.setProject(request.getProject());
-        addEvent.setModelName(cubePlan.getModelName());
-        addEvent.setCubePlanName(cubePlan.getName());
-        addEvent.setLayoutIds(Arrays.asList(newLayout.getId()));
-        eventManager.post(addEvent);
+
+        int layoutIndex = cubePlan.getWhitelistCuboidLayouts().indexOf(newLayout);
+        if (layoutIndex != -1) {
+            cubePlanManager.updateCubePlan(cubePlan.getName(), copyForWrite -> {
+                val oldLayout = copyForWrite.getWhitelistCuboidLayouts().get(layoutIndex);
+                oldLayout.setManual(true);
+                oldLayout.setName(request.getName());
+                oldLayout.setOwner(getUsername());
+                oldLayout.setUpdateTime(System.currentTimeMillis());
+            });
+        } else {
+            cubePlanManager.updateCubePlan(cubePlan.getName(), copyForWrite -> {
+                val newCuboid = new NCuboidDesc();
+                newCuboid.setId(newLayout.getId() - 1);
+                newCuboid.setDimensions(Lists.newArrayList(newLayout.getColOrder()));
+                newCuboid.setLayouts(Arrays.asList(newLayout));
+                newCuboid.setCubePlan(copyForWrite);
+                copyForWrite.getCuboids().add(newCuboid);
+            });
+            val addEvent = new AddCuboidEvent();
+            addEvent.setApproved(true);
+            addEvent.setProject(request.getProject());
+            addEvent.setModelName(cubePlan.getModelName());
+            addEvent.setCubePlanName(cubePlan.getName());
+            addEvent.setLayoutIds(Arrays.asList(newLayout.getId()));
+            eventManager.post(addEvent);
+        }
     }
 
     // TODO: transaction
-    public void removeTableIndex(String project, String model, final long id) throws PersistentException, IOException {
+    public void removeTableIndex(String project, String model, final long id) throws IOException, PersistentException {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val cubePlanManager = NCubePlanManager.getInstance(kylinConfig, project);
         val eventManager = EventManager.getInstance(kylinConfig, project);
 
         val cubePlan = getCubePlan(project, model);
         Preconditions.checkState(cubePlan != null);
-        if (id < NCuboidDesc.MANUAL_TABLE_INDEX_START_ID) {
-            throw new IllegalStateException(
-                    "Table Index Id should large than " + NCuboidDesc.MANUAL_TABLE_INDEX_START_ID);
+        if (id < NCuboidDesc.TABLE_INDEX_START_ID) {
+            throw new IllegalStateException("Table Index Id should large than " + NCuboidDesc.TABLE_INDEX_START_ID);
         }
         val layout = cubePlan.getCuboidLayout(id);
         Preconditions.checkNotNull(layout);
+        Preconditions.checkState(layout.isManual());
 
-        cubePlanManager.updateCubePlan(cubePlan.getName(),
-                copyForWrite -> copyForWrite.removeLayouts(Sets.newHashSet(id), NCuboidLayout::equals));
+        val savedCubePlan = cubePlanManager.updateCubePlan(cubePlan.getName(), copyForWrite -> {
+            copyForWrite.removeLayouts(Sets.newHashSet(id), NCuboidLayout::equals, false, true);
+        });
+        if (savedCubePlan.getCuboidLayout(id) != null) {
+            return;
+        }
         val removeEvent = new RemoveCuboidByIdEvent();
+        removeEvent.setIncludeManual(true);
         removeEvent.setLayoutIds(Arrays.asList(id));
         removeEvent.setProject(project);
         removeEvent.setApproved(true);
@@ -215,7 +209,7 @@ public class CubePlanService extends BasicService {
         Preconditions.checkState(cubePlan != null);
         List<TableIndexResponse> result = Lists.newArrayList();
         for (NCuboidLayout cuboidLayout : cubePlan.getAllCuboidLayouts()) {
-            if (cuboidLayout.getId() >= NCuboidDesc.MANUAL_TABLE_INDEX_START_ID) {
+            if (cuboidLayout.isManual() && cuboidLayout.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
                 result.add(convertToResponse(cuboidLayout, cubePlan.getModel()));
             }
         }

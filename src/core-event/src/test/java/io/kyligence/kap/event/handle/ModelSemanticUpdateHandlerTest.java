@@ -166,7 +166,7 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         cubeMgr.updateCubePlan("ncube_basic", copyForWrite -> {
             val rule = new NRuleBasedCuboidsDesc();
             rule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
-            rule.setMeasures(Arrays.asList(1011, 1000));
+            rule.setMeasures(Arrays.asList(1001, 1000));
             copyForWrite.setRuleBasedCuboidsDesc(rule);
         });
         val updateEvent2 = new ModelSemanticUpdateEvent();

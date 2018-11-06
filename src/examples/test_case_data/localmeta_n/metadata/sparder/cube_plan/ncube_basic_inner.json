@@ -143,6 +143,7 @@
         }
       }
     ],
+    "cuboid_start_id": 1001000,
     "storage_type": 20
   },
   "cubeplan_override_encodings": {

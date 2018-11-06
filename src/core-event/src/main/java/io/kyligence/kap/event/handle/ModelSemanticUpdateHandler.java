@@ -96,7 +96,7 @@ public class ModelSemanticUpdateHandler extends AbstractEventHandler implements 
             needPostUpdate = !handleMeasuresChanged(matchingCubePlan, newModel.getEffectiveMeasureMap().keySet(),
                     (cube, rule) -> {
                         try {
-                            cube.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(rule);
+                            cube.setNewRuleBasedCuboid(rule);
                             fireEvent(new CubePlanRuleUpdateEvent(), event, eventContext.getConfig());
                         } catch (PersistentException e) {
                             log.info("persist failed", e);
@@ -155,6 +155,7 @@ public class ModelSemanticUpdateHandler extends AbstractEventHandler implements 
         }
         if (triggerEvent) {
             val removeEvent = new RemoveCuboidByIdEvent();
+            removeEvent.setIncludeManual(true);
             removeEvent.setCubePlanName(cube.getName());
             removeEvent.setLayoutIds(layoutIds);
             fireEvent(removeEvent, eventContext.getEvent(), eventContext.getConfig());
@@ -162,7 +163,7 @@ public class ModelSemanticUpdateHandler extends AbstractEventHandler implements 
             val cubePlanManager = NCubePlanManager.getInstance(eventContext.getConfig(),
                     eventContext.getEvent().getProject());
             cubePlanManager.updateCubePlan(cube.getName(), copy -> {
-                copy.setCuboids(cube.getCuboids().stream()
+                copy.setCuboids(copy.getCuboids().stream()
                         .filter(cuboid -> availableDimensions.containsAll(cuboid.getDimensions()))
                         .collect(Collectors.toList()));
             });
