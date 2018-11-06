@@ -38,6 +38,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
@@ -49,8 +51,6 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.NTestBase;
 import io.kyligence.kap.smart.model.ModelTree;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class NSmartMasterTest extends NTestBase {
     private static final Logger logger = LoggerFactory.getLogger(NSmartMasterTest.class);
@@ -694,7 +694,7 @@ public class NSmartMasterTest extends NTestBase {
         try {
             smartMaster.refreshCubePlanWithRetry();
         } catch (InterruptedException e) {
-            logger.error("thread interrupted exception",e);
+            logger.error("thread interrupted exception", e);
             Assert.fail();
         }
     }
