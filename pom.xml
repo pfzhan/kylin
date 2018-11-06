@@ -120,7 +120,13 @@
             **/org/apache/kylin/query/relnode/OLAP*Rel.java
         </sonar.jacoco.excludes>
         <sonar.coverage.exclusions>
-            **/io/kyligence/kap/rest/*Server.java
+            **/io/kyligence/kap/rest/*Server.java,
+            **/io/kyligence/kap/rest/service/FavoriteQueryService.java,
+            **/io/kyligence/kap/rest/controller/FavoriteQueryController.java,
+            **/io/kyligence/kap/rest/controller/QueryController.java,
+            **/io/kyligence/kap/rest/service/QueryHistoryService.java,
+            **/io/kyligence/kap/metadata/FavoriteQuery*.java,
+            **/io/kyligence/kap/metadata/QueryHistory*.java
         </sonar.coverage.exclusions>
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
 
