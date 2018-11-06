@@ -395,6 +395,7 @@ export default class DataSourceBar extends Vue {
     }
     .tree-icon {
       margin-right: 4px;
+      display: inline-block;
       &:last-child {
         margin-right: 0;
       }
@@ -421,11 +422,28 @@ export default class DataSourceBar extends Vue {
       .column {
         padding-right: 10px;
       }
-      > div {
+      > div,
+      .table {
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
       }
+      .frontground {
+        position: relative;
+        z-index: 1;
+      }
+      &.selected .background {
+        background: @base-color-9;
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: calc(-24px - 36px);
+      }
+    }
+    .el-tree-node__expand-icon {
+      position: relative;
+      z-index: 1;
     }
     .datasource {
       color: #263238;

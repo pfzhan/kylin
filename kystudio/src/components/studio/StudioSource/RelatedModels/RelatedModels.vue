@@ -92,7 +92,7 @@ import { transToGmtTime, handleError } from '../../../../util'
 })
 export default class RelatedModels extends Vue {
   filterText = ''
-  isShowRelatedModel = false
+  isShowRelatedModel = true
   windowWidth = 0
   scrollableAncestor = null
   get columnCount () {

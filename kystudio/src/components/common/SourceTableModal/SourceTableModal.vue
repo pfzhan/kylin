@@ -394,7 +394,7 @@ export default class SourceTableModal extends Vue {
   .el-date-editor--datetimerange.el-input__inner {
     width: 100%;
     .el-range-input {
-      width: 47%;
+      width: 53%;
     }
   }
   .item-desc {

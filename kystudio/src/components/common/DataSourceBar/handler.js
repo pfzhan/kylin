@@ -34,47 +34,52 @@ export const render = {
   },
   table: {
     render (h, { node, data, store }) {
-      const { label, tags, dateRange } = data
+      const { label, tags, dateRange, isTopSet } = data
       const dataRangeTitle = this.$t('dataRange')
       const nodeClass = {
         class: [
+          'frontground',
           'table',
           ...(dateRange ? ['has-range'] : [])
         ]
       }
 
       return (
-        <div {...nodeClass}>
-          <div class="left">
-            {tags.map(tag => {
-              switch (tag) {
-                case 'F':
-                  return <i class="tree-icon el-icon-ksd-fact_table"></i>
-                case 'L':
-                  return <i class="tree-icon el-icon-ksd-lookup_table"></i>
-                case 'N':
-                default:
-                  return <i class="tree-icon el-icon-ksd-sample"></i>
-              }
-            })}
+        <div>
+          <div {...nodeClass}>
+            <div class="left">
+              {tags.map(tag => {
+                switch (tag) {
+                  case 'F':
+                    return <i class="tree-icon el-icon-ksd-fact_table"></i>
+                  case 'L':
+                    return <i class="tree-icon el-icon-ksd-lookup_table"></i>
+                  case 'N':
+                  default:
+                    return <i class="tree-icon el-icon-ksd-sample"></i>
+                }
+              })}
+            </div>
+            <span title={label}>{label}</span>
+            <div class="right">
+              <span class="tree-icon" slot="reference">
+                <el-tooltip effect="dark" enterable={false} content={isTopSet ? this.$t('cancelTopSet') : this.$t('topSet')} placement="top">
+                  <i class="table-date-tip top" onClick={event => this.handleToggleTop(data, node, event)}
+                    { ...{class: data.isTopSet ? ['el-icon-ksd-arrow_up-copy-2'] : ['el-icon-ksd-arrow_up']} }></i>
+                </el-tooltip>
+              </span>
+              { dateRange ? (
+                <el-popover
+                  placement="right"
+                  title={dataRangeTitle}
+                  trigger="hover"
+                  content={dateRange}>
+                  <i class="tree-icon table-date-tip el-icon-ksd-data_range" slot="reference"></i>
+                </el-popover>
+              ) : null }
+            </div>
           </div>
-          <span title={label}>{label}</span>
-          <div class="right">
-            <i
-              class="tree-icon table-date-tip top"
-              onClick={event => this.handleToggleTop(data, node, event)}
-              slot="reference"
-              { ...{class: data.isTopSet ? ['el-icon-ksd-arrow_up-copy-2'] : ['el-icon-ksd-arrow_up']} }></i>
-            { dateRange ? (
-              <el-popover
-                placement="right"
-                title={dataRangeTitle}
-                trigger="hover"
-                content={dateRange}>
-                <i class="tree-icon table-date-tip el-icon-ksd-data_range" slot="reference"></i>
-              </el-popover>
-            ) : null }
-          </div>
+          <div class="background"></div>
         </div>
       )
     }
