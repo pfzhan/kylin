@@ -49,8 +49,11 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.NTestBase;
 import io.kyligence.kap.smart.model.ModelTree;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class NSmartMasterTest extends NTestBase {
+    private static final Logger logger = LoggerFactory.getLogger(NSmartMasterTest.class);
 
     private NTableMetadataManager tableMetadataManager;
     private NDataModelManager dataModelManager;
@@ -651,7 +654,7 @@ public class NSmartMasterTest extends NTestBase {
         ExecutorService service = Executors.newCachedThreadPool();
         Future futureA = service.submit(() -> {
             try {
-                smartMasterA.refreshCubePlanWithRetry();
+                refreshCubePlanWithRetry(smartMasterA);
             } catch (IOException e) {
                 Assert.fail();
             }
@@ -659,7 +662,7 @@ public class NSmartMasterTest extends NTestBase {
 
         Future futureB = service.submit(() -> {
             try {
-                smartMasterB.refreshCubePlanWithRetry();
+                refreshCubePlanWithRetry(smartMasterB);
             } catch (IOException e) {
                 Assert.fail();
             }
@@ -667,7 +670,7 @@ public class NSmartMasterTest extends NTestBase {
 
         Future futureC = service.submit(() -> {
             try {
-                smartMasterC.refreshCubePlanWithRetry();
+                refreshCubePlanWithRetry(smartMasterC);
             } catch (IOException e) {
                 Assert.fail();
             }
@@ -686,7 +689,16 @@ public class NSmartMasterTest extends NTestBase {
         Assert.assertEquals(6, collectAllLayouts(allCuboids).size());
     }
 
-    @Ignore("KAP-7790")
+    // TODO if fixed  #7844 delete this method
+    private void refreshCubePlanWithRetry(NSmartMaster smartMaster) throws IOException {
+        try {
+            smartMaster.refreshCubePlanWithRetry();
+        } catch (InterruptedException e) {
+            logger.error("thread interrupted exception",e);
+            Assert.fail();
+        }
+    }
+
     @Test
     public void testRefreshCubePlanWithRetryFail() {
         kylinConfig.setProperty("kap.smart.conf.propose.retry-max", "0");

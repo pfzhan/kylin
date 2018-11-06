@@ -126,14 +126,16 @@ public class NSmartMaster {
         proposerProvider.getCubePlanRefreshProposer().propose();
     }
 
-    public void refreshCubePlanWithRetry() throws IOException {
+    public void refreshCubePlanWithRetry() throws IOException, InterruptedException {
         int maxRetry = context.getSmartConfig().getProposeRetryMax();
         for (int i = 0; i <= maxRetry; i++) {
             try {
                 selectModelAndCubePlan();
                 refreshCubePlan();
+                // TODO #7844 losing milliseconds(always ends with 000) when saving metastore 
+                Thread.sleep(1000);
                 saveCubePlan();
-                logger.debug("save successfully after refresh");
+                logger.debug("save successfully after refresh, {}", context.getDraftVersion());
                 return;
             } catch (IllegalStateException e) {
                 logger.warn("save error after refresh, have retried " + i + " times", e);
