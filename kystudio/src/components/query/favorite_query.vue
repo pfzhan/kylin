@@ -1,108 +1,9 @@
 <template>
   <div id="favoriteQuery">
-    <el-collapse v-model="activeNames" class="favorite-rules">
-      <el-collapse-item name="rules">
-        <template slot="title">
-          {{$t('favoriteRules')}}
-          <el-tooltip placement="right">
-            <div slot="content">{{$t('favRulesDesc')}}</div>
-            <i class="el-icon-ksd-what"></i>
-          </el-tooltip>
-        </template>
-        <el-row v-clickoutside="resetEditValue">
-          <el-col :span="18" class="rules-conds">
-            <div class="conds" :class="{'disabled': !frequencyObj.enable}">
-              <div class="conds-title">
-                <span>{{$t('queryFrequency')}}</span>
-                <el-switch class="ksd-switch" v-model="frequencyObj.enable" active-text="ON" inactive-text="OFF" @change="updateFre"></el-switch>
-                <el-button type="primary" size="small" text class="ksd-fright edit-conds" v-show="!isFrequencyEdit" @click="editFrequency">{{$t('kylinLang.common.edit')}}</el-button>
-              </div>
-              <div class="conds-content clearfix">
-                <div class="desc">{{$t('frequencyDesc')}}</div>
-                <el-slider :class="{'show-only': !isFrequencyEdit}" v-model="frequencyObj.freqValue" :step="0.1" button-type="sharp" :min="0" :max="1" show-dynamic-values :disabled="!isFrequencyEdit" :format-tooltip="formatTooltip"></el-slider>
-                <div class="ksd-fright ksd-mt-10">TopX% {{$t('queryFrequency')}}</div>
-              </div>
-              <div class="conds-footer" v-if="isFrequencyEdit">
-                <div class="btn-groups">
-                  <el-button @click="cancelFrequency" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-                  <el-button type="primary" plain @click="saveFrequency" size="medium">{{$t('kylinLang.common.save')}}</el-button>
-                </div>
-              </div>
-            </div>
-            <div class="conds" :class="{'disabled': !submitterObj.enable}">
-              <div class="conds-title">
-                <span>{{$t('querySubmitter')}}</span>
-                <el-switch class="ksd-switch" v-model="submitterObj.enable" active-text="ON" inactive-text="OFF" @change="updateSub"></el-switch>
-                <el-button type="primary" size="small" text class="ksd-fright edit-conds" v-show="!isSubmitterEdit" @click="editSubmitter">{{$t('kylinLang.common.edit')}}</el-button>
-              </div>
-              <div class="conds-content">
-                <div class="desc">{{$t('submitterDesc')}}</div>
-                <div class="users">
-                  <i class="el-icon-ksd-table_admin"></i> <span>{{submitterObj.users.length}}</span> Users
-                  <i class="el-icon-ksd-table_group"></i> <span>{{submitterObj.groups.length}}</span> Groups
-                </div>
-              </div>
-              <div class="conds-footer" v-if="isSubmitterEdit">
-                <el-select v-model="selectedUser" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User" class="ksd-mt-10" @change="selectUserChange">
-                  <el-option-group v-for="group in options" :key="group.label" :label="group.label">
-                    <el-option v-for="item in group.options" :key="item" :label="item" :value="item"></el-option>
-                  </el-option-group>
-                </el-select>
-                <div class="vip-users-block ksd-mb-10">
-                  <div class="ksd-mt-10"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
-                  <div class="vip-users">
-                    <span v-for="(user, index) in submitterObj.users" :key="user" class="user-label">{{user}}
-                      <i class="el-icon-ksd-close" @click="removeUser(index)"></i>
-                    </span>
-                  </div>
-                </div>
-                <div class="btn-groups">
-                  <el-button @click="cancelSubmitter" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-                  <el-button type="primary" plain @click="saveSubmitter" size="medium">{{$t('kylinLang.common.save')}}</el-button>
-                </div>
-              </div>
-            </div>
-            <div class="conds" :class="{'disabled': !durationObj.enable}">
-              <div class="conds-title">
-                <span>{{$t('queryDuration')}}</span>
-                <el-switch class="ksd-switch" v-model="durationObj.enable" active-text="ON" inactive-text="OFF" @change="updateDura"></el-switch>
-                <el-button type="primary" size="small" text class="ksd-fright edit-conds" v-show="!isDurationEdit" @click="editDuration">{{$t('kylinLang.common.edit')}}</el-button>
-              </div>
-              <div class="conds-content clearfix">
-                <div class="desc">{{$t('durationDesc')}}</div>
-                <el-slider :class="{'show-only': !isDurationEdit}" v-model="durationObj.durationValue" :step="1" range button-type="sharp" :min="0" :max="180" show-dynamic-values :disabled="!isDurationEdit"></el-slider>
-                <div class="ksd-fright ksd-mt-10">{{$t('unit')}}</div>
-              </div>
-              <div class="conds-footer" v-if="isDurationEdit">
-                <div class="btn-groups">
-                  <el-button @click="cancelDuration" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-                  <el-button type="primary" plain @click="saveDuration" size="medium">{{$t('kylinLang.common.save')}}</el-button>
-                </div>
-              </div>
-            </div>
-          </el-col>
-          <el-col :span="6" class="fillgauge-block">
-            <div class="conds-title">
-              <span>{{$t('ruleImpact')}}</span>
-              <el-tooltip placement="left">
-                <div slot="content">{{$t('ruleImpactDesc')}}</div>
-                <i class="el-icon-ksd-what"></i>
-              </el-tooltip>
-            </div>
-            <svg id="fillgauge" width="100%" height="165"></svg>
-          </el-col>
-        </el-row>
-      </el-collapse-item>
-    </el-collapse>
-    <div class="clearfix ksd-mb-10 ksd-mt-20">
-      <div class="ksd-fleft ksd-title-label ksd-mt-10">
-        <span>{{$t('kylinLang.menu.favorite_query')}}</span>
-        <el-tooltip placement="right">
-          <div slot="content" v-html="$t('favDesc')"></div>
-          <i class="el-icon-ksd-what"></i>
-        </el-tooltip>
+    <div class="clearfix ksd-mb-10 ksd-mt-20 rules_tools">
+      <div class="ksd-fleft ksd-mt-10">
         <span><span v-html="$t('thereAre')"></span>
-          <el-button type="primary" text size="medium">{{$t('accelerateNow')}}</el-button>
+          <el-button type="primary" plain size="medium">{{$t('accelerateNow')}}</el-button>
         </span>
       </div>
       <div class="ksd-fright btn-group">
@@ -122,6 +23,74 @@
           </el-tooltip>
         </el-button>
       </div>
+    </div>
+    <el-collapse v-model="activeNames" class="favorite-rules">
+      <el-collapse-item name="rules">
+        <template slot="title">
+          {{$t('favoriteRules')}}
+          <el-tooltip placement="right">
+            <div slot="content">{{$t('favRulesDesc')}}</div>
+            <i class="el-icon-ksd-what"></i>
+          </el-tooltip>
+        </template>
+        <el-row>
+          <el-col :span="18" class="rules-conds">
+            <div class="conds" :class="{'disabled': !frequencyObj.enable}">
+              <div class="conds-title">
+                <span>{{$t('queryFrequency')}}</span>
+                <el-switch class="ksd-switch" v-model="frequencyObj.enable" active-text="ON" inactive-text="OFF" @change="updateFre"></el-switch>
+                <el-button type="primary" size="medium" text class="ksd-fright edit-conds" @click="editFrequency">{{$t('kylinLang.common.edit')}}</el-button>
+              </div>
+              <div class="conds-content clearfix">
+                <el-slider class="show-only" v-model="frequencyObj.freqValue" :step="0.1" button-type="sharp" :min="0" :max="1" show-dynamic-values disabled :format-tooltip="formatTooltip"></el-slider>
+                <div class="ksd-fright ksd-mt-10 ksd-fs-12">TopX% {{$t('queryFrequency')}}</div>
+              </div>
+            </div>
+            <div class="conds" :class="{'disabled': !submitterObj.enable}">
+              <div class="conds-title">
+                <span>{{$t('querySubmitter')}}</span>
+                <el-switch class="ksd-switch" v-model="submitterObj.enable" active-text="ON" inactive-text="OFF" @change="updateSub"></el-switch>
+                <el-button type="primary" size="medium" text class="ksd-fright edit-conds" @click="editSubmitter">{{$t('kylinLang.common.edit')}}</el-button>
+              </div>
+              <div class="conds-content">
+                <div class="users">
+                  <i class="el-icon-ksd-table_admin"></i> <span class="ksd-fs-24">{{submitterObj.users.length}}</span> Users
+                  <i class="el-icon-ksd-table_group"></i> <span class="ksd-fs-24">{{submitterObj.groups.length}}</span> Groups
+                </div>
+              </div>
+            </div>
+            <div class="conds" :class="{'disabled': !durationObj.enable}">
+              <div class="conds-title">
+                <span>{{$t('queryDuration')}}</span>
+                <el-switch class="ksd-switch" v-model="durationObj.enable" active-text="ON" inactive-text="OFF" @change="updateDura"></el-switch>
+                <el-button type="primary" size="medium" text class="ksd-fright edit-conds" @click="editDuration">{{$t('kylinLang.common.edit')}}</el-button>
+              </div>
+              <div class="conds-content clearfix">
+                <el-slider class="show-only" v-model="durationObj.durationValue" :step="1" range button-type="sharp" :min="0" :max="180" show-dynamic-values disabled></el-slider>
+                <div class="ksd-fright ksd-mt-10 ksd-fs-12">{{$t('unit')}}</div>
+              </div>
+            </div>
+          </el-col>
+          <el-col :span="6" class="fillgauge-block">
+            <div class="conds-title">
+              <span>{{$t('ruleImpact')}}</span>
+              <el-tooltip placement="left">
+                <div slot="content">{{$t('ruleImpactDesc')}}</div>
+                <i class="el-icon-ksd-what"></i>
+              </el-tooltip>
+            </div>
+            <svg id="fillgauge" width="100%" height="150"></svg>
+          </el-col>
+        </el-row>
+      </el-collapse-item>
+    </el-collapse>
+    <div class="open_tips" v-if="!activeNames[0]">{{$t('openTips')}}</div>
+    <div class="ksd-title-label ksd-mt-10 ksd-mb-10">
+      <span>{{$t('kylinLang.menu.favorite_query')}}</span>
+      <el-tooltip placement="right">
+        <div slot="content" v-html="$t('favDesc')"></div>
+        <i class="el-icon-ksd-what"></i>
+      </el-tooltip>
     </div>
     <el-table
       :data="favQueList.favorite_queries"
@@ -289,6 +258,76 @@
       </el-row>
       <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="sqlLists.length"  v-on:handleCurrentChange='sqlListsPageChange' :perPageSize="5" v-if="sqlLists.length > 0"></kap-pager>
     </el-dialog>
+    <el-dialog
+      :visible.sync="frequencyVisible"
+      width="440px"
+      :title="$t('queryFrequency')"
+      class="frequencyDialog">
+      <div class="conds">
+        <div class="conds-content clearfix">
+          <div class="desc">{{$t('frequencyDesc')}}</div>
+          <el-slider v-model="oldFrequencyValue" :step="0.1" button-type="sharp" :min="0" :max="1" show-dynamic-values :format-tooltip="formatTooltip"></el-slider>
+          <div class="ksd-fright ksd-mt-10 ksd-fs-12">TopX% {{$t('queryFrequency')}}</div>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="cancelFrequency" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" plain @click="saveFrequency" size="medium">{{$t('kylinLang.common.save')}}</el-button>
+      </span>
+    </el-dialog>
+    <el-dialog
+      :visible.sync="submitterVisible"
+      width="440px"
+      :title="$t('querySubmitter')"
+      class="submitterDialog">
+      <div class="conds">
+        <div class="conds-content">
+          <div class="desc">{{$t('submitterDesc')}}</div>
+        </div>
+        <div class="conds-footer">
+          <el-select v-model="selectedUser" v-event-stop :popper-append-to-body="false" filterable size="medium" placeholder="VIP User" class="ksd-mt-10" @change="selectUserChange">
+            <el-option-group v-for="group in options" :key="group.label" :label="group.label">
+              <el-option v-for="item in group.options" :key="item" :label="item" :value="item"></el-option>
+            </el-option-group>
+          </el-select>
+          <div class="vip-users-block ksd-mb-10">
+            <div class="ksd-mt-10"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
+            <div class="vip-users">
+              <el-tag
+                v-for="(user, index) in oldSubmitterUsers"
+                :key="index"
+                closable
+                class="user-label"
+                size="small"
+                @close="removeUser(index)">
+                {{user}}
+              </el-tag>
+            </div>
+          </div>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="cancelSubmitter" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" plain @click="saveSubmitter" size="medium">{{$t('kylinLang.common.save')}}</el-button>
+      </span>
+    </el-dialog>
+    <el-dialog
+      :visible.sync="durationVisible"
+      width="440px"
+      :title="$t('queryDuration')"
+      class="durationDialog">
+      <div class="conds">
+        <div class="conds-content clearfix">
+          <div class="desc">{{$t('durationDesc')}}</div>
+          <el-slider v-model="oldDurationValue" :step="1" range button-type="sharp" :min="0" :max="180" show-dynamic-values></el-slider>
+          <div class="ksd-fright ksd-mt-10 ksd-fs-12">{{$t('unit')}}</div>
+        </div>
+      </div>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="cancelDuration" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button type="primary" plain @click="saveDuration" size="medium">{{$t('kylinLang.common.save')}}</el-button>
+      </span>
+    </el-dialog>
   </div>
 </template>
 
@@ -323,8 +362,8 @@ import sqlFormatter from 'sql-formatter'
     ])
   },
   locales: {
-    'en': {preferrence: 'Preference', whiteList: 'White List', blackList: 'Black List', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query.<br/> Favorite query represent your main business analysis scenarios and critical decision point.<br/> System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', submitterDesc: 'Optimize queries from critical users and groups', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the editor?', acceThreshold: 'Accelerating Threshold', notifyLeftTips: 'Notify me every time when there are ', notifyRightTips: ' favorite queries.', acceResource: 'Accelerating Resource', reasourceDsec: 'The system should ask me for permission for using storage and computing resource to accelerate favorite queries.', ressourceYse: 'Yes', ressourceNo: 'No, I don\'t need to know', whiteListDesc: 'White list helps to manage user manually defined favorite SQLs, especially for SQLs from query history list and imported SQL files.', blackListDesc: 'Black list helps to manage SQLs which are undesired for accelerating, especially for those SQLs will require unreasonable large storage or computing resource to accelerate.', ruleImpact: 'Rules Impact', ruleImpactDesc: 'Percentage of SQL queries selected by the favorite rule.', thereAre: 'There are 13 SQLs waiting for acceleration on the threshold of <span class="highlight">50</span>.', accelerateNow: 'Accelerate them now !'},
-    'zh-cn': {preferrence: '加速偏好', whiteList: '白名单', blackList: '黑名单', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。<br/>这类查询可以代表最主要的业务分析和重要的业务决策点。<br/>系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', submitterDesc: '优化重要⽤用户或⽤用户组发出的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？', acceThreshold: '加速阈值', notifyLeftTips: '每积累', notifyRightTips: ' 条加速查询时，提醒我。', acceResource: '加速资源', reasourceDsec: '系统需要获取存储资源和计算资源来加速查询时，请征询我的许可。', ressourceYse: '征询许可', ressourceNo: '不需要征询', whiteListDesc: '本列列表管理理⽤用户⼈人为指定加速的SQL查询。⼀一般指⽤用户从查询历史指定或导⼊入的查询⽂文件。', blackListDesc: '本列列表管理理⽤用户不不希望被加速的SQL查询。⼀一般是指加速时对存储空间、计算⼒力力需求过⼤大的查询。', ruleImpact: '加速规则影响⼒', ruleImpactDesc: '被加速规则选出的SQL查询的百分⽐。', thereAre: '已有13条SQL查询等待加速(阈值为<span class="highlight">50</span>条SQL)', accelerateNow: '现在就加速它们！'}
+    'en': {preferrence: 'Preference', whiteList: 'White List', blackList: 'Black List', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query.<br/> Favorite query represent your main business analysis scenarios and critical decision point.<br/> System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', submitterDesc: 'Optimize queries from critical users and groups', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the editor?', acceThreshold: 'Accelerating Threshold', notifyLeftTips: 'Notify me every time when there are ', notifyRightTips: ' favorite queries.', acceResource: 'Accelerating Resource', reasourceDsec: 'The system should ask me for permission for using storage and computing resource to accelerate favorite queries.', ressourceYse: 'Yes', ressourceNo: 'No, I don\'t need to know', whiteListDesc: 'White list helps to manage user manually defined favorite SQLs, especially for SQLs from query history list and imported SQL files.', blackListDesc: 'Black list helps to manage SQLs which are undesired for accelerating, especially for those SQLs will require unreasonable large storage or computing resource to accelerate.', ruleImpact: 'Rules Impact', ruleImpactDesc: 'Percentage of SQL queries selected by the favorite rule.', thereAre: 'There are 13 SQLs waiting for acceleration on the threshold of <span class="highlight">50</span>.', accelerateNow: 'Accelerate now', openTips: '您可以點擊展開設定 Favorite Rules'},
+    'zh-cn': {preferrence: '加速偏好', whiteList: '白名单', blackList: '黑名单', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。<br/>这类查询可以代表最主要的业务分析和重要的业务决策点。<br/>系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', submitterDesc: '优化重要⽤用户或⽤用户组发出的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？', acceThreshold: '加速阈值', notifyLeftTips: '每积累', notifyRightTips: ' 条加速查询时，提醒我。', acceResource: '加速资源', reasourceDsec: '系统需要获取存储资源和计算资源来加速查询时，请征询我的许可。', ressourceYse: '征询许可', ressourceNo: '不需要征询', whiteListDesc: '本列列表管理理⽤用户⼈人为指定加速的SQL查询。⼀一般指⽤用户从查询历史指定或导⼊入的查询⽂文件。', blackListDesc: '本列列表管理理⽤用户不不希望被加速的SQL查询。⼀一般是指加速时对存储空间、计算⼒力力需求过⼤大的查询。', ruleImpact: '加速规则影响⼒', ruleImpactDesc: '被加速规则选出的SQL查询的百分⽐。', thereAre: '已有13条SQL查询等待加速(阈值为<span class="highlight">50</span>条SQL)', accelerateNow: '立即加速', openTips: '您可以點擊展開設定 Favorite Rules'}
   }
 })
 export default class FavoriteQuery extends Vue {
@@ -334,6 +373,9 @@ export default class FavoriteQuery extends Vue {
   preferrenceVisible = false
   blackListVisible = false
   whiteListVisible = false
+  frequencyVisible = false
+  submitterVisible = false
+  durationVisible = false
   isShowInput = false
   inputHeight = 564
   isEditSql = false
@@ -694,33 +736,20 @@ select a.placepointid, --门店id
   oldFrequencyValue = 0.2
   oldSubmitterUsers = ['Admin']
   oldDurationValue = [50, 80]
-  isFrequencyEdit = false
-  isSubmitterEdit = false
-  isDurationEdit = false
   impactRatio = 55
 
-  resetEditValue () {
-    this.isFrequencyEdit = false
-    this.isSubmitterEdit = false
-    this.isDurationEdit = false
-    this.frequencyObj.freqValue = this.oldFrequencyValue
-    this.submitterObj.users = this.oldSubmitterUsers
-    this.durationObj.durationValue = this.oldDurationValue
-  }
-
   editFrequency () {
-    this.resetEditValue()
-    this.isFrequencyEdit = true
+    this.frequencyVisible = true
+    this.oldFrequencyValue = this.frequencyObj.freqValue
   }
 
   cancelFrequency () {
-    this.isFrequencyEdit = false
-    this.frequencyObj.freqValue = this.oldFrequencyValue
+    this.frequencyVisible = false
   }
 
   saveFrequency () {
-    this.isFrequencyEdit = false
-    this.oldFrequencyValue = this.frequencyObj.freqValue
+    this.frequencyVisible = false
+    this.frequencyObj.freqValue = this.oldFrequencyValue
     this.updateFre()
   }
 
@@ -740,18 +769,17 @@ select a.placepointid, --门店id
   }
 
   editSubmitter () {
-    this.resetEditValue()
-    this.isSubmitterEdit = true
+    this.submitterVisible = true
+    this.oldSubmitterUsers = this.submitterObj.users.slice(0)
   }
 
   cancelSubmitter () {
-    this.isSubmitterEdit = false
-    this.submitterObj.users = this.oldSubmitterUsers
+    this.submitterVisible = false
   }
 
   saveSubmitter () {
-    this.isSubmitterEdit = false
-    this.oldSubmitterUsers = this.submitterObj.users
+    this.submitterVisible = false
+    this.submitterObj.users = this.oldSubmitterUsers.slice(0)
     this.updateSub()
   }
 
@@ -772,31 +800,30 @@ select a.placepointid, --门店id
   }
 
   selectUserChange (val) {
-    this.submitterObj.users.push(val)
+    this.oldSubmitterUsers.push(val)
     const index = this.options[0].options.indexOf(val)
     this.selectedUser = ''
     this.options[0].options.splice(index, 1)
   }
 
   removeUser (index) {
-    const user = this.submitterObj.users[index]
-    this.submitterObj.users.splice(index, 1)
+    const user = this.oldSubmitterUsers[index]
+    this.oldSubmitterUsers.splice(index, 1)
     this.options[0].options.push(user)
   }
 
   editDuration () {
-    this.resetEditValue()
-    this.isDurationEdit = true
+    this.durationVisible = true
+    this.oldDurationValue = this.durationObj.durationValue
   }
 
   cancelDuration () {
-    this.isDurationEdit = false
-    this.durationObj.durationValue = this.oldDurationValue
+    this.durationVisible = false
   }
 
   saveDuration () {
-    this.isDurationEdit = false
-    this.oldDurationValue = this.durationObj.durationValue
+    this.durationVisible = false
+    this.durationObj.durationValue = this.oldDurationValue
     this.updateDura()
   }
 
@@ -831,7 +858,7 @@ select a.placepointid, --门店id
   }
 
   formatTooltip (val) {
-    return val * 100 + '%'
+    return val * 100
   }
 
   filterFav () {
@@ -851,7 +878,6 @@ select a.placepointid, --门店id
     this.getFrequency({project: this.currentSelectedProject}).then((res) => {
       handleSuccess(res, (data) => {
         this.frequencyObj = data
-        this.oldFrequencyValue = data.freqValue
       })
     }, (res) => {
       handleError(res)
@@ -1022,6 +1048,10 @@ select a.placepointid, --门店id
         top: 12px;
         border-radius: 2px;
         font-size: 16px;
+        &:hover {
+          border: 1px solid @base-color;
+          color: @base-color;
+        }
         &.is-active {
           transform: none;
           &:before {
@@ -1033,98 +1063,76 @@ select a.placepointid, --门店id
         border-bottom: 0;
       }
       .el-collapse-item__header {
-        border-bottom: 1px solid @line-border-color;
         font-size: 16px;
+        border-bottom: 0;
       }
       .el-collapse-item__content {
         padding-bottom: 0;
+        background-color: @table-stripe-color;
+        height: 170px;
+        line-height: 1;
         .rules-conds {
-          min-height: 185px;
-          border: 1px solid @line-border-color;
-          margin-top: 10px;
           border-radius: 2px;
           display: flex;
           padding: 10px 0;
           .conds {
             width: 33.34%;
-            padding: 0 10px;
-            border-right: 1px solid @line-border-color;
-            .el-slider__button-wrapper .el-slider__value {
-              bottom: -8px;
-            }
-            &:last-child {
-              border-right: 0;
-            }
+            padding: 0 20px;
+            height: 150px;
             .conds-title {
-              font-size: 12px;
+              font-size: 14px;
               font-weight: 500;
-              padding: 10px 0;
+              height: 50px;
+              line-height: 50px;
               color: @text-title-color;
               border-bottom: 1px solid @line-border-color;
             }
             .conds-content {
+              font-size: 14px;
               .desc {
                 line-height: 15px;
                 color: @text-title-color;
-                font-size: 10px;
                 margin-top: 15px;
               }
               .el-slider {
                 width: 95%;
               }
               .show-only {
-                width: 98%;
+                width: 100%;
                 .el-slider__runway {
                   border-radius: 0;
+                  margin: 20px 0;
                 }
                 .el-slider__runway.disabled .el-slider__bar {
                   background-color: @base-color;
                 }
                 .el-slider__valueStop,
                 .el-slider__button {
-                  opacity: 0;
+                  visibility: hidden;
                 }
                 .el-slider__values:last-child {
                   margin-left: -20px;
                 }
               }
               .users {
-                margin: 10px 0;
+                margin: 15px 0;
                 .el-icon-ksd-table_admin {
                   font-size: 16px;
                 }
                 .el-icon-ksd-table_group {
                   font-size: 16px;
-                  margin-left: 10px;
+                  margin-left: 40px;
                 }
               }
-            }
-            .vip-users-block {
-              .user-label {
-                font-size: 14px;
-                margin-right: 8px;
-                .el-icon-ksd-close {
-                  display: none;
-                }
-                &:hover {
-                  background-color: @base-color-10;
-                  color: @base-color;
-                  .el-icon-ksd-close {
-                    display: inline-block;
-                  }
-                }
-              }
-            }
-            .conds-footer .btn-groups {
-              border-top: 1px solid @line-border-color;
-              text-align: right;
-              padding-top: 10px;
-              margin-top: 10px;
             }
             .edit-conds {
               display: none;
+              position: relative;
+              top: 10px;
             }
             &:hover {
+              background-color: @fff;
+              box-shadow: 0 0 6px 0 #cfd8dc, 0 2px 4px 0 #cfd8dc;
               .edit-conds {
                 display: inline-block;
               }
@@ -1134,9 +1142,6 @@ select a.placepointid, --门店id
                 .edit-conds {
                   display: none;
                 }
-              }
-              .conds-content {
-                opacity: 0.5;
               }
               .el-slider__runway.disabled .el-slider__bar {
                 background-color: @text-disabled-color !important;
@@ -1155,6 +1160,24 @@ select a.placepointid, --门店id
           }
         }
       }
+    }
+    .rules_tools {
+      background-color: @base-color-10;
+      height: 52px;
+      padding: 0 10px 0 25px;
+      .highlight {
+        font-weight: 500px;
+      }
+      .btn-group {
+        line-height: 52px;
+      }
+    }
+    .open_tips {
+      height: 44px;
+      line-height: 44px;
+      background-color: @table-stripe-color;
+      font-size: 12px;
+      text-align: center;
     }
     .table-title {
       color: @text-title-color;
@@ -1181,6 +1204,15 @@ select a.placepointid, --门店id
       .divider-line {
         border-top: 1px solid @line-border-color;
         margin: 20px -20px;
+      }
+    }
+    .submitterDialog {
+      .vip-users {
+        margin-top: 10px;
+        .user-label {
+          font-size: 14px;
+          margin-right: 8px;
+        }
       }
     }
     .blackListDialog,
