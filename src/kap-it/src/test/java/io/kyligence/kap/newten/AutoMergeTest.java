@@ -24,13 +24,17 @@
 package io.kyligence.kap.newten;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -665,6 +669,131 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         mockAddSegmentSuccess();
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(0, events.size());
+
+    }
+
+    @Test
+    public void testAutoMergeSegments_2YearsRange_OneHourPerSegment() throws Exception {
+        removeAllSegments();
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        Class<RootPersistentEntity> clazz = RootPersistentEntity.class;
+        Field field = clazz.getDeclaredField("isCachedAndShared");
+        field.setAccessible(true);
+        field.set(df, false);
+        NDataModel model = dataModelManager.getDataModelDesc("nmodel_basic");
+        NDataModel modelUpdate = dataModelManager.copyForWrite(model);
+        List<AutoMergeTimeEnum> autoMergeTimeEnumList = new ArrayList<>();
+        autoMergeTimeEnumList.add(AutoMergeTimeEnum.YEAR);
+        autoMergeTimeEnumList.add(AutoMergeTimeEnum.MONTH);
+        autoMergeTimeEnumList.add(AutoMergeTimeEnum.WEEK);
+        autoMergeTimeEnumList.add(AutoMergeTimeEnum.DAY);
+        modelUpdate.setAutoMergeTimeRanges(autoMergeTimeEnumList);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        dataModelManager.updateDataModelDesc(modelUpdate);
+        int eventsMergeYear = 0;
+        int eventsMergeMonth = 0;
+        int eventsMergeWeek = 0;
+        int eventsMergeDay = 0;
+        int allEvent = 0;
+        Segments segments = df.getSegments();
+        //2010/01/10 00:00:00 -2012-02-10 01:00:00 one hour per segment
+        long start = 1263081600000L;
+        long end = 1263081600000L + 3600000L;
+        int i = 0;
+        long mergeStart;
+        long mergeEnd;
+        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        while (end <= 1328835600000L) {
+            SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+            NDataSegment newSegment = new NDataSegment();
+            newSegment.setSegmentRange(segmentRange);
+            newSegment.setStatus(SegmentStatusEnum.READY);
+            newSegment.setId(i);
+            segments.add(newSegment);
+            df = dataflowManager.getDataflow("ncube_basic");
+            field.set(df, false);
+            df.setSegments(segments);
+            eventDao.deleteAllEvents();
+            mockAddSegmentSuccess();
+            if (eventDao.getEvents().size() > 0) {
+                allEvent++;
+                Event event = eventDao.getEvents().get(0);
+                mergeStart = Long.parseLong(event.getSegmentRange().getStart().toString());
+                mergeEnd = Long.parseLong(event.getSegmentRange().getEnd().toString());
+                if (mergeEnd - mergeStart > 2678400000L) {
+                    eventsMergeYear++;
+                } else if (mergeEnd - mergeStart > 604800000L) {
+                    eventsMergeMonth++;
+                } else if (mergeEnd - mergeStart > 86400000L
+                        || segments.getMergeEnd(mergeStart, AutoMergeTimeEnum.WEEK) == mergeEnd) {
+                    eventsMergeWeek++;
+                } else {
+                    eventsMergeDay++;
+                }
+                //events.put(end, eventDao.getEvents().get(0));
+                mockMergeSegments(i, eventDao.getEvents().get(0).getSegmentRange());
+                i += 2;
+            } else {
+                i++;
+            }
+            start += 3600000L;
+            end += 3600000L;
+        }
+        Assert.assertEquals(2, eventsMergeYear);
+        Assert.assertEquals(23, eventsMergeMonth);
+        Assert.assertEquals(105, eventsMergeWeek);
+        Assert.assertEquals(631, eventsMergeDay);
+        Assert.assertEquals(761, allEvent);
+
+        //check final segments
+        Segments<NDataSegment> finalSegments = df.getSegments();
+        Assert.assertEquals(9, finalSegments.size());
+        //2010/01/10 - 2011/01/01 00:00:00
+        Assert.assertEquals(1263081600000L, Long.parseLong(finalSegments.get(0).getSegRange().getStart().toString()));
+        Assert.assertEquals(1293840000000L, Long.parseLong(finalSegments.get(0).getSegRange().getEnd().toString()));
+        //2011/01/01 - 2012/01/01 00:00:00
+        Assert.assertEquals(1293840000000L, Long.parseLong(finalSegments.get(1).getSegRange().getStart().toString()));
+        Assert.assertEquals(1325376000000L, Long.parseLong(finalSegments.get(1).getSegRange().getEnd().toString()));
+        //2012/01/01 - 2012/02/01 00:00:00
+        Assert.assertEquals(1325376000000L, Long.parseLong(finalSegments.get(2).getSegRange().getStart().toString()));
+        Assert.assertEquals(1328054400000L, Long.parseLong(finalSegments.get(2).getSegRange().getEnd().toString()));
+        //2012/02/01 - 2012/02/06 00:00:00 week
+        Assert.assertEquals(1328054400000L, Long.parseLong(finalSegments.get(3).getSegRange().getStart().toString()));
+        Assert.assertEquals(1328486400000L, Long.parseLong(finalSegments.get(3).getSegRange().getEnd().toString()));
+        //2012/02/06 - 2012/02/07 00:00:00 day
+        Assert.assertEquals(1328486400000L, Long.parseLong(finalSegments.get(4).getSegRange().getStart().toString()));
+        Assert.assertEquals(1328572800000L, Long.parseLong(finalSegments.get(4).getSegRange().getEnd().toString()));
+        //2012/02/07 - 2012/02/08 00:00:00 day
+        Assert.assertEquals(1328572800000L, Long.parseLong(finalSegments.get(5).getSegRange().getStart().toString()));
+        Assert.assertEquals(1328659200000L, Long.parseLong(finalSegments.get(5).getSegRange().getEnd().toString()));
+        //2012/02/08 - 2012/02/09 00:00:00 day
+        Assert.assertEquals(1328659200000L, Long.parseLong(finalSegments.get(6).getSegRange().getStart().toString()));
+        Assert.assertEquals(1328745600000L, Long.parseLong(finalSegments.get(6).getSegRange().getEnd().toString()));
+        //2012/02/09 - 2012/02/10 00:00:00 day
+        Assert.assertEquals(1328745600000L, Long.parseLong(finalSegments.get(7).getSegRange().getStart().toString()));
+        Assert.assertEquals(1328832000000L, Long.parseLong(finalSegments.get(7).getSegRange().getEnd().toString()));
+        //2012/02/10 00:00 - 2012/02/10 01:00:00 hour
+        Assert.assertEquals(1328832000000L, Long.parseLong(finalSegments.get(8).getSegRange().getStart().toString()));
+        Assert.assertEquals(1328835600000L, Long.parseLong(finalSegments.get(8).getSegRange().getEnd().toString()));
+    }
+
+    private void mockMergeSegments(int i, SegmentRange segmentRange) {
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
+        Segments<NDataSegment> segments = new Segments<>();
+        for (NDataSegment segment : dataflow.getSegments()) {
+            if (segmentRange.contains(segment.getSegRange())) {
+                segments.add(segment);
+            }
+        }
+        NDataSegment mergedSegment = new NDataSegment();
+        mergedSegment.setStatus(SegmentStatusEnum.READY);
+        mergedSegment.setId(i);
+        mergedSegment.setSegmentRange(segmentRange);
+        dataflow.getSegments().removeAll(segments);
+        dataflow.getSegments().add(mergedSegment);
 
     }
 

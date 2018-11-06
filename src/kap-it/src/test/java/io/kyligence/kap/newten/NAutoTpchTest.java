@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.newten;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
@@ -35,6 +36,8 @@ public class NAutoTpchTest extends NAutoTestBase {
         return "tpch";
     }
 
+    //KAP#7892 fix this
+    @Ignore
     @Test
     public void testTpch() throws Exception {
         kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");

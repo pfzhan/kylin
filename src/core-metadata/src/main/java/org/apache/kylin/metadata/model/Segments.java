@@ -232,7 +232,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         return null;
     }
 
-    private long getMergeEnd(long start, AutoMergeTimeEnum autoMergeTimeEnum) {
+    public long getMergeEnd(long start, AutoMergeTimeEnum autoMergeTimeEnum) {
         Calendar calendar = Calendar.getInstance();
         TimeZone zone = TimeZone.getTimeZone("GMT");
         calendar.setTimeZone(zone);
@@ -252,7 +252,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             calendar.set(Calendar.HOUR_OF_DAY, 0);
             break;
         case WEEK:
-           
+
             if (weekFirstDay.equalsIgnoreCase("monday")) {
                 if (calendar.get(Calendar.DAY_OF_WEEK) != 1) {
                     calendar.add(Calendar.WEEK_OF_MONTH, 1);
@@ -264,7 +264,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
             }
             if (calendar.get(Calendar.MONTH) > month) {
-                calendar.set(Calendar.DAY_OF_MONTH, 0);
+                calendar.set(Calendar.DAY_OF_MONTH, 1);
             }
             calendar.set(Calendar.MINUTE, 0);
             calendar.set(Calendar.SECOND, 0);
@@ -344,11 +344,12 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         long mergeStart = Long.parseLong(this.getFirst().getSegRange().start.toString());
         SegmentRange rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeStart,
                 getMergeEnd(mergeStart, autoMergeTimeEnum));
-        if (this.getLast().getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) < 0) {
-            return null;
-        }
+
         Segments segmentsToMerge = new Segments();
         for (ISegment seg : this) {
+            if (this.getLast().getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) < 0) {
+                return null;
+            }
             long mergeEnd = Long.parseLong(rangeToMerge.getEnd().toString());
             SegmentRange segmentRange = seg.getSegRange();
             // include if segment range contained
@@ -359,9 +360,6 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
                     rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeEnd,
                             getMergeEnd(mergeEnd, autoMergeTimeEnum));
                     segmentsToMerge.clear();
-                    if (this.getLast().getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) < 0) {
-                        return null;
-                    }
                     continue;
                 } else {
                     segmentsToMerge.add(seg);
@@ -369,21 +367,23 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             }
 
             if (seg.getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) >= 0) {
+                long end = Long.parseLong(seg.getSegRange().getEnd().toString());
                 if (segmentsToMerge.size() > 1 && (segmentsToMerge.getLast().equals(seg)
                         || segmentsToMerge.getLast().getSegRange().connects(segmentRange))) {
                     break;
                 } else {
                     //this section can not merge,but has next section data,compute next section
-                    rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeEnd,
-                            getMergeEnd(mergeEnd, autoMergeTimeEnum));
+                    rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(end,
+                            getMergeEnd(end, autoMergeTimeEnum));
                     segmentsToMerge.clear();
-                    if (this.getLast().getSegRange().getEnd().compareTo(rangeToMerge.getEnd()) < 0) {
-                        return null;
-                    }
+
                     continue;
                 }
 
             }
+        }
+        if (segmentsToMerge.size() < 2) {
+            return null;
         }
         return segmentsToMerge.getFirst().getSegRange().coverWith(segmentsToMerge.getLast().getSegRange());
     }

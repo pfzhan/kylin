@@ -134,6 +134,15 @@ public class ModelService extends BasicService {
     public static final char[] VALID_MODELNAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
             .toCharArray();
 
+    private NDataModel getNDataModelByModelName(String modelName, String project) {
+        NDataModelManager modelManager = getDataModelManager(project);
+        NDataModel nDataModel = modelManager.getDataModelDesc(modelName);
+        if (null == nDataModel) {
+            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelName));
+        }
+        return nDataModel;
+    }
+
     public List<NDataModelResponse> getModels(final String modelName, final String projectName, boolean exactMatch,
             String owner, String status, String sortBy, boolean reverse) {
 
@@ -389,11 +398,7 @@ public class ModelService extends BasicService {
     }
 
     public void dropModel(String model, String project) throws IOException {
-        NDataModelManager dataModelManager = getDataModelManager(project);
-        NDataModel dataModelDesc = dataModelManager.getDataModelDesc(model);
-        if (null == dataModelDesc) {
-            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), model));
-        }
+        NDataModel dataModelDesc = getNDataModelByModelName(model, project);
         NCubePlanManager cubePlanManager = getCubePlanManager(project);
         NDataflowManager dataflowManager = getDataflowManager(project);
         List<NCubePlan> cubePlans = getCubePlans(model, project);
@@ -412,12 +417,9 @@ public class ModelService extends BasicService {
     }
 
     public void purgeModel(String model, String project) throws IOException {
-        NDataModel dataModelDesc = getDataModelManager(project).getDataModelDesc(model);
-        if (null == dataModelDesc) {
-            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), model));
-        }
-        if(dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)){
-            throw new BadRequestException("Model '"+model+"' is table oriented, can not pruge the model!!");
+        NDataModel dataModelDesc = getNDataModelByModelName(model, project);
+        if (dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+            throw new BadRequestException("Model '" + model + "' is table oriented, can not pruge the model!!");
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         List<NCubePlan> cubePlans = getCubePlans(model, project);
@@ -440,10 +442,7 @@ public class ModelService extends BasicService {
     public void cloneModel(String modelName, String newModelName, String project) throws IOException {
         checkAliasExist("", newModelName, project);
         NDataModelManager dataModelManager = getDataModelManager(project);
-        NDataModel dataModelDesc = dataModelManager.getDataModelDesc(modelName);
-        if (null == dataModelDesc) {
-            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelName));
-        }
+        NDataModel dataModelDesc = getNDataModelByModelName(modelName, project);
         //copyForWrite nDataModel do init,but can not set new modelname
         NDataModel nDataModel = JsonUtil.readValue(JsonUtil.writeValueAsIndentString(dataModelDesc), NDataModel.class);
         nDataModel.setName(UUID.randomUUID().toString());
@@ -474,10 +473,7 @@ public class ModelService extends BasicService {
 
     public void renameDataModel(String project, String modelName, String newAlias) throws IOException {
         NDataModelManager modelManager = getDataModelManager(project);
-        NDataModel nDataModel = modelManager.getDataModelDesc(modelName);
-        if (null == nDataModel) {
-            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelName));
-        }
+        NDataModel nDataModel = getNDataModelByModelName(modelName, project);
         //rename
         checkAliasExist(modelName, newAlias, project);
         nDataModel.setAlias(newAlias);
@@ -489,10 +485,7 @@ public class ModelService extends BasicService {
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         NDataModelManager dataModelManager = getDataModelManager(project);
 
-        NDataModel nDataModel = dataModelManager.getDataModelDesc(modelName);
-        if (null == nDataModel) {
-            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelName));
-        }
+        NDataModel nDataModel = getNDataModelByModelName(modelName, project);
         if (nDataModel.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new IllegalStateException("Model " + modelName + " is model based, can not unlink it!");
         } else {
@@ -511,28 +504,16 @@ public class ModelService extends BasicService {
     }
 
     public void updateDataModelStatus(String modelName, String project, String status) throws Exception {
-        NDataModelManager modelManager = getDataModelManager(project);
-        NDataModel nDataModel = modelManager.getDataModelDesc(modelName);
-        if (null == nDataModel) {
-            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelName));
-        }
+        NDataModel nDataModel = getNDataModelByModelName(modelName, project);
         List<NCubePlan> cubePlans = getCubePlans(nDataModel.getName(), project);
         NDataflowManager dataflowManager = getDataflowManager(project);
         for (NCubePlan cubePlan : cubePlans) {
             NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
-            if (dataflow.getStatus().equals(RealizationStatusEnum.NEW)) {
-                throw new IllegalStateException(
-                        "No ready segment in model '" + modelName + "', can not online the model!");
-            }
+            checkDataflowStatus(dataflow, modelName);
             boolean needChangeStatus = (status.equals(RealizationStatusEnum.OFFLINE.name())
                     && dataflow.getStatus().equals(RealizationStatusEnum.ONLINE))
                     || (status.equals(RealizationStatusEnum.ONLINE.name())
                             && dataflow.getStatus().equals(RealizationStatusEnum.OFFLINE));
-            if (dataflow.getStatus().equals(RealizationStatusEnum.DESCBROKEN)
-                    && !status.equals(RealizationStatusEnum.DESCBROKEN.name())) {
-                throw new BadRequestException(
-                        "DescBroken model " + nDataModel.getName() + " can not online or offline!");
-            }
             if (needChangeStatus) {
                 NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
                 if (status.equals(RealizationStatusEnum.OFFLINE.name())) {
@@ -547,6 +528,15 @@ public class ModelService extends BasicService {
                 }
                 dataflowManager.updateDataflow(nDataflowUpdate);
             }
+        }
+    }
+
+    private void checkDataflowStatus(NDataflow dataflow, String modelName) {
+        if (dataflow.getStatus().equals(RealizationStatusEnum.NEW)) {
+            throw new IllegalStateException("No ready segment in model '" + modelName + "', can not online the model!");
+        }
+        if (dataflow.getStatus().equals(RealizationStatusEnum.DESCBROKEN)) {
+            throw new BadRequestException("DescBroken model " + modelName + " can not online or offline!");
         }
     }
 
@@ -950,9 +940,9 @@ public class ModelService extends BasicService {
             if (allSegments.size() <= 2) {
                 continue;
             } else {
-                for (int i = 0; i < allSegments.size(); i++) {
+                for (int i = 1; i < allSegments.size() - 1; i++) {
                     for (int id : idsToDelete) {
-                        if (id == allSegments.get(i).getId() && i >= 1 && i < allSegments.size() - 1) {
+                        if (id == allSegments.get(i).getId()) {
                             if (!idsToDelete.contains(allSegments.get(i - 1).getId())
                                     || !idsToDelete.contains(allSegments.get(i + 1).getId())) {
                                 throw new BadRequestException(
