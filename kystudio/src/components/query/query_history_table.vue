@@ -27,7 +27,7 @@
                   <transition name="fade">
                     <div class="copyStatusMsg" v-show="showCopyStatus" ><i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span></div>
                   </transition>
-                  <el-button type="primary" text v-clipboard:copy="$store.state.config.errorMsgBox.detail" v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
+                  <el-button type="primary" text v-clipboard:copy="props.row.sql_text" v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
                 </div>
               </el-col>
               <el-col :span="14">
