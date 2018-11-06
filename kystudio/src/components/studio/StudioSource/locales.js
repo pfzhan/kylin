@@ -12,8 +12,8 @@ export default {
     statistics: 'Statistics',
     extendInformation: 'Extend Information',
     access: 'Access',
-    reloadTable: 'Are you sure to reload table?',
-    reloadSuccess: 'Reload Table successfully.',
+    reloadTable: 'Are you sure to update metadata?',
+    reloadSuccess: 'Update metadata successfully.',
     unloadTable: 'Are you sure to unload table?',
     unloadSuccess: 'Unload Table successfully.',
     emptyTable: 'No Data'
@@ -31,8 +31,8 @@ export default {
     statistics: '统计信息',
     extendInformation: '额外信息',
     access: '源表权限',
-    reloadTable: '确定要重载源表？',
-    reloadSuccess: '重载成功',
+    reloadTable: '确定要更新元数据？',
+    reloadSuccess: '更新元数据成功',
     unloadTable: '确定要删除源表？',
     unloadSuccess: '删除成功',
     emptyTable: '没有数据'

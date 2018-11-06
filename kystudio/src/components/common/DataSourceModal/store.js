@@ -60,8 +60,8 @@ export default {
         if (sourceType === undefined) {
           sourceType = String(sourceType)
         }
-        project = JSON.parse(JSON.stringify(project))
-        if (project.override_kylin_properties['kylin.source.default']) {
+        if (project) {
+          project = JSON.parse(JSON.stringify(project))
           project.override_kylin_properties['kylin.source.default'] = null
         }
         commit(types.SET_MODAL, { sourceType, callback: resolve })
