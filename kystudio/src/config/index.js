@@ -136,6 +136,7 @@ export const engineTypeKap = [
 ]
 export const SystemPwdRegex = /^(?=.*\d)(?=.*[a-zA-Z])(?=.*[~!@#$%^&*(){}|:"<>?[\];',./`]).{8,}$/
 export const NamedRegex = /^\w+$/
+export const positiveNumberRegex = /^[1-9][0-9]*$/ // 的正整数
 export const DatePartitionRule = ['date', 'timestamp', 'string', 'bigint', 'int', 'integer', 'varchar']
 export const TimePartitionRule = ['long', 'bigint', 'int', 'short', 'integer', 'tinyint', 'string', 'varchar', 'char']
 export const IntegerType = ['bigint', 'int', 'integer', 'tinyint', 'smallint', 'int4', 'long8']

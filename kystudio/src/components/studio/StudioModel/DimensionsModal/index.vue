@@ -47,6 +47,7 @@
               </el-table-column>
               <el-table-column
                 show-overflow-tooltip
+                prop="cardinality"
                 :label="$t('cardinality')"
                 width="100">
                 <template slot-scope="scope">
@@ -274,7 +275,8 @@ export default class DimensionsModal extends Vue {
             name: col.alias,
             table_guid: table.guid,
             column: table.alias + '.' + col.name,
-            status: 'DIMENSION'
+            status: 'DIMENSION',
+            datatype: col.datatype
           })
         }
       })

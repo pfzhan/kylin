@@ -13,9 +13,8 @@
               :label="$t(key)">
               <el-option v-for="(item, index) in columns" 
               :key="index"
-              :label="item.table_alias + '.' + item.name"
               :value="item.table_alias + '.' + item.name">
-                <span>{{item.name}}</span>
+                <span>{{item.table_alias + '.' + item.name}}</span>
                 <span class="ky-option-sub-info">{{item.datatype}}</span>
               </el-option>
             </el-option-group>
@@ -203,7 +202,9 @@ export default class SingleDimensionModal extends Vue {
     }
     let dimensionNamed = this.dimensionInfo.column.split('.')
     let ntable = this.modelInstance.getTableByAlias(dimensionNamed[0])
+    let datatype = ntable.getColumnType(dimensionNamed[1])
     this.dimensionInfo.table_guid = ntable.guid
+    this.dimensionInfo.datatype = datatype
     if (this.dimension) {
       this.modelInstance.editDimension(this.dimensionInfo, this.dimensionInfo._id).then(() => {
         this._handleCloseFunc(isSubmit)

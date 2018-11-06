@@ -35,9 +35,9 @@ export default {
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, modelDesc) {
+    [types.CALL_MODAL] ({ commit }, data) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL_FORM, {modelDesc: modelDesc, callback: resolve})
+        commit(types.SET_MODAL_FORM, {modelDesc: data.modelDesc, callback: resolve})
         commit(types.SHOW_MODAL)
       })
     }

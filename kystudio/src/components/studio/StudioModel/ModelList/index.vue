@@ -56,6 +56,7 @@
           </template>
         </el-table-column>
         <el-table-column
+        width="201"
         show-overflow-tooltip
         prop="alias"
           :label="$t('kylinLang.model.modelNameGrid')">
@@ -63,13 +64,13 @@
         <el-table-column
           prop="fact_table"
           show-overflow-tooltip
-          width="210"
+          width="300px"
           :label="$t('kylinLang.common.fact')">
         </el-table-column>
         <el-table-column
           prop="favorite"
           show-overflow-tooltip
-          width="180"
+          min-width="155"
           :label="$t('favorite')">
         </el-table-column>
         <el-table-column
@@ -373,8 +374,13 @@ export default class ModelList extends Vue {
     if (command === 'dataCheck') {
       this.checkModelData({
         modelDesc: modelDesc
+      }).then((isSubmit) => {
+        if (isSubmit) {
+          this.loadModelsList()
+        }
       })
     } else if (command === 'dataLoad') {
+      let modelDesc = objectClone(modelDesc)
       this.callModelPartitionDialog({
         modelDesc: modelDesc
       }).then((res) => {

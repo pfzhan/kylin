@@ -32,11 +32,6 @@ class NTable {
   // 链接关系处理
   addLinkData (fTable, linkColumnF, linkColumnP, type) {
     var pid = this.guid
-    // if (this.joinInfo[pid]) {
-    //   this.joinInfo[pid].join.type = type
-    //   this.joinInfo[pid].join.primary_key.push(...linkColumnP)
-    //   this.joinInfo[pid].join.foreign_key.push(...linkColumnF)
-    // } else {
     this.joinInfo[pid] = {
       table: {
         guid: this.guid,

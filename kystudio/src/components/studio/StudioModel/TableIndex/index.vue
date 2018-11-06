@@ -13,9 +13,9 @@
           <div slot="icon"><i class="el-icon-ksd-elapsed_time"></i></div>
           <div slot="description">
             <el-carousel :interval="4000" type="card" height="173px" :autoplay="false" :initial-index="tableIndex.length - 1">
-              <el-carousel-item v-for="item in tableIndex" :key="item.name" @click.native="showTableIndexDetal(item)">
+              <el-carousel-item v-for="item in tableIndex" :key="item.name" @click.native="showTableIndexDetal(item)" :class="{'table-index-active': currentShowTableIndex.id === item.id}">
                 <div :class="{'empty-table-index': item.status === 'Empty'}">
-                  <div class="slider-content-above ">
+                  <div class="slider-content-above">
                     <div class="main-title" :title="item.name">{{item.name|omit(30, '...')}}</div>
                     <div class="status-list">
                       <div v-if="item.status === 'Broken'" class="broken-icon">Broken</div>
@@ -312,6 +312,9 @@ export default class TableIndex extends Vue {
         font-weight:@font-medium;
       }
     }
+  }
+  .table-index-active {
+    border: solid 1px @base-color!important;
   }
   .empty-table-index {
     background-color: @grey-4;

@@ -18,7 +18,7 @@ export default {
     'systemMaintainedTip3': 'System can delete this model',
     'avoidSysChange': 'Avoid system change semantics',
     'allowSysChange': 'Allow system change semantics',
-    'delTableTip': '删除该表将直接删除该表相关的连线，维度，度量，可计算列，确认删除吗？',
+    'delTableTip': 'Once you delete the table, related dimensions, measures and joins will be deleted as well. Are you sure to delete them?',
     'noFactTable': 'Fact Table is mandatory for model'
   },
   'zh-cn': {
@@ -40,7 +40,7 @@ export default {
     'systemMaintainedTip3': '系统可以删除模型',
     'avoidSysChange': '禁止系统修改模型语义',
     'allowSysChange': '允许系统修改模型语义',
-    'delTableTip': '删除该表将直接删除该表相关的连线，维度，度量，可计算列，确认删除吗？',
+    'delTableTip': '删除本表后，相关的维度、度量和连接关系都会被删除。确认要删除吗？',
     'noFactTable': '模型需要有一个事实表'
   }
 }

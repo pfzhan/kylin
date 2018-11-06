@@ -78,9 +78,7 @@ class NModel {
       this.$set(this._mount, 'all_measures', this.all_measures)
       this.$set(this._mount, 'dimensions', this.dimensions)
       this.$set(this._mount, 'zoom', this.canvas && this.canvas.zoom || modelRenderConfig.zoom)
-      // this.$set(this._mount, 'normalDimensions', this.normalDimensions)
       this.$set(this._mount, 'tableIndexColumns', this.tableIndexColumns)
-      // this.$set(this._mount, 'ccDimensions', this.ccDimensions)
       this.$set(this._mount, 'maintain_model_type', this.maintain_model_type)
     }
     if (options.renderDom) {
@@ -89,6 +87,21 @@ class NModel {
     }
     this.allConnInfo = {}
     this.render()
+  }
+  // 初始化数据和渲染数据
+  render () {
+    this._renderTable()
+    this.vm && this.vm.$nextTick(() => {
+      this._renderLinks()
+      // 如果没有布局信息，就走自动布局程序
+      if (!this.canvas) {
+        this.renderPosition()
+      }
+      setTimeout(() => {
+        this._renderLabels()
+      }, 1)
+    })
+    // renderDimension
     this.dimensions = this.dimensions.filter((x) => {
       x.datatype = this.getColumnType(x.column)
       let alias = x.column.split('.')[0]
@@ -96,6 +109,7 @@ class NModel {
       x.table_guid = guid
       return x
     })
+    // renderMeasure
     this.all_measures.forEach((x) => {
       const alias = x.parameter_value[0].value.split('.')[0]
       const nTable = this.getTableByAlias(alias)
@@ -110,59 +124,20 @@ class NModel {
         })
       }
     })
+    // render table index Columns
     this.tableIndexColumns = this.tableIndexColumns.filter((x) => {
       let alias = x.column.split('.')[0]
       let guid = this._cacheAliasAndGuid(alias)
       x.table_guid = guid
       return x
     })
-  }
-  render () {
-    this.renderTable()
-    this.vm && this.vm.$nextTick(() => {
-      this.renderLinks()
-      // 如果没有布局信息，就走自动布局程序
-      if (!this.canvas) {
-        this.renderPosition()
-      }
-      setTimeout(() => {
-        this.renderLabels()
-      }, 1)
-    })
-    // renderDimension
-    // renderMeasure
-  }
-  renderTable () {
-    if (this.mode === 'edit') {
-      let factTableInfo = this._getTableOriginInfo(this.fact_table)
-      let initTableOptions = {
-        alias: this.fact_table.split('.')[1],
-        columns: factTableInfo.columns,
-        fact: factTableInfo.fact,
-        kind: 'FACT',
-        table: this.fact_table
-      }
-      initTableOptions.drawSize = this.getTableCoordinate(initTableOptions.alias) // 获取坐标信息
-      this.addTable(initTableOptions)
-      this.lookups.forEach((tableObj) => {
-        let tableInfo = this._getTableOriginInfo(tableObj.table)
-        let initTableInfo = {
-          alias: tableObj.alias,
-          columns: tableInfo.columns,
-          fact: tableInfo.fact,
-          kind: tableObj.kind,
-          table: tableObj.table
-        }
-        initTableInfo.drawSize = this.getTableCoordinate(tableObj.alias) // 获取坐标信息
-        let ntable = this.addTable(initTableInfo)
-        // 获取外键表对象
-        if (this.renderDom) {
-          var ftable = this.getTableByAlias(tableObj.join.foreign_key[0].split('.')[0])
-          ntable.addLinkData(ftable, tableObj.join.foreign_key, tableObj.join.primary_key, tableObj.join.type)
-        }
-      })
+    // render partition desc
+    if (this.partition_desc.table) {
+      let guid = this._cacheAliasAndGuid(this.partition_desc.table)
+      this.partition_desc.table_guid = guid
     }
   }
+  // 自动布局
   renderPosition () {
     const layers = this.autoCalcLayer()
     if (layers && layers.length > 0) {
@@ -182,18 +157,7 @@ class NModel {
       })
     }
   }
-  renderLinks () {
-    this.plumbTool.lazyRender(() => {
-      for (var guid in this.tables) {
-        var curNT = this.tables[guid]
-        for (var i in curNT.joinInfo) {
-          var primaryGuid = guid
-          var foreignGuid = curNT.joinInfo[i].foreignTable.guid
-          this.renderLink(primaryGuid, foreignGuid)
-        }
-      }
-    })
-  }
+  // 连线
   renderLink (pid, fid) {
     this.addPlumbPoints(pid, '', '', true)
     this.addPlumbPoints(fid, '', '', true)
@@ -248,6 +212,50 @@ class NModel {
         resolve(metaData)
       } catch (e) {
         reject(e)
+      }
+    })
+  }
+  _renderTable () {
+    if (this.mode === 'edit') {
+      let factTableInfo = this._getTableOriginInfo(this.fact_table)
+      let initTableOptions = {
+        alias: this.fact_table.split('.')[1],
+        columns: factTableInfo.columns,
+        fact: factTableInfo.fact,
+        kind: 'FACT',
+        table: this.fact_table
+      }
+      initTableOptions.drawSize = this.getTableCoordinate(initTableOptions.alias) // 获取坐标信息
+      this.addTable(initTableOptions)
+      this.lookups.forEach((tableObj) => {
+        let tableInfo = this._getTableOriginInfo(tableObj.table)
+        let initTableInfo = {
+          alias: tableObj.alias,
+          columns: tableInfo.columns,
+          fact: tableInfo.fact,
+          kind: tableObj.kind,
+          table: tableObj.table
+        }
+        initTableInfo.drawSize = this.getTableCoordinate(tableObj.alias) // 获取坐标信息
+        let ntable = this.addTable(initTableInfo)
+        // 获取外键表对象
+        if (this.renderDom) {
+          var ftable = this.getTableByAlias(tableObj.join.foreign_key[0].split('.')[0])
+          ntable.addLinkData(ftable, tableObj.join.foreign_key, tableObj.join.primary_key, tableObj.join.type)
+        }
+      })
+    }
+  }
+  // 批量连线
+  _renderLinks () {
+    this.plumbTool.lazyRender(() => {
+      for (var guid in this.tables) {
+        var curNT = this.tables[guid]
+        for (var i in curNT.joinInfo) {
+          var primaryGuid = guid
+          var foreignGuid = curNT.joinInfo[i].foreignTable.guid
+          this.renderLink(primaryGuid, foreignGuid)
+        }
       }
     })
   }
@@ -308,6 +316,7 @@ class NModel {
     console.log(fullName, alias + '.' + fullName.split('.')[1])
     return alias + '.' + fullName.split('.')[1]
   }
+  // private 更新所有measure里的alias
   _updateAllMeasuresAlias () {
     this.all_measures.forEach((x) => {
       const guid = x.parameter_value[0].table_guid
@@ -335,13 +344,15 @@ class NModel {
       t.changeJoinAlias(this)
     })
     let replaceFuc = (x, key) => {
-      console.log(x[key])
       let guid = x.table_guid
       let ntable = this.getTableByGuid(guid)
       x.column = this._replaceAlias(ntable.alias, x.column)
     }
+    // 改变dimension列的alias
     this._mount.dimensions.forEach(replaceFuc)
+    // 改变tableindex列的alias
     this.tableIndexColumns.forEach(replaceFuc)
+    // 改变可计算列的alias
     this._mount.computed_columns.forEach((x) => {
       let guid = x.table_guid
       let ntable = this.getTableByGuid(guid)
@@ -349,8 +360,13 @@ class NModel {
     })
     this._updateAllMeasuresAlias()
   }
+  // 别名修改
   changeAlias () {
     this._changeAliasRelation()
+  }
+  // 用户修改fact的时候，将所有的fact上的cc转移到另外一个fact上去
+  moveCCToOtherFact () {
+
   }
   // 删除conn相关的主键的连接信息
   removeRenderLink (conn) {
@@ -360,7 +376,7 @@ class NModel {
     this.plumbTool.deleteConnect(conn)
     this.tables[pid].joinInfo = {}
   }
-  renderLabels () {
+  _renderLabels () {
     for (var i in this.allConnInfo) {
       this.setOverLayLabel(this.allConnInfo[i])
     }
@@ -455,6 +471,8 @@ class NModel {
       this._delDimensionByAlias(alias)
       // 删除对应的 measure
       this._delMeasureByAlias(alias)
+      // 删除对应的 tableindex
+      this._delTableIndexByAlias(alias)
       // 删除对应的 cc
       this._delCCByAlias(alias)
     }
@@ -566,10 +584,12 @@ class NModel {
     })
     pathObj(t).zIndex = maxZindex
   }
+  // 放大视图
   addZoom () {
     var nextZoom = this._mount.zoom + 1 > 10 ? 10 : this._mount.zoom += 1
     this.plumbTool.setZoom(nextZoom / 10)
   }
+  // 缩小视图
   reduceZoom () {
     var nextZoom = this._mount.zoom - 1 < 4 ? 4 : this._mount.zoom -= 1
     this.plumbTool.setZoom(nextZoom / 10)
@@ -701,10 +721,13 @@ class NModel {
     this._mount.dimensions.splice(0, this._mount.dimensions.length)
     this._mount.dimensions.push(...dimensions)
   }
-  delMeasure (i) {
-    this._mount.all_measures.splice(i, 1)
+  _delTableIndexByAlias (alias) {
+    let tableIndexColumns = this.tableIndexColumns.filter((item) => {
+      return item.column && item.column.split('.')[0] !== alias
+    })
+    this.tableIndexColumns.splice(0, this.tableIndexColumns.length)
+    this.tableIndexColumns.push(...tableIndexColumns)
   }
-
   // measure parameterValue 临时结构
   _delMeasureByAlias (alias) {
     let measures = this._mount.all_measures.filter((item) => {
@@ -721,6 +744,9 @@ class NModel {
     })
     this._mount.all_measures.splice(0, this._mount.all_measures.length)
     this._mount.all_measures.push(...measures)
+  }
+  delMeasure (i) {
+    this._mount.all_measures.splice(i, 1)
   }
   // 添加度量
   addMeasure (measureObj) {
@@ -809,37 +835,6 @@ class NModel {
     const tree = new ModelTree({rootGuid: rootGuid, showLinkCons: this.allConnInfo})
     tree.positionTree()
     return tree.nodeDB.db
-  }
-  // 归整all_named_columns信息
-  _collectColumns () {
-    let columnsCollect = {}
-    this.all_named_columns.forEach((x) => {
-      let fullNameSplit = x.column.split('.')
-      let alias = fullNameSplit[0]
-      let columnName = fullNameSplit[1]
-      let columnInfo = {id: x.id, name: x.name, column: columnName, fullName: x.column}
-      if (columnsCollect[alias]) {
-        columnsCollect[alias].push(columnInfo)
-      } else {
-        columnsCollect[alias] = [columnInfo]
-      }
-    })
-  }
-  renderColumnType () {
-    let collectColumns = this._collectColumns()
-    for (let c in collectColumns) {
-      var nt = this.tables[c]
-      nt.columns.forEach((x) => {
-        collectColumns[c].forEach((y) => {
-          if (x.name === y.column) {
-            x.id = y.id
-            x.name = y.name
-            x.checked = true
-            x.column = y.fullName
-          }
-        })
-      })
-    }
   }
   addPlumbPoints (guid, columnName, columnType) {
     var anchor = modelRenderConfig.jsPlumbAnchor

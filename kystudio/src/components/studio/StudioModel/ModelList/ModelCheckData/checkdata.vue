@@ -1,7 +1,7 @@
 <template>
   <!-- 模型数据检查 -->
   <el-dialog :title="$t('modelDataCheck')" width="440px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
-      <el-form :model="checkModelMeta" ref="modelCheckDataForm" label-width="130px" label-position="top">
+      <el-form :model="checkModelMeta" ref="modelCheckDataForm" :rules="rules" label-width="130px" label-position="top">
         <div class="ky-list-title">数据检查项</div>
         <el-checkbox-group v-model="checkModelMeta.check_options">
           <ul class="ksd-mtb-20">
@@ -12,10 +12,12 @@
         </el-checkbox-group>
         <div class="ky-line"></div>
         <div class="ky-list-title ksd-mt-20">数据容忍标准</div>
-        <div class="ksd-mt-20">
+        <div class="ksd-mt-18">
+          <el-form-item class="ksd-mb-20" prop="fault_threshold">
           有数据问题超过<el-input size="mini" style="width:70px;" v-model="checkModelMeta.fault_threshold" class="ksd-mrl-4"></el-input>条时，采取以下方式：
+          </el-form-item>
         </div>
-        <div class="ksd-mt-16">
+        <div>
           <ul>
             <li class="ksd-mb-10"><el-radio v-model="checkModelMeta.fault_actions" :label="1">构建报错并通知我</el-radio></li>
             <li class="ksd-mb-10"><el-radio v-model="checkModelMeta.fault_actions" :label="2">继续构建，但通知我</el-radio></li>
@@ -36,6 +38,7 @@
   import { handleError, kapMessage } from 'util/business'
   import locales from './locales'
   import store, { types } from './store'
+  import { positiveNumberRegex } from '../../../../../config'
 
   vuex.registerModule(['modals', 'ModelCheckDataModal'], store)
 
@@ -70,34 +73,51 @@
       fault_threshold: 0,
       fault_actions: 0
     }
+    rules = {
+      fault_threshold: [{validator: this.validateFaultNumber, trigger: 'blur'}],
+      fault_actions: [{validator: this.validateFaultActions, trigger: 'blur'}]
+    }
+    validateFaultNumber (rule, value, callback) {
+      if (this.checkModelMeta.fault_actions !== '') {
+        if (value === '') {
+          callback(new Error('请输入'))
+        } else if (!positiveNumberRegex.test(value)) {
+          callback(new Error('请输入大于0的整数'))
+        } else {
+          callback()
+        }
+      } else {
+        callback()
+      }
+    }
     @Watch('modelDesc')
     initModelName () {
       if (this.modelDesc.data_check_desc) {
         switch (this.modelDesc.data_check_desc.check_options) {
           case 1:
-            this.check_options = [1]
+            this.checkModelMeta.check_options = [1]
             break
           case 2:
-            this.check_options = [2]
+            this.checkModelMeta.check_options = [2]
             break
           case 3:
-            this.check_options = [1, 2]
+            this.checkModelMeta.check_options = [1, 2]
             break
           case 4:
-            this.check_options = [4]
+            this.checkModelMeta.check_options = [4]
             break
           case 5:
-            this.check_options = [1, 4]
+            this.checkModelMeta.check_options = [1, 4]
             break
           case 6:
-            this.check_options = [2, 4]
+            this.checkModelMeta.check_options = [2, 4]
             break
           case 7:
-            this.check_options = [1, 2, 4]
+            this.checkModelMeta.check_options = [1, 2, 4]
             break
         }
-        this.fault_threshold = this.modelDesc.data_check_desc.fault_threshold
-        this.fault_actions = this.modelDesc.data_check_desc.fault_actions
+        this.checkModelMeta.fault_threshold = this.modelDesc.data_check_desc.fault_threshold
+        this.checkModelMeta.fault_actions = this.modelDesc.data_check_desc.fault_actions
       } else {
         this.checkModelMeta = {
           check_options: [],
@@ -115,7 +135,6 @@
     }
     closeModal (isSubmit) {
       this.hideModal()
-      this.modelEdit.newName = ''
       setTimeout(() => {
         this.callback && this.callback(isSubmit)
         this.resetModalForm()
@@ -135,7 +154,7 @@
           }
         }).then(() => {
           this.btnLoading = false
-          kapMessage(this.$t('saveSuccessful'))
+          kapMessage(this.$t('kylinLang.common.saveSuccess'))
           this.closeModal(true)
         }, (res) => {
           this.btnLoading = false
