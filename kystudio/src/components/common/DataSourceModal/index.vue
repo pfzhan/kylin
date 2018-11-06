@@ -169,11 +169,31 @@ export default class DataSourceModal extends Vue {
     }
   }
 
+  validateForm () {
+    this.isLoading = false
+    switch (this.sourceType) {
+      case sourceTypes.NEW: {
+        const isVaild = this.form.project.override_kylin_properties['kylin.source.default']
+        !isVaild && this.$message(this.$t('pleaseSelectSource'))
+        return isVaild
+      }
+      case sourceTypes.HIVE: {
+        const isVaild = this.form.selectedTables.length
+        !isVaild && this.$message(this.$t('pleaseSelectTableOrDatabase'))
+        return isVaild
+      }
+      default:
+        return true
+    }
+  }
+
   async submit (kafkaData) {
     this.isLoading = true
     try {
       const { currentSelectedProject: project } = this
       const data = getSubmitData(this, kafkaData)
+      if (!this.validateForm()) { return }
+
       // 后台保存：选择数据源
       if (this.isNewSource) {
         await this.updateProject(data)

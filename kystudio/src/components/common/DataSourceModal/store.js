@@ -4,7 +4,8 @@ const types = {
   SET_MODAL: 'SET_MODAL',
   SET_MODAL_FORM: 'SET_MODAL_FORM',
   RESET_MODAL_FORM: 'RESET_MODAL_FORM',
-  CALL_MODAL: 'CALL_MODAL'
+  CALL_MODAL: 'CALL_MODAL',
+  INIT_FORM: 'INIT_FORM'
 }
 // 声明：初始state状态
 const initialState = JSON.stringify({
@@ -16,7 +17,8 @@ const initialState = JSON.stringify({
     // for newten
     // sourceType: 0,
     // should remove
-    sourceType: 11,
+    selectedTables: [],
+    sourceType: null,
     isAutoUpdate: false
   }
 })
@@ -57,6 +59,10 @@ export default {
         // sourceType转String是为了兼容没有数据源，sourceType为"undefined"的情况
         if (sourceType === undefined) {
           sourceType = String(sourceType)
+        }
+        project = JSON.parse(JSON.stringify(project))
+        if (project.override_kylin_properties['kylin.source.default']) {
+          project.override_kylin_properties['kylin.source.default'] = null
         }
         commit(types.SET_MODAL, { sourceType, callback: resolve })
         commit(types.SET_MODAL_FORM, { project })

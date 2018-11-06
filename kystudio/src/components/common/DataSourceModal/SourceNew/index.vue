@@ -1,8 +1,8 @@
 <template>
   <div class="source-new">
     <ul class="ksd-center">
-      <li class="datasouce" @click="clickHandler(sourceTypes.HIVE)" :class="getSourceClass([sourceTypes.HIVE])">
-        <div class="datasource-icon">
+      <li class="datasouce" :class="getSourceClass([sourceTypes.HIVE])">
+        <div class="datasource-icon" @click="clickHandler(sourceTypes.HIVE)">
           <i class="el-icon-ksd-hive_normal"></i>
         </div>
         <div class="datasource-name">Hive</div>
@@ -92,7 +92,7 @@ export default class SourceNew extends Vue {
     // 设置默认数据源
     // this.clickHandler(this.globalDefaultDatasource)
     // for newten 设置CSV为默认数据源
-    this.clickHandler(sourceTypes.HIVE)
+    // this.clickHandler(sourceTypes.HIVE)
   }
 }
 </script>
@@ -101,7 +101,7 @@ export default class SourceNew extends Vue {
 @import '../../../../assets/styles/variables.less';
 
 .source-new {
-  padding: 105px 0 115px 0;
+  padding: 60px 0;
   ul {
     margin-bottom: 35px;
     &:last-child {
@@ -110,7 +110,7 @@ export default class SourceNew extends Vue {
   }
   .datasouce {
     display: inline-block;
-    height: 130px;
+    height: 150px;
     width: 90px;
     vertical-align: top;
     color: @text-secondary-color;
@@ -122,27 +122,26 @@ export default class SourceNew extends Vue {
     &:last-child {
       margin-right: 0;
     }
-    &:hover {
-      .datasource-icon {
-        border-color: @base-color;
-      }
-    }
+  }
+  .datasource-icon:hover {
+    border-color: @base-color;
   }
   .datasouce.active {
     color: @text-normal-color;
     .datasource-icon {
       color: @fff;
       background: @base-color;
+      box-shadow: 2px 2px 4px 0 @text-placeholder-color;
     }
     .datasource-name {
       color: @base-color;
-      font-weight: 500;
     }
   }
   .datasouce.disabled {
     .datasource-icon {
       color: @text-secondary-color;
       cursor: not-allowed;
+      background: @grey-3;
     }
     .datasource-name {
       color: @text-secondary-color;
@@ -168,17 +167,18 @@ export default class SourceNew extends Vue {
   }
   .datasource-name {
     color: @text-normal-color;
+    margin-bottom: 10px;
+    font-size: 16px;
   }
   .status {
     background: @text-placeholder-color;
-    border-radius: 7.8px;
+    border-radius: 12px;
     overflow: hidden;
     color: @fff;
-    font-size: 12px;
-    height: 15.6px;
-    width: 72px;
+    font-size: 14px;
+    width: 90px;
     display: inline-block;
-    transform: scale(0.83333);
+    line-height: 24px;
   }
 }
 </style>
