@@ -869,9 +869,6 @@ export default class ModelEdit extends Vue {
               .li-type{
                 display:none;
               }
-              .ky-option-sub-info {
-
-              }
               background-color:@base-color-10;
               i{
                 display:inline-block;
@@ -1138,7 +1135,6 @@ export default class ModelEdit extends Vue {
           width:calc(~"100% - 50px");
         }
         span {
-          display:inline-block;
           width:24px;
           height:24px;
           float:left;

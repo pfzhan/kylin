@@ -12,7 +12,7 @@
               <i :class="item.icon" class="ksd-fs-16"></i>
               <span slot="title">{{$t('kylinLang.menu.' + item.name)}}</span>
             </el-menu-item>
-            <el-submenu :index="item.path" v-if="item.children" :id="item.name">
+            <el-submenu :index="item.path" v-if="item.children" :id="item.name" :key="index">
               <template slot="title">
                 <i :class="item.icon" class="ksd-fs-16 menu-icon" ></i>
                 <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThreshold" class="dot-icon"></div>

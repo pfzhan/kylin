@@ -720,9 +720,6 @@ export default class JobsList extends Vue {
             &.el-icon-ksd-error_01 {
               color: @color-danger;
             }
-            &.el-icon-ksd-table_others {
-              // border: 1px solid @border-color-base;
-            }
             &.el-icon-loading {
               border: 1px solid @color-primary;
               color: @color-primary;
