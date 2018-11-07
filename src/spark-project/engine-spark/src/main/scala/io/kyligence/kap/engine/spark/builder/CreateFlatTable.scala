@@ -162,12 +162,12 @@ object CreateFlatTable {
     for (namedColumn <- model.getAllNamedColumns.asScala) {
       var start = 0
       while (sb.toString.toLowerCase.indexOf(
-               namedColumn.aliasDotColumn.toLowerCase) != -1) {
+               namedColumn.getAliasDotColumn.toLowerCase) != -1) {
         start = sb.toString.toLowerCase
-          .indexOf(namedColumn.aliasDotColumn.toLowerCase)
+          .indexOf(namedColumn.getAliasDotColumn.toLowerCase)
         sb.replace(start,
-                   start + namedColumn.aliasDotColumn.length,
-                   NSparkCubingUtil.convertFromDot(namedColumn.aliasDotColumn))
+                   start + namedColumn.getAliasDotColumn.length,
+                   NSparkCubingUtil.convertFromDot(namedColumn.getAliasDotColumn))
       }
     }
     sb.toString()

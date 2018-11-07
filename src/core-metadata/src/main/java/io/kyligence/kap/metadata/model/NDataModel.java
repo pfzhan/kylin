@@ -107,11 +107,13 @@ import io.kyligence.kap.metadata.model.alias.AliasMapping;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
 
+@Data
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -151,7 +153,7 @@ public class NDataModel extends RootPersistentEntity {
 
     @EqualsAndHashCode.Include
     @JsonProperty("fact_table")
-    private String rootFactTable;
+    private String rootFactTableName;
 
     @Getter
     @Setter
@@ -271,23 +273,24 @@ public class NDataModel extends RootPersistentEntity {
         TOMB, EXIST, DIMENSION
     }
 
+    @Data
     @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
     @EqualsAndHashCode
     @ToString
     public static class NamedColumn implements Serializable, IKeep {
-        @Getter
         @JsonProperty("id")
-        public int id;
+        private int id;
 
         @JsonProperty("name")
-        public String name;
+        private String name;
 
         @JsonProperty("column")
-        public String aliasDotColumn;
+        private String aliasDotColumn;
+
         // logical delete symbol
         @JsonProperty("status")
         @JsonInclude(JsonInclude.Include.NON_DEFAULT)
-        public ColumnStatus status = ColumnStatus.EXIST;
+        private ColumnStatus status = ColumnStatus.EXIST;
 
         public boolean isExist() {
             return status != ColumnStatus.TOMB;
@@ -340,7 +343,7 @@ public class NDataModel extends RootPersistentEntity {
         this.owner = other.owner;
         this.isDraft = other.isDraft;
         this.description = other.description;
-        this.rootFactTable = other.rootFactTable;
+        this.rootFactTableName = other.rootFactTableName;
         this.joinTables = other.joinTables;
         this.filterCondition = other.filterCondition;
         this.partitionDesc = other.partitionDesc;
@@ -398,49 +401,8 @@ public class NDataModel extends RootPersistentEntity {
         this.volatileRange = volatileRange;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    // for updating name from draft to ready
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getOwner() {
-        return owner;
-    }
-
-    public void setOwner(String owner) {
-        this.owner = owner;
-    }
-
-    public boolean isDraft() {
-        return isDraft;
-    }
-
-    public void setDraft(boolean isDraft) {
-        this.isDraft = isDraft;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
     public TableRef getRootFactTable() {
         return rootFactTableRef;
-    }
-
-    public String getRootFactTableName() {
-        return rootFactTable;
-    }
-
-    public void setRootFactTableName(String rootFactTable) {
-        this.rootFactTable = rootFactTable;
     }
 
     public Set<TableRef> getAllTables() {
@@ -473,14 +435,6 @@ public class NDataModel extends RootPersistentEntity {
 
     public JoinsTree getJoinsTree() {
         return joinsTree;
-    }
-
-    public String getAlias() {
-        return alias;
-    }
-
-    public void setAlias(String alias) {
-        this.alias = alias;
     }
 
     public JoinsGraph getJoinsGraph() {
@@ -566,30 +520,6 @@ public class NDataModel extends RootPersistentEntity {
                 return true;
         }
         return false;
-    }
-
-    public String getFilterCondition() {
-        return filterCondition;
-    }
-
-    public void setFilterCondition(String filterCondition) {
-        this.filterCondition = filterCondition;
-    }
-
-    public PartitionDesc getPartitionDesc() {
-        return partitionDesc;
-    }
-
-    public void setPartitionDesc(PartitionDesc partitionDesc) {
-        this.partitionDesc = partitionDesc;
-    }
-
-    public RealizationCapacity getCapacity() {
-        return capacity;
-    }
-
-    public void setCapacity(RealizationCapacity capacity) {
-        this.capacity = capacity;
     }
 
     public TblColRef findColumn(String table, String column) throws IllegalArgumentException {
@@ -679,15 +609,15 @@ public class NDataModel extends RootPersistentEntity {
         aliasMap.clear();
         tableNameMap.clear();
 
-        if (StringUtils.isEmpty(rootFactTable)) {
+        if (StringUtils.isEmpty(rootFactTableName)) {
             throw new IllegalStateException("root fact table should not be empty");
         }
 
-        rootFactTable = rootFactTable.toUpperCase();
-        if (tables.containsKey(rootFactTable) == false)
-            throw new IllegalStateException("Root fact table does not exist:" + rootFactTable);
+        rootFactTableName = rootFactTableName.toUpperCase();
+        if (tables.containsKey(rootFactTableName) == false)
+            throw new IllegalStateException("Root fact table does not exist:" + rootFactTableName);
 
-        TableDesc rootDesc = tables.get(rootFactTable);
+        TableDesc rootDesc = tables.get(rootFactTableName);
         rootFactTableRef = new TableRef(this, rootDesc.getName(), rootDesc, false);
 
         addAlias(rootFactTableRef);
@@ -885,7 +815,7 @@ public class NDataModel extends RootPersistentEntity {
         int orderedIndex = 0;
 
         Queue<JoinTableDesc> joinTableBuff = new ArrayDeque<>();
-        TableDesc rootDesc = tables.get(rootFactTable);
+        TableDesc rootDesc = tables.get(rootFactTableName);
         joinTableBuff.addAll(fkMap.get(rootDesc.getName()));
         while (!joinTableBuff.isEmpty()) {
             JoinTableDesc head = joinTableBuff.poll();

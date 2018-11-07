@@ -117,7 +117,7 @@ public class NDataModelTest {
         NDataModel model = mgr.getDataModelDesc("nmodel_basic");
         int size = model.getEffectiveColsMap().size();
 
-        model.getAllNamedColumns().get(0).status = NDataModel.ColumnStatus.TOMB;
+        model.getAllNamedColumns().get(0).setStatus(NDataModel.ColumnStatus.TOMB);
         mgr.updateDataModelDesc(model);
         model = mgr.getDataModelDesc("nmodel_basic");
         int size2 = model.getEffectiveColsMap().size();

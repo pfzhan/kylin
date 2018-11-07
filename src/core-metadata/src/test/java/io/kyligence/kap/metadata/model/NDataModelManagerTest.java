@@ -199,7 +199,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         //add a duplicate
         List<NDataModel.NamedColumn> allNamedColumns = nDataModel.getAllNamedColumns();
         NDataModel.NamedColumn e = JsonUtil.deepCopy(allNamedColumns.get(0), NDataModel.NamedColumn.class);
-        e.id = allNamedColumns.size();
+        e.setId(allNamedColumns.size());
         allNamedColumns.add(e);
 
         mgrDefault.createDataModelDesc(nDataModel, "root");
@@ -217,7 +217,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
 
         //make conflict on NamedColumn.name
         List<NDataModel.NamedColumn> allNamedColumns = nDataModel.getAllNamedColumns();
-        allNamedColumns.get(1).name = allNamedColumns.get(0).name;
+        allNamedColumns.get(1).setName(allNamedColumns.get(0).getName());
 
         mgrDefault.createDataModelDesc(nDataModel, "root");
     }

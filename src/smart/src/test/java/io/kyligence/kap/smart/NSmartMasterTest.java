@@ -919,7 +919,7 @@ public class NSmartMasterTest extends NTestBase {
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         String[] namedColumns = new String[9];
         for (int i = 0; i < 9; ++i) {
-            String namedColumn = model.getAllNamedColumns().get(i).aliasDotColumn;
+            String namedColumn = model.getAllNamedColumns().get(i).getAliasDotColumn();
             namedColumns[i] = namedColumn;
         }
         Arrays.sort(namedColumns);

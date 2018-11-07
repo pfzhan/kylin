@@ -87,9 +87,9 @@ public class NModelShrinkProposer extends NAbstractProposer {
     private void truncateModel(NDataModel model, Map<Integer, NamedColumn> colsById,
             Map<String, NamedColumn> colsByName, Map<Integer, Measure> measures) {
         for (NamedColumn namedColumn : model.getAllNamedColumns()) {
-            namedColumn.status = NDataModel.ColumnStatus.TOMB;
-            colsById.put(namedColumn.id, namedColumn);
-            colsByName.put(namedColumn.aliasDotColumn, namedColumn);
+            namedColumn.setStatus(NDataModel.ColumnStatus.TOMB);
+            colsById.put(namedColumn.getId(), namedColumn);
+            colsByName.put(namedColumn.getAliasDotColumn(), namedColumn);
         }
         for (Measure measure : model.getAllMeasures()) {
             if (measure.getFunction().isCount()) {
@@ -105,7 +105,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
             String partitionColName = partitionDesc.getPartitionDateColumn();
             if (colsByName.containsKey(partitionColName)) {
                 NamedColumn namedColumn = colsByName.get(partitionColName);
-                namedColumn.status = NDataModel.ColumnStatus.DIMENSION;
+                namedColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
             }
         }
     }
@@ -134,7 +134,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
         }
         usedCols.remove(null);
         for (NamedColumn used : usedCols) {
-            used.status = NDataModel.ColumnStatus.DIMENSION;
+            used.setStatus(NDataModel.ColumnStatus.DIMENSION);
         }
     }
 

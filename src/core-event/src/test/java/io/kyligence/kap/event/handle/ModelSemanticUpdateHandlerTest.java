@@ -126,7 +126,7 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
         val originModel = getTestBasicModel();
         modelMgr.updateDataModel(MODEL_NAME, model -> model.setAllNamedColumns(model.getAllNamedColumns().stream()
-                .peek(c -> c.status = NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList())));
+                .peek(c -> c.setStatus(NDataModel.ColumnStatus.DIMENSION)).collect(Collectors.toList())));
         val updateEvent = new ModelSemanticUpdateEvent();
         updateEvent.setProject("default");
         updateEvent.setModelName(MODEL_NAME);
@@ -237,9 +237,9 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         });
         modelMgr.updateDataModel(originModel.getName(),
                 model -> model.setAllNamedColumns(model.getAllNamedColumns().stream().peek(c -> {
-                    c.status = NDataModel.ColumnStatus.DIMENSION;
-                    if (c.id == 26) {
-                        c.status = NDataModel.ColumnStatus.EXIST;
+                    c.setStatus(NDataModel.ColumnStatus.DIMENSION);
+                    if (c.getId() == 26) {
+                        c.setStatus(NDataModel.ColumnStatus.EXIST);
                     }
                 }).collect(Collectors.toList())));
         val updateEvent = new ModelSemanticUpdateEvent();

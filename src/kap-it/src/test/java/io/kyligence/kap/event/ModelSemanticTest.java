@@ -155,7 +155,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
         request.setComputedColumnDescs(model.getComputedColumnDescs());
         request.setAllNamedColumns(model.getAllNamedColumns().stream()
-                .filter(c -> c.status == NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList()));
+                .filter(c -> c.getStatus() == NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList()));
         request.setJoinTables(
                 request.getJoinTables().stream().peek(j -> j.getJoin().setType("inner")).collect(Collectors.toList()));
         val result = mockMvc

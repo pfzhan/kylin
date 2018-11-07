@@ -143,9 +143,10 @@ public class NJoinedFlatTable {
         StringBuilder sb = new StringBuilder(original);
         for (NDataModel.NamedColumn namedColumn : model.getAllNamedColumns()) {
             int start = 0;
-            while ((start = sb.toString().toLowerCase().indexOf(namedColumn.aliasDotColumn.toLowerCase())) != -1) {
-                sb.replace(start, start + namedColumn.aliasDotColumn.length(),
-                        NSparkCubingUtil.convertFromDot(namedColumn.aliasDotColumn));
+            String aliasDotColumn = namedColumn.getAliasDotColumn();
+            while ((start = sb.toString().toLowerCase().indexOf(aliasDotColumn.toLowerCase())) != -1) {
+                sb.replace(start, start + aliasDotColumn.length(),
+                        NSparkCubingUtil.convertFromDot(aliasDotColumn));
             }
         }
         return sb.toString();

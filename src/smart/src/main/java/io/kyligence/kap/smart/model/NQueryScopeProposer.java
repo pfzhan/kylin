@@ -103,8 +103,8 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
         private ScopeBuilder setNamedColumns(List<NDataModel.NamedColumn> namedColumns) {
             for (NDataModel.NamedColumn namedColumn : namedColumns) {
-                namedColsCandidate.put(namedColumn.aliasDotColumn, namedColumn);
-                maxColId = Math.max(maxColId, namedColumn.id);
+                namedColsCandidate.put(namedColumn.getAliasDotColumn(), namedColumn);
+                maxColId = Math.max(maxColId, namedColumn.getId());
             }
             return this;
         }
@@ -126,9 +126,9 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 if (!namedColsCandidate.containsKey(partitionColName)) {
                     int newId = ++maxColId;
                     NDataModel.NamedColumn col = new NDataModel.NamedColumn();
-                    col.name = partitionColName;
-                    col.aliasDotColumn = partitionColName;
-                    col.id = newId;
+                    col.setName(partitionColName);
+                    col.setAliasDotColumn(partitionColName);
+                    col.setId(newId);
                     namedColsCandidate.put(partitionColName, col);
                 }
             }
@@ -172,16 +172,16 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 if (namedColsCandidate.containsKey(tblColRef.getIdentity())) {
                     NamedColumn namedColumn = namedColsCandidate.get(tblColRef.getIdentity());
                     isDimension = namedColumn.isDimension() || isDimension;
-                    namedColumn.status = isDimension ? NDataModel.ColumnStatus.DIMENSION
-                            : NDataModel.ColumnStatus.EXIST;
+                    namedColumn.setStatus(isDimension ? NDataModel.ColumnStatus.DIMENSION
+                            : NDataModel.ColumnStatus.EXIST);
                     continue;
                 }
                 int newId = ++maxColId;
                 NDataModel.NamedColumn col = new NDataModel.NamedColumn();
-                col.name = tblColRef.getName();
-                col.aliasDotColumn = tblColRef.getIdentity();
-                col.id = newId;
-                col.status = isDimension ? NDataModel.ColumnStatus.DIMENSION : NDataModel.ColumnStatus.EXIST;
+                col.setName(tblColRef.getName());
+                col.setAliasDotColumn(tblColRef.getIdentity());
+                col.setId(newId);
+                col.setStatus(isDimension ? NDataModel.ColumnStatus.DIMENSION : NDataModel.ColumnStatus.EXIST);
                 namedColsCandidate.put(tblColRef.getIdentity(), col);
             }
             return this;
@@ -198,7 +198,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                     if (namedColsCandidate.containsKey(tblColRef.getIdentity())) {
                         NamedColumn namedCol = namedColsCandidate.get(tblColRef.getIdentity());
                         if (!namedCol.isExist()) {
-                            namedCol.status = NDataModel.ColumnStatus.EXIST;
+                            namedCol.setStatus(NDataModel.ColumnStatus.EXIST);
                         }
                     }
                 }
@@ -231,9 +231,9 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
                 for (TblColRef candidate : allTableColumns) {
                     if (!namedColsCandidate.containsKey(candidate.getIdentity())) {
                         NDataModel.NamedColumn newNamedCol = new NDataModel.NamedColumn();
-                        newNamedCol.name = candidate.getIdentity();
-                        newNamedCol.aliasDotColumn = candidate.getIdentity();
-                        newNamedCol.id = ++maxColId;
+                        newNamedCol.setName(candidate.getIdentity());
+                        newNamedCol.setAliasDotColumn(candidate.getIdentity());
+                        newNamedCol.setId(++maxColId);
                         dimensionCandidate.put(candidate.getIdentity(), newNamedCol);
                         break;
                     }

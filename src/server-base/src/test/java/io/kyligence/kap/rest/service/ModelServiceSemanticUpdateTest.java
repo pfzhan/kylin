@@ -199,12 +199,12 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     @Test
     public void testModelUpdateDimensions() throws Exception {
         val request = newSemanticRequest();
-        request.setAllNamedColumns(request.getAllNamedColumns().stream().filter(c -> c.isDimension() && c.id != 25)
+        request.setAllNamedColumns(request.getAllNamedColumns().stream().filter(c -> c.isDimension() && c.getId() != 25)
                 .collect(Collectors.toList()));
         val newCol = new NDataModel.NamedColumn();
-        newCol.name = "PRICE2";
-        newCol.aliasDotColumn = "TEST_KYLIN_FACT.PRICE";
-        newCol.status = NDataModel.ColumnStatus.DIMENSION;
+        newCol.setName("PRICE2");
+        newCol.setAliasDotColumn("TEST_KYLIN_FACT.PRICE");
+        newCol.setStatus(NDataModel.ColumnStatus.DIMENSION);
         request.getAllNamedColumns().add(newCol);
         ComputedColumnDesc ccDesc = request.getComputedColumnDescs().stream()
                 .filter(cc -> "DEAL_YEAR".equals(cc.getColumnName())).findFirst().orElse(null);
@@ -260,7 +260,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         });
         val request = newSemanticRequest();
         request.setAllNamedColumns(
-                request.getAllNamedColumns().stream().filter(c -> c.id != 26).collect(Collectors.toList()));
+                request.getAllNamedColumns().stream().filter(c -> c.getId() != 26).collect(Collectors.toList()));
         modelService.updateDataModelSemantic(request);
     }
 

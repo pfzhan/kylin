@@ -346,7 +346,7 @@ class CuboidSuggester {
         if (dimScores.isEmpty()) {
             Map<String, NDataModel.NamedColumn> dimensionCandidate = new HashMap<>();
             for (NDataModel.NamedColumn namedColumn : model.getAllNamedColumns()) {
-                dimensionCandidate.put(namedColumn.name, namedColumn);
+                dimensionCandidate.put(namedColumn.getName(), namedColumn);
             }
             for (NDataModel.Measure measure : model.getAllMeasures()) {
                 FunctionDesc agg = measure.getFunction();
@@ -358,7 +358,7 @@ class CuboidSuggester {
             if (dimensionCandidate.isEmpty()) {
                 throw new IllegalStateException("Suggest no dimension");
             }
-            dimScores.put(dimensionCandidate.values().iterator().next().id, -1D);
+            dimScores.put(dimensionCandidate.values().iterator().next().getId(), -1D);
         }
     }
 

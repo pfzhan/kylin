@@ -47,6 +47,9 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Preconditions;
 
+import lombok.Data;
+
+@Data
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class ComputedColumnDesc implements Serializable {
@@ -133,7 +136,7 @@ public class ComputedColumnDesc implements Serializable {
 
         SqlNode sqlNode = CalciteParser.getExpNode(expr);
 
-        SqlVisitor sqlVisitor = new SqlBasicVisitor() {
+        SqlVisitor<Object> sqlVisitor = new SqlBasicVisitor<Object>() {
             @Override
             public Object visit(SqlIdentifier id) {
                 if (id.names.size() != 2 || !aliasSet.contains(id.names.get(0))) {
@@ -169,38 +172,6 @@ public class ComputedColumnDesc implements Serializable {
         return tableAlias + "." + columnName;
     }
 
-    public void setTableIdentity(String tableIdentity) {
-        this.tableIdentity = tableIdentity;
-    }
-
-    public String getTableIdentity() {
-        return tableIdentity;
-    }
-
-    public void setTableAlias(String tableAlias) {
-        this.tableAlias = tableAlias;
-    }
-
-    public String getTableAlias() {
-        return tableAlias;
-    }
-
-    public void setColumnName(String columnName) {
-        this.columnName = columnName;
-    }
-
-    public String getColumnName() {
-        return columnName;
-    }
-
-    public void setExpression(String expression) {
-        this.expression = expression;
-    }
-
-    public String getExpression() {
-        return expression;
-    }
-
     public void setInnerExpression(String innerExpression) {
         this.innerExpression = innerExpression;
     }
@@ -210,52 +181,5 @@ public class ComputedColumnDesc implements Serializable {
             return expression;
         }
         return innerExpression;
-    }
-
-    public void setDatatype(String datatype) {
-        this.datatype = datatype;
-    }
-
-    public String getDatatype() {
-        return datatype;
-    }
-
-    public void setComment(String comment) {
-        this.comment = comment;
-    }
-
-    public String getComment() {
-        return comment;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o)
-            return true;
-        if (o == null || getClass() != o.getClass())
-            return false;
-
-        ComputedColumnDesc that = (ComputedColumnDesc) o;
-
-        if (!tableIdentity.equals(that.tableIdentity))
-            return false;
-        if (!StringUtils.equals(tableAlias, that.tableAlias))
-            return false;
-        if (!columnName.equals(that.columnName))
-            return false;
-        if (!expression.equals(that.expression))
-            return false;
-        return datatype.equals(that.datatype);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = tableIdentity.hashCode();
-        if (tableAlias != null)
-            result = 31 * result + tableAlias.hashCode();
-        result = 31 * result + columnName.hashCode();
-        result = 31 * result + expression.hashCode();
-        result = 31 * result + datatype.hashCode();
-        return result;
     }
 }
