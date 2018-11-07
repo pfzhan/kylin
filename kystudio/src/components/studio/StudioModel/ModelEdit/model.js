@@ -313,7 +313,6 @@ class NModel {
     return result.length ? result : false
   }
   _replaceAlias (alias, fullName) {
-    console.log(fullName, alias + '.' + fullName.split('.')[1])
     return alias + '.' + fullName.split('.')[1]
   }
   // private 更新所有measure里的alias
@@ -356,7 +355,9 @@ class NModel {
     this._mount.computed_columns.forEach((x) => {
       let guid = x.table_guid
       let ntable = this.getTableByGuid(guid)
-      x.tableAlias = ntable.tableAlias
+      if (ntable) {
+        x.tableAlias = ntable.alias
+      }
     })
     this._updateAllMeasuresAlias()
   }
@@ -387,56 +388,42 @@ class NModel {
     var sdimensions = this.searchDimension(keywords)
     var sjoins = this.searchJoin(keywords)
     var scolumns = this.searchColumn(keywords)
-    // console.log(stables, smeasures, sdimensions, sjoins)
     return [].concat(stables, smeasures, sdimensions, sjoins, scolumns)
   }
   // search
   searchTable (keywords) {
-    return this.mixResult(Object.values(this.tables), 'table', 'name', keywords)
+    return this.mixResult(Object.values(this.tables), 'table', 'alias', keywords)
   }
   searchMeasure (keywords) {
-    return this.mixResult(this.all_measures, 'measure', 'name', keywords)
+    return this.mixResult(this._mount.all_measures, 'measure', 'name', keywords)
   }
   searchDimension (keywords) {
     var dimensionColumns = []
-    this.dimensions.forEach((x) => {
-      x.columns.forEach((c) => {
-        dimensionColumns.push({name: c, table: x.table})
-      })
+    this._mount.dimensions.forEach((x) => {
+      dimensionColumns.push(x)
     })
     return this.mixResult(dimensionColumns, 'dimension', 'name', keywords)
   }
   searchJoin (keywords) {
-    return this.mixResult(this.lookups, 'join', 'table', keywords)
+    return this.mixResult(Object.values(this.tables), 'join', 'name', keywords)
   }
   searchColumn (keywords) {
-    var columns = []
+    var columnsResult = []
     for (var i in this.tables) {
       let columns = this.tables[i].columns
       columns && columns.forEach((co) => {
-        co.alias = this.tables[i].alias + '.' + co.name
-        co.guid = this.tables[i].guid
+        co.full_colname = this.tables[i].alias + '.' + co.name
+        co.table_guid = this.tables[i].guid
       })
-      columns = columns.concat(this.tables[i].columns)
+      columnsResult.push(...columns)
     }
-    return this.mixResult(columns, 'column', 'alias', keywords)
-  }
-  renderSearchResult (t, key, kind, a) {
-    let item = {name: t[key], kind: kind, action: a.action, i18n: a.i18n, more: t}
-    if (kind === 'table' && a.action === 'tableeditjoin') {
-      let joinInfo = t.joinInfo[t.guid]
-      if (joinInfo) {
-        item.extraInfo = ' <span class="jtk-overlay">' + joinInfo.join.type + '</span> ' + joinInfo.foreignTable.name
-      } else {
-        return ''
-      }
-    }
-    return item
+    return this.mixResult(columnsResult, 'column', 'full_colname', keywords)
   }
   searchRule (content, keywords) {
     var reg = new RegExp(keywords, 'i')
     return reg.test(content)
   }
+  // 混合结果信息
   mixResult (data, kind, key, searchVal) {
     let result = []
     let actionsConfig = modelRenderConfig.searchAction[kind]
@@ -451,6 +438,19 @@ class NModel {
       })
     })
     return result
+  }
+  // 数据结构定制化
+  renderSearchResult (t, key, kind, a) {
+    let item = {name: t[key], kind: kind, action: a.action, i18n: a.i18n, more: t}
+    if (kind === 'table' && a.action === 'tableeditjoin') {
+      let joinInfo = t.joinInfo[t.guid]
+      if (joinInfo) {
+        item.extraInfo = ' <span class="jtk-overlay">' + joinInfo.join.type + '</span> ' + joinInfo.foreignTable.name
+      } else {
+        return ''
+      }
+    }
+    return item
   }
   delTable (guid) {
     return new Promise((resolve, reject) => {
@@ -474,7 +474,7 @@ class NModel {
       // 删除对应的 tableindex
       this._delTableIndexByAlias(alias)
       // 删除对应的 cc
-      this._delCCByAlias(alias)
+      // this._delCCByAlias(alias)
     }
   }
   getTable (key, val) {
@@ -521,12 +521,63 @@ class NModel {
       }
     }
   }
+  getComputedColumns () {
+    return this._mount.computed_columns
+  }
+  _updateAllMeasuresCCToNewFactTable () {
+    let factTable = this.getFactTable()
+    this.all_measures.forEach((x) => {
+      let cc = this.getCCObj(x.parameter_value[0].value)
+      if (cc && factTable) {
+        x.parameter_value[0].value = factTable.alias + '.' + x.parameter_value[0].value.split('.')[1]
+        x.parameter_value[0].table_guid = factTable.guid
+      }
+      if (x.converted_columns.length > 0) {
+        x.converted_columns.forEach((y) => {
+          let cc = this.getCCObj(y.value)
+          if (cc && factTable) {
+            y.table_guid = factTable.guid
+            y.value = factTable.alias + '.' + y.value.split('.')[1]
+          }
+        })
+      }
+    })
+  }
+  _updateAllNamedColumnsCCToNewFactTable () {
+    let factTable = this.getFactTable()
+    let replaceFuc = (x, key) => {
+      let cc = this.getCCObj(x.column)
+      if (cc && factTable) {
+        x.column = this._replaceAlias(factTable.alias, x.column)
+        x.table_guid = factTable.guid
+      }
+    }
+    this._mount.dimensions.forEach(replaceFuc)
+    // 改变tableindex列的alias
+    this.tableIndexColumns.forEach(replaceFuc)
+  }
+  _updateCCToNewFactTable () {
+    let factTable = this.getFactTable()
+    if (factTable) {
+      this._mount.computed_columns.forEach((x) => {
+        x.table_guid = factTable.guid
+        x.tableIdentity = factTable.name
+        x.tableAlias = factTable.tableAlias
+      })
+    }
+  }
   changeTableType (t) {
     t.kind = t.kind === modelRenderConfig.tableKind.fact ? modelRenderConfig.tableKind.lookup : modelRenderConfig.tableKind.fact
     this.setUniqueAlias(t)
-    // 更新facttable的名字
+    // 转移fact的名字
+    this._updateAllMeasuresCCToNewFactTable()
+    this._updateAllNamedColumnsCCToNewFactTable()
+    this._updateCCToNewFactTable()
     // 删除原来facttable上的cc
     this.changeAlias()
+  }
+  _removeCCRelevance () {
+
   }
   _checkSameAlias (guid, newAlias) {
     var hasAlias = 0
@@ -678,8 +729,18 @@ class NModel {
       return ntable && ntable.getColumnType(tableName)
     }
   }
-  getCCObj (tableAlias, column) {
-    let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', column, 'tableAlias', tableAlias)
+  getCCObj () {
+    let column = ''
+    let alias = ''
+    if (arguments.length === 1) {
+      let named = arguments[0].split('.')
+      alias = named[0]
+      column = named[1]
+    } else if (arguments.length === 2) {
+      alias = arguments[0]
+      column = arguments[1]
+    }
+    let i = indexOfObjWithSomeKeys(this.computed_columns, 'columnName', column, 'tableAlias', alias)
     if (i >= 0) {
       return this.computed_columns[i]
     }
@@ -704,7 +765,7 @@ class NModel {
     })
   }
   // 添加度量
-  editDimension (dimension, i) {
+  editDimension (dimension) {
     return new Promise((resolve, reject) => {
       let index = indexOfObjWithSomeKey(this._mount.dimensions, 'guid', dimension.guid)
       Object.assign(this._mount.dimensions[index], dimension)
@@ -824,8 +885,8 @@ class NModel {
       }
     })
   }
-  _delCCByAlias () {
-  }
+  // _delCCByAlias () {
+  // }
   autoCalcLayer (root, result, deep) {
     var factTable = this.getFactTable()
     if (!factTable) {

@@ -171,7 +171,7 @@
         <div>
          <div class="search-group" v-for="(k,v) in searchResultData" :key="v">
            <ul>
-             <li class="search-content" v-for="x in k" @click="(e) => {selectResult(e, x)}" :key="x.action+x.name"><span class="search-category">[{{$t(x.i18n)}}]</span> <span class="search-name">{{x.name}}</span><span v-html="x.extraInfo"></span></li>
+             <li class="search-content" v-for="(x, i) in k" @click="(e) => {selectResult(e, x)}" :key="x.action + x.name + i"><span class="search-category">[{{$t(x.i18n)}}]</span> <span class="search-name">{{x.name}}</span><span v-html="x.extraInfo"></span></li>
            </ul>
            <div class="ky-line"></div>
          </div>
@@ -533,9 +533,9 @@ export default class ModelEdit extends Vue {
     }
     let fTable = this.modelRender.tables[this.currentDragColumnData.guid]
     this.callJoinDialog({
-      foreignTable: this.modelRender.tables[this.currentDragColumnData.guid],
-      primaryTable: table,
-      ftableName: fTable.alias + '.' + this.currentDragColumnData.columnName,
+      fid: this.currentDragColumnData.guid,
+      pid: table.guid,
+      fColumnName: fTable.alias + '.' + this.currentDragColumnData.columnName,
       tables: this.modelRender.tables
     })
   }
@@ -598,30 +598,62 @@ export default class ModelEdit extends Vue {
     this.showSearchResult = false
     this.modelGlobalSearch = ''
     var moreInfo = select.more
+    if (select.action === 'showtable') {
+      if (select.more) {
+        let nTable = select.more
+        let offset = nTable.getTableInViewOffset()
+        this.modelInstance.moveModelPosition(offset.x, offset.y)
+      }
+    }
+    if (select.action === 'tableeditjoin') {
+      let pguid = moreInfo.guid
+      let joinInfo = moreInfo.getJoinInfo()
+      let fguid = joinInfo.foreignTable.guid
+      this.callJoinDialog({
+        pid: pguid,
+        fid: fguid,
+        tables: this.modelRender.tables
+      })
+    }
+    if (select.action === 'tableaddjoin') {
+      let pguid = moreInfo.guid
+      this.callJoinDialog({
+        fid: '',
+        pid: pguid,
+        tables: this.modelRender.tables
+      })
+    }
     if (select.action === 'adddimension') {
-      let columnName = moreInfo.name
       this.showSingleDimensionDialog({
-        addType: '',
-        dimensionColumn: columnName
+        dimension: {
+          column: moreInfo.alias
+        },
+        modelInstance: this.modelInstance
+      })
+    }
+    if (select.action === 'editdimension') {
+      this.showSingleDimensionDialog({
+        dimension: moreInfo,
+        modelInstance: this.modelInstance
+      })
+    }
+    if (select.action === 'editjoin') {
+      // var moreInfo = select.more
+      this.callJoinDialog({
+        foreignTable: moreInfo.foreignTable,
+        primaryTable: moreInfo.table.guid,
+        tables: this.modelRender.tables
       })
     }
     if (select.action === 'addmeasure') {
+      console.log(moreInfo, 'addmeasure')
       this.measureVisible = true
       this.isEditMeasure = false
     }
-    if (select.action === 'editdimension') {
-      let columnName = moreInfo.name
-      this.showSingleDimensionDialog({
-        addType: '',
-        dimensionColumn: columnName
-      })
-    }
     if (select.action === 'editmeasure') {
+      console.log(moreInfo, 'editmeasure')
       this.measureVisible = true
       this.isEditMeasure = true
-    }
-    if (select.action === 'editjoin') {
-      this.callJoinDialog()
     }
     if (select.action === 'addjoin') {
       let pguid = moreInfo.guid
@@ -630,22 +662,6 @@ export default class ModelEdit extends Vue {
         primaryTable: {},
         tables: this.modelRender.tables,
         ftableName: moreInfo.name
-      })
-    }
-    if (select.action === 'tableeditjoin') {
-      let pguid = moreInfo.guid
-      this.callJoinDialog({
-        foreignTable: moreInfo.joinInfo[pguid].foreignTable,
-        primaryTable: moreInfo.joinInfo[pguid].table,
-        tables: this.modelRender.tables
-      })
-    }
-    if (select.action === 'tableaddjoin') {
-      let pguid = moreInfo.guid
-      this.callJoinDialog({
-        foreignTable: this.modelRender.tables[pguid],
-        primaryTable: {},
-        tables: this.modelRender.tables
       })
     }
     this.panelAppear.search.display = false
@@ -664,7 +680,7 @@ export default class ModelEdit extends Vue {
   }
   searchModelEverything (val) {
     this.modelGlobalSearchResult = []
-    Array.prototype.push.apply(this.modelGlobalSearchResult, this.modelInstance.search(val))
+    this.modelGlobalSearchResult.push(...this.modelInstance.search(val))
   }
   getColumnType (tableName, column) {
     var ntable = this.modelInstance.getTable('alias', tableName)
@@ -712,7 +728,8 @@ export default class ModelEdit extends Vue {
           this.modelInstance.bindConnClickEvent((ptable, ftable) => {
             // 设置连接弹出框数据
             this.callJoinDialog({
-              foreignTable: ftable,
+              pid: ptable.guid,
+              fid: ftable.guid,
               primaryTable: ptable,
               tables: this.modelRender.tables
             })

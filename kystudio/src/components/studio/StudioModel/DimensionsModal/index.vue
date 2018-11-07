@@ -300,6 +300,12 @@ export default class DimensionsModal extends Vue {
     font-weight:@font-medium;
   }
   .table-header {
+    &:hover {
+      .right-icon {
+        color:@base-color-2!important;
+        cursor: pointer;
+      }
+    }
     border-bottom:solid 1px @line-border-color;
     height:40px;
     line-height:40px;

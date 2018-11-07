@@ -1,5 +1,5 @@
 <template>
-  <el-dialog append-to-body :title="$t('adddimension')" @close="isShow && handleClose(false)" v-event-stop  width="440px" :visible.sync="isShow" class="add-dimension-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
+  <el-dialog append-to-body :title="$t('adddimension')" @close="isShow && handleClose(false)"  width="440px" :visible.sync="isShow" class="add-dimension-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <div>
       <el-form v-if="isFormShow" :model="dimensionInfo" :rules="rules"  ref="dimensionForm" label-width="100px" label-position="top" class="demo-ruleForm">
         <el-form-item :label="$t('dimensionName')" prop="name">
@@ -56,8 +56,7 @@ vuex.registerModule(['modals', 'SingleDimensionModal'], store)
       callback: state => state.callback,
       isShow: state => state.isShow,
       dimension: state => state.form.dimension,
-      modelInstance: state => state.form.modelInstance,
-      ccColumns: state => state.form.modelInstance.computed_columns || []
+      modelInstance: state => state.form.modelInstance
     })
   },
   methods: {
@@ -120,22 +119,24 @@ export default class SingleDimensionModal extends Vue {
     this.dimensionInfo.cc = null
   }
   get allColumnsGroup () {
-    let cloneCCList = objectClone(this.ccColumns)
-    cloneCCList = cloneCCList.map((x) => {
-      x.name = x.columnName
-      x.table_alias = x.tableAlias
-      return x
-    })
-    return {
-      columns: this.allBaseColumns,
-      ccColumns: cloneCCList
+    if (this.modelInstance) {
+      let ccColumns = this.modelInstance.getComputedColumns()
+      let cloneCCList = objectClone(ccColumns)
+      cloneCCList = cloneCCList.map((x) => {
+        x.name = x.columnName
+        x.table_alias = x.tableAlias
+        return x
+      })
+      return {
+        columns: this.allBaseColumns,
+        ccColumns: cloneCCList
+      }
     }
   }
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
-      if (this.dimension) {
-        Object.assign(this.dimensionInfo, this.dimension)
+      if (this.dimension && this.dimension.table_guid) {
         if (this.dimensionInfo.cc) {
           this.showCC = true
           this.ccDesc = this.dimensionInfo.cc
@@ -148,6 +149,7 @@ export default class SingleDimensionModal extends Vue {
         this.showCC = false
         this.ccDesc = null
       }
+      Object.assign(this.dimensionInfo, this.dimension)
       this.allBaseColumns = this.modelInstance.getTableColumns()
       this.isFormShow = true
     } else {
@@ -205,7 +207,7 @@ export default class SingleDimensionModal extends Vue {
     let datatype = ntable.getColumnType(dimensionNamed[1])
     this.dimensionInfo.table_guid = ntable.guid
     this.dimensionInfo.datatype = datatype
-    if (this.dimension) {
+    if (this.dimension && this.dimension.table_guid) {
       this.modelInstance.editDimension(this.dimensionInfo, this.dimensionInfo._id).then(() => {
         this._handleCloseFunc(isSubmit)
       }, () => {

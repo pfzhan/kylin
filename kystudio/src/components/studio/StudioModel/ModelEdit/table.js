@@ -47,7 +47,9 @@ class NTable {
       },
       foreignTable: {
         guid: fTable.guid,
-        namd: fTable.name
+        name: fTable.name,
+        alias: this.alias,
+        kind: this.kind
       },
       kind: this.kind
     }
@@ -63,6 +65,12 @@ class NTable {
   }
   getJoinInfo () {
     return this.joinInfo[this.guid]
+  }
+  getTableInViewOffset () {
+    return {
+      x: modelRenderConfig.beestViewPos[0] - this.drawSize.left,
+      y: modelRenderConfig.beestViewPos[1] - this.drawSize.top
+    }
   }
   _replaceAlias (alias, fullName) {
     return alias + '.' + fullName.split('.')[1]

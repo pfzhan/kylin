@@ -14,7 +14,7 @@ const initialState = JSON.stringify({
     foreignTable: null,
     primaryTable: null,
     tables: null,
-    ftableName: ''
+    fColumnName: ''
   },
   callback: null
 })

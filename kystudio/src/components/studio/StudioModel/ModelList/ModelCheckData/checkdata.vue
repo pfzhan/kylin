@@ -1,6 +1,6 @@
 <template>
   <!-- 模型数据检查 -->
-  <el-dialog :title="$t('modelDataCheck')" width="440px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+  <el-dialog class="model-data-check" :title="$t('modelDataCheck')" width="440px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <el-form :model="checkModelMeta" ref="modelCheckDataForm" :rules="rules" label-width="130px" label-position="top">
         <div class="ky-list-title">数据检查项</div>
         <el-checkbox-group v-model="checkModelMeta.check_options">
@@ -11,17 +11,25 @@
           </ul>
         </el-checkbox-group>
         <div class="ky-line"></div>
-        <div class="ky-list-title ksd-mt-20">数据容忍标准</div>
-        <div class="ksd-mt-18">
-          <el-form-item class="ksd-mb-20" prop="fault_threshold">
-          有数据问题超过<el-input size="mini" style="width:70px;" v-model="checkModelMeta.fault_threshold" class="ksd-mrl-4"></el-input>条时，采取以下方式：
-          </el-form-item>
-        </div>
-        <div>
-          <ul>
-            <li class="ksd-mb-10"><el-radio v-model="checkModelMeta.fault_actions" :label="1">构建报错并通知我</el-radio></li>
-            <li class="ksd-mb-10"><el-radio v-model="checkModelMeta.fault_actions" :label="2">继续构建，但通知我</el-radio></li>
-          </ul>
+        <div :class="{'disaable-fault-setting': !wantSetFault}">
+          <div class="ky-list-title ksd-mt-20">数据容忍标准 
+            <el-switch class="switch-fault"
+              active-text="OFF"
+              inactive-text="ON"
+              v-model="wantSetFault">
+            </el-switch>
+          </div>
+          <div class="ksd-mt-18">
+            <el-form-item class="ksd-mb-20" prop="fault_threshold">
+            有数据问题超过<el-input size="mini" :disabled="!wantSetFault" style="width:70px;" v-model="checkModelMeta.fault_threshold" class="ksd-mrl-4"></el-input>条时，采取以下方式：
+            </el-form-item>
+          </div>
+          <div>
+            <ul>
+              <li class="ksd-mb-10"><el-radio :disabled="!wantSetFault" v-model="checkModelMeta.fault_actions" :label="1">构建报错并通知我</el-radio></li>
+              <li class="ksd-mb-10"><el-radio :disabled="!wantSetFault" v-model="checkModelMeta.fault_actions" :label="2">继续构建，但通知我</el-radio></li>
+            </ul>
+          </div>
         </div>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -68,6 +76,7 @@
   })
   export default class ModelCheckDataModal extends Vue {
     btnLoading = false
+    wantSetFault = false
     checkModelMeta = {
       check_options: [],
       fault_threshold: 0,
@@ -88,6 +97,13 @@
         }
       } else {
         callback()
+      }
+    }
+    @Watch('wantSetFault')
+    initWantSetFault (val) {
+      if (!val) {
+        this.checkModelMeta.fault_threshold = ''
+        this.checkModelMeta.fault_actions = ''
       }
     }
     @Watch('modelDesc')
@@ -118,12 +134,14 @@
         }
         this.checkModelMeta.fault_threshold = this.modelDesc.data_check_desc.fault_threshold
         this.checkModelMeta.fault_actions = this.modelDesc.data_check_desc.fault_actions
+        this.wantSetFault = !!(this.checkModelMeta.fault_threshold || this.checkModelMeta.fault_actions)
       } else {
         this.checkModelMeta = {
           check_options: [],
           fault_threshold: 0,
           fault_actions: 0
         }
+        this.wantSetFault = false
       }
     }
     get checkDataOptionsVal () {
@@ -165,5 +183,13 @@
   }
 </script>
 <style lang="less">
-
+@import '../../../../../assets/styles/variables.less';
+.model-data-check {
+  .disaable-fault-setting {
+    color:@text-disabled-color;
+  }
+  .switch-fault {
+    transform:scale(0.91);
+  }
+}
 </style>

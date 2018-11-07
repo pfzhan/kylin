@@ -18,6 +18,7 @@ export const modelRenderConfig = {
   tableBoxLeft: 50, // table盒子相对于左侧兄弟元素距离
   tableBoxTop: 50, // table盒子相对于顶部兄弟元素距离
   zoom: 10,
+  beestViewPos: [530, 160], // 最佳可视位置
   rootBox: rootBox, // 根元素
   drawBox: '.model-edit', // 绘制区域
   joinKind: {
@@ -36,13 +37,13 @@ export const modelRenderConfig = {
 
   },
   searchAction: {
-    table: [{action: 'tableeditjoin', i18n: 'editjoin'}, {action: 'tableaddjoin', i18n: 'tableaddjoin'}], // [{action: 'showtable', i18n: 'showtable'}], // 搜索table
+    table: [{action: 'showtable', i18n: 'showtable'}, {action: 'tableeditjoin', i18n: 'editjoin'}, {action: 'tableaddjoin', i18n: 'tableaddjoin'}], // [{action: 'showtable', i18n: 'showtable'}], // 搜索table
     column: [{action: 'adddimension', i18n: 'adddimension'}, {action: 'addmeasure', i18n: 'addmeasure'}, {action: 'addjoin', i18n: 'addjoin'}], // 搜索列
     measure: [{action: 'editmeasure', i18n: 'editmeasure'}], // 搜索measure
     dimension: [{action: 'editdimension', i18n: 'editdimension'}], // 搜索dimension
     join: [{action: 'editjoin', i18n: 'editjoin'}] //  搜索join
   },
-  searchCountLimit: 4, // 搜索每一类出来的最多条数
+  searchCountLimit: 100, // 搜索每一类出来的最多条数
   baseIndex: baseIndex,
   pannelsLayout: () => {
     return { // 编辑界面的弹出层位置信息

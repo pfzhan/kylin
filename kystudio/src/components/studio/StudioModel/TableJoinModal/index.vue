@@ -1,19 +1,19 @@
 <template>
-  <el-dialog :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" v-event-stop  width="660px" :visible="isShow" class="links_dialog" :close-on-press-escape="false" :close-on-click-modal="false">
+  <el-dialog :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" append-to-body width="660px" :visible="isShow" class="links_dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <el-row :gutter="10">
       <el-col :span="10">
         <el-select :popper-append-to-body="false" style="width:100%" filterable v-model="selectF">
-          <el-option  v-for="(key, val) in form.tables" :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
+          <el-option  v-for="key in selectedFTables" :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
       <el-col :span="4">
         <el-select :popper-append-to-body="false" style="width:100%" v-model="joinType">
-          <el-option :value="key" v-for="(key, value) in linkKind" :key="key">{{key}}</el-option>
+          <el-option :value="key" v-for="(key, i) in linkKind" :key="i">{{key}}</el-option>
         </el-select>
       </el-col>
       <el-col :span="10">
         <el-select :popper-append-to-body="false" style="width:100%" filterable v-model="selectP">
-          <el-option v-for="(key, val) in form.tables"  :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
+          <el-option v-for="key in selectedPTables"  :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
     </el-row>
@@ -21,7 +21,7 @@
     <el-row :gutter="10"  class="ksd-mt-20" v-for="(key, val) in joinColumns.foreign_key" :key="val">
       <el-col :span="10">
          <el-select :popper-append-to-body="false"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
-            <el-option v-for="f in form.foreignTable.columns" :value="form.foreignTable.alias+'.'+f.name" :key="f.name" :label="f.name">
+            <el-option v-for="f in fColumns" :value="fTable.alias+'.'+f.name" :key="f.name" :label="f.name">
             </el-option>
           </el-select>
       </el-col>
@@ -30,7 +30,7 @@
       </el-col>
       <el-col :span="9">
         <el-select :popper-append-to-body="false" style="width:100%" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
-            <el-option v-for="p in form.primaryTable.columns" :value="form.primaryTable.alias+'.'+p.name" :key="p.name" :label="p.name">
+            <el-option v-for="p in pColumns" :value="pTable.alias+'.'+p.name" :key="p.name" :label="p.name">
             </el-option>
           </el-select>
       </el-col>
@@ -87,7 +87,10 @@ export default class TableJoinModal extends Vue {
   joinType = '' // 选择连接的类型
   selectF = '' // 选择的外键表的alias名
   selectP = '' // 选择的主键表的alias名
-  joinColumns = {} // join信息
+  joinColumns = {
+    foreign_key: [''],
+    primary_key: ['']
+  } // join信息
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
@@ -95,27 +98,62 @@ export default class TableJoinModal extends Vue {
         this.$message(this.$t('kylinLang.project.mustSelectProject'))
         this.handleClose(false)
       }
-      let joinData = this.form.primaryTable.joinInfo[this.form.primaryTable.guid]
-      this.selectP = this.form.primaryTable.guid
+      this.selectP = this.form.pid || ''
+      this.selectF = this.form.fid || ''
+      let ptable = this.form.tables[this.selectP]
+      // let ftable = this.form.tables[this.selectF]
+      let joinData = ptable && ptable.getJoinInfo() || null
       if (joinData) { // 有join数据的情况
         var joinInfo = joinData.join
-        this.joinColumns = joinInfo
+        this.joinColumns.foreign_key = joinInfo.foreign_key
+        this.joinColumns.primary_key = joinInfo.primary_key
         this.joinType = joinInfo.type
       } else { // 无join数据的情况,设置默认值
         this.joinType = 'INNER'
         this.$set(this.joinColumns, 'foreign_key', [''])
         this.$set(this.joinColumns, 'primary_key', [''])
       }
-      if (this.form.ftableName && !this.joinColumns.foreign_key.includes(this.form.ftableName)) {
+      if (this.form.fColumnName && !this.joinColumns.foreign_key.includes(this.form.fColumnName)) {
         if (this.joinColumns.foreign_key[0]) {
-          this.joinColumns.foreign_key.push(this.form.ftableName)
+          this.joinColumns.foreign_key.push(this.form.fColumnName)
         }
-        this.joinColumns.foreign_key[0] = this.form.ftableName
-      }
-      if (this.form.foreignTable) {
-        this.selectF = this.form.foreignTable.guid
+        this.joinColumns.foreign_key[0] = this.form.fColumnName
       }
     }
+  }
+  get selectedFTables () {
+    return this.form.tables && Object.values(this.form.tables).filter((t) => {
+      if (t.guid !== this.selectP) {
+        return t
+      }
+    }) || []
+  }
+  get selectedPTables () {
+    return this.form.tables && Object.values(this.form.tables).filter((t) => {
+      if (t.guid !== this.selectF) {
+        return t
+      }
+    }) || []
+  }
+  get fColumns () {
+    let ntable = this.fTable
+    if (ntable) {
+      return ntable.columns
+    }
+    return []
+  }
+  get pColumns () {
+    let ntable = this.pTable
+    if (ntable) {
+      return ntable.columns
+    }
+    return []
+  }
+  get fTable () {
+    return this.form.tables && this.form.tables[this.selectF] || []
+  }
+  get pTable () {
+    return this.form.tables && this.form.tables[this.selectP] || []
   }
   // 添加condition关联列的框
   addJoinConditionColumns () {
