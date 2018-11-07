@@ -30,8 +30,8 @@
         <el-table-column type="expand" min-width="30">
           <template slot-scope="props">
             <div class="cell-content" :class="{'hidden-cell': props.$index !== activeIndex}">
-              <i class="el-icon-ksd-full_screen ksd-fright full-model-box" v-if="!showFull" @click="toggleShowFull(props.$index)"></i>
-              <i class="el-icon-ksd-collapse ksd-fright full-model-box" v-else @click="showFull = false"></i>
+              <i class="el-icon-ksd-full_screen_1 ksd-fright full-model-box" v-if="!showFull" @click="toggleShowFull(props.$index)"></i>
+              <i class="el-icon-ksd-collapse_1 ksd-fright full-model-box" v-else @click="showFull = false"></i>
               <el-tabs activeName="first" class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
                 <el-tab-pane :label="$t('segment')" name="first">
                   <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" />

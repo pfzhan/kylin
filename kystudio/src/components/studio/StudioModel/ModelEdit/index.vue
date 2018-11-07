@@ -74,7 +74,7 @@
         <div class="tool-icon" @click="reduceZoom"><i class="el-icon-ksd-shrink" ></i></div>
         <div class="tool-icon" @click="addZoom"><i class="el-icon-ksd-enlarge"></i></div>
         <!-- <div class="tool-icon" v-event-stop>{{modelRender.zoom}}0%</div> -->
-        <div class="tool-icon" @click="fullScreen"><i class="el-icon-ksd-full_screen" v-if="!isFullScreen"></i><i class="el-icon-ksd-collapse" v-if="isFullScreen"></i></div>
+        <div class="tool-icon" @click="fullScreen"><i class="el-icon-ksd-full_screen_2" v-if="!isFullScreen"></i><i class="el-icon-ksd-collapse_2" v-if="isFullScreen"></i></div>
         <div class="tool-icon" @click="autoLayout"><i class="el-icon-ksd-auto"></i></div>
       </div>
       <!-- 右侧面板组 -->

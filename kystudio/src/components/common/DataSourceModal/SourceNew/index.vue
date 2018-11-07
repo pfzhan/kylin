@@ -3,7 +3,7 @@
     <ul class="ksd-center">
       <li class="datasouce" :class="getSourceClass([sourceTypes.HIVE])">
         <div class="datasource-icon" @click="clickHandler(sourceTypes.HIVE)">
-          <i class="el-icon-ksd-hive_normal"></i>
+          <i class="el-icon-ksd-hive"></i>
         </div>
         <div class="datasource-name">Hive</div>
       </li>
@@ -18,7 +18,7 @@
       </li>
       <li class="datasouce disabled">
         <div class="datasource-icon">
-          <i class="el-icon-ksd-kafka_normal"></i>
+          <i class="el-icon-ksd-kafka"></i>
         </div>
         <div class="datasource-name">Kafka</div>
         <div class="status">
@@ -38,7 +38,7 @@
       </li>
       <li class="datasouce disabled">
         <div class="datasource-icon">
-          <i class="el-icon-ksd-SQL-server"></i>
+          <i class="el-icon-ksd-sqlserver"></i>
         </div>
         <div class="datasource-name">SQL Server</div>
         <div class="status">

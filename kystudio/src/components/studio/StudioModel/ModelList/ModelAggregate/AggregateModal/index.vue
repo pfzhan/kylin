@@ -26,8 +26,8 @@
       <div class="aggregate-group" v-for="(aggregate, aggregateIdx) in form.aggregateArray" :key="aggregateIdx">
         <h1 class="title font-medium">{{$t('aggregateGroupTitle', { id: form.aggregateArray.length - aggregateIdx })}}</h1>
         <div class="actions">
-          <i class="el-icon-ksd-copy" @click="() => handleCopyAggregate(aggregateIdx)"></i>
-          <i class="el-icon-ksd-table_delete" @click="() => handleDeleteAggregate(aggregateIdx)"></i>
+          <el-button size="mini" @click="() => handleCopyAggregate(aggregateIdx)">{{$t('kylinLang.common.copy')}}</el-button>
+          <el-button size="mini" @click="() => handleDeleteAggregate(aggregateIdx)">{{$t('kylinLang.common.delete')}}</el-button>
         </div>
         <div class="body">
           <!-- Include聚合组 -->
@@ -421,9 +421,12 @@ export default class AggregateModal extends Vue {
     }
     .actions {
       position: absolute;
-      top: 2px;
+      top: -7px;
       right: 0;
       font-size: 16px;
+      .el-button+.el-button {
+        margin-left: 5px;
+      }
       i {
         color: @text-title-color;
       }

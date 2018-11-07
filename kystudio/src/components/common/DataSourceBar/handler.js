@@ -65,7 +65,7 @@ export const render = {
               <span class="tree-icon" slot="reference">
                 <el-tooltip effect="dark" enterable={false} content={isTopSet ? this.$t('cancelTopSet') : this.$t('topSet')} placement="top">
                   <i class="table-date-tip top" onClick={event => this.handleToggleTop(data, node, event)}
-                    { ...{class: data.isTopSet ? ['el-icon-ksd-arrow_up-copy-2'] : ['el-icon-ksd-arrow_up']} }></i>
+                    { ...{class: data.isTopSet ? ['el-icon-ksd-arrow_up_clean'] : ['el-icon-ksd-arrow_up']} }></i>
                 </el-tooltip>
               </span>
               { dateRange ? (
