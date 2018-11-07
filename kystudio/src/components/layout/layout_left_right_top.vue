@@ -1,116 +1,134 @@
 <template>
   <div class="full-layout" id="fullBox" :class="{fullLayout:isFullScreen}">
-  <el-row class="panel" :class="{'brief_menu':briefMenuGet}">
-    <el-col :span="24" class="panel-center">
-      <aside class="left-menu">
-        <img v-show="!briefMenuGet" src="../../assets/img/big_logo.png" class="logo" @click="goHome">
-        <img v-show="briefMenuGet" src="../../assets/img/small_logo.png" class="logo" @click="goHome">
-        <div class="ky-line"></div>
-        <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" unique-opened router :collapse="briefMenuGet">
-          <template v-for="(item,index) in menus">
-            <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
-              <i :class="item.icon" class="ksd-fs-16"></i>
-              <span slot="title">{{$t('kylinLang.menu.' + item.name)}}</span>
-            </el-menu-item>
-            <el-submenu :index="item.path" v-if="item.children" :id="item.name" :key="index">
-              <template slot="title">
-                <i :class="item.icon" class="ksd-fs-16 menu-icon" ></i>
-                <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThreshold" class="dot-icon"></div>
-              </template>
-              <el-menu-item-group>
-                <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path">
-                  <span style="position:relative;">
-                    {{$t('kylinLang.menu.' + child.name)}}
-                    <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'favorite_query'"></span>
-                  </span>
-                  <div class="number-icon" v-if="child.name === 'model'  && reachThreshold">1</div>
-                </el-menu-item>
-              </el-menu-item-group>
-            </el-submenu>
-          </template>
-        </el-menu>
-      </aside>
-      <div class="topbar">
-        <i class="ksd-fs-14" :class="[!briefMenuGet ? 'el-icon-ksd-grid_01' : 'el-icon-ksd-grid_02']" @click="toggleLeftMenu"></i>
-        <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
-        <el-button v-show='gloalProjectSelectShow' :title="$t('kylinLang.project.projectList')" :class="{'project-page':defaultActive==='projectActive'}" @click="goToProjectList" size="medium">
-          <i class="el-icon-ksd-project_list"></i>
-        </el-button>
-        <el-button :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="medium">
-          <i class="el-icon-plus"></i>
-        </el-button>
+    <el-row class="panel" :class="{'brief_menu':briefMenuGet}">
+      <el-col :span="24" class="panel-center">
+        <aside class="left-menu">
+          <img v-show="!briefMenuGet" src="../../assets/img/big_logo.png" class="logo" @click="goHome">
+          <img v-show="briefMenuGet" src="../../assets/img/small_logo.png" class="logo" @click="goHome">
+          <div class="ky-line"></div>
+          <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" unique-opened router :collapse="briefMenuGet">
+            <template v-for="(item,index) in menus">
+              <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
+                <i :class="item.icon" class="ksd-fs-16"></i>
+                <span slot="title">{{$t('kylinLang.menu.' + item.name)}}</span>
+              </el-menu-item>
+              <el-submenu :index="item.path" v-if="item.children" :id="item.name" :key="index">
+                <template slot="title">
+                  <i :class="item.icon" class="ksd-fs-16 menu-icon" ></i>
+                  <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThreshold" class="dot-icon"></div>
+                </template>
+                <el-menu-item-group>
+                  <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path">
+                    <span style="position:relative;">
+                      {{$t('kylinLang.menu.' + child.name)}}
+                      <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'favorite_query'"></span>
+                    </span>
+                    <div class="number-icon" v-if="child.name === 'model'  && reachThreshold">1</div>
+                  </el-menu-item>
+                </el-menu-item-group>
+              </el-submenu>
+            </template>
+          </el-menu>
+        </aside>
+        <div class="topbar">
+          <i class="ksd-fs-14" :class="[!briefMenuGet ? 'el-icon-ksd-grid_01' : 'el-icon-ksd-grid_02']" @click="toggleLeftMenu"></i>
+          <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
+          <el-button v-show='gloalProjectSelectShow' :title="$t('kylinLang.project.projectList')" :class="{'project-page':defaultActive==='projectActive'}" @click="goToProjectList" size="medium">
+            <i class="el-icon-ksd-project_list"></i>
+          </el-button>
+          <el-button :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="medium">
+            <i class="el-icon-plus"></i>
+          </el-button>
 
-        <ul class="top-ul ksd-fright">
-          <li v-if="isAdmin"><canary></canary></li>
-          <li><help></help></li>
-          <li><change_lang ref="changeLangCom"></change_lang></li>
-          <li>
-            <el-dropdown @command="handleCommand" trigger="click">
-              <span class="el-dropdown-link  ksd-ml-10">
-                <i class="el-icon-ksd-user ksd-mr-10" style="transform:scale(1.7)"></i>
-                {{currentUserInfo && currentUserInfo.username}}
-                <i class="el-icon-caret-bottom"></i>
-              </span>
-              <el-dropdown-menu slot="dropdown">
-                <el-dropdown-item command="setting">{{$t('kylinLang.common.setting')}}</el-dropdown-item>
-                <el-dropdown-item command="loginout">{{$t('kylinLang.common.logout')}}</el-dropdown-item>
-              </el-dropdown-menu>
-            </el-dropdown>
-          </li>
-        </ul>
-      </div>
-      <div class="panel-content" id="scrollBox" >
-        <div class="grid-content bg-purple-light">
-          <el-col :span="24" v-show="gloalProjectSelectShow" class="bread-box">
-            <!-- 面包屑在dashboard页面不显示 -->
-            <el-breadcrumb separator="/" class="ksd-ml-30">
-              <el-breadcrumb-item>
-                <span>{{$t('kylinLang.menu.' + currentRouterNameArr[0])}}</span>
-              </el-breadcrumb-item>
-              <el-breadcrumb-item v-if="currentRouterNameArr[1]" :to="{ path: '/' + currentRouterNameArr[0] + '/' + currentRouterNameArr[1]}">
-                <span>{{$t('kylinLang.menu.' + currentRouterNameArr[1])}}</span>
-              </el-breadcrumb-item>
-              <el-breadcrumb-item v-if="currentRouterNameArr[2]" >
-                {{currentRouterNameArr[2]}}
-              </el-breadcrumb-item> 
-            </el-breadcrumb>
-          </el-col>
-          <el-col :span="24" class="main-content">
-            <!--<transition name="fade">-->
-            <router-view v-on:addProject="addProject" v-on:changeCurrentPath="changePath"></router-view>
-            <!--</transition>-->
-          </el-col>
-          <el-dialog :title="$t('kylinLang.common.project')" :visible.sync="FormVisible" @close="resetProjectForm" class="add-project" width="440px">
-            <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess" :visible="FormVisible" :isEdit="isEdit">
-            </project_edit>
-            <span slot="footer" class="dialog-footer">
-              <el-button size="medium" @click="FormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-              <el-button type="primary" plain size="medium" @click.native="Save" :loading="projectSaveLoading">{{$t('kylinLang.common.ok')}}</el-button>
-            </span>
-          </el-dialog>
+          <ul class="top-ul ksd-fright">
+            <li v-if="isAdmin"><canary></canary></li>
+            <li><help></help></li>
+            <li><change_lang ref="changeLangCom"></change_lang></li>
+            <li>
+              <el-dropdown @command="handleCommand" trigger="click">
+                <span class="el-dropdown-link  ksd-ml-10">
+                  <i class="el-icon-ksd-user ksd-mr-10" style="transform:scale(1.7)"></i>
+                  {{currentUserInfo && currentUserInfo.username}}
+                  <i class="el-icon-caret-bottom"></i>
+                </span>
+                <el-dropdown-menu slot="dropdown">
+                  <el-dropdown-item command="setting">{{$t('kylinLang.common.setting')}}</el-dropdown-item>
+                  <el-dropdown-item command="loginout">{{$t('kylinLang.common.logout')}}</el-dropdown-item>
+                </el-dropdown-menu>
+              </el-dropdown>
+            </li>
+          </ul>
         </div>
-      </div>
-    </el-col>
-  </el-row>
-  <el-dialog @close="closeResetPassword" :title="$t('resetPassword')" :visible.sync="resetPasswordFormVisible" width="440px">
-      <reset_password :curUser="currentUser" ref="resetPassword" :show="resetPasswordFormVisible" v-on:validSuccess="resetPasswordValidSuccess"></reset_password>
+        <div class="panel-content" id="scrollBox" >
+          <div class="grid-content bg-purple-light">
+            <el-col :span="24" v-show="gloalProjectSelectShow" class="bread-box">
+              <!-- 面包屑在dashboard页面不显示 -->
+              <el-breadcrumb separator="/" class="ksd-ml-30">
+                <el-breadcrumb-item>
+                  <span>{{$t('kylinLang.menu.' + currentRouterNameArr[0])}}</span>
+                </el-breadcrumb-item>
+                <el-breadcrumb-item v-if="currentRouterNameArr[1]" :to="{ path: '/' + currentRouterNameArr[0] + '/' + currentRouterNameArr[1]}">
+                  <span>{{$t('kylinLang.menu.' + currentRouterNameArr[1])}}</span>
+                </el-breadcrumb-item>
+                <el-breadcrumb-item v-if="currentRouterNameArr[2]" >
+                  {{currentRouterNameArr[2]}}
+                </el-breadcrumb-item> 
+              </el-breadcrumb>
+            </el-col>
+            <el-col :span="24" class="main-content">
+              <!--<transition name="fade">-->
+              <router-view v-on:addProject="addProject" v-on:changeCurrentPath="changePath"></router-view>
+              <!--</transition>-->
+            </el-col>
+            <el-dialog :title="$t('kylinLang.common.project')" :visible.sync="FormVisible" @close="resetProjectForm" class="add-project" width="440px">
+              <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess" :visible="FormVisible" :isEdit="isEdit">
+              </project_edit>
+              <span slot="footer" class="dialog-footer">
+                <el-button size="medium" @click="FormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+                <el-button type="primary" plain size="medium" @click.native="Save" :loading="projectSaveLoading">{{$t('kylinLang.common.ok')}}</el-button>
+              </span>
+            </el-dialog>
+          </div>
+        </div>
+      </el-col>
+    </el-row>
+    <el-dialog @close="closeResetPassword" :title="$t('resetPassword')" :visible.sync="resetPasswordFormVisible" width="440px">
+        <reset_password :curUser="currentUser" ref="resetPassword" :show="resetPasswordFormVisible" v-on:validSuccess="resetPasswordValidSuccess"></reset_password>
+        <div slot="footer" class="dialog-footer">
+          <el-button @click="resetPasswordFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+          <el-button type="primary" plain @click="checkResetPasswordForm">{{$t('kylinLang.common.ok')}}</el-button>
+        </div>
+    </el-dialog>
+    <el-dialog class="linsencebox"
+      :title="kapVersion"
+      width="440px"
+      :visible.sync="lisenceDialogVisible"
+      :modal="false">
+      <p><span>{{$t('validPeriod')}}</span>{{kapDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
+      <p class="ksd-pt-10">{{$t('overtip1')}}<span class="hastime">{{lastTime}} </span>{{$t('overtip2')}}</p>
+      <span slot="footer" class="dialog-footer">
+        <el-button @click="getLicense">{{$t('applayLisence')}}</el-button>
+        <el-button type="primary" plain @click="lisenceDialogVisible = false">{{$t('continueUse')}}</el-button>
+      </span>
+    </el-dialog>
+    <!-- 全局apply favorite query -->
+    <el-dialog width="440px" :title="$t('kylinLang.common.notice')" class="speed_dialog" :visible.sync="reachThreshold" :show-close="false">
+      <el-row>
+        <el-col :span="14">
+          {{$t('hello', {user: currentUser.username})}}<br/>
+          <p style="text-indent:25px; line-height: 26px;" v-html="$t('speedTip', {queryCount: modelSpeedEvents ,modelCount: modelSpeedModelsCount})"></p>
+        </el-col>
+        <el-col :span="10" class="animateImg">
+          <img class="notice_img notice_img1" :class="{'rotate1': rotateVisibel}" src="../../assets/img/noticeImg1.png" height="150" width="150">
+          <img class="notice_img notice_img2" :class="{'rotate2': rotateVisibel}" src="../../assets/img/noticeImg2.png" height="150" width="150">
+          <img class="notice_img" src="../../assets/img/noticeImg3.png" height="150" width="150">
+        </el-col>
+      </el-row>
       <div slot="footer" class="dialog-footer">
-        <el-button @click="resetPasswordFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" plain @click="checkResetPasswordForm">{{$t('kylinLang.common.ok')}}</el-button>
+        <el-button size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
+        <el-button size="medium" type="primary" plain @click="applySpeed" :loading="btnLoading">{{$t('apply')}}</el-button>
       </div>
-  </el-dialog>
-  <el-dialog class="linsencebox"
-    :title="kapVersion"
-    width="440px"
-    :visible.sync="lisenceDialogVisible"
-    :modal="false">
-    <p><span>{{$t('validPeriod')}}</span>{{kapDate}}<!-- <span>2012<i>/1/2</i></span><span>－</span><span>2012<i>/1/2</i></span> --></p>
-    <p class="ksd-pt-10">{{$t('overtip1')}}<span class="hastime">{{lastTime}} </span>{{$t('overtip2')}}</p>
-    <span slot="footer" class="dialog-footer">
-      <el-button @click="getLicense">{{$t('applayLisence')}}</el-button>
-      <el-button type="primary" plain @click="lisenceDialogVisible = false">{{$t('continueUse')}}</el-button>
-    </span>
-  </el-dialog>
+    </el-dialog>
   </div>
 </template>
 
@@ -143,6 +161,8 @@ import $ from 'jquery'
       resetPassword: 'RESET_PASSWORD',
       getAboutKap: 'GET_ABOUTKAP',
       getUserAccess: 'USER_ACCESS',
+      applySpeedInfo: 'APPLY_SPEED_INFO',
+      ignoreSpeedInfo: 'IGNORE_SPEED_INFO',
       getSpeedInfo: 'GET_SPEED_INFO'
     }),
     ...mapMutations({
@@ -170,13 +190,19 @@ import $ from 'jquery'
       'currentSelectedProject',
       'briefMenuGet'
     ]),
+    modelSpeedEvents () {
+      return this.$store.state.model.modelSpeedEvents
+    },
     reachThreshold () {
       return this.$store.state.model.reachThreshold
+    },
+    modelSpeedModelsCount () {
+      return this.$store.state.model.modelSpeedModelsCount
     }
   },
   locales: {
-    'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Are you sure to exit?', validPeriod: 'Valid Period: ', overtip1: 'This License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know'},
-    'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '我知道了'}
+    'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Are you sure to exit?', validPeriod: 'Valid Period: ', overtip1: 'This License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know', speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> models! Do you want to apply it?', ignore: 'Ignore', apply: 'Apply', hello: 'Hi {user},'},
+    'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '我知道了', speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的模型有 <span class="ky-highlight-text">{modelCount}</span> 个！同意此次加速吗？', ignore: '忽略建议', apply: '同意', hello: '{user} 你好，'}
   }
 })
 export default class LayoutLeftRightTop extends Vue {
@@ -204,6 +230,86 @@ export default class LayoutLeftRightTop extends Vue {
   }
   menus = menusData
   resetPasswordFormVisible = false
+  btnLoading = false
+  btnLoadingCancel = false
+  rotateVisibel = false
+
+  @Watch('reachThreshold', {immediate: true})
+  onReachThreshold (val) {
+    if (val) {
+      setTimeout(() => {
+        this.rotateVisibel = true
+      })
+    }
+  }
+
+  loadSpeedInfo (loadingname) {
+    var loadingName = loadingname || 'btnLoading'
+    this.getSpeedInfo(this.currentSelectedProject).then(() => {
+      this[loadingName] = false
+    }, (res) => {
+      this[loadingName] = false
+      handleError(res)
+    })
+  }
+  applySpeed (event) {
+    this.btnLoading = true
+    this.applySpeedInfo({size: this.modelSpeedEvents, project: this.currentSelectedProject}).then(() => {
+      this.flyEvent(event)
+      this.loadSpeedInfo()
+    }, (res) => {
+      this.btnLoading = false
+      handleError(res)
+    })
+  }
+
+  ignoreSpeed () {
+    this.btnLoadingCancel = true
+    this.ignoreSpeedInfo(this.currentSelectedProject).then(() => {
+      this.btnLoadingCancel = false
+      this.loadSpeedInfo('btnLoadingCancel')
+    }, (res) => {
+      this.btnLoadingCancel = false
+      handleError(res)
+    })
+  }
+  flyEvent (event) {
+    var targetArea = $('#monitor')
+    var targetDom = targetArea.find('.menu-icon')
+    var offset = targetDom.offset()
+    var flyer = $('<span class="fly-box"></span>')
+    let leftOffset = 64
+    if (this.$lang === 'en') {
+      leftOffset = 74
+    }
+    if (this.briefMenuGet) {
+      leftOffset = 20
+    }
+    flyer.fly({
+      start: {
+        left: event.pageX,
+        top: event.pageY
+      },
+      end: {
+        left: offset.left + leftOffset,
+        top: offset.top,
+        width: 4,
+        height: 4
+      },
+      onEnd: function () {
+        targetDom.addClass('rotateY')
+        setTimeout(() => {
+          targetDom.fadeTo('slow', 0.5, function () {
+            targetDom.removeClass('rotateY')
+            targetDom.fadeTo('fast', 1)
+          })
+          flyer.fadeOut(1500, () => {
+            flyer.remove()
+          })
+        }, 3000)
+      }
+    })
+  }
 
   created () {
     // this.reloadRouter()
@@ -438,14 +544,14 @@ export default class LayoutLeftRightTop extends Vue {
     return 0
   }
   ST = null
-  async loadSpeedInfo () {
+  async loadCircleSpeedInfo () {
     if (this.currentSelectedProject) {
       return await this.getSpeedInfo(this.currentSelectedProject)
     }
   }
   circleLoadSpeedInfo () {
     this.ST = setTimeout(() => {
-      this.loadSpeedInfo()
+      this.loadCircleSpeedInfo()
       if (this._isDestroyed) {
         return
       }
@@ -496,6 +602,28 @@ export default class LayoutLeftRightTop extends Vue {
     border-radius: 50%;
     background-color:@error-color-1;
     opacity: 0;
+  }
+  .speed_dialog {
+    .animateImg {
+      position: relative;
+      height: 150px;
+      left: 12px;
+      .notice_img {
+        position: absolute;
+        &.rotate1 {
+          -webkit-transform:rotate(360deg);
+          transform:rotate(360deg);
+          -webkit-transition:-webkit-transform 1s ease-in-out;
+          transition:transform 1s ease-in-out;
+        }
+        &.rotate2 {
+          -webkit-transform:rotate(-360deg);
+          transform:rotate(-360deg);
+          -webkit-transition:-webkit-transform 1s ease-in-out;
+          transition:transform 1s ease-in-out;
+        }
+      }
+    }
   }
   .full-layout{
     .bread-box {

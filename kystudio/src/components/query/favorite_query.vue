@@ -112,7 +112,7 @@
       <el-table-column :label="$t('kylinLang.query.frequency')" prop="totalCount" sortable align="center" width="120"></el-table-column>
       <el-table-column :label="$t('kylinLang.query.avgDuration')" prop="average_duration" sortable align="center" width="160">
         <template slot-scope="props">
-          <span v-if="props.row.average_duration < 1000"> < 1s</span>
+          <span v-if="props.row.average_duration < 1000"> &lt; 1s</span>
           <span v-else>{{props.row.average_duration / 1000 | fixed(2)}}s</span>
         </template>
       </el-table-column>
