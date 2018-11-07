@@ -1074,10 +1074,10 @@ select a.placepointid, --门店id
         .rules-conds {
           border-radius: 2px;
           display: flex;
-          padding: 10px 0;
+          padding: 10px;
           .conds {
             width: 33.34%;
-            padding: 0 20px;
+            padding: 0 10px;
             height: 150px;
             .conds-title {
               font-size: 14px;
@@ -1155,7 +1155,7 @@ select a.placepointid, --门店id
           position: relative;
           .conds-title {
             position: absolute;
-            top: 40px;
+            top: 65px;
             width: 95%;
           }
         }

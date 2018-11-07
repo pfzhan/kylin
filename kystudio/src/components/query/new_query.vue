@@ -377,31 +377,39 @@ export default class NewQuery extends Vue {
         display: flex;
         flex-grow: 1;
         align-items: flex-start;
-      }
-      .narrowForm {
-        border: 1px solid @line-border-color;
-        padding: 15px;
-        width: 568px;
-        margin-bottom: 10px;
-        position: relative;
-        background-color: @aceditor-bg-color;
-        .narrowFormItem {
-          .el-form-item__content, .el-form-item__label {
-            line-height: 22px;
+        .narrowForm {
+          border: 1px solid @line-border-color;
+          padding: 15px;
+          width: 568px;
+          margin-bottom: 10px;
+          position: relative;
+          background-color: @aceditor-bg-color;
+          &:hover {
+            box-shadow: 0 0 6px 0 #cfd8dc, 0 2px 4px 0 #cfd8dc;
           }
-          .el-button--mini {
-            padding: 5px 8px;
+          .narrowFormItem {
+            .el-form-item__content, .el-form-item__label {
+              line-height: 22px;
+            }
+            .el-button--mini {
+              padding: 5px 8px;
+            }
+          }
+          .btn-group {
+            position: absolute;
+            top: 65px;
+            right: 20px;
+            .remove_query_btn {
+              color: @text-normal-color;
+              &:hover {
+                color: @base-color;
+              }
+            }
           }
         }
-        .btn-group {
-          position: absolute;
-          top: 65px;
-          right: 20px;
-          .remove_query_btn {
-            color: @text-normal-color;
-            &:hover {
-              color: @base-color;
-            }
+        &.is-checked {
+          .narrowForm {
+            border-color: @base-color;
           }
         }
       }
