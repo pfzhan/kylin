@@ -25,10 +25,7 @@
 package io.kyligence.kap.smart.query;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
@@ -38,8 +35,6 @@ import java.util.concurrent.Executors;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.cache.Cache;
@@ -48,21 +43,24 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.smart.query.SQLResult.Status;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
+import lombok.Getter;
 
 public abstract class AbstractQueryRunner implements Closeable {
-    private static final Logger logger = LoggerFactory.getLogger(AbstractQueryRunner.class);
 
     protected String projectName;
+    @Getter
     private final String[] sqls;
 
     private final Cache<String, QueryRecord> queryCache = CacheBuilder.newBuilder().maximumSize(20).build();
 
+    @Getter
     private final ConcurrentNavigableMap<Integer, SQLResult> queryResults = new ConcurrentSkipListMap<>();
+    @Getter
     private final ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = new ConcurrentSkipListMap<>();
 
     private final ExecutorService executorService;
 
-    public AbstractQueryRunner(String projectName, String[] sqls, int threads) {
+    AbstractQueryRunner(String projectName, String[] sqls, int threads) {
         this.projectName = projectName;
         this.sqls = sqls;
         this.executorService = Executors.newFixedThreadPool(threads);
@@ -71,29 +69,26 @@ public abstract class AbstractQueryRunner implements Closeable {
     private void submitQueryExecute(final CountDownLatch counter, final MockupQueryExecutor executor,
             final KylinConfig kylinConfig, final String project, final String sql, final int index) {
         Preconditions.checkNotNull(sql, "SQL Statement cannot be null.");
-        executorService.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    boolean isCacheValid = false;
-                    QueryRecord record = queryCache.getIfPresent(sql);
-                    if (record != null && record.getSqlResult() != null
-                            && record.getSqlResult().getStatus() == Status.SUCCESS) {
-                        isCacheValid = true;
-                    }
-                    if (!isCacheValid) {
-                        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
-                        record = executor.execute(project, sql);
-                        queryCache.put(sql, record);
-                    }
-                    SQLResult result = record.getSqlResult();
-                    Collection<OLAPContext> olapCtxs = record.getOLAPContexts();
-                    queryResults.put(index, result == null ? SQLResult.failedSQL(null) : result);
-                    olapContexts.put(index, olapCtxs == null ? Lists.<OLAPContext> newArrayList() : olapCtxs);
-                } finally {
-                    counter.countDown();
-                    KylinConfig.removeKylinConfigThreadLocal();
+        executorService.execute(() -> {
+            try {
+                boolean isCacheValid = false;
+                QueryRecord record = queryCache.getIfPresent(sql);
+                if (record != null && record.getSqlResult() != null
+                        && record.getSqlResult().getStatus() == Status.SUCCESS) {
+                    isCacheValid = true;
                 }
+                if (!isCacheValid) {
+                    KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+                    record = executor.execute(project, sql);
+                    queryCache.put(sql, record);
+                }
+                SQLResult result = record.getSqlResult();
+                Collection<OLAPContext> olapCtxs = record.getOLAPContexts();
+                queryResults.put(index, result == null ? SQLResult.failedSQL(null) : result);
+                olapContexts.put(index, olapCtxs == null ? Lists.newArrayList() : olapCtxs);
+            } finally {
+                counter.countDown();
+                KylinConfig.removeKylinConfigThreadLocal();
             }
         });
     }
@@ -116,20 +111,8 @@ public abstract class AbstractQueryRunner implements Closeable {
 
     public abstract void cleanupConfig(KylinConfig config) throws Exception;
 
-    public List<SQLResult> getQueryResults() {
-        return Lists.newArrayList(queryResults.values());
-    }
-
-    public List<Collection<OLAPContext>> getAllOLAPContexts() {
-        return Lists.newArrayList(olapContexts.values());
-    }
-
-    public Map<Integer, Collection<OLAPContext>> getOlapContextsMap() {
-        return olapContexts;
-    }
-
     @Override
-    public void close() throws IOException {
+    public void close() {
         ExecutorServiceUtil.shutdownGracefully(executorService, 120);
     }
 }

@@ -22,31 +22,41 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.cube;
+package io.kyligence.kap.smart.common;
 
-import java.util.Map;
+import java.util.Set;
 
-import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
-import io.kyligence.kap.smart.NSmartContext;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
-class NCuboidProposer extends NAbstractCubeProposer {
+@Getter
+@NoArgsConstructor
+@ToString
+public class AccelerateInfo {
+    private Set<QueryLayoutRelation> relatedLayouts = Sets.newHashSet();
+    @Setter
+    private Throwable blockingCause;
 
-    NCuboidProposer(NSmartContext.NModelContext context) {
-        super(context);
+    public boolean isBlocked() {
+        return this.blockingCause != null;
     }
 
-    @Override
-    void doPropose(NCubePlan cubePlan) {
+    @Getter
+    @ToString
+    @AllArgsConstructor
+    @EqualsAndHashCode
+    public static class QueryLayoutRelation {
 
-        Map<NCuboidIdentifier, NCuboidDesc> cuboidDescMap = cubePlan.getWhiteListCuboidsMap();
-
-        CuboidSuggester suggester = new CuboidSuggester(context, cubePlan, cuboidDescMap);
-        suggester.suggestCuboids(context.getModelTree());
-
-        cubePlan.setCuboids(Lists.newArrayList(cuboidDescMap.values()));
+        @ToString.Exclude
+        private String sql;
+        private String modelId;
+        private String cubePlanId;
+        private long layoutId;
     }
 }

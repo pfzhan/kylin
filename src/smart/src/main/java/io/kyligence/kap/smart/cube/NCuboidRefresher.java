@@ -37,7 +37,6 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
-import io.kyligence.kap.smart.util.CubeUtils;
 
 class NCuboidRefresher extends NAbstractCubeProposer {
 
@@ -67,7 +66,8 @@ class NCuboidRefresher extends NAbstractCubeProposer {
                 (key, cuboid) -> cuboid.getLayouts().removeIf(layout -> layout.matchDraftVersion(draftVersion)));
 
         // propose cuboid again
-        CubeUtils.proposeCuboidDescMap(context, cubePlan, originalCuboidsMap);
+        final CuboidSuggester cuboidSuggester = new CuboidSuggester(context, cubePlan, originalCuboidsMap);
+        cuboidSuggester.suggestCuboids(context.getModelTree());
 
         final Collection<NCuboidDesc> cuboids = originalCuboidsMap.values();
 

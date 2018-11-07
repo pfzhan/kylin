@@ -297,11 +297,6 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
         this.draftVersion = null;
     }
 
-    // TODO check if this layout is used by other query
-    public boolean hasExternalRef() {
-        return false;
-    }
-
     public boolean matchDraftVersion(String draftVersion) {
         return isDraft() && this.draftVersion.equals(draftVersion);
     }

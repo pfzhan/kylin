@@ -26,10 +26,7 @@ package io.kyligence.kap.smart.cube;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
-import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.routing.RealizationChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,13 +36,11 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
-import io.kyligence.kap.smart.model.ModelTree;
 
-public class NCuboidReducer extends NAbstractCubeProposer {
+class NCuboidReducer extends NAbstractCubeProposer {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(NCuboidReducer.class);
+    private static final Logger logger = LoggerFactory.getLogger(NCuboidReducer.class);
 
     NCuboidReducer(NModelContext context) {
         super(context);
@@ -53,29 +48,35 @@ public class NCuboidReducer extends NAbstractCubeProposer {
 
     @Override
     void doPropose(NCubePlan cubePlan) {
+
         // get to be removed cuboids
-        Map<NCuboidIdentifier, NCuboidDesc> proposedCuboids = Maps.newLinkedHashMap();
-        NDataModel model = context.getTargetModel();
-        ModelTree modelTree = context.getModelTree();
-        CuboidSuggester suggester = new CuboidSuggester(context.getSmartContext(), model, cubePlan, proposedCuboids);
-        for (OLAPContext ctx : modelTree.getOlapContexts()) {
-            Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
-            ctx.fixModel(model, aliasMap);
-            try {
-                suggester.ingest(ctx, model);
-            } catch (Exception e) {
-                LOGGER.error("Unable to suggest cuboid for CubePlan", e);
-                continue;
-            }
-            ctx.unfixModel();
-        }
+        final Map<NCuboidIdentifier, NCuboidDesc> proposedCuboids = Maps.newLinkedHashMap();
+
+        final CuboidSuggester cuboidSuggester = new CuboidSuggester(context, cubePlan, proposedCuboids);
+        cuboidSuggester.suggestCuboids(context.getModelTree());
+
+        // log before shrink cuboids
+        proposedCuboids.forEach((cuboidIdentifier, cuboidDesc) -> {
+            logger.debug("layouts after reduce:");
+            cuboidDesc.getLayouts().forEach(layout -> logger.debug("{}", layout.getId()));
+        });
 
         // remove cuboids
         Map<NCuboidIdentifier, List<NCuboidLayout>> cuboidLayoutMap = Maps.newHashMap();
-        for (Entry<NCuboidIdentifier, NCuboidDesc> entry : proposedCuboids.entrySet()) {
-            cuboidLayoutMap.put(entry.getKey(), entry.getValue().getLayouts());
-        }
 
-        cubePlan.removeLayouts(cuboidLayoutMap, NCuboidLayout::hasExternalRef, NCuboidLayout::equals);
+        proposedCuboids.forEach((key, value) -> cuboidLayoutMap.put(key, value.getLayouts()));
+
+        cubePlan.removeLayouts(cuboidLayoutMap, this::hasExternalRef, NCuboidLayout::equals);
+
+        // log after shrink cuboids
+        cuboidLayoutMap.forEach((cuboidIdentifier, nCuboidLayouts) -> {
+            logger.debug("layouts after reduce:");
+            nCuboidLayouts.forEach(layout -> logger.debug("{}", layout.getId()));
+        });
+    }
+
+    private boolean hasExternalRef(NCuboidLayout layout) {
+        // TODO the mapping of sqlPattern to layout should get from favorite query
+        return false;
     }
 }

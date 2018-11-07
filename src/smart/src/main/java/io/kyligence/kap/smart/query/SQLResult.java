@@ -30,6 +30,15 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class SQLResult implements Serializable {
@@ -43,45 +52,11 @@ public class SQLResult implements Serializable {
     @JsonIgnore
     private Throwable exception;
 
-    public SQLResult() {
-    }
-
-    public SQLResult(Status status, String message, Throwable exception) {
-        this.status = status;
-        this.message = message;
-        this.exception = exception;
-    }
-
-    public static SQLResult failedSQL(String message) {
+    static SQLResult failedSQL(String message) {
         return new SQLResult(Status.FAILED, message, new Exception(message));
     }
 
-    public Status getStatus() {
-        return status;
-    }
-
-    public void setStatus(Status status) {
-        this.status = status;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public Throwable getException() {
-        return exception;
-    }
-
-    public void setException(Throwable exception) {
-        this.exception = exception;
-    }
-
-    public static enum Status {
+    public enum Status {
         SUCCESS, FAILED
     }
-
 }

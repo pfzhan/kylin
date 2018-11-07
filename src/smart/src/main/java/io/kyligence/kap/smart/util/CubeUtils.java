@@ -24,50 +24,19 @@
 
 package io.kyligence.kap.smart.util;
 
-import java.util.Map;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
-import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.routing.RealizationChooser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.common.SmartConfig;
-import io.kyligence.kap.smart.cube.CuboidSuggester;
-import io.kyligence.kap.smart.model.ModelTree;
 
 public class CubeUtils {
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(CubeUtils.class);
 
     private static final String BIG_INT = "bigint";
 
     private CubeUtils() {
-    }
-
-    public static void proposeCuboidDescMap(NSmartContext.NModelContext context, NCubePlan cubePlan,
-            Map<NCuboidDesc.NCuboidIdentifier, NCuboidDesc> originalCuboidsMap) {
-        NDataModel model = context.getTargetModel();
-        ModelTree modelTree = context.getModelTree();
-        CuboidSuggester suggester = new CuboidSuggester(context.getSmartContext(), model, cubePlan, originalCuboidsMap);
-        for (OLAPContext ctx : modelTree.getOlapContexts()) {
-            Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
-            ctx.fixModel(model, aliasMap);
-            try {
-                suggester.ingest(ctx, model);
-            } catch (Exception e) {
-                LOGGER.error("Unable to suggest cuboid for CubePlan", e);
-                continue;
-            }
-            ctx.unfixModel();
-        }
     }
 
     public static FunctionDesc newFunctionDesc(NDataModel modelDesc, String expression, ParameterDesc param,

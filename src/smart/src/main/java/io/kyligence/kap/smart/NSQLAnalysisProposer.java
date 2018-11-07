@@ -30,11 +30,11 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.NQueryRunnerFactory;
 
-public class NSQLAnalysisProposer extends NAbstractProposer {
+class NSQLAnalysisProposer extends NAbstractProposer {
     private static final Logger logger = LoggerFactory.getLogger(NSQLAnalysisProposer.class);
     private NSQLSimpleClusterer clusterer = new NSQLSimpleClusterer();
 
-    public NSQLAnalysisProposer(NSmartContext context) {
+    NSQLAnalysisProposer(NSmartContext context) {
         super(context);
     }
 
@@ -43,7 +43,8 @@ public class NSQLAnalysisProposer extends NAbstractProposer {
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(context.getKylinConfig(),
                 context.getSqls(), 1, context.getProject())) {
             extractor.execute();
-            context.setOlapContexts(extractor.getOlapContextsMap());
+            context.logFailedQuery(extractor);
+            context.setOlapContexts(extractor.getOlapContexts());
             context.setModelContexts(clusterer.cluster(context));
         } catch (Exception e) {
             logger.error("Failed to get query stats. ", e);

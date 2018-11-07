@@ -41,6 +41,9 @@ import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.routing.RealizationChooser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -53,8 +56,13 @@ import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.NSmartContext.NModelContext;
+import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.smart.common.AccelerateInfo.QueryLayoutRelation;
+import io.kyligence.kap.smart.model.ModelTree;
 
-public class CuboidSuggester {
+class CuboidSuggester {
+    private static final Logger logger = LoggerFactory.getLogger(CuboidSuggester.class);
 
     private class ColIndexSuggester {
         OLAPContext olapContext;
@@ -101,23 +109,41 @@ public class CuboidSuggester {
 
     private SortedSet<Long> cuboidLayoutIds = Sets.newTreeSet();
 
-    public CuboidSuggester(NSmartContext context, NDataModel model, NCubePlan cubePlan,
-            Map<NCuboidIdentifier, NCuboidDesc> collector) {
-        this.context = context;
-        this.model = model;
+    CuboidSuggester(NModelContext context, NCubePlan cubePlan, Map<NCuboidIdentifier, NCuboidDesc> collector) {
+        this.context = context.getSmartContext();
+        this.model = context.getTargetModel();
         this.cubePlan = cubePlan;
         this.collector = collector;
 
         colIdMap = model.getEffectiveColsMap().inverse();
 
         aggFuncIdMap = Maps.newHashMap();
-        for (Map.Entry<Integer, NDataModel.Measure> measureEntry : model.getEffectiveMeasureMap().entrySet()) {
-            aggFuncIdMap.put(measureEntry.getValue().getFunction(), measureEntry.getKey());
-        }
+        model.getEffectiveMeasureMap()
+                .forEach((measureId, measure) -> aggFuncIdMap.put(measure.getFunction(), measureId));
 
-        for (NCuboidDesc cuboidDesc : collector.values()) {
-            for (NCuboidLayout layout : cuboidDesc.getLayouts())
-                cuboidLayoutIds.add(layout.getId());
+        collector.forEach((cuboidIdentifier, cuboidDesc) -> cuboidDesc.getLayouts()
+                .forEach(layout -> cuboidLayoutIds.add(layout.getId())));
+    }
+
+    void suggestCuboids(ModelTree modelTree) {
+        final Map<String, AccelerateInfo> sql2AccelerateInfo = context.getAccelerateInfoMap();
+        for (OLAPContext ctx : modelTree.getOlapContexts()) {
+            Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
+            String sql = ctx.sql;
+            if (!sql2AccelerateInfo.containsKey(sql)) {
+                sql2AccelerateInfo.put(sql, new AccelerateInfo());
+            }
+            ctx.fixModel(model, aliasMap);
+            AccelerateInfo accelerateInfo = sql2AccelerateInfo.get(sql);
+            try {
+                QueryLayoutRelation queryLayoutRelation = ingest(ctx, model);
+                accelerateInfo.getRelatedLayouts().add(queryLayoutRelation);
+            } catch (Exception e) {
+                logger.error("Unable to suggest cuboid for CubePlan", e);
+                accelerateInfo.setBlockingCause(e);
+            } finally {
+                ctx.unfixModel();
+            }
         }
     }
 
@@ -210,7 +236,8 @@ public class CuboidSuggester {
         }
     }
 
-    public void ingest(OLAPContext ctx, NDataModel model) {
+    private QueryLayoutRelation ingest(OLAPContext ctx, NDataModel model) {
+
         final Map<Integer, Double> dimScores = getDimScores(ctx);
         SortedSet<Integer> measureIds = Sets.newTreeSet();
 
@@ -242,12 +269,15 @@ public class CuboidSuggester {
         layout.setDraftVersion(context.getDraftVersion());
 
         for (NCuboidLayout l : cuboidDesc.getLayouts()) {
-            if (l.equals(layout))
-                return;
+            if (l.equals(layout)) {
+                return new QueryLayoutRelation(ctx.sql, model.getId(), cuboidDesc.getCubePlan().getId(), l.getId());
+            }
         }
 
         cuboidDesc.getLayouts().add(layout);
         cuboidLayoutIds.add(layout.getId());
+
+        return new QueryLayoutRelation(ctx.sql, model.getId(), cuboidDesc.getCubePlan().getId(), layout.getId());
     }
 
     private NCuboidDesc createTableIndex(OLAPContext ctx, Map<Integer, Double> dimScores) {

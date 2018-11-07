@@ -36,10 +36,13 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.model.ModelTree;
+import io.kyligence.kap.smart.query.AbstractQueryRunner;
+import io.kyligence.kap.smart.query.SQLResult;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -58,9 +61,25 @@ public class NSmartContext {
     private Map<Integer, Collection<OLAPContext>> olapContexts;
     @Setter(AccessLevel.PACKAGE)
     private List<NModelContext> modelContexts;
+    @Setter
+    private Map<String, AccelerateInfo> accelerateInfoMap;
 
     private final NTableMetadataManager tableMetadataManager;
     private final Map<String, TableExtDesc.ColumnStats> columnStatsCache = Maps.newConcurrentMap();
+
+    void logFailedQuery(AbstractQueryRunner extractor) {
+        final Map<Integer, SQLResult> queryResultMap = extractor.getQueryResults();
+
+        queryResultMap.forEach((index, sqlResult) -> {
+            if (sqlResult.getStatus() == SQLResult.Status.FAILED) {
+                AccelerateInfo accelerateInfo = new AccelerateInfo();
+                accelerateInfo.setBlockingCause(sqlResult.getException());
+                if (!this.accelerateInfoMap.containsKey(sqls[index])) {
+                    this.accelerateInfoMap.put(sqls[index], accelerateInfo);
+                }
+            }
+        });
+    }
 
     @Getter
     public static class NModelContext {
@@ -94,6 +113,7 @@ public class NSmartContext {
         this.project = project;
         this.sqls = sqls;
         this.smartConfig = SmartConfig.wrap(this.kylinConfig);
+        this.accelerateInfoMap = Maps.newHashMap();
 
         tableMetadataManager = NTableMetadataManager.getInstance(this.kylinConfig, project);
     }
