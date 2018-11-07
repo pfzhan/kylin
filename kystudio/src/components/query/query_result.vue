@@ -31,15 +31,17 @@
         </p>
       </div>
     </div>
+    <div class="ksd-title-label ksd-mt-30">{{$t('queryInformation')}}</div>
     <div class="clearfix">
-      <div class="ksd-title-label ksd-fleft ksd-mt-30">{{$t('queryInformation')}}</div>
-      <div class="resultOperator ksd-mt-20 ksd-fright">
-        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="resultFilter" class="show-search-btn ksd-inline" size="small" prefix-icon="el-icon-search">
-        </el-input>
+      <div class="ksd-fleft ksd-mt-10">
+        <kap-icon-button size="small" type="primary" icon="el-icon-ksd-table_save" @click.native="openSaveQueryDialog">{{$t('kylinLang.query.saveQuery')}}</kap-icon-button>
         <kap-icon-button v-if="showExportCondition" size="small" icon="el-icon-ksd-download" @click.native="exportData">
           {{$t('kylinLang.query.export')}}
         </kap-icon-button>
-        <kap-icon-button size="small" type="primary" icon="el-icon-ksd-table_save" @click.native="openSaveQueryDialog">{{$t('kylinLang.query.saveQuery')}}</kap-icon-button>
+      </div>
+      <div class="resultOperator ksd-mt-10 ksd-fright">
+        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="resultFilter" class="show-search-btn ksd-inline" size="small" prefix-icon="el-icon-search">
+        </el-input>
       </div>
     </div>
   	<div class="ksd-mt-10 grid-box narrowTable">
@@ -274,7 +276,6 @@ export default class queryResult extends Vue {
     .resultOperator {
       .el-input {
         width: auto;
-        margin-right: 10px;
       }
     }
   }

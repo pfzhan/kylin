@@ -20,17 +20,17 @@
           </div>
           <div class="detail-content">
             <el-row :gutter="20">
-              <el-col :span="10" style="position:relative;">
+              <el-col :span="14" style="position:relative;">
                 <kap_editor height="220" width="90%" lang="sql" theme="chrome" v-model="props.row.sql_text" dragbar="#393e53">
                 </kap_editor>
-                <div class="copy-btn">
+                <div class="copy-btn ksd-fright">
                   <transition name="fade">
                     <div class="copyStatusMsg" v-show="showCopyStatus" ><i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span></div>
                   </transition>
                   <el-button type="primary" text v-clipboard:copy="props.row.sql_text" v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
                 </div>
               </el-col>
-              <el-col :span="14">
+              <el-col :span="10">
                 <div class="ksd-nobr-text">
                   <span class="label">{{$t('kylinLang.query.queryId')}}</span>
                   <span>{{props.row.query_id}}</span>
@@ -402,9 +402,7 @@ export default class QueryHistoryTable extends Vue {
     .el-table__expanded-cell {
       padding: 20px;
       .copy-btn {
-        position: absolute;
-        right: 80px;
-        bottom: 8px;
+        margin-right: 9%;
         .copyStatusMsg {
           display: inline-block;
           color: @text-normal-color;
