@@ -33,5 +33,5 @@ select
 from
     revenue_cached
     inner join max_revenue_cached on total_revenue = max_revenue
-order by s_suppkey;
+order by s_suppkey
 

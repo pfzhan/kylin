@@ -66,6 +66,10 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-sparder</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-smart</artifactId>
         </dependency>
         <dependency>
@@ -156,6 +160,12 @@
         <dependency>
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-storage</artifactId>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-sparder</artifactId>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>

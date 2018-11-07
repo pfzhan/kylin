@@ -68,14 +68,6 @@ public class QueryContext {
         }
     };
 
-    public static QueryContext current() {
-        return contexts.get();
-    }
-
-    public static void reset() {
-        contexts.remove();
-    }
-
     // ============================================================================
 
     private String queryId;
@@ -84,12 +76,23 @@ public class QueryContext {
     private AtomicLong scannedRows = new AtomicLong();
     private AtomicLong scannedBytes = new AtomicLong();
     private String sql;
+    private boolean isTimeout;
+    private String project;
     private Object calcitePlan;
     private boolean hasRuntimeAgg;
     private boolean hasLike;
-    private boolean isTimeout;
 
     private long queryStartMillis;
+    private boolean isSparderUsed;
+
+    private ThreadLocal<Boolean> isAsyncQuery = new ThreadLocal<Boolean>(){
+        @Override
+        protected Boolean initialValue() {
+            return false;
+        }
+    };
+
+
     private Throwable errorCause;
     private String pushdownEngine;
 
@@ -101,12 +104,24 @@ public class QueryContext {
         queryId = UUID.randomUUID().toString();
     }
 
+    public static QueryContext current() {
+        return contexts.get();
+    }
+
     public long getQueryStartMillis() {
         return queryStartMillis;
     }
 
+    public static void reset() {
+        contexts.remove();
+    }
+
     public String getQueryId() {
         return queryId == null ? "" : queryId;
+    }
+
+    public void setQueryId(String queryId) {
+        this.queryId = queryId;
     }
 
     public String getUsername() {
@@ -125,28 +140,16 @@ public class QueryContext {
         this.groups = groups;
     }
 
-    public Object getCalcitePlan() {
-        return calcitePlan;
-    }
-
-    public void setCalcitePlan(Object calcitePlan) {
-        this.calcitePlan = calcitePlan;
+    public void setHasLike(boolean hasLike){
+        this.hasLike = hasLike;
     }
 
     public long getScannedRows() {
         return scannedRows.get();
     }
 
-    public long addAndGetScannedRows(long deltaRows) {
-        return scannedRows.addAndGet(deltaRows);
-    }
-
     public long getScannedBytes() {
         return scannedBytes.get();
-    }
-
-    public long addAndGetScannedBytes(long deltaBytes) {
-        return scannedBytes.addAndGet(deltaBytes);
     }
 
     public String getSql() {
@@ -165,20 +168,36 @@ public class QueryContext {
         isTimeout = timeout;
     }
 
-    public boolean hasRuntimeAgg() {
-        return hasRuntimeAgg;
+    public void setIsSparderUsed(boolean isSparderUsed) {
+        this.isSparderUsed = isSparderUsed;
     }
 
-    public void setHasRuntimeAgg(Boolean hasRuntimeAgg) {
-        this.hasRuntimeAgg = hasRuntimeAgg;
+    public void setIsAsyncQuery(){
+        isAsyncQuery.set(true);
     }
 
-    public boolean isHasLike() {
-        return hasLike;
+    public Boolean isAsyncQuery(){
+       return isAsyncQuery.get();
     }
 
-    public void setHasLike(boolean hasLike) {
-        this.hasLike = hasLike;
+    public Object getCalcitePlan() {
+        return calcitePlan;
+    }
+
+    public void setCalcitePlan(Object calcitePlan) {
+        this.calcitePlan = calcitePlan;
+    }
+
+    public String getPushdownEngine() {
+        return pushdownEngine;
+    }
+
+    public void setPushdownEngine(String pushdownEngine) {
+        this.pushdownEngine = pushdownEngine;
+    }
+
+    public long addAndGetScannedRows(long deltaRows) {
+        return scannedRows.addAndGet(deltaRows);
     }
 
     public Throwable getErrorCause() {
@@ -189,13 +208,106 @@ public class QueryContext {
         this.errorCause = errorCause;
     }
 
-    public String getPushdownEngine() {
-        return pushdownEngine;
+    public boolean hasRuntimeAgg() {
+        return hasRuntimeAgg;
     }
 
-    public void setPushdownEngine(String pushdownEngine) {
-        this.pushdownEngine = pushdownEngine;
+    public void setHasRuntimeAgg(Boolean hasRuntimeAgg) {
+        this.hasRuntimeAgg = hasRuntimeAgg;
     }
+/*
+
+    public Set<Future> getAllRunningTasks() {
+        return allRunningTasks;
+    }
+
+    public void addRunningTasks(Future task) {
+        this.allRunningTasks.add(task);
+    }
+
+    public void removeRunningTask(Future task) {
+        this.allRunningTasks.remove(task);
+    }
+
+    public boolean isHighPriorityQuery() {
+        return isHighPriorityQuery;
+    }
+
+    public void markHighPriorityQuery() {
+        isHighPriorityQuery = true;
+    }
+
+    public long getQueryStartMillis() {
+        return queryStartMillis;
+    }
+
+    public void checkMillisBeforeDeadline() {
+        if (Thread.interrupted()) {
+            throw new KylinTimeoutException("Query timeout");
+        }
+    }
+
+    public int getScannedShards() {
+        return scannedShards.get();
+    }
+
+    public void addScannedShards(int deltaFiles) {
+        scannedShards.addAndGet(deltaFiles);
+    }
+
+    public long addAndGetScannedRows(long deltaRows) {
+        return scannedRows.addAndGet(deltaRows);
+    }
+
+    public long addAndGetScannedBytes(long deltaBytes) {
+        return scannedBytes.addAndGet(deltaBytes);
+    }
+
+    public Object getCalcitePlan() {
+        return calcitePlan;
+    }
+
+    public void setCalcitePlan(Object calcitePlan) {
+        this.calcitePlan = calcitePlan;
+    }
+
+
+    public boolean isSparderAppliable() {
+        return isSparderAppliable;
+    }
+
+    public void setSparderAppliable(boolean isSparderAppliable) {
+        this.isSparderAppliable = isSparderAppliable;
+    }
+
+    public boolean isSparderUsed() {
+        return isSparderUsed;
+    }
+
+    public boolean isLateDecodeEnabled() {
+        return isLateDecodeEnabled;
+    }
+
+    public void setLateDecodeEnabled(boolean lateDecodeEnabled) {
+        isLateDecodeEnabled = lateDecodeEnabled;
+    }
+
+    public boolean isHasLike() {
+        return hasLike;
+    }
+
+    public void setHasLike(boolean hasLike) {
+        this.hasLike = hasLike;
+    }
+
+    public boolean isHasAdvance() {
+        return hasAdvance;
+    }
+
+    public void setHasAdvance(boolean hasAdvance) {
+        this.hasAdvance = hasAdvance;
+    }
+*/
 
     public String getCorrectedSql() {
         return correctedSql;

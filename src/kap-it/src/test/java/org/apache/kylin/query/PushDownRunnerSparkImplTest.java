@@ -43,7 +43,8 @@
 
 package org.apache.kylin.query;
 
-import com.google.common.collect.Lists;
+import java.util.List;
+
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.query.adhoc.PushDownRunnerSparkImpl;
@@ -55,7 +56,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.List;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.spark.KapSparkSession;
 
 public class PushDownRunnerSparkImplTest {
 
@@ -74,9 +77,13 @@ public class PushDownRunnerSparkImplTest {
         schema = schema.add("SELLER_ID", DataTypes.LongType, false);
         schema = schema.add("PRICE", DataTypes.createDecimalType(19, 4), false);
         schema = schema.add("ITEM_COUNT", DataTypes.DoubleType, false);
+        if (ss instanceof KapSparkSession) {
+            ss.stop();
+            ss = SparkSession.builder().appName("local").master("local[1]").getOrCreate();
+        }
         schema = schema.add("TEST_COUNT_DISTINCT_BITMAP", DataTypes.StringType, false);
         ss.read().schema(schema).csv("../examples/test_case_data/localmeta_n/data/DEFAULT.TEST_KYLIN_FACT.csv")
-                .createTempView("TEST_KYLIN_FACT");
+                .createOrReplaceTempView("TEST_KYLIN_FACT");
     }
 
     @After

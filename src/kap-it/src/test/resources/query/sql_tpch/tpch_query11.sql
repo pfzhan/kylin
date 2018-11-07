@@ -38,4 +38,4 @@ from (
 where
 	part_value > total_value * 0.0001
 order by
-	part_value desc;
+	part_value desc

@@ -50,5 +50,5 @@ from
 	left join high_line hl on al.l_shipmode = hl.l_shipmode
 	left join low_line ll on al.l_shipmode = ll.l_shipmode
 order by
-	al.l_shipmode;
+	al.l_shipmode
 

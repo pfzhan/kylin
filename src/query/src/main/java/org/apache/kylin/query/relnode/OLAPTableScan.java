@@ -437,6 +437,7 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
     }
 
     public String genExecFunc() {
+        context.setReturnTupleInfo(rowType, columnRowType);
         // if the table to scan is not the fact table of cube, then it's a lookup table
         if (context.realization.getModel().isLookupTable(tableName)) {
             return "executeLookupTableQuery";

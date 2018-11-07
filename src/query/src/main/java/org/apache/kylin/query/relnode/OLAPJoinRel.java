@@ -382,6 +382,8 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
                 this.columnRowType = this.buildColumnRowType();
             }
         }
+        context.setReturnTupleInfo(rowType, columnRowType);
+
     }
 
     @Override

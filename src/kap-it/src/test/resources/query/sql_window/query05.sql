@@ -18,8 +18,8 @@
 select cal_dt, lstg_format_name, sum(price) as GMV,
 first_value(sum(price)) over(partition by lstg_format_name order by cal_dt) as "first",
 last_value(sum(price)) over(partition by lstg_format_name order by cal_dt) as "current",
-lag(sum(price), 1, 0.0) over(partition by lstg_format_name order by cal_dt) as "prev",
-lead(sum(price), 1, 0.0) over(partition by lstg_format_name order by cal_dt) as "next",
+round(lag(sum(price), 1, 0.0) over(partition by lstg_format_name order by cal_dt), 4) as "prev",
+round(lead(sum(price), 1, 0.0) over(partition by lstg_format_name order by cal_dt), 4) as "next",
 ntile(4) over (partition by lstg_format_name order by cal_dt) as "quarter"
 from test_kylin_fact
 where cal_dt < '2012-02-01'

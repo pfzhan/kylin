@@ -22,4 +22,4 @@ from
 group by
     t.o_orderpriority
 order by
-    t.o_orderpriority;
+    t.o_orderpriority

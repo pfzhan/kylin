@@ -24,4 +24,4 @@ where
 group by
     s_name, s_address
 order by
-    s_name;
+    s_name

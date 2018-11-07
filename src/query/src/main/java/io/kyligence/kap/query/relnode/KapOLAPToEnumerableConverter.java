@@ -25,8 +25,15 @@ package io.kyligence.kap.query.relnode;
 
 import java.util.List;
 
+import io.kyligence.kap.query.exec.SparderMethod;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
+import org.apache.calcite.adapter.enumerable.JavaRowFormat;
+import org.apache.calcite.adapter.enumerable.PhysType;
+import org.apache.calcite.adapter.enumerable.PhysTypeImpl;
+import org.apache.calcite.linq4j.tree.BlockBuilder;
+import org.apache.calcite.linq4j.tree.Expression;
+import org.apache.calcite.linq4j.tree.Expressions;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -107,50 +114,37 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
         QueryContext.current().setCalcitePlan(this.copy(getTraitSet(), getInputs()));
 
         boolean sparderEnabled = KapConfig.getInstanceFromEnv().isSparderEnabled();
-        if (sparderEnabled) {
-            sparderEnabled = isSparderAppliable(contexts);
-            logger.info("sparder is enabled : " + sparderEnabled);
-
-        }
-
         if (!sparderEnabled) {
-            //            if (SparderContext.isAsyncQuery()) {
-            //                throw new NoRealizationFoundException("export data must enable sparder,routing to pushdown");
-            //            }
+            QueryContext.current().setIsSparderUsed(false);
             OLAPRel.JavaImplementor impl = new OLAPRel.JavaImplementor(enumImplementor);
             EnumerableRel inputAsEnum = impl.createEnumerable((OLAPRel) getInput());
             this.replaceInput(0, inputAsEnum);
             return impl.visitChild(this, 0, inputAsEnum, pref);
         } else {
-            throw new IllegalStateException();
-            //
-            //            final PhysType physType = PhysTypeImpl.of(enumImplementor.getTypeFactory(), getRowType(),
-            //                    pref.preferCustom());
-            //            final BlockBuilder list = new BlockBuilder();
-            //
-            //            KapContext.setKapRel((KapRel) getInput());
-            //            KapContext.setRowType(getRowType());
-            //            if (SparderContext.isAsyncQuery()) {
-            //                Expression enumerable = list.append("enumerable",
-            //                        Expressions.call(SparderMethod.ASYNC_RESULT.method, enumImplementor.getRootExpression()));
-            //                list.add(Expressions.return_(null, enumerable));
-            //                return enumImplementor.result(physType, list.toBlock());
-            //            }
-            //            if (physType.getFormat() == JavaRowFormat.SCALAR) {
-            //                Expression enumerable = list.append("enumerable",
-            //                        Expressions.call(SparderMethod.COLLECT_SCALAR.method, enumImplementor.getRootExpression()));
-            //                list.add(Expressions.return_(null, enumerable));
-            //            } else {
-            //                Expression enumerable = list.append("enumerable",
-            //                        Expressions.call(SparderMethod.COLLECT.method, enumImplementor.getRootExpression()));
-            //                list.add(Expressions.return_(null, enumerable));
-            //            }
-            //            return enumImplementor.result(physType, list.toBlock());
-        }
-    }
+            QueryContext.current().setIsSparderUsed(true);
+            final PhysType physType = PhysTypeImpl.of(enumImplementor.getTypeFactory(), getRowType(),
+                    pref.preferCustom());
+            final BlockBuilder list = new BlockBuilder();
 
-    private boolean isSparderAppliable(List<OLAPContext> contexts) {
-        throw new UnsupportedOperationException();
+            KapContext.setKapRel((KapRel) getInput());
+            KapContext.setRowType(getRowType());
+            if (QueryContext.current().isAsyncQuery()) {
+                Expression enumerable = list.append("enumerable",
+                        Expressions.call(SparderMethod.ASYNC_RESULT.method, enumImplementor.getRootExpression()));
+                list.add(Expressions.return_(null, enumerable));
+                return enumImplementor.result(physType, list.toBlock());
+            }
+            if (physType.getFormat() == JavaRowFormat.SCALAR) {
+                Expression enumerable = list.append("enumerable",
+                        Expressions.call(SparderMethod.COLLECT_SCALAR.method, enumImplementor.getRootExpression()));
+                list.add(Expressions.return_(null, enumerable));
+            } else {
+                Expression enumerable = list.append("enumerable",
+                        Expressions.call(SparderMethod.COLLECT.method, enumImplementor.getRootExpression()));
+                list.add(Expressions.return_(null, enumerable));
+            }
+            return enumImplementor.result(physType, list.toBlock());
+        }
     }
 
 }

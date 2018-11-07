@@ -24,12 +24,10 @@
 
 package io.kyligence.kap.storage.gtrecord;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.util.Array;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.measure.MeasureType;
@@ -37,7 +35,6 @@ import org.apache.kylin.measure.MeasureType.IAdvMeasureFiller;
 import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.tuple.Tuple;
 import org.apache.kylin.metadata.tuple.TupleInfo;
@@ -128,8 +125,7 @@ public class NCubeTupleConverter implements ITupleConverter {
 
         //prepare derived columns and filler
 
-        Map<TblColRef, DeriveInfo> derivedToHostMap = layoutCandidate.getDerivedToHostMap();
-        Map<Array<TblColRef>, List<DeriveInfo>> hostToDerivedInfo = makeHostToDerivedMap(derivedToHostMap);
+        Map<Array<TblColRef>, List<DeriveInfo>> hostToDerivedInfo = layoutCandidate.makeHostToDerivedMap();
 
         for (Map.Entry<Array<TblColRef>, List<DeriveInfo>> entry : hostToDerivedInfo.entrySet()) {
             TblColRef[] hostCols = entry.getKey().data;
@@ -140,45 +136,6 @@ public class NCubeTupleConverter implements ITupleConverter {
                 }
             }
         }
-    }
-
-    private Map<Array<TblColRef>, List<DeriveInfo>> makeHostToDerivedMap(Map<TblColRef, DeriveInfo> derivedToHostMap) {
-        Map<Array<TblColRef>, List<DeriveInfo>> hostToDerivedMap = Maps.newHashMap();
-
-        for (Map.Entry<TblColRef, DeriveInfo> entry : derivedToHostMap.entrySet()) {
-
-            TblColRef derCol = entry.getKey();
-            TblColRef[] hostCols = entry.getValue().columns;
-            DeriveInfo.DeriveType type = entry.getValue().type;
-            JoinDesc join = entry.getValue().join;
-
-            Array<TblColRef> hostColArray = new Array<>(hostCols);
-            List<DeriveInfo> infoList = hostToDerivedMap.get(hostColArray);
-            if (infoList == null) {
-                infoList = new ArrayList<DeriveInfo>();
-                hostToDerivedMap.put(hostColArray, infoList);
-            }
-
-            // Merged duplicated derived column
-            boolean merged = false;
-            for (DeriveInfo existing : infoList) {
-                if (existing.type == type && existing.join.getPKSide().equals(join.getPKSide())) {
-                    if (ArrayUtils.contains(existing.columns, derCol)) {
-                        merged = true;
-                        break;
-                    }
-                    if (type == DeriveInfo.DeriveType.LOOKUP) {
-                        existing.columns = (TblColRef[]) ArrayUtils.add(existing.columns, derCol);
-                        merged = true;
-                        break;
-                    }
-                }
-            }
-            if (!merged)
-                infoList.add(new DeriveInfo(type, join, new TblColRef[] { derCol }, false));
-        }
-
-        return hostToDerivedMap;
     }
 
     // load only needed dictionaries

@@ -270,6 +270,14 @@ public class ParameterDesc implements Serializable {
             return single;
         }
 
+        public String getValue() {
+            return value;
+        }
+
+        public TblColRef getColRef() {
+            return colRef;
+        }
+
         @Override
         public int hashCode() {
             int result = type != null ? type.hashCode() : 0;

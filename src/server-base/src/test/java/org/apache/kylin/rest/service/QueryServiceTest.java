@@ -345,7 +345,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
             nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
             dataflowManager.updateDataflow(nDataflowUpdate);
-            
+
             Thread.sleep(1000);
 
             //check the default project
@@ -376,9 +376,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Pair<Set<String>, Set<String>> schemasAndTables;
         Set<String> tableSchemas, tableNames;
         List<ColumnMeta> factColumns;
-        
+
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
-        
+
 
         //we have two projects: default and testproject1. different projects exposes different views of
         //table, depending on what model it has.

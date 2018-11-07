@@ -56,7 +56,7 @@ public class NCubeDimEncMap implements IDimensionEncodingMap, java.io.Serializab
         for (TblColRef colRef : cubePlan.getAllColumnsHaveDictionary()) {
             Dictionary<String> dict = nDataSegment.getDictionary(colRef);
             if (dict == null) {
-                logger.error("Dictionary for {} was not found.", colRef.getIdentity());
+                logger.debug("Dictionary for {} was not found.", colRef.getIdentity());
                 continue;
             }
             dictionaryMap.put(colRef, dict);

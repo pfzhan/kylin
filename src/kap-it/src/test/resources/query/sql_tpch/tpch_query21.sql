@@ -54,4 +54,4 @@ group by
 order by
     numwait desc,
     s_name
-limit 100;
+limit 100

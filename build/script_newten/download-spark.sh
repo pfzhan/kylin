@@ -7,8 +7,8 @@ source build/script_newten/functions.sh
 
 rm -rf build/spark
 
-spark_version="2.1.1"
-spark_pkg_md5="195daab700e4332fcdaf7c66236de542"
+spark_version="2.2.1"
+spark_pkg_md5="7774419f0fb7c28d93c24aefb19a014c"
 
 if [ ! -f "build/spark-${spark_version}-bin-hadoop2.6.tgz" ]
 then

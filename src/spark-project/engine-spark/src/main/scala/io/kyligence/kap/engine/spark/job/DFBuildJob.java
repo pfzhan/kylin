@@ -109,7 +109,6 @@ public class DFBuildJob extends NDataflowJob {
                         recursiveBuildCuboid(seg, cuboid, buildFromFlatTable.getDataset(),
                                 cubePlan.getEffectiveMeasures(), nSpanningTree);
                     }
-//                    buildFromFlatTable.getDataset().unpersist();
                 }
 
                 sources.addAll(buildFromLayouts.values());
@@ -121,7 +120,6 @@ public class DFBuildJob extends NDataflowJob {
                                 cubePlan.getCuboidLayout(source.getLayoutId()).getOrderedMeasures(),
                                 nSpanningTree);
                     }
-//                    source.getDataset().unpersist();
                 }
                 buildFromFlatTable.getDataset().unpersist();
             }

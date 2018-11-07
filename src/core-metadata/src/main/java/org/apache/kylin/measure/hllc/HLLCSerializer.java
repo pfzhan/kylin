@@ -61,6 +61,10 @@ public class HLLCSerializer extends DataTypeSerializer<HLLCounter> {
         this.precision = type.getPrecision();
     }
 
+    public HLLCSerializer(int precision) {
+        this.precision = precision;
+    }
+
     @Override
     public void serialize(HLLCounter value, ByteBuffer out) {
         try {

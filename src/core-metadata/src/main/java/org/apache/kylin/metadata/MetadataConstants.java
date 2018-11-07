@@ -51,6 +51,8 @@ public interface MetadataConstants {
 
     public static final String FILE_SURFIX = ".json";
     public static final String PROJECT_RESOURCE = "project";
+    public static final String TYPE_VERSION = ".version";
+
     //Identifier Type, user or group
     public static final String TYPE_USER = "user";
     public static final String TYPE_GROUP = "group";

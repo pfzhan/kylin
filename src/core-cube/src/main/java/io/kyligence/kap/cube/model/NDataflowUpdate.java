@@ -71,6 +71,11 @@ public class NDataflowUpdate {
         return this;
     }
 
+    public NDataflowUpdate setToRemoveSegsWithArray(NDataSegment[] toRemoveSegs) {
+        this.toRemoveSegs = toRemoveSegs;
+        return this;
+    }
+
     public NDataSegment[] getToUpdateSegs() {
         return toUpdateSegs;
     }

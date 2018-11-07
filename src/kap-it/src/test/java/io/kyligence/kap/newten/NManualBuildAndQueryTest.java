@@ -61,6 +61,8 @@ import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.spark.KapSparkSession;
 
+
+@Ignore("see io.kyligence.kap.ut.TestQueryAndBuild")
 @SuppressWarnings("serial")
 public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
 
@@ -221,7 +223,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         return kapSparkSession;
     }
 
-    private void buildCubes() throws Exception {
+    public void buildCubes() throws Exception {
         if (Boolean.valueOf(System.getProperty("noBuild", "false"))) {
             System.out.println("Direct query");
         } else if (Boolean.valueOf(System.getProperty("isDeveloperMode", "false"))) {
@@ -241,7 +243,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         private String sqlFolder;
 
         QueryCallable(KapSparkSession kapSparkSession, NExecAndComp.CompareLevel compareLevel, String joinType,
-                String sqlFolder) {
+                      String sqlFolder) {
             this.kapSparkSession = kapSparkSession;
             this.compareLevel = compareLevel;
             this.joinType = joinType;

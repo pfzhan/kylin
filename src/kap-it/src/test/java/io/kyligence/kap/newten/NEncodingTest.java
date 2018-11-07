@@ -124,9 +124,9 @@ public class NEncodingTest extends NLocalWithSparkSessionTest {
                 "253402214400000", "2147483647000", "1" };
         String[] e3 = new String[18];
         e3[17] = "1";
-        Assert.assertArrayEquals(e3, dataAfterDecode.get(0));
-        Assert.assertArrayEquals(e1, dataAfterDecode.get(1));
-        Assert.assertArrayEquals(e2, dataAfterDecode.get(2));
+        Assert.assertArrayEquals(e1, dataAfterDecode.get(0));
+        Assert.assertArrayEquals(e2, dataAfterDecode.get(1));
+        Assert.assertArrayEquals(e3, dataAfterDecode.get(2));
 
         ss.close();
 

@@ -28,8 +28,6 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.Map;
-import java.util.UUID;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
@@ -39,9 +37,7 @@ import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.source.jdbc.H2Database;
-import org.apache.spark.SparkConf;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.internal.StaticSQLConf;
+import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
@@ -77,6 +73,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
     public static void main(String[] args) {
         setEnvs(args);
         SpringApplication.run(BootstrapServer.class, args);
+        initSparkSession();
     }
 
     private static void setEnvs(String[] args) {
@@ -93,7 +90,6 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         }
         // set influx config
         System.setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
-        initSparkSession();
     }
 
     private static void setProdEnvs() {
@@ -111,25 +107,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
     }
 
     private static void initSparkSession() {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        // use SparkEnv to init SparkSession later
-        final SparkConf sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString());
-        if (config.getDeployEnv().equals("UT")) {
-            sparkConf.setMaster("local[4]");
-        } else {
-            sparkConf.setMaster("yarn-client");
-            sparkConf.set("spark.yarn.dist.jars", config.getKylinJobJarPath());
-            Map<String, String> sparkConfs = config.getSparkConfigOverride();
-            if (sparkConfs != null && sparkConfs.size() > 0) {
-                for (Map.Entry<String, String> conf : sparkConfs.entrySet()) {
-                    sparkConf.set(conf.getKey(), conf.getValue());
-                }
-            }
-        }
-        sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
-        sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
-
-        SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate();
+        SparderEnv.init();
     }
 
     private static void initBackend() {

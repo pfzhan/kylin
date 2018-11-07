@@ -23,11 +23,16 @@
  */
 package io.kyligence.kap.cube.cuboid;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import org.apache.commons.lang.ArrayUtils;
+import org.apache.kylin.common.util.Array;
 import org.apache.kylin.metadata.model.DeriveInfo;
+import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Maps;
@@ -61,4 +66,44 @@ public class NLayoutCandidate {
     public void setDerivedToHostMap(@Nonnull Map<TblColRef, DeriveInfo> derivedToHostMap) {
         this.derivedToHostMap = derivedToHostMap;
     }
+
+    public Map<Array<TblColRef>, List<DeriveInfo>> makeHostToDerivedMap() {
+        Map<Array<TblColRef>, List<DeriveInfo>> hostToDerivedMap = Maps.newHashMap();
+
+        for (Map.Entry<TblColRef, DeriveInfo> entry : derivedToHostMap.entrySet()) {
+
+            TblColRef derCol = entry.getKey();
+            TblColRef[] hostCols = entry.getValue().columns;
+            DeriveInfo.DeriveType type = entry.getValue().type;
+            JoinDesc join = entry.getValue().join;
+
+            Array<TblColRef> hostColArray = new Array<>(hostCols);
+            List<DeriveInfo> infoList = hostToDerivedMap.get(hostColArray);
+            if (infoList == null) {
+                infoList = new ArrayList<DeriveInfo>();
+                hostToDerivedMap.put(hostColArray, infoList);
+            }
+
+            // Merged duplicated derived column
+            boolean merged = false;
+            for (DeriveInfo existing : infoList) {
+                if (existing.type == type && existing.join.getPKSide().equals(join.getPKSide())) {
+                    if (ArrayUtils.contains(existing.columns, derCol)) {
+                        merged = true;
+                        break;
+                    }
+                    if (type == DeriveInfo.DeriveType.LOOKUP) {
+                        existing.columns = (TblColRef[]) ArrayUtils.add(existing.columns, derCol);
+                        merged = true;
+                        break;
+                    }
+                }
+            }
+            if (!merged)
+                infoList.add(new DeriveInfo(type, join, new TblColRef[] { derCol }, false));
+        }
+
+        return hostToDerivedMap;
+    }
+
 }

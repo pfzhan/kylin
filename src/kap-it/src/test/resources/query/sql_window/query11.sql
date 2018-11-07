@@ -16,8 +16,8 @@
 -- limitations under the License.
 --
 select lstg_format_name,cal_dt,
-sum(sum(price)) over(partition by lstg_format_name,cal_dt),
-max(sum(price)) over(partition by lstg_format_name,cal_dt),
-min(sum(price)) over(partition by lstg_format_name)
+round( sum(round(sum(price),0)) over(partition by lstg_format_name,cal_dt), 0),
+round( max(round(sum(price),0)) over(partition by lstg_format_name,cal_dt), 0),
+round( min(round(sum(price),0)) over(partition by lstg_format_name), 0)
 from test_kylin_fact
 group by cal_dt, lstg_format_name

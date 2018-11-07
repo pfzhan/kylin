@@ -43,16 +43,17 @@
 
 package org.apache.kylin.measure.bitmap;
 
-import org.apache.kylin.common.util.ByteBufferOutputStream;
-import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
-
+import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
+
+import org.apache.kylin.common.util.ByteBufferOutputStream;
+import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
+import org.roaringbitmap.buffer.MutableRoaringBitmap;
 
 /**
  * A {@link BitmapCounter} based on roaring bitmap.
@@ -62,7 +63,7 @@ public class RoaringBitmapCounter implements BitmapCounter, Serializable {
     private ImmutableRoaringBitmap bitmap;
     private Long counter;
 
-    RoaringBitmapCounter() {
+    public RoaringBitmapCounter() {
         bitmap = new MutableRoaringBitmap();
     }
 
@@ -144,6 +145,13 @@ public class RoaringBitmapCounter implements BitmapCounter, Serializable {
             throw new BufferOverflowException();
         }
         try (DataOutputStream dos = new DataOutputStream(new ByteBufferOutputStream(out))) {
+            bitmap.serialize(dos);
+        }
+    }
+
+    @Override
+    public void write(ByteArrayOutputStream baos) throws IOException {
+        try (DataOutputStream dos = new DataOutputStream(baos)) {
             bitmap.serialize(dos);
         }
     }

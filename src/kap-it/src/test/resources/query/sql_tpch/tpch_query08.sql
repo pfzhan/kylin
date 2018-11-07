@@ -29,4 +29,4 @@ peru as (
 all_data as (
     select o_year, sum(volume) as all_volume from all_nations group by o_year
 )
-select peru.o_year, peru_volume / all_volume as mkt_share from peru inner join all_data on peru.o_year = all_data.o_year;
+select peru.o_year, peru_volume / all_volume as mkt_share from peru inner join all_data on peru.o_year = all_data.o_year

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,16 +42,15 @@
 
 package org.apache.kylin.cube.gridtable;
 
-import org.apache.kylin.gridtable.GTInfo;
 import org.apache.kylin.dimension.IDimensionEncodingMap;
+import org.apache.kylin.gridtable.GTInfo;
 
 public class GridTables {
 
     public static GTInfo newGTInfo(GridTableMapping mapping, IDimensionEncodingMap dimEncMap) {
         GTInfo.Builder builder = GTInfo.builder();
         builder.setTableName(mapping.getTableName());
-        builder.setCodeSystem(
-                new CubeCodeSystem(mapping.getDimensionEncodings(dimEncMap), mapping.getDependentMetricsMap()));
+        builder.setCodeSystem(new CubeCodeSystem(mapping.getDimensionEncodings(dimEncMap), mapping.getDependentMetricsMap()));
         builder.setColumns(mapping.getDataTypes());
         builder.setPrimaryKey(mapping.getPrimaryKey());
         builder.enableColumnBlock(mapping.getColumnBlocks());

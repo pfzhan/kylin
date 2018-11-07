@@ -5,7 +5,7 @@ with avg_tmp as (
     select
         avg(c_acctbal) as avg_acctbal
     from
-        customer
+        customer left join v_orders on c_custkey = o_custkey
     where
         c_acctbal > 0.00 and substring(c_phone, 1, 2) in ('13','31','23','29','30','18','17')
 )
@@ -28,4 +28,4 @@ from (
 group by
     cntrycode
 order by
-    cntrycode;
+    cntrycode

@@ -44,7 +44,10 @@
             <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-source-hive</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-sparder</artifactId>
+        </dependency>
         <!-- Env & Test -->
         <dependency>
             <groupId>io.kyligence.ke</groupId>

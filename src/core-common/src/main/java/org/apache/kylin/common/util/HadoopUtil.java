@@ -49,7 +49,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -57,6 +56,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.PathFilter;
 import org.apache.hadoop.io.Writable;
+import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -100,14 +100,23 @@ public class HadoopUtil {
     }
 
     public static FileSystem getWorkingFileSystem() throws IOException {
-        return getFileSystem(KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory());
+        return getFileSystem(KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(null));
     }
 
     public static FileSystem getWorkingFileSystem(Configuration conf) throws IOException {
-        Path workingPath = new Path(KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory());
+        Path workingPath = new Path(KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(null));
         return getFileSystem(workingPath, conf);
     }
 
+    public static FileSystem getReadFileSystem() throws IOException {
+        Configuration conf = getCurrentConfiguration();
+        return getReadFileSystem(conf);
+    }
+
+    public static FileSystem getReadFileSystem(Configuration conf) throws IOException {
+        Path parquetReadPath = new Path(KylinConfig.getInstanceFromEnv().getReadHdfsWorkingDirectory(null));
+        return getFileSystem(parquetReadPath, conf);
+    }
     public static FileSystem getFileSystem(String path) throws IOException {
         return getFileSystem(new Path(makeURI(path)));
     }

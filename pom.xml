@@ -41,7 +41,8 @@
         <kafka.version>0.11.0.1</kafka.version>
 
         <!-- Spark versions -->
-        <spark.version>2.1.1</spark.version>
+        <spark.version>2.2.1</spark.version>
+        <!--<spark.version>2.2.1-kylin-r5</spark.version>-->
         <kryo.version>4.0.0</kryo.version>
 
         <!-- <reflections.version>0.9.10</reflections.version> -->
@@ -62,9 +63,6 @@
         <commons-upload.version>1.3.3</commons-upload.version>
         <commons-math3.version>3.1.1</commons-math3.version>
         <commons-collections.version>3.2.2</commons-collections.version>
-
-        <!-- Calcite deps, keep compatible with calcite.version -->
-        <jackson.version>2.6.3</jackson.version>
 
         <!-- Test Dependency versions -->
         <antlr.version>3.4</antlr.version>
@@ -117,6 +115,8 @@
         <sonar.jacoco.excludes>
             org/apache/kylin/**/tools/**:**/*CLI.java,
             **/org/apache/kylin/query/optrule/*,
+            io/kyligence/kap/query/exec/*,
+            io/kyligence/kap/query/relnode/KapOLAPToEnumerableConverter.java,
             **/org/apache/kylin/query/relnode/OLAP*Rel.java
         </sonar.jacoco.excludes>
         <sonar.coverage.exclusions>
@@ -131,14 +131,14 @@
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
 
         <!-- JVM Args for Testing -->
-        <argLine>-Xms1G -Xmx4G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
+        <argLine>-Xms1G -Xmx4G -XX:MaxPermSize=512M </argLine>
         <!-- Kylin versions -->
         <kylin.version>3.0.0-SNAPSHOT</kylin.version>
 
         <zkclient.version>0.8</zkclient.version>
         <grpc.version>1.0.2</grpc.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
-        <parquet.version>kylin-1.9.0-r1</parquet.version>
+        <parquet.version>1.9.0</parquet.version>
         <tomcat.version>7.0.82</tomcat.version>
         <jackson.version>2.6.5</jackson.version>
         <hadoop2.version>2.7.1</hadoop2.version>
@@ -147,6 +147,7 @@
         <mockito.version>2.7.14</mockito.version>
         <log4j.version>1.2.17</log4j.version>
         <slf4j.version>1.7.21</slf4j.version>
+
 
         <!-- Sonar -->
         <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
@@ -160,7 +161,7 @@
         <swagger2markup.version>1.3.3</swagger2markup.version>
 
         <!-- JVM Args for Testing -->
-        <argLine>-Xms1G -Xmx2G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
+        <argLine>-Xms1G -Xmx2G -XX:MaxPermSize=512M </argLine>
         <dropwizard.version>3.1.2</dropwizard.version>
     </properties>
 
@@ -168,7 +169,6 @@
         <module>src/external</module>
         <module>src/core-job</module>
         <module>src/core-storage</module>
-        <module>src/engine-spark</module>
         <module>src/storage-parquet</module>
         <module>src/storage-parquet-format</module>
         <module>src/query</module>
@@ -183,9 +183,10 @@
         <module>src/jdbc</module>
         <module>src/source-hive</module>
         <module>src/server-base</module>
-        <module>src/core-dictionary</module>
         <module>src/server</module>
+        <module>src/core-dictionary</module>
         <module>src/core-event</module>
+        <module>src/spark-project</module>
         <module>src/assembly</module>
 
     </modules>
@@ -263,6 +264,11 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-event</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-sparder</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -367,6 +373,12 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-cube</artifactId>
+                <version>${project.version}</version>
+                <type>test-jar</type>
+            </dependency>
+            <dependency>
+                <groupId>io.kyligence.ke</groupId>
+                <artifactId>kap-sparder</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>
@@ -595,6 +607,7 @@
                 <version>${avatica.version}</version>
             </dependency>
             <!-- Workaround for hive 0.14 avatica dependency -->
+<!--
             <dependency>
                 <groupId>org.apache.calcite</groupId>
                 <artifactId>calcite-avatica</artifactId>
@@ -606,6 +619,7 @@
                     </exclusion>
                 </exclusions>
             </dependency>
+-->
 
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
@@ -625,6 +639,11 @@
                 <artifactId>spark-hive_2.11</artifactId>
                 <version>${spark.version}</version>
                 <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.spark</groupId>
+                <artifactId>spark-unsafe_2.11</artifactId>
+                <version>${spark.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.esotericsoftware</groupId>

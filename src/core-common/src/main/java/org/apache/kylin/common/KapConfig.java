@@ -418,6 +418,14 @@ public class KapConfig {
         return Boolean.valueOf(config.getOptional("kap.query.cognos-parentheses-escape", "false"));
     }
 
+    public int getListenerBusBusyThreshold() {
+        return Integer.valueOf(config.getOptional("kap.query.engine.spark-listenerbus-busy-threshold", "5000"));
+    }
+
+    public int getBlockNumBusyThreshold() {
+        return Integer.valueOf(config.getOptional("kap.query.engine.spark-blocknum-busy-threshold", "5000"));
+    }
+
     /**
      * LDAP filter
      */
@@ -473,7 +481,7 @@ public class KapConfig {
     public String sparderJars() {
         try {
             File storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/lib",
-                    "kylin-storage-parquet-kap-.*.jar");
+                    "newten-job.jar");
             String path1 = "";
             if (storageFile != null) {
                 path1 = storageFile.getCanonicalPath();
@@ -542,5 +550,14 @@ public class KapConfig {
 
     public long getBuildDictionaryThreshold() {
         return Long.parseLong(config.getOptional("kap.engine.spark-build-dictionary-threshold", "15000000"));
+    }
+
+    public boolean needFetchAllSdictToExecutor() {
+        return Boolean.valueOf(config.getOptional("kap.query.engine.fetch-sdict-to-executor", "false"));
+    }
+
+    public String getParquetSeparateOverrideFiles() {
+        return config.getOptional("kylin.storage.columnar.separate-override-files",
+                "core-site.xml,hdfs-site.xml,yarn-site.xml");
     }
 }

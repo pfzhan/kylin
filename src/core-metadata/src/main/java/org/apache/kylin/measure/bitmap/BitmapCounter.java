@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,6 +42,7 @@
 
 package org.apache.kylin.measure.bitmap;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
@@ -94,6 +94,8 @@ public interface BitmapCounter extends Iterable<Integer> {
      * Serialize this counter. The current counter is not modified.
      */
     void write(ByteBuffer out) throws IOException;
+
+    void write(ByteArrayOutputStream baos) throws IOException;
 
     /**
      * Deserialize a counter from its serialized form.

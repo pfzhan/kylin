@@ -67,5 +67,6 @@ public final class SparkEntry {
         }
         AbstractApplication abstractApplication = (AbstractApplication) o;
         abstractApplication.execute(appArgs);
+        System.exit(0);
     }
 }

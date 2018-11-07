@@ -186,6 +186,12 @@ abstract public class KylinConfigBase implements Serializable {
                 result.put(key.substring(prefix.length()), (String) entry.getValue());
             }
         }
+        for (Entry<Object, Object> entry : System.getProperties().entrySet()) {
+            String key = (String) entry.getKey();
+            if (key.startsWith(prefix)) {
+                result.put(key.substring(prefix.length()), (String) entry.getValue());
+            }
+        }
         return result;
     }
 
@@ -1067,6 +1073,13 @@ abstract public class KylinConfigBase implements Serializable {
         return getFileName(kylinHome + File.separator + "lib", JOB_JAR_NAME_PATTERN);
     }
 
+    public String getSparkBuildClassName(){
+        return getOptional("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.builder.NDataflowBuildJob");
+    }
+    public String getSparkMergeClassName(){
+        return getOptional("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.builder.NDataflowMergeJob");
+    }
+
     public void overrideSparkJobJarPath(String path) {
         System.setProperty("kylin.engine.spark.job-jar", path);
     }
@@ -1497,6 +1510,55 @@ abstract public class KylinConfigBase implements Serializable {
         return Boolean.valueOf(getOptional("kylin.htrace.trace-every-query", "false"));
     }
 
+    public String getHdfsWorkingDirectory(String project) {
+        if (isProjectIsolationEnabled() && project != null) {
+            return new Path(getHdfsWorkingDirectory(), project).toString() + "/";
+        } else {
+            return getHdfsWorkingDirectory();
+        }
+    }
+
+    public boolean isProjectIsolationEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.metadata.project-isolation-enable", "true"));
+    }
+
+    private String getReadHdfsWorkingDirectory() {
+        if (StringUtils.isNotEmpty(getParquetReadFileSystem())) {
+            Path workingDir = new Path(getHdfsWorkingDirectory());
+            return new Path(getParquetReadFileSystem(), Path.getPathWithoutSchemeAndAuthority(workingDir)).toString()
+                    + "/";
+        }
+
+        return getHdfsWorkingDirectory();
+    }
+
+    public String getReadHdfsWorkingDirectory(String project) {
+        if (StringUtils.isNotEmpty(getParquetReadFileSystem())) {
+            Path workingDir = new Path(getHdfsWorkingDirectory(project));
+            return new Path(getParquetReadFileSystem(), Path.getPathWithoutSchemeAndAuthority(workingDir)).toString()
+                    + "/";
+        }
+
+        return getHdfsWorkingDirectory(project);
+    }
+
+    public String getJdbcHdfsWorkingDirectory() {
+        if (StringUtils.isNotEmpty(getJdbcFileSystem())) {
+            Path workingDir = new Path(getReadHdfsWorkingDirectory());
+            return new Path(getJdbcFileSystem(), Path.getPathWithoutSchemeAndAuthority(workingDir)).toString() + "/";
+        }
+
+        return getReadHdfsWorkingDirectory();
+    }
+
+    public String getParquetReadFileSystem() {
+        return getOptional("kylin.storage.columnar.file-system", "");
+    }
+
+    public String getJdbcFileSystem() {
+        return getOptional("kylin.storage.columnar.jdbc.file-system", "");
+    }
+
     public String getPropertiesWhiteList() {
         return getOptional("kylin.web.properties.whitelist",
                 "kylin.web.timezone,kylin.query.cache-enabled,kylin.env,kylin.web.hive-limit,kylin.storage.default,kylin.engine.default,kylin.web.link-hadoop,kylin.web.link-diagnostic,"
@@ -1507,6 +1569,11 @@ abstract public class KylinConfigBase implements Serializable {
 
     public boolean getEventAutoApproved() {
         return Boolean.valueOf(getOptional("kylin.event.auto-approved", "true"));
+    }
+
+    // newten new add
+    public boolean isParquetSeparateFsEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.storage.columnar.separate-fs-enable", "false"));
     }
 
     public boolean getEventWaitForJobFinished() {

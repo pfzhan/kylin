@@ -19,4 +19,4 @@ where
 group by
     sn.n_name
 order by
-    revenue desc;
+    revenue desc

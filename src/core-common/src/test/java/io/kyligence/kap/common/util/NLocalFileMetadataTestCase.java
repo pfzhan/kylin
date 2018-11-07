@@ -33,7 +33,11 @@ public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
     public static File tempMetadataDirectory = null;
 
     static {
-        System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
+        if (new File("../../build/conf/kylin-tools-log4j.properties").exists()) {
+            System.setProperty("log4j.configuration", "file:../../build/conf/kylin-tools-log4j.properties");
+        } else {
+            System.setProperty("log4j.configuration", "file:../../../build/conf/kylin-tools-log4j.properties");
+        }
     }
 
     @Override

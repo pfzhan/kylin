@@ -23,4 +23,4 @@ promo as (
 	    and p_type like 'PROMO%'
 )
 
-select 100.00 * promo_saleprice / total_saleprice from promo cross join total;
+select 100.00 * promo_saleprice / total_saleprice from promo cross join total

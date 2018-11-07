@@ -42,6 +42,7 @@ import java.util.Map;
 import static org.apache.kylin.metadata.MetadataConstants.TYPE_GROUP;
 import static org.apache.kylin.metadata.MetadataConstants.TYPE_USER;
 
+@Ignore
 public class RowACLManagerTest extends NLocalFileMetadataTestCase {
     private static String PROJECT = "default";
     private static String PROJECT2 = "default2";

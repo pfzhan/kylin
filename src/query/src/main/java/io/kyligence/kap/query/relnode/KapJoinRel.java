@@ -96,6 +96,13 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
         }
     }
 
+    public boolean isRuntimeJoin() {
+        if (context != null) {
+            context.setReturnTupleInfo(rowType, columnRowType);
+        }
+        return this.context == null || ((KapRel) left).getContext() != ((KapRel) right).getContext();
+    }
+
     @Override
     public void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state) {
         ContextVisitorState leftState = ContextVisitorState.init();
@@ -280,7 +287,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
 
     @Override
     public EnumerableRel implementEnumerable(List<EnumerableRel> inputs) {
-        if (this.context == null || ((KapRel) left).getContext() != ((KapRel) right).getContext()) {
+        if (isRuntimeJoin()) {
             try {
                 return constr.newInstance(getCluster(), getCluster().traitSetOf(EnumerableConvention.INSTANCE), //
                         inputs.get(0), inputs.get(1), condition, leftKeys, rightKeys, variablesSet, joinType);
