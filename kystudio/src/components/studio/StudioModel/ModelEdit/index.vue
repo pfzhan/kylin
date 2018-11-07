@@ -646,12 +646,18 @@ export default class ModelEdit extends Vue {
       })
     }
     if (select.action === 'addmeasure') {
-      console.log(moreInfo, 'addmeasure')
+      this.measureObj = {
+        name: '',
+        expression: 'SUM(column)',
+        parameter_value: [{type: 'column', value: moreInfo.full_colname, table_guid: null}],
+        converted_columns: [],
+        return_type: ''
+      }
       this.measureVisible = true
       this.isEditMeasure = false
     }
     if (select.action === 'editmeasure') {
-      console.log(moreInfo, 'editmeasure')
+      this.measureObj = moreInfo
       this.measureVisible = true
       this.isEditMeasure = true
     }
