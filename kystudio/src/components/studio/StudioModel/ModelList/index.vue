@@ -1,19 +1,5 @@
 <template>
   <div class="mode-list" :class="{'full-cell': showFull}">
-    <div class="notice-box" v-if="!!reachThreshold">
-      <el-alert
-      type="warning"
-      :closable="false"
-      show-icon>
-       <p slot="title"><span v-html="$t('speedTip', {queryCount: modelSpeedEvents ,modelCount: modelSpeedModelsCount})"></span><a @click="applySpeed">{{$t('apply')}}</a></p>
-      </el-alert>
-      <div class="tip-toggle-btnbox">
-        <el-button-group>
-          <el-button icon="el-icon-arrow-left" size="mini"></el-button>
-          <el-button icon="el-icon-arrow-right" size="mini"></el-button>
-        </el-button-group>
-      </div>
-    </div>
     <div class="ky-list-title ksd-mt-20">{{$t('kylinLang.model.modelList')}}</div>
     <div v-if="showSearchResult">
       <div  class="ksd-mb-14 ksd-fright ksd-mt-8">
@@ -140,23 +126,6 @@
        </div>
     </div>
 
-    <el-dialog width="440px" :title="$t('kylinLang.common.notice')" :visible.sync="reachThreshold" :show-close="false">
-      <el-row>
-        <el-col :span="14">
-          {{$t('hello', {user: currentUser.username})}}<br/>
-          <p style="text-indent:25px; line-height: 26px;" v-html="$t('speedTip', {queryCount: modelSpeedEvents ,modelCount: modelSpeedModelsCount})"></p>
-        </el-col>
-        <el-col :span="10" class="animateImg">
-          <img class="notice_img notice_img1" :class="{'rotate1': rotateVisibel}" src="../../../../assets/img/noticeImg1.png" height="150" width="150">
-          <img class="notice_img notice_img2" :class="{'rotate2': rotateVisibel}" src="../../../../assets/img/noticeImg2.png" height="150" width="150">
-          <img class="notice_img" src="../../../../assets/img/noticeImg3.png" height="150" width="150">
-        </el-col>
-      </el-row>
-      <div slot="footer" class="dialog-footer">
-        <el-button size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
-        <el-button size="medium" type="primary" plain @click="applySpeed" :loading="btnLoading">{{$t('apply')}}</el-button>
-      </div>
-    </el-dialog>
     <!-- 模型检查 -->
     <ModelCheckDataModal/>
     <!-- 模型构建 -->
@@ -173,7 +142,6 @@
 </template>
 <script>
 import Vue from 'vue'
-import $ from 'jquery'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import { permissions, NamedRegex } from '../../../../config'
@@ -197,31 +165,16 @@ import '../../../../util/fly.js'
       'currentSelectedProject',
       'modelsPagerRenderData',
       'briefMenuGet'
-    ]),
-    modelSpeedEvents () {
-      return this.$store.state.model.modelSpeedEvents
-    },
-    reachThreshold () {
-      return this.$store.state.model.reachThreshold
-    },
-    modelSpeedModelsCount () {
-      return this.$store.state.model.modelSpeedModelsCount
-    },
-    currentUser () {
-      return this.$store.state.user.currentUser
-    }
+    ])
   },
   methods: {
     ...mapActions({
       loadModels: 'LOAD_MODEL_LIST',
       delModel: 'DELETE_MODEL',
       checkModelName: 'CHECK_MODELNAME',
-      applySpeedInfo: 'APPLY_SPEED_INFO',
       purgeModel: 'PURGE_MODEL',
       disableModel: 'DISABLE_MODEL',
       enableModel: 'ENABLE_MODEL',
-      getSpeedInfo: 'GET_SPEED_INFO',
-      ignoreSpeedInfo: 'IGNORE_SPEED_INFO',
       updataModel: 'UPDATE_MODEL'
     }),
     ...mapActions('ModelRenameModal', {
@@ -259,14 +212,10 @@ import '../../../../util/fly.js'
 export default class ModelList extends Vue {
   mockSQL = mockSQL
   checkOptions = []
-  applyDialogVisible = false
   createModelVisible = false
   cloneFormVisible = false
   modelCheckModeVisible = false
   dataRangeVal = []
-  btnLoading = false
-  btnLoadingCancel = false
-  rotateVisibel = false
   createModelFormRule = {
     modelName: [
       {required: true, message: this.$t('inputModelName'), trigger: 'blur'},
@@ -290,74 +239,6 @@ export default class ModelList extends Vue {
   showSearchResult = false
   searchLoading = false
   modelArray = []
-  loadSpeedInfo (loadingname) {
-    var loadingName = loadingname || 'btnLoading'
-    this.getSpeedInfo(this.currentSelectedProject).then(() => {
-      this[loadingName] = false
-    }, (res) => {
-      this[loadingName] = false
-      handleError(res)
-    })
-  }
-  applySpeed (event) {
-    this.btnLoading = true
-    this.applySpeedInfo({size: this.modelSpeedEvents, project: this.currentSelectedProject}).then(() => {
-      this.flyEvent(event)
-      this.loadSpeedInfo()
-    }, (res) => {
-      this.btnLoading = false
-      handleError(res)
-    })
-    this.applyDialogVisible = false
-  }
-  // 忽略此次加速
-  ignoreSpeed () {
-    this.btnLoadingCancel = true
-    this.ignoreSpeedInfo(this.currentSelectedProject).then(() => {
-      this.btnLoadingCancel = false
-      this.loadSpeedInfo('btnLoadingCancel')
-    }, (res) => {
-      this.btnLoadingCancel = false
-      handleError(res)
-    })
-  }
-  flyEvent (event) {
-    var targetArea = $('#monitor')
-    var targetDom = targetArea.find('.menu-icon')
-    var offset = targetDom.offset()
-    var flyer = $('<span class="fly-box"></span>')
-    let leftOffset = 64
-    if (this.$lang === 'en') {
-      leftOffset = 74
-    }
-    if (this.briefMenuGet) {
-      leftOffset = 20
-    }
-    flyer.fly({
-      start: {
-        left: event.pageX,
-        top: event.pageY
-      },
-      end: {
-        left: offset.left + leftOffset,
-        top: offset.top,
-        width: 4,
-        height: 4
-      },
-      onEnd: function () {
-        targetDom.addClass('rotateY')
-        setTimeout(() => {
-          targetDom.fadeTo('slow', 0.5, function () {
-            targetDom.removeClass('rotateY')
-            targetDom.fadeTo('fast', 1)
-          })
-          flyer.fadeOut(1500, () => {
-            flyer.remove()
-          })
-        }, 3000)
-      }
-    })
-  }
   checkName (rule, value, callback) {
     if (!NamedRegex.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
@@ -456,14 +337,6 @@ export default class ModelList extends Vue {
         tabTypes: 'first'
       })
     })
-  }
-  @Watch('reachThreshold', {immediate: true})
-  onReachThreshold (val) {
-    if (val) {
-      setTimeout(() => {
-        this.rotateVisibel = true
-      })
-    }
   }
   onSortChange ({ column, prop, order }) {
     if (prop === 'gmtTime') {
@@ -621,26 +494,6 @@ export default class ModelList extends Vue {
   }
   .el-tabs__content {
     overflow: initial;
-  }
-  .animateImg {
-    position: relative;
-    height: 150px;
-    left: 12px;
-    .notice_img {
-      position: absolute;
-      &.rotate1 {
-        -webkit-transform:rotate(360deg);
-        transform:rotate(360deg);
-        -webkit-transition:-webkit-transform 1s ease-in-out;
-        transition:transform 1s ease-in-out;
-      }
-      &.rotate2 {
-        -webkit-transform:rotate(-360deg);
-        transform:rotate(-360deg);
-        -webkit-transition:-webkit-transform 1s ease-in-out;
-        transition:transform 1s ease-in-out;
-      }
-    }
   }
 }
 </style>

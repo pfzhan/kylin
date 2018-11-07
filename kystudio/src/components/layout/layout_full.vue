@@ -38,31 +38,151 @@
     <el-dialog class="login-kybotAccount" :visible.sync="$store.state.kybot.loginKyaccountDialog" :title="$t('kylinLang.login.signIn')" @close="resetLoginKybotForm" :close-on-click-modal="false">
       <login_kybot ref="loginKybotForm" @closeLoginForm="closeLoginForm" @closeLoginOpenKybot="closeLoginForm"></login_kybot>
     </el-dialog>
+    <!-- 全局apply favorite query -->
+    <el-dialog width="440px" :title="$t('kylinLang.common.notice')" class="speed_dialog" :visible.sync="reachThreshold" :show-close="false">
+      <el-row>
+        <el-col :span="14">
+          {{$t('hello', {user: currentUser.username})}}<br/>
+          <p style="text-indent:25px; line-height: 26px;" v-html="$t('speedTip', {queryCount: modelSpeedEvents ,modelCount: modelSpeedModelsCount})"></p>
+        </el-col>
+        <el-col :span="10" class="animateImg">
+          <img class="notice_img notice_img1" :class="{'rotate1': rotateVisibel}" src="../../assets/img/noticeImg1.png" height="150" width="150">
+          <img class="notice_img notice_img2" :class="{'rotate2': rotateVisibel}" src="../../assets/img/noticeImg2.png" height="150" width="150">
+          <img class="notice_img" src="../../assets/img/noticeImg3.png" height="150" width="150">
+        </el-col>
+      </el-row>
+      <div slot="footer" class="dialog-footer">
+        <el-button size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
+        <el-button size="medium" type="primary" plain @click="applySpeed" :loading="btnLoading">{{$t('apply')}}</el-button>
+      </div>
+    </el-dialog>
     <Modal />
    </div>
 </template>
 
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 import { mapActions } from 'vuex'
+import $ from 'jquery'
 import loginKybot from '../common/login_kybot.vue'
 import Modal from '../common/Modal/Modal'
 import { handleSuccess, handleError } from '../../util/business'
 @Component({
   methods: {
     ...mapActions({
-      getKybotAccount: 'GET_CUR_ACCOUNTNAME'
+      getKybotAccount: 'GET_CUR_ACCOUNTNAME',
+      applySpeedInfo: 'APPLY_SPEED_INFO',
+      ignoreSpeedInfo: 'IGNORE_SPEED_INFO',
+      getSpeedInfo: 'GET_SPEED_INFO'
     })
+  },
+  computed: {
+    modelSpeedEvents () {
+      return this.$store.state.model.modelSpeedEvents
+    },
+    reachThreshold () {
+      return this.$store.state.model.reachThreshold
+    },
+    modelSpeedModelsCount () {
+      return this.$store.state.model.modelSpeedModelsCount
+    },
+    currentUser () {
+      return this.$store.state.user.currentUser
+    }
   },
   components: {
     'login_kybot': loginKybot,
     Modal
+  },
+  locales: {
+    'en': {speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> models! Do you want to apply it?', ignore: 'Ignore', apply: 'Apply', hello: 'Hi {user},'},
+    'zh-cn': {speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的模型有 <span class="ky-highlight-text">{modelCount}</span> 个！同意此次加速吗？', ignore: '忽略建议', apply: '同意', hello: '{user} 你好，'}
   }
 })
 export default class LayoutFull extends Vue {
   showDetail = false
   showCopyStatus = false
+  btnLoading = false
+  btnLoadingCancel = false
+  rotateVisibel = false
+
+  @Watch('reachThreshold', {immediate: true})
+  onReachThreshold (val) {
+    if (val) {
+      setTimeout(() => {
+        this.rotateVisibel = true
+      })
+    }
+  }
+
+  loadSpeedInfo (loadingname) {
+    var loadingName = loadingname || 'btnLoading'
+    this.getSpeedInfo(this.currentSelectedProject).then(() => {
+      this[loadingName] = false
+    }, (res) => {
+      this[loadingName] = false
+      handleError(res)
+    })
+  }
+  applySpeed (event) {
+    this.btnLoading = true
+    this.applySpeedInfo({size: this.modelSpeedEvents, project: this.currentSelectedProject}).then(() => {
+      this.flyEvent(event)
+      this.loadSpeedInfo()
+    }, (res) => {
+      this.btnLoading = false
+      handleError(res)
+    })
+  }
+
+  ignoreSpeed () {
+    this.btnLoadingCancel = true
+    this.ignoreSpeedInfo(this.currentSelectedProject).then(() => {
+      this.btnLoadingCancel = false
+      this.loadSpeedInfo('btnLoadingCancel')
+    }, (res) => {
+      this.btnLoadingCancel = false
+      handleError(res)
+    })
+  }
+  flyEvent (event) {
+    var targetArea = $('#monitor')
+    var targetDom = targetArea.find('.menu-icon')
+    var offset = targetDom.offset()
+    var flyer = $('<span class="fly-box"></span>')
+    let leftOffset = 64
+    if (this.$lang === 'en') {
+      leftOffset = 74
+    }
+    if (this.briefMenuGet) {
+      leftOffset = 20
+    }
+    flyer.fly({
+      start: {
+        left: event.pageX,
+        top: event.pageY
+      },
+      end: {
+        left: offset.left + leftOffset,
+        top: offset.top,
+        width: 4,
+        height: 4
+      },
+      onEnd: function () {
+        targetDom.addClass('rotateY')
+        setTimeout(() => {
+          targetDom.fadeTo('slow', 0.5, function () {
+            targetDom.removeClass('rotateY')
+            targetDom.fadeTo('fast', 1)
+          })
+          flyer.fadeOut(1500, () => {
+            flyer.remove()
+          })
+        }, 3000)
+      }
+    })
+  }
 
   toggleDetail () {
     this.showDetail = !this.showDetail
@@ -134,6 +254,28 @@ body{
   .el-textarea__inner {
     background-color: @table-stripe-color;
     font-size: 12px;
+  }
+}
+.speed_dialog {
+  .animateImg {
+    position: relative;
+    height: 150px;
+    left: 12px;
+    .notice_img {
+      position: absolute;
+      &.rotate1 {
+        -webkit-transform:rotate(360deg);
+        transform:rotate(360deg);
+        -webkit-transition:-webkit-transform 1s ease-in-out;
+        transition:transform 1s ease-in-out;
+      }
+      &.rotate2 {
+        -webkit-transform:rotate(-360deg);
+        transform:rotate(-360deg);
+        -webkit-transition:-webkit-transform 1s ease-in-out;
+        transition:transform 1s ease-in-out;
+      }
+    }
   }
 }
 </style>
