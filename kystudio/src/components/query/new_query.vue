@@ -57,32 +57,37 @@
               <span>{{$t('kylinLang.common.noData')}}</span>
             </div>
             <div class="saved_query_content" v-else>
-              <el-form v-for="(savequery, index) in savedList" :key="savequery.name" class="narrowForm">
-                <el-form-item :label="$t('kylinLang.query.name')+' :'" class="ksd-mb-2 narrowFormItem" >
-                  <span>{{savequery.name}}</span>
-                </el-form-item>
-                <!-- <el-form-item :label="$t('kylinLang.query.desc')+' :'" class="ksd-mb-2 narrowFormItem"  style="margin-left:0;">
-                  <span>{{savequery.project}}</span>
-                </el-form-item> -->
-                <el-form-item :label="$t('kylinLang.query.desc')+' :'" class="ksd-mb-2 narrowFormItem" >
-                  <span>{{savequery.description}}</span>
-                </el-form-item>
-                <el-form-item :label="$t('kylinLang.query.querySql')+' :'" prop="sql" class="ksd-mb-2 narrowFormItem">
-                  <el-button plain size="mini" @click="toggleDetail(index)">
-                    {{$t('kylinLang.common.seeDetail')}}
-                    <i class="el-icon-arrow-down" v-show="!showDetail || (showDetail&&showDetailInd!==index)"></i>
-                    <i class="el-icon-arrow-up" v-show="showDetail&&showDetailInd==index"></i>
-                  </el-button>
-                  <kap_editor width="99%" height="80" lang="sql" theme="chrome" v-model="savequery.sql" dragbar="#393e53" ref="saveQueries" v-show="showDetail&&showDetailInd==index" class="ksd-mt-6">
-                  </kap_editor>
-                </el-form-item>
-                <div class="btn-group">
-                  <kap-icon-button size="small" @click.native="removeQuery(savequery.id)">{{$t('kylinLang.common.delete')}}</kap-icon-button>
-                  <kap-icon-button type="primary" plain size="small" @click.native="resubmit(savequery.sql)">{{$t('kylinLang.common.submit')}}</kap-icon-button>
-                </div>
-              </el-form>
+              <div class="form_block" v-for="(savequery, index) in savedList" :key="savequery.name" >
+                <el-checkbox v-model="checkedQueryList" :label="index" class="query_check">
+                  <el-form class="narrowForm">
+                    <el-form-item :label="$t('kylinLang.query.name')+' :'" class="ksd-mb-2 narrowFormItem" >
+                      <span>{{savequery.name}}</span>
+                    </el-form-item>
+                    <el-form-item :label="$t('kylinLang.query.desc')+' :'" class="ksd-mb-2 narrowFormItem" >
+                      <span>{{savequery.description}}</span>
+                    </el-form-item>
+                    <el-form-item :label="$t('kylinLang.query.querySql')+' :'" prop="sql" class="ksd-mb-2 narrowFormItem">
+                      <el-button plain size="mini" @click="toggleDetail(index)">
+                        {{$t('kylinLang.common.seeDetail')}}
+                        <i class="el-icon-arrow-down" v-show="!showDetail || (showDetail&&showDetailInd!==index)"></i>
+                        <i class="el-icon-arrow-up" v-show="showDetail&&showDetailInd==index"></i>
+                      </el-button>
+                      <kap_editor width="99%" height="80" lang="sql" theme="chrome" v-model="savequery.sql" dragbar="#393e53" ref="saveQueries" v-show="showDetail&&showDetailInd==index" class="ksd-mt-6">
+                      </kap_editor>
+                    </el-form-item>
+                    <div class="btn-group">
+                      <el-button size="small" type="info" class="remove_query_btn" text @click="removeQuery(savequery.id)">{{$t('kylinLang.common.delete')}}</el-button>
+                      <!-- <kap-icon-button type="primary" plain size="small" @click.native="resubmit(savequery.sql)">{{$t('kylinLang.common.submit')}}</kap-icon-button> -->
+                    </div>
+                  </el-form>
+                </el-checkbox>
+              </div>
               <el-button plain size="small" class="reload-more-btn" @click="pageCurrentChange" v-if="savedList.length < savedSize">{{$t('more')}}</el-button>
             </div>
+            <span slot="footer" class="dialog-footer">
+              <el-button @click="cancelResubmit" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+              <el-button type="primary" plain @click="resubmit" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+            </span>
           </el-dialog>
         </div>
       </div>
@@ -145,6 +150,7 @@ export default class NewQuery extends Vue {
   datasource = []
   savedList = []
   savedSize = 0
+  checkedQueryList = []
 
   handleAutoComplete (data) {
     this.setCompleteData([...data, ...insightKeyword])
@@ -246,18 +252,23 @@ export default class NewQuery extends Vue {
       })
     })
   }
-  resubmit (sql) {
-    var queryObj = {
-      acceptPartial: true,
-      limit: this.listRows,
-      offset: 0,
-      project: this.currentSelectedProject,
-      sql: sql
+  cancelResubmit () {
+    this.savedQueryListVisible = false
+  }
+  resubmit () {
+    if (this.checkedQueryList.length > 0) {
+      this.checkedQueryList.forEach((index) => {
+        var queryObj = {
+          acceptPartial: true,
+          limit: this.listRows,
+          offset: 0,
+          project: this.currentSelectedProject,
+          sql: this.savedList[index].sql
+        }
+        this.addTab('query', 'querypanel', queryObj)
+      })
     }
-    this.addTab('query', 'querypanel', queryObj)
-    this.$nextTick(() => {
-      document.getElementById('scrollBox').scrollTop = document.getElementById('scrollBox').scrollHeight + 1200
-    })
+    this.savedQueryListVisible = false
   }
   changeTab (index, data, icon, componentName) {
     let tabs = this.editableTabs
@@ -281,6 +292,7 @@ export default class NewQuery extends Vue {
   }
   openSaveQueryListDialog () {
     this.savedQueryListVisible = true
+    this.checkedQueryList = []
     this.savedList = []
     this.loadSavedQuery()
   }
@@ -360,24 +372,38 @@ export default class NewQuery extends Vue {
       text-align: center;
       margin: 80px 0;
     }
-    .narrowForm {
-      border: 1px solid @line-border-color;
-      padding: 15px;
-      margin-bottom: 10px;
-      position: relative;
-      background-color: @aceditor-bg-color;
-      .narrowFormItem {
-        .el-form-item__content, .el-form-item__label {
-          line-height: 22px;
-        }
-        .el-button--mini {
-          padding: 5px 8px;
-        }
+    .form_block {
+      .query_check {
+        display: flex;
+        flex-grow: 1;
+        align-items: flex-start;
       }
-      .btn-group {
-        position: absolute;
-        top: 15px;
-        right: 20px;
+      .narrowForm {
+        border: 1px solid @line-border-color;
+        padding: 15px;
+        width: 568px;
+        margin-bottom: 10px;
+        position: relative;
+        background-color: @aceditor-bg-color;
+        .narrowFormItem {
+          .el-form-item__content, .el-form-item__label {
+            line-height: 22px;
+          }
+          .el-button--mini {
+            padding: 5px 8px;
+          }
+        }
+        .btn-group {
+          position: absolute;
+          top: 65px;
+          right: 20px;
+          .remove_query_btn {
+            color: @text-normal-color;
+            &:hover {
+              color: @base-color;
+            }
+          }
+        }
       }
     }
     .operatorBox{
