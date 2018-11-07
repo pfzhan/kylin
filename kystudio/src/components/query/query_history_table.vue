@@ -20,14 +20,14 @@
           </div>
           <div class="detail-content">
             <el-row :gutter="20">
-              <el-col :span="14" style="position:relative;">
+              <el-col :span="14">
                 <kap_editor height="220" width="90%" lang="sql" theme="chrome" v-model="props.row.sql_text" dragbar="#393e53">
                 </kap_editor>
                 <div class="copy-btn ksd-fright">
                   <transition name="fade">
                     <div class="copyStatusMsg" v-show="showCopyStatus" ><i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span></div>
                   </transition>
-                  <el-button type="primary" text v-clipboard:copy="props.row.sql_text" v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
+                  <el-button type="primary" plain size="mini" v-clipboard:copy="props.row.sql_text" v-clipboard:success="onCopy" v-clipboard:error="onError">{{$t('kylinLang.common.copy')}}</el-button>
                 </div>
               </el-col>
               <el-col :span="10">
