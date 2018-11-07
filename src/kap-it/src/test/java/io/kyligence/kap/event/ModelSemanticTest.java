@@ -153,6 +153,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         request.setName(MODEL_NAME);
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        request.setComputedColumnDescs(model.getComputedColumnDescs());
         request.setAllNamedColumns(model.getAllNamedColumns().stream()
                 .filter(c -> c.status == NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList()));
         request.setJoinTables(

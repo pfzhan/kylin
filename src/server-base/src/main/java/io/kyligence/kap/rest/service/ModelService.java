@@ -31,6 +31,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -76,6 +77,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import com.google.common.primitives.Ints;
 
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
@@ -150,18 +152,18 @@ public class ModelService extends BasicService {
             String owner, String status, String sortBy, boolean reverse) {
 
         List<NDataModel> models = getDataModelManager(projectName).getDataModels();
-        List<NDataModelResponse> filterModels = new ArrayList<NDataModelResponse>();
+        List<NDataModelResponse> filterModels = new ArrayList<>();
         for (NDataModel modelDesc : models) {
             boolean isModelNameMatch = StringUtils.isEmpty(modelName)
-                    || (exactMatch && modelDesc.getAlias().toLowerCase().equals(modelName.toLowerCase()))
+                    || (exactMatch && modelDesc.getAlias().equalsIgnoreCase(modelName))
                     || (!exactMatch && modelDesc.getAlias().toLowerCase().contains(modelName.toLowerCase()));
             boolean isModelOwnerMatch = StringUtils.isEmpty(owner)
-                    || (exactMatch && modelDesc.getOwner().toLowerCase().equals(owner.toLowerCase()))
+                    || (exactMatch && modelDesc.getOwner().equalsIgnoreCase(owner))
                     || (!exactMatch && modelDesc.getOwner().toLowerCase().contains(owner.toLowerCase()));
             if (isModelNameMatch && isModelOwnerMatch) {
                 RealizationStatusEnum modelStatus = getModelStatus(modelDesc.getName(), projectName);
                 boolean isModelStatusMatch = StringUtils.isEmpty(status)
-                        || (modelStatus.name().toLowerCase().equals(status.toLowerCase()));
+                        || (modelStatus.name().equalsIgnoreCase(status));
 
                 if (isModelStatusMatch) {
                     NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
@@ -225,6 +227,7 @@ public class ModelService extends BasicService {
             simplifiedColumnResponse.setName(columnDesc.getName());
             simplifiedColumnResponse.setComment(columnDesc.getComment());
             simplifiedColumnResponse.setDataType(columnDesc.getDatatype());
+            simplifiedColumnResponse.setComputedColumn(columnDesc.isComputedColumn());
             //get column cardinality
             List<TableExtDesc.ColumnStats> columnStats = tableExtDesc.getColumnStats();
             for (TableExtDesc.ColumnStats columnStat : columnStats) {
@@ -689,58 +692,51 @@ public class ModelService extends BasicService {
     }
 
     public NDataModel convertToDataModel(ModelRequest modelRequest) throws IOException {
-        String project = modelRequest.getProject();
         List<SimplifiedMeasure> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
         NDataModel dataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelRequest), NDataModel.class);
         dataModel.setUuid(UUID.randomUUID().toString());
         dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
-        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                project);
-
-        int id = 0;
-        List<NDataModel.NamedColumn> columns = Lists.newArrayList();
-        Map<String, JoinTableDesc> allTables = Maps.newHashMap();
-        allTables.put(modelRequest.getRootFactTableName(), null);
-        for (JoinTableDesc table : modelRequest.getJoinTables()) {
-            allTables.put(table.getTable(), table);
-        }
-        Map<String, NDataModel.NamedColumn> nameMap = Maps.newHashMap();
-        for (NDataModel.NamedColumn namedColumn : dataModel.getAllNamedColumns()) {
-            nameMap.put(namedColumn.aliasDotColumn, namedColumn);
-        }
-        for (Map.Entry<String, JoinTableDesc> entry : allTables.entrySet()) {
-            val tableDesc = tableManager.getTableDesc(entry.getKey());
-            boolean isFact = entry.getValue() == null || entry.getValue().getKind() == NDataModel.TableKind.FACT;
-            val alias = entry.getValue() == null ? tableDesc.getName() : entry.getValue().getAlias();
-            val tableRef = new TableRef(dataModel, alias, tableDesc, !isFact);
-            for (TblColRef column : tableRef.getColumns()) {
-                val namedColumn = new NDataModel.NamedColumn();
-                namedColumn.id = id++;
-                namedColumn.name = column.getName();
-                namedColumn.aliasDotColumn = alias + "." + column.getName();
-                namedColumn.status = NDataModel.ColumnStatus.EXIST;
-                val dimension = nameMap.get(namedColumn.aliasDotColumn);
-                if (dimension != null) {
-                    namedColumn.status = NDataModel.ColumnStatus.DIMENSION;
-                    namedColumn.name = dimension.name;
-                }
-                columns.add(namedColumn);
-            }
-        }
-        for (ComputedColumnDesc computedColumnDesc : dataModel.getComputedColumnDescs()) {
-            NamedColumn namedColumn = new NDataModel.NamedColumn();
-            namedColumn.id = id++;
-            namedColumn.name = computedColumnDesc.getColumnName();
-            namedColumn.aliasDotColumn = computedColumnDesc.getTableAlias() + "." + namedColumn.name;
-            namedColumn.status = NDataModel.ColumnStatus.EXIST;
-            if (dataModel.getAllNamedColumns().stream().anyMatch(c -> c.aliasDotColumn.equals(namedColumn.aliasDotColumn))) {
-                // cc already used as dimension
-                continue;
-            }
-            columns.add(namedColumn);
-        }
-        dataModel.setAllNamedColumns(columns);
+        dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel));
         return dataModel;
+    }
+
+    private List<NDataModel.Measure> convertMeasure(List<SimplifiedMeasure> simplifiedMeasures) {
+        List<NDataModel.Measure> measures = new ArrayList<>();
+        boolean hasCount = false;
+        int id = NDataModel.MEASURE_ID_BASE;
+        if (simplifiedMeasures == null) {
+            simplifiedMeasures = Lists.newArrayList();
+        }
+        for (SimplifiedMeasure simplifiedMeasure : simplifiedMeasures) {
+            NDataModel.Measure measure = new NDataModel.Measure();
+            measure.id = simplifiedMeasure.getId();
+            measure.setName(simplifiedMeasure.getName());
+            FunctionDesc functionDesc = new FunctionDesc();
+            functionDesc.setReturnType(simplifiedMeasure.getReturnType());
+            functionDesc.setExpression(simplifiedMeasure.getExpression());
+            List<ParameterResponse> parameterResponseList = simplifiedMeasure.getParameterValue();
+            functionDesc.setParameter(enrichParameterDesc(parameterResponseList, null));
+            // TODO just check count(*), update this logic when count(col) is implemented
+            if (functionDesc.isCount()) {
+                hasCount = true;
+            }
+            measure.setFunction(functionDesc);
+            measure = CubeUtils.newMeasure(functionDesc, simplifiedMeasure.getName(), id++);
+            measures.add(measure);
+
+        }
+        if (!hasCount) {
+            FunctionDesc functionDesc = new FunctionDesc();
+            ParameterDesc parameterDesc = new ParameterDesc();
+            parameterDesc.setType("constant");
+            parameterDesc.setValue("1");
+            functionDesc.setParameter(parameterDesc);
+            functionDesc.setExpression("COUNT");
+            functionDesc.setReturnType("bigint");
+            NDataModel.Measure measure = CubeUtils.newMeasure(functionDesc, "COUNT_ALL", id);
+            measures.add(measure);
+        }
+        return measures;
     }
 
     private static ParameterDesc enrichParameterDesc(List<ParameterResponse> parameterResponseList,
@@ -758,6 +754,57 @@ public class ModelService extends BasicService {
             return parameterDesc;
         }
 
+    }
+    
+    private List<NDataModel.NamedColumn> convertNamedColumns(String project, NDataModel dataModel) {
+        NTableMetadataManager tableManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                project);
+        Map<String, JoinTableDesc> allTables = Maps.newHashMap();
+        allTables.put(dataModel.getRootFactTableName(), null);
+        for (JoinTableDesc table : dataModel.getJoinTables()) {
+            allTables.put(table.getTable(), table);
+        }
+
+        List<NDataModel.NamedColumn> simplifiedColumns = dataModel.getAllNamedColumns();
+        Map<String, NDataModel.NamedColumn> dimensionNameMap = Maps.newHashMap();
+        for (NDataModel.NamedColumn namedColumn : simplifiedColumns) {
+            dimensionNameMap.put(namedColumn.aliasDotColumn, namedColumn);
+        }
+
+        int id = 0;
+        List<NDataModel.NamedColumn> columns = Lists.newArrayList();
+        for (Map.Entry<String, JoinTableDesc> entry : allTables.entrySet()) {
+            val tableDesc = tableManager.getTableDesc(entry.getKey());
+            boolean isFact = entry.getValue() == null || entry.getValue().getKind() == NDataModel.TableKind.FACT;
+            val alias = entry.getValue() == null ? tableDesc.getName() : entry.getValue().getAlias();
+            val tableRef = new TableRef(dataModel, alias, tableDesc, !isFact);
+            for (TblColRef column : tableRef.getColumns()) {
+                val namedColumn = new NDataModel.NamedColumn();
+                namedColumn.id = id++;
+                namedColumn.name = column.getName();
+                namedColumn.aliasDotColumn = alias + "." + column.getName();
+                namedColumn.status = NDataModel.ColumnStatus.EXIST;
+                val dimension = dimensionNameMap.get(namedColumn.aliasDotColumn);
+                if (dimension != null) {
+                    namedColumn.status = NDataModel.ColumnStatus.DIMENSION;
+                    namedColumn.name = dimension.name;
+                }
+                columns.add(namedColumn);
+            }
+        }
+        for (ComputedColumnDesc computedColumnDesc : dataModel.getComputedColumnDescs()) {
+            NamedColumn namedColumn = new NDataModel.NamedColumn();
+            namedColumn.id = id++;
+            namedColumn.name = computedColumnDesc.getColumnName();
+            namedColumn.aliasDotColumn = computedColumnDesc.getFullName();
+            namedColumn.status = NDataModel.ColumnStatus.EXIST;
+            if (dataModel.getAllNamedColumns().stream().anyMatch(c -> c.aliasDotColumn.equals(namedColumn.aliasDotColumn))) {
+                // cc already used as named column
+                continue;
+            }
+            columns.add(namedColumn);
+        }
+        return columns;
     }
 
     public void buildSegmentsManually(String project, String model, String start, String end)
@@ -1051,7 +1098,7 @@ public class ModelService extends BasicService {
         val df = dataflowManager.getDataflowByModelName(request.getName());
         Preconditions.checkState(!df.isReconstructing(), "model " + request.getName() + " is reconstructing ");
         val copyModel = modelManager.copyForWrite(originModel);
-        BeanUtils.copyProperties(request, copyModel, "allNamedColumns");
+        BeanUtils.copyProperties(request, copyModel, "allNamedColumns", "computedColumnDescs");
         updateModelColumns(copyModel, request);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
@@ -1084,16 +1131,15 @@ public class ModelService extends BasicService {
     }
 
     private void updateModelColumns(NDataModel targetModel, ModelSemanticUpdateRequest request) throws IOException {
+        // Update measures
         val newMeasures = Lists.<NDataModel.Measure> newArrayList();
-        var maxMeasureId = targetModel.getEffectiveMeasureMap().keySet().stream().mapToInt(i -> i).max()
+        var maxMeasureId = targetModel.getAllMeasures().stream().mapToInt(NDataModel.Measure::getId).max()
                 .orElse(NDataModel.MEASURE_ID_BASE - 1) + 1;
         for (SimplifiedMeasure simplifiedMeasure : request.getSimplifiedMeasures()) {
             val measure = simplifiedMeasure.toMeasure();
             measure.getFunction().init(targetModel);
-            val matched = targetModel.getEffectiveMeasureMap().values().stream()
-                    .filter(m -> m.getName().equals(measure.getName()) && m.getFunction().equals(measure.getFunction()))
-                    .count();
-            if (matched == 0) {
+            if (targetModel.getAllMeasures().stream().noneMatch(
+                    m -> m.getName().equals(measure.getName()) && m.getFunction().equals(measure.getFunction()))) {
                 val measureCopy = JsonUtil.deepCopy(measure, NDataModel.Measure.class);
                 measureCopy.id = maxMeasureId;
                 newMeasures.add(measureCopy);
@@ -1102,79 +1148,64 @@ public class ModelService extends BasicService {
         }
         targetModel.getAllMeasures().addAll(newMeasures);
         for (NDataModel.Measure measure : targetModel.getAllMeasures()) {
-            val matched = request.getSimplifiedMeasures().stream().filter(simplifiedMeasure -> {
-                val m = simplifiedMeasure.toMeasure();
-                return m.getName().equals(measure.getName()) && m.getFunction().equals(measure.getFunction());
-            }).count();
-            measure.tomb = matched == 0 || measure.tomb;
+            boolean unused = request.getSimplifiedMeasures().stream().map(SimplifiedMeasure::toMeasure)
+                    .noneMatch(m -> m.getName().equals(measure.getName()) && m.getFunction().equals(measure.getFunction()));
+            measure.tomb = unused || measure.tomb;
         }
 
+        // Update computed columns
+        int maxColumnId = targetModel.getAllNamedColumns().stream().mapToInt(NDataModel.NamedColumn::getId).max()
+                .orElse(-1) + 1;
+        Map<String, NamedColumn> currentNamedColumns = targetModel.getAllNamedColumns().stream()
+                .filter(NDataModel.NamedColumn::isExist).collect(Collectors.toMap(c -> c.aliasDotColumn, c -> c));
+        Set<String> newComputedColumns = Sets.newHashSet();
+        for (ComputedColumnDesc computedColumnDesc : request.getComputedColumnDescs()) {
+            newComputedColumns.add(computedColumnDesc.getFullName());
+            if (currentNamedColumns.containsKey(computedColumnDesc.getFullName())) {
+                continue;
+            }
+            // create named column for new CC
+            newComputedColumns.add(computedColumnDesc.getFullName());
+            NamedColumn namedColumn = new NDataModel.NamedColumn();
+            namedColumn.id = maxColumnId++;
+            namedColumn.name = computedColumnDesc.getColumnName();
+            namedColumn.aliasDotColumn = computedColumnDesc.getFullName();
+            namedColumn.status = NDataModel.ColumnStatus.EXIST;
+            targetModel.getAllNamedColumns().add(namedColumn);
+        }
+
+        // Update named column
+        request.getDimensions().stream();
         for (NDataModel.NamedColumn newColumn : request.getDimensions()) {
             // change name does not matter
-            val matched = targetModel.getAllNamedColumns().stream()
-                    .filter(col -> col.isDimension() && col.aliasDotColumn.equals(newColumn.aliasDotColumn))
-                    .collect(Collectors.toList());
+            val matched = targetModel.getAllNamedColumns().stream().filter(NamedColumn::isDimension)
+                    .filter(col -> col.aliasDotColumn.equals(newColumn.aliasDotColumn)).collect(Collectors.toList());
             for (NDataModel.NamedColumn column : matched) {
                 column.name = newColumn.name;
             }
             if (matched.size() == 0) {
-                targetModel.getAllNamedColumns().stream()
-                        .filter(col -> col.isExist() && col.aliasDotColumn.equals(newColumn.aliasDotColumn))
-                        .forEach(col -> {
+                targetModel.getAllNamedColumns().stream().filter(col -> col.isExist())
+                        .filter(col -> col.aliasDotColumn.equals(newColumn.aliasDotColumn)).forEach(col -> {
                             col.status = NDataModel.ColumnStatus.DIMENSION;
                             col.name = newColumn.name;
                         });
             }
         }
-        for (NDataModel.NamedColumn column : targetModel.getAllNamedColumns()) {
-            if (!column.isDimension()) {
-                continue;
-            }
-            val matched = request.getDimensions().stream()
-                    .filter(col -> col.aliasDotColumn.equals(column.aliasDotColumn)).count();
-            if (matched == 0) {
-                column.status = NDataModel.ColumnStatus.EXIST;
-            }
-        }
-    }
 
-    private List<NDataModel.Measure> convertMeasure(List<SimplifiedMeasure> simplifiedMeasures) {
-        List<NDataModel.Measure> measures = new ArrayList<>();
-        boolean hasCount = false;
-        int id = NDataModel.MEASURE_ID_BASE;
-        if (simplifiedMeasures == null) {
-            simplifiedMeasures = Lists.newArrayList();
-        }
-        for (SimplifiedMeasure simplifiedMeasure : simplifiedMeasures) {
-            NDataModel.Measure measure = new NDataModel.Measure();
-            measure.id = simplifiedMeasure.getId();
-            measure.setName(simplifiedMeasure.getName());
-            FunctionDesc functionDesc = new FunctionDesc();
-            functionDesc.setReturnType(simplifiedMeasure.getReturnType());
-            functionDesc.setExpression(simplifiedMeasure.getExpression());
-            List<ParameterResponse> parameterResponseList = simplifiedMeasure.getParameterValue();
-            functionDesc.setParameter(enrichParameterDesc(parameterResponseList, null));
-            // TODO just check count(*), update this logic when count(col) is implemented
-            if (functionDesc.isCount()) {
-                hasCount = true;
-            }
-            measure.setFunction(functionDesc);
-            measure = CubeUtils.newMeasure(functionDesc, simplifiedMeasure.getName(), id++);
-            measures.add(measure);
+        // Move deleted computed column to TOMB status
+        Set<String> currentComputedColumns = targetModel.getComputedColumnDescs().stream()
+                .map(ComputedColumnDesc::getFullName).collect(Collectors.toSet());
+        targetModel.getAllNamedColumns().stream()
+                .filter(column -> currentComputedColumns.contains(column.aliasDotColumn))
+                .filter(column -> !newComputedColumns.contains(column.aliasDotColumn))
+                .forEach(unusedColumn -> unusedColumn.status = NDataModel.ColumnStatus.TOMB);
+        targetModel.setComputedColumnDescs(request.getComputedColumnDescs());
 
-        }
-        if (!hasCount) {
-            FunctionDesc functionDesc = new FunctionDesc();
-            ParameterDesc parameterDesc = new ParameterDesc();
-            parameterDesc.setType("constant");
-            parameterDesc.setValue("1");
-            functionDesc.setParameter(parameterDesc);
-            functionDesc.setExpression("COUNT");
-            functionDesc.setReturnType("bigint");
-            NDataModel.Measure measure = CubeUtils.newMeasure(functionDesc, "COUNT_ALL", id);
-            measures.add(measure);
-        }
-        return measures;
+        //Move unused named column to EXIST status
+        targetModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .filter(column -> request.getDimensions().stream()
+                        .noneMatch(dimension -> dimension.aliasDotColumn.equals(column.aliasDotColumn)))
+                .forEach(c -> c.status = NDataModel.ColumnStatus.EXIST);
     }
 
 }

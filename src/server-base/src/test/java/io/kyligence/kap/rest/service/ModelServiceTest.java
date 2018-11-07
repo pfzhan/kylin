@@ -127,6 +127,7 @@ import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.response.SimplifiedColumnResponse;
 import lombok.val;
 
 public class ModelServiceTest extends NLocalFileMetadataTestCase {
@@ -172,6 +173,15 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                 "DISABLED", "last_modify", true);
         Assert.assertEquals(0, model5.size());
 
+    }
+
+    @Test
+    public void testGetModelsWithCC() throws Exception {
+        List<NDataModelResponse> models = modelService.getModels("nmodel_basic", "default", true, "", "", "", false);
+        Assert.assertEquals(1, models.size());
+        NDataModelResponse model = models.get(0);
+        Assert.assertTrue(model.getSimpleTables().stream().map(t -> t.getColumns()).flatMap(List::stream)
+                .anyMatch(SimplifiedColumnResponse::isComputedColumn));
     }
 
     @Test

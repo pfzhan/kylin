@@ -28,6 +28,7 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import org.apache.kylin.common.KylinConfig;
@@ -49,6 +50,8 @@ import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.ColumnStatus;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.ModelSemanticUpdateRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -118,11 +121,23 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         newCol.aliasDotColumn = "TEST_KYLIN_FACT.PRICE";
         newCol.status = NDataModel.ColumnStatus.DIMENSION;
         request.getAllNamedColumns().add(newCol);
+        ComputedColumnDesc ccDesc = request.getComputedColumnDescs().stream()
+                .filter(cc -> "DEAL_AMOUNT".equals(cc.getColumnName())).findFirst().orElse(null);
+        Assert.assertNotNull(ccDesc);
+        NamedColumn ccCol = request.getAllNamedColumns().stream()
+                .filter(c -> c.aliasDotColumn.equals(ccDesc.getFullName())).findFirst().orElse(null);
+        Assert.assertNotNull(ccCol);
+        Assert.assertTrue(ccCol.status == ColumnStatus.DIMENSION);
+        int ccColId = ccCol.getId();
+        request.getComputedColumnDescs().remove(ccDesc);
         modelService.updateDataModelSemantic(request);
 
         val model = getTestModel();
         Assert.assertEquals(newCol.name, model.getNameByColumnId(11));
         Assert.assertNull(model.getEffectiveDimenionsMap().get(25));
+        Assert.assertFalse(model.getComputedColumnNames().contains("DEAL_AMOUNT"));
+        Assert.assertNull(model.getEffectiveDimenionsMap().get(ccColId));
+        Assert.assertNull(model.getEffectiveColsMap().get(ccColId));
         val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
         Assert.assertEquals(1, eventDao.getEvents().size());
 
@@ -130,9 +145,16 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         dfMgr.updateDataflow(dfMgr.getDataflowByModelName(request.getName()).getName(),  copyForWrite -> copyForWrite.setReconstructing(false));
 
         newCol.name = "PRICE3";
+        request.getComputedColumnDescs().add(ccDesc);
         modelService.updateDataModelSemantic(request);
         val model2 = getTestModel();
         Assert.assertEquals(newCol.name, model2.getNameByColumnId(11));
+        Assert.assertTrue(model2.getComputedColumnNames().contains("DEAL_AMOUNT"));
+        NamedColumn newCcCol = model2.getAllNamedColumns().stream()
+                .filter(c -> c.aliasDotColumn.equals(ccDesc.getFullName())).filter(c -> c.isExist()).findFirst()
+                .orElse(null);
+        Assert.assertNotNull(newCcCol);
+        Assert.assertNotEquals(ccColId, newCcCol.id);
     }
 
     @Test

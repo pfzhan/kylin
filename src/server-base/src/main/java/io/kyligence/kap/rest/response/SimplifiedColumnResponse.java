@@ -42,5 +42,7 @@ public class SimplifiedColumnResponse implements Serializable {
     private long cardinality;
     @JsonProperty("comment")
     private String comment;
+    @JsonProperty("is_computed_column")
+    private boolean computedColumn = false;
 
 }
