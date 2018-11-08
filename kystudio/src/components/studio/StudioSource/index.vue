@@ -199,6 +199,7 @@ export default class StudioSource extends Vue {
   }
   async handleFreshTable () {
     await this.$refs['datasource-bar'].loadTables({ isReset: true })
+    this.$refs['datasource-bar'].selectFirstTable()
 
     const { name, database } = this.selectedTable
     await this.fetchTableDetail({ label: name, database, type: 'table' })

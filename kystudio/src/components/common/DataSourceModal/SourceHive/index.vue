@@ -86,15 +86,17 @@ export default class SourceHive extends Vue {
     // 刷新table或者db的选中状态
     for (const database of this.databases) {
       database.isSelected = this.selectedTables.includes(database.id)
-      if (database.isSelected === true) {
+      if (database.isSelected) {
         for (const table of database.children) {
           table.isSelected = true
           table.clickable = false
         }
       } else {
         for (const table of database.children) {
-          table.isSelected = this.selectedTables.includes(table.id)
-          table.clickable = true
+          if (!table.isLoaded) {
+            table.isSelected = this.selectedTables.includes(table.id)
+            table.clickable = true
+          }
         }
       }
     }

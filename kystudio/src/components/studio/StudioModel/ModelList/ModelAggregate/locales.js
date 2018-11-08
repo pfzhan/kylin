@@ -4,21 +4,27 @@ export default {
     aggregateAmount: 'Aggregate Amount',
     aggregateIndexTree: 'Aggregate Index Tree',
     aggregateDetail: 'Aggregate Detail',
-    dimensionAndOrder: 'Dimension',
-    dataSize: 'Data Size',
-    servedQueryAmount: 'Served Query amount',
-    dataRange: 'Data Range',
-    searchAggregateID: 'Search Aggregate ID'
+    content: 'Dimension',
+    order: 'Order',
+    storage: 'Data Size:',
+    queryCount: 'Served Query amount:',
+    dataRange: 'Data Range:',
+    searchAggregateID: 'Search Aggregate ID',
+    to: 'to',
+    id: 'ID:'
   },
   'zh-cn': {
     aggregateGroup: '聚合组',
     aggregateAmount: '聚合索引总数',
     aggregateIndexTree: '聚合索引树',
     aggregateDetail: '聚合索引详情',
-    dimensionAndOrder: '包含维度',
-    dataSize: 'Data Size',
-    servedQueryAmount: 'Served Query amount',
-    dataRange: 'Data Range',
-    searchAggregateID: '搜索聚合索引ID'
+    content: '包含维度',
+    order: '顺序',
+    storage: 'Data Size:',
+    queryCount: 'Served Query amount:',
+    dataRange: 'Data Range:',
+    searchAggregateID: '搜索聚合索引ID',
+    to: '至',
+    id: 'ID:'
   }
 }

@@ -22,7 +22,11 @@
                 <el-input v-model.trim="cuboidCount" size="small"></el-input>
               </div>
             </div>
-            <PartitionChart :data="cuboids" @on-click-node="handleClickNode" :search-id="searchCuboidId" />
+            <PartitionChart
+              :data="cuboids"
+              :search-id="searchCuboidId"
+              :background-maps="backgroundMaps"
+              @on-click-node="handleClickNode"/>
           </el-card>
         </el-col>
         <el-col :span="9">
@@ -35,26 +39,36 @@
             </div>
             <div class="detail-content">
               <template v-if="cuboidDetail.id !== ''">
-                <el-row :gutter="5">
-                  <el-col :span="10" class="label">ID:</el-col>
-                  <el-col :span="14">{{cuboidDetail.id}}</el-col>
-                </el-row>
-                <el-row :gutter="5">
-                  <el-col :span="10" class="label">{{$t('dimensionAndOrder')}}:</el-col>
-                  <el-col :span="14"><div v-for="item in cuboidDetail.dim" :key="item" class="dim-item">{{item}}</div></el-col>
-                </el-row>
-                <el-row :gutter="5">
-                  <el-col :span="10" class="label">{{$t('dataSize')}}:</el-col>
-                  <el-col :span="14">{{cuboidDetail.dataSize}}</el-col>
-                </el-row>
-                <el-row :gutter="5">
-                  <el-col :span="10" class="label">{{$t('dataRange')}}:</el-col>
-                  <el-col :span="14">{{cuboidDetail.dateFrom}} To {{cuboidDetail.dateTo}}</el-col>
-                </el-row>
-                <el-row :gutter="5">
-                  <el-col :span="10" class="label">{{$t('servedQueryAmount')}}:</el-col>
-                  <el-col :span="14">{{cuboidDetail.amount}} Query</el-col>
-                </el-row>
+                <el-table class="cuboid-info" :data="cuboidInfo" border stripe :show-header="false">
+                  <el-table-column prop="key" align="right">
+                    <template slot-scope="scope">
+                      <div v-if="scope.row.key === 'dataRange'">
+                        <div>{{$t(scope.row.key)}}</div>
+                        <div class="slot">slot</div>
+                      </div>
+                      <div v-else>{{$t(scope.row.key)}}</div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="value">
+                    <template slot-scope="scope">
+                      <div v-if="scope.row.key === 'dataRange'">
+                        <div>{{scope.row.value.startDate}} {{scope.row.value.to}}</div>
+                        <div>{{scope.row.value.endDate}}</div>
+                      </div>
+                      <div v-else-if="scope.row.key === 'storage'">{{scope.row.value | dataSize}}</div>
+                      <div v-else>{{scope.row.value}}</div>
+                    </template>
+                  </el-table-column>
+                </el-table>
+                <el-table class="cuboid-dimensions" :data="cuboidDimensions" border max-height="335">
+                  <el-table-column type="index" :label="$t('order')" width="80" align="center">
+                  </el-table-column>
+                  <el-table-column prop="dimension" :label="$t('content')" align="center">
+                    <template slot-scope="scope">
+                      <div class="align-left">{{scope.row.dimension}}</div>
+                    </template>
+                  </el-table-column>
+                </el-table>
               </template>
             </div>
           </el-card>
@@ -68,13 +82,14 @@
 
 <script>
 import Vue from 'vue'
+import dayjs from 'dayjs'
 import { mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 import locales from './locales'
-import { formatFlowerJson, getCuboidCounts } from './handle'
+import { formatFlowerJson, getCuboidCounts, backgroundMaps } from './handle'
 import FlowerChart from '../../../../common/FlowerChart'
 import PartitionChart from '../../../../common/PartitionChart'
-import { handleSuccessAsync, transToGmtTime } from '../../../../../util'
+import { handleSuccessAsync } from '../../../../../util'
 import AggregateModal from './AggregateModal/index.vue'
 
 @Component({
@@ -106,35 +121,34 @@ import AggregateModal from './AggregateModal/index.vue'
 export default class ModelAggregate extends Vue {
   cuboidCount = 0
   cuboids = []
-  cuboidDetail = {
-    id: '',
-    dim: [],
-    dataSize: 0,
-    dateFrom: 0,
-    dateTo: 0,
-    amount: 0
-  }
+  cuboidData = {}
   searchCuboidId = ''
-
+  backgroundMaps = backgroundMaps
+  get cuboidInfo () {
+    return Object.entries(this.cuboidDetail)
+      .filter(([key]) => key !== 'dimensions')
+      .map(([key, value]) => ({ key, value }))
+  }
+  get cuboidDimensions () {
+    return this.cuboidDetail.dimensions.map(dimension => ({ dimension }))
+  }
+  get cuboidDetail () {
+    const id = this.cuboidData.id
+    const dimensions = this.cuboidData.dimensions_res || []
+    const startDate = dayjs(this.cuboidData.start_time).format('YYYY-MM-DD HH:mm:ss')
+    const endDate = dayjs(this.cuboidData.end_time).format('YYYY-MM-DD HH:mm:ss')
+    const storage = this.cuboidData.storage_size
+    const queryCount = this.cuboidData.amount || 0
+    const dataRange = { startDate, to: this.$t('to'), endDate }
+    return { id, dimensions, dataRange, storage, queryCount }
+  }
   async handleClickNode (node) {
-    const cuboidId = node.cuboid.id
     const res = await this.fetchCuboid({
       projectName: this.projectName,
       modelName: this.model.name,
-      cuboidId
+      cuboidId: node.cuboid.id
     })
-    const cuboid = await handleSuccessAsync(res)
-    this.cuboidDetail.id = cuboid.id
-    this.cuboidDetail.dim = cuboid.dimensions_res
-    this.cuboidDetail.dataSize = cuboid.storage_size < 1024 ? `${cuboid.storage_size}KB` : `${(cuboid.storage_size / 1024).toFixed(2)}MB`
-    this.cuboidDetail.dateFrom = transToGmtTime(cuboid.start_time)
-    this.cuboidDetail.dateTo = transToGmtTime(cuboid.end_time)
-    if (this.cuboidDetail.dateFrom) {
-      this.cuboidDetail.dateFrom = this.cuboidDetail.dateFrom.split(' GMT')[0]
-    }
-    if (this.cuboidDetail.dateTo) {
-      this.cuboidDetail.dateTo = this.cuboidDetail.dateTo.split(' GMT')[0]
-    }
+    this.cuboidData = await handleSuccessAsync(res)
   }
   async freshCuboids () {
     const projectName = this.projectName
@@ -176,20 +190,22 @@ export default class ModelAggregate extends Vue {
     position: relative;
     overflow: hidden;
   }
+  .cuboid-info {
+    margin-bottom: 10px;
+    .is-right {
+      border-right: none;
+    }
+    .slot {
+      opacity: 0;
+    }
+  }
+  .align-left {
+    text-align: left;
+    padding-left: 10px;
+  }
   .agg-detail-card {
     height: 638px;
     box-shadow: none;
-    // .el-card__header {
-    //   background-color: @grey-3;
-    //   color: @text-title-color;
-    //   font-size: 16px;
-    //   padding: 7px 9px 7px 17px;
-    // }
-    // &.agg_index {
-    //   .el-card__header {
-    //     padding: 7px 9px 7px 17px;
-    //   }
-    // }
     .el-card__body {
       overflow: auto;
       padding: 10px;

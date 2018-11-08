@@ -1,3 +1,10 @@
+import emptyCuboidsUrl from './empty-cuboids.png'
+
+export const backgroundMaps = {
+  EMPTY: emptyCuboidsUrl,
+  BROKEN: emptyCuboidsUrl
+}
+
 export function formatFlowerJson (data) {
   let flowers = []
   let rootLevel = 0
@@ -10,7 +17,7 @@ export function formatFlowerJson (data) {
     })
     // 把根节点push进flowers数组
     roots.roots.forEach(root => {
-      root = getFlowerData(root, maxLevel, true)
+      root = getFlowerData(root, roots.nodes, maxLevel)
       flowers.push(root)
     })
 
@@ -35,19 +42,25 @@ export function getCuboidCounts (data) {
   return count
 }
 
-function getFlowerData (parent, maxLevel, isRoot) {
+function getFlowerData (cuboid, nodes = {}, maxLevel) {
+  const isRoot = !~cuboid.parent
   if (isRoot) {
-    parent.name = parent.cuboid.id
-    parent.size = (maxLevel - parent.level) ** 2 * 200 + 2500
-    parent.maxLevel = maxLevel
+    cuboid.name = cuboid.cuboid.id
+    cuboid.size = cuboid.cuboid.storage_size || 1
+    cuboid.maxLevel = maxLevel
+    cuboid.background = cuboid.cuboid.status
   }
-  parent.children = parent.children.map((child) => {
+  cuboid.children = cuboid.children.map((childId, index) => {
+    const child = JSON.parse(JSON.stringify(nodes[childId]))
     child.name = child.cuboid.id
-    child.size = (maxLevel - child.level) ** 2 * 200 + 2500
-    child.children && child.children.length && getFlowerData(child, maxLevel)
+    child.size = child.cuboid.storage_size || 1
+    child.background = child.cuboid.status
     child.maxLevel = maxLevel
+    if (child.children && child.children.length) {
+      getFlowerData(child, nodes, maxLevel)
+    }
     return child
   })
 
-  return parent
+  return cuboid
 }

@@ -29,12 +29,13 @@ export function getDatabaseTree (databases) {
 
 export function getTableTree (database, res, isTableReset) {
   const newTables = res.tables.map(table => ({
-    id: `${database.id}.${table}`,
-    label: table,
+    id: `${database.id}.${table.table_name}`,
+    label: table.table_name,
     type: 'table',
     database: database.id,
-    isSelected: false,
-    clickable: true
+    isSelected: table.is_loaded,
+    clickable: !table.is_loaded,
+    isLoaded: table.is_loaded
   }))
   database.children = isTableReset
     ? newTables

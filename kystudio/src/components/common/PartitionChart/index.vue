@@ -11,6 +11,15 @@
           <feGaussianBlur result="blurOut" in="offOut" stdDeviation="2" />
           <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
         </filter>
+        <pattern
+          v-for="(backgroundUrl, backgroundName) in backgroundMaps"
+          :key="backgroundName"
+          :id="backgroundName"
+          patternUnits="userSpaceOnUse"
+          width="70"
+          height="70">
+          <image :xlink:href="backgroundUrl" x="0" y="0" width="70" height="70" />
+        </pattern>
       </defs>
     </svg>
     <div class="tip" v-if="tip !== ''" :style="{ left: `${tipX + 20}px`, top: `${tipY + 48}px` }">{{tip}}</div>
@@ -23,7 +32,7 @@ import * as d3 from 'd3'
 import { Component, Watch } from 'vue-property-decorator'
 
 @Component({
-  props: ['data', 'searchId']
+  props: ['data', 'searchId', 'backgroundMaps']
 })
 export default class PartitionChart extends Vue {
   isChartCreated = false
@@ -32,6 +41,9 @@ export default class PartitionChart extends Vue {
   tip = ''
   tipX = 0
   tipY = 0
+  baseColor = [
+    '#28741D', '#0060D8', '#5F2BE7', '#CC7E04', '#0F7A8D', '#BA0909'
+  ]
   @Watch('searchId')
   async onSearchIdChange (searchId) {
     this.d3data.path.each(function (d) {
@@ -77,7 +89,7 @@ export default class PartitionChart extends Vue {
   updateSVG () {
     this.d3data.path
       .attr('filter', function (d) { return d.isHover || d.isSelected ? 'url(#shadow)' : null })
-      .style('stroke', function (d) { return d.isSelected ? '#0988DE' : '#FFFFFF' })
+      .style('stroke', function (d) { return d.isSelected ? '#0E9BFB' : '#FFFFFF' })
 
     this.d3data.path
       .filter(function (d) { return d.isSelected })
@@ -177,21 +189,21 @@ export default class PartitionChart extends Vue {
     this.updatePathColor(this.data[0])
   }
   updatePathColor (data) {
-    const { children } = data
-    const startHue = 50
-    const endHue = 340
+    const { children = [] } = data
+    const _this = this
     const startLight = 30
-    const hueStep = (endHue - startHue) / children.length
     children.forEach((child, index) => {
-      const hue = hueStep * index + startHue
-      child.color = d3.hcl(hue, 100, startLight).toString()
+      const colorIndex = index % this.baseColor.length
+      child.color = this.baseColor[colorIndex]
       if (child.children) {
         child.children.forEach(updateChildrenColor)
       }
     })
 
     this.d3data.path.each(function (d) {
-      d3.select(this).style('fill', function (d) { return d.color })
+      d3.select(this).style('fill', function (d) {
+        return _this.backgroundMaps[d.background] ? `url(#${d.background})` : d.color
+      })
     })
     function updateChildrenColor (child, index) {
       const lightStep = (100 - startLight) / child.maxLevel
@@ -202,7 +214,7 @@ export default class PartitionChart extends Vue {
       const parentChroma = hcl.c
       const parentLightness = hcl.l
       const currentLightness = (lightness - parentLightness) * Math.random() + parentLightness
-      child.color = d3.hcl(parentHue, parentChroma, currentLightness)
+      child.color = d3.hcl(parentHue, parentChroma, currentLightness).toString()
       if (child.children) {
         child.children.forEach(updateChildrenColor)
       }
