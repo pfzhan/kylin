@@ -1,5 +1,8 @@
 <template>
+<div>
+  <span class="ky-close ksd-fright ksd-mt-10 ksd-mr-10" @click="cancelCC"><i class="el-icon-ksd-close"></i></span>
   <el-form :model="ccObject" class="cc-block" :class="{'editCC': !isEdit}" label-position="top" :rules="ccRules" ref="ccForm">
+    
     <el-form-item prop="columnName" class="ksd-mb-10">
       <span slot="label">{{$t('columnName')}} <span v-if="!isEdit">: {{ccObject.columnName}}</span></span>
       <el-input class="measures-width" size="medium" v-model="ccObject.columnName" v-if="isEdit" @blur="upperCaseCCName"></el-input>
@@ -21,21 +24,22 @@
     </el-form-item>
     <div class="btn-group clearfix">
       <el-button size="small" plain @click="delCC" class="ksd-fleft" v-if="ccDesc">{{$t('kylinLang.common.delete')}}</el-button>
-      <el-button size="small" plain @click="cancelCC" class="ksd-fleft" v-if="!ccDesc">{{$t('kylinLang.common.cancel')}}</el-button>
+      <!-- <el-button size="small" plain @click="cancelCC" class="ksd-fleft" v-if="!ccDesc">{{$t('kylinLang.common.cancel')}}</el-button> -->
       <el-button type="primary" size="small" plain @click="addCC" class="ksd-fright" v-if="isEdit">
         {{$t('kylinLang.common.save')}}
       </el-button>
-      <el-button size="small" plain @click="resetCC" class="ksd-fright" v-if="isEdit">
+      <!-- <el-button size="small" plain @click="resetCC" class="ksd-fright" v-if="isEdit">
         {{$t('kylinLang.query.clear')}}
-      </el-button>
-      <el-button size="small" plain @click="checkRemoteCC" :loading="checkBtnLoading" class="ksd-fleft" v-if="isEdit">
+      </el-button> -->
+      <!-- <el-button size="small" plain @click="checkRemoteCC" :loading="checkBtnLoading" class="ksd-fleft" v-if="isEdit">
         {{$t('kylinLang.common.check')}}
-      </el-button>
+      </el-button> -->
       <el-button size="small" plain @click="editCC" class="ksd-fright" v-else>
         {{$t('kylinLang.common.edit')}}
       </el-button>
     </div>
   </el-form>
+  </div>
 </template>
 <script>
 import Vue from 'vue'

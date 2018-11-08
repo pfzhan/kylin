@@ -262,7 +262,7 @@ export default class ModelEdit extends Vue {
   currentDragColumnData = {} // 当前拖拽列携带信息
   modelGlobalSearch = '' // model全局搜索信息
   showSearchResult = true
-  modelGlobalSearchResult = [{x: 1}]
+  modelGlobalSearchResult = []
   modelData = {}
   globalLoading = loadingBox()
   renderBox = modelRenderConfig.drawBox
@@ -626,7 +626,7 @@ export default class ModelEdit extends Vue {
     if (select.action === 'adddimension') {
       this.showSingleDimensionDialog({
         dimension: {
-          column: moreInfo.alias
+          column: moreInfo.full_colname
         },
         modelInstance: this.modelInstance
       })
@@ -638,10 +638,12 @@ export default class ModelEdit extends Vue {
       })
     }
     if (select.action === 'editjoin') {
-      // var moreInfo = select.more
+      let pguid = moreInfo.guid
+      let joinInfo = moreInfo.getJoinInfo()
+      let fguid = joinInfo.foreignTable.guid
       this.callJoinDialog({
-        foreignTable: moreInfo.foreignTable,
-        primaryTable: moreInfo.table.guid,
+        pid: pguid,
+        fid: fguid,
         tables: this.modelRender.tables
       })
     }
@@ -685,8 +687,7 @@ export default class ModelEdit extends Vue {
     }
   }
   searchModelEverything (val) {
-    this.modelGlobalSearchResult = []
-    this.modelGlobalSearchResult.push(...this.modelInstance.search(val))
+    this.modelGlobalSearchResult = this.modelInstance.search(val)
   }
   getColumnType (tableName, column) {
     var ntable = this.modelInstance.getTable('alias', tableName)

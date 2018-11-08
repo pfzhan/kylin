@@ -43,7 +43,7 @@ export const modelRenderConfig = {
     dimension: [{action: 'editdimension', i18n: 'editdimension'}], // 搜索dimension
     join: [{action: 'editjoin', i18n: 'editjoin'}] //  搜索join
   },
-  searchCountLimit: 100, // 搜索每一类出来的最多条数
+  searchCountLimit: 5, // 搜索每一类出来的最多条数
   baseIndex: baseIndex,
   pannelsLayout: () => {
     return { // 编辑界面的弹出层位置信息

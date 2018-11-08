@@ -392,20 +392,52 @@ class NModel {
   }
   // search
   searchTable (keywords) {
-    return this.mixResult(Object.values(this.tables), 'table', 'alias', keywords)
+    let filterResult = Object.values(this.tables).filter((x) => {
+      return this.searchRule(x.alias, keywords)
+    })
+    return this.mixResult(filterResult, 'table', 'alias')
   }
   searchMeasure (keywords) {
-    return this.mixResult(this._mount.all_measures, 'measure', 'name', keywords)
+    let filterResult = this._mount.all_measures.filter((x) => {
+      return this.searchRule(x.name, keywords)
+    })
+    return this.mixResult(filterResult, 'measure', 'name')
   }
   searchDimension (keywords) {
-    var dimensionColumns = []
-    this._mount.dimensions.forEach((x) => {
-      dimensionColumns.push(x)
+    let filterResult = this._mount.dimensions.filter((x) => {
+      return this.searchRule(x.name, keywords)
     })
-    return this.mixResult(dimensionColumns, 'dimension', 'name', keywords)
+    return this.mixResult(filterResult, 'dimension', 'name')
   }
   searchJoin (keywords) {
-    return this.mixResult(Object.values(this.tables), 'join', 'name', keywords)
+    let joinReg = /^(join|left\s*join|inner\s*join)$/i
+    let leftJoinReg = /^left\s*join$/i
+    let innerJoinReg = /^inner\s*join$/i
+    let filterResult = []
+    if (joinReg.test(keywords)) {
+      Object.values(this.allConnInfo).forEach((conn) => {
+        // let fguid = conn.sourceId
+        let pguid = conn.targetId
+        // let ftable = this.getTableByGuid(fguid)
+        let ptable = this.getTableByGuid(pguid)
+        console.log(ptable)
+        let joinInfo = ptable.getJoinInfo()
+        if (leftJoinReg.test(keywords)) {
+          console.log(joinInfo, keywords)
+          if (joinInfo.join.type === 'LEFT') {
+            filterResult.push(ptable)
+          }
+        } else if (innerJoinReg.test(keywords)) {
+          console.log(joinInfo, keywords)
+          if (joinInfo.join.type === 'INNER') {
+            filterResult.push(ptable)
+          }
+        } else {
+          filterResult.push(ptable)
+        }
+      })
+    }
+    return this.mixResult(filterResult, 'join', 'alias')
   }
   searchColumn (keywords) {
     var columnsResult = []
@@ -417,6 +449,9 @@ class NModel {
       })
       columnsResult.push(...columns)
     }
+    columnsResult = columnsResult.filter((col) => {
+      return this.searchRule(col.full_colname, keywords)
+    })
     return this.mixResult(columnsResult, 'column', 'full_colname', keywords)
   }
   searchRule (content, keywords) {
@@ -424,12 +459,13 @@ class NModel {
     return reg.test(content)
   }
   // 混合结果信息
-  mixResult (data, kind, key, searchVal) {
+  mixResult (data, kind, key) {
     let result = []
     let actionsConfig = modelRenderConfig.searchAction[kind]
-    data && data.forEach((t) => {
-      actionsConfig.forEach((a) => {
-        if (this.searchRule(t[key], searchVal) && result.length < modelRenderConfig.searchCountLimit) {
+    actionsConfig.forEach((a) => {
+      let i = 0
+      data && data.forEach((t) => {
+        if (i++ < modelRenderConfig.searchCountLimit) {
           let item = this.renderSearchResult(t, key, kind, a)
           if (item) {
             result.push(item)
@@ -442,7 +478,7 @@ class NModel {
   // 数据结构定制化
   renderSearchResult (t, key, kind, a) {
     let item = {name: t[key], kind: kind, action: a.action, i18n: a.i18n, more: t}
-    if (kind === 'table' && a.action === 'tableeditjoin') {
+    if (kind === 'table' && a.action === 'tableeditjoin' || kind === 'join' && a.action === 'editjoin') {
       let joinInfo = t.joinInfo[t.guid]
       if (joinInfo) {
         item.extraInfo = ' <span class="jtk-overlay">' + joinInfo.join.type + '</span> ' + joinInfo.foreignTable.name
