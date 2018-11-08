@@ -112,7 +112,7 @@
       </span>
     </el-dialog>
     <!-- 全局apply favorite query -->
-    <el-dialog width="440px" :title="$t('kylinLang.common.notice')" class="speed_dialog" :visible.sync="reachThreshold" :show-close="false">
+    <el-dialog width="440px" :title="$t('kylinLang.common.notice')" class="speed_dialog" :visible="reachThresholdVisible" @close="manualClose = false" :close-on-click-modal="false">
       <el-row>
         <el-col :span="14">
           {{$t('hello', {user: currentUser.username})}}<br/>
@@ -196,6 +196,9 @@ import $ from 'jquery'
     reachThreshold () {
       return this.$store.state.model.reachThreshold
     },
+    reachThresholdVisible () {
+      return this.$store.state.model.reachThreshold && this.manualClose
+    },
     modelSpeedModelsCount () {
       return this.$store.state.model.modelSpeedModelsCount
     }
@@ -210,6 +213,7 @@ export default class LayoutLeftRightTop extends Vue {
   project = {}
   isEdit = false
   FormVisible = false
+  manualClose = true
   currentPathName = 'DesignModel'
   currentPathNameParent = 'Model'
   defaultActive = ''
@@ -240,6 +244,13 @@ export default class LayoutLeftRightTop extends Vue {
       setTimeout(() => {
         this.rotateVisibel = true
       })
+    }
+  }
+
+  @Watch('$route.name')
+  onRouterChange (newVal, val) {
+    if (newVal !== val) {
+      this.manualClose = true
     }
   }
 
