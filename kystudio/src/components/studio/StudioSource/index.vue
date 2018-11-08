@@ -46,10 +46,10 @@
               <el-tab-pane :label="$t('extendInformation')" :name="viewTypes.EXTEND_INFORMATION">
                 <TableExtInfo :table="selectedTable"></TableExtInfo>
               </el-tab-pane>
-              <el-tab-pane :label="$t('kylinLang.dataSource.kafkaCluster')" :name="viewTypes.KAFKA" v-if="isShowKafka">
+              <!-- <el-tab-pane :label="$t('kylinLang.dataSource.kafkaCluster')" :name="viewTypes.KAFKA" v-if="isShowKafka">
                 <el-button type="primary" plain size="medium" icon="edit" @click="handleKafkaClick" class="ksd-fright">{{$t('kylinLang.common.edit')}}</el-button>
                 <ViewKafka ref="addkafkaForm" @validSuccess="kafkaValidSuccess" :streamingData="currentStreamingTableData" :tableName="currentStreamingTable" ></ViewKafka>
-              </el-tab-pane>
+              </el-tab-pane> -->
               <!-- <el-tab-pane :label="$t('access')" :name="viewTypes.ACCESS">
                 <Access></Access>
               </el-tab-pane> -->
