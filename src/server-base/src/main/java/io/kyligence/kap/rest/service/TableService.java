@@ -45,6 +45,7 @@ import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
+import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.LoadingRangeUpdateEvent;
@@ -243,6 +244,20 @@ public class TableService extends BasicService {
                     }
                 }));
         return tables;
+    }
+
+    public List<TableNameResponse> getTableNameResponses(String project, String database, int dataSourceType,
+            final String table) throws Exception {
+        List<TableNameResponse> tableNameResponses = new ArrayList<>();
+        NTableMetadataManager tableManager = getTableManager(project);
+        List<String> tables = getSourceTableNames(project, database, dataSourceType, table);
+        for (String tableName : tables) {
+            TableNameResponse tableNameResponse = new TableNameResponse();
+            tableNameResponse.setTableName(tableName);
+            tableNameResponse.setLoaded(tableManager.getTableDesc(database + "." + tableName) != null);
+            tableNameResponses.add(tableNameResponse);
+        }
+        return tableNameResponses;
     }
 
     private TableDescResponse getTableResponse(TableDesc table, String project) {

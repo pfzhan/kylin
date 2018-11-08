@@ -55,6 +55,7 @@ import java.util.TimeZone;
 import com.google.common.collect.FluentIterable;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.VolatileRange;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
@@ -176,6 +177,22 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             }
         }
         return buildingSegments;
+    }
+
+    public Segments<T> getSegmentsExcludeRefreshingAndMerging() {
+        Segments<T> readySegments = this.getSegments(SegmentStatusEnum.READY);
+        Segments<T> buildingSegments = getBuildingSegments();
+        if (CollectionUtils.isEmpty(readySegments)) {
+            return this;
+        }
+        SegmentRange readySegmentsRange = readySegments.getFirstSegment().getSegRange()
+                .coverWith(readySegments.getLatestReadySegment().getSegRange());
+        for (T buildingSegment : buildingSegments) {
+            if (readySegmentsRange.contains(buildingSegment.getSegRange())) {
+                this.remove(buildingSegment);
+            }
+        }
+        return this;
     }
 
     public Segments<T> getMergingSegments(T mergedSegment) {

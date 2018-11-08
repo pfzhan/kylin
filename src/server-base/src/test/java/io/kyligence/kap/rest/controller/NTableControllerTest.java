@@ -51,6 +51,7 @@ import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
@@ -176,10 +177,10 @@ public class NTableControllerTest {
 
     @Test
     public void testShowTables() throws Exception {
-        List<String> list = new ArrayList<>();
-        list.add("ddd");
-        list.add("fff");
-        Mockito.when(tableService.getSourceTableNames("default", "db1", 11, "")).thenReturn(list);
+        List<TableNameResponse> list = new ArrayList<>();
+        list.add(new TableNameResponse());
+        list.add(new TableNameResponse());
+        Mockito.when(tableService.getTableNameResponses("default", "db1", 11, "")).thenReturn(list);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/names").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("datasourceType", "11").param("database", "db1")
                 .param("pageOffset", "0").param("pageSize", "10").param("table", "")

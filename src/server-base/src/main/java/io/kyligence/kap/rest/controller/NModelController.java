@@ -29,8 +29,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.rest.request.SegmentsRequest;
+import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.exception.PersistentException;
@@ -195,7 +195,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "project", required = true) String project) {
         checkProjectName(project);
         checkRequiredArg(MODEL_NAME, modelName);
-        List<NSpanningTree> modelRelations = modelService.getModelRelations(modelName, project);
+        List<NSpanningTreeResponse> modelRelations = modelService.getSimplifiedModelRelations(modelName, project);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelRelations, "");
     }

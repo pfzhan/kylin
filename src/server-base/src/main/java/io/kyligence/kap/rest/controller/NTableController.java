@@ -35,6 +35,7 @@ import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.LoadTableResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
+import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import io.kyligence.kap.rest.service.TableExtService;
@@ -219,9 +220,8 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "database", required = true) String database) throws Exception {
         checkProjectName(project);
-        List<String> tables = tableService.getSourceTableNames(project, database, dataSourceType, table);
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, getDataResponse("tables", tables, offset, limit)
-                , "");
+        List<TableNameResponse> tables = tableService.getTableNameResponses(project, database, dataSourceType, table);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, getDataResponse("tables", tables, offset, limit), "");
     }
 
     @RequestMapping(value = "/simple_table", method = { RequestMethod.GET }, produces = {

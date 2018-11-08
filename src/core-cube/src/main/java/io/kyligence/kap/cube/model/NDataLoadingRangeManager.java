@@ -59,7 +59,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NDataLoadingRangeManager {
     private static final Logger logger = LoggerFactory.getLogger(NDataLoadingRangeManager.class);
-
+    private static final String DATA_LOADING_RANGE = "NDataLoadingRange '";
     public static NDataLoadingRangeManager getInstance(KylinConfig config, String project) {
         return config.getManager(project, NDataLoadingRangeManager.class);
     }
@@ -157,20 +157,20 @@ public class NDataLoadingRangeManager {
             String tableName = dataLoadingRange.getTableName();
             TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
             if (tableDesc == null) {
-                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName()
-                        + "' 's table " + tableName + " does not exists");
+                throw new IllegalArgumentException(DATA_LOADING_RANGE + dataLoadingRange.resourceName() + "' 's table "
+                        + tableName + " does not exists");
             }
             String columnName = dataLoadingRange.getColumnName();
             ColumnDesc columnDesc = tableDesc.findColumnByName(columnName);
             if (columnDesc == null) {
-                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName()
-                        + "' 's column " + columnName + " does not exists");
+                throw new IllegalArgumentException(DATA_LOADING_RANGE + dataLoadingRange.resourceName() + "' 's column "
+                        + columnName + " does not exists");
             }
             String columnType = columnDesc.getDatatype();
             DataType dataType = DataType.getType(columnType);
             if (dataType == null || !dataType.isDate()) {
-                throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName()
-                        + "' 's column " + columnName + " 's dataType does not support partition column");
+                throw new IllegalArgumentException(DATA_LOADING_RANGE + dataLoadingRange.resourceName() + "' 's column "
+                        + columnName + " 's dataType does not support partition column");
             }
 
             return crud.save(dataLoadingRange);
@@ -243,13 +243,13 @@ public class NDataLoadingRangeManager {
 
     private void checkNDataLoadingRangeExist(NDataLoadingRange dataLoadingRange) {
         if (dataLoadingRangeMap.containsKey(dataLoadingRange.resourceName()))
-            throw new IllegalArgumentException("NDataLoadingRange '" + dataLoadingRange.resourceName() + "' has exist");
+            throw new IllegalArgumentException(DATA_LOADING_RANGE + dataLoadingRange.resourceName() + "' has exist");
     }
 
     private void checkNDataLoadingRangeNotExist(NDataLoadingRange dataLoadingRange) {
         if (!dataLoadingRangeMap.containsKey(dataLoadingRange.resourceName()))
             throw new IllegalArgumentException(
-                    "NDataLoadingRange '" + dataLoadingRange.resourceName() + "' does not exist");
+                    DATA_LOADING_RANGE + dataLoadingRange.resourceName() + "' does not exist");
     }
 
     private void checkNDataLoadingRangeIdentify(NDataLoadingRange dataLoadingRange) {

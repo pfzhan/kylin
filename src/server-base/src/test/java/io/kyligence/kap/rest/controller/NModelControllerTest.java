@@ -43,15 +43,10 @@
 package io.kyligence.kap.rest.controller;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
-import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
-import io.kyligence.kap.cube.cuboid.NSpanningTree;
+import java.util.List;
+
 import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
@@ -63,6 +58,7 @@ import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.service.ModelService;
 import org.apache.kylin.common.util.JsonUtil;
@@ -115,7 +111,7 @@ public class NModelControllerTest {
 
     @Test
     public void testGetModelRelations() throws Exception {
-        Mockito.when(modelService.getModelRelations("model1", "default")).thenReturn(mockRelations());
+        Mockito.when(modelService.getSimplifiedModelRelations("model1", "default")).thenReturn(mockRelations());
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models/relations").contentType(MediaType.APPLICATION_JSON)
                         .param("model", "model1").param("project", "default")
@@ -422,17 +418,9 @@ public class NModelControllerTest {
     }
 
 
-    private List<NSpanningTree> mockRelations() {
-        final List<NSpanningTree> nSpanningTrees = new ArrayList<>();
-        Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids = new HashMap<>();
-        NCuboidDesc cuboidDesc = new NCuboidDesc();
-        cuboidDesc.setId(1234);
-        List<NCuboidLayout> layouts = new ArrayList<>();
-        NCuboidLayout nCuboidLayout = new NCuboidLayout();
-        nCuboidLayout.setId(12345);
-        layouts.add(nCuboidLayout);
-        cuboids.put(cuboidDesc, layouts);
-        NForestSpanningTree nSpanningTree = new NForestSpanningTree(cuboids, "test");
+    private List<NSpanningTreeResponse> mockRelations() {
+        final List<NSpanningTreeResponse> nSpanningTrees = new ArrayList<>();
+        NSpanningTreeResponse nSpanningTree = new NSpanningTreeResponse();
         nSpanningTrees.add(nSpanningTree);
         return nSpanningTrees;
     }

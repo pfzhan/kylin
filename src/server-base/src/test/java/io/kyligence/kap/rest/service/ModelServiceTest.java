@@ -62,6 +62,9 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 import io.kyligence.kap.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.rest.response.CuboidStatus;
+import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -197,21 +200,44 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetCuboidDescs() throws Exception {
+    public void testGetCuboidDescs() {
 
         List<NCuboidDesc> cuboids = modelService.getCuboidDescs("nmodel_basic", "default");
         Assert.assertEquals(8, cuboids.size());
     }
 
     @Test
-    public void testGetCuboidById() throws Exception {
-
+    public void testGetCuboidById_AVAILABLE() {
         CuboidDescResponse cuboid = modelService.getCuboidById("nmodel_basic", "default", 0L);
-        Assert.assertTrue(cuboid.getId() == 0L);
+        Assert.assertEquals(0L, cuboid.getId());
+        Assert.assertEquals(CuboidStatus.AVAILABLE, cuboid.getStatus());
+        Assert.assertEquals(252928L, cuboid.getStorageSize());
+    }
 
-        CuboidDescResponse cuboid2 = modelService.getCuboidById("nmodel_basic", "default", 1000L);
-        Assert.assertTrue(cuboid2.getId() == 1000L);
+    @Test
+    public void testGetCuboidById_NoSegments_EMPTYStatus() {
+        CuboidDescResponse cuboid = modelService.getCuboidById("ut_inner_join_cube_partial", "default", 10000005000L);
+        Assert.assertEquals(10000005000L, cuboid.getId());
+        Assert.assertEquals(CuboidStatus.EMPTY, cuboid.getStatus());
+        Assert.assertEquals(0L, cuboid.getStorageSize());
+        Assert.assertEquals(0L, cuboid.getStartTime());
+        Assert.assertEquals(0L, cuboid.getEndTime());
+    }
 
+    @Test
+    public void testGetCuboidById_CuboidIsNew_EMPTYStatus() throws NoSuchFieldException, IllegalAccessException {
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataCuboid nDataCuboid = dataflowManager.getDataflow("ncube_basic").getSegments().get(0).getCuboid(1L);
+        Class clazz = NDataCuboid.class;
+        Field field = clazz.getDeclaredField("status");
+        field.setAccessible(true);
+        field.set(nDataCuboid, SegmentStatusEnum.NEW);
+        CuboidDescResponse cuboid = modelService.getCuboidById("nmodel_basic", "default", 0L);
+        Assert.assertEquals(0L, cuboid.getId());
+        Assert.assertEquals(CuboidStatus.EMPTY, cuboid.getStatus());
+        Assert.assertEquals(0L, cuboid.getStorageSize());
+        Assert.assertEquals(0L, cuboid.getStartTime());
+        Assert.assertEquals(0L, cuboid.getEndTime());
     }
 
     @Test
@@ -255,6 +281,14 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         relations = modelService.getModelRelations("nmodel_basic_inner", "default");
         Assert.assertEquals(1, relations.size());
         Assert.assertEquals(5, relations.get(0).getBuildLevel());
+    }
+
+    @Test
+    public void testGetSimplifiedModelRelations() {
+        List<NSpanningTreeResponse> relations = modelService.getSimplifiedModelRelations("nmodel_basic", "default");
+        Assert.assertEquals(1, relations.size());
+        Assert.assertEquals(1, relations.get(0).getRoots().size());
+        Assert.assertEquals(5, relations.get(0).getNodesMap().size());
     }
 
     @Test

@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.rest.response.TableNameResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.exception.PersistentException;
@@ -435,6 +436,14 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         tableService.setPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT", true);
         boolean result = tableService.getPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertTrue(result);
+    }
+
+    @Test
+    public void testGetTableNameResponse_PASS() throws Exception {
+        List<TableNameResponse> result = tableService.getTableNameResponses("default", "DEFAULT", 11, "");
+        Assert.assertEquals(8, result.size());
+        Assert.assertTrue(result.get(0).isLoaded());
+
     }
 
     @Test

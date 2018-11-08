@@ -33,12 +33,16 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Setter
+@Getter
 public class CuboidDescResponse {
 
     @JsonProperty("dimensions_res")
@@ -54,73 +58,11 @@ public class CuboidDescResponse {
     private long startTime;
     @JsonProperty("end_time")
     private long endTime;
+    @JsonProperty("status")
+    private CuboidStatus status = CuboidStatus.AVAILABLE;
     @JsonManagedReference
     @JsonProperty("layouts")
     private List<NCuboidLayout> layouts = Lists.newArrayList();
-
-    public long getStorageSize() {
-        return storageSize;
-    }
-
-    public void setStorageSize(long storageSize) {
-        this.storageSize = storageSize;
-    }
-
-    public long getStartTime() {
-        return startTime;
-    }
-
-    public void setStartTime(long startTime) {
-        this.startTime = startTime;
-    }
-
-    public long getEndTime() {
-        return endTime;
-    }
-
-    public void setEndTime(long endTime) {
-        this.endTime = endTime;
-    }
-
-    public List<String> getDimensionsRes() {
-        return dimensionsRes;
-    }
-
-    public void setDimensionsRes(List<String> dimensionsRes) {
-        this.dimensionsRes = dimensionsRes;
-    }
-
-    public List<String> getMeasuresRes() {
-        return measuresRes;
-    }
-
-    public void setMeasuresRes(List<String> measuresRes) {
-        this.measuresRes = measuresRes;
-    }
-
-    public long getId() {
-        return id;
-    }
-
-    public void setId(long id) {
-        this.id = id;
-    }
-
-    public List<NCuboidLayout> getLayouts() {
-        return layouts;
-    }
-
-    public void setLayouts(List<NCuboidLayout> layouts) {
-        this.layouts = layouts;
-    }
-
-    public NCubePlan getCubePlan() {
-        return cubePlan;
-    }
-
-    public void setCubePlan(NCubePlan cubePlan) {
-        this.cubePlan = cubePlan;
-    }
 
     @JsonBackReference
     private NCubePlan cubePlan;

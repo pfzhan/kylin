@@ -34,6 +34,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
+import io.kyligence.kap.rest.response.CuboidStatus;
+import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -299,22 +302,27 @@ public class ModelService extends BasicService {
 
     public CuboidDescResponse getCuboidById(String modelName, String project, Long cuboidId) {
         List<NCubePlan> cubePlans = getCubePlans(modelName, project);
-        NCuboidDesc cuboidDesc = null;
-        for (NCubePlan cubeplan : cubePlans) {
-            cuboidDesc = cubeplan.getCuboidDesc(cuboidId);
-            break;
-        }
+        NCuboidDesc cuboidDesc = cubePlans.get(0).getCuboidDesc(cuboidId);
         NDataflow dataflow = getDataflowManager(project).getDataflow(cuboidDesc.getCubePlan().getName());
-        Segments<NDataSegment> segments = dataflow.getSegments();
+        Segments<NDataSegment> segments = dataflow.getSegments().getSegmentsExcludeRefreshingAndMerging();
         List<NCuboidLayout> layouts = cuboidDesc.getLayouts();
+        CuboidDescResponse cuboidDescResponse = new CuboidDescResponse(cuboidDesc);
         long storage = 0L;
         long startTime = Long.MAX_VALUE;
         long endTime = 0L;
+        if (CollectionUtils.isEmpty(segments)) {
+            cuboidDescResponse.setStatus(CuboidStatus.EMPTY);
+            return cuboidDescResponse;
+        }
         for (NDataSegment segment : segments) {
             for (NCuboidLayout layout : layouts) {
-                NDataCuboid cuboid = segment.getCuboid(layout.getId());
-                if (cuboid != null) {
-                    storage += cuboid.getByteSize();
+                NDataCuboid nDataCuboid = segment.getCuboid(layout.getId());
+                if (nDataCuboid != null) {
+                    if (nDataCuboid.getStatus().equals(SegmentStatusEnum.NEW)) {
+                        cuboidDescResponse.setStatus(CuboidStatus.EMPTY);
+                        return cuboidDescResponse;
+                    }
+                    storage += nDataCuboid.getByteSize();
                 }
             }
             long start = Long.parseLong(segment.getSegRange().getStart().toString());
@@ -322,7 +330,6 @@ public class ModelService extends BasicService {
             startTime = startTime < start ? startTime : start;
             endTime = endTime > end ? endTime : end;
         }
-        CuboidDescResponse cuboidDescResponse = new CuboidDescResponse(cuboidDesc);
         cuboidDescResponse.setStartTime(startTime);
         cuboidDescResponse.setEndTime(endTime);
         cuboidDescResponse.setStorageSize(storage);
@@ -354,6 +361,55 @@ public class ModelService extends BasicService {
         }
         return result;
     }
+
+    public List<NSpanningTreeResponse> getSimplifiedModelRelations(String modelName, String project) {
+        List<NSpanningTreeResponse> result = Lists.newArrayList();
+        for (NSpanningTree spanningTree : getModelRelations(modelName, project)) {
+            result.add(simplifyNSpanningTreeResponse(spanningTree, modelName, project));
+        }
+        return result;
+    }
+    private NSpanningTreeResponse simplifyNSpanningTreeResponse(NSpanningTree tree, String modelName, String project) {
+        NSpanningTreeResponse spanningTreeResponse = new NSpanningTreeResponse();
+        NForestSpanningTree forestSpanningTree = (NForestSpanningTree) tree;
+        Map<Long, NSpanningTreeResponse.TreeNodeResponse> simplifiedNodesMap = Maps.newHashMap();
+        List<NSpanningTreeResponse.TreeNodeResponse> rootNodeResponses = new ArrayList<>();
+        for (NForestSpanningTree.TreeNode root : forestSpanningTree.getRoots()) {
+            spanningTreeResponse.getRoots().add(simplifyTreeNodeResponse(root, modelName, project));
+        }
+        for (HashMap.Entry<Long, NForestSpanningTree.TreeNode> entry : forestSpanningTree.getNodesMap().entrySet()) {
+            spanningTreeResponse.getNodesMap().put(entry.getKey(),
+                    simplifyTreeNodeResponse(entry.getValue(), modelName, project));
+        }
+        return spanningTreeResponse;
+    }
+
+    private NSpanningTreeResponse.TreeNodeResponse simplifyTreeNodeResponse(NForestSpanningTree.TreeNode root,
+            String modelName, String project) {
+        NSpanningTreeResponse.TreeNodeResponse treeNodeResponse = new NSpanningTreeResponse.TreeNodeResponse();
+        treeNodeResponse.setLevel(root.getLevel());
+        treeNodeResponse.setCuboid(simplifyCuboidResponse(root.getCuboidDesc().getId(), modelName, project));
+        if (root.getParent() != null) {
+            treeNodeResponse.setParent(root.getParent().getCuboidDesc().getId());
+        }
+        List<Long> childrenIds = Lists.newArrayList();
+        for (NForestSpanningTree.TreeNode children : root.getChildren()) {
+            childrenIds.add(children.getCuboidDesc().getId());
+        }
+        treeNodeResponse.setChildren(childrenIds);
+        return treeNodeResponse;
+    }
+
+    private NSpanningTreeResponse.SimplifiedCuboidResponse simplifyCuboidResponse(long id, String modelName,
+            String project) {
+        CuboidDescResponse cuboidDescResponse = getCuboidById(modelName, project, id);
+        NSpanningTreeResponse.SimplifiedCuboidResponse simplifiedCuboidResponse = new NSpanningTreeResponse.SimplifiedCuboidResponse();
+        simplifiedCuboidResponse.setId(id);
+        simplifiedCuboidResponse.setStatus(cuboidDescResponse.getStatus());
+        simplifiedCuboidResponse.setStorageSize(cuboidDescResponse.getStorageSize());
+        return simplifiedCuboidResponse;
+    }
+
 
     public List<RelatedModelResponse> getRelateModels(String project, String table, String modelName)
             throws IOException {
@@ -943,16 +999,20 @@ public class ModelService extends BasicService {
                 for (int i = 1; i < allSegments.size() - 1; i++) {
                     for (int id : idsToDelete) {
                         if (id == allSegments.get(i).getId()) {
-                            if (!idsToDelete.contains(allSegments.get(i - 1).getId())
-                                    || !idsToDelete.contains(allSegments.get(i + 1).getId())) {
-                                throw new BadRequestException(
-                                        "Only consecutive segments in head or tail can be removed!");
-                            }
+                            checkNeighbouringSegmentsDeleted(idsToDelete, i, allSegments);
                         }
                     }
                 }
 
             }
+        }
+    }
+
+    private void checkNeighbouringSegmentsDeleted(List<Integer> idsToDelete, int i,
+            Segments<NDataSegment> allSegments) {
+        if (!idsToDelete.contains(allSegments.get(i - 1).getId())
+                || !idsToDelete.contains(allSegments.get(i + 1).getId())) {
+            throw new BadRequestException("Only consecutive segments in head or tail can be removed!");
         }
     }
 

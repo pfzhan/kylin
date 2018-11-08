@@ -48,6 +48,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import lombok.Getter;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -72,6 +73,14 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     public NForestSpanningTree(Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids, String cacheKey) {
         super(cuboids, cacheKey);
         init();
+    }
+
+    public Map<Long, TreeNode> getNodesMap() {
+        return nodesMap;
+    }
+
+    public List<TreeNode> getRoots() {
+        return roots;
     }
 
     @Override
@@ -103,6 +112,9 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
 
     @Override
     public NCuboidDesc getCuboidDesc(long cuboidId) {
+        if (nodesMap.get(cuboidId) == null) {
+            throw new IllegalStateException("Cuboid（ID:" + cuboidId + ") does not exist!");
+        }
         return nodesMap.get(cuboidId).cuboidDesc;
     }
 
@@ -161,8 +173,8 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     private void init() {
         new TreeBuilder(cuboids.keySet()).build();
     }
-
-    private class TreeNode implements Serializable {
+    @Getter
+    public class TreeNode implements Serializable {
         @JsonProperty("cuboid")
         private final NCuboidDesc cuboidDesc;
         @JsonProperty("children")
