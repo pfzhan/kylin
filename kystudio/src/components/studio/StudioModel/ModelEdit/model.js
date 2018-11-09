@@ -84,6 +84,7 @@ class NModel {
       this.$set(this._mount, 'zoom', this.canvas && this.canvas.zoom || modelRenderConfig.zoom)
       this.$set(this._mount, 'tableIndexColumns', this.tableIndexColumns)
       this.$set(this._mount, 'maintain_model_type', this.maintain_model_type)
+      this.$set(this._mount, 'management_type', this.management_type)
     }
     if (options.renderDom) {
       this.renderDom = this.vm.$el.querySelector(options.renderDom)

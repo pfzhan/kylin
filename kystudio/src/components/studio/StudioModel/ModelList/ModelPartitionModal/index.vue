@@ -29,7 +29,7 @@
       <el-form-item :label="$t('partitionDateColumn')">
         <el-col :span="12">
           <el-form-item prop="date1">
-             <el-select v-model="partitionMeta.table" placeholder="表" style="width:248px">
+             <el-select v-model="partitionMeta.table" @change="partitionTableChange" placeholder="表" style="width:248px">
               <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
             </el-select>
           </el-form-item>
@@ -205,16 +205,16 @@ export default class ModelPartitionModal extends Vue {
   }
   @Watch('isShow')
   initModeDesc () {
-    if (this.isShow && this.modelDesc.partition_desc.partition_date_column) {
-      this.partitionMeta.table = this.modelDesc.partition_desc.partition_date_column.split('.')[0]
-      this.partitionMeta.column = this.modelDesc.partition_desc.partition_date_column.split('.')[1]
+    if (this.isShow && this.modelDesc && this.modelDesc.partition_desc.partition_date_column) {
+      let named = this.modelDesc.partition_desc.partition_date_column.split('.')
+      this.partitionMeta.table = named[0]
+      this.partitionMeta.column = named[1]
       this.partitionMeta.format = this.modelDesc.partition_desc.partition_date_format
       this.partitionMeta.filter_condition = this.modelDesc.filter_condition
     } else {
       this.resetForm()
     }
   }
-  @Watch('partitionMeta.table')
   partitionTableChange () {
     this.partitionMeta.column = ''
     this.partitionMeta.format = ''
@@ -228,11 +228,13 @@ export default class ModelPartitionModal extends Vue {
     this.filterCondition = ''
   }
   savePartition () {
-    this.modelDesc.partition_desc.partition_date_column = this.partitionMeta.table + '.' + this.partitionMeta.column
-    this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
-    this.modelDesc.filter_condition = this.filterCondition
-    this.modelDesc.project = this.currentSelectedProject
-    this.handleClose(true)
+    if (this.modelDesc) {
+      this.modelDesc.partition_desc.partition_date_column = this.partitionMeta.table + '.' + this.partitionMeta.column
+      this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
+      this.modelDesc.filter_condition = this.filterCondition
+      this.modelDesc.project = this.currentSelectedProject
+      this.handleClose(true)
+    }
   }
   handleClose (isSubmit) {
     this.hideModal()

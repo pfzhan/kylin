@@ -750,16 +750,18 @@ export default class ModelEdit extends Vue {
     this.$on('saveModel', () => {
       this.modelInstance.generateMetadata().then((data) => {
         if (this.modelRender.management_type !== 'TABLE_ORIENTED') {
-          let modelDesc = this.modelInstance.generateMetadata()
           this.showPartitionDialog({
-            modelDesc: this.modelDesc
+            modelDesc: data
           }).then((res) => {
             if (res.isSubmit) {
-              this.handleSaveModel(modelDesc)
+              this.handleSaveModel(data)
+            } else {
+              this.$emit('saveRequestEnd')
             }
           })
+        } else {
+          this.handleSaveModel(data)
         }
-        this.handleSaveModel(data)
       }, (errMsg) => {
         kapMessage(this.$t(modelErrorMsg[errMsg]), {type: 'warning'})
         this.$emit('saveRequestEnd')
