@@ -24,44 +24,31 @@
 
 package io.kyligence.kap.metadata.favorite;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import org.apache.commons.dbcp.BasicDataSourceFactory;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallbackWithoutResult;
-import org.springframework.transaction.support.TransactionTemplate;
 
-import javax.sql.DataSource;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 
 public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
 
     private static final Logger logger = LoggerFactory.getLogger(FavoriteQueryJDBCDao.class);
 
-    private TransactionTemplate transactionTemplate;
-    private JdbcTemplate jdbcTemplate;
-    private final DataSource dataSource;
-    private DataSourceTransactionManager dataSourceTransactionManager;
-
     private String tableName;
+    private KylinConfig config;
 
     private static final String SQL_PATTERN_HASH = "sql_pattern_hash";
     private static final String PROJECT = "project";
@@ -85,15 +72,8 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
     }
 
     private FavoriteQueryJDBCDao(KylinConfig kylinConfig) {
-        try {
-            dataSource = BasicDataSourceFactory.createDataSource(initDbcpProps(kylinConfig));
-        } catch (Exception ex) {
-            throw new RuntimeException(ex);
-        }
+        this.config = kylinConfig;
         this.tableName = kylinConfig.getFavoriteStorageUrl().getIdentifier();
-        dataSourceTransactionManager = new DataSourceTransactionManager(dataSource);
-        transactionTemplate = new TransactionTemplate(dataSourceTransactionManager);
-        jdbcTemplate = new JdbcTemplate(dataSource);
         createTableIfNotExists();
     }
 
@@ -111,45 +91,13 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
         sb.append(String.format(
                 "PRIMARY KEY (id), INDEX sql_pattern_hash_key (%s), INDEX project_index (%s), INDEX last_query_time_index (%s), INDEX status_index (%s))",
                 SQL_PATTERN_HASH, PROJECT, LAST_QUERY_TIME, STATUS));
-        jdbcTemplate.execute(sb.toString());
-    }
-
-    private Properties initDbcpProps(KylinConfig kylinConfig) {
-        StorageURL url = kylinConfig.getFavoriteStorageUrl();
-        Map<String, String> props = Maps.newHashMap(url.getAllParameters());
-        List<String> mandatoryItems = Arrays.asList("url", "username", "password");
-
-        for (String item : mandatoryItems) {
-            Preconditions.checkNotNull(props.get(item),
-                    "Setting item \"" + item + "\" is mandatory for Jdbc connections.");
-        }
-
-        logger.info("Connecting to Jdbc with url:" + props.get("url") + " by user " + props.get("username"));
-
-        Properties ret = new Properties();
-        ret.putAll(props);
-
-        putIfMissing(ret, "driverClassName", "com.mysql.jdbc.Driver");
-        putIfMissing(ret, "maxActive", "100");
-        putIfMissing(ret, "maxIdle", "100");
-        putIfMissing(ret, "maxWait", "1000");
-        putIfMissing(ret, "removeAbandoned", "true");
-        putIfMissing(ret, "removeAbandonedTimeout", "180");
-        putIfMissing(ret, "testOnBorrow", "true");
-        putIfMissing(ret, "testWhileIdle", "true");
-        putIfMissing(ret, "validationQuery", "select 1");
-        return ret;
-    }
-
-    private void putIfMissing(Properties map, String key, String value) {
-        if (map.containsKey(key) == false)
-            map.put(key, value);
+        JDBCManager.getInstance(config).getJdbcTemplate().execute(sb.toString());
     }
 
     public synchronized void initializeSqlPatternSet() {
         //todo: batch query
         final String sql = String.format("SELECT sql_pattern_hash, project FROM %s", this.tableName);
-        List<Pair<String, Integer>> queryResults = jdbcTemplate.query(sql, new RowMapper<Pair<String, Integer>>() {
+        List<Pair<String, Integer>> queryResults = JDBCManager.getInstance(config).getJdbcTemplate().query(sql, new RowMapper<Pair<String, Integer>>() {
             @Override
             public Pair<String, Integer> mapRow(ResultSet resultSet, int i) throws SQLException {
                 Pair<String, Integer> row = new Pair<>();
@@ -191,7 +139,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
         if (favoriteQueries == null || favoriteQueries.isEmpty())
             return;
 
-        transactionTemplate.execute(new TransactionCallbackWithoutResult() {
+        JDBCManager.getInstance(config).getTransactionTemplate().execute(new TransactionCallbackWithoutResult() {
             @Override
             public void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
                 try {
@@ -210,7 +158,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
                         + "success_rate=success_count/total_count, total_duration=total_duration+?, average_duration=total_duration/total_count WHERE %s=? and %s=?",
                 this.tableName, SQL_PATTERN_HASH, PROJECT);
 
-        jdbcTemplate.batchUpdate(updateSql, new BatchPreparedStatementSetter() {
+        JDBCManager.getInstance(config).getJdbcTemplate().batchUpdate(updateSql, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                 FavoriteQuery favoriteQuery = favoriteQueries.get(i);
@@ -235,7 +183,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
         if (favoriteQueries == null || favoriteQueries.isEmpty())
             return;
 
-        transactionTemplate.execute(new TransactionCallbackWithoutResult() {
+        JDBCManager.getInstance(config).getTransactionTemplate().execute(new TransactionCallbackWithoutResult() {
             @Override
             public void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
                 try {
@@ -252,7 +200,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
         final String updateSql = String.format("UPDATE %s SET %s=? WHERE %s=? and %s=?", this.tableName, STATUS,
                 SQL_PATTERN_HASH, PROJECT);
 
-        jdbcTemplate.batchUpdate(updateSql, new BatchPreparedStatementSetter() {
+        JDBCManager.getInstance(config).getJdbcTemplate().batchUpdate(updateSql, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                 FavoriteQuery favoriteQuery = favoriteQueries.get(i);
@@ -272,14 +220,14 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
     public List<FavoriteQuery> getByPage(String project, int limit, int offset) {
         final String sql = String.format("SELECT * FROM %s WHERE project='%s' ORDER BY %s DESC LIMIT %d OFFSET %d",
                 this.tableName, project, LAST_QUERY_TIME, limit, offset*limit);
-        return jdbcTemplate.query(sql, new FavoriteRowMapper());
+        return JDBCManager.getInstance(config).getJdbcTemplate().query(sql, new FavoriteRowMapper());
     }
 
     @Override
     public List<String> getUnAcceleratedSqlPattern(String project) {
         final String sql = String.format("SELECT %s FROM %s WHERE project='%s' AND status='%s'", SQL_PATTERN,
                 this.tableName, project, FavoriteQueryStatusEnum.WAITING);
-        return jdbcTemplate.query(sql, new RowMapper<String>() {
+        return JDBCManager.getInstance(config).getJdbcTemplate().query(sql, new RowMapper<String>() {
             @Override
             public String mapRow(ResultSet resultSet, int i) throws SQLException {
                 return resultSet.getString(SQL_PATTERN);
@@ -291,7 +239,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
         final String sql = String.format("SELECT * FROM %s WHERE project='%s' AND sql_pattern_hash = %d",
                 this.tableName, project, sqlPatternHash);
         try {
-            FavoriteQuery favoriteQuery = jdbcTemplate.queryForObject(sql, new FavoriteRowMapper());
+            FavoriteQuery favoriteQuery = JDBCManager.getInstance(config).getJdbcTemplate().queryForObject(sql, new FavoriteRowMapper());
             return favoriteQuery;
         } catch (EmptyResultDataAccessException ex) {
             return null;
@@ -304,7 +252,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
         if (favoriteQueries == null || favoriteQueries.isEmpty())
             return;
 
-        transactionTemplate.execute(new TransactionCallbackWithoutResult() {
+        JDBCManager.getInstance(config).getTransactionTemplate().execute(new TransactionCallbackWithoutResult() {
             @Override
             public void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
                 try {
@@ -323,7 +271,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
                 this.tableName, SQL_PATTERN_HASH, PROJECT, SQL_PATTERN, LAST_QUERY_TIME, TOTAL_COUNT, SUCCESS_COUNT,
                 SUCCESS_RATE, TOTAL_DURATION, AVERAGE_DURATION, STATUS);
 
-        jdbcTemplate.batchUpdate(sql, new BatchPreparedStatementSetter() {
+        JDBCManager.getInstance(config).getJdbcTemplate().batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                 FavoriteQuery favoriteQuery = favoriteQueries.get(i);
