@@ -41,7 +41,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { sourceTypes, sourceNameMapping } from '../../../config'
 import TreeList from '../TreeList/index.vue'
 import locales from './locales'
-import { getDatasourceObj, getDatabaseObj, getTableObj, getFirstTableData, getWordsData, freshTreeOrder } from './handler'
+import { getDatasourceObj, getDatabaseObj, getTableObj, getFirstTableData, getWordsData, getTableDBWordsData, freshTreeOrder } from './handler'
 import { handleSuccessAsync } from '../../../util'
 
 @Component({
@@ -311,9 +311,10 @@ export default class DataSourceBar extends Vue {
     const datasourceWords = this.datasources.map(datasource => getWordsData(datasource))
     const databaseWords = this.databaseArray.map(database => getWordsData(database))
     const tableWords = this.tableArray.map(table => getWordsData(table))
+    const databaseTableWords = this.tableArray.map(table => getTableDBWordsData(table))
     const columnWords = this.columnArray.map(column => getWordsData(column))
     this.allWords = [...datasourceWords, ...databaseWords, ...tableWords, ...columnWords]
-    this.$emit('autoComplete', [...databaseWords, ...tableWords, ...columnWords])
+    this.$emit('autoComplete', [...databaseWords, ...tableWords, ...databaseTableWords, ...columnWords])
   }
   async importDataSource (sourceType, project, event) {
     event && event.stopPropagation()

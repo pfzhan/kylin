@@ -202,6 +202,16 @@ export function getWordsData (data) {
   }
 }
 
+export function getTableDBWordsData (data) {
+  return {
+    meta: data.type,
+    caption: `${data.database}.${data.label}`,
+    value: `${data.database}.${data.label}`,
+    id: data.id,
+    scope: 1
+  }
+}
+
 export function getFirstTableData (datasourceTree) {
   for (const datasource of datasourceTree) {
     for (const database of datasource.children) {
