@@ -54,6 +54,62 @@ public class QueryPatternUtilTest {
     }
 
     @Test
+    public void testJdbcFn() throws Exception {
+        String sql = "SELECT {fn SECOND({fn CONVERT({fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) }, SQL_TIMESTAMP) }) } "
+                + "TEMP_TEST__2143701310__0_, 1 X__ALIAS__0\n"
+                + "FROM TDVT.CALCS CALCS\n"
+                + "GROUP BY 1";
+        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        Assert.assertEquals(sql, actual);
+    }
+
+    @Test
+    public void testGroupBy() throws Exception {
+        String sql = "SELECT SUM(1) AS COL, \n"
+                + " 2 AS COL2 \n"
+                + " FROM ( \n"
+                + " select test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt,sum(test_kylin_fact.price) as GMV \n"
+                + " , count(*) as TRANS_CNT \n"
+                + " from test_kylin_fact \n"
+                + " inner JOIN edw.test_cal_dt as test_cal_dt\n"
+                + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt \n"
+                + " where test_cal_dt.week_beg_dt between DATE '2013-05-01' and DATE '2013-08-01' \n"
+                + " group by test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt \n"
+                + " having sum(price)>500 \n"
+                + " ) TableauSQL \n"
+                + " GROUP BY 2 \n"
+                + " HAVING COUNT(1)>0 ";
+        String expected = "SELECT SUM(1) COL, 2 COL2\n"
+                + "FROM (SELECT TEST_KYLIN_FACT.LSTG_FORMAT_NAME, TEST_CAL_DT.WEEK_BEG_DT, SUM(TEST_KYLIN_FACT.PRICE) GMV, COUNT(*) TRANS_CNT\n"
+                + "FROM TEST_KYLIN_FACT\n"
+                + "INNER JOIN EDW.TEST_CAL_DT TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n"
+                + "WHERE TEST_CAL_DT.WEEK_BEG_DT BETWEEN ASYMMETRIC DATE '2010-01-01' AND DATE '2010-01-01'\n"
+                + "GROUP BY TEST_KYLIN_FACT.LSTG_FORMAT_NAME, TEST_CAL_DT.WEEK_BEG_DT\n"
+                + "HAVING SUM(PRICE) > 1) TABLEAUSQL\n"
+                + "GROUP BY 2\n"
+                + "HAVING COUNT(1) > 1";
+        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        Assert.assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testSelectNumericColumn() throws Exception {
+        String sql1 = "SELECT 1, 2, 3\nFROM A";
+        String actual1 = QueryPatternUtil.normalizeSQLPattern(sql1);
+        Assert.assertEquals(sql1, actual1);
+
+        String sql2 = "SELECT 97 AS TEMP_Test__415603459__0_,\n"
+                + "1 AS X__alias__0\n"
+                + "FROM TDVT.CALCS CALCS\n"
+                + "GROUP BY 1";
+        String expected2 = "SELECT 97 TEMP_TEST__415603459__0_, 1 X__ALIAS__0\n"
+                + "FROM TDVT.CALCS CALCS\n"
+                + "GROUP BY 1";
+        String actual2 = QueryPatternUtil.normalizeSQLPattern(sql2);
+        Assert.assertEquals(expected2, actual2);
+    }
+
+    @Test
     public void testLiteralComparison() throws Exception {
         String sql1 = "select ks.price as price, ks.part_dt as dt from kylin_sales as ks "
                 + "where NOT(ks.price <= 60.0) and ks.part_dt > '2012-02-05' and ks.name <> 'Baby'";
@@ -116,14 +172,19 @@ public class QueryPatternUtilTest {
 
     @Test
     public void testInAndNotIn() throws Exception {
-        String sql1 = "select first_name, last_name from sales "
-                + "where first_name not in (10, 20) "
+        String sql0 = "select first_name, last_name from sales "
+                + "where phone_number not in (10, 20, 30) "
                 + "and last_name in ('Swift', 'Bloomberg')";
+        String actual0 = QueryPatternUtil.normalizeSQLPattern(sql0);
+        String expected0 = "SELECT FIRST_NAME, LAST_NAME\nFROM SALES\n"
+                + "WHERE PHONE_NUMBER NOT IN (1) "
+                + "AND LAST_NAME IN ('A')";
+        Assert.assertEquals(expected0, actual0);
+        String sql1 = "select first_name, last_name from sales "
+                + "where phone_number not in (103952, 202342, 422583) "
+                + "and last_name in ('Sam', 'Jobs')";
         String actual1 = QueryPatternUtil.normalizeSQLPattern(sql1);
-        String expected1 = "SELECT FIRST_NAME, LAST_NAME\nFROM SALES\n"
-                + "WHERE FIRST_NAME NOT IN (1, 1) "
-                + "AND LAST_NAME IN ('A', 'A')";
-        Assert.assertEquals(expected1, actual1);
+        Assert.assertEquals(actual0, actual1);
 
         String sql2 = "select sum(PRICE) as GMV, LSTG_FORMAT_NAME as FORMAT_NAME\n"
                 + "from test_kylin_fact\n"
@@ -137,6 +198,32 @@ public class QueryPatternUtilTest {
                 + "GROUP BY LSTG_FORMAT_NAME";
         String actual2 = QueryPatternUtil.normalizeSQLPattern(sql2);
         Assert.assertEquals(expected2, actual2);
+
+        String sql3 = "SELECT ProductName\n"
+                + "FROM Product \n"
+                + "WHERE Id IN (SELECT ProductId \n"
+                + "FROM OrderItem\n"
+                + "WHERE Quantity IN (100, 200))";
+        String expected3 = "SELECT PRODUCTNAME\n"
+                + "FROM PRODUCT\n"
+                + "WHERE ID IN (SELECT PRODUCTID\n"
+                + "FROM ORDERITEM\n"
+                + "WHERE QUANTITY IN (1))";
+        String actual3 = QueryPatternUtil.normalizeSQLPattern(sql3);
+        Assert.assertEquals(expected3, actual3);
+
+        String sql4 = "SELECT ProductName\n"
+                + "FROM Product \n"
+                + "WHERE Id IN ('a', 'b', (SELECT ProductId \n"
+                + "FROM OrderItem\n"
+                + "WHERE Quantity IN (100, 200)))";
+        String expected4 = "SELECT PRODUCTNAME\n"
+                + "FROM PRODUCT\n"
+                + "WHERE ID IN ('A', (SELECT PRODUCTID\n"
+                + "FROM ORDERITEM\n"
+                + "WHERE QUANTITY IN (1)))";
+        String actual4 = QueryPatternUtil.normalizeSQLPattern(sql4);
+        Assert.assertEquals(expected4, actual4);
     }
 
     @Test

@@ -41,6 +41,7 @@
  */
 package io.kyligence.kap.query.util;
 
+import com.google.common.collect.Sets;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
@@ -64,6 +65,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.List;
+import java.util.Set;
 
 public class QueryPatternUtil {
 
@@ -71,7 +73,7 @@ public class QueryPatternUtil {
     private static final SqlDialect HIVE_DIALECT = SqlDialect.DatabaseProduct.HIVE.getDialect();
     private static final String DEFAULT_DATE = "2010-01-01";
     private static final String DEFAULT_DATE_GT = "2010-01-02";
-    // Value of default date string is "2010-01-01";
+    // Value of default date string is "2010-01-01"
     private static final DateString DEFAULT_DATE_STR = DateString.fromDaysSinceEpoch(14610);
     // "2010-01-02"
     private static final DateString DEFAULT_DATE_STR_GT = DateString.fromDaysSinceEpoch(14611);
@@ -86,8 +88,8 @@ public class QueryPatternUtil {
      *      A <= 6 -> A <= 2
      *      18 > A -> 2 > A
      *      A < "Job" -> A < "Z"
-     *      A in (1, 2) -> A IN (1, 1)
-     *      A not in ('Bob', 'Sam') -> A NOT IN ('A', 'A')
+     *      A in (10, 20, 30) -> A in (1)
+     *      A not in ('Bob', 'Sam') -> A NOT IN ('A')
      *      A like "%10" -> A LIKE ''
      *      A between 10 and 20 -> A BETWEEN ASYMMETRIC 1 AND 1
      *      A <= "1998-10-10" -> A <= "2010-01-02"
@@ -96,7 +98,7 @@ public class QueryPatternUtil {
      *
      * @param sqlToNormalize input SQL statement which needs to normalize
      * @return               normalized SQL statement in uppercase
-     * @throws SqlParseException if there is a parse error
+     * @throws SqlParseException if there is a parsing error
      */
     public static String normalizeSQLPattern(String sqlToNormalize) throws SqlParseException {
         SqlNode sqlNode;
@@ -118,35 +120,40 @@ public class QueryPatternUtil {
         @Override
         public Object visit(SqlCall call) {
             if (call instanceof SqlBasicCall) {
-                List<SqlNode> operandList = call.getOperandList();
-                boolean isOpLt = false;
-                boolean isOpGt = false;
 
                 SqlBasicCall basicCall = (SqlBasicCall) call;
                 SqlKind operator = basicCall.getOperator().getKind();
-                int numOfOperands = basicCall.operands.length;
+                List<SqlNode> operandList = basicCall.getOperandList();
 
-                if (numOfOperands == 2) {
-                    SqlNode operand1 = basicCall.operand(0);
-                    SqlNode operand2 = basicCall.operand(1);
-                    if (shouldSkipNormalize(operator, operand1, operand2)) {
-                        return call.getOperator().acceptCall(this, call);
-                    }
-                    isOpGt = operator.equals(SqlKind.GREATER_THAN) || operator.equals(SqlKind.GREATER_THAN_OR_EQUAL);
-                    isOpLt = operator.equals(SqlKind.LESS_THAN) || operator.equals(SqlKind.LESS_THAN_OR_EQUAL);
-                }
-
-                for (int i = 0; i < operandList.size(); i++) {
-                    SqlNode currentNode = operandList.get(i);
-                    if (currentNode instanceof SqlLiteral) {
-                        SqlLiteral sqlLiteral = (SqlLiteral) currentNode;
-                        if (shouldSkipNormalize(sqlLiteral)) {
-                            continue;
+                switch (operator) {
+                    case IN:
+                    case NOT_IN:
+                        normalizeInClause(basicCall);
+                        break;
+                    case JDBC_FN: // select { fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) } from A
+                    case AS:  // select 2 as column_2 from tableA
+                        break;
+                    case EQUALS:
+                    case NOT_EQUALS:
+                    case GREATER_THAN:
+                    case GREATER_THAN_OR_EQUAL:
+                    case LESS_THAN:
+                    case LESS_THAN_OR_EQUAL:
+                        normalizeComparisonClause(basicCall);
+                        break;
+                    default:
+                        // for SUM(1), COUNT(1), etc
+                        for (int i = 0; i < operandList.size(); i++) {
+                            SqlNode currentNode = operandList.get(i);
+                            if (currentNode instanceof SqlLiteral) {
+                                SqlLiteral sqlLiteral = (SqlLiteral) currentNode;
+                                if (shouldSkipNormalize(sqlLiteral)) {
+                                    continue;
+                                }
+                                SqlLiteral mockLiteral = mockLiteral(sqlLiteral, false);
+                                basicCall.setOperand(i, mockLiteral);
+                            }
                         }
-                        boolean useGtValue = (isOpLt && i == 1) || (isOpGt && i == 0);
-                        SqlLiteral mockLiteral = mockLiteral(sqlLiteral, useGtValue);
-                        call.setOperand(i, mockLiteral);
-                    }
                 }
             }
             return call.getOperator().acceptCall(this, call);
@@ -159,7 +166,8 @@ public class QueryPatternUtil {
                 SqlNode currentNode = nodeList.get(i);
                 if (currentNode instanceof SqlLiteral) {
                     SqlLiteral sqlLiteral = (SqlLiteral) currentNode;
-                    if (shouldSkipNormalize(sqlLiteral)) {
+                    // SqlNumericLiteral should skip normalize: select 1, 2, 3 from A
+                    if (shouldSkipNormalize(sqlLiteral) || sqlLiteral instanceof SqlNumericLiteral) {
                         continue;
                     }
                     SqlLiteral mockLiteral = mockLiteral(sqlLiteral, false);
@@ -200,14 +208,63 @@ public class QueryPatternUtil {
                 return SqlLiteral.createInterval(1, "1", sqlIntervalQualifier, position);
             }
 
-            return SqlLiteral.createUnknown(literal.getParserPosition());
+            logger.debug("Current SqlLiteral is not normalized, {}", literal);
+            return literal;
         }
 
-        // if 1 = 2, should skip normalize
-        private boolean shouldSkipNormalize(SqlKind operator, SqlNode operand1, SqlNode operand2) {
-            return SqlKind.COMPARISON.contains(operator)
-                    && operand1 instanceof SqlLiteral
-                    && operand2 instanceof SqlLiteral;
+        private void normalizeInClause(SqlBasicCall basicCall) {
+            // For case operand(1) instance of sqlSelect
+            if (!(basicCall.operand(1) instanceof SqlNodeList)) {
+                return;
+            }
+
+            SqlNodeList operand2 = basicCall.operand(1);
+            if (operand2 == null || operand2.size() == 0) {
+                return;
+            }
+
+            Set<SqlNode> nodeSet = Sets.newLinkedHashSet();
+            for (int i = 0; i < operand2.size(); i++) {
+                SqlNode node = operand2.get(i);
+                if (node instanceof SqlLiteral) {
+                    node = mockLiteral((SqlLiteral) node, false);
+                }
+                nodeSet.add(node);
+            }
+
+            basicCall.setOperand(1, new SqlNodeList(nodeSet, SqlParserPos.ZERO));
+        }
+
+        private void normalizeComparisonClause(SqlBasicCall basicCall) {
+            SqlKind operatorKind = basicCall.getOperator().getKind();
+            boolean isOpLt;
+            boolean isOpGt;
+
+            int numOfOperands = basicCall.operands.length;
+            if (numOfOperands != 2) {
+                return;
+            }
+
+            SqlNode operand1 = basicCall.operand(0);
+            SqlNode operand2 = basicCall.operand(1);
+            // for case 1 = 2
+            if (operand1 instanceof SqlLiteral && operand2 instanceof SqlLiteral) {
+                return;
+            }
+
+            isOpGt = operatorKind.equals(SqlKind.GREATER_THAN) || operatorKind.equals(SqlKind.GREATER_THAN_OR_EQUAL);
+            isOpLt = operatorKind.equals(SqlKind.LESS_THAN) || operatorKind.equals(SqlKind.LESS_THAN_OR_EQUAL);
+
+            if (operand1 instanceof SqlLiteral) {
+                SqlLiteral mockLiteral = mockLiteral((SqlLiteral) operand1, isOpGt);
+                basicCall.setOperand(0, mockLiteral);
+            }
+
+            if (operand2 instanceof SqlLiteral) {
+                SqlLiteral mockLiteral = mockLiteral((SqlLiteral) operand2, isOpLt);
+                basicCall.setOperand(1, mockLiteral);
+            }
+
         }
 
         private boolean shouldSkipNormalize(SqlLiteral sqlLiteral) {
