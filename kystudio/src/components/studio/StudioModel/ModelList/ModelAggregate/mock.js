@@ -92,256 +92,197 @@ export const aggregateGroups = [
 export const flowerJSON = [
   {
     nodes: {
-      '10000007000': {
-        cuboidResponse: {
-          id: 10000007000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000007000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000004000, 10000005000, 10000006000],
-        parent: 10000008000,
-        level: 1
-      },
-      '100000070001': {
-        cuboidResponse: {
-          id: 100000070001,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 100000070001, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000004000, 10000005000, 10000006000],
-        parent: 10000008000,
-        level: 1
-      },
       '10000005000': {
-        cuboidResponse: {
-          id: 10000005000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
         cuboid: { id: 10000005000, status: 'AVAILABLE', storage_size: 0 },
         children: [10000003000],
         parent: 10000007000,
+        level: 5
+      },
+      '10000029000': {
+        cuboid: { id: 10000029000, status: 'AVAILABLE', storage_size: 0 },
+        children: [],
+        parent: 10000030000,
         level: 2
       },
-      '10000001000': {
-        cuboidResponse: {
-          id: 10000001000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000001000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000000000],
-        parent: 10000004000,
+      '10000021000': {
+        cuboid: { id: 10000021000, status: 'EMPTY', storage_size: 0 },
+        children: [],
+        parent: 10000022000,
         level: 3
       },
-      '10000003000': {
-        cuboidResponse: {
-          id: 10000003000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000003000, status: 'AVAILABLE', storage_size: 0 },
-        children: [],
-        parent: 10000005000,
-        level: 3
-      },
-      '10000004000': {
-        cuboidResponse: {
-          id: 10000004000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000004000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000001000, 10000002000],
-        parent: 10000007000,
-        level: 2
-      },
-      '10000006000': {
-        cuboidResponse: {
-          id: 10000006000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000006000, status: 'AVAILABLE', storage_size: 0 },
-        children: [],
-        parent: 10000007000,
-        level: 2
-      },
-      '10000002000': {
-        cuboidResponse: {
-          id: 10000002000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000002000, status: 'AVAILABLE', storage_size: 0 },
-        children: [],
-        parent: 10000004000,
-        level: 3
+      '10000013000': {
+        cuboid: { id: 10000013000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000011000],
+        parent: 10000015000,
+        level: 5
       },
       '10000000000': {
-        cuboidResponse: {
-          id: 10000000000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
         cuboid: { id: 10000000000, status: 'AVAILABLE', storage_size: 0 },
         children: [],
-        parent: 10000001000,
-        level: 4
+        parent: 10000002000,
+        level: 7
       },
-      '10000008000': {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
+      '10000024000': {
+        cuboid: { id: 10000024000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000023000, 10000026000, 10000030000, 10000020000],
         parent: -1,
         level: 0
+      },
+      '10000008000': {
+        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000006000],
+        parent: 10000018000,
+        level: 3
+      },
+      '10000016000': {
+        cuboid: { id: 10000016000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000014000],
+        parent: 10000018000,
+        level: 3
+      },
+      '10000007000': {
+        cuboid: { id: 10000007000, status: 'BROKEN', storage_size: 0 },
+        children: [10000005000],
+        parent: 10000017000,
+        level: 4
+      },
+      '10000023000': {
+        cuboid: { id: 10000023000, status: 'BROKEN', storage_size: 0 },
+        children: [],
+        parent: 10000024000,
+        level: 1
+      },
+      '10000015000': {
+        cuboid: { id: 10000015000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000013000],
+        parent: 10000017000,
+        level: 4
+      },
+      '10000002000': {
+        cuboid: { id: 10000002000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000000000],
+        parent: 10000004000,
+        level: 6
+      },
+      '10000026000': {
+        cuboid: { id: 10000026000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000025000],
+        parent: 10000024000,
+        level: 1
+      },
+      '10000018000': {
+        cuboid: { id: 10000018000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000008000, 10000016000, 10000017000],
+        parent: 10000020000,
+        level: 2
+      },
+      '10000010000': {
+        cuboid: { id: 10000010000, status: 'AVAILABLE', storage_size: 0 },
+        children: [],
+        parent: 10000012000,
+        level: 6
+      },
+      '10000001000': {
+        cuboid: { id: 10000001000, status: 'AVAILABLE', storage_size: 0 },
+        children: [],
+        parent: 10000003000,
+        level: 7
+      },
+      '10000025000': {
+        cuboid: { id: 10000025000, status: 'AVAILABLE', storage_size: 0 },
+        children: [],
+        parent: 10000026000,
+        level: 2
+      },
+      '10000017000': {
+        cuboid: { id: 10000017000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000007000, 10000015000],
+        parent: 10000018000,
+        level: 3
+      },
+      '10000009000': {
+        cuboid: { id: 10000009000, status: 'AVAILABLE', storage_size: 0 },
+        children: [],
+        parent: 10000011000,
+        level: 7
+      },
+      '10000004000': {
+        cuboid: { id: 10000004000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000002000],
+        parent: 10000006000,
+        level: 5
+      },
+      '10000020000': {
+        cuboid: { id: 10000020000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000019000, 10000022000, 10000018000],
+        parent: 10000024000,
+        level: 1
+      },
+      '10000028000': {
+        cuboid: { id: 10000028000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000027000],
+        parent: 10000030000,
+        level: 2
+      },
+      '10000012000': {
+        cuboid: { id: 10000012000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000010000],
+        parent: 10000014000,
+        level: 5
+      },
+      '10000003000': {
+        cuboid: { id: 10000003000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000001000],
+        parent: 10000005000,
+        level: 6
+      },
+      '10000019000': {
+        cuboid: { id: 10000019000, status: 'AVAILABLE', storage_size: 0 },
+        children: [],
+        parent: 10000020000,
+        level: 2
+      },
+      '10000027000': {
+        cuboid: { id: 10000027000, status: 'AVAILABLE', storage_size: 0 },
+        children: [],
+        parent: 10000028000,
+        level: 3
+      },
+      '10000011000': {
+        cuboid: { id: 10000011000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000009000],
+        parent: 10000013000,
+        level: 6
+      },
+      '10000006000': {
+        cuboid: { id: 10000006000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000004000],
+        parent: 10000008000,
+        level: 4
+      },
+      '10000030000': {
+        cuboid: { id: 10000030000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000029000, 10000028000],
+        parent: 10000024000,
+        level: 1
+      },
+      '10000022000': {
+        cuboid: { id: 10000022000, status: 'BROKEN', storage_size: 0 },
+        children: [10000021000],
+        parent: 10000020000,
+        level: 2
+      },
+      '10000014000': {
+        cuboid: { id: 10000014000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000012000],
+        parent: 10000016000,
+        level: 4
       }
     },
     roots: [
       {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
-        parent: -1,
-        level: 0
-      }, {
-        cuboidResponse: {
-          id: 10000008000,
-          status: 'AVAILABLE',
-          storage_size: 0
-        },
-        cuboid: { id: 10000008000, status: 'AVAILABLE', storage_size: 0 },
-        children: [10000007000],
+        cuboid: { id: 10000024000, status: 'AVAILABLE', storage_size: 0 },
+        children: [10000023000, 10000026000, 10000030000, 10000020000],
         parent: -1,
         level: 0
       }

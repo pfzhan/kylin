@@ -1,8 +1,17 @@
-import emptyCuboidsUrl from './empty-cuboids.png'
+import emptyCuboidsUrl from './empty.png'
+import brokenCuboidsUrl from './broken.png'
 
 export const backgroundMaps = {
-  EMPTY: emptyCuboidsUrl,
-  BROKEN: emptyCuboidsUrl
+  BROKEN: {
+    url: brokenCuboidsUrl,
+    width: 60,
+    height: 24
+  },
+  EMPTY: {
+    url: emptyCuboidsUrl,
+    width: 60,
+    height: 18
+  }
 }
 
 export function formatFlowerJson (data) {

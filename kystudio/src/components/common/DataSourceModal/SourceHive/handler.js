@@ -33,9 +33,9 @@ export function getTableTree (database, res, isTableReset) {
     label: table.table_name,
     type: 'table',
     database: database.id,
-    isSelected: table.is_loaded,
-    clickable: !table.is_loaded,
-    isLoaded: table.is_loaded
+    isSelected: table.loaded,
+    clickable: !table.loaded,
+    isLoaded: table.loaded
   }))
   database.children = isTableReset
     ? newTables

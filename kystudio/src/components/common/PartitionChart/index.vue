@@ -12,13 +12,18 @@
           <feBlend in="SourceGraphic" in2="blurOut" mode="normal" />
         </filter>
         <pattern
-          v-for="(backgroundUrl, backgroundName) in backgroundMaps"
+          v-for="(background, backgroundName) in backgroundMaps"
           :key="backgroundName"
           :id="backgroundName"
           patternUnits="userSpaceOnUse"
-          width="70"
-          height="70">
-          <image :xlink:href="backgroundUrl" x="0" y="0" width="70" height="70" />
+          :width="background.width"
+          :height="background.height">
+          <image
+            x="0"
+            y="0"
+            :xlink:href="background.url"
+            :width="background.width"
+            :height="background.height" />
         </pattern>
       </defs>
     </svg>
@@ -42,7 +47,7 @@ export default class PartitionChart extends Vue {
   tipX = 0
   tipY = 0
   baseColor = [
-    '#28741D', '#0060D8', '#5F2BE7', '#CC7E04', '#0F7A8D', '#BA0909'
+    '#0372EA', '#28741D', '#5F2BE7', '#CC7E04', '#0F7A8D', '#BA0909'
   ]
   @Watch('searchId')
   async onSearchIdChange (searchId) {

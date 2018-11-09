@@ -60,12 +60,12 @@
                     </template>
                   </el-table-column>
                 </el-table>
-                <el-table class="cuboid-dimensions" :data="cuboidDimensions" border max-height="335">
+                <el-table class="cuboid-content" :data="cuboidContent" border max-height="335">
                   <el-table-column type="index" :label="$t('order')" width="80" align="center">
                   </el-table-column>
-                  <el-table-column prop="dimension" :label="$t('content')" align="center">
+                  <el-table-column prop="content" :label="$t('content')" align="center">
                     <template slot-scope="scope">
-                      <div class="align-left">{{scope.row.dimension}}</div>
+                      <div class="align-left">{{scope.row.content}}</div>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -126,21 +126,25 @@ export default class ModelAggregate extends Vue {
   backgroundMaps = backgroundMaps
   get cuboidInfo () {
     return Object.entries(this.cuboidDetail)
-      .filter(([key]) => key !== 'dimensions')
+      .filter(([key]) => !['dimensions', 'measures'].includes(key))
       .map(([key, value]) => ({ key, value }))
   }
-  get cuboidDimensions () {
-    return this.cuboidDetail.dimensions.map(dimension => ({ dimension }))
+  get cuboidContent () {
+    return [
+      ...this.cuboidDetail.dimensions.map(dimension => ({ content: dimension })),
+      ...this.cuboidDetail.measures.map(measure => ({ content: measure }))
+    ]
   }
   get cuboidDetail () {
     const id = this.cuboidData.id
     const dimensions = this.cuboidData.dimensions_res || []
+    const measures = this.cuboidData.measures_res || []
     const startDate = dayjs(this.cuboidData.start_time).format('YYYY-MM-DD HH:mm:ss')
     const endDate = dayjs(this.cuboidData.end_time).format('YYYY-MM-DD HH:mm:ss')
     const storage = this.cuboidData.storage_size
     const queryCount = this.cuboidData.amount || 0
     const dataRange = { startDate, to: this.$t('to'), endDate }
-    return { id, dimensions, dataRange, storage, queryCount }
+    return { id, dimensions, measures, dataRange, storage, queryCount }
   }
   async handleClickNode (node) {
     const res = await this.fetchCuboid({
