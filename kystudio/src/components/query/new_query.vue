@@ -218,9 +218,9 @@ export default class NewQuery extends Vue {
   clickTable (leaf) {
     if (leaf) {
       var tipsName = leaf.label
-      var editor = this.$refs.insightBox.$refs.kapEditor.editor
-      editor.focus()
-      editor.insert(tipsName)
+      var editor = this.$refs.insightBox
+      editor.$emit('focus')
+      editor.$emit('insert', tipsName)
       this.sourceSchema = editor.getValue()
     }
   }
@@ -313,19 +313,7 @@ export default class NewQuery extends Vue {
     return hasPermission(this, permissions.ADMINISTRATION.mask)
   }
   setCompleteData (data) {
-    const editor = this.$refs.insightBox.$refs.kapEditor.editor
-
-    editor.completers.splice(0, editor.completers.length - 3)
-    editor.completers.unshift({
-      identifierRegexps: [/[.a-zA-Z_0-9]/],
-      getCompletions (editor, session, pos, prefix, callback) {
-        if (prefix.length === 0) {
-          return callback(null, data)
-        } else {
-          return callback(null, data)
-        }
-      }
-    })
+    this.$refs.insightBox.$emit('setAutoCompleteData', data)
   }
   get isAdmin () {
     return hasRole(this, 'ROLE_ADMIN')
@@ -334,21 +322,6 @@ export default class NewQuery extends Vue {
     return this.$store.state.system.showHtrace === 'true'
   }
   async mounted () {
-    var editor = this.$refs.insightBox.$refs.kapEditor.editor
-    editor.commands.on('afterExec', function (e, t) {
-      if (e.command.name === 'insertstring' && (e.args === ' ' || e.args === '.')) {
-        var all = e.editor.completers
-        // e.editor.completers = completers;
-        e.editor.execCommand('startAutocomplete')
-        e.editor.completers = all
-      }
-    })
-    editor.setOptions({
-      wrap: 'free',
-      enableBasicAutocompletion: true,
-      enableSnippets: true,
-      enableLiveAutocompletion: true
-    })
     if (!this.currentSelectedProject) {
       return
     }

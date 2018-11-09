@@ -7,7 +7,9 @@ class NTable {
     // this.database = options.database // 数据库名
     // this.tablename = options.tablename // 表名
     this.name = options.table // 全称
-    this.columns = objectClone(options.columns) // 所有列
+    this.columns = objectClone(options.columns).filter((col) => {
+      return !col.is_computed_column
+    }) // 所有列
     this.kind = options.kind ? options.kind : options.fact ? modelRenderConfig.tableKind.fact : modelRenderConfig.tableKind.lookup // table 类型
     this.joinInfo = {} // 链接对象
     this.guid = sampleGuid() // identify id

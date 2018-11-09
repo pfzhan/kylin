@@ -18,13 +18,60 @@ export default {
   methods: {
     changeInput () {
       this.$emit('input', this.editorData)
+    },
+    setOption (option) {
+      var editor = this.$refs.kapEditor.editor
+      editor.setOptions(Object.assign({
+        wrap: 'free',
+        enableBasicAutocompletion: true,
+        enableSnippets: true,
+        enableLiveAutocompletion: true
+      }, option))
+    },
+    getValue () {
+      var editor = this.$refs.kapEditor.editor
+      return editor.getValue()
     }
   },
   mounted () {
     var editor = this.$refs.kapEditor.editor
-    editor.setOption('wrap', 'free')
+    // editor.setOption('wrap', 'free')
     var editorWrap = this.$el
     var smylesEditor = this.$el.querySelector('.smyles_editor')
+    this.$on('setReadOnly', (isReadyOnly) => {
+      editor.setReadOnly(true)
+    })
+    this.setOption()
+    this.$on('setOption', (option) => {
+      this.setOption(option)
+    })
+    this.$on('focus', () => {
+      editor.focus()
+    })
+    this.$on('insert', (val) => {
+      editor.insert(val)
+    })
+    this.$on('setAutoCompleteData', (autoCompleteData) => {
+      editor.completers.splice(0, editor.completers.length - 3)
+      editor.completers.unshift({
+        identifierRegexps: [/[.a-zA-Z_0-9]/],
+        getCompletions (editor, session, pos, prefix, callback) {
+          if (prefix.length === 0) {
+            return callback(null, autoCompleteData)
+          } else {
+            return callback(null, autoCompleteData)
+          }
+        }
+      })
+      editor.commands.on('afterExec', function (e, t) {
+        if (e.command.name === 'insertstring' && (e.args === ' ' || e.args === '.')) {
+          var all = e.editor.completers
+          // e.editor.completers = completers;
+          e.editor.execCommand('startAutocomplete')
+          e.editor.completers = all
+        }
+      })
+    })
     this.$el.querySelector('.smyles_dragbar').onmousedown = (e) => {
       e.preventDefault()
       this.dragging = true
@@ -64,14 +111,6 @@ export default {
 </script>
 <style lang="less">
   .smyles_editor_wrap {
-    // background-color: #272822;
-    // .smyles_editor {
-    //   .ace_gutter {
-    //     .ace_layer {
-    //       background: #393e53;
-    //     }
-    //   }
-    // }
     .smyles_dragbar {
       width: 100%;
       height: 4px;

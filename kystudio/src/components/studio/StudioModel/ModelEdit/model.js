@@ -8,6 +8,10 @@ import $ from 'jquery'
 // model 对象
 class NModel {
   constructor (options, _mount, _) {
+    if (!options) {
+      console.log('model init failed')
+      return null
+    }
     Object.assign(this, options)
     this.mode = options.uuid ? 'edit' : 'new' // 当前模式
     this.name = options.name
@@ -866,7 +870,7 @@ class NModel {
     })
   }
   // 检查是否有同名, 通过重名检测返回true
-  _checkSameCCName (name) {
+  checkSameCCName (name) {
     return indexOfObjWithSomeKey(this._mount.computed_columns, 'columnName', name) < 0
   }
   generateCCMeta (ccObj) {
@@ -884,7 +888,7 @@ class NModel {
   // 添加CC
   addCC (ccObj) {
     return new Promise((resolve, reject) => {
-      if (this._checkSameCCName(ccObj.columnName)) {
+      if (this.checkSameCCName(ccObj.columnName)) {
         let ccMeta = this.generateCCMeta(ccObj)
         this._mount.computed_columns.push(ccMeta)
         resolve(ccMeta)

@@ -3,7 +3,7 @@
     :title="$t('setting')"
     width="660px"
     append-to-body
-    :visible.sync="isShow" 
+    :visible="isShow" 
     class="model-partition-dialog" 
     @close="isShow && handleClose(false)" 
     :close-on-press-escape="false" 
@@ -91,7 +91,7 @@ vuex.registerModule(['modals', 'ModelPartitionModal'], store)
     ...mapState('ModelPartitionModal', {
       isShow: state => state.isShow,
       modelDesc: state => state.form.modelDesc,
-      modelInstance: state => new NModel(state.form.modelDesc),
+      modelInstance: state => state.form.modelDesc && new NModel(state.form.modelDesc) || null,
       callback: state => state.callback
     })
   },
