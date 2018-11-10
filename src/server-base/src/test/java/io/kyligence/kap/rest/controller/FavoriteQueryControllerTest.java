@@ -23,13 +23,13 @@
  */
 package io.kyligence.kap.rest.controller;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryResponse;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
-import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.QueryFilterRequest;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -41,21 +41,17 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-@Ignore
+import java.util.List;
+
 public class FavoriteQueryControllerTest {
 
     private final String PROJECT = "default";
     private final String QUERY_HISTORY_1 = "query_history_1";
-    private final String QUERY_HISTORY_2 = "query_history_2";
-    private final String FAVORITE_QUERY_1 = "favorite_query_1";
-    private final String FAVORITE_QUERY_2 = "favorite_query_2";
 
     private MockMvc mockMvc;
 
     @Mock
     private FavoriteQueryService favoriteQueryService;
-    @Mock
-    private QueryHistoryService queryHistoryService;
     @InjectMocks
     private FavoriteQueryController favoriteQueryController = Mockito.spy(new FavoriteQueryController());
 
@@ -69,7 +65,7 @@ public class FavoriteQueryControllerTest {
     }
 
     @Test
-    public void testFavorite() throws Exception {
+    public void testManualFavorite() throws Exception {
         FavoriteRequest request = new FavoriteRequest(PROJECT, QUERY_HISTORY_1, System.currentTimeMillis());
         mockMvc.perform(MockMvcRequestBuilders.post("/api/query/favorite_queries")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -77,25 +73,34 @@ public class FavoriteQueryControllerTest {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-//        Mockito.verify(favoriteQueryController, Mockito.only()).favorite(Mockito.any(request.getClass()));
+        Mockito.verify(favoriteQueryController, Mockito.only()).manualFavorite(Mockito.any(request.getClass()));
+    }
+
+    private List<FavoriteQueryResponse> mockedFavoriteQueries() {
+        List<FavoriteQueryResponse> mockedFavoriteQueries = Lists.newArrayList();
+        mockedFavoriteQueries.add(new FavoriteQueryResponse("sql1", "sql1".hashCode(), PROJECT));
+        mockedFavoriteQueries.add(new FavoriteQueryResponse("sql2", "sql1".hashCode(), PROJECT));
+        mockedFavoriteQueries.add(new FavoriteQueryResponse("sql3", "sql1".hashCode(), PROJECT));
+
+        return mockedFavoriteQueries;
     }
 
     @Test
     public void testListAllFavorite() throws Exception {
+        Mockito.when(favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0)).thenReturn(mockedFavoriteQueries());
+        Mockito.when(favoriteQueryService.getFavoriteQuerySize(PROJECT)).thenReturn(10);
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries")
                 .contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT)
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isOk());
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(10))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries.length()").value(3))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries[0].sql_pattern").value("sql1"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries[1].sql_pattern").value("sql2"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries[2].sql_pattern").value("sql3"));
 
         Mockito.verify(favoriteQueryController, Mockito.only()).listFavoriteQuery(PROJECT, 0, 10);
-    }
-
-    private QueryFilterRequest mockFilterQueryHistoryRequest() {
-        final QueryFilterRequest sqlRequest = new QueryFilterRequest();
-        sqlRequest.setProject(PROJECT);
-//        sqlRequest.setRule(null);
-        return sqlRequest;
     }
 
     @Test
@@ -131,25 +136,77 @@ public class FavoriteQueryControllerTest {
     }
 
     @Test
-    public void testGetFilterRules() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/rules")
+    public void testGetFrequencyRule() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/rules/frequency")
                 .contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT)
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-//        Mockito.verify(favoriteQueryController, Mockito.only()).getFilterRule(PROJECT);
+        Mockito.verify(favoriteQueryController, Mockito.only()).getFrequencyRule(PROJECT);
     }
 
-//    @Test
-//    public void testUpdateFilterRule() throws Exception {
-//        QueryFilterRequest request = new QueryFilterRequest();
-//        mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/rules")
-//                .contentType(MediaType.APPLICATION_JSON)
-//                .content(JsonUtil.writeValueAsString(request))
-//                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-//                .andExpect(MockMvcResultMatchers.status().isOk());
-//
-//        Mockito.verify(favoriteQueryController).updateFilterRule(Mockito.any(QueryFilterRequest.class));
-//    }
+    @Test
+    public void testGetSubmitterRule() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/rules/submitter")
+                .contentType(MediaType.APPLICATION_JSON)
+                .param("project", PROJECT)
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(favoriteQueryController, Mockito.only()).getSubmitterRule(PROJECT);
+    }
+
+    @Test
+    public void testGetDurationRule() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/rules/duration")
+                .contentType(MediaType.APPLICATION_JSON)
+                .param("project", PROJECT)
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(favoriteQueryController, Mockito.only()).getDurationRule(PROJECT);
+    }
+
+    @Test
+    public void testUpdateFrequencyRule() throws Exception {
+        QueryFilterRequest request = new QueryFilterRequest();
+        request.setProject(PROJECT);
+        request.setEnable(false);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/rules/frequency")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(favoriteQueryController, Mockito.only()).updateFrequencyRule(Mockito.any(request.getClass()));
+    }
+
+    @Test
+    public void testUpdateSubmitterRule() throws Exception {
+        QueryFilterRequest request = new QueryFilterRequest();
+        request.setProject(PROJECT);
+        request.setEnable(false);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/rules/submitter")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(favoriteQueryController, Mockito.only()).updateSubmitterRule(Mockito.any(request.getClass()));
+    }
+
+    @Test
+    public void testUpdateDurationRule() throws Exception {
+        QueryFilterRequest request = new QueryFilterRequest();
+        request.setProject(PROJECT);
+        request.setEnable(false);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/query/favorite_queries/rules/duration")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(favoriteQueryController, Mockito.only()).updateDurationRule(Mockito.any(request.getClass()));
+    }
 }

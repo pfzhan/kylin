@@ -26,7 +26,6 @@ package io.kyligence.kap.server;
 
 
 import com.jayway.jsonpath.JsonPath;
-import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.KylinTestBase;
@@ -62,22 +61,11 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andReturn();
 
-
-
         final boolean isException = JsonPath.compile("$.data.isException").read(result.getResponse().getContentAsString());
         Assert.assertTrue(isException);
 
         final String exceptionMsg = JsonPath.compile("$.data.exceptionMessage").read(result.getResponse().getContentAsString());
         Assert.assertTrue(StringUtils.contains(exceptionMsg, "No realization found for OLAPContext"));
-
-        QueryHistoryManager manager = QueryHistoryManager.getInstance(getTestConfig());
-//        List<QueryHistory> queryHistories = manager.getAllQueryHistories("default");
-//        QueryHistory newRecordedQuery = queryHistories.get(0);
-
-        // assert if query history was saved
-//        Assert.assertEquals(5, queryHistories.size());
-//        Assert.assertEquals(sqlRequest.getSql(), newRecordedQuery.getSql());
-//        Assert.assertEquals(QueryHistoryStatusEnum.FAILED, newRecordedQuery.getAccelerateStatus());
     }
 
     @Test
@@ -109,7 +97,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         Statement statement = h2Connection.createStatement();
         ResultSet resultSet = statement.executeQuery(sql);
 
-        final MvcResult mvcResult = mockMvc.perform(MockMvcRequestBuilders
+        mockMvc.perform(MockMvcRequestBuilders
                 .post("/api/query")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(sqlRequest))
@@ -120,22 +108,6 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.pushDown").value(true))
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
-
-        final long totalScanCount = JsonPath.compile("$.data.totalScanCount")
-                .<Integer> read(mvcResult.getResponse().getContentAsString());
-        final long totalScanBytes = JsonPath.compile("$.data.totalScanBytes")
-                .<Integer> read(mvcResult.getResponse().getContentAsString());
-
-//        QueryHistoryManager manager = QueryHistoryManager.getInstance(getTestConfig());
-//        List<QueryHistory> queryHistories = manager.getAllQueryHistories("default");
-//        QueryHistory newRecordedQuery = queryHistories.get(0);
-
-        // assert if query history was saved
-//        Assert.assertEquals(5, queryHistories.size());
-//        Assert.assertEquals(sqlRequest.getSql(), newRecordedQuery.getSql());
-//        Assert.assertEquals(QueryContext.PUSHDOWN_RDBMS, newRecordedQuery.getRealization().get(0));
-//        Assert.assertEquals(totalScanCount, newRecordedQuery.getTotalScanCount());
-//        Assert.assertEquals(totalScanBytes, newRecordedQuery.getTotalScanBytes());
 
         h2Connection.close();
         System.clearProperty("kylin.query.pushdown.runner-class-name");

@@ -28,6 +28,7 @@ import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.query.QueryHistory;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kylin.common.QueryContext;
@@ -121,6 +122,7 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
             request.setUsername("ADMIN");
 
             final SQLResponse response = new SQLResponse();
+            response.setIsException(true);
             response.setHitExceptionCache(true);
             response.setServer("localhost");
             response.setSuite("suite_1");
@@ -280,6 +282,41 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
             QueryContext.reset();
             QueryMetricsContext.reset();
             OLAPContext.clearThreadLocalContexts();
+            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
+                    "BLACK_HOLE");
+        }
+    }
+
+    @Test
+    public void testSqlPatternParseError() {
+        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
+        try {
+            // error happens when there is a comma, but the query history still gets to record down
+            final String origSql = "select * from test_parse_sql_pattern_error";
+            final String massagedSql = "select * from test_parse_sql_pattern_error limit 500;";
+            final QueryContext queryContext = QueryContext.current();
+            queryContext.setCorrectedSql(massagedSql);
+            QueryMetricsContext.start(queryContext.getQueryId());
+            Assert.assertEquals(true, QueryMetricsContext.isStarted());
+
+            final SQLRequest request = new SQLRequest();
+            request.setProject("default");
+            request.setSql(origSql);
+            request.setUsername("ADMIN");
+
+            final SQLResponse response = new SQLResponse();
+            response.setHitExceptionCache(true);
+            response.setServer("localhost");
+            response.setSuite("suite_1");
+
+            final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+
+            final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+            Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_TEXT));
+            Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_PATTERN));
+        } finally {
+            QueryContext.reset();
+            QueryMetricsContext.reset();
             QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
                     "BLACK_HOLE");
         }

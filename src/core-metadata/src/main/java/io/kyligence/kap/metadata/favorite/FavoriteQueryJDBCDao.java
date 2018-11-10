@@ -27,8 +27,6 @@ package io.kyligence.kap.metadata.favorite;
 import com.google.common.collect.Maps;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -45,8 +43,6 @@ import java.util.Set;
 
 public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
 
-    private static final Logger logger = LoggerFactory.getLogger(FavoriteQueryJDBCDao.class);
-
     private String tableName;
     private KylinConfig config;
 
@@ -61,7 +57,15 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
     private static final String AVERAGE_DURATION = "average_duration";
     private static final String STATUS = "status";
 
-    public static Map<String, Set<Integer>> sqlPatternHashSet;
+    public static Map<String, Set<Integer>> getSqlPatternHashSet() {
+        return sqlPatternHashSet;
+    }
+
+    public static void setSqlPatternHashSet(Map<String, Set<Integer>> updatedMap) {
+        sqlPatternHashSet = updatedMap;
+    }
+
+    private static Map<String, Set<Integer>> sqlPatternHashSet;
 
     public static FavoriteQueryJDBCDao getInstance(KylinConfig kylinConfig) {
         return kylinConfig.getManager(FavoriteQueryJDBCDao.class);
@@ -89,7 +93,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
                 FavoriteQueryStatusEnum.FULLY_ACCELERATED, FavoriteQueryStatusEnum.WAITING));
         // primary key and indices
         sb.append(String.format(
-                "PRIMARY KEY (id), INDEX sql_pattern_hash_key (%s), INDEX project_index (%s), INDEX last_query_time_index (%s), INDEX status_index (%s))",
+                "PRIMARY KEY (id), INDEX sql_pattern_hash_index (%s), INDEX project_index (%s), INDEX last_query_time_index (%s), INDEX status_index (%s))",
                 SQL_PATTERN_HASH, PROJECT, LAST_QUERY_TIME, STATUS));
         JDBCManager.getInstance(config).getJdbcTemplate().execute(sb.toString());
     }
@@ -131,6 +135,12 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
             return false;
 
         return sqlPatternSetInProj.contains(sqlPatternHash);
+    }
+
+    // only for test
+    public void dropTable() {
+        final String sql = "DROP TABLE IF EXISTS " + this.tableName;
+        JDBCManager.getInstance(config).getJdbcTemplate().execute(sql);
     }
 
     // todo: transaction
@@ -217,7 +227,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
     }
 
     @Override
-    public List<FavoriteQuery> getByPage(String project, int limit, int offset) {
+    public List<FavoriteQueryResponse> getByPage(String project, int limit, int offset) {
         final String sql = String.format("SELECT * FROM %s WHERE project='%s' ORDER BY %s DESC LIMIT %d OFFSET %d",
                 this.tableName, project, LAST_QUERY_TIME, limit, offset*limit);
         return JDBCManager.getInstance(config).getJdbcTemplate().query(sql, new FavoriteRowMapper());
@@ -239,8 +249,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
         final String sql = String.format("SELECT * FROM %s WHERE project='%s' AND sql_pattern_hash = %d",
                 this.tableName, project, sqlPatternHash);
         try {
-            FavoriteQuery favoriteQuery = JDBCManager.getInstance(config).getJdbcTemplate().queryForObject(sql, new FavoriteRowMapper());
-            return favoriteQuery;
+            return JDBCManager.getInstance(config).getJdbcTemplate().queryForObject(sql, new FavoriteRowMapper());
         } catch (EmptyResultDataAccessException ex) {
             return null;
         }
@@ -282,8 +291,8 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
                 preparedStatement.setInt(5, favoriteQuery.getTotalCount());
                 preparedStatement.setInt(6, favoriteQuery.getSuccessCount());
                 if (favoriteQuery.getTotalCount() != 0) {
-                    preparedStatement.setFloat(7, favoriteQuery.getSuccessCount() / favoriteQuery.getTotalCount());
-                    preparedStatement.setFloat(9, favoriteQuery.getTotalDuration() / favoriteQuery.getTotalCount());
+                    preparedStatement.setFloat(7, favoriteQuery.getSuccessCount() / (float) favoriteQuery.getTotalCount());
+                    preparedStatement.setFloat(9, favoriteQuery.getTotalDuration() / (float) favoriteQuery.getTotalCount());
                 } else {
                     preparedStatement.setFloat(7, 0);
                     preparedStatement.setFloat(9, 0);
@@ -299,11 +308,11 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
         });
     }
 
-    public class FavoriteRowMapper implements RowMapper<FavoriteQuery> {
+    public class FavoriteRowMapper implements RowMapper<FavoriteQueryResponse> {
 
         @Override
-        public FavoriteQuery mapRow(ResultSet resultSet, int i) throws SQLException {
-            FavoriteQuery favoriteQuery = new FavoriteQuery();
+        public FavoriteQueryResponse mapRow(ResultSet resultSet, int i) throws SQLException {
+            FavoriteQueryResponse favoriteQuery = new FavoriteQueryResponse();
             favoriteQuery.setSqlPattern(resultSet.getString(SQL_PATTERN));
             favoriteQuery.setSqlPatternHash(resultSet.getInt(SQL_PATTERN_HASH));
             favoriteQuery.setProject(resultSet.getString(PROJECT));

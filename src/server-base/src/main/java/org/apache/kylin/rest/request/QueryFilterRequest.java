@@ -25,6 +25,7 @@
 package org.apache.kylin.rest.request;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
@@ -32,6 +33,7 @@ import java.util.List;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class QueryFilterRequest implements Serializable {
 
     private String project;
@@ -40,8 +42,4 @@ public class QueryFilterRequest implements Serializable {
     private String[] durationValue;
     private List<String> users;
     private List<String> groups;
-
-    public QueryFilterRequest() {
-
-    }
 }

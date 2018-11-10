@@ -196,6 +196,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(true, response.isPushDown());
         Assert.assertEquals(expectedQueryID, response.getQueryId());
 
+        Mockito.verify(queryService).recordMetric(request, response);
     }
 
     @Test
@@ -237,6 +238,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(false, response.isHitExceptionCache());
             Assert.assertEquals(true, response.getIsException());
             Assert.assertEquals(expectedQueryID, response.getQueryId());
+            Mockito.verify(queryService).recordMetric(request, response);
         } catch (InternalErrorException ex) {
             // ignore
         }

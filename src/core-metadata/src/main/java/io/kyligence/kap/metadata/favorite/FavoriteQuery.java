@@ -24,6 +24,7 @@
 package io.kyligence.kap.metadata.favorite;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -36,12 +37,8 @@ public class FavoriteQuery {
     private int sqlPatternHash;
     @JsonProperty("last_query_time")
     private long lastQueryTime;
-    @JsonProperty("success_rate")
-    private float successRate;
     @JsonProperty("totalCount")
     private int totalCount;
-    @JsonProperty("average_duration")
-    private float averageDuration;
     @JsonProperty("status")
     private FavoriteQueryStatusEnum status;
     @JsonProperty("project")
@@ -73,20 +70,22 @@ public class FavoriteQuery {
         this.status = FavoriteQueryStatusEnum.WAITING;
     }
 
-    public void increaseTotalCountByOne() {
+    public void update(QueryHistory queryHistory) {
         this.totalCount ++;
-    }
-
-    public void increaseSuccessCountByOne() {
-        this.successCount ++;
-    }
-
-    public void increaseTotalDuration(long totalDuration) {
-        this.totalDuration += totalDuration;
+        if (!queryHistory.isException())
+            this.successCount ++;
+        this.totalDuration += queryHistory.getDuration();
+        this.lastQueryTime = queryHistory.getQueryTime();
     }
 
     @Override
     public boolean equals(Object obj) {
+        if (obj == null)
+            return false;
+
+        if (this.getClass() != obj.getClass())
+            return false;
+
         FavoriteQuery that = (FavoriteQuery) obj;
 
         return this.sqlPattern.equals(that.getSqlPattern()) && this.project.equals(that.getProject());

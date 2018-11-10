@@ -69,7 +69,7 @@
         <junit.version>4.12</junit.version>
         <mrunit.version>1.1.0</mrunit.version>
         <dbunit.version>2.5.2</dbunit.version>
-        <h2.version>1.4.192</h2.version>
+        <h2.version>1.4.197</h2.version>
         <jetty.version>9.2.20.v20161216</jetty.version>
         <jamm.version>0.3.1</jamm.version>
         <mockito.version>2.7.14</mockito.version>
@@ -120,13 +120,7 @@
             **/org/apache/kylin/query/relnode/OLAP*Rel.java
         </sonar.jacoco.excludes>
         <sonar.coverage.exclusions>
-            **/io/kyligence/kap/rest/*Server.java,
-            **/io/kyligence/kap/rest/service/FavoriteQueryService.java,
-            **/io/kyligence/kap/rest/controller/FavoriteQueryController.java,
-            **/io/kyligence/kap/rest/controller/QueryController.java,
-            **/io/kyligence/kap/rest/service/QueryHistoryService.java,
-            **/io/kyligence/kap/metadata/FavoriteQuery*.java,
-            **/io/kyligence/kap/metadata/QueryHistory*.java
+            **/io/kyligence/kap/rest/*Server.java
         </sonar.coverage.exclusions>
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
 

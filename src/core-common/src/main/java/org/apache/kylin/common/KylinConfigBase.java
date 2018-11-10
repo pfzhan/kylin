@@ -1483,6 +1483,10 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.valueOf(this.getOptional("kylin.favorite.batch-accelerate-size", "500"));
     }
 
+    public long getQueryHistoryScanPeriod() {
+        return Long.valueOf(this.getOptional("kylin.favorite.query-history-scan-period", "60")) * 1000L;
+    }
+
     /**
      * metric
      */

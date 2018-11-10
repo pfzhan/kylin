@@ -37,8 +37,12 @@ import java.util.concurrent.TimeUnit;
 import javax.annotation.PostConstruct;
 
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryResponse;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.val;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -64,7 +68,6 @@ import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffset;
-import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
 import io.kyligence.kap.metadata.query.QueryFilterRule;
 import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
@@ -82,24 +85,33 @@ public class FavoriteQueryService extends BasicService {
     QueryHistoryService queryHistoryService;
 
     private FavoriteQueryJDBCDao favoriteQueryJDBCDao = FavoriteQueryJDBCDao.getInstance(getConfig());
-    private QueryHistoryTimeOffsetManager queryHistoryTimeOffsetManager = QueryHistoryTimeOffsetManager
-            .getInstance(getConfig());
     private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private AutoMarkFavoriteRunner autoMarkFavoriteRunner = new AutoMarkFavoriteRunner();
 
     private QueryHistoryTimeOffset queryHistoryTimeOffset;
-    private TreeSet<FrequencyStatus> frequencyStatuses;
-    private FrequencyStatus overAllStatus;
+    private TreeSet<FrequencyStatus> frequencyStatuses = new TreeSet<>();
+    private FrequencyStatus overAllStatus = new FrequencyStatus();
 
     private static int frequencyTimeWindow = 24;
     private static int overAllFreqStatusSize = frequencyTimeWindow * 60;
-    private static long fetchQueryHistoryGapTime = 60 * 1000L;
+    private long fetchQueryHistoryGapTime;
+    // handles the case when the actual time of inserting to influx database is later than recorded time
+    private int backwardShiftTime;
+
+    public FavoriteQueryService() {
+        fetchQueryHistoryGapTime = KylinConfig.getInstanceFromEnv().getQueryHistoryScanPeriod();
+        backwardShiftTime = KapConfig.getInstanceFromEnv().getInfluxDBFlushDuration() * 2;
+        try {
+            queryHistoryTimeOffset = getQHTimeOffsetManager().get();
+        } catch (IOException e) {
+            throw new RuntimeException("Caught errors when get query history time offset: ", e);
+        }
+    }
 
     @PostConstruct
-    void init() throws IOException {
-        if (FavoriteQueryJDBCDao.sqlPatternHashSet == null)
+    void init() {
+        if (FavoriteQueryJDBCDao.getSqlPatternHashSet() == null)
             favoriteQueryJDBCDao.initializeSqlPatternSet();
-        queryHistoryTimeOffset = queryHistoryTimeOffsetManager.get();
         if (queryHistoryTimeOffset == null)
             queryHistoryTimeOffset = new QueryHistoryTimeOffset(0, 0);
         scheduler.schedule(new Runnable() {
@@ -118,16 +130,13 @@ public class FavoriteQueryService extends BasicService {
                 getConfig().getFavoriteStatisticsCollectionInterval(), TimeUnit.SECONDS);
     }
 
-    private void initFrequencyStatus() throws IOException {
-        frequencyStatuses = new TreeSet<>();
-        overAllStatus = new FrequencyStatus();
-
+    void initFrequencyStatus() throws IOException {
         if (queryHistoryTimeOffset.getAutoMarkTimeOffset() == 0) {
-            queryHistoryTimeOffset.setAutoMarkTimeOffset(System.currentTimeMillis());
+            queryHistoryTimeOffset.setAutoMarkTimeOffset(System.currentTimeMillis() - backwardShiftTime);
         }
 
         if (queryHistoryTimeOffset.getFavoriteQueryUpdateTimeOffset() == 0) {
-            queryHistoryTimeOffset.setFavoriteQueryUpdateTimeOffset(System.currentTimeMillis());
+            queryHistoryTimeOffset.setFavoriteQueryUpdateTimeOffset(System.currentTimeMillis() - backwardShiftTime);
         }
 
         long lastAutoMarkTime = queryHistoryTimeOffset.getAutoMarkTimeOffset();
@@ -142,7 +151,6 @@ public class FavoriteQueryService extends BasicService {
 
             for (QueryHistory queryHistory : queryHistories) {
                 frequencyStatus.updateFrequency(queryHistory.getProject(), queryHistory.getSqlPattern());
-                lastAutoMarkTime = queryHistory.getInsertTime();
             }
 
             updateOverallFrequencyStatus(frequencyStatus);
@@ -151,8 +159,7 @@ public class FavoriteQueryService extends BasicService {
             endTime += fetchQueryHistoryGapTime;
         }
 
-        queryHistoryTimeOffset.setAutoMarkTimeOffset(lastAutoMarkTime);
-        queryHistoryTimeOffsetManager.save(queryHistoryTimeOffset);
+        getQHTimeOffsetManager().save(queryHistoryTimeOffset);
     }
 
     public void manualFavorite(FavoriteRequest request) throws PersistentException, IOException {
@@ -177,14 +184,17 @@ public class FavoriteQueryService extends BasicService {
 
                     favoriteQueryJDBCDao.batchInsert(Lists.newArrayList(newfavoriteQuery));
 
+                    Map<String, Set<Integer>> sqlPatternHashSet = FavoriteQueryJDBCDao.getSqlPatternHashSet();
+
                     // update sql pattern hash set
-                    Set<Integer> sqlPatternInProj = FavoriteQueryJDBCDao.sqlPatternHashSet.get(project);
+                    Set<Integer> sqlPatternInProj = sqlPatternHashSet.get(project);
                     if (sqlPatternInProj == null)
                         sqlPatternInProj = new HashSet<>();
 
                     sqlPatternInProj.add(sqlPatternHash);
+                    sqlPatternHashSet.put(project, sqlPatternInProj);
 
-                    FavoriteQueryJDBCDao.sqlPatternHashSet.put(project, sqlPatternInProj);
+                    FavoriteQueryJDBCDao.setSqlPatternHashSet(sqlPatternHashSet);
                 }
             }, 0, TimeUnit.SECONDS);
         } else {
@@ -218,29 +228,34 @@ public class FavoriteQueryService extends BasicService {
 
         favoriteQueryJDBCDao.batchInsert(favoriteQueriesToInsert);
 
+        Map<String, Set<Integer>> sqlPatternHashSet = FavoriteQueryJDBCDao.getSqlPatternHashSet();
         // update sql pattern hash set
         for (Map.Entry<String, Set<Integer>> entry : sqlPatternToUpdate.entrySet()) {
             String project = entry.getKey();
-            Set<Integer> sqlPatternInProj = FavoriteQueryJDBCDao.sqlPatternHashSet.get(project);
+            Set<Integer> sqlPatternInProj = sqlPatternHashSet.get(project);
             if (sqlPatternInProj == null)
                 sqlPatternInProj = entry.getValue();
             else
                 sqlPatternInProj.addAll(entry.getValue());
 
-            FavoriteQueryJDBCDao.sqlPatternHashSet.put(project, sqlPatternInProj);
+            sqlPatternHashSet.put(project, sqlPatternInProj);
         }
+
+        FavoriteQueryJDBCDao.setSqlPatternHashSet(sqlPatternHashSet);
+    }
+
+    long getSystemTime() {
+        return System.currentTimeMillis();
     }
 
     private void autoMark() throws IOException {
         // scan query histories by the interval of 60 seconds
-        boolean isMaxTimeUpdated = false;
-        long maxTime = queryHistoryTimeOffset.getAutoMarkTimeOffset();
-        long currentTime = System.currentTimeMillis();
-        long fetchCount = (currentTime - maxTime) / fetchQueryHistoryGapTime + 1;
-        Set<FavoriteQuery> candidates = new HashSet<>();
-        long startTime = maxTime;
+        long startTime = queryHistoryTimeOffset.getAutoMarkTimeOffset();
         long endTime = startTime + fetchQueryHistoryGapTime;
-        for (int i = 0; i < fetchCount; i++) {
+        long maxTime = getSystemTime() - backwardShiftTime;
+
+        Set<FavoriteQuery> candidates = new HashSet<>();
+        while (endTime <= maxTime) {
             List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories(startTime, endTime);
 
             FrequencyStatus newStatus = new FrequencyStatus(startTime);
@@ -259,9 +274,6 @@ public class FavoriteQueryService extends BasicService {
                 }
 
                 newStatus.updateFrequency(project, sqlPattern);
-
-                maxTime = queryHistory.getInsertTime();
-                isMaxTimeUpdated = true;
             }
 
             updateOverallFrequencyStatus(newStatus);
@@ -275,25 +287,19 @@ public class FavoriteQueryService extends BasicService {
         // insert candidates to favorite query
         internalFavorite(candidates);
 
-        if (isMaxTimeUpdated)
-            queryHistoryTimeOffset.setAutoMarkTimeOffset(maxTime);
-        else
-            queryHistoryTimeOffset.setAutoMarkTimeOffset(currentTime);
+        queryHistoryTimeOffset.setAutoMarkTimeOffset(startTime);
 
-        queryHistoryTimeOffsetManager.save(queryHistoryTimeOffset);
+        getQHTimeOffsetManager().save(queryHistoryTimeOffset);
     }
 
-    private void addCandidatesByFrequencyRule(Set<FavoriteQuery> candidates) {
-        for (Map.Entry<String, Map<String, Integer>> entry : overAllStatus.getSqlPatternFreqMap().entrySet()) {
+    void addCandidatesByFrequencyRule(Set<FavoriteQuery> candidates) {
+        for (Map.Entry<String, Map<String, Integer>> entry : getOverAllStatus().getSqlPatternFreqMap().entrySet()) {
             String project = entry.getKey();
 
             QueryFilterRule freqRule = getQueryFilterRule(project, QueryFilterRule.FREQUENCY_RULE_NAME);
 
             // when project is deleted
-            if (freqRule == null)
-                continue;
-
-            if (!freqRule.isEnabled())
+            if (freqRule == null || !freqRule.isEnabled())
                 continue;
 
             if (freqRule.getConds() == null || freqRule.getConds().isEmpty())
@@ -346,12 +352,12 @@ public class FavoriteQueryService extends BasicService {
         overAllStatus.addStatus(newStatus);
     }
 
-    private boolean matchRuleBySingleRecord(QueryHistory queryHistory) {
+    boolean matchRuleBySingleRecord(QueryHistory queryHistory) {
         List<QueryFilterRule> rules = getQueryFilterRuleManager(queryHistory.getProject()).getAllEnabled();
 
         for (QueryFilterRule rule : rules) {
             if (rule.getConds() == null || rule.getConds().isEmpty())
-                throw new IllegalArgumentException(String.format("Rule %s does not have conditions", rule.getName()));
+                throw new IllegalArgumentException(String.format("Rule %s does not have conditions", rule.getUuid()));
 
             if (rule.getName().equals(QueryFilterRule.SUBMITTER_RULE_NAME)) {
                 for (QueryFilterRule.QueryHistoryCond submitterCond : rule.getConds()) {
@@ -371,7 +377,15 @@ public class FavoriteQueryService extends BasicService {
         return false;
     }
 
-    public List<FavoriteQuery> getFavoriteQueriesByPage(String project, int limit, int offset) {
+    FrequencyStatus getOverAllStatus() {
+        return overAllStatus;
+    }
+
+    TreeSet<FrequencyStatus> getFrequencyStatuses() {
+        return frequencyStatuses;
+    }
+
+    public List<FavoriteQueryResponse> getFavoriteQueriesByPage(String project, int limit, int offset) {
         Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
         return favoriteQueryJDBCDao.getByPage(project, limit, offset);
     }
@@ -379,7 +393,7 @@ public class FavoriteQueryService extends BasicService {
     public int getFavoriteQuerySize(String project) {
         Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
 
-        Set<Integer> sqlPatternHashSetInProj = FavoriteQueryJDBCDao.sqlPatternHashSet.get(project);
+        Set<Integer> sqlPatternHashSetInProj = FavoriteQueryJDBCDao.getSqlPatternHashSet().get(project);
         if (sqlPatternHashSetInProj == null)
             return 0;
 
@@ -440,10 +454,10 @@ public class FavoriteQueryService extends BasicService {
         return true;
     }
 
-    public HashMap<String, Object> getAccelerateTips(String project) {
+    public Map<String, Object> getAccelerateTips(String project) {
         Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
-        HashMap<String, Object> data = Maps.newHashMap();
-        List<String> unAcceleratedSqls = favoriteQueryJDBCDao.getUnAcceleratedSqlPattern(project);
+        Map<String, Object> data = Maps.newHashMap();
+        List<String> unAcceleratedSqls = getUnAcceleratedSqlPattern(project);
         int optimizedModelNum = 0;
 
         if (!unAcceleratedSqls.isEmpty()) {
@@ -468,9 +482,13 @@ public class FavoriteQueryService extends BasicService {
         return data;
     }
 
+    List<String> getUnAcceleratedSqlPattern(String project) {
+        return favoriteQueryJDBCDao.getUnAcceleratedSqlPattern(project);
+    }
+
     public void acceptAccelerate(String project, int accelerateSize) throws PersistentException, IOException {
         List<String> sqlPatterns = Lists.newArrayList();
-        List<String> unAcceleratedSqlPattern = favoriteQueryJDBCDao.getUnAcceleratedSqlPattern(project);
+        List<String> unAcceleratedSqlPattern = getUnAcceleratedSqlPattern(project);
         if (accelerateSize > unAcceleratedSqlPattern.size()) {
             throw new IllegalArgumentException(
                     String.format(MsgPicker.getMsg().getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH(), accelerateSize));
@@ -481,7 +499,7 @@ public class FavoriteQueryService extends BasicService {
 
         List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
 
-        for (String sqlPattern : unAcceleratedSqlPattern) {
+        for (String sqlPattern : unAcceleratedSqlPattern.subList(0, accelerateSize)) {
             sqlPatterns.add(sqlPattern);
             FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern, sqlPattern.hashCode(), project);
             favoriteQuery.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
@@ -498,8 +516,10 @@ public class FavoriteQueryService extends BasicService {
             count++;
         }
 
-        favoriteQueryJDBCDao.batchUpdateStatus(favoriteQueries);
-        post(project, sqlPatterns, true);
+        if (!favoriteQueries.isEmpty()) {
+            favoriteQueryJDBCDao.batchUpdateStatus(favoriteQueries);
+            post(project, sqlPatterns, true);
+        }
 
         if (ignoreCountMap.containsKey(project))
             ignoreCountMap.put(project, 1);
@@ -636,7 +656,7 @@ public class FavoriteQueryService extends BasicService {
         scheduler.schedule(autoMarkFavoriteRunner, 0, TimeUnit.SECONDS);
     }
 
-    private class AutoMarkFavoriteRunner implements Runnable {
+    class AutoMarkFavoriteRunner implements Runnable {
         private final Logger logger = LoggerFactory.getLogger(AutoMarkFavoriteRunner.class);
 
         @Override
@@ -650,14 +670,14 @@ public class FavoriteQueryService extends BasicService {
         }
     }
 
-    private class CollectFavoriteStatisticsRunner implements Runnable {
+    class CollectFavoriteStatisticsRunner implements Runnable {
 
         @Override
         public void run() {
-            long currentTime = System.currentTimeMillis();
+            long endTime = getSystemTime() - backwardShiftTime;
             Map<String, Map<Integer, FavoriteQuery>> favoritesAboutToUpdate = Maps.newHashMap();
             List<QueryHistory> queryHistories = queryHistoryService
-                    .getQueryHistories(queryHistoryTimeOffset.getFavoriteQueryUpdateTimeOffset(), currentTime);
+                    .getQueryHistories(queryHistoryTimeOffset.getFavoriteQueryUpdateTimeOffset(), endTime);
 
             for (QueryHistory queryHistory : queryHistories) {
                 updateFavoriteStatistics(queryHistory, favoritesAboutToUpdate);
@@ -671,9 +691,9 @@ public class FavoriteQueryService extends BasicService {
             }
 
             favoriteQueryJDBCDao.batchUpdate(favoriteQueries);
-            queryHistoryTimeOffset.setFavoriteQueryUpdateTimeOffset(currentTime);
+            queryHistoryTimeOffset.setFavoriteQueryUpdateTimeOffset(endTime);
             try {
-                queryHistoryTimeOffsetManager.save(queryHistoryTimeOffset);
+                getQHTimeOffsetManager().save(queryHistoryTimeOffset);
             } catch (IOException e) {
                 logger.error("Error caught when collecting favorite statistics", e);
             }
@@ -692,10 +712,7 @@ public class FavoriteQueryService extends BasicService {
 
             if (mapInProj != null && mapInProj.containsKey(sqlPatternHash)) {
                 FavoriteQuery favoriteQuery = mapInProj.get(sqlPatternHash);
-                favoriteQuery.increaseTotalCountByOne();
-                if (!queryHistory.isException())
-                    favoriteQuery.increaseSuccessCountByOne();
-                favoriteQuery.increaseTotalDuration(queryHistory.getDuration());
+                favoriteQuery.update(queryHistory);
                 mapInProj.put(sqlPatternHash, favoriteQuery);
             } else {
                 FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern, sqlPatternHash, project,
@@ -713,7 +730,9 @@ public class FavoriteQueryService extends BasicService {
         }
     }
 
-    private class FrequencyStatus implements Comparable<FrequencyStatus> {
+    @Getter
+    @Setter
+    class FrequencyStatus implements Comparable<FrequencyStatus> {
         // key of the outer hashmap is the project, key of the inner hashmap is the sql pattern
         private Map<String, Map<String, Integer>> sqlPatternFreqMap = Maps.newHashMap();
         private long addTime;
@@ -787,14 +806,6 @@ public class FavoriteQueryService extends BasicService {
                     this.sqlPatternFreqMap.put(project, sqlPatternFreqInProj);
                 }
             }
-        }
-
-        public Map<String, Map<String, Integer>> getSqlPatternFreqMap() {
-            return sqlPatternFreqMap;
-        }
-
-        public long getAddTime() {
-            return addTime;
         }
 
         @Override

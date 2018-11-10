@@ -161,7 +161,7 @@ public class NQueryController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getQueryHistories(@RequestParam(value = "project") String project,
             @RequestParam(value = "startTimeFrom", required = false, defaultValue = "0") long startTimeFrom,
-            @RequestParam(value = "startTimeTo", required = false, defaultValue = Long.MAX_VALUE / 1000000 + "") long startTimeTo,
+            @RequestParam(value = "startTimeTo", required = false, defaultValue = Long.MAX_VALUE + "") long startTimeTo,
             @RequestParam(value = "latencyFrom", required = false, defaultValue = "0") long latencyFrom,
             @RequestParam(value = "latencyTo", required = false, defaultValue = Integer.MAX_VALUE + "") long latencyTo,
             @RequestParam(value = "sql", required = false) String sql,

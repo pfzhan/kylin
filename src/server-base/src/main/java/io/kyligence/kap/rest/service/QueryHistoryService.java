@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.service;
 import com.google.common.base.Preconditions;
 import io.kyligence.kap.common.metric.MetricWriter;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.metadata.query.QueryHistoryManager;
 import io.kyligence.kap.rest.request.QueryHistoryRequest;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -41,8 +40,6 @@ import java.util.List;
 @Component("queryHistoryService")
 public class QueryHistoryService extends BasicService {
 
-    private QueryHistoryManager queryHistoryManager = QueryHistoryManager.getInstance(getConfig());
-
     private void checkMetricWriterType() {
         if (!MetricWriter.Type.INFLUX.name().equals(KapConfig.wrap(getConfig()).diagnosisMetricWriterType())) {
             throw new IllegalStateException(MsgPicker.getMsg().getNOT_SET_INFLUXDB());
@@ -54,15 +51,12 @@ public class QueryHistoryService extends BasicService {
         checkMetricWriterType();
 
         HashMap<String, Object> data = new HashMap<>();
-        final String query = String.format("SELECT * FROM %s WHERE project = '%s' ", QueryHistory.QUERY_MEASUREMENT,
-                request.getProject()) + getQueryHistoryFilterSql(request)
-                + String.format("ORDER BY time DESC LIMIT %d OFFSET %d", limit, offset * limit);
-        data.put("query_histories", queryHistoryManager.getQueryHistoriesBySql(query, QueryHistory.class));
+        String filterSql = getQueryHistoryFilterSql(request);
+        data.put("query_histories", getQueryHistoryManager().getQueryHistoriesBySql(
+                getQueryHistoriesSql(request.getProject(), filterSql, limit, offset), QueryHistory.class));
 
-        final String countQuery = String.format("SELECT count(query_id) FROM %s WHERE project = '%s' ",
-                QueryHistory.QUERY_MEASUREMENT, request.getProject()) + getQueryHistoryFilterSql(request);
-
-        List<QueryHistory> sizeList = queryHistoryManager.getQueryHistoriesBySql(countQuery, QueryHistory.class);
+        List<QueryHistory> sizeList = getQueryHistoryManager().getQueryHistoriesBySql(
+                getQueryHistoriesTotalSizeSql(request.getProject(), filterSql), QueryHistory.class);
         if (sizeList == null || sizeList.isEmpty())
             data.put("size", 0);
         else
@@ -71,14 +65,24 @@ public class QueryHistoryService extends BasicService {
         return data;
     }
 
-    private String getQueryHistoryFilterSql(QueryHistoryRequest request) {
+    String getQueryHistoriesSql(String project, String filterSql, int limit, int offset) {
+        return String.format("SELECT * FROM %s WHERE project = '%s' ", QueryHistory.QUERY_MEASUREMENT, project)
+                + filterSql + String.format("ORDER BY time DESC LIMIT %d OFFSET %d", limit, offset * limit);
+    }
+
+    String getQueryHistoriesTotalSizeSql(String project, String filterSql) {
+        return String.format("SELECT count(query_id) FROM %s WHERE project = '%s' ", QueryHistory.QUERY_MEASUREMENT,
+                project) + filterSql;
+    }
+
+    String getQueryHistoryFilterSql(QueryHistoryRequest request) {
         StringBuilder sb = new StringBuilder();
 
         // filter by time
         sb.append(String.format("AND (query_time >= %d AND query_time < %d) ", request.getStartTimeFrom(),
                 request.getStartTimeTo()));
         // filter by duration
-        sb.append(String.format("AND (\"duration\" >= %d AND \"duration\" < %d) ", request.getLatencyFrom() * 1000L,
+        sb.append(String.format("AND (\"duration\" >= %d AND \"duration\" <= %d) ", request.getLatencyFrom() * 1000L,
                 request.getLatencyTo() * 1000L));
 
         if (StringUtils.isNotEmpty(request.getSql())) {
@@ -122,10 +126,12 @@ public class QueryHistoryService extends BasicService {
 
     public List<QueryHistory> getQueryHistories(long startTime, long endTime) {
         checkMetricWriterType();
+        return getQueryHistoryManager().getQueryHistoriesBySql(getQueryHistoriesByTimeSql(startTime, endTime),
+                QueryHistory.class);
+    }
 
-        String sql = String.format("SELECT * FROM %s WHERE time >= %dms AND time < %dms",
-                QueryHistory.QUERY_MEASUREMENT, startTime, endTime);
-
-        return queryHistoryManager.getQueryHistoriesBySql(sql, QueryHistory.class);
+    String getQueryHistoriesByTimeSql(long startTime, long endTime) {
+        return String.format("SELECT * FROM %s WHERE time >= %dms AND time < %dms", QueryHistory.QUERY_MEASUREMENT,
+                startTime, endTime);
     }
 }

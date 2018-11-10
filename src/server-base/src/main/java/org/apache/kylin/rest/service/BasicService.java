@@ -42,6 +42,8 @@
 
 package org.apache.kylin.rest.service;
 
+import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.acl.TableACLManager;
@@ -124,5 +126,13 @@ public abstract class BasicService {
           return ((UserDetails) authentication.getPrincipal()).getUsername();
         }
         return authentication.getPrincipal().toString();
+    }
+
+    public QueryHistoryDAO getQueryHistoryManager() {
+        return QueryHistoryDAO.getInstance(getConfig());
+    }
+
+    public QueryHistoryTimeOffsetManager getQHTimeOffsetManager() {
+        return QueryHistoryTimeOffsetManager.getInstance(getConfig());
     }
 }

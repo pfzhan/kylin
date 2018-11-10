@@ -25,13 +25,10 @@
 package io.kyligence.kap.server;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
-import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,8 +43,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.lang.reflect.Field;
-import java.util.concurrent.ConcurrentHashMap;
 
 @RunWith(SpringRunner.class)
 @ContextConfiguration(classes = IntegrationConfig.class)
@@ -65,15 +60,8 @@ public abstract class AbstractMVCIntegrationTestCase extends NLocalFileMetadataT
     @BeforeClass
     public static void setupResource() throws Exception {
         staticCreateTestMetadata();
-
-        FavoriteQueryJDBCDao favoriteQueryJDBCDao = Mockito.mock(FavoriteQueryJDBCDao.class);
-
-        KylinConfig kylinConfig = getTestConfig();
-        ConcurrentHashMap<Class, Object> wantedManagersCache = new ConcurrentHashMap<>();
-        wantedManagersCache.put(FavoriteQueryJDBCDao.class, favoriteQueryJDBCDao);
-        Field managersCache = kylinConfig.getClass().getDeclaredField("managersCache");
-        managersCache.setAccessible(true);
-        managersCache.set(getTestConfig(), wantedManagersCache);
+        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
+        getTestConfig().setProperty("kylin.favorite.storage-url", "kylin_favorite@jdbc,url=jdbc:h2:mem:db_default;MODE=MySQL,username=sa,password=,driverClassName=org.h2.Driver");
     }
 
 

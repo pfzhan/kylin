@@ -49,8 +49,6 @@ import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Measurement;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.Instant;
-
 @SuppressWarnings("serial")
 @Measurement(name = "query_metric")
 @Getter
@@ -106,9 +104,6 @@ public class QueryHistory {
     @Column(name = QUERY_TIME)
     private long queryTime;
 
-    @Column(name = "time")
-    private Instant insertTime;
-
     @JsonProperty(QUERY_DURATION)
     @Column(name = QUERY_DURATION)
     private long duration;
@@ -122,7 +117,7 @@ public class QueryHistory {
     private String hostName;
 
     @JsonProperty(SUBMITTER)
-    @Column(name = SUBMITTER)
+    @Column(name = SUBMITTER, tag = true)
     private String querySubmitter;
 
     @JsonProperty(QUERY_STATUS)
@@ -164,11 +159,23 @@ public class QueryHistory {
     @Column(name = "count")
     private int size;
 
+    // only for test
+    private transient long insertTime;
+
     public QueryHistory() {
     }
 
-    public QueryHistory(String sqlPattern) {
+    public QueryHistory(String sqlPattern, String project, String queryStatus, String querySubmitter, long queryTime, long duration) {
         this.sqlPattern = sqlPattern;
+        this.queryProject = project;
+        this.queryStatus = queryStatus;
+        this.querySubmitter = querySubmitter;
+        this.queryTime = queryTime;
+        this.duration = duration;
+    }
+
+    public QueryHistory(String sql) {
+        this.sql = sql;
     }
 
     public String getProject() {
@@ -181,9 +188,5 @@ public class QueryHistory {
 
     public boolean isException() {
         return queryStatus.equals(QUERY_HISTORY_FAILED);
-    }
-
-    public long getInsertTime() {
-        return this.insertTime.toEpochMilli();
     }
 }

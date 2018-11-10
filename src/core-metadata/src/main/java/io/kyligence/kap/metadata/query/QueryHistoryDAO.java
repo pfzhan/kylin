@@ -42,60 +42,56 @@
 
 package io.kyligence.kap.metadata.query;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.impl.InfluxDBResultMapper;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-@Ignore
-public class QueryHistoryManagerTest extends NLocalFileMetadataTestCase {
-    private static final String PROJECT = "default";
-    private final String QUERY = "da0c9cad-35c1-4f4b-8c10-669248842c2f";
-    private final String FAVORITE_QUERY = "bd3285c9-55e3-4f2d-a12c-742a8d631195";
+import java.util.List;
 
-    @Before
-    public void setUp() throws Exception {
-        this.createTestMetadata();
+public class QueryHistoryDAO {
+    private static final Logger logger = LoggerFactory.getLogger(QueryHistoryDAO.class);
+    static volatile InfluxDB influxDB;
+
+    public static QueryHistoryDAO getInstance(KylinConfig config) {
+        return config.getManager(QueryHistoryDAO.class);
     }
 
-    @After
-    public void after() throws Exception {
-        this.cleanupTestMetadata();
+    static QueryHistoryDAO newInstance(KylinConfig kylinConfig) {
+        return new QueryHistoryDAO(kylinConfig);
     }
 
-    @Test
-    public void testBasics() throws Exception {
-//        List<QueryHistory> queryHistories = QueryHistoryManager.getInstance(getTestConfig())
-//                .getAllQueryHistories(PROJECT);
+    private KapConfig kapConfig;
 
-//        assertEquals(4, queryHistories.size());
-
-//        QueryHistory entry1 = queryHistories.get(0);
-//        assertEquals("Slow", entry1.getRealization().get(0));
-//        assertEquals("sandbox.hortonworks.com", entry1.getHostName());
-//        assertEquals("select * from test_kylin_fact limit 1", entry1.getSql());
-
-//        QueryHistory entry2 = queryHistories.get(1);
-//        assertTrue(entry2.getStartTime() < entry1.getStartTime());
+    private QueryHistoryDAO(KylinConfig config) {
+        logger.info("Initializing QueryHistoryDAO with config " + config);
+        this.kapConfig = KapConfig.wrap(config);
     }
 
-    @Test
-    public void testAddEntryToProject() {
-        /*
-        QueryHistoryManager manager = QueryHistoryManager.getInstance(getTestConfig());
-        QueryHistory entry = new QueryHistory("select * from existing_table");
-        manager.save(entry);
-        List<QueryHistory> entries = manager.getAllQueryHistories(PROJECT);
-        assertEquals(1, entries.size());
+    private InfluxDB getInfluxDB() {
+        if (influxDB == null) {
+            synchronized (this) {
+                if (influxDB != null) {
+                    return this.influxDB;
+                }
 
-        QueryHistory newEntry = entries.get(0);
+                this.influxDB = InfluxDBFactory.connect("http://" + kapConfig.influxdbAddress(),
+                        kapConfig.influxdbUsername(), kapConfig.influxdbPassword());
+            }
+        }
 
-        assertEquals("select * from existing_table", newEntry.getSqlPattern());
-
-        QueryHistoryManager manager1 = QueryHistoryManager.getInstance(getTestConfig());
-        assertEquals(1, manager1.getAllQueryHistories(PROJECT).size());
-        */
+        return this.influxDB;
     }
 
+    public <T> List<T> getQueryHistoriesBySql(String query, Class clazz) {
+        final QueryResult result = getInfluxDB().query(new Query(query, QueryHistory.DB_NAME));
+        final InfluxDBResultMapper mapper = new InfluxDBResultMapper();
+
+        return mapper.toPOJO(result, clazz);
+    }
 }

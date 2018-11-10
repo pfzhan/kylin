@@ -144,10 +144,10 @@ public class QueryMetricsContext {
     private void doCollect(final SQLRequest request, final SQLResponse response, final QueryContext context) {
         this.sql = QueryContext.current().getCorrectedSql();
         try {
-            this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(sql);
+            this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(this.sql);
         } catch (SqlParseException e) {
             logger.error("Caught sql parse error", e);
-            throw new RuntimeException(e);
+            this.sqlPattern = this.sql;
         }
         this.queryTime = QueryContext.current().getQueryStartMillis();
 
@@ -175,6 +175,8 @@ public class QueryMetricsContext {
 
         if (response.isPushDown())
             this.isCubeHit = false;
+        else
+            this.isCubeHit = true;
 
         if (response.getIsException() || response.isPushDown()) {
             this.accelerateStatus = QueryHistory.QUERY_HISTORY_UNACCELERATED;

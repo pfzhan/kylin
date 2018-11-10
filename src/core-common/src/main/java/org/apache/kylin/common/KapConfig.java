@@ -478,6 +478,10 @@ public class KapConfig {
         return config.getOptional("kap.metric.diagnosis.influxDB-password", "root");
     }
 
+    public int getInfluxDBFlushDuration() {
+        return Integer.valueOf(config.getOptional("kap.metric.diagnosis.influxDB-flush-duration", "3000"));
+    }
+
     public String sparderJars() {
         try {
             File storageFile = FileUtils.findFile(KylinConfigBase.getKylinHome() + "/lib",

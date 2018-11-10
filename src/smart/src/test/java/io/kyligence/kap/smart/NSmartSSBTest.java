@@ -24,20 +24,24 @@
 
 package io.kyligence.kap.smart;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.List;
 
+import com.google.common.collect.Lists;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
-@Ignore
-public class NSmartControllerTest extends NLocalFileMetadataTestCase {
+public class NSmartSSBTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setUp() throws Exception {
@@ -57,7 +61,18 @@ public class NSmartControllerTest extends NLocalFileMetadataTestCase {
 
         Assert.assertTrue(!projectManager.listAllRealizations(project).isEmpty());
         Assert.assertTrue(!dataModelManager.listModels().isEmpty());
-        NSmartController.optimizeFromPushdown(getTestConfig(), project);
+
+        final String sqlsPath = "./src/test/resources/nsmart/ssb/sql";
+        File fileFolder = new File(sqlsPath);
+
+        List<String> sqls = Lists.newArrayList();
+
+        for (final File sqlFile : fileFolder.listFiles()) {
+            sqls.add(new String(Files.readAllBytes(Paths.get(sqlFile.getAbsolutePath())), StandardCharsets.UTF_8));
+        }
+
+        NSmartMaster master = new NSmartMaster(getTestConfig(), project, sqls.toArray(new String[0]));
+        master.runAll();
 
         getTestConfig().clearManagers();
 

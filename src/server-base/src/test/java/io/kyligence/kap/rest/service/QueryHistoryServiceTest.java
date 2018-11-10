@@ -24,22 +24,25 @@
 
 package io.kyligence.kap.rest.service;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.rest.request.QueryHistoryRequest;
+import org.apache.kylin.rest.msg.MsgPicker;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 
+import java.util.HashMap;
 import java.util.List;
 
-@Ignore
 public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
-    private static long now = System.currentTimeMillis();
 
     @InjectMocks
     private QueryHistoryService queryHistoryService = Mockito.spy(new QueryHistoryService());
@@ -52,6 +55,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() {
         createTestMetadata();
+        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
     }
 
     @After
@@ -60,70 +64,177 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void test() {
-        System.setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
+    public void testGetFilteredQueryHistories() {
+        int limit = 2;
+        int offset = 0;
 
-        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories(1541069278675000000L, 1541071328312000000L);
-        System.out.println(queryHistories);
+        // when there is no filter conditions
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        // set default values
+        request.setStartTimeFrom(0);
+        request.setStartTimeTo(Long.MAX_VALUE);
+        request.setLatencyFrom(0);
+        request.setLatencyTo(Integer.MAX_VALUE);
+
+        // mock sqls
+        String getQueryHistoriesSql = "select * from query_metric where project = 'default' ";
+        String filterSql = "and (query_time >= 0 and query_time < 1) and (\"duration\" >= 0 and \"duration\" <= 10)";
+        String getTotalSizeSql = "select count(query_id) from query_metric where project = 'default' ";
+        Mockito.doReturn(filterSql).when(queryHistoryService).getQueryHistoryFilterSql(request);
+        Mockito.doReturn(getQueryHistoriesSql).when(queryHistoryService).getQueryHistoriesSql(request.getProject(), filterSql, limit, offset);
+        Mockito.doReturn(getTotalSizeSql).when(queryHistoryService).getQueryHistoriesTotalSizeSql(request.getProject(), filterSql);
+
+        // mock query history
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSql("select * from test_table_1");
+        QueryHistory queryHistory2 = new QueryHistory();
+        queryHistory2.setSql("select * from test_table_2");
+
+        // mock query history total size
+        QueryHistory queryHistory = new QueryHistory();
+        queryHistory.setSize(10);
+
+        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(queryHistory1, queryHistory2)).when(queryHistoryDAO).getQueryHistoriesBySql(getQueryHistoriesSql, QueryHistory.class);
+        Mockito.doReturn(Lists.newArrayList(queryHistory)).when(queryHistoryDAO).getQueryHistoriesBySql(getTotalSizeSql, QueryHistory.class);
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryManager();
+
+        HashMap<String, Object> result = queryHistoryService.getQueryHistories(request, limit, offset);
+        List<QueryHistory> queryHistories = (List<QueryHistory>) result.get("query_histories");
+        int size = (int) result.get("size");
+
+        Assert.assertEquals(2, queryHistories.size());
+        Assert.assertEquals(queryHistory1.getSql(), queryHistories.get(0).getSql());
+        Assert.assertEquals(queryHistory2.getSql(), queryHistories.get(1).getSql());
+        Assert.assertEquals(10, size);
+
+        Mockito.doReturn(Lists.newArrayList()).when(queryHistoryDAO).getQueryHistoriesBySql(getTotalSizeSql, QueryHistory.class);
+        result = queryHistoryService.getQueryHistories(request, limit, offset);
+        size = (int) result.get("size");
+
+        Assert.assertEquals(0, size);
     }
 
-//    private List<QueryHistory> mockQueryHistories() {
-//        QueryHistory query1 = new QueryHistory("query-1", "select * from test_table_1", now, 1000, "", "", "test_user_1");
-//        QueryHistory query2 = new QueryHistory("query-2", "select * from test_table_2", now + 1, 8000, "", "", "test_user_2");
-//        query2.setRealization(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
-//        query2.setAccelerateStatus(QueryHistory.QUERY_HISTORY_UNACCELERATED);
-//        QueryHistory query3 = new QueryHistory("query-3", "select * from test_table_1", now + 2, 1000, "", "", "test_user_1");
-//        QueryHistory query4 = new QueryHistory("query-4", "select * from test_table_2", now + 3, 8000, "", "", "test_user_3");
-//        query4.setAccelerateStatus(QueryHistory.QUERY_HISTORY_ACCELERATED);
-//        query4.setRealization(Lists.newArrayList(QueryHistory.ADJ_PUSHDOWN));
-//        QueryHistory query5 = new QueryHistory("query-5", "select * from test_table_1", now + 4, 8000, "", "", "test_user_1");
-//        QueryHistory query6 = new QueryHistory("query-6", "select * from test_table_1", now + 5, 8000, "", "", "test_user_2");
-//        QueryHistory query7 = new QueryHistory("query-7", "select * from test_table_1", now + 6, 8000, "", "", "test_user_3");
-//
-//        return Lists.newArrayList(query1, query2, query3, query4, query5, query6, query7);
-//    }
+    @Test
+    public void testSqls() {
+        int limit = 10;
+        int offset = 1;
 
-//    private List<QueryFilterRule> prepareRules() {
-//        QueryFilterRule.QueryHistoryCond cond1 = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.START_TIME, String.valueOf(now), String.valueOf(now+5));
-//        QueryFilterRule.QueryHistoryCond cond2 = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.DURATION, "5", "10");
-//        QueryFilterRule.QueryHistoryCond cond3 = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.SQL, null, "select * from test_table_2");
-//        QueryFilterRule.QueryHistoryCond cond4 = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.ANSWERED_BY, null, "model");
-//        QueryFilterRule.QueryHistoryCond cond5 = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.ANSWERED_BY, null, "pushdown");
-//        QueryFilterRule.QueryHistoryCond cond6 = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.ACCELERATE_STATUS, null, QueryHistory.QUERY_HISTORY_ACCELERATED);
-//        QueryFilterRule.QueryHistoryCond cond7 = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.ACCELERATE_STATUS, null, QueryHistory.QUERY_HISTORY_UNACCELERATED);
-//        QueryFilterRule.QueryHistoryCond cond8 = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.DURATION, null, "1");
-//        QueryFilterRule.QueryHistoryCond cond9 = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.SUBMITTER, null, "test_user_1");
-//        QueryFilterRule.QueryHistoryCond cond10 = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.SUBMITTER, null, "test_user_2");
-//        QueryFilterRule.QueryHistoryCond cond11 = new QueryFilterRule.QueryHistoryCond(QueryFilterRule.FREQUENCY, null,  "4");
-//
-//        QueryFilterRule rule1 =  new QueryFilterRule(Lists.newArrayList(cond1, cond2, cond3, cond4, cond5, cond6, cond7), "test_rule_1", false);
-//        QueryFilterRule rule2 = new QueryFilterRule(Lists.newArrayList(cond8, cond9, cond10, cond11), "test_rule_2", false);
-//
-//        return Lists.newArrayList(rule1, rule2);
-//    }
+        // when there is no filter conditions
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+        // set default values
+        request.setStartTimeFrom(0);
+        request.setStartTimeTo(Long.MAX_VALUE);
+        request.setLatencyFrom(0);
+        request.setLatencyTo(Integer.MAX_VALUE);
 
-//    @Test
-//    public void testFilterRule() throws IOException {
-//        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistoriesByRules(prepareRules(), mockQueryHistories());
-//
-//        Assert.assertEquals(4, queryHistories.size());
-//        Assert.assertEquals("query-2", queryHistories.get(0).getQueryId());
-//        Assert.assertEquals("query-4", queryHistories.get(1).getQueryId());
-//        Assert.assertEquals("query-5", queryHistories.get(2).getQueryId());
-//        Assert.assertEquals("query-6", queryHistories.get(3).getQueryId());
-//
-//        // case of no rule
-//        queryHistories = queryHistoryService.getQueryHistoriesByRules(Lists.<QueryFilterRule>newArrayList(), mockQueryHistories());
-//        Assert.assertEquals(7, queryHistories.size());
-//
-//        // case of not supported condition
-//        QueryFilterRule.QueryHistoryCond illegalCond = new QueryFilterRule.QueryHistoryCond("illegalField", "", "");
-//        QueryFilterRule illegalRule = new QueryFilterRule(Lists.newArrayList(illegalCond), "illegal_rule", false);
-//        try {
-//            queryHistoryService.getQueryHistoriesByRules(Lists.newArrayList(illegalRule), mockQueryHistories());
-//        } catch (Throwable ex) {
-//            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
-//            Assert.assertEquals("The field of illegalField is not yet supported.", ex.getMessage());
-//        }
-//    }
+        String filterSql = queryHistoryService.getQueryHistoryFilterSql(request);
+        String getQueryHistoriesSql = queryHistoryService.getQueryHistoriesSql(request.getProject(), filterSql, limit, offset);
+        String getTotalSizeSql = queryHistoryService.getQueryHistoriesTotalSizeSql(request.getProject(), filterSql);
+
+        String expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE project = '%s' AND (query_time >= %d AND query_time < %d) " +
+                        "AND (\"duration\" >= %d AND \"duration\" <= %d) ORDER BY time DESC LIMIT %d OFFSET %d", QueryHistory.QUERY_MEASUREMENT, PROJECT,
+                0, Long.MAX_VALUE, 0, Integer.MAX_VALUE*1000L, limit, offset * limit);
+        String expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE project = '%s' AND (query_time >= %d AND query_time < %d) " +
+                        "AND (\"duration\" >= %d AND \"duration\" <= %d) ", QueryHistory.QUERY_MEASUREMENT, PROJECT,
+                0, Long.MAX_VALUE, 0, Integer.MAX_VALUE*1000L);
+
+        Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
+        Assert.assertEquals(expectedGetTotalSizeSql, getTotalSizeSql);
+
+        request.setStartTimeFrom(0);
+        request.setStartTimeTo(1);
+        request.setLatencyFrom(0);
+        request.setLatencyTo(10);
+
+        // when there is a filter condition for sql
+        request.setSql("select * from test_table");
+        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE project = '%s' AND (query_time >= 0 AND query_time < 1) " +
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ ORDER BY time DESC LIMIT %d OFFSET %d", QueryHistory.QUERY_MEASUREMENT, PROJECT,
+                request.getSql(), limit, offset*limit);
+        expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE project = '%s' AND (query_time >= 0 AND query_time < 1) " +
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ ", QueryHistory.QUERY_MEASUREMENT, PROJECT,
+                request.getSql());
+
+        filterSql = queryHistoryService.getQueryHistoryFilterSql(request);
+        getQueryHistoriesSql = queryHistoryService.getQueryHistoriesSql(request.getProject(), filterSql, limit, offset);
+        getTotalSizeSql = queryHistoryService.getQueryHistoriesTotalSizeSql(request.getProject(), filterSql);
+
+        Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
+        Assert.assertEquals(expectedGetTotalSizeSql, getTotalSizeSql);
+
+        // when there is a filter condition for accelerate status
+        request.setAccelerateStatuses(Lists.newArrayList(QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED));
+        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE project = '%s' AND (query_time >= 0 AND query_time < 1) " +
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (accelerate_status = '%s' OR accelerate_status = '%s') ORDER BY time DESC LIMIT %d OFFSET %d", QueryHistory.QUERY_MEASUREMENT, PROJECT,
+                request.getSql(), QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED, limit, offset*limit);
+        expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE project = '%s' AND (query_time >= 0 AND query_time < 1) " +
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (accelerate_status = '%s' OR accelerate_status = '%s') ", QueryHistory.QUERY_MEASUREMENT, PROJECT,
+                request.getSql(), QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED);
+
+        filterSql = queryHistoryService.getQueryHistoryFilterSql(request);
+        getQueryHistoriesSql = queryHistoryService.getQueryHistoriesSql(request.getProject(), filterSql, limit, offset);
+        getTotalSizeSql = queryHistoryService.getQueryHistoriesTotalSizeSql(request.getProject(), filterSql);
+
+        Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
+        Assert.assertEquals(expectedGetTotalSizeSql, getTotalSizeSql);
+
+        // when there is a condition that filters answered by
+        request.setRealizations(Lists.newArrayList("pushdown", "modelName"));
+        expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE project = '%s' AND (query_time >= 0 AND query_time < 1) " +
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (cube_hit = 'false' OR cube_hit = 'true') AND (accelerate_status = '%s' OR accelerate_status = '%s') ORDER BY time DESC LIMIT %d OFFSET %d", QueryHistory.QUERY_MEASUREMENT, PROJECT,
+                request.getSql(), QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED, limit, offset*limit);
+        expectedGetTotalSizeSql = String.format("SELECT count(query_id) FROM %s WHERE project = '%s' AND (query_time >= 0 AND query_time < 1) " +
+                        "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (cube_hit = 'false' OR cube_hit = 'true') AND (accelerate_status = '%s' OR accelerate_status = '%s') ", QueryHistory.QUERY_MEASUREMENT, PROJECT,
+                request.getSql(), QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED);
+
+        filterSql = queryHistoryService.getQueryHistoryFilterSql(request);
+        getQueryHistoriesSql = queryHistoryService.getQueryHistoriesSql(request.getProject(), filterSql, limit, offset);
+        getTotalSizeSql = queryHistoryService.getQueryHistoriesTotalSizeSql(request.getProject(), filterSql);
+
+        Assert.assertEquals(expectedQueryHistoriesSql, getQueryHistoriesSql);
+        Assert.assertEquals(expectedGetTotalSizeSql, getTotalSizeSql);
+    }
+
+    @Test
+    public void testGetQueryHistoriesByTime() {
+        long startTime = 0;
+        long endTime = 1000;
+
+        String expectedSql = String.format("SELECT * FROM %s WHERE time >= 0ms AND time < 1000ms", QueryHistory.QUERY_MEASUREMENT);
+        String actualSql = queryHistoryService.getQueryHistoriesByTimeSql(startTime, endTime);
+
+        Assert.assertEquals(expectedSql, actualSql);
+
+        QueryHistory queryHistory1 = new QueryHistory();
+        queryHistory1.setSql("select * from test_table_1");
+        QueryHistory queryHistory2 = new QueryHistory();
+        queryHistory2.setSql("select * from test_table_2");
+
+        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(queryHistory1, queryHistory2)).when(queryHistoryDAO).getQueryHistoriesBySql(actualSql, QueryHistory.class);
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryManager();
+
+        List<QueryHistory> queryHistories = queryHistoryService.getQueryHistories(startTime, endTime);
+        Assert.assertEquals(2, queryHistories.size());
+        Assert.assertEquals(queryHistory1.getSql(), queryHistories.get(0).getSql());
+        Assert.assertEquals(queryHistory2.getSql(), queryHistories.get(1).getSql());
+    }
+
+    @Test
+    public void testCheckMetricTypeError() {
+        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "");
+
+        QueryHistoryRequest request = new QueryHistoryRequest();
+        request.setProject(PROJECT);
+
+        try {
+            queryHistoryService.getQueryHistories(request, 10, 0);
+        } catch (Throwable ex) {
+            Assert.assertEquals(IllegalStateException.class, ex.getClass());
+            Assert.assertEquals(MsgPicker.getMsg().getNOT_SET_INFLUXDB(), ex.getMessage());
+        }
+    }
 }

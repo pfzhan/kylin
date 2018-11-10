@@ -79,7 +79,8 @@ public class InfluxDBWriter implements MetricWriter {
         // enable async write. max batch size 1000, flush duration 3s.
         // when bufferLimit > actions，#RetryCapableBatchWriter will be used
         getInfluxDB().enableBatch(
-                BatchOptions.DEFAULTS.actions(1000).bufferLimit(10000).flushDuration(3000).jitterDuration(500));
+                BatchOptions.DEFAULTS.actions(1000).bufferLimit(10000).
+                        flushDuration(KapConfig.getInstanceFromEnv().getInfluxDBFlushDuration()).jitterDuration(500));
 
         if (!getInfluxDB().databaseExists(DEFAULT_DATABASE)) {
             logger.info("Create influxDB Database {}", DEFAULT_DATABASE);

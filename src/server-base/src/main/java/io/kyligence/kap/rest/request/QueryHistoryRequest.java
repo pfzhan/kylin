@@ -24,11 +24,15 @@
 
 package io.kyligence.kap.rest.request;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.util.List;
 
 @Getter
+@Setter
+@EqualsAndHashCode
 public class QueryHistoryRequest {
 
     private String project;

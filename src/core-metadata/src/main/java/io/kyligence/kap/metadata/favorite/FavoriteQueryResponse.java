@@ -21,28 +21,27 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.metadata.favorite;
 
-package io.kyligence.kap.smart;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.io.IOException;
-import org.apache.kylin.common.KylinConfig;
+@Getter
+@Setter
+@NoArgsConstructor
+public class FavoriteQueryResponse extends FavoriteQuery {
+    @JsonProperty("success_rate")
+    private float successRate;
+    @JsonProperty("average_duration")
+    private float averageDuration;
 
-public class NSmartController {
-    // todo: change the way of getting sqls
-    public static synchronized void optimizeFromPushdown(KylinConfig kylinConfig, String project) throws IOException {
-        /*
-        QueryHistoryManager manager = QueryHistoryManager.getInstance(kylinConfig);
-        List<QueryHistory> entries = manager.getAllQueryHistories(project);
-
-        List<String> sqls = new ArrayList<>(entries.size());
-        for (QueryHistory entry : entries) {
-            if (!entry.getAccelerateStatus().equals(QueryHistory.QUERY_HISTORY_ACCELERATED)) {
-                sqls.add(entry.getSqlPattern());
-            }
-        }
-
-        NSmartMaster master = new NSmartMaster(kylinConfig, project, sqls.toArray(new String[0]));
-        master.runAll();
-        */
+    public FavoriteQueryResponse(final String sqlPattern, final int sqlPatternHash, final String project) {
+        setSqlPattern(sqlPattern);
+        setSqlPatternHash(sqlPatternHash);
+        setProject(project);
+        setLastQueryTime(System.currentTimeMillis());
+        setStatus(FavoriteQueryStatusEnum.WAITING);
     }
 }

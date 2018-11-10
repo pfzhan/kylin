@@ -32,7 +32,7 @@ public interface FavoriteQueryDao {
 
     void batchUpdateStatus(final List<FavoriteQuery> favoriteQueries);
 
-    List<FavoriteQuery> getByPage(String project, int limit, int offset);
+    List<FavoriteQueryResponse> getByPage(String project, int limit, int offset);
 
     List<String> getUnAcceleratedSqlPattern(String project);
 
