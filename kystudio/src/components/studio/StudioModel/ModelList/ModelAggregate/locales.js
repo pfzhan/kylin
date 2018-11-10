@@ -28,7 +28,7 @@ export default {
     searchAggregateID: '搜索聚合索引ID',
     to: '至',
     id: 'ID:',
-    emptyAggregate: '空聚合索引：',
+    emptyAggregate: '空的聚合索引：',
     brokenAggregate: '破损聚合索引：'
   }
 }
