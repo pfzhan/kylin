@@ -24,10 +24,8 @@
 
 package io.kyligence.kap.query.relnode;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-
+import com.google.common.collect.Sets;
+import io.kyligence.kap.query.util.ICutContextStrategy;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -42,13 +40,12 @@ import org.apache.calcite.util.ImmutableBitSet;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.query.relnode.KylinAggregateCall;
 import org.apache.kylin.query.relnode.OLAPAggregateRel;
 import org.apache.kylin.query.relnode.OLAPContext;
 
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.query.util.ICutContextStrategy;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 /**
  */
@@ -192,27 +189,6 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         // rebuild rowType & columnRowType
         this.rowType = this.deriveRowType();
         this.columnRowType = this.buildColumnRowType();
-    }
-
-    private AggregateCall rewriteAggCall(AggregateCall logicAggCall, FunctionDesc preCalcFunc) {
-        // filter needn't rewrite aggfunc
-        // if it's not a cube, then the "needRewriteField func" should not resort to any rewrite fields,
-        // which do not exist at all
-        if (!(noPrecaculatedFieldsAvailable() && preCalcFunc.needRewriteField())) {
-            if (preCalcFunc.needRewrite()) {
-                logicAggCall = rewriteAggregateCall(logicAggCall, preCalcFunc);
-            }
-
-            //if not dim as measure (using some measure), differentiate it with a new class
-            if (preCalcFunc.getMeasureType() != null &&
-            // DimCountDistinct case
-                    preCalcFunc.getMeasureType().needRewriteField()) {
-                logicAggCall = new KylinAggregateCall(logicAggCall, preCalcFunc);
-            }
-        } else {
-            logger.info(logicAggCall + "skip rewriteAggregateCall because no pre-aggregated field available");
-        }
-        return logicAggCall;
     }
 
     @Override

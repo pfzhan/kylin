@@ -42,13 +42,9 @@
 
 package org.apache.kylin.query.relnode;
 
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import org.apache.calcite.adapter.enumerable.EnumerableAggregate;
 import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
@@ -90,9 +86,12 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.SQLDigest.SQLCall;
 import org.apache.kylin.query.schema.OLAPTable;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  */
@@ -340,24 +339,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
                 }
 
                 FunctionDesc cubeFunc = this.context.aggregations.get(i);
-                // filter needn,t rewrite aggfunc
-                // if it's not a cube, then the "needRewriteField func" should not resort to any rewrite fields,
-                // which do not exist at all
-                if (!(noPrecaculatedFieldsAvailable() && cubeFunc.needRewriteField())) {
-                    if (cubeFunc.needRewrite()) {
-                        aggCall = rewriteAggregateCall(aggCall, cubeFunc);
-                    }
-
-                    //if not dim as measure (using some measure), differentiate it with a new class
-                    if (cubeFunc.getMeasureType() != null &&
-                    // DimCountDistinct case
-                            cubeFunc.getMeasureType().needRewriteField()) {
-                        aggCall = new KylinAggregateCall(aggCall, cubeFunc);
-                    }
-                } else {
-                    logger.info(aggCall + "skip rewriteAggregateCall because no pre-aggregated field available");
-                }
-
+                aggCall = rewriteAggCall(aggCall, cubeFunc);
                 this.rewriteAggCalls.add(aggCall);
                 this.context.aggrSqlCalls.add(toSqlCall(aggCall));
             }
@@ -366,7 +348,28 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
         // rebuild rowType & columnRowType
         this.rowType = this.deriveRowType();
         this.columnRowType = this.buildColumnRowType();
+    }
 
+    protected AggregateCall rewriteAggCall(AggregateCall aggCall, FunctionDesc cubeFunc) {
+        // filter needn,t rewrite aggfunc
+        // if it's not a cube, then the "needRewriteField func" should not resort to any rewrite fields,
+        // which do not exist at all
+        if (!(noPrecaculatedFieldsAvailable() && cubeFunc.needRewriteField())) {
+            if (cubeFunc.needRewrite()) {
+                aggCall = rewriteAggregateCall(aggCall, cubeFunc);
+            }
+
+            //if not dim as measure (using some measure), differentiate it with a new class
+            if (cubeFunc.getMeasureType() != null &&
+                    // DimCountDistinct case
+                    cubeFunc.getMeasureType().needRewriteField()) {
+                aggCall = new KylinAggregateCall(aggCall, cubeFunc);
+            }
+        } else {
+            logger.info(aggCall + "skip rewriteAggregateCall because no pre-aggregated field available");
+        }
+
+        return aggCall;
     }
 
     protected SQLCall toSqlCall(AggregateCall aggCall) {

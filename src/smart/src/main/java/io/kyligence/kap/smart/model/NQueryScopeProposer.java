@@ -24,12 +24,14 @@
 
 package io.kyligence.kap.smart.model;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.Measure;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
+import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.util.CubeUtils;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -41,15 +43,11 @@ import org.apache.kylin.query.routing.RealizationChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModel.Measure;
-import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
-import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.util.CubeUtils;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Define Dimensions and Measures from SQLs
@@ -148,19 +146,13 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         Set<TblColRef> allTableColumns = Sets.newHashSet();
 
         private ScopeBuilder collectCtxColumns(OLAPContext ctx) {
-            Set<TblColRef> tableColumns = Sets.newHashSet();
             for (OLAPTableScan tableScan : ctx.allTableScans) {
-                tableColumns.addAll(tableScan.getTableRef().getColumns());
+                allTableColumns.addAll(tableScan.getTableRef().getColumns());
             }
-            allTableColumns.addAll(tableColumns);
 
             TblColRef[] colArray = ctx.allColumns.toArray(new TblColRef[0]);
             Arrays.sort(colArray, Comparator.comparing(TblColRef::getIdentity));
             Set<TblColRef> allColumns = Sets.newLinkedHashSet(Arrays.asList(colArray));
-
-            if (allColumns == null || allColumns.isEmpty()) {
-                allColumns = tableColumns;
-            }
             if (ctx.subqueryJoinParticipants != null)
                 allColumns.addAll(ctx.subqueryJoinParticipants);
 
