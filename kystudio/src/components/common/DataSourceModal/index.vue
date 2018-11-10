@@ -1,5 +1,5 @@
 <template>
-  <el-dialog class="data-srouce-modal" :width="!isSourceSetting ? '780px' : '440px'"
+  <el-dialog class="data-srouce-modal" :width="modelWidth"
     :title="$t(modalTitle)"
     :visible="isShow"
     :close-on-press-escape="false"
@@ -99,6 +99,16 @@ export default class DataSourceModal extends Vue {
 
   get modalTitle () {
     return titleMaps[this.sourceType]
+  }
+  get modelWidth () {
+    switch (this.sourceType) {
+      case sourceTypes.HIVE:
+        return '960px'
+      case sourceTypes.SETTING:
+        return '440px'
+      default:
+        return '780px'
+    }
   }
   get cancelText () {
     return this.$t(cancelMaps[this.sourceType])

@@ -35,7 +35,18 @@ export function getTableTree (database, res, isTableReset) {
     database: database.id,
     isSelected: table.loaded,
     clickable: !table.loaded,
-    isLoaded: table.loaded
+    isLoaded: table.loaded,
+    render: (h, { node, data, store }) => {
+      const isChecked = data.isLoaded || data.isSelected
+      return (
+        <div>
+          { isChecked ? (
+            <span class="el-icon-ksd-good_health"></span>
+          ) : null}
+          <span>{data.label}</span>
+        </div>
+      )
+    }
   }))
   database.children = isTableReset
     ? newTables

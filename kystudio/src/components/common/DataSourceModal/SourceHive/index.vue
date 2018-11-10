@@ -1,29 +1,75 @@
 <template>
   <div class="source-hive clearfix">
-    <TreeList
-      class="table-tree"
-      :data="treeData"
-      :is-show-filter="true"
-      :is-show-resize-bar="true"
-      :on-filter="handleFilter"
-      :filter-white-list-types="['datasource', 'database']"
-      @resize="handleResize"
-      @click="handleClickNode"
-      @node-expand="handleNodeExpand"
-      @load-more="handleLoadMore"
-    />
+    <div class="list clearfix">
+      <TreeList
+        class="table-tree"
+        :data="treeData"
+        :is-show-filter="true"
+        :is-show-resize-bar="false"
+        :on-filter="handleFilter"
+        :filter-white-list-types="['datasource', 'database']"
+        @resize="handleResize"
+        @click="handleClickNode"
+        @node-expand="handleNodeExpand"
+        @load-more="handleLoadMore"
+      />
+      <div class="split">
+        <i class="el-icon-ksd-more_03"></i>
+      </div>
+    </div>
     <div class="content" :style="contentStyle">
-      <arealabel
-        splitChar=","
-        placeholder=" "
-        :selectedlabels="selectedTables"
-        :allowcreate="true"
-        :datamap="{label: 'label', value: 'value'}"
-        @refreshData="handleAddTable"
-        @removeTag="handleRemoveTable"
-        @validateFail="handleValidateFail">
-      </arealabel>
-      <div class="tips" v-html="sourceType === sourceTypes['HIVE'] ? $t('loadHiveTip') : $t('loadTip')"></div>
+      <div class="content-body" :class="{ 'has-tips': isShowTips }">
+        <template v-if="selectedItems.databases.length || selectedItems.tables.length">
+          <div class="category databases" v-if="selectedItems.databases.length">
+            <div class="header font-medium">
+              <span>Database</span>
+              <span>({{selectedItems.databases.length}})</span>
+            </div>
+            <div class="names">
+              <el-select multiple filterable v-model="selectedItems.databases" @remove-tag="handleRemoveTable" @input="handleAddTable">
+                <el-option
+                  v-for="option in databaseOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value">
+                </el-option>
+              </el-select>
+            </div>
+          </div>
+          <div class="category tables" v-if="selectedItems.tables.length">
+            <div class="header font-medium">
+              <span>Table Name</span>
+              <span>({{selectedItems.tables.length}})</span>
+            </div>
+            <div class="names">
+              <el-select multiple filterable v-model="selectedItems.tables" @remove-tag="handleRemoveTable" @input="handleAddTable">
+                <el-option
+                  v-for="option in tableOptions"
+                  :key="option.value"
+                  :label="option.label"
+                  :value="option.value">
+                </el-option>
+              </el-select>
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <div class="empty">
+            <img class="empty-img" src="../../../../assets/img/no_data.png" />
+            <p class="empty-text">{{$t('kylinLang.common.noData')}}</p>
+          </div>
+        </template>
+      </div>
+      <transition name="fade">
+        <div class="tips" v-if="isShowTips">
+          <div class="close el-icon-ksd-close" @click="handleHideTips"></div>
+          <div class="header font-medium">{{sourceType === sourceTypes['HIVE'] ? $t('loadHiveTipHeader') : $t('loadTipHeader')}}</div>
+          <ul class="body">
+            <li>{{sourceType === sourceTypes['HIVE'] ? $t('loadHiveTip1') : $t('loadTip1')}}</li>
+            <li>{{sourceType === sourceTypes['HIVE'] ? $t('loadHiveTip2') : $t('loadTip2')}}</li>
+          </ul>
+        </div>
+      </transition>
     </div>
   </div>
 </template>
@@ -67,7 +113,6 @@ import arealabel from '../../area_label.vue'
 })
 export default class SourceHive extends Vue {
   treeData = []
-  databases = []
   contentStyle = {
     marginLeft: null,
     width: null
@@ -75,16 +120,44 @@ export default class SourceHive extends Vue {
   sourceTypes = sourceTypes
   timer = null
   isDatabaseError = false
-  get selectedTableOptions () {
-    return this.selectedTables.map(tableId => ({
-      label: tableId,
-      value: tableId
+  isShowTips = true
+  get databaseOptions () {
+    return this.treeData.map(database => ({
+      value: database.id,
+      label: database.id
     }))
+  }
+  get tableOptions () {
+    const tableOptions = []
+    this.treeData.forEach(database => {
+      return database.children.forEach(table => {
+        tableOptions.push({
+          value: table.id,
+          label: table.id
+        })
+      })
+    })
+    return tableOptions
+  }
+  get selectedItems () {
+    const databases = []
+    const tables = []
+    for (const selectedTable of this.selectedTables) {
+      if (!selectedTable.includes('.')) {
+        databases.push(selectedTable)
+      }
+    }
+    for (const selectedTable of this.selectedTables) {
+      if (selectedTable.includes('.') && !databases.includes(selectedTable.split('.')[0])) {
+        tables.push(selectedTable)
+      }
+    }
+    return { databases, tables }
   }
   @Watch('selectedTables')
   onSelectedTablesChange () {
     // 刷新table或者db的选中状态
-    for (const database of this.databases) {
+    for (const database of this.treeData) {
       database.isSelected = this.selectedTables.includes(database.id)
       if (database.isSelected) {
         for (const table of database.children) {
@@ -115,13 +188,6 @@ export default class SourceHive extends Vue {
     this.getDatabaseTree = getDatabaseTree.bind(this)
   }
   async mounted () {
-    const sourceType = this.sourceType
-    this.treeData = [{
-      id: sourceType === sourceTypes['HIVE'] ? 'Hive Table' : 'Table',
-      label: sourceType === sourceTypes['HIVE'] ? 'Hive Table' : 'Table',
-      type: 'datasource',
-      children: []
-    }]
     await this.loadDatabase()
   }
   async loadDatabase () {
@@ -129,8 +195,7 @@ export default class SourceHive extends Vue {
       const projectName = this.currentSelectedProject
       const sourceType = this.sourceType
       const res = await this.fetchDatabase({ projectName, sourceType })
-      this.databases = this.getDatabaseTree(await handleSuccessAsync(res))
-      this.treeData[0].children = this.databases
+      this.treeData = this.getDatabaseTree(await handleSuccessAsync(res))
       this.isDatabaseError = false
     } catch (e) {
       this.isDatabaseError = true
@@ -154,7 +219,7 @@ export default class SourceHive extends Vue {
 
     return new Promise(async resolve => {
       this.timer = setTimeout(async () => {
-        const requests = this.databases.map(async database => {
+        const requests = this.treeData.map(async database => {
           const { pagination } = database
           this.clearPagination(pagination)
 
@@ -182,8 +247,9 @@ export default class SourceHive extends Vue {
     }
   }
   handleResize (treeWidth) {
-    this.contentStyle.marginLeft = `${treeWidth}px`
-    this.contentStyle.width = `${this.$el.clientWidth - treeWidth}px`
+    const marginLeft = treeWidth + 25 + 20
+    this.contentStyle.marginLeft = `${marginLeft}px`
+    this.contentStyle.width = `${this.$el.clientWidth - marginLeft}px`
   }
   async handleNodeExpand (data) {
     if (data.isLoading) {
@@ -194,7 +260,7 @@ export default class SourceHive extends Vue {
     }
   }
   async handleLoadMore (data) {
-    const database = this.databases.find(database => database.id === data.parent.id)
+    const database = this.treeData.find(database => database.id === data.parent.id)
     this.loadTables({ database })
   }
   handleAddTable (addTableId) {
@@ -208,6 +274,9 @@ export default class SourceHive extends Vue {
   handleValidateFail () {
     this.$message(this.$t('selectedHiveValidateFailText'))
   }
+  handleHideTips () {
+    this.isShowTips = false
+  }
 }
 </script>
 
@@ -215,46 +284,184 @@ export default class SourceHive extends Vue {
 @import '../../../../assets/styles/variables.less';
 
 .source-hive {
-  .table-tree {
-    width: 218px;
+  .list {
+    position: relative;
     float: left;
-    border-right: 1px solid #cfd8dc;
-    .el-tree-node__content {
+  }
+  .table-tree {
+    width: 480px;
+    float: left;
+    padding: 20px 0;
+    margin-left: 20px;
+  }
+  .split {
+    position: absolute;
+    top: 50%;
+    right: 0;
+    transform: translate(20px, 100%);
+    * {
+      cursor: default;
+    }
+  }
+  .filter-box {
+    box-sizing: border-box;
+    margin-bottom: 10px;
+    width: 210px;
+  }
+  .filter-tree {
+    height: 470px;
+    overflow: auto;
+    border: 1px solid @line-border-color;
+  }
+  .content {
+    margin-left: calc(480px + 25px + 20px);
+    padding: 62px 20px 20px 0;
+    position: relative;
+    height: 470px;
+  }
+  .content-body {
+    position: relative;
+    height: 470px;
+    border: 1px solid @line-border-color;
+    transition: height .2s .2s;
+  }
+  .content-body.has-tips {
+    height: 322px;
+  }
+  .el-tag {
+    margin-right: 10px;
+  }
+  .databases,
+  .tables {
+    padding: 15px;
+    .header {
+      color: @text-normal-color;
+      margin-bottom: 10px;
+    }
+    .names .el-select {
+      width: 100%;
+    }
+    .names .el-select .el-input__inner {
+      border: none;
+    }
+    .names .el-select .el-input__suffix {
+      display: none;
+    }
+    .names .el-select .el-select__input {
+      width: 1px !important;
+    }
+    .el-tag {
+      margin-right: 10px;
+      margin-left: 0px;
+    }
+  }
+  .category {
+    border-bottom: 1px solid @line-border-color;
+  }
+  .category:last-child {
+    border-bottom: none;
+  }
+  .empty {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .empty-img {
+    width: 40px;
+    margin-bottom: 7px;
+  }
+  .empty-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: @text-normal-color;
+  }
+  .tips {
+    position: absolute;
+    padding: 15px;
+    border-radius: 2px;
+    background-color: @base-color-9;
+    bottom: 20px;
+    right: 20px;
+    .header {
+      color: @text-normal-color;
+      font-size: 13px;
+      margin-bottom: 2px;
+    }
+    .body {
+      line-height: 1.33;
+      color: @text-normal-color;
+      font-size: 12px;
+    }
+    ul, li {
+      list-style: decimal;
+    }
+    ul {
+      padding-left: 16px;
+    }
+    .close {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      color: @base-color;
+    }
+  }
+  .fade-enter-active, .fade-leave-active {
+    transition: opacity .2s;
+  }
+  .fade-enter, .fade-leave-to {
+    opacity: 0;
+  }
+  // 定制化datasource tree样式
+  .table-tree {
+    // 去掉默认样式
+    // .el-tree-node__content:hover {
+    //   background-color: inherit;
+    // }
+    // .el-tree-node:focus>.el-tree-node__content {
+    //   background-color: inherit;
+    //   color: inherit;
+    // }
+    // 定制样式: database
+    .el-tree > .el-tree-node > .el-tree-node__content {
+      height: 44px;
       position: relative;
-      &:hover {
-        .select-all {
-          display: block;
-        }
-      }
+    }
+    .el-tree > .el-tree-node {
+      border-bottom: 1px solid @line-border-color;
+    }
+    .el-tree > .el-tree-node > .el-tree-node__content > .tree-item {
+      position: static;
     }
     .select-all {
       display: none;
       position: absolute;
-      top: 0;
+      top: 50%;
       right: 10px;
+      transform: translateY(-50%);
       line-height: 36px;
       font-size: 12px;
       &:hover {
         color: #0988de;
       }
     }
-  }
-  .filter-tree {
-    min-height: 220px;
-    max-height: 400px;
-    overflow: auto;
-  }
-  .content {
-    margin-left: 218px;
-    padding: 20px;
-    box-sizing: border-box;
-  }
-  .filter-box {
-    padding: 10px 10px 0 10px;
-    box-sizing: border-box;
-  }
-  .tips {
-    margin-top: 22px;
+    .el-tree-node__content:hover .select-all {
+      display: block;
+    }
+    .tree-item {
+      position: relative;
+      user-select: none;
+    }
+    .el-icon-ksd-good_health {
+      color: @btn-success-normal;
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translate(-20px, -50%);
+    }
   }
 }
 </style>
