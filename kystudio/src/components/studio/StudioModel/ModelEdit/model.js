@@ -61,7 +61,7 @@ class NModel {
     this.all_measures = options.simplified_measures || []
     this.project = options.project
     this.maintain_model_type = options.maintain_model_type
-    this.management_type = options.management_type
+    this.management_type = options.management_type || 'TABLE_ORIENTED'
     this.globalDataSource = store.state.datasource.dataSource // 全局数据源表数据
     this.datasource = options.simplified_tables || [] // 当前模型使用的数据源表数据
     if (_) {

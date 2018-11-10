@@ -42,18 +42,20 @@
       <transition name="bounceleft">
         <div class="panel-box panel-datasource" v-show="panelAppear.datasource.display" :style="panelStyle('datasource')" v-event-stop>
           <div class="panel-title"><span class="title">{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
-          <DataSourceBar
-            class="tree-box"
-            :project-name="currentSelectedProject"
-            :is-show-load-source="true"
-            :is-show-settings="false"
-            :is-show-action-group="false"
-            :is-expand-on-click-node="false"
-            :expand-node-types="['datasource', 'database']"
-            :draggable-node-types="['table']"
-            :searchable-node-types="['table']"
-            @drag="dragTable">
-          </DataSourceBar>
+          <div v-scroll style="height:calc(100% - 50px)">
+            <DataSourceBar 
+              class="tree-box"
+              :project-name="currentSelectedProject"
+              :is-show-load-source="true"
+              :is-show-settings="false"
+              :is-show-action-group="false"
+              :is-expand-on-click-node="false"
+              :expand-node-types="['datasource', 'database']"
+              :draggable-node-types="['table']"
+              :searchable-node-types="['table']"
+              @drag="dragTable">
+            </DataSourceBar>
+          </div>
         </div>
       </transition>
       <!-- datasource面板  end-->

@@ -95,9 +95,10 @@
                       <i class="el-icon-ksd-table_others ksd-fs-16"></i>
                   </span>
                  <el-dropdown-menu slot="dropdown"  :uuid='scope.row.uuid' >
-                    <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item>
+                    <!-- 数据检测移动至project 级别处理， -->
+                    <!-- <el-dropdown-item command="dataCheck">{{$t('datacheck')}}</el-dropdown-item> -->
                     <!-- 设置partition -->
-                    <el-dropdown-item command="dataLoad" v-if="scope.row.management_type!=='TABLE_ORIENTED'">{{$t('dataloading')}}</el-dropdown-item>
+                    <el-dropdown-item command="dataLoad" :disabled="scope.row.management_type==='TABLE_ORIENTED'">{{$t('dataloading')}}</el-dropdown-item>
                     <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
                     <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'DESCBROKEN'">{{$t('importMdx')}}</el-dropdown-item>
                     <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'DESCBROKEN'">{{$t('exportTds')}}</el-dropdown-item>

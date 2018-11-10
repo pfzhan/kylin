@@ -29,7 +29,7 @@
     <div class="btn-group clearfix ksd-mt-6">
       <el-button size="small" plain @click="delCC" class="ksd-fleft" v-if="ccDesc">{{$t('kylinLang.common.delete')}}</el-button>
       <!-- <el-button size="small" plain @click="cancelCC" class="ksd-fleft" v-if="!ccDesc">{{$t('kylinLang.common.cancel')}}</el-button> -->
-      <el-button type="primary" size="small" plain @click="addCC" class="ksd-fright" v-if="isEdit" :loading="checkBtnLoading">
+      <el-button type="primary" size="small" @click="addCC" class="ksd-fright" v-if="isEdit" :loading="checkBtnLoading">
         {{$t('kylinLang.common.save')}}
       </el-button>
       <!-- <el-button size="small" plain @click="resetCC" class="ksd-fright" v-if="isEdit">
