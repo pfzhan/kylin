@@ -37,8 +37,6 @@ import java.util.Set;
 public class NSparkMergingStep extends NSparkExecutable {
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingStep.class);
 
-    public NSparkMergingStep() {
-    }
 
     @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {

@@ -84,61 +84,7 @@ public class DictionaryBuilder implements Serializable {
             for (MeasureDesc measureDesc : layout.getCuboidDesc().getEffectiveMeasures().values()) {
                 if (measureDesc.getFunction().getReturnDataType().getName().equals("bitmap")) {
                     TblColRef col = measureDesc.getFunction().getParameter().getColRef();
-                    NDictionaryInfo dictInfo = new NDictionaryInfo(col.getColumnDesc(), col.getDatatype(), null,
-                            seg.getProject());
-                    //TODO: what if dict changed?
-                    Dictionary<String> existing = seg.getDictionary(col);
-                    if (existing != null)
-                        continue;
-                    int id = cubePlan.getModel().getColumnIdByColumnName(col.getIdentity());
-                    final Dataset<Row> afterDistinct = dataSet.select(String.valueOf(id)).distinct();
-
-                    final List<String> rows = new ArrayList<>();
-
-                    int partitions = seg.getConfig().getAppendDictHashPartitions();
-                    final Collection<String> ret = afterDistinct.toJavaRDD()
-                            .mapToPair(new PairFunction<Row, String, String>() {
-                                @Override
-                                public Tuple2<String, String> call(Row row) throws Exception {
-                                    if (row.get(0) == null)
-                                        return new Tuple2<>(null, null);
-
-                                    return new Tuple2<>(row.get(0).toString(), row.get(0).toString());
-                                }
-                            }).partitionBy(new NHashPartitioner(partitions)).collectAsMap().values();
-                    rows.addAll(ret);
-
-                    dictionaryMap.put(col,
-                            NDictionaryManager.buildDictionary(col, dictInfo,
-                                    null,
-                                    new IterableDictionaryValueEnumerator(new Iterable<String>() {
-                                        @Override
-                                        public Iterator<String> iterator() {
-                                            return new Iterator<String>() {
-                                                int i = 0;
-
-                                                @Override
-                                                public boolean hasNext() {
-                                                    return i < rows.size();
-                                                }
-
-                                                @Override
-                                                public String next() {
-                                                    if (hasNext()) {
-                                                        final String row = rows.get(i++);
-                                                        return row != null ? row : null;
-                                                    } else {
-                                                        throw new NoSuchElementException();
-                                                    }
-                                                }
-
-                                                @Override
-                                                public void remove() {
-                                                    throw new UnsupportedOperationException();
-                                                }
-                                            };
-                                        }
-                                    })));
+                    build(cubePlan, dictionaryMap, col);
                 }
             }
         }
@@ -153,6 +99,64 @@ public class DictionaryBuilder implements Serializable {
         } catch (IOException e) {
             throw new RuntimeException("Failed to deal with the request: " + e.getLocalizedMessage());
         }
+    }
+
+    private void build(NCubePlan cubePlan, Map<TblColRef, Dictionary<String>> dictionaryMap, TblColRef col) throws IOException {
+        NDictionaryInfo dictInfo = new NDictionaryInfo(col.getColumnDesc(), col.getDatatype(), null,
+                seg.getProject());
+        //TODO: what if dict changed?
+        Dictionary<String> existing = seg.getDictionary(col);
+        if (existing != null)
+            return;
+        int id = cubePlan.getModel().getColumnIdByColumnName(col.getIdentity());
+        final Dataset<Row> afterDistinct = dataSet.select(String.valueOf(id)).distinct();
+
+        final List<String> rows = new ArrayList<>();
+
+        int partitions = seg.getConfig().getAppendDictHashPartitions();
+        final Collection<String> ret = afterDistinct.toJavaRDD()
+                .mapToPair(new PairFunction<Row, String, String>() {
+                    @Override
+                    public Tuple2<String, String> call(Row row) throws Exception {
+                        if (row.get(0) == null)
+                            return new Tuple2<>(null, null);
+
+                        return new Tuple2<>(row.get(0).toString(), row.get(0).toString());
+                    }
+                }).partitionBy(new NHashPartitioner(partitions)).collectAsMap().values();
+        rows.addAll(ret);
+
+        dictionaryMap.put(col,
+                NDictionaryManager.buildDictionary(col, dictInfo,
+                        null,
+                        new IterableDictionaryValueEnumerator(new Iterable<String>() {
+                            @Override
+                            public Iterator<String> iterator() {
+                                return new Iterator<String>() {
+                                    int i = 0;
+
+                                    @Override
+                                    public boolean hasNext() {
+                                        return i < rows.size();
+                                    }
+
+                                    @Override
+                                    public String next() {
+                                        if (hasNext()) {
+                                            final String row = rows.get(i++);
+                                            return row != null ? row : null;
+                                        } else {
+                                            throw new NoSuchElementException();
+                                        }
+                                    }
+
+                                    @Override
+                                    public void remove() {
+                                        throw new UnsupportedOperationException();
+                                    }
+                                };
+                            }
+                        })));
     }
 
     private NDataSegment writeDictionary(NDataSegment segment, Map<TblColRef, Dictionary<String>> dictionaryMap,

@@ -70,6 +70,9 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
 
     public static final int MAX_RETRY_TIMES_OF_CONTEXT_CUT = 10;
 
+    public static final String SPARDER_CALL_METHOD_NAME = "enumerable";
+
+
     public KapOLAPToEnumerableConverter(RelOptCluster cluster, RelTraitSet traits, RelNode input) {
         super(cluster, traits, input);
     }
@@ -129,17 +132,17 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
             KapContext.setKapRel((KapRel) getInput());
             KapContext.setRowType(getRowType());
             if (QueryContext.current().isAsyncQuery()) {
-                Expression enumerable = list.append("enumerable",
+                Expression enumerable = list.append(SPARDER_CALL_METHOD_NAME,
                         Expressions.call(SparderMethod.ASYNC_RESULT.method, enumImplementor.getRootExpression()));
                 list.add(Expressions.return_(null, enumerable));
                 return enumImplementor.result(physType, list.toBlock());
             }
             if (physType.getFormat() == JavaRowFormat.SCALAR) {
-                Expression enumerable = list.append("enumerable",
+                Expression enumerable = list.append(SPARDER_CALL_METHOD_NAME,
                         Expressions.call(SparderMethod.COLLECT_SCALAR.method, enumImplementor.getRootExpression()));
                 list.add(Expressions.return_(null, enumerable));
             } else {
-                Expression enumerable = list.append("enumerable",
+                Expression enumerable = list.append(SPARDER_CALL_METHOD_NAME,
                         Expressions.call(SparderMethod.COLLECT.method, enumImplementor.getRootExpression()));
                 list.add(Expressions.return_(null, enumerable));
             }

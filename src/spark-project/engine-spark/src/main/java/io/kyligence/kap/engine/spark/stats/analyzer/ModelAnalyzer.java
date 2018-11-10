@@ -60,7 +60,7 @@ import java.util.List;
 
 public class ModelAnalyzer implements Serializable {
 
-    private final Logger logger = LoggerFactory.getLogger(getClass());
+    private transient final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final NDataModel dataModel;
 

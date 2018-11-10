@@ -41,8 +41,6 @@ public class NSparkCubingStep extends NSparkExecutable {
 
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingStep.class);
 
-    public NSparkCubingStep() {
-    }
 
     @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {
