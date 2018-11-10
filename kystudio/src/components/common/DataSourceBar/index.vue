@@ -409,6 +409,7 @@ export default class DataSourceBar extends Vue {
         font-size: 13px;
         position: relative;
         top: -1px;
+        cursor: pointer;
       }
       &:hover .top {
         display: inline;

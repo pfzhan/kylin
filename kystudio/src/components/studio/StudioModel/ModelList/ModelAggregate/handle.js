@@ -51,6 +51,19 @@ export function getCuboidCounts (data) {
   return count
 }
 
+export function getStatusCuboidCounts (data, status) {
+  let count = 0
+  data.forEach(item => {
+    const nodes = Object.values(item.nodes)
+    for (const node of nodes) {
+      if (node.cuboid.status === status) {
+        count++
+      }
+    }
+  })
+  return count
+}
+
 function getFlowerData (cuboid, nodes = {}, maxLevel) {
   const isRoot = !~cuboid.parent
   if (isRoot) {

@@ -11,7 +11,9 @@ export default {
     dataRange: 'Data Range:',
     searchAggregateID: 'Search Aggregate ID',
     to: 'to',
-    id: 'ID:'
+    id: 'ID:',
+    emptyAggregate: 'Empty Aggregate:',
+    brokenAggregate: 'Broken Aggregate:'
   },
   'zh-cn': {
     aggregateGroup: '聚合组',
@@ -25,6 +27,8 @@ export default {
     dataRange: 'Data Range:',
     searchAggregateID: '搜索聚合索引ID',
     to: '至',
-    id: 'ID:'
+    id: 'ID:',
+    emptyAggregate: '空聚合索引：',
+    brokenAggregate: '破损聚合索引：'
   }
 }

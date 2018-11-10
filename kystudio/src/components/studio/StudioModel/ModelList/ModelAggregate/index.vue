@@ -22,6 +22,18 @@
                 <el-input v-model.trim="cuboidCount" size="small"></el-input>
               </div>
             </div>
+            <div class="agg-counter">
+              <div>
+                <img src="./empty_note.jpg" />
+                <span>{{$t('emptyAggregate')}}</span>
+                <span>{{emptyCuboidCount}}</span>
+              </div>
+              <div>
+                <img src="./broken_note.jpg" />
+                <span>{{$t('brokenAggregate')}}</span>
+                <span>{{brokenCuboidCount}}</span>
+              </div>
+            </div>
             <PartitionChart
               :data="cuboids"
               :search-id="searchCuboidId"
@@ -86,7 +98,7 @@ import dayjs from 'dayjs'
 import { mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 import locales from './locales'
-import { formatFlowerJson, getCuboidCounts, backgroundMaps } from './handle'
+import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMaps } from './handle'
 import FlowerChart from '../../../../common/FlowerChart'
 import PartitionChart from '../../../../common/PartitionChart'
 import { handleSuccessAsync } from '../../../../../util'
@@ -120,6 +132,8 @@ import AggregateModal from './AggregateModal/index.vue'
 })
 export default class ModelAggregate extends Vue {
   cuboidCount = 0
+  emptyCuboidCount = 0
+  brokenCuboidCount = 0
   cuboids = []
   cuboidData = {}
   searchCuboidId = ''
@@ -161,6 +175,8 @@ export default class ModelAggregate extends Vue {
     const data = await handleSuccessAsync(res)
     this.cuboids = formatFlowerJson(data)
     this.cuboidCount = getCuboidCounts(data)
+    this.emptyCuboidCount = getStatusCuboidCounts(data, 'EMPTY')
+    this.brokenCuboidCount = getStatusCuboidCounts(data, 'BROKEN')
   }
   async mounted () {
     await this.freshCuboids()
@@ -186,6 +202,23 @@ export default class ModelAggregate extends Vue {
     right: 0;
     .el-input {
       width: 120px;
+    }
+  }
+  .agg-counter {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    white-space: nowrap;
+    font-size: 12px;
+    * {
+      vertical-align: middle;
+    }
+    img {
+      width: 18px;
+      height: 18px;
+    }
+    div:not(:last-child) {
+      margin-bottom: 5px;
     }
   }
   .cubois-chart-block {
@@ -215,6 +248,7 @@ export default class ModelAggregate extends Vue {
       padding: 10px;
       height: 583px;
       width: 100%;
+      position: relative;
       .detail-content {
         .el-row {
           margin-bottom: 10px;
