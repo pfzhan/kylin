@@ -20,7 +20,7 @@
 
 SELECT
   "NAME",
-  count("TRANS_ID") AS "C1"
+  count(*) AS "C1"
 FROM (SELECT
   "OTBL"."TRANS_ID",
   "ITBL"."NAME"

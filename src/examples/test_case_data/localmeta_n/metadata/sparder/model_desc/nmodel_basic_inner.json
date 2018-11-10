@@ -285,6 +285,12 @@
       "id": 32,
       "name": "NEST4",
       "column": "TEST_KYLIN_FACT.NEST4"
+    },
+    {
+      "id": 33,
+      "name": "CAL_DT1",
+      "column": "TEST_CAL_DT.CAL_DT",
+      "status": "DIMENSION"
     }
   ],
   "all_measures": [
@@ -438,6 +444,66 @@
           "value": "TEST_KYLIN_FACT.PRICE"
         },
         "returntype": "percentile(100)"
+      }
+    },
+    {
+      "id": 1012,
+      "name": "COUNT_SELLER_ID",
+      "function": {
+        "expression": "COUNT",
+        "parameter": {
+          "type": "column",
+          "value": "TEST_KYLIN_FACT.SELLER_ID"
+        },
+        "returntype": "bigint"
+      }
+    },
+    {
+      "id": 1013,
+      "name": "COUNT_PRICE",
+      "function": {
+        "expression": "COUNT",
+        "parameter": {
+          "type": "column",
+          "value": "TEST_KYLIN_FACT.PRICE"
+        },
+        "returntype": "bigint"
+      }
+    },
+    {
+      "id": 1014,
+      "name": "COUNT_CAL_DT",
+      "function": {
+        "expression": "COUNT",
+        "parameter": {
+          "type": "column",
+          "value": "TEST_CAL_DT.CAL_DT"
+        },
+        "returntype": "bigint"
+      }
+    },
+    {
+      "id": 1015,
+      "name": "SUM_NEST4",
+      "function": {
+        "expression": "SUM",
+        "parameter": {
+          "type": "column",
+          "value": "TEST_KYLIN_FACT.NEST4"
+        },
+        "returntype": "decimal"
+      }
+    },
+    {
+      "id": 1016,
+      "name": "SUM_DEAL_AMOUNT",
+      "function": {
+        "expression": "SUM",
+        "parameter": {
+          "type": "column",
+          "value": "TEST_KYLIN_FACT.DEAL_AMOUNT"
+        },
+        "returntype": "decimal"
       }
     }
   ],

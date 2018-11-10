@@ -118,7 +118,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelService.updateDataModelSemantic(request);
 
         val model = getTestModel();
-        Assert.assertEquals("GMV_AVG", model.getEffectiveMeasureMap().get(1012).getName());
+        Assert.assertEquals("GMV_AVG", model.getEffectiveMeasureMap().get(1017).getName());
         Assert.assertNull(model.getEffectiveMeasureMap().get(1002));
         Assert.assertNull(model.getEffectiveMeasureMap().get(1003));
         val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
@@ -207,7 +207,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         newCol.status = NDataModel.ColumnStatus.DIMENSION;
         request.getAllNamedColumns().add(newCol);
         ComputedColumnDesc ccDesc = request.getComputedColumnDescs().stream()
-                .filter(cc -> "DEAL_AMOUNT".equals(cc.getColumnName())).findFirst().orElse(null);
+                .filter(cc -> "DEAL_YEAR".equals(cc.getColumnName())).findFirst().orElse(null);
         Assert.assertNotNull(ccDesc);
         NamedColumn ccCol = request.getAllNamedColumns().stream()
                 .filter(c -> c.aliasDotColumn.equals(ccDesc.getFullName())).findFirst().orElse(null);
@@ -223,7 +223,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val model = getTestModel();
         Assert.assertEquals(newCol.name, model.getNameByColumnId(prevId));
         Assert.assertNull(model.getEffectiveDimenionsMap().get(25));
-        Assert.assertFalse(model.getComputedColumnNames().contains("DEAL_AMOUNT"));
+        Assert.assertFalse(model.getComputedColumnNames().contains("DEAL_YEAR"));
         Assert.assertNull(model.getEffectiveDimenionsMap().get(ccColId));
         Assert.assertNull(model.getEffectiveColsMap().get(ccColId));
         val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
@@ -238,7 +238,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         modelService.updateDataModelSemantic(request);
         val model2 = getTestModel();
         Assert.assertEquals(newCol.name, model2.getNameByColumnId(prevId));
-        Assert.assertTrue(model2.getComputedColumnNames().contains("DEAL_AMOUNT"));
+        Assert.assertTrue(model2.getComputedColumnNames().contains("DEAL_YEAR"));
         NamedColumn newCcCol = model2.getAllNamedColumns().stream()
                 .filter(c -> c.aliasDotColumn.equals(ccDesc.getFullName())).filter(c -> c.isExist()).findFirst()
                 .orElse(null);

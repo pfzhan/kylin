@@ -43,11 +43,11 @@
 
 package org.apache.kylin.measure.percentile;
 
-import com.tdunning.math.stats.AVLTreeDigest;
-import com.tdunning.math.stats.TDigest;
-
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+
+import com.tdunning.math.stats.AVLTreeDigest;
+import com.tdunning.math.stats.TDigest;
 
 public class PercentileCounter implements Serializable {
     private static final double INVALID_QUANTILE_RATIO = -1;
@@ -131,8 +131,16 @@ public class PercentileCounter implements Serializable {
     }
 
     public int maxLength() {
-        // 10KB for max length
-        return 10 * 1024;
+        switch ((int) compression) {
+        case 100:
+            return 16 * 1024;
+        case 1000:
+            return 128 * 1024;
+        case 10000:
+            return 1024 * 1024;
+        default:
+            return 16 * 1024;
+        }
     }
 
     public int peekLength(ByteBuffer in) {

@@ -24,9 +24,10 @@
 
 package io.kyligence.kap.newten;
 
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 
 public class NAutoTpchTest extends NAutoTestBase {
 

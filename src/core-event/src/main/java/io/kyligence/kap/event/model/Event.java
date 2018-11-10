@@ -95,6 +95,7 @@ public class Event extends RootPersistentEntity {
     @JsonProperty("parentId")
     private String parentId;
     @JsonProperty("create_time_nanosecond")
+    @Getter
     protected long createTimeNanosecond;
 
     public Event() {

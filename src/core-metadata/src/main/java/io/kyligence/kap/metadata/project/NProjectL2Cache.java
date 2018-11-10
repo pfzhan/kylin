@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListMap;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -48,6 +47,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 /**
@@ -176,10 +176,8 @@ class NProjectL2Cache {
     }
 
     private boolean belongToTable(FunctionDesc func, String table, NDataModel model) {
-        // measure belong to the first column parameter's table
-        List<TblColRef> cols = func.getParameter().getColRefs();
-        String belongTo = cols.isEmpty() ? model.getRootFactTable().getTableIdentity() : cols.get(0).getTable();
-        return belongTo.equals(table);
+        // measure belong to the fact table
+        return model.getRootFactTable().getTableIdentity().equals(table);
     }
 
     // ============================================================================

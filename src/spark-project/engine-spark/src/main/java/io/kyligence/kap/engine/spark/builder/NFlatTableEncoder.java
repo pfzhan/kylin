@@ -254,10 +254,7 @@ public class NFlatTableEncoder implements Serializable {
             ParameterDesc param = function.getParameter();
             for (int i = 0; i < paramCount; i++, param = param.getNextParameter()) {
                 String value;
-                //TODO: change to suit #3824
-                if (function.isCount()) {
-                    value = "1";
-                } else if (param.isColumnType()) {
+                if (param.isColumnType()) {
                     int index = flatTableDesc.getColumnIndex(param.getColRef());
                     value = row.get(index) == null ? null : row.get(index).toString();
                 } else {

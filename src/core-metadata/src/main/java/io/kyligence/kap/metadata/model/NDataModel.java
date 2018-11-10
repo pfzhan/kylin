@@ -1061,7 +1061,7 @@ public class NDataModel extends RootPersistentEntity {
         // check there is one count()
         int countNum = 0;
         for (MeasureDesc m : effectiveMeasures.values()) {
-            if (m.getFunction().isCount())
+            if (m.getFunction().isCountConstant())
                 countNum++;
         }
         if (countNum != 1)

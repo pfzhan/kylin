@@ -70,44 +70,36 @@ public class QueryRouter {
 
     public static IRealization selectRealization(OLAPContext olapContext, Set<IRealization> realizations)
             throws NoRealizationFoundException {
-
         String factTableName = olapContext.firstTableScan.getTableName();
         String projectName = olapContext.olapSchema.getProjectName();
         SQLDigest sqlDigest = olapContext.getSQLDigest();
-
         List<Candidate> candidates = Lists.newArrayListWithCapacity(realizations.size());
         for (IRealization real : realizations) {
             if (real.isReady())
                 candidates.add(new Candidate(real, sqlDigest));
         }
-
         logger.info("Find candidates by table " + factTableName + " and project=" + projectName + " : "
                 + StringUtils.join(candidates, ","));
 
         List<Candidate> originCandidates = Lists.newArrayList(candidates);
-
         // rule based realization selection, rules might reorder realizations or remove specific realization
         RoutingRule.applyRules(candidates);
-
         collectIncapableReason(olapContext, originCandidates);
-
         if (candidates.size() == 0) {
             return null;
         }
 
         Candidate chosen = candidates.get(0);
         adjustForDimensionAsMeasure(chosen, olapContext);
-
-        logger.info("The realizations remaining: " + RoutingRule.getPrintableText(candidates)
-                + ",and the final chosen one for current olap context " + olapContext.id + " is "
-                + chosen.realization.getCanonicalName());
-
         for (CapabilityInfluence influence : chosen.getCapability().influences) {
             if (influence.getInvolvedMeasure() != null) {
                 olapContext.involvedMeasure.add(influence.getInvolvedMeasure());
             }
         }
 
+        logger.info("The realizations remaining: " + RoutingRule.getPrintableText(candidates)
+                + ",and the final chosen one for current olap context " + olapContext.id + " is "
+                + chosen.realization.getCanonicalName());
         return chosen.realization;
     }
 

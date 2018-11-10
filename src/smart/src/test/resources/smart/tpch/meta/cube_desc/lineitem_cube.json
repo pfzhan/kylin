@@ -485,7 +485,15 @@
       "name" : "F1",
       "columns" : [ {
         "qualifier" : "M",
-        "measure_refs" : [ "_COUNT_", "EXTENDEDPRICE_SUM", "SALEPRICE_SUM", "TAXPRICE_SUM", "SUPPLYCOST_SUM", "DISCOUNT_SUM", "QUANTITY_SUM" ]
+        "measure_refs": [
+          "_COUNT_",
+          "EXTENDEDPRICE_SUM",
+          "SALEPRICE_SUM",
+          "TAXPRICE_SUM",
+          "SUPPLYCOST_SUM",
+          "DISCOUNT_SUM",
+          "QUANTITY_SUM"
+        ]
       } ]
     }, {
       "name" : "F2",

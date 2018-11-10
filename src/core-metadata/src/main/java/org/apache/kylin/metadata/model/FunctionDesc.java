@@ -120,13 +120,16 @@ public class FunctionDesc implements Serializable {
     public static final String FUNC_GROUPING = "GROUPING";
     public static final String FUNC_TOP_N = "TOP_N";
     public static final Set<String> BUILT_IN_AGGREGATIONS = Sets.newHashSet();
+    public static final Set<String> DIMENSION_AS_MEASURES = Sets.newHashSet();
 
     static {
+        DIMENSION_AS_MEASURES.add(FUNC_MAX);
+        DIMENSION_AS_MEASURES.add(FUNC_MIN);
+        DIMENSION_AS_MEASURES.add(FUNC_COUNT_DISTINCT);
+
+        BUILT_IN_AGGREGATIONS.addAll(DIMENSION_AS_MEASURES);
         BUILT_IN_AGGREGATIONS.add(FUNC_COUNT);
-        BUILT_IN_AGGREGATIONS.add(FUNC_MAX);
-        BUILT_IN_AGGREGATIONS.add(FUNC_MIN);
         BUILT_IN_AGGREGATIONS.add(FUNC_SUM);
-        BUILT_IN_AGGREGATIONS.add(FUNC_COUNT_DISTINCT);
         BUILT_IN_AGGREGATIONS.add(FUNC_PERCENTILE);
     }
 
@@ -140,6 +143,7 @@ public class FunctionDesc implements Serializable {
 
     public static final String PARAMETER_TYPE_CONSTANT = "constant";
     public static final String PARAMETER_TYPE_COLUMN = "column";
+    public static final String PARAMETER_TYPE_MATH_EXPRESSION = "math_expression";
 
     @JsonProperty("expression")
     private String expression;
@@ -218,8 +222,8 @@ public class FunctionDesc implements Serializable {
     }
 
     public String getRewriteFieldName() {
-        if (isCount()) {
-            return "_KY_" + "COUNT__"; // ignores parameter, count(*), count(1), count(col) are all the same
+        if (isCountConstant()) {
+            return "_KY_" + "COUNT__"; // ignores parameter, count(*) and count(1) are the same
         } else if (isCountDistinct()) {
             return "_KY_" + getFullExpressionInAlphabetOrder().replaceAll("[(),. ]", "_");
         } else {
@@ -232,11 +236,10 @@ public class FunctionDesc implements Serializable {
             if (isMax() || isMin()) {
                 return parameter.getColRefs().get(0).getType();
             } else if (isSum()) {
-                if (parameter.getColRefs().get(0).getType().getName().equals(returnDataType.getName())) {
+                if (parameter.isConstant())
                     return returnDataType;
-                } else {
-                    return parameter.getColRefs().get(0).getType();
-                }
+
+                return parameter.getColRefs().get(0).getType();
             } else if (isCount()) {
                 return DataType.getType("bigint");
             } else {
@@ -273,6 +276,14 @@ public class FunctionDesc implements Serializable {
         return FUNC_COUNT.equalsIgnoreCase(expression);
     }
 
+    public boolean isCountOnColumn() {
+        return FUNC_COUNT.equalsIgnoreCase(expression) && parameter != null && parameter.isColumnType();
+    }
+
+    public boolean isCountConstant() {//count(*) and count(1)
+        return FUNC_COUNT.equalsIgnoreCase(expression) && (parameter == null || parameter.isConstant());
+    }
+
     public boolean isCountDistinct() {
         return FUNC_COUNT_DISTINCT.equalsIgnoreCase(expression);
     }
@@ -287,9 +298,14 @@ public class FunctionDesc implements Serializable {
     public String getFullExpression() {
         StringBuilder sb = new StringBuilder(expression);
         sb.append("(");
-        if (parameter != null) {
-            sb.append(parameter.getValue());
+        ParameterDesc desc = parameter;
+        while (desc != null) {
+            sb.append(desc.getValue());
+            desc = desc.getNextParameter();
+            if (desc != null)
+                sb.append(",");
         }
+
         sb.append(")");
         return sb.toString();
     }
@@ -328,6 +344,10 @@ public class FunctionDesc implements Serializable {
         return expression;
     }
 
+    public void setExpression(String expression) {
+        this.expression = expression;
+    }
+
     public ParameterDesc getParameter() {
         return parameter;
     }
@@ -350,10 +370,6 @@ public class FunctionDesc implements Serializable {
 
     public void setReturnType(String returnType) {
         this.returnType = returnType;
-    }
-
-    public void setExpression(String expression) {
-        this.expression = expression;
     }
 
     public DataType getReturnDataType() {
@@ -396,7 +412,9 @@ public class FunctionDesc implements Serializable {
             } else {
                 return parameter.equalInArbitraryOrder(other.parameter);
             }
-        } else if (!isCount()) { // NOTE: don't check the parameter of count()
+        } else if (isCountConstant() && ((FunctionDesc) obj).isCountConstant()) { //count(*) and count(1) are equals
+            return true;
+        } else {
             if (parameter == null) {
                 if (other.parameter != null)
                     return false;
@@ -414,5 +432,4 @@ public class FunctionDesc implements Serializable {
         return "FunctionDesc [expression=" + expression + ", parameter=" + parameter + ", returnType=" + returnType
                 + "]";
     }
-
 }

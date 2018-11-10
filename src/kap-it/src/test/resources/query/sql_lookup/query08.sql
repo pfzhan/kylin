@@ -1,0 +1,1 @@
+select count(*), count(cal_dt) as CNT from edw.test_cal_dt

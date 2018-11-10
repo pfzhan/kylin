@@ -87,6 +87,8 @@ object CuboidAggregator {
             min(column).as(measureEntry._1.toString)
           case "SUM" =>
             sum(column).as(measureEntry._1.toString)
+          case "COUNT" =>
+            count(column).as(measureEntry._1.toString)
           case "COUNT_DISTINCT" =>
             if (isSparkSql) {
               countDistinct(column).as(measureEntry._1.toString)

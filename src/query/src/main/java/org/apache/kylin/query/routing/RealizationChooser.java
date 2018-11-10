@@ -106,7 +106,6 @@ public class RealizationChooser {
     private static void attemptSelectCandidate(OLAPContext context) {
         context.setHasSelected(true);
         Map<NDataModel, Set<IRealization>> modelMap = makeOrderedModelMap(context);
-
         if (modelMap.size() == 0) {
             throw new NoRealizationFoundException("No model found for " + toErrorMsg(context));
         }
@@ -187,9 +186,8 @@ public class RealizationChooser {
                     cuboidLayout.getOrderedDimensions(),
                     cuboidLayout.getOrderedMeasures());
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
 
     private static void adjustSqlDigestForAdvanceMeasure(SQLDigest sqlDigest, NDataflow selectedDataflow) {

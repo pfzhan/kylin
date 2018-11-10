@@ -353,4 +353,16 @@ public class ITKapPushDownQueryTest extends KapTestBase {
                 "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
         runSQL(sqlFile, true, false);
     }
+
+    @Test
+    public void testCountColCannotReplacedByCountStar() throws Exception {
+        File sqlFile = new File("src/test/resources/query/sql_pushdown/query12.sql");
+        KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY, "");
+        try {
+            runSQL(sqlFile, true, false);
+        } catch (SQLException e) {
+            logger.debug("stacktrace for the SQLException: ", e);
+            Assert.assertEquals(NoRealizationFoundException.class, Throwables.getRootCause(e).getClass());
+        }
+    }
 }

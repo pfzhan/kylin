@@ -148,7 +148,7 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         val originModel = getTestBasicModel();
         modelMgr.updateDataModel(MODEL_NAME, model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
             if (m.id == 1011) {
-                m.id = 1012;
+                m.id = 1017;
             }
         }).collect(Collectors.toList())));
         val updateEvent = new ModelSemanticUpdateEvent();
@@ -195,7 +195,7 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         modelMgr.updateDataModel(originModel.getName(),
                 model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
                     if (m.id == 1011) {
-                        m.id = 1012;
+                        m.id = 1017;
                     }
                 }).collect(Collectors.toList())));
         val updateEvent = new ModelSemanticUpdateEvent();
@@ -228,7 +228,7 @@ public class ModelSemanticUpdateHandlerTest extends NLocalFileMetadataTestCase {
         modelMgr.updateDataModel(originModel.getName(),
                 model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
                     if (m.id == 1011) {
-                        m.id = 1012;
+                        m.id = 1017;
                     }
                 }).collect(Collectors.toList())));
         modelMgr.updateDataModel(originModel.getName(), model -> {

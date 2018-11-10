@@ -391,11 +391,6 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
             List<FunctionDesc> newAggrs = Lists.newArrayList();
             for (FunctionDesc aggFunc : this.aggregations) {
                 FunctionDesc newAgg = findInMeasures(aggFunc, measures);
-                //                if (newAgg == null && aggFunc.isCount()
-                //                        && this.context.realization.getConfig().isReplaceColCountWithCountStar()) {
-                //                    newAgg = FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT, ParameterDesc.newInstance("1"),
-                //                            "bigint");
-                //                } else 
                 if (newAgg == null) {
                     newAgg = aggFunc;
                 }

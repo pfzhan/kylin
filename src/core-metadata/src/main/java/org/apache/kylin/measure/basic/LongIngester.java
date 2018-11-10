@@ -48,14 +48,20 @@ import java.util.Map;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.measure.MeasureIngester;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 public class LongIngester extends MeasureIngester<Long> {
 
     @Override
     public Long valueOf(String[] values, MeasureDesc measureDesc, Map<TblColRef, Dictionary<String>> dictionaryMap) {
+        ParameterDesc param = measureDesc.getFunction().getParameter();
         if (values.length > 1)
             throw new IllegalArgumentException();
+
+        if (measureDesc.getFunction().isCount()) {
+            return (param.isConstant() || values[0] != null) ? new Long(1L) : new Long(0L);
+        }
 
         if (values[0] == null || values[0].length() == 0)
             return new Long(0L);
