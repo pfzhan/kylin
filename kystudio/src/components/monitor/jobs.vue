@@ -1,26 +1,26 @@
 <template>
   <div class="jobs_list ksd-mrl-20" @click.stop>
-    <el-row :gutter="20" class="ksd-mt-10 ksd-mb-16">
-      <el-col  :xs="12" :md="4" :lg="4">
-        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.jobName"  @input="filterChange" class="show-search-btn" size="medium" prefix-icon="el-icon-search">
-        <!--   <el-button slot="append" :icon="searchLoading? 'el-icon-loading':'el-icon-search'" ></el-button> -->
-        </el-input>
-
-      </el-col>
-      <el-col  :xs="12" :md="4" :lg="4">
-        <el-select v-model="filter.timeFilter" @change="filterChange2" style="width:100%;" size="medium">
+    <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
+      <el-col  :xs="12" :md="12" :lg="12">
+        <el-select v-model="filter.status" @change="filterChange2" style="width:140px;" size="medium">
           <el-option
-            v-for="(item, item_index) in timeFilter"
-            :key="item_index"
-            :label="$t(item.name)"
-            :value="item.value">
+            v-for="(status, status_index) in allStatus"
+            :key="status_index"
+            :label="$t(status.name)"
+            :value="status.value">
           </el-option>
         </el-select>
+        <el-button-group class="action_groups ksd-ml-10">
+          <el-button plain size="medium" :disabled="!(filter.status==8 || filter.status==32) || filter.status == ''" @click="batchResume">{{$t('jobResume')}}</el-button>
+          <el-button plain size="medium" :disabled="filter.status==16 || filter.status==4 || filter.status == ''" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
+          <el-button plain size="medium" :disabled="!(filter.status==2 || filter.status==1) || filter.status == ''" @click="batchPause">{{$t('jobPause')}}</el-button>
+          <el-button plain size="medium" :disabled="!(filter.status==16 || filter.status==4) || filter.status == ''" @click="batchDrop">{{$t('jobDrop')}}</el-button>
+        </el-button-group>
+        <el-button plain size="medium" class="ksd-ml-20" icon="el-icon-refresh" @click="refreshJobs">{{$t('kylinLang.common.refresh')}}</el-button>
       </el-col>
-      <el-col  :xs="24" :md="16" :lg="16">
-        <el-checkbox-group v-model="filter.status" @change="filterChange2" style="float: right;" class="ksd-mt-10">
-          <el-checkbox :label="status.value" v-for="(status, status_index) in allStatus" :key="status_index">{{$t(status.name)}}</el-checkbox>
-        </el-checkbox-group>
+      <el-col  :xs="24" :md="12" :lg="12">
+        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.jobName"  @input="filterChange" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
+        </el-input>
       </el-col>
     </el-row>
     <el-table class="ksd-el-table jobs-table"
@@ -30,10 +30,12 @@
       highlight-current-row
       @row-click="showLineSteps"
       @sort-change="sortJobList"
+      @selection-change="handleSelectionChange"
       :row-class-name="tableRowClassName"
       :style="{width:showStep?'70%':'100%'}"
     >
       <!-- :default-sort="{prop: 'jobname', order: 'descending'}" -->
+      <el-table-column type="selection" align="center" width="55"></el-table-column>
       <el-table-column
         :label="$t('JobType')"
         sortable
@@ -251,8 +253,8 @@ import diagnosisXX from '../security/diagnosis'
     'diagnosis': diagnosisXX
   },
   locales: {
-    'en': {dataRange: 'Data Range', JobType: 'Job Type', JobName: 'Job Name', TableModelCube: 'Target Subject', ProgressStatus: 'Job Status', startTime: 'Start Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', diagnosis: 'Generate Diagnosis Package', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting'},
-    'zh-cn': {dataRange: '数据范围', JobType: 'Job 类型', JobName: '任务', TableModelCube: '任务对象', ProgressStatus: '任务状态', startTime: '任务开始时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '终止', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要终止任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', diagnosis: '诊断', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间'}
+    'en': {dataRange: 'Data Range', JobType: 'Job Type', JobName: 'Job Name', TableModelCube: 'Target Subject', ProgressStatus: 'Job Status', startTime: 'Start Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', diagnosis: 'Generate Diagnosis Package', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting', noSelectJobs: 'Please check at least one job.'},
+    'zh-cn': {dataRange: '数据范围', JobType: 'Job 类型', JobName: '任务', TableModelCube: '任务对象', ProgressStatus: '任务状态', startTime: '任务开始时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '终止', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要终止任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', diagnosis: '诊断', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间', noSelectJobs: '请勾选至少一项任务。'}
   }
 })
 export default class JobsList extends Vue {
@@ -268,29 +270,24 @@ export default class JobsList extends Vue {
   outputDetail = ''
   stepAttrToShow = ''
   beforeScrollPos = 0
+  multipleSelection = []
   filter = {
     pageOffset: 0,
     pageSize: pageCount,
-    timeFilter: this.$store.state.monitor.filter.timeFilter,
+    timeFilter: 4,
     jobName: this.$store.state.monitor.filter.jobName,
     sortBy: this.$store.state.monitor.filter.sortby,
     status: this.$store.state.monitor.filter.status,
     subjects: ''
   }
   allStatus = [
+    {name: 'ALL', value: ''},
     {name: 'PENDING', value: 1},
     {name: 'RUNNING', value: 2},
     {name: 'FINISHED', value: 4},
     {name: 'ERROR', value: 8},
     {name: 'DISCARDED', value: 16},
     {name: 'STOPPED', value: 32}
-  ]
-  timeFilter = [
-    {name: 'LASTONEDAY', value: 0},
-    {name: 'LASTONEWEEK', value: 1},
-    {name: 'LASTONEMONTH', value: 2},
-    {name: 'LASTONEYEAR', value: 3},
-    {name: 'ALL', value: 4}
   ]
   diagnosisVisible = false
   targetId = ''
@@ -313,13 +310,17 @@ export default class JobsList extends Vue {
   }
   mounted () {
     window.addEventListener('click', this.closeIt)
-    document.getElementById('scrollBox').addEventListener('scroll', this.scrollRightBar, false)
+    if (document.getElementById('scrollBox')) {
+      document.getElementById('scrollBox').addEventListener('scroll', this.scrollRightBar, false)
+    }
   }
   beforeDestroy () {
     window.clearTimeout(this.stCycle)
     window.clearTimeout(this.scrollST)
     window.removeEventListener('click', this.closeIt)
-    document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
+    if (document.getElementById('scrollBox')) {
+      document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
+    }
     this.$store.state.monitor.filter = {
       timeFilter: this.filter.timeFilter,
       jobName: this.filter.jobName,
@@ -382,6 +383,45 @@ export default class JobsList extends Vue {
         }
       }
     }, 400)
+  }
+  handleSelectionChange (val) {
+    this.multipleSelection = val
+  }
+  batchResume () {
+    if (!this.multipleSelection.length) {
+      this.$message.warning(this.$t('noSelectJobs'))
+    } else {
+      this.multipleSelection.forEach((item) => {
+        this.resume(item.id)
+      })
+    }
+  }
+  batchDiscard () {
+    if (!this.multipleSelection.length) {
+      this.$message.warning(this.$t('noSelectJobs'))
+    } else {
+      this.multipleSelection.forEach((item) => {
+        this.discard(item.id)
+      })
+    }
+  }
+  batchPause () {
+    if (!this.multipleSelection.length) {
+      this.$message.warning(this.$t('noSelectJobs'))
+    } else {
+      this.multipleSelection.forEach((item) => {
+        this.pause(item.id)
+      })
+    }
+  }
+  batchDrop () {
+    if (!this.multipleSelection.length) {
+      this.$message.warning(this.$t('noSelectJobs'))
+    } else {
+      this.multipleSelection.forEach((item) => {
+        this.drop(item.id)
+      })
+    }
   }
   closeModal () {
     this.diagnosisVisible = false
@@ -554,6 +594,30 @@ export default class JobsList extends Vue {
 <style lang="less">
   @import '../../assets/styles/variables.less';
   .jobs_list {
+    .jobs_tools_row {
+      font-size: 0px;
+    }
+    .show-search-btn {
+      width: 300px;
+    }
+    .action_groups {
+      vertical-align: top;
+      .el-button {
+        background: #fff;
+        border-color: @base-color;
+        color: @base-color;
+        z-index: 1;
+        &:hover {
+          background: @base-color;
+          color: @fff;
+        }
+      }
+      .el-button.is-disabled.is-plain, .el-button.is-disabled.is-plain:hover {
+        border-color: @text-secondary-color;
+        background-color: @grey-4;
+        z-index: 0;
+      }
+    }
     .el-dropdown-link {
       display: inline-block;
       height: 25px;
@@ -566,6 +630,8 @@ export default class JobsList extends Vue {
     }
     .job-step {
       width: 30%;
+      min-height: calc(~'100vh - 173px');
+      box-sizing: border-box;
       z-index: 100;
       position: absolute;
       top: 0;
@@ -738,7 +804,7 @@ export default class JobsList extends Vue {
       tr.current-row2 > td{
         background: @base-color-9;
       }
-      tr td:first-child .cell {
+      tr td:nth-child(2) .cell {
         position:relative;
         padding: 0px 10px 0px 35px;
       }

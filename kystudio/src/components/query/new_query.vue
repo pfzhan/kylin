@@ -51,38 +51,41 @@
           <el-dialog
             :title="$t('savedQueries')"
             width="660px"
+            class="saved_query_dialog"
             :visible.sync="savedQueryListVisible">
-            <div v-if="!savedSize" class="nodata">
-              <div class="ksd-mb-20"><img src="../../assets/img/save_query.png" style="height:80px;"></div>
-              <span>{{$t('kylinLang.common.noData')}}</span>
-            </div>
-            <div class="saved_query_content" v-else>
-              <div class="form_block" v-for="(savequery, index) in savedList" :key="savequery.name" >
-                <el-checkbox v-model="checkedQueryList" :label="index" class="query_check">
-                  <el-form class="narrowForm">
-                    <el-form-item :label="$t('kylinLang.query.name')+' :'" class="ksd-mb-2 narrowFormItem" >
-                      <span>{{savequery.name}}</span>
-                    </el-form-item>
-                    <el-form-item :label="$t('kylinLang.query.desc')+' :'" class="ksd-mb-2 narrowFormItem" >
-                      <span>{{savequery.description}}</span>
-                    </el-form-item>
-                    <el-form-item :label="$t('kylinLang.query.querySql')+' :'" prop="sql" class="ksd-mb-2 narrowFormItem">
-                      <el-button plain size="mini" @click="toggleDetail(index)">
-                        {{$t('kylinLang.common.seeDetail')}}
-                        <i class="el-icon-arrow-down" v-show="!showDetail || (showDetail&&showDetailInd!==index)"></i>
-                        <i class="el-icon-arrow-up" v-show="showDetail&&showDetailInd==index"></i>
-                      </el-button>
-                      <kap_editor width="99%" height="80" lang="sql" theme="chrome" v-model="savequery.sql" dragbar="#393e53" ref="saveQueries" v-show="showDetail&&showDetailInd==index" class="ksd-mt-6">
-                      </kap_editor>
-                    </el-form-item>
-                    <div class="btn-group">
-                      <el-button size="small" type="info" class="remove_query_btn" text @click="removeQuery(savequery.id)">{{$t('kylinLang.common.delete')}}</el-button>
-                      <!-- <kap-icon-button type="primary" plain size="small" @click.native="resubmit(savequery.sql)">{{$t('kylinLang.common.submit')}}</kap-icon-button> -->
-                    </div>
-                  </el-form>
-                </el-checkbox>
+            <div class="list_block" v-scroll>
+              <div v-if="!savedSize" class="nodata">
+                <div class="ksd-mb-20"><img src="../../assets/img/save_query.png" style="height:80px;"></div>
+                <span>{{$t('kylinLang.common.noData')}}</span>
               </div>
-              <el-button plain size="small" class="reload-more-btn" @click="pageCurrentChange" v-if="savedList.length < savedSize">{{$t('more')}}</el-button>
+              <div class="saved_query_content" v-else>
+                <div class="form_block" v-for="(savequery, index) in savedList" :key="savequery.name" >
+                  <el-checkbox v-model="checkedQueryList" :label="index" class="query_check">
+                    <el-form class="narrowForm">
+                      <el-form-item :label="$t('kylinLang.query.name')+' :'" class="ksd-mb-2 narrowFormItem" >
+                        <span>{{savequery.name}}</span>
+                      </el-form-item>
+                      <el-form-item :label="$t('kylinLang.query.desc')+' :'" class="ksd-mb-2 narrowFormItem" >
+                        <span>{{savequery.description}}</span>
+                      </el-form-item>
+                      <el-form-item :label="$t('kylinLang.query.querySql')+' :'" prop="sql" class="ksd-mb-2 narrowFormItem">
+                        <el-button plain size="mini" @click="toggleDetail(index)">
+                          {{$t('kylinLang.common.seeDetail')}}
+                          <i class="el-icon-arrow-down" v-show="!showDetail || (showDetail&&showDetailInd!==index)"></i>
+                          <i class="el-icon-arrow-up" v-show="showDetail&&showDetailInd==index"></i>
+                        </el-button>
+                        <kap_editor width="99%" height="80" lang="sql" theme="chrome" v-model="savequery.sql" dragbar="#393e53" ref="saveQueries" v-show="showDetail&&showDetailInd==index" class="ksd-mt-6">
+                        </kap_editor>
+                      </el-form-item>
+                      <div class="btn-group">
+                        <el-button size="small" type="info" class="remove_query_btn" text @click="removeQuery(savequery.id)">{{$t('kylinLang.common.delete')}}</el-button>
+                        <!-- <kap-icon-button type="primary" plain size="small" @click.native="resubmit(savequery.sql)">{{$t('kylinLang.common.submit')}}</kap-icon-button> -->
+                      </div>
+                    </el-form>
+                  </el-checkbox>
+                </div>
+                <el-button plain size="small" class="reload-more-btn" @click="pageCurrentChange" v-if="savedList.length < savedSize">{{$t('more')}}</el-button>
+              </div>
             </div>
             <span slot="footer" class="dialog-footer">
               <el-button @click="cancelResubmit" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -335,10 +338,16 @@ export default class NewQuery extends Vue {
     position: relative;
     border-top: 1px solid @line-border-color;
     height: 100%;
-    .layout-right {
-      .saved_query_content {
-        height: 620px;
-        overflow-y: scroll;
+    .saved_query_dialog {
+      .el-dialog__body {
+        padding: 0;
+        .list_block {
+          width: 100%;
+          height: 620px;
+          .saved_query_content {
+            margin: 20px;
+          }
+        }
       }
     }
     .nodata {
@@ -350,10 +359,15 @@ export default class NewQuery extends Vue {
         display: flex;
         flex-grow: 1;
         align-items: flex-start;
+        .el-checkbox__input {
+          flex-grow: 0;
+        }
+        .el-checkbox__label {
+          flex-grow: 1;
+        }
         .narrowForm {
           border: 1px solid @line-border-color;
           padding: 15px;
-          width: 568px;
           margin-bottom: 10px;
           position: relative;
           background-color: @aceditor-bg-color;

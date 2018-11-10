@@ -9,7 +9,7 @@ export default {
     totalSlowQueries: 0,
     totalPushDownQueries: 0,
     filter: {
-      timeFilter: 1,
+      timeFilter: 4,
       jobName: '',
       sortby: 'last_modify',
       status: []
@@ -35,7 +35,7 @@ export default {
       state.totalJobs = 0
       state.totalSlowQueries = 0
       state.totalPushDownQueries = 0
-      state.filter.timeFilter = 1
+      state.filter.timeFilter = 4
       state.filter.jobName = ''
       state.filter.sortby = 'last_modify'
       state.filter.status = []
