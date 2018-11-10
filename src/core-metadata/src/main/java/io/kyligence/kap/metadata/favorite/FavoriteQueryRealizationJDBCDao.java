@@ -81,17 +81,26 @@ public class FavoriteQueryRealizationJDBCDao implements FavoriteQueryRealization
 
     @Override
     public List<FavoriteQueryRealization> getByConditions(String modelName, String cubePlanName, Long cuboidLayoutId) {
+        return getByConditions(modelName, cubePlanName, cuboidLayoutId, null);
+    }
+
+    private List<FavoriteQueryRealization> getByConditions(String modelName, String cubePlanName, Long cuboidLayoutId, Integer sqlPatternHash) {
         StringBuilder sql = new StringBuilder();
         sql.append(String.format("SELECT * FROM %s ", this.tableName));
 
-        String filterConditionStr = genFilterCondition(modelName, cubePlanName, cuboidLayoutId);
+        String filterConditionStr = genFilterCondition(modelName, cubePlanName, cuboidLayoutId, sqlPatternHash);
         if (StringUtils.isNotBlank(filterConditionStr)) {
             sql.append(filterConditionStr);
         }
         return JDBCManager.getInstance(config).getJdbcTemplate().query(sql.toString(), new FavoriteQueryRealizationRowMapper());
     }
 
-    private String genFilterCondition(String modelName, String cubePlanName, Long cuboidLayoutId) {
+    @Override
+    public List<FavoriteQueryRealization> getBySqlPatternHash(int sqlPatternHash) {
+        return getByConditions(null, null, null, sqlPatternHash);
+    }
+
+    private String genFilterCondition(String modelName, String cubePlanName, Long cuboidLayoutId, Integer sqlPatternHash) {
         StringBuilder filterSql = new StringBuilder();
         if (StringUtils.isNotBlank(modelName)) {
             appendPrefix(filterSql);
@@ -104,6 +113,10 @@ public class FavoriteQueryRealizationJDBCDao implements FavoriteQueryRealization
         if (null != cuboidLayoutId) {
             appendPrefix(filterSql);
             filterSql.append(String.format(" %s = '%d'", CUBOID_LAYOUT_ID, cuboidLayoutId));
+        }
+        if (null != sqlPatternHash) {
+            appendPrefix(filterSql);
+            filterSql.append(String.format(" %s = '%d'", SQL_PATTERN_HASH, sqlPatternHash));
         }
 
         if (filterSql.length() > 0) {

@@ -30,6 +30,8 @@ public interface FavoriteQueryRealizationDao {
 
     List<FavoriteQueryRealization> getByConditions(String modelName, String cubePlanName, Long cuboidLayoutId);
 
+    List<FavoriteQueryRealization> getBySqlPatternHash(int sqlPatternHash);
+
     void batchInsert(final List<FavoriteQueryRealization> favoriteQueryRealizations);
 
     void batchDelete(final List<FavoriteQueryRealization> favoriteQueryRealizations);

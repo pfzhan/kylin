@@ -69,6 +69,10 @@ public class FavoriteQueryRealizationJDBCDaoTest extends NLocalFileMetadataTestC
         List<FavoriteQueryRealization> list = dao.getByConditions(modelId, cubePlanId, 10000L);
         Assert.assertEquals(list.size(), 1);
 
+        list = dao.getBySqlPatternHash(sql.hashCode());
+        Assert.assertEquals(list.size(), 1);
+        Assert.assertEquals(list.get(0).getSqlPatternHash(), sql.hashCode());
+
         // test delete
         dao.batchDelete(favoriteQueryRealizations);
         list = dao.getByConditions(modelId, cubePlanId, 10000L);
