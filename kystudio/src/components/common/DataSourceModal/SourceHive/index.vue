@@ -2,6 +2,7 @@
   <div class="source-hive clearfix">
     <div class="list clearfix">
       <TreeList
+        ref="tree-list"
         class="table-tree"
         :data="treeData"
         :is-show-filter="true"
@@ -191,6 +192,7 @@ export default class SourceHive extends Vue {
     await this.loadDatabase()
   }
   async loadDatabase () {
+    this.$refs['tree-list'].showLoading()
     try {
       const projectName = this.currentSelectedProject
       const sourceType = this.sourceType
@@ -202,6 +204,7 @@ export default class SourceHive extends Vue {
       handleError(e)
       console.log(e)
     }
+    this.$refs['tree-list'].hideLoading()
   }
   async loadTables ({database, tableName = '', isTableReset = false}) {
     const projectName = this.currentSelectedProject

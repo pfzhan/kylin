@@ -1,6 +1,6 @@
 <template>
   <div class="tree-list" :style="{ width: `${treeStyle.width}px` }">
-    <div class="filter-box" v-if="isShowFilter && data.length">
+    <div class="filter-box" v-if="isShowFilter">
       <el-input
         size="medium"
         prefix-icon="el-icon-search"
