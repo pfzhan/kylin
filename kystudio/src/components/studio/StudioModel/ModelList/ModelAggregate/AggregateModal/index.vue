@@ -2,6 +2,7 @@
   <el-dialog class="aggregate-modal" width="960px"
     :title="$t(modalTitle)"
     :visible="isShow"
+    :append-to-body="true"
     :close-on-click-modal="false"
     @close="isShow && handleClose(false)">
     <template v-if="model">

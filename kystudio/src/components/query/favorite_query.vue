@@ -183,10 +183,9 @@
               <img  src="../../assets/img/no_data.png" />
               <p>{{$t('kylinLang.common.noData')}}</p>
             </div>
-            <div v-for="(sql, index) in sqlLists" :key="index" class="sqlBox" :class="{'active': index == activeIndex}" v-else>
+            <div v-for="(sql, index) in sqlLists" :key="index" class="sqlBox" :class="{'active': index == activeIndex}" @click.stop="viewBlackSql(sql, index)" v-else>
               <span>{{transformSql(sql)}}</span>
               <div class="group-btn">
-                <el-button size="small" type="primary" @click.stop="viewBlackSql(sql, index)" text>{{$t('kylinLang.common.view')}}</el-button>
                 <el-button type="primary" size="small" text @click="delBlack(sql, index)">{{$t('kylinLang.common.delete')}}</el-button>
               </div>
             </div>
@@ -238,7 +237,7 @@
             <div v-for="(sql, index) in sqlLists" :key="index" class="sqlBox" :class="{'active': index == activeIndex}" @click="activeSql(sql, index)" v-else>
               <span>{{transformSql(sql)}}</span>
               <div class="group-btn">
-                <el-button size="small" type="primary" @click.stop="editWhiteSql(sql, index)" text>{{$t('kylinLang.common.edit')}}</el-button>
+                <el-button size="small" type="primary" v-show="!isEditSql" @click.stop="editWhiteSql(sql, index)" text>{{$t('kylinLang.common.edit')}}</el-button>
                 <el-button type="primary" size="small" text @click.stop="delWhite(sql, index)">{{$t('kylinLang.common.delete')}}</el-button>
               </div>
             </div>
@@ -913,18 +912,26 @@ select a.placepointid, --门店id
     this.getDurationObj()
   }
 
+  drawImpactChart () {
+    loadLiquidFillGauge('fillgauge', this.impactRatio)
+    const config1 = liquidFillGaugeDefaultSettings()
+    config1.circleColor = '#FF7777'
+    config1.textColor = '#FF4444'
+    config1.waveTextColor = '#FFAAAA'
+    config1.waveColor = '#FFDDDD'
+    config1.circleThickness = 0.2
+    config1.textVertPosition = 0.2
+    config1.waveAnimateTime = 1000
+  }
+
   mounted () {
     this.$nextTick(() => {
       $('#favo-menu-item').removeClass('rotateY').css('opacity', 0)
-      loadLiquidFillGauge('fillgauge', this.impactRatio)
-      const config1 = liquidFillGaugeDefaultSettings()
-      config1.circleColor = '#FF7777'
-      config1.textColor = '#FF4444'
-      config1.waveTextColor = '#FFAAAA'
-      config1.waveColor = '#FFDDDD'
-      config1.circleThickness = 0.2
-      config1.textVertPosition = 0.2
-      config1.waveAnimateTime = 1000
+      this.drawImpactChart()
+      window.onresize = () => {
+        $('#fillgauge').empty()
+        this.drawImpactChart()
+      }
     })
   }
 
@@ -970,7 +977,7 @@ select a.placepointid, --门店id
   }
 
   viewBlackSql (sql, index) {
-    if (this.blackSql) {
+    if (this.blackSql && this.isEditSql) {
       kapConfirm(this.$t('giveUpEdit')).then(() => {
         this.toView(sql, index)
       })
@@ -1256,6 +1263,9 @@ select a.placepointid, --门店id
             }
             &.active {
               border-color: @base-color;
+              .group-btn {
+                display: inline-block;
+              }
             }
           }
         }

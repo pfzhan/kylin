@@ -71,10 +71,10 @@
                       <el-form-item :label="$t('kylinLang.query.querySql')+' :'" prop="sql" class="ksd-mb-2 narrowFormItem">
                         <el-button plain size="mini" @click="toggleDetail(index)">
                           {{$t('kylinLang.common.seeDetail')}}
-                          <i class="el-icon-arrow-down" v-show="!showDetail || (showDetail&&showDetailInd!==index)"></i>
-                          <i class="el-icon-arrow-up" v-show="showDetail&&showDetailInd==index"></i>
+                          <i class="el-icon-arrow-down" v-show="!savequery.isShow"></i>
+                          <i class="el-icon-arrow-up" v-show="savequery.isShow"></i>
                         </el-button>
-                        <kap_editor width="99%" height="80" lang="sql" theme="chrome" v-model="savequery.sql" dragbar="#393e53" ref="saveQueries" v-show="showDetail&&showDetailInd==index" class="ksd-mt-6">
+                        <kap_editor width="99%" height="80" lang="sql" theme="chrome" v-model="savequery.sql" dragbar="#393e53" ref="saveQueries" v-show="savequery.isShow" class="ksd-mt-6">
                         </kap_editor>
                       </el-form-item>
                       <div class="btn-group">
@@ -147,8 +147,8 @@ export default class NewQuery extends Vue {
   activeSubMenu = 'Query1'
   savedQuriesSize = 0
   queryCurrentPage = 1
-  showDetail = false
-  showDetailInd = -1
+  // showDetail = false
+  // showDetailInd = -1
   extraoptionObj = null
   datasource = []
   savedList = []
@@ -159,8 +159,9 @@ export default class NewQuery extends Vue {
     this.setCompleteData([...data, ...insightKeyword])
   }
   toggleDetail (index) {
-    this.showDetail = !this.showDetail
-    this.showDetailInd = index
+    this.savedList[index].isShow = !this.savedList[index].isShow
+    // this.showDetail = true
+    // this.showDetailInd = index
   }
   loadSavedQuery (pageIndex) {
     this.getSavedQueries({
@@ -169,6 +170,9 @@ export default class NewQuery extends Vue {
       offset: pageIndex
     }).then((res) => {
       handleSuccess(res, (data) => {
+        data.saved_queries.forEach((item) => {
+          item['isShow'] = false
+        })
         this.savedList = this.savedList.concat(data.saved_queries)
         this.savedSize = data.size
       })

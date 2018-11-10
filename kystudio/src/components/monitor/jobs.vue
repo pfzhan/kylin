@@ -23,6 +23,12 @@
         </el-input>
       </el-col>
     </el-row>
+    <transition name="fade">
+      <div class="selectLabel" v-if="isSelectAllShow">
+        <span>{{$t('selectedJobs', {selectedNumber: selectedNumber})}}</span>
+        <el-checkbox v-model="isSelectAll">{{$t('selectAll')}}</el-checkbox>
+      </div>
+    </transition>
     <el-table class="ksd-el-table jobs-table"
       tooltip-effect="dark"
       border
@@ -31,6 +37,8 @@
       @row-click="showLineSteps"
       @sort-change="sortJobList"
       @selection-change="handleSelectionChange"
+      @select="handleSelect"
+      @select-all="handleSelectAll"
       :row-class-name="tableRowClassName"
       :style="{width:showStep?'70%':'100%'}"
     >
@@ -227,6 +235,7 @@ import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import jobDialog from './job_dialog'
+import TWEEN from '@tweenjs/tween.js'
 import { pageCount } from '../../config'
 import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/business'
 import diagnosisXX from '../security/diagnosis'
@@ -253,8 +262,8 @@ import diagnosisXX from '../security/diagnosis'
     'diagnosis': diagnosisXX
   },
   locales: {
-    'en': {dataRange: 'Data Range', JobType: 'Job Type', JobName: 'Job Name', TableModelCube: 'Target Subject', ProgressStatus: 'Job Status', startTime: 'Start Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', diagnosis: 'Generate Diagnosis Package', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting', noSelectJobs: 'Please check at least one job.'},
-    'zh-cn': {dataRange: '数据范围', JobType: 'Job 类型', JobName: '任务', TableModelCube: '任务对象', ProgressStatus: '任务状态', startTime: '任务开始时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '终止', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要终止任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', diagnosis: '诊断', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间', noSelectJobs: '请勾选至少一项任务。'}
+    'en': {dataRange: 'Data Range', JobType: 'Job Type', JobName: 'Job Name', TableModelCube: 'Target Subject', ProgressStatus: 'Job Status', startTime: 'Start Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', diagnosis: 'Generate Diagnosis Package', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting', noSelectJobs: 'Please check at least one job.', selectedJobs: '{selectedNumber} jobs have been selected', selectAll: 'All Select'},
+    'zh-cn': {dataRange: '数据范围', JobType: 'Job 类型', JobName: '任务', TableModelCube: '任务对象', ProgressStatus: '任务状态', startTime: '任务开始时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '终止', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要终止任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', diagnosis: '诊断', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间', noSelectJobs: '请勾选至少一项任务。', selectedJobs: '目前已选择当页{selectedNumber}条任务。', selectAll: '全选'}
   }
 })
 export default class JobsList extends Vue {
@@ -271,6 +280,11 @@ export default class JobsList extends Vue {
   stepAttrToShow = ''
   beforeScrollPos = 0
   multipleSelection = []
+  isSelectAllShow = false
+  isSelectAll = false
+  selectedNumber = 0
+  idsArr = []
+  idsArrCopy = []
   filter = {
     pageOffset: 0,
     pageSize: pageCount,
@@ -384,8 +398,54 @@ export default class JobsList extends Vue {
       }
     }, 400)
   }
+  animatedNum (newValue, oldValue) {
+    new TWEEN.Tween({
+      number: oldValue
+    })
+    .to({
+      number: newValue
+    }, 500)
+    .onUpdate(tween => {
+      this.selectedNumber = tween.number.toFixed(0)
+    })
+    .start()
+    function animate () {
+      if (TWEEN.update()) {
+        requestAnimationFrame(animate)
+      }
+    }
+    animate()
+  }
   handleSelectionChange (val) {
     this.multipleSelection = val
+    this.idsArr = this.multipleSelection.map((item) => {
+      return item.id
+    })
+  }
+  handleSelectAll (val) {
+    if (this.jobTotal > 10 && (this.filter.status !== '' || this.filter.status !== [])) {
+      this.isSelectAllShow = !this.isSelectAllShow
+      this.selectedNumber = this.animatedNum(this.jobsList.length, 0)
+    }
+  }
+  handleSelect (val) {
+    if (this.jobTotal > 10 && (this.filter.status !== '' || this.filter.status !== [])) {
+      if (this.multipleSelection.length < 10) {
+        this.isSelectAllShow = false
+        this.isSelectAll = false
+      } else {
+        this.isSelectAllShow = true
+      }
+    }
+  }
+  selectAll () {
+    this.idsArrCopy = this.idsArr
+    this.idsArr = []
+    this.animatedNum(this.jobTotal, this.jobsList.length)
+  }
+  cancelSelectAll () {
+    this.idsArr = this.idsArrCopy
+    this.animatedNum(this.jobsList.length, this.jobTotal)
   }
   batchResume () {
     if (!this.multipleSelection.length) {
@@ -599,6 +659,23 @@ export default class JobsList extends Vue {
     }
     .show-search-btn {
       width: 300px;
+    }
+    .fade-enter-active, .fade-leave-active {
+      transition: opacity .5s;
+    }
+    .fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+      opacity: 0;
+    }
+    .selectLabel {
+      background-color: @base-color-10;
+      height: 32px;
+      line-height: 32px;
+      margin: 10px 0;
+      padding-left: 10px;
+      color: @text-title-color;
+      .el-checkbox__label {
+        color: @text-title-color;
+      }
     }
     .action_groups {
       vertical-align: top;
