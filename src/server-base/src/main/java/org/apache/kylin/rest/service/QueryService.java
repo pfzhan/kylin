@@ -185,7 +185,7 @@ public class QueryService extends BasicService {
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
         SQLResponse ret = null;
         try {
-            slowQueryDetector.queryStart(Thread.currentThread(), sqlRequest, getUserName(), System.currentTimeMillis());
+            slowQueryDetector.queryStart(Thread.currentThread(), sqlRequest, getUsername(), System.currentTimeMillis());
 
             ret = queryWithSqlMassage(sqlRequest);
             return ret;
@@ -522,14 +522,6 @@ public class QueryService extends BasicService {
         }
 
         return "http://" + hostname + ":" + port + "/zipkin/traces/" + Long.toHexString(scope.getSpan().getTraceId());
-    }
-
-    private String getUserName() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        if (StringUtils.isEmpty(username)) {
-            username = "";
-        }
-        return username;
     }
 
     public SQLResponse searchQueryInCache(SQLRequest sqlRequest) {

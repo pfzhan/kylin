@@ -44,6 +44,7 @@ package org.apache.kylin.rest.service;
 
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.acl.TableACLManager;
@@ -118,14 +119,11 @@ public abstract class BasicService {
     }
 
     protected String getUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null) {
-            return null;
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (StringUtils.isEmpty(username)) {
+            username = "";
         }
-        if (authentication.getPrincipal() instanceof UserDetails) {
-          return ((UserDetails) authentication.getPrincipal()).getUsername();
-        }
-        return authentication.getPrincipal().toString();
+        return username;
     }
 
     public QueryHistoryDAO getQueryHistoryManager() {
