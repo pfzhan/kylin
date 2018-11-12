@@ -83,7 +83,7 @@
 
     <div slot="footer" class="dialog-footer">
       <el-button size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button size="medium" plain type="primary" @click="submit" :loading="isLoading">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -136,6 +136,7 @@ vuex.registerModule(['modals', 'ProjectEditModal'], store)
 export default class ProjectEditModal extends Vue {
   // Data: 用来销毁el-form
   isFormShow = false
+  isLoading = false
   // Data: el-form表单验证规则
   rules = {
     name: [{
@@ -223,6 +224,7 @@ export default class ProjectEditModal extends Vue {
   }
   // Action: Form递交函数
   async submit () {
+    this.isLoading = true
     try {
       const isInvaild = this.validateProperties()
 
@@ -247,6 +249,7 @@ export default class ProjectEditModal extends Vue {
       // 异常处理
       e && handleError(e)
     }
+    this.isLoading = false
   }
   // Helper: 给el-form用的验证函数
   validate (type) {

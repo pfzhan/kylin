@@ -174,7 +174,7 @@
     </el-form>
     <div slot="footer" class="dialog-footer">
       <el-button size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" @click="handleSubmit">{{$t('kylinLang.common.save')}}</el-button>
+      <el-button size="medium" plain type="primary" @click="handleSubmit" :loading="isLoading">{{$t('kylinLang.common.save')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -244,6 +244,7 @@ vuex.registerModule(['modals', 'SourceTableModal'], store)
 })
 export default class SourceTableModal extends Vue {
   isFormShow = false
+  isLoading = false
   autoMergeTypes = autoMergeTypes
   volatileTypes = volatileTypes
   rules = {
@@ -290,6 +291,7 @@ export default class SourceTableModal extends Vue {
     }, 200)
   }
   async handleSubmit () {
+    this.isLoading = true
     try {
       await this.$refs['form'].validate()
 
@@ -301,6 +303,7 @@ export default class SourceTableModal extends Vue {
     } catch (e) {
       handleError(e)
     }
+    this.isLoading = false
   }
   async submit (data) {
     switch (this.editType) {

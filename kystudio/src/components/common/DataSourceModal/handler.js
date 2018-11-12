@@ -11,7 +11,7 @@ export const titleMaps = {
 
 export const cancelMaps = {
   [sourceTypes.NEW]: 'kylinLang.common.cancel',
-  [sourceTypes.HIVE]: '',
+  [sourceTypes.HIVE]: 'kylinLang.common.prev',
   [sourceTypes.RDBMS]: '',
   [sourceTypes.RDBMS2]: '',
   [sourceTypes.KAFKA]: '',

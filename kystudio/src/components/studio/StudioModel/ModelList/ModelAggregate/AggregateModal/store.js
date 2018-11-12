@@ -29,6 +29,7 @@ const initialState = JSON.stringify({
   model: null,
   projectName: null,
   form: {
+    isCatchUp: true,
     aggregateArray: [
       JSON.parse(initialAggregateData)
     ]

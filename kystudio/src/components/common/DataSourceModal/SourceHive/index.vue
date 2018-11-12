@@ -122,6 +122,8 @@ export default class SourceHive extends Vue {
   timer = null
   isDatabaseError = false
   isShowTips = true
+  selectorWidth = 0
+
   get databaseOptions () {
     return this.treeData.map(database => ({
       value: database.id,
@@ -190,6 +192,22 @@ export default class SourceHive extends Vue {
   }
   async mounted () {
     await this.loadDatabase()
+  }
+  updated () {
+    this.refreshSelectorWidth()
+    this.refreshTagElWidth()
+  }
+  refreshSelectorWidth () {
+    const selectorEl = this.$el.querySelector('.el-select')
+    this.selectorWidth = selectorEl && selectorEl.getBoundingClientRect().width
+  }
+  refreshTagElWidth () {
+    const tagEls = this.$el.querySelectorAll('.el-tag')
+    for (let i = 0; i < tagEls.length; i++) {
+      const tagEl = tagEls[i]
+      tagEl.title = tagEl.innerText
+      tagEl.style.maxWidth = `${this.selectorWidth}px`
+    }
   }
   async loadDatabase () {
     this.$refs['tree-list'].showLoading()
@@ -354,8 +372,19 @@ export default class SourceHive extends Vue {
       width: 1px !important;
     }
     .el-tag {
+      position: relative;
       margin-right: 10px;
       margin-left: 0px;
+      padding-right: 25px;
+      display: inline-block;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+    .el-tag .el-tag__close {
+      position: absolute;
+      top: 50%;
+      right: 2px;
+      transform: scale(.8) translateY(-50%);
     }
   }
   .category {

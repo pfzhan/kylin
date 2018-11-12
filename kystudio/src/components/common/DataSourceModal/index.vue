@@ -30,8 +30,8 @@
       </SourceSetting>
     </template>
     <div slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="handleClose(false)" v-if="cancelText">{{cancelText}}</el-button>
-      <el-button size="medium" plain type="primary" @click="handleClick" v-if="confirmText" :disabled="isLoading">{{confirmText}}</el-button>
+      <el-button size="medium" @click="handleCancel" v-if="cancelText">{{cancelText}}</el-button>
+      <el-button size="medium" plain type="primary" @click="handleClick" v-if="confirmText" :loading="isLoading">{{confirmText}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -180,7 +180,6 @@ export default class DataSourceModal extends Vue {
   }
 
   validateForm () {
-    this.isLoading = false
     switch (this.sourceType) {
       case sourceTypes.NEW: {
         const isVaild = this.form.project.override_kylin_properties['kylin.source.default']
@@ -232,6 +231,18 @@ export default class DataSourceModal extends Vue {
       e && handleError(e)
     }
     this.isLoading = false
+  }
+  handleCancel () {
+    switch (this.sourceType) {
+      case sourceTypes.HIVE: {
+        this.setModal({ sourceType: sourceTypes.NEW })
+        break
+      }
+      default: {
+        this.handleClose(false)
+        break
+      }
+    }
   }
 }
 </script>

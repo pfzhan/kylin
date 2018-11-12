@@ -126,9 +126,14 @@
         </div>
       </div>
     </template>
-    <div slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
+    <div slot="footer" class="dialog-footer clearfix">
+      <div class="left">
+        <el-checkbox :value="form.isCatchUp" @input="value => handleInput('isCatchUp', value)">{{$t('kylinLang.common.catchUp')}}</el-checkbox>
+      </div>
+      <div class="right">
+        <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" plain type="primary" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
+      </div>
     </div>
   </el-dialog>
 </template>
@@ -488,6 +493,15 @@ export default class AggregateModal extends Vue {
         }
       }
     }
+  }
+  .left {
+    float: left;
+  }
+  .right {
+    float: right;
+  }
+  .dialog-footer {
+    line-height: 32px;
   }
 }
 </style>

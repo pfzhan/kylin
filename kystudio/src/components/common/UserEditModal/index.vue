@@ -70,7 +70,7 @@
     </el-form>
     <div slot="footer" class="dialog-footer">
       <el-button size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" @click="submit">{{$t('ok')}}</el-button>
+      <el-button size="medium" plain type="primary" @click="submit" :loading="isLoading">{{$t('ok')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -128,6 +128,7 @@ vuex.registerModule(['modals', 'UserEditModal'], store)
 export default class UserEditModal extends Vue {
   // Data: 用来销毁el-form
   isFormShow = false
+  isLoading = false
   // Data: el-form表单验证规则
   rules = {
     username: [{
@@ -191,6 +192,7 @@ export default class UserEditModal extends Vue {
 
   // Action: Form递交函数
   async submit () {
+    this.isLoading = true
     try {
       // 获取Form格式化后的递交数据
       const data = getSubmitData(this)
@@ -214,6 +216,7 @@ export default class UserEditModal extends Vue {
       // 异常处理
       e && handleError(e)
     }
+    this.isLoading = false
   }
 
   // Helper: 给el-form用的验证函数
