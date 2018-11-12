@@ -1,0 +1,4 @@
+SELECT 4 AS "TEMP_Test__5037157__0_",
+  1 AS "X__alias__0"
+FROM "TDVT"."CALCS" "CALCS"
+GROUP BY 1

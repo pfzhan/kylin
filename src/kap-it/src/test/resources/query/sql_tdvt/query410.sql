@@ -1,0 +1,3 @@
+SELECT {fn LTRIM({fn CONCAT({fn CONCAT(' ', "CALCS"."STR2")}, ' ')})} AS "TEMP_Test__3028489271__0_"
+FROM "TDVT"."CALCS" "CALCS"
+GROUP BY {fn LTRIM({fn CONCAT({fn CONCAT(' ', "CALCS"."STR2")}, ' ')})}

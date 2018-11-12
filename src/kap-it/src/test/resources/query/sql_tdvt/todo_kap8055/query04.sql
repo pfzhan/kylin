@@ -1,0 +1,4 @@
+SELECT "Calcs"."STR2" AS "STR2"
+FROM "TDVT"."CALCS" "Calcs"
+GROUP BY "Calcs"."STR2"
+HAVING (SUM({fn CONVERT("Calcs"."INT2", SQL_BIGINT)}) > 1000)

@@ -1,0 +1,3 @@
+SELECT (CASE WHEN ("Calcs"."STR2" IN ('eleven', 'fifteen', 'five', 'fourteen', 'nine', 'one', 'six', 'sixteen', 'ten', 'three', 'twelve')) THEN 'eleven' ELSE "Calcs"."STR2" END) AS "Str2__group_"
+FROM "TDVT"."CALCS" "Calcs"
+GROUP BY (CASE WHEN ("Calcs"."STR2" IN ('eleven', 'fifteen', 'five', 'fourteen', 'nine', 'one', 'six', 'sixteen', 'ten', 'three', 'twelve')) THEN 'eleven' ELSE "Calcs"."STR2" END)

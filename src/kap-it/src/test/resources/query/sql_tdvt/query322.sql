@@ -1,0 +1,3 @@
+SELECT {fn IFNULL("CALCS"."STR2", 'i''m null')} AS "TEMP_Test__1885169976__0_"
+FROM "TDVT"."CALCS" "CALCS"
+GROUP BY {fn IFNULL("CALCS"."STR2", 'i''m null')}
