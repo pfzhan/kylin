@@ -241,6 +241,10 @@ class CuboidSuggester {
         final Map<Integer, Double> dimScores = getDimScores(ctx);
         SortedSet<Integer> measureIds = Sets.newTreeSet();
 
+        // FIXME this line work-around empty dimension case (to be fixed by KAP#7224)
+        // Example: 'select count(*) from kylin_sales' or 'select 123 from kylin_sales'
+        fixDimScoresIfEmpty(model, dimScores);
+
         boolean isTableIndex = ctx.getSQLDigest().isRawQuery;
         NCuboidDesc cuboidDesc = isTableIndex ? createTableIndex(ctx, dimScores)
                 : createAggregatedIndex(ctx, dimScores, measureIds);
@@ -294,10 +298,6 @@ class CuboidSuggester {
             SortedSet<Integer> measureIds) {
         // Add default measure count(1)
         measureIds.add(NDataModel.MEASURE_ID_BASE);
-
-        // FIXME this line work-around empty dimension case (to be fixed by KAP#7224)
-        // Example: select count(*) from kylin_sales
-        fixDimScoresIfEmpty(model, dimScores);
 
         for (FunctionDesc aggFunc : ctx.aggregations) {
             Integer measureId = aggFuncIdMap.get(aggFunc);

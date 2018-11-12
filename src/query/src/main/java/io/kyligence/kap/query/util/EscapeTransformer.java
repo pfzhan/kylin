@@ -34,7 +34,7 @@ import io.kyligence.kap.common.obf.IKeep;
 public class EscapeTransformer implements QueryUtil.IQueryTransformer, IKeep {
 
 
-    private final static Logger logger = LoggerFactory.getLogger(EscapeDialect.class);
+    private static final Logger logger = LoggerFactory.getLogger(EscapeDialect.class);
     
     private EscapeDialect dialect = EscapeDialect.DEFAULT;
 

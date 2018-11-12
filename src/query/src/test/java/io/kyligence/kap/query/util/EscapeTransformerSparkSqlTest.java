@@ -58,7 +58,7 @@ public class EscapeTransformerSparkSqlTest {
     @Test
     public void rightFNTest() {
         String originalSQL = "select { fn RIGHT(LSTG_FORMAT_NAME, 2) } from KYLIN_SALES";
-        String expectedSQL = "select SUBSTRING(LSTG_FORMAT_NAME, CHAR_LENGTH(LSTG_FORMAT_NAME) - 1, 2) from KYLIN_SALES";
+        String expectedSQL = "select SUBSTRING(LSTG_FORMAT_NAME, CHAR_LENGTH(LSTG_FORMAT_NAME) + 1 - 2, 2) from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -76,7 +76,7 @@ public class EscapeTransformerSparkSqlTest {
     @Test
     public void convertFNTest() {
         String originalSQL = "select {fn CONVERT(PART_DT, SQL_DATE)}, {fn LTRIM({fn CONVERT(PRICE, SQL_VARCHAR)})} from KYLIN_SALES";
-        String expectedSQL = "select CAST(PART_DT AS DATE), LTRIM(CAST(PRICE AS STRING)) from KYLIN_SALES";
+        String expectedSQL = "select CAST(PART_DT AS DATE), LTRIM(CAST(PRICE AS VARCHAR)) from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -95,15 +95,6 @@ public class EscapeTransformerSparkSqlTest {
     public void ucaseFNTest() {
         String originalSQL = "select { fn UCASE(LSTG_FORMAT_NAME) } from KYLIN_SALES";
         String expectedSQL = "select UCASE(LSTG_FORMAT_NAME) from KYLIN_SALES";
-
-        String transformedSQL = transformer.transform(originalSQL);
-        Assert.assertEquals(expectedSQL, transformedSQL);
-    }
-
-    @Test
-    public void ifnullFNTest() {
-        String originalSQL = "select { fn IFNULL(LSTG_FORMAT_NAME, 'Bad name') } from KYLIN_SALES";
-        String expectedSQL = "select NULLIF(LSTG_FORMAT_NAME, 'Bad name') from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);

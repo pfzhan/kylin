@@ -36,6 +36,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.query.routing.Candidate;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.SparkContext;
 import org.junit.After;
 import org.junit.Before;
@@ -139,8 +140,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     protected NSmartMaster proposeCubeWithSmartMaster(List<Pair<String, String>> queries) throws Exception {
         List<String> sqlList = new ArrayList<>();
         for (Pair<String, String> queryPair : queries) {
-            String normalizedQuery = QueryPatternUtil.normalizeSQLPattern(queryPair.getSecond());
-            sqlList.add(normalizedQuery);
+            sqlList.add(QueryPatternUtil.normalizeSQLPattern(queryPair.getSecond()));
         }
 
         NSmartMaster master = new NSmartMaster(kylinConfig, getProject(), sqlList.toArray(new String[0]));
@@ -169,7 +169,8 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
                 : NExecAndComp.fetchQueries(folder);
         for (Pair<String, String> pair : partials) {
             String sql = pair.getSecond();
-            pair.setSecond(NExecAndComp.changeJoinType(sql, joinType));
+            String transformedQuery = QueryUtil.massageSql(sql, getProject(), 0, 0, "DEFAULT");
+            pair.setSecond(NExecAndComp.changeJoinType(transformedQuery, joinType));
         }
         return NExecAndComp.doFilter(partials, exclusionList);
     }

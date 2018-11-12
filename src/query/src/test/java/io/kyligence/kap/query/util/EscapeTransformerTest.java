@@ -79,7 +79,26 @@ public class EscapeTransformerTest {
     @Test
     public void rightFNTest() {
         String originalSQL = "select { fn RIGHT(LSTG_FORMAT_NAME, 2) } from KYLIN_SALES";
-        String expectedSQL = "select SUBSTRING(LSTG_FORMAT_NAME, CHAR_LENGTH(LSTG_FORMAT_NAME) - 1, 2) from KYLIN_SALES";
+        String expectedSQL = "select SUBSTRING(LSTG_FORMAT_NAME, CHAR_LENGTH(LSTG_FORMAT_NAME) + 1 - 2, 2) from KYLIN_SALES";
+
+        String transformedSQL = transformer.transform(originalSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void rightFNTest2() {
+        String originalSQL = "SELECT CASE WHEN \"CALCS\".\"NUM4\" >= 0 THEN {fn RIGHT(\"CALCS\".\"STR0\","
+                + " {fn CONVERT({fn TRUNCATE(\"CALCS\".\"NUM4\",0)}, SQL_BIGINT)})} ELSE NULL END AS \"TEMP_Test__3364126490__0_\""
+                + " FROM \"TDVT\".\"CALCS\" \"CALCS\""
+                + " GROUP BY CASE WHEN \"CALCS\".\"NUM4\" >= 0 THEN {fn RIGHT(\"CALCS\".\"STR0\","
+                + " {fn CONVERT({fn TRUNCATE(\"CALCS\".\"NUM4\",0)}, SQL_BIGINT)})} ELSE NULL END";
+        String expectedSQL = "SELECT CASE WHEN \"CALCS\".\"NUM4\" >= 0 THEN SUBSTRING(\"CALCS\".\"STR0\","
+                + " CHAR_LENGTH(\"CALCS\".\"STR0\") + 1 - CAST(TRUNCATE(\"CALCS\".\"NUM4\", 0) AS BIGINT),"
+                + " CAST(TRUNCATE(\"CALCS\".\"NUM4\", 0) AS BIGINT)) ELSE NULL END AS \"TEMP_Test__3364126490__0_\""
+                + " FROM \"TDVT\".\"CALCS\" \"CALCS\""
+                + " GROUP BY CASE WHEN \"CALCS\".\"NUM4\" >= 0 THEN SUBSTRING(\"CALCS\".\"STR0\","
+                + " CHAR_LENGTH(\"CALCS\".\"STR0\") + 1 - CAST(TRUNCATE(\"CALCS\".\"NUM4\", 0) AS BIGINT),"
+                + " CAST(TRUNCATE(\"CALCS\".\"NUM4\", 0) AS BIGINT)) ELSE NULL END";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -97,7 +116,7 @@ public class EscapeTransformerTest {
     @Test
     public void convertFNTest() {
         String originalSQL = "select {fn CONVERT(PART_DT, SQL_DATE)}, {fn LTRIM({fn CONVERT(PRICE, SQL_VARCHAR)})} from KYLIN_SALES";
-        String expectedSQL = "select CAST(PART_DT AS DATE), TRIM(leading CAST(PRICE AS STRING)) from KYLIN_SALES";
+        String expectedSQL = "select CAST(PART_DT AS DATE), TRIM(leading CAST(PRICE AS VARCHAR)) from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -116,15 +135,6 @@ public class EscapeTransformerTest {
     public void ucaseFNTest() {
         String originalSQL = "select { fn UCASE(LSTG_FORMAT_NAME) } from KYLIN_SALES";
         String expectedSQL = "select UPPER(LSTG_FORMAT_NAME) from KYLIN_SALES";
-
-        String transformedSQL = transformer.transform(originalSQL);
-        Assert.assertEquals(expectedSQL, transformedSQL);
-    }
-
-    @Test
-    public void ifnullFNTest() {
-        String originalSQL = "select { fn IFNULL(LSTG_FORMAT_NAME, 'Bad name') } from KYLIN_SALES";
-        String expectedSQL = "select NULLIF(LSTG_FORMAT_NAME, 'Bad name') from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -164,6 +174,11 @@ public class EscapeTransformerTest {
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
+
+        String originalSQL1 = "select { fn CURRENT_TIMESTAMP(0) }";
+
+        String transformedSQL1 = transformer.transform(originalSQL1);
+        Assert.assertEquals(expectedSQL, transformedSQL1);
     }
 
     @Test
@@ -193,4 +208,41 @@ public class EscapeTransformerTest {
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
     }
+
+    @Test
+    public void trimTest() {
+        String originalSQL = "SELECT {FN TRIM( '     test    ')}";
+        String expectedSQL = "SELECT TRIM(both '     test    ')";
+
+        String transformedSQL = transformer.transform(originalSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void weekTest() {
+        String originalSQL = "SELECT {FN WEEK('2002-06-18')}";
+        String expectedSQL = "SELECT WEEKOFYEAR('2002-06-18')";
+
+        String transformedSQL = transformer.transform(originalSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void timestampAddTest() {
+        String originalSQL = "SELECT {FN TIMESTAMPADD(MONTH, 2 ,'2014-02-18')}";
+        String expectedSQL = "SELECT TIMESTAMPADD('MONTH', 2, '2014-02-18')";
+
+        String transformedSQL = transformer.transform(originalSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void timestampDiffTest() {
+        String originalSQL = "SELECT {FN TIMESTAMPDIFF(MONTH,'2015-03-18','2015-07-29')}";
+        String expectedSQL = "SELECT TIMESTAMPDIFF('MONTH', '2015-03-18', '2015-07-29')";
+
+        String transformedSQL = transformer.transform(originalSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
 }

@@ -33,134 +33,106 @@ public class EscapeFunction {
      * Notice: Prefix "FN_" means converting to {fn ...} format
      */
     public enum FnConversion {
-        LEFT(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 2);
-                String[] newArgs = new String[] { args[0], "1", args[1] };
-                return normalFN("SUBSTRING", newArgs);
+        LEFT(args -> {
+            checkArgs(args, 2);
+            String[] newArgs = new String[] { args[0], "1", args[1] };
+            return normalFN("SUBSTRING", newArgs);
+        }),
+        RIGHT(args -> {
+            checkArgs(args, 2);
+            String origStrRef = args[0];
+            String rightOffset = args[1];
+            String[] newArgs = new String[] { origStrRef, "CHAR_LENGTH(" + origStrRef + ") + 1 - " + rightOffset,
+                    "" + rightOffset };
+            return normalFN("SUBSTRING", newArgs);
+        }),
+        TRIM(args -> {
+            checkArgs(args, 1);
+            String[] newArgs = new String[] { "both " + args[0] };
+            return normalFN("TRIM", newArgs);
+        }
+        ),
+        LTRIM(args -> {
+            checkArgs(args, 1);
+            String[] newArgs = new String[] { "leading " + args[0] };
+            return normalFN("TRIM", newArgs);
+        }),
+        RTRIM(args -> {
+            checkArgs(args, 1);
+            String[] newArgs = new String[] { "trailing " + args[0] };
+            return normalFN("TRIM", newArgs);
+        }),
+        FN_LENGTH(args -> {
+            checkArgs(args, 1);
+            return scalarFN("LENGTH", args);
+        }),
+        LENGTH(args -> {
+            checkArgs(args, 1);
+            return normalFN("LENGTH", args);
+        }),
+        CONVERT(args -> {
+            checkArgs(args, 2);
+            String value = args[0];
+            String sqlType = args[1].toUpperCase();
+            String sqlPrefix = "SQL_";
+            if (sqlType.startsWith(sqlPrefix)) {
+                sqlType = sqlType.substring(sqlPrefix.length());
             }
-        }), 
-        RIGHT(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 2);
-                String origStrRef = args[0];
-                Integer rightOffset = Integer.valueOf(args[1]);
-                String[] newArgs = new String[] { origStrRef, "CHAR_LENGTH(" + origStrRef + ") - " + (rightOffset - 1),
-                        "" + rightOffset };
-                return normalFN("SUBSTRING", newArgs);
-            }
-        }), 
-        LTRIM(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 1);
-                String[] newArgs = new String[] { "leading " + args[0] };
-                return normalFN("TRIM", newArgs);
-            }
-        }), 
-        RTRIM(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 1);
-                String[] newArgs = new String[] { "trailing " + args[0] };
-                return normalFN("TRIM", newArgs);
-            }
-        }), 
-        FN_LENGTH(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 1);
-                return scalarFN("LENGTH", args);
-            }
-        }), 
-        LENGTH(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 1);
-                return normalFN("LENGTH", args);
-            }
-        }), 
-        CONVERT(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 2);
-                String value = args[0];
-                String sqlType = args[1].toUpperCase();
-                String sqlPrefix = "SQL_";
-                if (sqlType.startsWith(sqlPrefix)) {
-                    sqlType = sqlType.substring(sqlPrefix.length());
-                }
-                switch (sqlType) {
-                case "VARCHAR":
+            switch (sqlType) {
                 case "WVARCHAR":
                 case "CHAR":
                 case "WCHAR":
-                    sqlType = "STRING";
+                    sqlType = "VARCHAR";
                     break;
                 default:
                     break;
-                }
-                String[] newArgs = new String[] { value + " AS " + sqlType };
-                return normalFN("CAST", newArgs);
             }
-        }), 
-        LCASE(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 1);
-                return normalFN("LOWER", args);
+            String[] newArgs = new String[] { value + " AS " + sqlType };
+            return normalFN("CAST", newArgs);
+        }),
+        LCASE(args -> {
+            checkArgs(args, 1);
+            return normalFN("LOWER", args);
+        }),
+        UCASE(args -> {
+            checkArgs(args, 1);
+            return normalFN("UPPER", args);
+        }),
+        LOG(args -> {
+            checkArgs(args, 1);
+            return normalFN("LN", args);
+        }),
+        PI(args -> {
+            checkArgs(args, 0);
+            return "PI";
+        }),
+        CURRENT_DATE(args -> {
+            checkArgs(args, 0);
+            return "CURRENT_DATE";
+        }),
+        CURRENT_TIME(args -> {
+            checkArgs(args, 0);
+            return "CURRENT_TIME";
+        }),
+        CURRENT_TIMESTAMP(args -> {
+            if (args == null || args.length > 1) {
+                throw new IllegalArgumentException("Bad arguments");
             }
-        }), 
-        UCASE(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 1);
-                return normalFN("UPPER", args);
-            }
-        }), 
-        IFNULL(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 2);
-                return normalFN("NULLIF", args);
-            }
-        }), 
-        LOG(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 1);
-                return normalFN("LN", args);
-            }
-        }), 
-        CURRENT_DATE(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 0);
-                return "CURRENT_DATE";
-            }
-        }), 
-        CURRENT_TIME(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 0);
-                return "CURRENT_TIME";
-            }
-        }), 
-        CURRENT_TIMESTAMP(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 0);
-                return "CURRENT_TIMESTAMP";
-            }
-        }), 
-        WEEK(new IConvert() {
-            @Override
-            public String convert(String[] args) {
-                checkArgs(args, 1);
-                return normalFN("WEEKOFYEAR", args);
-            }
+            return "CURRENT_TIMESTAMP";
+        }),
+        WEEK(args -> {
+            checkArgs(args, 1);
+            return normalFN("WEEKOFYEAR", args);
+        }),
+        TIMESTAMPADD(args -> {
+            checkArgs(args, 3);
+            String[] newArgs = {"'" + args[0] + "'", args[1], args[2]};
+            return normalFN("TIMESTAMPADD", newArgs);
+        }),
+        TIMESTAMPDIFF(args -> {
+            checkArgs(args, 3);
+            String[] newArgs = {"'" + args[0] + "'", args[1], args[2]};
+            return normalFN("TIMESTAMPDIFF", newArgs);
         });
 
         private interface IConvert {

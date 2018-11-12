@@ -41,20 +41,13 @@
  */
 package io.kyligence.kap.query.util;
 
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class QueryPatternUtilTest {
 
-    @Test(expected = SqlParseException.class)
-    public void testSqlParseException() throws Exception {
-        String sql = "select a > * from c where b > 0";
-        QueryPatternUtil.normalizeSQLPattern(sql);
-    }
-
     @Test
-    public void testJdbcFn() throws Exception {
+    public void testJdbcFn() {
         String sql = "SELECT {fn SECOND({fn CONVERT({fn CONVERT('2010-10-10 10:10:10.4', SQL_TIMESTAMP) }, SQL_TIMESTAMP) }) } "
                 + "TEMP_TEST__2143701310__0_, 1 X__ALIAS__0\n"
                 + "FROM TDVT.CALCS CALCS\n"
@@ -64,7 +57,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testGroupBy() throws Exception {
+    public void testGroupBy() {
         String sql = "SELECT SUM(1) AS COL, \n"
                 + " 2 AS COL2 \n"
                 + " FROM ( \n"
@@ -93,7 +86,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testSelectNumericColumn() throws Exception {
+    public void testSelectNumericColumn() {
         String sql1 = "SELECT 1, 2, 3\nFROM A";
         String actual1 = QueryPatternUtil.normalizeSQLPattern(sql1);
         Assert.assertEquals(sql1, actual1);
@@ -110,7 +103,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testLiteralComparison() throws Exception {
+    public void testLiteralComparison() {
         String sql1 = "select ks.price as price, ks.part_dt as dt from kylin_sales as ks "
                 + "where NOT(ks.price <= 60.0) and ks.part_dt > '2012-02-05' and ks.name <> 'Baby'";
         String actual1 = QueryPatternUtil.normalizeSQLPattern(sql1);
@@ -128,7 +121,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testColumnComparison() throws Exception {
+    public void testColumnComparison() {
         String sql = "select b.firstname as firstname1, b.lastname as lastname1,\n"
                 + "a.firstname as firstname2, a.lastname as lastname2, b.city, b.country\n"
                 + "from sales.customer a, sales.customer b\n"
@@ -145,7 +138,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testStringComparison() throws Exception {
+    public void testStringComparison() {
         String sql = "select ks.price as price from kylin_sales as ks \n"
                 + "where ks.dt <= '200310' and ks.dt > '2012-02'";
         String actual = QueryPatternUtil.normalizeSQLPattern(sql);
@@ -156,7 +149,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testQueryWithSamePattern() throws Exception {
+    public void testQueryWithSamePattern() {
         String sql1 = "select s.name, s.price "
                 + "from kylin_sales as s inner join kylin_account as a "
                 + "on s.name = a.name and s.price > 100"
@@ -171,7 +164,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testInAndNotIn() throws Exception {
+    public void testInAndNotIn() {
         String sql0 = "select first_name, last_name from sales "
                 + "where phone_number not in (10, 20, 30) "
                 + "and last_name in ('Swift', 'Bloomberg')";
@@ -227,7 +220,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testLikeAndNotLike() throws Exception {
+    public void testLikeAndNotLike() {
         String sql = "select META_CATEG_NAME, META_CATEG_ID, count(*) as cnt \n"
                 + "from test_kylin_fact \n"
                 + "inner JOIN edw.test_cal_dt as test_cal_dt\n"
@@ -246,7 +239,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testBetweenAnd() throws Exception {
+    public void testBetweenAnd() {
         String sql = "select sum(l_extendedprice) - sum(l_saleprice) as revenue\n"
                 + "from v_lineitem\n"
                 + "where l_shipdate >= date '1993-01-01'\n"
@@ -262,7 +255,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testDistinct() throws Exception {
+    public void testDistinct() {
         String sql = "SELECT distinct LSTG_FORMAT_NAME from test_kylin_fact";
         String actual = QueryPatternUtil.normalizeSQLPattern(sql);
         String expected = "SELECT DISTINCT LSTG_FORMAT_NAME\n"
@@ -271,7 +264,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testH2Incapable() throws Exception {
+    public void testH2Incapable() {
         String sql = "SELECT timestampadd(DAY,1,WEEK_BEG_DT) as x ,WEEK_BEG_DT\n"
                 + " FROM TEST_KYLIN_FACT \n"
                 + " inner JOIN EDW.TEST_CAL_DT AS TEST_CAL_DT ON (TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT) \n"
@@ -285,7 +278,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testUnion() throws Exception {
+    public void testUnion() {
         String unionSql = "select ks.price as price, ks.part_dt as dt "
                 + "from kylin_sales ks "
                 + "where ks.price > 50 and ks.part_dt > date '2012-08-23' "
@@ -305,7 +298,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testReverseComparison() throws Exception {
+    public void testReverseComparison() {
         String sql = "select ky.price as price, ky.part_dt as dt "
                 + "from kylin_sales ky "
                 + "where 40 >= ky.price and date '2015-08-22' < ky.part_dt "
@@ -320,7 +313,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testFunction() throws Exception {
+    public void testFunction() {
         String sql = "select upper(lstg_format_name) as lstg_format_name, "
                 + "count(*) as cnt from test_kylin_fact\n"
                 + "where lower(lstg_format_name)='abin' "
@@ -347,7 +340,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testWindowFunction() throws Exception {
+    public void testWindowFunction() {
         String sql = "select * from(\n"
                 + "select cal_dt, lstg_format_name, sum(price) as GMV,\n"
                 + "100 * sum(price) / first_value(sum(price)) over (partition by lstg_format_name "
@@ -376,7 +369,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testWithSelect() throws Exception {
+    public void testWithSelect() {
         String withSelect = "with a as ("
                 + "select ks.price as price, ks.part_dt as dt "
                 + "from kylin_sales ks "
@@ -392,7 +385,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testSubQuery() throws Exception {
+    public void testSubQuery() {
         String sql = "select a.price, a.dt from ( "
                 + "select ks.price as price, ks.part_dt as dt "
                 + "from kylin_sales ks "//
@@ -409,7 +402,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testDate() throws Exception {
+    public void testDate() {
         String sql = "SELECT KS.PRICE PRICE, KS.PART_DT DT\n"
                 + "FROM KYLIN_SALES KS\n"
                 + "WHERE KS.PART_DT <= '2020-08-08' "
@@ -423,7 +416,7 @@ public class QueryPatternUtilTest {
     }
 
     @Test
-    public void testComplicatedCase() throws Exception {
+    public void testComplicatedCase() {
         String complexSql = "select t1.week_beg_dt, t1.sum_price, t2.cnt\n" //
                 + "from (\n"//
                 + "    select test_cal_dt.week_beg_dt, sum(test_kylin_fact.price) as sum_price\n"//

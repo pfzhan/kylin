@@ -225,7 +225,7 @@ object SparderTypeUtil extends Logging {
         case th: Throwable =>
           logError(s"Error for convert value : $s , class: ${s.getClass}", th)
           // fixme aron never come to here, for coverage ignore.
-        //          safetyConvertStringToValue(s, rowType, toCalcite)
+                  safetyConvertStringToValue(s, rowType, toCalcite)
       }
     }
   }
@@ -253,7 +253,7 @@ object SparderTypeUtil extends Logging {
       case noSupport => throw new IllegalArgumentException(s"No supported data type: $noSupport")
     }
   }
-/*
+
   def safetyConvertStringToValue(s: Any, rowType: RelDataType, toCalcite: Boolean): Any = {
     try {
       rowType.getSqlTypeName match {
@@ -310,7 +310,7 @@ object SparderTypeUtil extends Logging {
         throw new RuntimeException(s"Error for convert value : $s , class: ${s.getClass}", th)
     }
   }
-*/
+
 
   // ms to second
   def toSparkTimestamp(calciteTimestamp: Long): java.lang.Long = {

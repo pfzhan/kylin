@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.query.util;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,7 +35,7 @@ import io.kyligence.kap.query.util.EscapeFunction.FnConversion;
 
 public abstract class EscapeDialect {
 
-    private final static Logger logger = LoggerFactory.getLogger(EscapeDialect.class);
+    private static final Logger logger = LoggerFactory.getLogger(EscapeDialect.class);
 
     /** Define SQL dialect for different data source **/
 
@@ -45,11 +46,15 @@ public abstract class EscapeDialect {
 
         @Override
         public void init() {
-            register(FnConversion.LEFT);
-            register(FnConversion.RIGHT);
-            register(FnConversion.CURRENT_DATE);
-            register(FnConversion.CURRENT_TIME);
-            register(FnConversion.CURRENT_TIMESTAMP);
+            registerAll(FnConversion.LEFT
+                    , FnConversion.RIGHT
+                    , FnConversion.CURRENT_DATE
+                    , FnConversion.CURRENT_TIME
+                    , FnConversion.CURRENT_TIMESTAMP
+                    , FnConversion.CONVERT
+                    , FnConversion.TRIM
+                    , FnConversion.PI);
+
             register("CHAR_LENGTH", FnConversion.FN_LENGTH);
         }
 
@@ -60,22 +65,23 @@ public abstract class EscapeDialect {
     };
 
     /**
-     * SPARK SQL 
+     * SPARK SQL
      */
     public static final EscapeDialect SPARK_SQL = new EscapeDialect() {
 
         @Override
         public void init() {
-            register(FnConversion.LEFT);
-            register(FnConversion.RIGHT);
-            register(FnConversion.CONVERT);
-            register(FnConversion.IFNULL);
-            register(FnConversion.LOG);
-            register(FnConversion.CURRENT_DATE);
-            register(FnConversion.CURRENT_TIME);
-            register(FnConversion.CURRENT_TIMESTAMP);
+            registerAll(FnConversion.LEFT
+                    , FnConversion.RIGHT
+                    , FnConversion.CONVERT
+                    , FnConversion.LOG
+                    , FnConversion.CURRENT_DATE
+                    , FnConversion.CURRENT_TIME
+                    , FnConversion.CURRENT_TIMESTAMP
+                    , FnConversion.WEEK
+                    , FnConversion.TRIM);
+
             register("CHAR_LENGTH", FnConversion.LENGTH);
-            register(FnConversion.WEEK);
         }
 
         @Override
@@ -84,7 +90,29 @@ public abstract class EscapeDialect {
         }
     };
 
-    public static final EscapeDialect HIVE = SPARK_SQL; // HIVE uses the sample function conversions as SparkSQL's
+    public static final EscapeDialect HIVE = new EscapeDialect() {
+
+        @Override
+        public void init() {
+            registerAll(FnConversion.LEFT
+                    , FnConversion.RIGHT
+                    , FnConversion.CONVERT
+                    , FnConversion.LOG
+                    , FnConversion.CURRENT_DATE
+                    , FnConversion.CURRENT_TIME
+                    , FnConversion.CURRENT_TIMESTAMP
+                    , FnConversion.WEEK
+                    , FnConversion.TIMESTAMPADD
+                    , FnConversion.TIMESTAMPDIFF);
+
+            register("CHAR_LENGTH", FnConversion.LENGTH);
+        }
+
+        @Override
+        public String defaultConversion(String functionName, String[] args) {
+            return EscapeFunction.normalFN(functionName, args);
+        }
+    };
 
     public static final EscapeDialect DEFAULT = CALCITE; // Default dialect is CALCITE
 
@@ -109,6 +137,10 @@ public abstract class EscapeDialect {
         } else {
             return defaultConversion(functionName, args);
         }
+    }
+
+    public void registerAll(FnConversion... fnTypes) {
+        Arrays.stream(fnTypes).forEach(this::register);
     }
 
     public void register(FnConversion fnType) {

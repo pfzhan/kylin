@@ -58,7 +58,7 @@ public class EscapeTransformerCalciteTest {
     @Test
     public void rightFNTest() {
         String originalSQL = "select { fn RIGHT(LSTG_FORMAT_NAME, 2) } from KYLIN_SALES";
-        String expectedSQL = "select SUBSTRING(LSTG_FORMAT_NAME, CHAR_LENGTH(LSTG_FORMAT_NAME) - 1, 2) from KYLIN_SALES";
+        String expectedSQL = "select SUBSTRING(LSTG_FORMAT_NAME, CHAR_LENGTH(LSTG_FORMAT_NAME) + 1 - 2, 2) from KYLIN_SALES";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);
@@ -75,11 +75,23 @@ public class EscapeTransformerCalciteTest {
 
     @Test
     public void convertFNTest() {
-        String originalSQL = "select {fn CONVERT(PART_DT, SQL_DATE)}, {fn LTRIM({fn CONVERT(PRICE, SQL_VARCHAR)})} from KYLIN_SALES";
-        String expectedSQL = "select {fn CONVERT(PART_DT, SQL_DATE)}, {fn LTRIM({fn CONVERT(PRICE, SQL_VARCHAR)})} from KYLIN_SALES";
+        String expectedSQL = "select CAST(PART_DT AS DATE), {fn LTRIM(CAST(PRICE AS VARCHAR))} from KYLIN_SALES";
 
-        String transformedSQL = transformer.transform(originalSQL);
-        Assert.assertEquals(expectedSQL, transformedSQL);
+        String originalSQL_1 = "select {fn CONVERT(PART_DT, SQL_DATE)}, {fn LTRIM({fn CONVERT(PRICE, SQL_VARCHAR)})} from KYLIN_SALES";
+        String transformedSQL_1 = transformer.transform(originalSQL_1);
+        Assert.assertEquals(expectedSQL, transformedSQL_1);
+
+        String originalSQL_2 = "select {fn CONVERT(PART_DT, SQL_DATE)}, {fn LTRIM({fn CONVERT(PRICE, SQL_WVARCHAR)})} from KYLIN_SALES";
+        String transformedSQL_2 = transformer.transform(originalSQL_2);
+        Assert.assertEquals(expectedSQL, transformedSQL_2);
+
+        String originalSQL_3 = "select {fn CONVERT(PART_DT, SQL_DATE)}, {fn LTRIM({fn CONVERT(PRICE, SQL_CHAR)})} from KYLIN_SALES";
+        String transformedSQL_3 = transformer.transform(originalSQL_3);
+        Assert.assertEquals(expectedSQL, transformedSQL_3);
+
+        String originalSQL_4 = "select {fn CONVERT(PART_DT, SQL_DATE)}, {fn LTRIM({fn CONVERT(PRICE, SQL_WCHAR)})} from KYLIN_SALES";
+        String transformedSQL_4 = transformer.transform(originalSQL_4);
+        Assert.assertEquals(expectedSQL, transformedSQL_4);
     }
 
     @Test
@@ -122,6 +134,15 @@ public class EscapeTransformerCalciteTest {
     public void currentDateFNTest() {
         String originalSQL = "select { fn CURRENT_DATE() }";
         String expectedSQL = "select CURRENT_DATE";
+
+        String transformedSQL = transformer.transform(originalSQL);
+        Assert.assertEquals(expectedSQL, transformedSQL);
+    }
+
+    @Test
+    public void piFNTest() {
+        String originalSQL = "select { fn PI() }";
+        String expectedSQL = "select PI";
 
         String transformedSQL = transformer.transform(originalSQL);
         Assert.assertEquals(expectedSQL, transformedSQL);

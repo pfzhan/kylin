@@ -29,4 +29,3 @@ inner JOIN edw.test_cal_dt as test_cal_dt
  group by test_cal_dt.week_beg_dt 
  order by test_cal_dt.week_beg_dt   
 
- -- optiq 0.8 reports varchar instead of date on week_beg_dt and fail test case

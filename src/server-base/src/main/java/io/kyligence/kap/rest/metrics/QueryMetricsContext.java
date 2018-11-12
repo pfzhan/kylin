@@ -143,12 +143,9 @@ public class QueryMetricsContext {
 
     private void doCollect(final SQLRequest request, final SQLResponse response, final QueryContext context) {
         this.sql = QueryContext.current().getCorrectedSql();
-        try {
-            this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(this.sql);
-        } catch (SqlParseException e) {
-            logger.error("Caught sql parse error", e);
-            this.sqlPattern = this.sql;
-        }
+
+        this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(this.sql);
+
         this.queryTime = QueryContext.current().getQueryStartMillis();
 
         this.submitter = request.getUsername();

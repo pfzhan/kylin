@@ -100,13 +100,13 @@ public class QueryPatternUtil {
      * @return               normalized SQL statement in uppercase
      * @throws SqlParseException if there is a parsing error
      */
-    public static String normalizeSQLPattern(String sqlToNormalize) throws SqlParseException {
+    public static String normalizeSQLPattern(String sqlToNormalize) {
         SqlNode sqlNode;
         try {
             sqlNode = CalciteParser.parse(sqlToNormalize);
         } catch (SqlParseException e) {
-            logger.error("Cannot parse the SQL statement, please check {}", sqlToNormalize);
-            throw e;
+            logger.error("Cannot parse the SQL statement, please check {}", sqlToNormalize, e);
+            return sqlToNormalize;
         }
         PatternGenerator patternGenerator = new PatternGenerator();
         patternGenerator.visit((SqlCall) sqlNode);

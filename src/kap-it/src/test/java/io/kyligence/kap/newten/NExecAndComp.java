@@ -199,9 +199,16 @@ public class NExecAndComp {
 
     private static Dataset<Row> queryWithSpark(KapSparkSession kapSparkSession, String sql) {
         // Table schema comes from csv and DATABASE.TABLE is not supported.
-        String sqlForSpark = sql.replaceAll("edw\\.", "").replaceAll("\"EDW\"\\.", "").replaceAll("EDW\\.", "")
-                .replaceAll("default\\.", "").replaceAll("DEFAULT\\.", "").replaceAll("\"DEFAULT\"\\.", "")
-                .replaceAll("TPCH\\.", "").replaceAll("tpch\\.", "");
+        String sqlForSpark = sql.replaceAll("edw\\.", "")
+                .replaceAll("\"EDW\"\\.", "")
+                .replaceAll("EDW\\.", "")
+                .replaceAll("default\\.", "")
+                .replaceAll("DEFAULT\\.", "")
+                .replaceAll("\"DEFAULT\"\\.", "")
+                .replaceAll("TPCH\\.", "")
+                .replaceAll("tpch\\.", "")
+                .replaceAll("TDVT\\.", "")
+                .replaceAll("\"TDVT\"\\.", "");
         HivePushDownConverter converter = new HivePushDownConverter();
         String afterConvert = converter.convert(sqlForSpark, "default", "default", false);
 
@@ -322,8 +329,8 @@ public class NExecAndComp {
         }
 
         if (compareLevel == CompareLevel.SUBSET) {
-            for(Row eRow: expectedResult){
-                if(!actualResult.contains(eRow)){
+            for (Row eRow: actualResult) {
+                if (!expectedResult.contains(eRow)) {
                     good = false;
                     break;
                 }

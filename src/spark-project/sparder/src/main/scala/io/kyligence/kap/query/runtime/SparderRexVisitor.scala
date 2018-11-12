@@ -375,8 +375,8 @@ class SparderRexVisitor(val df: DataFrame,
         floor(lit(children.head))
       case ARRAY_VALUE_CONSTRUCTOR =>
         array(children.map(child => lit(child.toString)): _*)
-      case _ =>
-        throw new UnsupportedOperationException()
+      case unsupportedFunc =>
+        throw new UnsupportedOperationException(unsupportedFunc.toString)
     }
   }
 
