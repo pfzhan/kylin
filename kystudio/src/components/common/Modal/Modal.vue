@@ -2,6 +2,7 @@
   <div>
     <UserEditModal />
     <DataSourceModal />
+    <ProjectEditModal />
     <SourceTableModal :project-name="currentSelectedProject" />
   </div>
 </template>
@@ -13,6 +14,7 @@ import { Component } from 'vue-property-decorator'
 import UserEditModal from '../UserEditModal/index.vue'
 import DataSourceModal from '../DataSourceModal/index.vue'
 import SourceTableModal from '../SourceTableModal/SourceTableModal.vue'
+import ProjectEditModal from '../ProjectEditModal/ProjectEditModal.vue'
 
 @Component({
   computed: {
@@ -23,7 +25,8 @@ import SourceTableModal from '../SourceTableModal/SourceTableModal.vue'
   components: {
     UserEditModal,
     DataSourceModal,
-    SourceTableModal
+    SourceTableModal,
+    ProjectEditModal
   }
 })
 export default class Modal extends Vue {

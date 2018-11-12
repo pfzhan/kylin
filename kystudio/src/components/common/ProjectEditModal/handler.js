@@ -1,7 +1,7 @@
 import { fromArrToObj } from '../../../util'
 
 export const fieldVisiableMaps = {
-  'new': ['name', 'description'],
+  'new': ['name', 'type', 'description'],
   'edit': ['name', 'description', 'configuration']
 }
 
@@ -22,7 +22,8 @@ export function getSubmitData (that) {
       return JSON.stringify({
         name: form.name,
         description: form.description,
-        override_kylin_properties: fromArrToObj(form.properties)
+        override_kylin_properties: fromArrToObj(form.properties),
+        maintain_model_type: form.type
       })
     case 'edit':
       const submitForm = JSON.parse(JSON.stringify(form))

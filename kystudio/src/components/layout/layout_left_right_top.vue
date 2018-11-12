@@ -80,14 +80,6 @@
               <router-view v-on:addProject="addProject" v-on:changeCurrentPath="changePath"></router-view>
               <!--</transition>-->
             </el-col>
-            <el-dialog :title="$t('kylinLang.common.project')" :visible.sync="FormVisible" @close="resetProjectForm" class="add-project" width="440px">
-              <project_edit :project="project" ref="projectForm" v-on:validSuccess="validSuccess" :visible="FormVisible" :isEdit="isEdit">
-              </project_edit>
-              <span slot="footer" class="dialog-footer">
-                <el-button size="medium" @click="FormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-                <el-button type="primary" plain size="medium" @click.native="Save" :loading="projectSaveLoading">{{$t('kylinLang.common.ok')}}</el-button>
-              </span>
-            </el-dialog>
           </div>
         </div>
       </el-col>
@@ -141,7 +133,6 @@ import { objectClone, getQueryString, cacheSessionStorage, cacheLocalStorage } f
 import { permissions, menusData, speedInfoTimer } from '../../config'
 import { mapActions, mapMutations, mapGetters } from 'vuex'
 import projectSelect from '../project/project_select'
-import projectEdit from '../project/project_edit'
 import changeLang from '../common/change_lang'
 import help from '../common/help'
 import canary from '../security/canary'
@@ -150,6 +141,9 @@ import $ from 'jquery'
 // import Scrollbar from 'smooth-scrollbar'
 @Component({
   methods: {
+    ...mapActions('ProjectEditModal', {
+      callProjectEditModal: 'CALL_MODAL'
+    }),
     ...mapActions({
       loginOut: 'LOGIN_OUT',
       saveProject: 'SAVE_PROJECT',
@@ -177,7 +171,6 @@ import $ from 'jquery'
   },
   components: {
     'project_select': projectSelect,
-    'project_edit': projectEdit,
     'change_lang': changeLang,
     'reset_password': resetPassword,
     help,
@@ -374,10 +367,25 @@ export default class LayoutLeftRightTop extends Vue {
     var currentPath = this.$router.currentRoute.path
     this._isAjaxProjectAcess(this.$store.state.project.allProject, val, currentPath)
   }
-  addProject () {
-    this.isEdit = false
-    this.FormVisible = true
-    this.project = {name: '', description: '', override_kylin_properties: {}}
+  async addProject () {
+    try {
+      const data = await this.callProjectEditModal({ editType: 'new' })
+      if (data) {
+        this.$message({
+          type: 'success',
+          message: this.$t('kylinLang.common.saveSuccess')
+        })
+        cacheSessionStorage('projectName', data.name)
+        cacheLocalStorage('projectName', data.name)
+        this.$store.state.project.selected_project = data.name
+        this.FormVisible = false
+        this.projectSaveLoading = false
+        this.$router.push('/studio/source')
+        this._replaceRouter(this.$router.currentRoute.path)
+      }
+    } catch (e) {
+      handleError(e)
+    }
   }
   Save () {
     this.$refs.projectForm.$emit('projectFormValid')

@@ -4,7 +4,7 @@
     :visible="isShow"
     @close="isShow && closeHandler(false)">
     
-    <el-form :model="form" label-position="top" :rules="rules" ref="form" v-if="isFormShow" label-width="110px">
+    <el-form :model="form" :label-position="labelPosition" :rules="rules" ref="form" v-if="isFormShow" label-width="110px">
       <!-- 表单：项目名 -->
       <el-form-item :label="$t('projectName')" prop="name" v-if="isFieldShow('name')">
         <el-input
@@ -15,6 +15,39 @@
           @input="value => inputHandler('name', value)">
         </el-input>
       </el-form-item>
+      <div class="el-form-item is-required" v-if="isFieldShow('type')">
+        <label for="name" class="el-form-item__label" style="width: 110px;line-height: 1;">{{$t('projectType')}}</label>
+        <div class="el-form-item__content clearfix" style="margin-left: 110px;">
+          <!-- project type 2 -->
+          <div class="project-type clearfix" :class="{ active: form.type === 'MANUAL_MAINTAIN' }">
+            <div class="project-type-status">
+              <span class="el-icon-ksd-good_health"></span>
+            </div>
+            <div class="project-type-button">
+              <div class="project-type-icon" @click="inputHandler('type', 'MANUAL_MAINTAIN')">
+                <i class="el-icon-ksd-model-designer"></i>
+              </div>
+              <div class="project-type-text">
+                <span class="font-medium">{{$t('projectType2')}}</span>
+              </div>
+            </div>
+          </div>
+          <!-- project type 4 -->
+          <div class="project-type clearfix" :class="{ active: form.type === 'AUTO_MAINTAIN' }">
+            <div class="project-type-status">
+              <span class="el-icon-ksd-good_health"></span>
+            </div>
+            <div class="project-type-button">
+              <div class="project-type-icon" @click="inputHandler('type', 'AUTO_MAINTAIN')">
+                <i class="el-icon-ksd-sql-acceleration"></i>
+              </div>
+              <div class="project-type-text">
+                <span class="font-medium">{{$t('projectType4')}}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <!-- 表单：项目描述 -->
       <el-form-item :label="$t('description')" prop="description" v-if="isFieldShow('description')">
         <el-input
@@ -83,7 +116,7 @@
 
     <div slot="footer" class="dialog-footer">
       <el-button size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" @click="submit" :loading="isLoading">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button size="medium" plain type="primary" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -97,7 +130,7 @@ import vuex from '../../../store'
 import locales from './locales'
 import store, { types } from './store'
 import { fieldVisiableMaps, titleMaps, getSubmitData, disabledProperties } from './handler'
-import { validate, validateTypes, handleError, fromObjToArr } from '../../../util'
+import { validate, validateTypes, handleError, fromObjToArr, handleSuccessAsync } from '../../../util'
 
 const { PROJECT_NAME } = validateTypes
 
@@ -136,18 +169,18 @@ vuex.registerModule(['modals', 'ProjectEditModal'], store)
 export default class ProjectEditModal extends Vue {
   // Data: 用来销毁el-form
   isFormShow = false
-  isLoading = false
   // Data: el-form表单验证规则
   rules = {
     name: [{
       validator: this.validate(PROJECT_NAME), trigger: 'blur', required: true
     }]
   }
+  get labelPosition () {
+    return this.editType === 'new' ? 'left' : 'top'
+  }
   // Computed: Modal宽度
   get modalWidth () {
-    return this.editType === 'new'
-      ? '440px'
-      : '660px'
+    return '660px'
   }
   // Computed: Modal标题
   get modalTitle () {
@@ -169,7 +202,6 @@ export default class ProjectEditModal extends Vue {
   async onModalShow (newVal, oldVal) {
     if (newVal) {
       this.isFormShow = true
-      this.editType === 'new' && await this.initProperty()
     } else {
       setTimeout(() => {
         this.isFormShow = false
@@ -224,24 +256,29 @@ export default class ProjectEditModal extends Vue {
   }
   // Action: Form递交函数
   async submit () {
-    this.isLoading = true
     try {
       const isInvaild = this.validateProperties()
 
       if (!isInvaild) {
+        let res
         // 获取Form格式化后的递交数据
         const data = getSubmitData(this)
         // 验证表单
         await this.$refs['form'].validate()
         // 针对不同的模式，发送不同的请求
-        this.editType === 'new' && await this.saveProject(data)
-        this.editType === 'edit' && await this.updateProject(data)
-
+        switch (this.editType) {
+          case 'new':
+            res = await handleSuccessAsync(await this.saveProject(data))
+            break
+          case 'edit':
+            res = await handleSuccessAsync(await this.updateProject(data))
+            break
+        }
         this.$message({
           type: 'success',
           message: this.$t('saveSuccessful')
         })
-        this.closeHandler(true)
+        this.closeHandler(res)
       } else {
         this.$message({ showClose: true, duration: 0, message: isInvaild, type: 'error' })
       }
@@ -249,23 +286,11 @@ export default class ProjectEditModal extends Vue {
       // 异常处理
       e && handleError(e)
     }
-    this.isLoading = false
   }
   // Helper: 给el-form用的验证函数
   validate (type) {
     // TODO: 这里的this是vue的实例，而data却是class的实例
     return validate[type].bind(this)
-  }
-  // Helper: 获取默认project属性，并且写入新project中
-  async initProperty () {
-    await this.loadConfig('project')
-
-    this.setModalForm({
-      properties: [
-        ...this.defaultProperties,
-        ...this.form.properties
-      ]
-    })
   }
   // Helper: project属性验证
   validateProperties () {
@@ -301,6 +326,61 @@ export default class ProjectEditModal extends Vue {
   .project-config .el-col {
     height: 32px;
     margin-bottom: 10px;
+  }
+  .project-type,
+  .project-type-status,
+  .project-type-button {
+    display: block;
+    float: left;
+    height: 125px;
+    position: relative;
+  }
+  .project-type-status .el-icon-ksd-good_health {
+    vertical-align: top;
+  }
+  .project-type-status {
+    margin-right: 10px;
+  }
+  .project-type {
+    margin-right: 57px;
+  }
+  .project-type:not(.active) {
+    color: @text-disabled-color;
+  }
+  .project-type-icon {
+    width: 90px;
+    height: 90px;
+    border: 1px solid @text-secondary-color;
+    text-align: center;
+    line-height: 90px;
+    border-radius: 6px;
+    font-size: 65px;
+    overflow: hidden;
+    color: @base-color;
+    cursor: pointer;
+    margin: 0 auto 15px auto;
+  }
+  .project-type-text {
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .project-type.active .project-type-text {
+    color: @text-title-color;
+  }
+  .project-type.active .project-type-icon {
+    border-color: @base-color;
+    background: @base-color;
+    color: @fff;
+  }
+  .project-type.active .el-icon-ksd-good_health {
+    color: @btn-success-normal;
+  }
+  .project-type-icon:hover {
+    border-color: @base-color;
+  }
+  .el-form-item__label {
+    font-weight: 500;
   }
 }
 </style>

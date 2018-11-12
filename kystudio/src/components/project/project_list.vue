@@ -75,14 +75,6 @@
     </el-table-column>
     </el-table>
     <pager class="ksd-center" :totalSize="projectsTotal" v-on:handleCurrentChange='pageCurrentChange' ></pager>
-    <el-dialog  class="add-project" :title="$t('project')" :visible.sync="FormVisible" @close="resetProjectForm" :width="projectWidth">
-      <project_edit ref="projectForm" :project="project"  :visible="FormVisible" v-on:validSuccess="validSuccess" v-on:validFailed='validFailed' :isEdit="isEdit"></project_edit>
-      <div slot="footer" class="dialog-footer">
-        <el-button size="medium" @click="FormVisible = false">{{$t('cancel')}}</el-button>
-        <el-button type="primary" plain size="medium" @click="checkProjectForm">{{$t('kylinLang.common.submit')}}</el-button>
-      </div>
-    </el-dialog>
-    <ProjectEditModal />
  </div>
 </template>
 <script>
@@ -91,10 +83,8 @@ import cubeList from './cube_list'
 import modeList from './model_list'
 import accessEdit from './access_edit'
 import filterEdit from './filter_edit'
-import projectEdit from './project_edit'
 import projectConfig from './project_config'
 import { permissions, pageCount } from '../../config/index'
-import ProjectEditModal from '../common/ProjectEditModal/index.vue'
 import { handleSuccess, handleError, transToGmtTime, hasPermission, hasRole, kapConfirm } from '../../util/business'
 export default {
   name: 'projectlist',
@@ -245,12 +235,10 @@ export default {
   },
   components: {
     'cube_list': cubeList,
-    'project_edit': projectEdit,
     'access_edit': accessEdit,
     'filter_edit': filterEdit,
     'model_list': modeList,
-    'project_config': projectConfig,
-    ProjectEditModal
+    'project_config': projectConfig
   },
   computed: {
     projectList () {
