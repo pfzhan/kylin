@@ -24,10 +24,9 @@
 
 package io.kyligence.kap.newten;
 
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import org.junit.Ignore;
 import org.junit.Test;
-
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 
 public class NAutoTpchTest extends NAutoTestBase {
 
@@ -47,5 +46,14 @@ public class NAutoTpchTest extends NAutoTestBase {
         * Plus the precision difference between query cuboid and SparkSQL
         */
         new TestScenario("sql_tpch", CompareLevel.SAME_ROWCOUNT).execute();
+    }
+
+    @Test
+    public void testReProposeCase() throws Exception {
+        // verify issue https://github.com/Kyligence/KAP/issues/7515
+        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
+        for (int i = 0; i < 2; ++i) {
+            new TestScenario("sql_tpch", CompareLevel.SAME, 1, 2).execute();
+        }
     }
 }
