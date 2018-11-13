@@ -98,13 +98,13 @@
         width="100">
         <template slot-scope="scope">
           <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
-            <i class="el-icon-delete ksd-fs-16" @click.stop="drop(scope.row.id)"></i>
+            <i class="el-icon-delete ksd-fs-16" @click.stop="drop([scope.row.id])"></i>
           </common-tip>
           <common-tip :content="$t('jobDiscard')" v-if="scope.row.job_status=='PENDING' || scope.row.job_status=='RUNNING'">
-            <i class="el-icon-ksd-table_discard ksd-fs-16" @click.stop="discard(scope.row.id)"></i>
+            <i class="el-icon-ksd-table_discard ksd-fs-16" @click.stop="discard([scope.row.id])"></i>
           </common-tip>
           <common-tip :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
-            <i class="el-icon-ksd-table_resure ksd-fs-16" @click.stop="resume(scope.row.id)"></i>
+            <i class="el-icon-ksd-table_resure ksd-fs-16" @click.stop="resume([scope.row.id])"></i>
           </common-tip>
           <el-dropdown trigger="click">
             <span class="el-dropdown-link" @click.stop>
@@ -113,8 +113,8 @@
               </common-tip>
             </span>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item @click.native="discard(scope.row.id)" v-if="scope.row.job_status=='NEW' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED'">{{$t('jobDiscard')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="pause(scope.row.id)" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='NEW' || scope.row.job_status=='PENDING'">{{$t('jobPause')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="discard([scope.row.id])" v-if="scope.row.job_status=='NEW' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED'">{{$t('jobDiscard')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="pause([scope.row.id])" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='NEW' || scope.row.job_status=='PENDING'">{{$t('jobPause')}}</el-dropdown-item>
               <el-dropdown-item @click.native="diagnosisJob(scope.row, scope.row.id)">{{$t('jobDiagnosis')}}</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
@@ -295,7 +295,7 @@ export default class JobsList extends Vue {
     subjects: ''
   }
   allStatus = [
-    {name: 'ALL', value: ''},
+    {name: 'ALL', value: null},
     {name: 'PENDING', value: 1},
     {name: 'RUNNING', value: 2},
     {name: 'FINISHED', value: 4},
@@ -447,40 +447,58 @@ export default class JobsList extends Vue {
     this.idsArr = this.idsArrCopy
     this.animatedNum(this.jobsList.length, this.jobTotal)
   }
+  getJobIds () {
+    const jobIds = this.multipleSelection.map((item) => {
+      return item.id
+    })
+    return jobIds
+  }
   batchResume () {
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
-      this.multipleSelection.forEach((item) => {
-        this.resume(item.id)
-      })
+      if (this.isSelectAll) {
+        this.resume([])
+      } else {
+        const jobIds = this.getJobIds()
+        this.resume(jobIds)
+      }
     }
   }
   batchDiscard () {
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
-      this.multipleSelection.forEach((item) => {
-        this.discard(item.id)
-      })
+      if (this.isSelectAll) {
+        this.discard([])
+      } else {
+        const jobIds = this.getJobIds()
+        this.discard(jobIds)
+      }
     }
   }
   batchPause () {
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
-      this.multipleSelection.forEach((item) => {
-        this.pause(item.id)
-      })
+      if (this.isSelectAll) {
+        this.pause([])
+      } else {
+        const jobIds = this.getJobIds()
+        this.pause(jobIds)
+      }
     }
   }
   batchDrop () {
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
-      this.multipleSelection.forEach((item) => {
-        this.drop(item.id)
-      })
+      if (this.isSelectAll) {
+        this.drop([])
+      } else {
+        const jobIds = this.getJobIds()
+        this.drop(jobIds)
+      }
     }
   }
   closeModal () {
@@ -540,9 +558,9 @@ export default class JobsList extends Vue {
     }
     this.loadJobsList(this.filter)
   }
-  resume (jobId) {
+  resume (jobIds) {
     kapConfirm(this.$t('resumeJob')).then(() => {
-      this.resumeJob({jobId: jobId, project: this.currentSelectedProject, action: 'RESUME'}).then(() => {
+      this.resumeJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESUME', status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.actionSuccess')
@@ -553,9 +571,9 @@ export default class JobsList extends Vue {
       })
     })
   }
-  discard (jobId) {
+  discard (jobIds) {
     kapConfirm(this.$t('discardJob')).then(() => {
-      this.cancelJob({jobId: jobId, project: this.currentSelectedProject, action: 'DISCARD'}).then(() => {
+      this.cancelJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'DISCARD', status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.actionSuccess')
@@ -566,9 +584,9 @@ export default class JobsList extends Vue {
       })
     })
   }
-  pause (jobId) {
+  pause (jobIds) {
     kapConfirm(this.$t('pauseJob')).then(() => {
-      this.pauseJob({jobId: jobId, project: this.currentSelectedProject, action: 'PAUSE'}).then(() => {
+      this.pauseJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'PAUSE', status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.actionSuccess')
@@ -579,9 +597,9 @@ export default class JobsList extends Vue {
       })
     })
   }
-  drop (jobId) {
+  drop (jobIds) {
     kapConfirm(this.$t('dropJob')).then(() => {
-      this.removeJob({jobId: jobId, project: this.currentSelectedProject}).then(() => {
+      this.removeJob({jobIds: jobIds, project: this.currentSelectedProject, status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.delSuccess')
@@ -594,19 +612,17 @@ export default class JobsList extends Vue {
   }
   showLineSteps (row) {
     var needShow = false
-    // 减去滚动条的高度
     if (row.id !== this.selectedJob.id) {
       needShow = true
     } else {
       needShow = !this.showStep
     }
-    this.showStep = false
+    this.showStep = needShow
     this.selectedJob = row
     this.getJobDetail({project: this.currentSelectedProject, jobId: row.id}).then((res) => {
       handleSuccess(res, (data) => {
         this.$nextTick(() => {
-          this.selectedJob['details'] = data
-          this.showStep = needShow
+          this.$set(this.selectedJob, 'details', data)
           var sTop = document.getElementById('scrollBox').scrollTop
           this.beforeScrollPos = sTop
           var result = sTop

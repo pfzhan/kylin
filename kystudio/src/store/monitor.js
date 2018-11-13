@@ -38,7 +38,7 @@ export default {
       state.filter.timeFilter = 4
       state.filter.jobName = ''
       state.filter.sortby = 'last_modify'
-      state.filter.status = []
+      state.filter.status = null
     }
   },
   actions: {

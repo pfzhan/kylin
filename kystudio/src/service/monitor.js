@@ -33,6 +33,6 @@ export default {
     return Vue.resource(apiUrl + 'jobs/status').update(para)
   },
   removeJob: (para) => {
-    return Vue.resource(apiUrl + 'jobs/' + para.project + '/' + para.jobId).delete()
+    return Vue.resource(apiUrl + 'jobs/' + para.project + '{?jobIds}').delete(para)
   }
 }
