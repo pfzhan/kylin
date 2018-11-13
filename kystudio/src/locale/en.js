@@ -159,6 +159,7 @@ exports.default = {
   model: {
     draft: 'Draft',
     modelName: 'Model Name:',
+    computedColumn: 'Computed Column',
     modelNameGrid: 'Model Name',
     modelList: 'Model List',
     modifiedGrid: 'Last Modified Time',
@@ -198,6 +199,7 @@ exports.default = {
     dimensionLinkLimit: 'Only dimension columns can be linked',
     computedLinkLimit: 'Computed column cannot be join key.',
     columnName: 'Column Name',
+    addCC: 'Add Computed Column',
     ccRules: 'Rules of computed column:',
     ccRules1: '1. In project level, computed column\'s name and expression are defined in pairs and correspondingly.',
     ccRules2: '2. Over different models, you can easily reuse one computed column from another model with the same schema.',
@@ -318,14 +320,6 @@ exports.default = {
     unAcce: '本条查询未被加速，现在去加速。'
   },
   job: {
-  },
-  auto: {
-    targetModel: 'Target Model',
-    dimension: 'Dimension',
-    measure: 'Measure',
-    computedColumn: 'Computed Column',
-    queryInput: 'Query Input',
-    queryContent: 'Query Content'
   },
   dataSource: {
     columnName: 'Column',

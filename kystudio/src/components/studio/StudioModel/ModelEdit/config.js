@@ -83,6 +83,18 @@ export const modelRenderConfig = {
         display: false,
         box: rootBox
       },
+      cc: {
+        top: 158,
+        right: 60,
+        width: 250,
+        height: 316,
+        limit: {
+          height: [80]
+        },
+        zIndex: baseIndex - 1,
+        display: false,
+        box: rootBox
+      },
       datasource: {
         top: 52,
         left: 10,

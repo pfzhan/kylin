@@ -1,18 +1,18 @@
 <template>
-  <el-dialog :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" append-to-body width="660px" :visible="isShow" class="links_dialog" :close-on-press-escape="false" :close-on-click-modal="false">
+  <el-dialog append-to-body :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" append-to-body width="660px" :visible="isShow" class="links-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <el-row :gutter="10">
       <el-col :span="10">
-        <el-select :popper-append-to-body="false" style="width:100%" filterable v-model="selectF">
+        <el-select  size="medium" style="width:100%" filterable v-model="selectF">
           <el-option  v-for="key in selectedFTables" :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
       <el-col :span="4">
-        <el-select :popper-append-to-body="false" style="width:100%" v-model="joinType">
+        <el-select  size="medium" style="width:100%" v-model="joinType">
           <el-option :value="key" v-for="(key, i) in linkKind" :key="i">{{key}}</el-option>
         </el-select>
       </el-col>
       <el-col :span="10">
-        <el-select :popper-append-to-body="false" style="width:100%" filterable v-model="selectP">
+        <el-select size="medium" style="width:100%" filterable v-model="selectP">
           <el-option v-for="key in selectedPTables"  :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
@@ -20,7 +20,7 @@
     <!-- 列的关联 -->
     <el-row :gutter="10"  class="ksd-mt-20" v-for="(key, val) in joinColumns.foreign_key" :key="val">
       <el-col :span="10">
-         <el-select :popper-append-to-body="false"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
+         <el-select size="medium"  style="width:100%" filterable v-model="joinColumns.foreign_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option v-for="f in fColumns" :value="fTable.alias+'.'+f.name" :key="f.name" :label="f.name">
             </el-option>
           </el-select>
@@ -29,14 +29,13 @@
          =
       </el-col>
       <el-col :span="9">
-        <el-select :popper-append-to-body="false" style="width:100%" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
+        <el-select size="medium" style="width:100%" filterable v-model="joinColumns.primary_key[val]" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option v-for="p in pColumns" :value="pTable.alias+'.'+p.name" :key="p.name" :label="p.name">
             </el-option>
           </el-select>
       </el-col>
-      <el-col :span="4" class="ksd-center">
-        <el-button  icon="el-icon-plus" @click="addJoinConditionColumns" circle></el-button>
-        <el-button  icon="el-icon-delete" @click="removeJoinConditionColumn(val)" circle></el-button>
+      <el-col :span="4" class="ksd-left ksd-pt-2">
+        <el-button  type="primary" plain icon="el-icon-ksd-add_2" size="mini" @click="addJoinConditionColumns" circle></el-button><el-button  icon="el-icon-minus" size="mini" @click="removeJoinConditionColumn(val)" circle></el-button>
       </el-col>
     </el-row>
     <span slot="footer" class="dialog-footer">
@@ -116,8 +115,9 @@ export default class TableJoinModal extends Vue {
       if (this.form.fColumnName && !this.joinColumns.foreign_key.includes(this.form.fColumnName)) {
         if (this.joinColumns.foreign_key[0]) {
           this.joinColumns.foreign_key.push(this.form.fColumnName)
+        } else {
+          this.joinColumns.foreign_key[0] = this.form.fColumnName
         }
-        this.joinColumns.foreign_key[0] = this.form.fColumnName
       }
     }
   }
@@ -213,4 +213,10 @@ export default class TableJoinModal extends Vue {
 
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
+.links-dialog {
+  .el-button+.el-button {
+    margin-left:5px;
+  }
+}
+
 </style>

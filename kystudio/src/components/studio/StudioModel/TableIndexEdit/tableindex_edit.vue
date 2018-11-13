@@ -100,7 +100,7 @@
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import vuex from '../../../../store'
   import { NamedRegex } from 'config'
-  import { handleError } from 'util/business'
+  import { handleError, kapMessage } from 'util/business'
   import { objectClone, arrSortByArr } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
@@ -210,6 +210,10 @@
       })
     }
     addCol (dataSet, i) {
+      if (dataSet === 'sort_by_columns' && this.tableIndexMeta[dataSet].length === 9) {
+        kapMessage('大哥, 最多只能加9列哎', {type: 'warning'})
+        return
+      }
       this.tableIndexMeta[dataSet].splice(i, 0, '')
     }
     delCol (dataSet, i) {

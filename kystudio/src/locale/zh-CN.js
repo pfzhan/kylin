@@ -163,6 +163,7 @@ exports.default = {
     statusGrid: '健康状态',
     metaData: '元数据',
     checkData: '采样数据',
+    computedColumn: '可计算列',
     modelStatusCheck: '模型状态检测',
     factTableSampling: '事实表采样',
     lookupTableSampling: '维度表采样',
@@ -195,6 +196,7 @@ exports.default = {
     dimensionLinkLimit: '只有维度列可以进行关联',
     computedLinkLimit: '可计算列不能作为连接条件。',
     columnName: '列名',
+    addCC: '添加可计算列',
     ccRules: '可计算列的规则：',
     ccRules1: '1. 同一项目下，可计算列的名字与表达式唯一对应；',
     ccRules2: '2. 不同模型间，可在相同的模型结构上复用已有的可计算列；',
@@ -315,14 +317,6 @@ exports.default = {
     unAcce: '本条查询未被加速，现在去加速。'
   },
   job: {
-  },
-  auto: {
-    targetModel: '目标模型',
-    dimension: '维度',
-    measure: '度量',
-    computedColumn: '可计算列',
-    queryInput: '输入查询数',
-    queryContent: '查询内容'
   },
   dataSource: {
     columnName: '列',

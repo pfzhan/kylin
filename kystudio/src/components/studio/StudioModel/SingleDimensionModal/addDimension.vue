@@ -12,7 +12,7 @@
           <el-input v-model="dimensionInfo.name" ></el-input>
         </el-form-item>
         <el-form-item :label="$t('dimensionCandidate')" prop="column">
-          <el-select filterable style="width:350px" place-holder="" v-model="dimensionInfo.column">
+          <el-select filterable style="width:350px" place-holder="" :disabled="showCC" v-model="dimensionInfo.column">
             <el-option-group
               v-for="(columns, key) in allColumnsGroup"
               :key="key"
@@ -25,7 +25,7 @@
               </el-option>
             </el-option-group>
           </el-select>
-          <el-button size="medium" @click="showCC=true" icon="el-icon-ksd-auto_computed_column" class="ksd-ml-10" type="primary" plain></el-button>
+          <el-button size="medium" @click="showCCForm" :disabled="showCC" icon="el-icon-ksd-auto_computed_column" class="ksd-ml-10" type="primary" plain></el-button>
           <CCEditForm v-if="showCC" @saveSuccess="saveCC" @delSuccess="delCC" :ccDesc="ccDesc" :modelInstance="modelInstance"></CCEditForm>
         </el-form-item>
         <el-form-item :label="$t('dimensionComment')" prop="comment">
@@ -111,8 +111,9 @@ export default class SingleDimensionModal extends Vue {
       callback()
     }
   }
-  handleSelectCandidate () {
-
+  showCCForm () {
+    this.showCC = true
+    this.dimensionInfo.column = ''
   }
   saveCC (cc) {
     this.dimensionInfo.column = cc.tableAlias + '.' + cc.columnName

@@ -3,11 +3,12 @@ import { stopPropagation } from './event'
 // jsPlumb 工具库
 export function jsPlumbTool () {
   var plumbInstance = null
+  let lineColor = '#0988de'
   return {
     endpointConfig: {
       endpoint: 'Dot',
       paintStyle: {
-        stroke: '#7AB02C',
+        stroke: lineColor,
         fill: 'transparent',
         radius: 1,
         strokeWidth: 1
@@ -16,8 +17,8 @@ export function jsPlumbTool () {
       isTarget: true,
       connector: [ 'Bezier', { curviness: 22 } ], // 设置连线为贝塞尔曲线
       connectorStyle: {
-        strokeWidth: 2,
-        stroke: '#f6a623',
+        strokeWidth: 1,
+        stroke: lineColor,
         joinstyle: 'round'
       },
       dragOptions: {}
@@ -49,7 +50,7 @@ export function jsPlumbTool () {
     _getPlumbInstance (jsPlumb, el) {
       return jsPlumb.getInstance({
         DragOptions: { cursor: 'pointer', zIndex: 2000 },
-        HoverPaintStyle: { stroke: '#f7b72a' },
+        HoverPaintStyle: { stroke: lineColor },
         ConnectionOverlays: [
           [ 'Arrow', {
             location: 1,
@@ -108,7 +109,10 @@ export function jsPlumbTool () {
     },
     deleteConnect (conn) {
       plumbInstance.deleteConnection(conn)
-      this.deleteEndPoint(conn.sourceId)
+      if (conn.endpoints) {
+        this.deleteEndPoint(conn.sourceId)
+        this.deleteEndPoint(conn.targetId)
+      }
     }
   }
 }

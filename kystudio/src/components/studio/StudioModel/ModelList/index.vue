@@ -42,7 +42,7 @@
           </template>
         </el-table-column>
         <el-table-column
-        width="201"
+        min-width="140px"
         show-overflow-tooltip
         prop="alias"
           :label="$t('kylinLang.model.modelNameGrid')">
@@ -50,26 +50,26 @@
         <el-table-column
           prop="fact_table"
           show-overflow-tooltip
-          width="300px"
+          min-width="230px"
           :label="$t('kylinLang.common.fact')">
         </el-table-column>
         <el-table-column
           prop="favorite"
           show-overflow-tooltip
-          min-width="155"
+          width="90px"
           :label="$t('favorite')">
         </el-table-column>
         <el-table-column
           prop="gmtTime"
           show-overflow-tooltip
           sortable="custom"
-          width="210"
+          width="150px"
           :label="$t('dataLoadTime')">
         </el-table-column>
         <el-table-column
           prop="status"
           show-overflow-tooltip
-          width="100"
+          width="94"
           :label="$t('status')">
           <template slot-scope="scope">
         <el-tag size="small" :type="scope.row.status === 'OFFLINE' ? 'info' : scope.row.status === 'DESCBROKEN'? 'danger' : 'success'">{{scope.row.status}}</el-tag>
@@ -82,13 +82,13 @@
           :label="$t('kylinLang.model.ownerGrid')">
         </el-table-column>
         <el-table-column class="ksd-center"
-        width="120"
+        width="98px"
         :label="$t('kylinLang.common.action')">
           <template slot-scope="scope">
             <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
              <div v-show="isAdmin || hasPermissionOfProject()">
-              <common-tip :content="$t('kylinLang.common.edit')" class="ksd-ml-10"><i class="el-icon-ksd-table_edit ksd-fs-16" @click="handleEditModel(scope.row.alias)"></i></common-tip>
-              <common-tip :content="$t('build')" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16" @click="setModelBuldRange(scope.row)" v-if="scope.row.management_type!=='TABLE_ORIENTED'"></i></common-tip>
+              <common-tip :content="$t('kylinLang.common.edit')"><i class="el-icon-ksd-table_edit ksd-fs-16" @click="handleEditModel(scope.row.alias)"></i></common-tip>
+              <common-tip :content="$t('build')" class="ksd-ml-10"  v-if="scope.row.management_type!=='TABLE_ORIENTED'"><i class="el-icon-ksd-data_range ksd-fs-16" @click="setModelBuldRange(scope.row)"></i></common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="!scope.row.is_draft">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >

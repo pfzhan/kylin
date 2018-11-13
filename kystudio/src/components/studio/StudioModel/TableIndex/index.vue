@@ -66,13 +66,13 @@
             align="center">
           </el-table-column> 
           <el-table-column
-          :label="$t('Sort')"
+          label="Sort"
           header-align="center"
           prop="sort"
           align="center">
             </el-table-column>
           <el-table-column
-          :label="$t('Shared')"
+          label="Shared"
           header-align="center"
           align="center">
             <template slot-scope="scope">

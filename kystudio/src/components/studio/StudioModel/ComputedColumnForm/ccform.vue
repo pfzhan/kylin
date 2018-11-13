@@ -1,7 +1,7 @@
 <template>
-<div>
-  <span class="ky-close ksd-fright ksd-mt-10 ksd-mr-10" @click="cancelCC"><i class="el-icon-ksd-close"></i></span>
-  <el-form :model="ccObject" class="cc-block" :class="{'editCC': !isEdit}" label-position="top" :rules="ccRules" ref="ccForm">
+<div class="cc-form-box">
+  <span class="ky-close ksd-fright ksd-mt-10 ksd-mr-10" @click="cancelCC" v-if="!isPureForm"><i class="el-icon-ksd-close"></i></span>
+  <el-form :model="ccObject" :class="{'editCC': !isEdit, 'cc-block': !isPureForm}" label-position="top" :rules="ccRules" ref="ccForm">
     <el-form-item prop="columnName" class="ksd-mb-10">
       <span slot="label">{{$t('columnName')}} <span v-if="!isEdit">: {{ccObject.columnName}}</span></span>
       <el-input class="measures-width" size="medium" v-model="ccObject.columnName" v-if="isEdit" @blur="upperCaseCCName"></el-input>
@@ -28,19 +28,9 @@
     </div>
     <div class="btn-group clearfix ksd-mt-6">
       <el-button size="small" plain @click="delCC" class="ksd-fleft" v-if="ccDesc">{{$t('kylinLang.common.delete')}}</el-button>
-      <!-- <el-button size="small" plain @click="cancelCC" class="ksd-fleft" v-if="!ccDesc">{{$t('kylinLang.common.cancel')}}</el-button> -->
-      <el-button type="primary" size="small" @click="addCC" class="ksd-fright" v-if="isEdit" :loading="checkBtnLoading">
+      <el-button type="primary" size="small" @click="addCC" class="ksd-fright" v-if="isEdit && !isPureForm" :loading="checkBtnLoading">
         {{$t('kylinLang.common.save')}}
       </el-button>
-      <!-- <el-button size="small" plain @click="resetCC" class="ksd-fright" v-if="isEdit">
-        {{$t('kylinLang.query.clear')}}
-      </el-button> -->
-      <!-- <el-button size="small" plain @click="checkRemoteCC" :loading="checkBtnLoading" class="ksd-fleft" v-if="isEdit">
-        {{$t('kylinLang.common.check')}}
-      </el-button> -->
-      <!-- <el-button size="small" plain @click="editCC" class="ksd-fright" v-else>
-        {{$t('kylinLang.common.edit')}}
-      </el-button> -->
     </div>
   </el-form>
   </div>
@@ -56,7 +46,7 @@ import { modelErrorMsg } from '../ModelEdit/config'
 import { NamedRegex } from 'config'
 // import $ from 'jquery'
 @Component({
-  props: ['isShow', 'ccDesc', 'modelInstance'],
+  props: ['isShow', 'ccDesc', 'modelInstance', 'isPureForm'],
   computed: {
     ...mapGetters([
       'currentSelectedProject'
@@ -140,6 +130,7 @@ export default class CCForm extends Vue {
         this.errorMsg = ''
         cb && cb()
       }, (res) => {
+        this.$emit('saveError')
         this.checkBtnLoading = false
         handleError(res, (data, code, stasut, msg) => {
           this.errorMsg = msg
@@ -156,6 +147,7 @@ export default class CCForm extends Vue {
           let factTable = this.modelInstance.getFactTable()
           this.ccObject.table_guid = factTable.guid
           if (!factTable) {
+            this.$emit('saveError')
             kapMessage(this.$t(modelErrorMsg['noFact']), { type: 'warning' })
             return
           }
@@ -164,6 +156,7 @@ export default class CCForm extends Vue {
               this.$emit('saveSuccess', cc)
               this.isEdit = false
             }, () => {
+              this.$emit('saveError')
               kapMessage(this.$t('sameName'), { type: 'warning' })
             })
           } else {
@@ -171,10 +164,13 @@ export default class CCForm extends Vue {
               this.$emit('saveSuccess', cc)
               this.isEdit = false
             }, () => {
+              this.$emit('saveError')
               kapMessage(this.$t('sameName'), { type: 'warning' })
             })
           }
         })
+      } else {
+        this.$emit('saveError')
       }
     })
   }
@@ -214,6 +210,7 @@ export default class CCForm extends Vue {
     Object.assign(this.ccObject, this.ccDesc)
   }
   mounted () {
+    this.$on('addCC', this.addCC)
     this.initCCDesc()
     let data = this.modelInstance.getTableColumns()
     this.setAutoCompleteData(data)
@@ -223,19 +220,12 @@ export default class CCForm extends Vue {
 
 <style lang="less">
   @import '../../../../assets/styles/variables.less';
-    .measures-addCC {
-      width: 88.5%;
-    }
-    .del-margin-more {
-      margin-left: 55px !important;
-    }
-    .value-label {
-      color: @text-title-color;
-    }
-    .cc-block {
+  .cc-form-box {
+     .cc-block {
       border: 1px solid @line-border-color;
       padding: 20px;
       background-color: @table-stripe-color;
       margin-top: 10px;
     }
+  }
 </style>

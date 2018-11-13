@@ -919,12 +919,15 @@ class NModel {
       for (let i = 0; i < this._mount.computed_columns.length; i++) {
         const c = this._mount.computed_columns[i]
         if (c.guid === ccObj.guid) {
-          this._mount.computed_columns.splice(i, 1)
+          this.delCCByIndex(i)
           resolve(c)
           break
         }
       }
     })
+  }
+  delCCByIndex (i) {
+    this._mount.computed_columns.splice(i, 1)
   }
   // _delCCByAlias () {
   // }
