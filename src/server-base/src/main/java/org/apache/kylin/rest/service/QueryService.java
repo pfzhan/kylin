@@ -334,7 +334,7 @@ public class QueryService extends BasicService {
         logger.info("Check query permission in " + (System.currentTimeMillis() - t) + " ms.");
 
         Message msg = MsgPicker.getMsg();
-        sqlRequest.setUsername(getUserName());
+        sqlRequest.setUsername(getUsername());
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         String serverMode = kylinConfig.getServerMode();
