@@ -310,7 +310,12 @@ exports.default = {
     lastModefied: 'Last Executed',
     rate: 'Success Rate',
     frequency: 'Frequency',
-    avgDuration: 'Average Duration'
+    avgDuration: 'Average Duration',
+    fullyAcce: '本条查询已被完全加速',
+    partlyAcce: '本条查询已被部分加速',
+    ongoingAcce: '本条查询正在加速中',
+    wartingAcce: '本条查询等待加速',
+    unAcce: '本条查询未被加速，现在去加速。'
   },
   job: {
   },

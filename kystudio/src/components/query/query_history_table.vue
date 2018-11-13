@@ -93,13 +93,24 @@
       </el-table-column>
       <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="120">
         <template slot-scope="props">
-          <el-tooltip class="item" effect="dark" :content="$t('toAcce')" placement="top" v-if="props.row.accelerate_status === 'UNACCELERATED'">
-            <i class="el-icon-ksd-negative" @click="(event) => {toAcce(event, props.row)}"></i>
+          <el-popover
+            ref="popover"
+            placement="top"
+            width="200"
+            trigger="hover"
+            v-if="props.row.accelerate_status === 'UNACCELERATED'">
+            <p class="to_acce">{{$t('kylinLang.query.unAcce')}}</p>
+            <div style="text-align: right; margin: 0">
+              <el-button size="mini" type="primary" text @click="(event) => {toAcce(event, props.row)}">{{$t('kylinLang.common.ok')}}</el-button>
+            </div>
+          </el-popover>
+          <i class="el-icon-ksd-negative" v-if="props.row.accelerate_status === 'UNACCELERATED'" v-popover:popover></i>
+          <el-tooltip class="item" effect="dark" :content="$t('kylinLang.query.fullyAcce')" placement="top" v-if="props.row.accelerate_status === 'FULLY_ACCELERATED'">
+            <i class="status-icon el-icon-ksd-acclerate_all"></i>
           </el-tooltip>
-          <i class="status-icon" :class="{
-            'el-icon-ksd-acclerate': props.row.accelerate_status === 'FULLY_ACCELERATED',
-            'el-icon-ksd-acclerate1': props.row.accelerate_status === 'PARTLY_ACCELERATED'
-          }" v-else></i>
+          <el-tooltip class="item" effect="dark" :content="$t('kylinLang.query.partlyAcce')" placement="top" v-if="props.row.accelerate_status === 'PARTLY_ACCELERATED'">
+            <i class="status-icon el-icon-ksd-acclerate_portion"></i>
+          </el-tooltip>
         </template>
       </el-table-column>
     </el-table>
@@ -137,7 +148,7 @@ export default class QueryHistoryTable extends Vue {
   startSec = 0
   endSec = 10
   latencyFilterPopoverVisible = false
-  statusFilteArr = [{name: 'el-icon-ksd-acclerate', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate1', value: 'PARTLY_ACCELERATED'}, {name: 'el-icon-ksd-negative', value: 'UNACCELERATED'}]
+  statusFilteArr = [{name: 'el-icon-ksd-acclerate_all', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED'}, {name: 'el-icon-ksd-negative', value: 'UNACCELERATED'}]
   realFilteArr = [{name: 'Pushdown', value: 'pushdown'}, {name: 'Model Name', value: 'modelName'}]
   filterData = {
     startTimeFrom: null,
@@ -465,20 +476,25 @@ export default class QueryHistoryTable extends Vue {
         top: 1px;
       }
       .el-icon-ksd-negative {
-        color: @base-color;
+        color: @text-normal-color;
         font-size: 20px;
-      }
-      .status-icon {
-        font-size: 20px;
-        &.el-icon-ksd-acclerate {
-          color: @normal-color-1;
-        }
-        &.el-icon-ksd-acclerate_portion,
-        &.el-icon-ksd-acclerate_ongoing {
+        &:hover {
           color: @base-color;
         }
       }
+      .status-icon {
+        font-size: 20px;
+        &.el-icon-ksd-acclerate_all,
+        &.el-icon-ksd-acclerate_portion {
+          color: @normal-color-1;
+        }
+      }
     }
+  }
+  .to_acce {
+    font-size: 12px;
+    line-height: 1.5;
+    color: @text-title-color;
   }
   .latency-filter-pop {
     display: inline-flex;

@@ -7,7 +7,7 @@
         </span>
       </div>
       <div class="ksd-fright btn-group ksd-mt-10">
-        <el-button size="medium" icon="el-icon-ksd-acclerate_ready" plain @click="openPreferrenceSetting">
+        <el-button size="medium" icon="el-icon-ksd-acclerate_pendding" plain @click="openPreferrenceSetting">
           {{$t('preferrence')}}
         </el-button>
         <el-button size="medium" icon="el-icon-ksd-white_list" plain @click="openWhiteList">{{$t('whiteList')}}
@@ -118,12 +118,18 @@
       </el-table-column>
       <el-table-column :renderHeader="renderColumn" prop="status" align="center" width="120">
         <template slot-scope="props">
-          <i class="status-icon" :class="{
-            'el-icon-ksd-acclerate': props.row.status === 'FULLY_ACCELERATED',
-            'el-icon-ksd-acclerate_portion': props.row.status === 'PARTLY_ACCELERATED',
-            'el-icon-ksd-acclerate_ready': props.row.status === 'WAITING',
-            'el-icon-ksd-acclerate_ongoing': props.row.status === 'ACCELERATING'
-          }"></i>
+          <el-tooltip class="item" effect="dark" :content="$t('kylinLang.query.fullyAcce')" placement="top" v-if="props.row.status === 'FULLY_ACCELERATED'">
+            <i class="status-icon el-icon-ksd-acclerate_all"></i>
+          </el-tooltip>
+          <el-tooltip class="item" effect="dark" :content="$t('kylinLang.query.partlyAcce')" placement="top" v-if="props.row.status === 'PARTLY_ACCELERATED'">
+            <i class="status-icon el-icon-ksd-acclerate_portion"></i>
+          </el-tooltip>
+          <el-tooltip class="item" effect="dark" :content="$t('kylinLang.query.ongoingAcce')" placement="top" v-if="props.row.status === 'ACCELERATING'">
+            <i class="status-icon el-icon-ksd-acclerate_ongoing"></i>
+          </el-tooltip>
+          <el-tooltip class="item" effect="dark" :content="$t('kylinLang.query.wartingAcce')" placement="top" v-if="props.row.status === 'WAITING'">
+            <i class="status-icon el-icon-ksd-acclerate_pendding"></i>
+          </el-tooltip>
         </template>
       </el-table-column>
     </el-table>
@@ -367,7 +373,7 @@ import sqlFormatter from 'sql-formatter'
 })
 export default class FavoriteQuery extends Vue {
   favQueList = {}
-  statusFilteArr = [{name: 'el-icon-ksd-acclerate', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ready', value: 'WAITING'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ongoing', value: 'ACCELERATING'}]
+  statusFilteArr = [{name: 'el-icon-ksd-acclerate_all', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_pendding', value: 'WAITING'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ongoing', value: 'ACCELERATING'}]
   checkedStatus = []
   preferrenceVisible = false
   blackListVisible = false
@@ -1283,12 +1289,13 @@ select a.placepointid, --门店id
     .favorite-table {
       .status-icon {
         font-size: 20px;
-        &.el-icon-ksd-acclerate {
-          color: @normal-color-1;
-        }
-        &.el-icon-ksd-acclerate_portion,
+        &.el-icon-ksd-acclerate_pedding,
         &.el-icon-ksd-acclerate_ongoing {
           color: @base-color;
+        }
+        &.el-icon-ksd-acclerate_portion,
+        &.el-icon-ksd-acclerate_all {
+          color: @normal-color-1;
         }
       }
       .el-icon-ksd-filter {

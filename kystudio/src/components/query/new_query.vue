@@ -147,8 +147,6 @@ export default class NewQuery extends Vue {
   activeSubMenu = 'Query1'
   savedQuriesSize = 0
   queryCurrentPage = 1
-  // showDetail = false
-  // showDetailInd = -1
   extraoptionObj = null
   datasource = []
   savedList = []
@@ -160,8 +158,6 @@ export default class NewQuery extends Vue {
   }
   toggleDetail (index) {
     this.savedList[index].isShow = !this.savedList[index].isShow
-    // this.showDetail = true
-    // this.showDetailInd = index
   }
   loadSavedQuery (pageIndex) {
     this.getSavedQueries({
