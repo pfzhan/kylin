@@ -63,9 +63,11 @@ import io.kyligence.kap.event.handle.RemoveCuboidByIdHandler;
 import io.kyligence.kap.event.handle.RemoveCuboidBySqlHandler;
 import io.kyligence.kap.event.handle.RemoveSegmentHandler;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
 @SpringBootApplication
+@EnableScheduling
 public class BootstrapServer implements ApplicationListener<ApplicationReadyEvent> {
 
     private static final Logger logger = LoggerFactory.getLogger(BootstrapServer.class);

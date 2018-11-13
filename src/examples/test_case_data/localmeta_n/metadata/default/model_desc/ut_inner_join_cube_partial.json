@@ -1,5 +1,5 @@
 {
-  "uuid": "741ca86a-1f13-46da-a59f-95fb68615e3a",
+  "uuid": "82fa7671-a935-45f5-8779-85703601f49a",
   "name": "ut_inner_join_cube_partial",
   "fact_table": "DEFAULT.TEST_KYLIN_FACT",
   "owner": "ADMIN",

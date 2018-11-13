@@ -93,7 +93,8 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
                 FavoriteQueryStatusEnum.FULLY_ACCELERATED, FavoriteQueryStatusEnum.WAITING));
         // primary key and indices
         sb.append(String.format(
-                "PRIMARY KEY (id), INDEX sql_pattern_hash_index (%s), INDEX project_index (%s), INDEX last_query_time_index (%s), INDEX status_index (%s))",
+                "PRIMARY KEY (id), INDEX %s_sql_pattern_hash_index (%s), INDEX project_index (%s), INDEX last_query_time_index (%s), INDEX status_index (%s))",
+                this.tableName,
                 SQL_PATTERN_HASH, PROJECT, LAST_QUERY_TIME, STATUS));
         JDBCManager.getInstance(config).getJdbcTemplate().execute(sb.toString());
     }

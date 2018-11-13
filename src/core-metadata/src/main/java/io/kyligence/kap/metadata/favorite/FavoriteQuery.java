@@ -27,9 +27,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 @Getter
 @Setter
+@ToString
 public class FavoriteQuery {
     @JsonProperty("sql_pattern")
     private String sqlPattern;

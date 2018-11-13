@@ -78,6 +78,8 @@ public class ModelSemanticUpdateHandler extends AbstractEventHandler implements 
             // do not need to fire this event, the follow logic will clear all segments
             removeUselessDimensions(matchingCubePlan, newModel.getEffectiveDimenionsMap().keySet(), false,
                     eventContext);
+            modelMgr.updateDataModel(newModel.getName(),
+                    copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
             handleReloadData(newModel, dataflowManager, eventContext);
             fireEvent(new PostModelSemanticUpdateEvent(), event, eventContext.getConfig());
             return;

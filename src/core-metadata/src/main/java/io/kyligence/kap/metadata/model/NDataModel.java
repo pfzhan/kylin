@@ -198,6 +198,11 @@ public class NDataModel extends RootPersistentEntity {
     @JsonProperty("data_check_desc")
     private DataCheckDesc dataCheckDesc;
 
+    @Setter
+    @Getter
+    @JsonProperty("semantic_version")
+    private int semanticVersion;
+
     // computed attributes
     @EqualsAndHashCode.Include
     @JsonProperty("all_named_columns")

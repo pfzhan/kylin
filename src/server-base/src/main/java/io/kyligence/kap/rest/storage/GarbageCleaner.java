@@ -21,28 +21,37 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.metadata.favorite;
+package io.kyligence.kap.rest.storage;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import io.kyligence.kap.cube.model.NDataflow;
+import org.apache.kylin.common.KylinConfig;
 
-@Getter
-@Setter
-@ToString
-@EqualsAndHashCode
-public class FavoriteQueryRealization {
-    @JsonProperty("sql_pattern_hash")
-    private int sqlPatternHash;
-    @JsonProperty("model_id")
-    private String modelId;
-    @JsonProperty("semantic_version")
-    private int semanticVersion = 0;
-    @JsonProperty("cube_plan_id")
-    private String cubePlanId;
-    @JsonProperty("cuboid_layout_id")
-    private long cuboidLayoutId;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.val;
+
+public interface GarbageCleaner {
+
+    void collect(NDataModel model);
+
+    void cleanup() throws Exception;
+
+    default NDataflow getDataflow(NDataModel model) {
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+        return dataflowManager.getDataflowByModelName(model.getName());
+    }
+
+    default NCubePlan getCube(NDataModel model) {
+        return getDataflow(model).getCubePlan();
+    }
+
+    default List<Long> getLayouts(NCubePlan cube) {
+        val layouts = cube.getAllCuboidLayouts();
+        return layouts.stream().map(NCuboidLayout::getId).collect(Collectors.toList());
+    }
 }
