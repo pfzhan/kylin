@@ -56,6 +56,7 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
+import lombok.ToString;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -152,6 +153,12 @@ public class NDataModel extends RootPersistentEntity {
     @JsonProperty("fact_table")
     private String rootFactTable;
 
+    @Getter
+    @Setter
+    @EqualsAndHashCode.Include
+    @JsonProperty("fact_table_alias")
+    private String rootFactTableAlias;
+
     @EqualsAndHashCode.Include
     @JsonProperty("management_type")
     private ManagementType managementType = ManagementType.TABLE_ORIENTED;
@@ -226,8 +233,6 @@ public class NDataModel extends RootPersistentEntity {
     // computed fields below
     private String project;
 
-    private List<TblColRef> allCols; // including DELETED cols
-
     private ImmutableBiMap<Integer, TblColRef> effectiveCols; // excluding DELETED cols
 
     private ImmutableBiMap<Integer, TblColRef> effectiveDimensions; // including DIMENSION cols
@@ -267,6 +272,7 @@ public class NDataModel extends RootPersistentEntity {
 
     @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
     @EqualsAndHashCode
+    @ToString
     public static class NamedColumn implements Serializable, IKeep {
         @Getter
         @JsonProperty("id")
@@ -974,6 +980,9 @@ public class NDataModel extends RootPersistentEntity {
         List<TblColRef> all = new ArrayList<>(allNamedColumns.size());
         ImmutableBiMap.Builder<Integer, TblColRef> mapBuilder = ImmutableBiMap.builder();
         for (NamedColumn d : allNamedColumns) {
+            if (!d.isExist()) {
+                continue;
+            }
             TblColRef col = this.findColumn(d.aliasDotColumn);
             d.aliasDotColumn = col.getIdentity();
             all.add(col);
@@ -983,7 +992,6 @@ public class NDataModel extends RootPersistentEntity {
             }
         }
 
-        this.allCols = all;
         val cols = mapBuilder.build();
         checkNoDup(cols);
         return cols;
@@ -1003,20 +1011,17 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     private void initAllMeasures() {
-        List<Measure> all = new ArrayList<>(allMeasures.size());
         ImmutableBiMap.Builder<Integer, Measure> mapBuilder = ImmutableBiMap.builder();
         for (Measure m : allMeasures) {
             m.setName(m.getName().toUpperCase());
-            FunctionDesc func = m.getFunction();
-            func.init(this);
-            all.add(m);
 
             if (!m.tomb) {
                 mapBuilder.put(m.id, m);
+                FunctionDesc func = m.getFunction();
+                func.init(this);
             }
         }
 
-        this.allMeasures = all;
         this.effectiveMeasures = mapBuilder.build();
         checkNoDupAndEffective(effectiveMeasures);
     }
@@ -1058,10 +1063,6 @@ public class NDataModel extends RootPersistentEntity {
                         + " is not on model: " + notEffective);
             }
         }
-    }
-
-    List<TblColRef> getAllCols() {
-        return allCols;
     }
 
     public List<Measure> getAllMeasures() {

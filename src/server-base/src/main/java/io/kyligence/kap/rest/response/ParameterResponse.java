@@ -24,15 +24,17 @@
 
 package io.kyligence.kap.rest.response;
 
+import java.io.Serializable;
+
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.io.Serializable;
-
-
 @Setter
 @Getter
+@EqualsAndHashCode
 public class ParameterResponse implements Serializable {
 
     @JsonProperty("type")

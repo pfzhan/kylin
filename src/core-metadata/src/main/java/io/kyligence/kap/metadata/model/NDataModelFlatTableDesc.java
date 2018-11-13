@@ -69,7 +69,7 @@ public class NDataModelFlatTableDesc implements IJoinedFlatTableDesc {
 
     private void init(boolean ignoreComputedColumn) {
         Preconditions.checkNotNull(dataModelDesc, "");
-        for (TblColRef tblColRef : dataModelDesc.getAllCols()) {
+        for (TblColRef tblColRef : dataModelDesc.getEffectiveColsMap().values()) {
             Preconditions.checkNotNull(tblColRef, "");
             if (ignoreComputedColumn && tblColRef.getColumnDesc().isComputedColumn()) {
                 continue;

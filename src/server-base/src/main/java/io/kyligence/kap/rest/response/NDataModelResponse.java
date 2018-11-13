@@ -24,13 +24,20 @@
 
 package io.kyligence.kap.rest.response;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -42,17 +49,77 @@ public class NDataModelResponse extends NDataModel {
     private RealizationStatusEnum status;
     @JsonProperty("last_build_end")
     private String lastBuildEnd;
-    @JsonProperty("simplified_tables")
-    private List<SimplifiedTableResponse> simpleTables;
+
     @JsonProperty("simplified_measures")
     private List<SimplifiedMeasure> simplifiedMeasures;
+
+    @JsonIgnore
+    private NDataModel model;
 
     public NDataModelResponse() {
         super();
     }
 
-    public NDataModelResponse(NDataModel dataMolde) {
-        super(dataMolde);
+    public NDataModelResponse(NDataModel dataModel) {
+        super(dataModel);
+        this.model = dataModel;
     }
 
+    @JsonProperty("all_named_columns")
+    public List<NamedColumn> getNamedColumns() {
+        return getAllNamedColumns().stream().filter(NamedColumn::isDimension).collect(Collectors.toList());
+    }
+
+    @JsonProperty("all_measures")
+    public List<Measure> getMeasures() {
+        return getAllMeasures().stream().filter(m -> !m.tomb).collect(Collectors.toList());
+    }
+
+    @JsonProperty("simplified_tables")
+    public List<SimplifiedTableResponse> getSimpleTables() {
+        List<SimplifiedTableResponse> simpleTables = new ArrayList<>();
+        for (TableRef tableRef : model.getAllTables()) {
+            SimplifiedTableResponse simpleTable = new SimplifiedTableResponse();
+            simpleTable.setTable(tableRef.getTableIdentity());
+            List<SimplifiedColumnResponse> columns = getSimplifiedColumns(tableRef);
+            simpleTable.setColumns(columns);
+            simpleTables.add(simpleTable);
+        }
+        return simpleTables;
+    }
+
+    @JsonProperty("simplified_measures")
+    public List<SimplifiedMeasure> getSimplifiedMeasures() {
+        List<NDataModel.Measure> measures = getAllMeasures();
+        List<SimplifiedMeasure> measureResponses = new ArrayList<>();
+        for (NDataModel.Measure measure : measures) {
+            if (measure.tomb) {
+                continue;
+            }
+            measureResponses.add(SimplifiedMeasure.fromMeasure(measure));
+        }
+        return measureResponses;
+    }
+
+    private List<SimplifiedColumnResponse> getSimplifiedColumns(TableRef tableRef) {
+        List<SimplifiedColumnResponse> columns = new ArrayList<>();
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(model.getConfig(), model.getProject());
+        for (ColumnDesc columnDesc : tableRef.getTableDesc().getColumns()) {
+            TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableRef.getTableDesc());
+            SimplifiedColumnResponse simplifiedColumnResponse = new SimplifiedColumnResponse();
+            simplifiedColumnResponse.setName(columnDesc.getName());
+            simplifiedColumnResponse.setComment(columnDesc.getComment());
+            simplifiedColumnResponse.setDataType(columnDesc.getDatatype());
+            simplifiedColumnResponse.setComputedColumn(columnDesc.isComputedColumn());
+            //get column cardinality
+            List<TableExtDesc.ColumnStats> columnStats = tableExtDesc.getColumnStats();
+            for (TableExtDesc.ColumnStats columnStat : columnStats) {
+                if (columnStat.getColumnName().equals(columnDesc.getName())) {
+                    simplifiedColumnResponse.setCardinality(columnStat.getCardinality());
+                }
+            }
+            columns.add(simplifiedColumnResponse);
+        }
+        return columns;
+    }
 }

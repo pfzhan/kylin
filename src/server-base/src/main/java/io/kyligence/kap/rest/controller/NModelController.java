@@ -31,6 +31,7 @@ import java.util.List;
 
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.NSpanningTreeResponse;
+import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.exception.PersistentException;
@@ -64,7 +65,6 @@ import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
 import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.request.ModelSemanticUpdateRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
@@ -82,6 +82,9 @@ public class NModelController extends NBasicController {
     @Autowired
     @Qualifier("modelService")
     private ModelService modelService;
+
+    @Autowired
+    private ModelSemanticHelper semanticService;
 
     @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -202,7 +205,7 @@ public class NModelController extends NBasicController {
 
     @PutMapping(value = "/semantic", produces = "application/vnd.apache.kylin-v2+json")
     @ResponseBody
-    public EnvelopeResponse updateSemantic(@RequestBody ModelSemanticUpdateRequest request) throws IOException, PersistentException {
+    public EnvelopeResponse updateSemantic(@RequestBody ModelRequest request) throws IOException, PersistentException {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_NAME, request.getName());
         modelService.updateDataModelSemantic(request);

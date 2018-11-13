@@ -58,7 +58,7 @@ import io.kyligence.kap.event.model.EventStatus;
 import io.kyligence.kap.event.model.PostModelSemanticUpdateEvent;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.rest.request.ModelSemanticUpdateRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
 import lombok.val;
@@ -114,7 +114,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         allEvents.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
         val addEvent = (AddCuboidEvent) allEvents.get(1);
         Assert.assertTrue(CollectionUtils.isEqualCollection(addEvent.getLayoutIds(),
-                Arrays.<Long>asList(1000001L, 1L, 1001L, 1002L, 2001L, 3001L, 20000001001L)));
+                Arrays.<Long> asList(1000001L, 1L, 1001L, 1002L, 2001L, 3001L, 20000001001L)));
         Assert.assertFalse(df.isReconstructing());
 
     }
@@ -148,7 +148,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     private void changeModelRequest() throws Exception {
         val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val model = modelManager.getDataModelDesc(MODEL_NAME);
-        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelSemanticUpdateRequest.class);
+        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
         request.setProject(DEFAULT_PROJECT);
         request.setName(MODEL_NAME);
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)

@@ -25,6 +25,7 @@
 package io.kyligence.kap.rest.request;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -48,5 +49,9 @@ public class ModelRequest extends NDataModel {
 
     public ModelRequest(NDataModel dataModel) {
         super(dataModel);
+    }
+
+    public List<NDataModel.NamedColumn> getDimensions() {
+        return getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension).collect(Collectors.toList());
     }
 }

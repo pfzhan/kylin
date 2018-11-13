@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.metadata.favorite;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
@@ -32,8 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import java.util.ArrayList;
-import java.util.List;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
 public class FavoriteQueryRealizationJDBCDaoTest extends NLocalFileMetadataTestCase{
 

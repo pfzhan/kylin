@@ -300,6 +300,10 @@ public class ParameterDesc implements Serializable {
             if (this.isColumnType()) {
                 if (!that.isColumnType())
                     return false;
+                // check for ParameterDesc create from json
+                if (this.colRef == null && that.colRef == null)
+                    return Objects.equals(this.value, that.value);
+                // check for normal case
                 if (!Objects.equals(this.colRef, that.colRef)) {
                     return false;
                 }

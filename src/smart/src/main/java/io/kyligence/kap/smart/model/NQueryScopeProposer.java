@@ -109,8 +109,11 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
         private ScopeBuilder setMeasures(List<Measure> measures) {
             for (NDataModel.Measure measure : measures) {
-                measureCandidate.put(measure.getFunction(), measure);
                 maxMeasureId = Math.max(maxMeasureId, measure.id);
+                if (measure.tomb) {
+                    continue;
+                }
+                measureCandidate.put(measure.getFunction(), measure);
             }
             return this;
         }

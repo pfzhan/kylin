@@ -90,13 +90,13 @@ public class NDataModelTest {
         Assert.assertEquals(model.findColumn("TRANS_ID"), dimMap.get(1));
         Assert.assertEquals(model.findColumn("TEST_KYLIN_FACT.CAL_DT"), dimMap.get(2));
         Assert.assertEquals(model.findColumn("LSTG_FORMAT_NAME"), dimMap.get(3));
-        Assert.assertEquals(model.getAllCols().size() - 1, dimMap.size());
+        Assert.assertEquals(model.getAllNamedColumns().size() - 1, dimMap.size());
 
         Assert.assertNotNull(model.findFirstTable("DEFAULT.TEST_KYLIN_FACT"));
 
         NDataModel copyModel = NDataModel.getCopyOf(model);
         Assert.assertEquals(model.getProject(), copyModel.getProject());
-        Assert.assertEquals(model.getAllCols(), copyModel.getAllCols());
+        Assert.assertEquals(model.getAllNamedColumns(), copyModel.getAllNamedColumns());
         Assert.assertEquals(model.getAllMeasures(), copyModel.getAllMeasures());
         Assert.assertEquals(model.getAllNamedColumns(), copyModel.getAllNamedColumns());
 

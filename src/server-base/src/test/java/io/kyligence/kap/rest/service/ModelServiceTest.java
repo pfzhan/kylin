@@ -135,6 +135,9 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private ModelService modelService = Mockito.spy(new ModelService());
 
+    @InjectMocks
+    private ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
@@ -142,14 +145,13 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void setupResource() throws Exception {
         System.setProperty("HADOOP_USER_NAME", "root");
         createTestMetadata();
-
     }
 
     @Before
     public void setup() {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-
+        modelService.setSemanticUpdater(semanticService);
     }
 
     @After

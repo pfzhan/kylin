@@ -46,6 +46,8 @@ import java.util.ArrayList;
 
 import java.util.List;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -61,6 +63,7 @@ import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
 import io.kyligence.kap.rest.service.ModelService;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
@@ -83,7 +86,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 
-public class NModelControllerTest {
+public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     private MockMvc mockMvc;
 
@@ -105,8 +108,15 @@ public class NModelControllerTest {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
+    @Before
+    public void setupResource() throws Exception {
+        System.setProperty("HADOOP_USER_NAME", "root");
+        createTestMetadata();
+    }
+
     @After
     public void tearDown() {
+        cleanupTestMetadata();
     }
 
     @Test
@@ -161,6 +171,7 @@ public class NModelControllerTest {
     public void testGetCuboids() throws Exception {
         NCuboidDesc cuboidDesc = new NCuboidDesc();
         cuboidDesc.setId(432323);
+        cuboidDesc.setCubePlan(NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default").getCubePlan("ncube_basic"));
         CuboidDescResponse cuboidDescResponse = new CuboidDescResponse(cuboidDesc);
         Mockito.when(modelService.getCuboidById("model1", "default", 432323L)).thenReturn(cuboidDescResponse);
         MvcResult mvcResult = mockMvc
@@ -429,6 +440,7 @@ public class NModelControllerTest {
         final List<CuboidDescResponse> nCuboidDescs = new ArrayList<>();
         NCuboidDesc cuboidDesc = new NCuboidDesc();
         cuboidDesc.setId(1234);
+        cuboidDesc.setCubePlan(NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default").getCubePlan("ncube_basic"));
         nCuboidDescs.add(new CuboidDescResponse(cuboidDesc));
         return nCuboidDescs;
     }

@@ -24,15 +24,6 @@
 
 package io.kyligence.kap.rest.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.Getter;
-import lombok.Setter;
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.metadata.model.ColumnDesc;
-import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.ParameterDesc;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,24 +31,43 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Maps;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+
 @Setter
 @Getter
+@EqualsAndHashCode
 public class SimplifiedMeasure implements Serializable {
 
+    @EqualsAndHashCode.Exclude
     @JsonProperty("id")
     private int id;
     @JsonProperty("expression")
     private String expression;
+    @EqualsAndHashCode.Exclude
     @JsonProperty("name")
     private String name;
     @JsonProperty("return_type")
     private String returnType;
     @JsonProperty("parameter_value")
     private List<ParameterResponse> parameterValue;
+    @EqualsAndHashCode.Exclude
     @JsonProperty("converted_columns")
     private List<ColumnDesc> convertedColumns = new ArrayList<>();
     @JsonProperty("configuration")
-    private Map<String, String> configuration;
+    @JsonInclude(JsonInclude.Include.NON_EMPTY)
+    private Map<String, String> configuration = Maps.newHashMap();
 
     public static SimplifiedMeasure fromMeasure(NDataModel.Measure measure) {
         SimplifiedMeasure measureResponse = new SimplifiedMeasure();
@@ -80,7 +90,6 @@ public class SimplifiedMeasure implements Serializable {
     }
 
     public NDataModel.Measure toMeasure() {
-
         NDataModel.Measure measure = new NDataModel.Measure();
         measure.id = getId();
         measure.setName(getName());
