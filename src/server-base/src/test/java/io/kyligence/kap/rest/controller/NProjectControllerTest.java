@@ -108,7 +108,7 @@ public class NProjectControllerTest {
         Mockito.when(projectService.getReadableProjects("default")).thenReturn(projects);
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/projects").contentType(MediaType.APPLICATION_JSON)
-                        .param("project", "default").param("offset", "0").param("limit", "10")
+                        .param("project", "default").param("pageOffset", "0").param("pageSize", "10")
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
 

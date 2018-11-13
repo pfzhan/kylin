@@ -65,11 +65,11 @@ public class NProjectController extends NBasicController {
     @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getProjects(@RequestParam(value = "project", required = false) String projectName,
-            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer size) {
 
         List<ProjectInstance> readableProjects = projectService.getReadableProjects(projectName);
-        HashMap<String, Object> projects = getDataResponse("projects", readableProjects, offset, limit);
+        HashMap<String, Object> projects = getDataResponse("projects", readableProjects, offset, size);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projects, "");
 
     }

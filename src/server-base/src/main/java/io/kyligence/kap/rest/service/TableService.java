@@ -493,7 +493,6 @@ public class TableService extends BasicService {
 
     public void unloadTable(String project, String table) throws IOException {
         NTableMetadataManager tableMetadataManager = getTableManager(project);
-        getProjectManager().removeTableDescFromProject(tableMetadataManager.getTableDesc(table), project);
         tableMetadataManager.removeTableExt(table);
         tableMetadataManager.removeSourceTable(table);
     }

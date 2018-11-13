@@ -218,8 +218,8 @@ public class NTableMetadataManager {
             TableDesc t = getTableDesc(tableIdentity);
             if (t == null)
                 return;
-            getProjectManager().removeTableDescFromProject(t, project);
             srcTableCrud.delete(t);
+            getProjectManager().removeTableDescFromProject(t, project);
         }
     }
 

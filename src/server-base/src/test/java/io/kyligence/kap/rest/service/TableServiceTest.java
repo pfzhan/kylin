@@ -50,6 +50,7 @@ import java.util.Set;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.response.TableNameResponse;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.exception.PersistentException;
@@ -176,11 +177,14 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         tableExt.updateRandomUuid();
         NTableExtDesc tableExtDesc = new NTableExtDesc(tableExt);
         String[] result = tableService.loadTableToProject(tableDesc, tableExtDesc, "default");
-        Assert.assertTrue(result.length == 1);
-        tableService.unloadTable("default", "DEFAULT.TEST_UNLOAD");
         NTableMetadataManager nTableMetadataManager = NTableMetadataManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        Assert.assertTrue(result.length == 1);
+        val size = nTableMetadataManager.listAllTables().size();
+        tableService.unloadTable("default", "DEFAULT.TEST_UNLOAD");
+
         Assert.assertEquals(null, nTableMetadataManager.getTableDesc("DEFAULT.TEST_UNLOAD"));
+        Assert.assertEquals(size - 1, nTableMetadataManager.listAllTables().size());
     }
 
     @Test
