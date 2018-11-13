@@ -42,6 +42,7 @@
 
 package io.kyligence.kap.metadata.query;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
@@ -89,6 +90,8 @@ public class QueryHistoryDAO {
     }
 
     public <T> List<T> getQueryHistoriesBySql(String query, Class clazz) {
+        if (!getInfluxDB().databaseExists(QueryHistory.DB_NAME))
+            return Lists.newArrayList();
         final QueryResult result = getInfluxDB().query(new Query(query, QueryHistory.DB_NAME));
         final InfluxDBResultMapper mapper = new InfluxDBResultMapper();
 

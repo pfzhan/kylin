@@ -58,9 +58,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.List;
 
 public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
+    private final String SHOW_DATABASES = "{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"databases\",\"columns\":[\"name\"],\"values\":[[\"_internal\"],[\"KE_METRIC\"]]}]}]}\n";
+    private final String SHOW_DATABASES_NOT_EXIST = "{\"results\":[{\"statement_id\":0,\"series\":[{\"name\":\"databases\",\"columns\":[\"name\"],\"values\":[[\"_internal\"]]}]}]}\n";
+
     private static final String PROJECT = "default";
     private QueryHistoryDAO queryHistoryDAO;
 
@@ -76,7 +80,6 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
-        QueryHistoryDAO.influxDB = mockInfluxDB();
         queryHistoryDAO = QueryHistoryDAO.getInstance(getTestConfig());
     }
 
@@ -87,6 +90,8 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasics() {
+        QueryHistoryDAO.influxDB = mockInfluxDB();
+
         final String testSql = String.format("select * from %s", QueryHistory.QUERY_MEASUREMENT);
         List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesBySql(testSql, QueryHistory.class);
         Assert.assertEquals(2, queryHistories.size());
@@ -102,12 +107,39 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(mockedHostname, queryHistory2.getHostName());
     }
 
-    private InfluxDB mockInfluxDB() {
+    @Test
+    public void testDatabaseNotExist() {
+        QueryHistoryDAO.influxDB = mockInfluxDBWhenDatabaseNotExist();
+        final String testSql = String.format("select * from %s", QueryHistory.QUERY_MEASUREMENT);
+        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesBySql(testSql, QueryHistory.class);
+        Assert.assertEquals(0, queryHistories.size());
+    }
+
+    private InfluxDB mockInfluxDBWhenDatabaseNotExist() {
         final OkHttpClient.Builder client = new OkHttpClient.Builder();
         client.addInterceptor(new Interceptor() {
             @Override
             public Response intercept(Chain chain) throws IOException {
                 final Request request = chain.request();
+                return mockShowDatabases(request, SHOW_DATABASES_NOT_EXIST);
+            }
+        });
+
+        return InfluxDBFactory.connect("http://localhost:8096", "username", "password", client);
+    }
+
+    private InfluxDB mockInfluxDB() {
+        final OkHttpClient.Builder client = new OkHttpClient.Builder();
+        client.addInterceptor(new Interceptor() {
+            @Override
+            public Response intercept(Chain chain) {
+                final Request request = chain.request();
+                final URL url = request.url().url();
+
+                if (url.toString().contains("SHOW+DATABASES")) {
+                    return mockShowDatabases(request, SHOW_DATABASES);
+                }
+
                 return new Response.Builder().request(request).protocol(Protocol.HTTP_2).code(200)
                         .addHeader("Content-Type", "application/json").message("ok")
                         .body(ResponseBody.create(MediaType.parse("application/json"), getMockData())).build();
@@ -115,6 +147,12 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         });
 
         return InfluxDBFactory.connect("http://localhost:8096", "username", "password", client);
+    }
+
+    private Response mockShowDatabases(final Request request, String result) {
+        return new Response.Builder().request(request).protocol(Protocol.HTTP_2).code(200)
+                .addHeader("Content-Type", "application/json").message("ok").addHeader("X-Influxdb-Version", "mock")
+                .body(ResponseBody.create(MediaType.parse("application/json"), result)).build();
     }
 
     private String getMockData() {
