@@ -36,11 +36,6 @@ public class NAutoTdvtTest extends NAutoTestBase {
     @Before
     public void setup() throws Exception {
         super.setup();
-        kylinConfig.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.DFBuildJob");
-        kylinConfig.setProperty("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.DFMergeJob");
-        kylinConfig.setProperty("kylin.storage.provider.20", "io.kyligence.kap.storage.ParquetDataStorage");
-        kylinConfig.setProperty("kap.query.engine.sparder-enabled", "true");
-        System.setProperty("source.csv.truetype", "true");
     }
 
     @Override

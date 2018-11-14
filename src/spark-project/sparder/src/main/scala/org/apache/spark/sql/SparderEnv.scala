@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.performance.{FuseResistor, SparkInfoCollector}
 import org.apache.spark.sql.KylinSession._
+import org.apache.spark.sql.udf.UdfManager
 
 // fixme aron: to be same with old KE
 // scalastyle:off
@@ -50,6 +51,7 @@ object SparderEnv extends Logging {
 
   def setSparkSession(sparkSession: SparkSession): Unit = {
     spark = sparkSession
+    UdfManager.create(sparkSession)
   }
 
   def isSparkAvailable: Boolean = {

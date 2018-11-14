@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.calcite.jdbc.Driver;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -42,6 +43,7 @@ import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,6 +74,7 @@ public class KapSparkSession extends SparkSession {
 
     public KapSparkSession(SparkContext sc) {
         super(sc);
+        SparderEnv.setSparkSession(this);
     }
 
     public void prepareKylinConfig() {
@@ -106,6 +109,9 @@ public class KapSparkSession extends SparkSession {
         File olapTmp = OLAPSchemaFactory.createTempOLAPJson(project, KylinConfig.getInstanceFromEnv());
         prop = new Properties();
         prop.put("model", olapTmp.getAbsolutePath());
+        if (KapConfig.getInstanceFromEnv().isSparderEnabled()) {
+            prop.put("timeZone", "UTC");
+        }
         this.project = project;
         if (!isRegister) {
             DriverManager.registerDriver(new Driver());

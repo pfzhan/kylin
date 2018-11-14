@@ -57,7 +57,6 @@ import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.spark.KapSparkSession;
 
 public class NMeasuresTest extends NLocalWithSparkSessionTest {
-
     @Before
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");

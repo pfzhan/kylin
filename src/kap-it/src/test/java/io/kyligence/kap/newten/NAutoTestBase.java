@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -43,6 +44,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.KylinConfigUtils;
+import com.google.common.collect.Maps;
+
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.query.util.QueryPatternUtil;
@@ -53,7 +56,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     private static final Logger logger = LoggerFactory.getLogger(NAutoTestBase.class);
     protected static KylinConfig kylinConfig;
     private static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/query";
-
+    Map<String, String> systemProp = Maps.newHashMap();
     @Before
     public void setup() throws Exception {
         super.init();
@@ -62,6 +65,40 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         kylinConfig.setProperty("kap.storage.columnar.hdfs-dir", kylinConfig.getHdfsWorkingDirectory() + "/parquet/");
         kylinConfig.setProperty("kap.smart.conf.model.inner-join.exactly-match", "true");
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
+        setSparderEnv();
+    }
+
+    private void setSparderEnv() {
+        logger.info("Set Sparder Env.");
+        systemProp.put("kylin.engine.spark.build-class-name",
+                System.getProperty("kylin.engine.spark.build-class-name"));
+        systemProp.put("kylin.engine.spark.merge-class-name",
+                System.getProperty("kylin.engine.spark.merge-class-name"));
+        systemProp.put("kylin.storage.provider.20", System.getProperty("kylin.storage.provider.20"));
+        systemProp.put("source.csv.truetype", System.getProperty("source.csv.truetype"));
+        systemProp.put("kap.query.engine.sparder-enabled", System.getProperty("kap.query.engine.sparder-enabled"));
+        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.DFBuildJob");
+        System.setProperty("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.DFMergeJob");
+        System.setProperty("kylin.storage.provider.20", "io.kyligence.kap.storage.ParquetDataStorage");
+        System.setProperty("source.csv.truetype", "true");
+        System.setProperty("kap.query.engine.sparder-enabled", "true");
+    }
+
+    private void restoreSparderEnv() {
+        for(String prop: systemProp.keySet()){
+            restoreIfNeed(prop);
+        }
+        systemProp.clear();
+    }
+    private void restoreIfNeed(String prop){
+        String value = systemProp.get(prop);
+        if(value == null){
+            logger.info("CLear " + prop);
+            System.clearProperty(prop);
+        } else {
+            logger.info("restore " + prop);
+            System.setProperty(prop, value);
+        }
     }
 
     @After
@@ -73,6 +110,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
         Candidate.restorePriorities();
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
+        restoreSparderEnv();
     }
 
     class TestScenario {
@@ -99,7 +137,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         }
 
         public TestScenario(String name, CompareLevel compareLevel, int start, int end, String joinType,
-                String[] exclusionList) throws Exception {
+                            String[] exclusionList) throws Exception {
             this.name = name;
             this.compareLevel = compareLevel;
             this.joinType = joinType;
@@ -165,7 +203,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     }
 
     protected List<Pair<String, String>> fetchPartialQueries(String subFolder, int start, int end, String joinType,
-            String[] exclusionList) throws IOException {
+                                                             String[] exclusionList) throws IOException {
         String folder = IT_SQL_KAP_DIR + File.separator + subFolder;
         List<Pair<String, String>> partials = start < end ? NExecAndComp.fetchPartialQueries(folder, start, end)
                 : NExecAndComp.fetchQueries(folder);

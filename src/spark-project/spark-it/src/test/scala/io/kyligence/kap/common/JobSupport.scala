@@ -24,12 +24,26 @@ package io.kyligence.kap.common
 
 import java.util.Objects
 
-import com.google.common.collect.{Lists, Sets}
-import io.kyligence.kap.cube.model.{NCuboidLayout, NDataSegment, NDataflow, NDataflowManager, NDataflowUpdate}
-import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob}
+import com.google.common.collect.{Lists, Maps, Sets}
+import io.kyligence.kap.cube.model.{
+  NCuboidLayout,
+  NDataSegment,
+  NDataflow,
+  NDataflowManager,
+  NDataflowUpdate
+}
+import io.kyligence.kap.engine.spark.job.{
+  NSparkCubingJob,
+  NSparkCubingStep,
+  NSparkMergingJob
+}
 import org.apache.kylin.common.{KylinConfig, StorageURL}
 import org.apache.kylin.job.engine.JobEngineConfig
-import org.apache.kylin.job.execution.{AbstractExecutable, ExecutableState, NExecutableManager}
+import org.apache.kylin.job.execution.{
+  AbstractExecutable,
+  ExecutableState,
+  NExecutableManager
+}
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
 import org.apache.kylin.job.lock.MockJobLock
 import org.apache.kylin.metadata.model.SegmentRange
@@ -38,26 +52,66 @@ import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
 import scala.collection.JavaConverters._
 
-trait JobSupport  extends BeforeAndAfterAll with BeforeAndAfterEach{
+trait JobSupport extends BeforeAndAfterAll with BeforeAndAfterEach {
   self: Suite =>
   val DEFAULT_PROJECT = "default"
   val schedulerInterval = "1"
   var scheduler: NDefaultScheduler = _
+  val systemProp = Maps.newHashMap[String, String]()
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    System.setProperty("kylin.job.scheduler.poll-interval-second", schedulerInterval)
-    System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.DFBuildJob")
-    System.setProperty("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.DFMergeJob")
-    System.setProperty("kylin.storage.provider.20", "io.kyligence.kap.storage.ParquetDataStorage")
-    System.setProperty("source.csv.truetype", "true")
+    System.setProperty("kylin.job.scheduler.poll-interval-second",
+                       schedulerInterval)
+    setSparderEnv()
     scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT)
-    scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv), new MockJobLock)
-    if (!scheduler.hasStarted) throw new RuntimeException("scheduler has not been started")
+    scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv),
+                   new MockJobLock)
+    if (!scheduler.hasStarted) {
+      throw new RuntimeException("scheduler has not been started")
+    }
+  }
+
+  private def setSparderEnv(): Unit = {
+    systemProp.put("kylin.engine.spark.build-class-name",
+                   System.getProperty("kylin.engine.spark.build-class-name"))
+    systemProp.put("kylin.engine.spark.merge-class-name",
+                   System.getProperty("kylin.engine.spark.merge-class-name"))
+    systemProp.put("kylin.storage.provider.20",
+                   System.getProperty("kylin.storage.provider.20"))
+    systemProp.put("source.csv.truetype",
+                   System.getProperty("source.csv.truetype"))
+    systemProp.put("kap.query.engine.sparder-enabled",
+                   System.getProperty("kap.query.engine.sparder-enabled"))
+    System.setProperty("kylin.engine.spark.build-class-name",
+                       "io.kyligence.kap.engine.spark.job.DFBuildJob")
+    System.setProperty("kylin.engine.spark.merge-class-name",
+                       "io.kyligence.kap.engine.spark.job.DFMergeJob")
+    System.setProperty("kylin.storage.provider.20",
+                       "io.kyligence.kap.storage.ParquetDataStorage")
+    System.setProperty("source.csv.truetype", "true")
+    System.setProperty("kap.query.engine.sparder-enabled", "true")
+  }
+
+  private def restoreSparderEnv(): Unit = {
+    for (prop <- systemProp.keySet.asScala) {
+      restoreIfNeed(prop)
+    }
+    systemProp.clear()
+  }
+
+  private def restoreIfNeed(prop: String): Unit = {
+    val value = systemProp.get(prop)
+    if (value == null) {
+      System.clearProperty(prop)
+    } else {
+      System.setProperty(prop, value)
+    }
   }
 
   override def afterAll(): Unit = {
     scheduler.shutdown()
+    restoreSparderEnv()
     super.afterAll()
 
   }
@@ -68,9 +122,12 @@ trait JobSupport  extends BeforeAndAfterAll with BeforeAndAfterEach{
   }
 
   @throws[Exception]
-  protected def fullBuildCube(dfName: String, prj: String = DEFAULT_PROJECT): Unit = {
+  protected def fullBuildCube(dfName: String,
+                              prj: String = DEFAULT_PROJECT): Unit = {
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
-    config.setProperty("kylin.metadata.distributed-lock-impl", "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory")
+    config.setProperty(
+      "kylin.metadata.distributed-lock-impl",
+      "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory")
     config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128")
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
     Assert.assertTrue(config.getHdfsWorkingDirectory.startsWith("file:"))
@@ -81,29 +138,40 @@ trait JobSupport  extends BeforeAndAfterAll with BeforeAndAfterEach{
     update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
     dsMgr.updateDataflow(update)
     df = dsMgr.getDataflow(dfName)
-    val layouts: java.util.List[NCuboidLayout] = df.getCubePlan.getAllCuboidLayouts
+    val layouts: java.util.List[NCuboidLayout] =
+      df.getCubePlan.getAllCuboidLayouts
     val round1: java.util.List[NCuboidLayout] = Lists.newArrayList(layouts)
-    builCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite, Sets.newLinkedHashSet(round1), prj)
+    builCuboid(dfName,
+               SegmentRange.TimePartitionedSegmentRange.createInfinite,
+               Sets.newLinkedHashSet(round1),
+               prj)
   }
 
   @throws[Exception]
   protected def builCuboid(cubeName: String,
                            segmentRange: SegmentRange[_ <: Comparable[_]],
-                           toBuildLayouts: java.util.Set[NCuboidLayout], prj: String): Unit = {
+                           toBuildLayouts: java.util.Set[NCuboidLayout],
+                           prj: String): Unit = {
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
-    val execMgr: NExecutableManager = NExecutableManager.getInstance(config, prj)
+    val execMgr: NExecutableManager =
+      NExecutableManager.getInstance(config, prj)
     val df: NDataflow = dsMgr.getDataflow(cubeName)
     // ready dataflow, segment, cuboid layout
     val oneSeg: NDataSegment = dsMgr.appendSegment(df, segmentRange)
-    val job: NSparkCubingJob = NSparkCubingJob.create(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN")
+    val job: NSparkCubingJob =
+      NSparkCubingJob.create(Sets.newHashSet(oneSeg), toBuildLayouts, "ADMIN")
     val sparkStep: NSparkCubingStep = job.getSparkCubingStep
     val distMetaUrl: StorageURL = StorageURL.valueOf(sparkStep.getDistMetaUrl)
     Assert.assertEquals("hdfs", distMetaUrl.getScheme)
-    Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory))
+    Assert.assertTrue(
+      distMetaUrl
+        .getParameter("path")
+        .startsWith(config.getHdfsWorkingDirectory))
     // launch the job
     execMgr.addJob(job)
-    if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) throw new IllegalStateException
+    if (!Objects.equals(wait(job), ExecutableState.SUCCEED))
+      throw new IllegalStateException
   }
 
   @throws[InterruptedException]
@@ -119,9 +187,12 @@ trait JobSupport  extends BeforeAndAfterAll with BeforeAndAfterEach{
   }
 
   @throws[Exception]
-  def buildFourSegementAndMerge(dfName: String, prj: String = DEFAULT_PROJECT): Unit = {
+  def buildFourSegementAndMerge(dfName: String,
+                                prj: String = DEFAULT_PROJECT): Unit = {
     val config = KylinConfig.getInstanceFromEnv
-    config.setProperty("kylin.metadata.distributed-lock-impl", "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory")
+    config.setProperty(
+      "kylin.metadata.distributed-lock-impl",
+      "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory")
     config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128")
     val dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
     val execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT)
@@ -131,59 +202,91 @@ trait JobSupport  extends BeforeAndAfterAll with BeforeAndAfterEach{
     val update = new NDataflowUpdate(df.getName)
     update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
     dsMgr.updateDataflow(update)
+
     /**
       * Round1. Build 4 segment
       */
     val layouts = df.getCubePlan.getAllCuboidLayouts
     var start = SegmentRange.dateToLong("2010-01-01")
     var end = SegmentRange.dateToLong("2012-06-01")
-    builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts), prj)
+    builCuboid(dfName,
+               new SegmentRange.TimePartitionedSegmentRange(start, end),
+               Sets.newLinkedHashSet(layouts),
+               prj)
     start = SegmentRange.dateToLong("2012-06-01")
     end = SegmentRange.dateToLong("2013-01-01")
-    builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts), prj)
+    builCuboid(dfName,
+               new SegmentRange.TimePartitionedSegmentRange(start, end),
+               Sets.newLinkedHashSet(layouts),
+               prj)
     start = SegmentRange.dateToLong("2013-01-01")
     end = SegmentRange.dateToLong("2013-06-01")
-    builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts), prj)
+    builCuboid(dfName,
+               new SegmentRange.TimePartitionedSegmentRange(start, end),
+               Sets.newLinkedHashSet(layouts),
+               prj)
     start = SegmentRange.dateToLong("2013-06-01")
     end = SegmentRange.dateToLong("2015-01-01")
-    builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet(layouts), prj)
+    builCuboid(dfName,
+               new SegmentRange.TimePartitionedSegmentRange(start, end),
+               Sets.newLinkedHashSet(layouts),
+               prj)
 
     /**
       * Round2. Merge two segments
       */
     df = dsMgr.getDataflow(dfName)
-    val firstMergeSeg = dsMgr.mergeSegments(df,
-      new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2013-01-01")), false)
-    val firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN")
+    val firstMergeSeg = dsMgr.mergeSegments(
+      df,
+      new SegmentRange.TimePartitionedSegmentRange(
+        SegmentRange.dateToLong("2010-01-01"),
+        SegmentRange.dateToLong("2013-01-01")),
+      false)
+    val firstMergeJob = NSparkMergingJob.merge(firstMergeSeg,
+                                               Sets.newLinkedHashSet(layouts),
+                                               "ADMIN")
     execMgr.addJob(firstMergeJob)
     // wait job done
     Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob))
     df = dsMgr.getDataflow(dfName)
-    val secondMergeSeg = dsMgr.mergeSegments(df,
-      new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"), SegmentRange.dateToLong("2015-06-01")), false)
-    val secondMergeJob = NSparkMergingJob.merge(secondMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN")
+    val secondMergeSeg = dsMgr.mergeSegments(
+      df,
+      new SegmentRange.TimePartitionedSegmentRange(
+        SegmentRange.dateToLong("2013-01-01"),
+        SegmentRange.dateToLong("2015-06-01")),
+      false)
+    val secondMergeJob = NSparkMergingJob.merge(secondMergeSeg,
+                                                Sets.newLinkedHashSet(layouts),
+                                                "ADMIN")
     execMgr.addJob(secondMergeJob)
     Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob))
+
     /**
       * validate cube segment info
       */
     val firstSegment = dsMgr.getDataflow(dfName).getSegment(4)
     val secondSegment = dsMgr.getDataflow(dfName).getSegment(5)
-    Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
-      SegmentRange.dateToLong("2013-01-01")), firstSegment.getSegRange)
-    Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"),
-      SegmentRange.dateToLong("2015-01-01")), secondSegment.getSegRange)
-//    Assert.assertEquals(21, firstSegment.getDictionaries.size)
-//    Assert.assertEquals(21, secondSegment.getDictionaries.size)
+    Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(
+                          SegmentRange.dateToLong("2010-01-01"),
+                          SegmentRange.dateToLong("2013-01-01")),
+                        firstSegment.getSegRange)
+    Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(
+                          SegmentRange.dateToLong("2013-01-01"),
+                          SegmentRange.dateToLong("2015-01-01")),
+                        secondSegment.getSegRange)
+    //    Assert.assertEquals(21, firstSegment.getDictionaries.size)
+    //    Assert.assertEquals(21, secondSegment.getDictionaries.size)
     Assert.assertEquals(7, firstSegment.getSnapshots.size)
     Assert.assertEquals(7, secondSegment.getSnapshots.size)
   }
 
-
   @throws[Exception]
-  def buildTwoSegementAndMerge(dfName: String, prj: String = DEFAULT_PROJECT): Unit = {
+  def buildTwoSegementAndMerge(dfName: String,
+                               prj: String = DEFAULT_PROJECT): Unit = {
     val config = KylinConfig.getInstanceFromEnv
-    config.setProperty("kylin.metadata.distributed-lock-impl", "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory")
+    config.setProperty(
+      "kylin.metadata.distributed-lock-impl",
+      "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory")
     config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128")
     val dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
     val execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT)
@@ -193,34 +296,50 @@ trait JobSupport  extends BeforeAndAfterAll with BeforeAndAfterEach{
     val update = new NDataflowUpdate(df.getName)
     update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
     dsMgr.updateDataflow(update)
+
     /**
       * Round1. Build 4 segment
       */
     val layouts = df.getCubePlan.getAllCuboidLayouts
     var start = SegmentRange.dateToLong("2010-01-01")
     var end = SegmentRange.dateToLong("2013-01-01")
-    builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet[NCuboidLayout](layouts), prj)
+    builCuboid(dfName,
+               new SegmentRange.TimePartitionedSegmentRange(start, end),
+               Sets.newLinkedHashSet[NCuboidLayout](layouts),
+               prj)
     start = SegmentRange.dateToLong("2013-01-01")
     end = SegmentRange.dateToLong("2015-01-01")
-    builCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.newLinkedHashSet[NCuboidLayout](layouts), prj)
+    builCuboid(dfName,
+               new SegmentRange.TimePartitionedSegmentRange(start, end),
+               Sets.newLinkedHashSet[NCuboidLayout](layouts),
+               prj)
 
     /**
       * Round2. Merge two segments
       */
     df = dsMgr.getDataflow(dfName)
-    val firstMergeSeg = dsMgr.mergeSegments(df,
-      new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2015-01-01")), false)
-    val firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN")
+    val firstMergeSeg = dsMgr.mergeSegments(
+      df,
+      new SegmentRange.TimePartitionedSegmentRange(
+        SegmentRange.dateToLong("2010-01-01"),
+        SegmentRange.dateToLong("2015-01-01")),
+      false)
+    val firstMergeJob = NSparkMergingJob.merge(firstMergeSeg,
+                                               Sets.newLinkedHashSet(layouts),
+                                               "ADMIN")
     execMgr.addJob(firstMergeJob)
     // wait job done
     Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob))
+
     /**
       * validate cube segment info
       */
     val firstSegment = dsMgr.getDataflow(dfName).getSegment(2)
-    Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
-      SegmentRange.dateToLong("2015-01-01")), firstSegment.getSegRange)
-//    Assert.assertEquals(21, firstSegment.getDictionaries.size)
+    Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(
+                          SegmentRange.dateToLong("2010-01-01"),
+                          SegmentRange.dateToLong("2015-01-01")),
+                        firstSegment.getSegRange)
+    //    Assert.assertEquals(21, firstSegment.getDictionaries.size)
     Assert.assertEquals(7, firstSegment.getSnapshots.size)
   }
 }

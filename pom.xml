@@ -130,7 +130,7 @@
         <sonar.jacoco.itReportPath>${project.basedir}/../../target/jacoco-it.exec</sonar.jacoco.itReportPath>
 
         <!-- JVM Args for Testing -->
-        <argLine>-Xms1G -Xmx4G -XX:MaxPermSize=512M </argLine>
+        <argLine>-Xms1G -Xmx4G -XX:MaxPermSize=512M</argLine>
         <!-- Kylin versions -->
         <kylin.version>3.0.0-SNAPSHOT</kylin.version>
 

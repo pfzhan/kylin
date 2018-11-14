@@ -25,7 +25,7 @@
 package io.kyligence.kap.newten;
 
 import java.io.File;
-import java.util.HashMap;
+import java.util.HashMap;   
 import java.util.List;
 import java.util.Map;
 
@@ -244,9 +244,10 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario("sql_join", CompareLevel.SAME), new TestScenario("sql_union", CompareLevel.SAME),
                 new TestScenario("sql_window", CompareLevel.NONE),
                 new TestScenario("sql_h2_uncapable", CompareLevel.NONE),
-                new TestScenario("sql_grouping", CompareLevel.SAME), new TestScenario("sql_hive", CompareLevel.SAME),
-                new TestScenario("sql_intersect_count", CompareLevel.NONE, "left"),
-                new TestScenario("sql_percentile", CompareLevel.NONE)//,
+                new TestScenario("sql_grouping", CompareLevel.SAME), new TestScenario("sql_hive", CompareLevel.SAME)
+        //  https://github.com/Kyligence/KAP/issues/8090   percentile and sql_intersect_countnot support
+        //                new TestScenario("sql_intersect_count", CompareLevel.NONE, "left")
+        //                new TestScenario("sql_percentile", CompareLevel.NONE)//,
         //                new TestScenario("sql_powerbi", CompareLevel.SAME),
         //                new TestScenario("sql_raw", CompareLevel.SAME),
         //                new TestScenario("sql_rawtable", CompareLevel.SAME),

@@ -69,6 +69,7 @@ object TableScanPlan extends Logging {
     val start = System.currentTimeMillis()
     if (session.sparkContext.isStopped) {
       SparderEnv.initSpark()
+      session = SparderEnv.getSparkSession
     }
 
     val olapContext = rel.getContext

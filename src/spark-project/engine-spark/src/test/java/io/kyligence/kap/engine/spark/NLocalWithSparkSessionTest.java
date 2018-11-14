@@ -52,6 +52,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.StaticSQLConf;
 import org.apache.spark.sql.types.DataType;
@@ -104,6 +105,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         sparkConf.set("spark.sql.shuffle.partitions", "1");
 
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
+        SparderEnv.setSparkSession(ss);
 
         System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
                 + ss.conf().get("spark.sql.catalogImplementation") + "]");

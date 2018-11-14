@@ -78,7 +78,7 @@ public class NModelMasterTest extends NTestBase {
             val joins = dataModel.getJoinTables();
             Assert.assertNotNull(joins);
             Assert.assertEquals(1, joins.size());
-            Assert.assertEquals(NDataModel.TableKind.LOOKUP, joins.get(0).getKind());
+            Assert.assertEquals(NDataModel.TableKind.FACT, joins.get(0).getKind());
             Assert.assertEquals("left", joins.get(0).getJoin().getType());
             Assert.assertEquals("DEFAULT.KYLIN_CAL_DT", joins.get(0).getTable());
             Assert.assertEquals("KYLIN_CAL_DT", joins.get(0).getAlias());

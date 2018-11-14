@@ -100,6 +100,11 @@ object SchemaProcessor {
         SparderTypeUtil.kylinRawTableSQLTypeToSparkType(columnDesc.getType))
     })
   }
+
+  def createStructType(name: String,
+                       dataType: DataType,
+                       nullable: Boolean): StructField =
+    StructField(name, dataType, nullable)
 }
 
 sealed abstract class ColumnInfo(tableName: String,

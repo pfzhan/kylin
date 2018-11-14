@@ -403,7 +403,7 @@
                                 </value>
                             </property>
                         </systemProperties>
-                        <argLine>-Xms1G -Xmx4G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current</argLine>
+                        <argLine>-Xms1G -Xmx4G -XX:PermSize=128M -XX:MaxPermSize=512M -Dhdp.version=current </argLine>
                     </configuration>
                 </plugin>
 

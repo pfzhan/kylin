@@ -64,7 +64,6 @@ public class KapTestBase extends KylinTestBase {
 
         if (System.getProperty("spark.local") != null && System.getProperty("spark.local").equalsIgnoreCase("true")) {
             System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
-
         }
     }
 }

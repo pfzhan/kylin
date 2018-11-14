@@ -53,6 +53,11 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.execution.utils.SchemaProcessor;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.Metadata;
+import org.apache.spark.sql.types.StructField;
+import org.apache.spark.sql.types.StructType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +84,7 @@ public class FlatTableEncoder implements Serializable {
 
     public Dataset<Row> encode() {
         final Set<TblColRef> globalDictCols = extractGlobalDictColumns();
+        StructType schema = dataset.schema();
         // process global dictionary
         if (globalDictCols.size() > 0) {
             int partitions = config.getAppendDictHashPartitions();
@@ -87,15 +93,13 @@ public class FlatTableEncoder implements Serializable {
             JavaRDD<Row> globalDictRdd = dataset.toJavaRDD();
             for (final TblColRef ref : globalDictCols) {
                 String dictBuildClz = seg.getCubePlan().getDictionaryBuilderClass(ref);
-
-                if (NDictionaryBuilder.isUsingGlobalDict2(dictBuildClz) == false)
-                    continue;
-
                 final int columnIndex = flatTableDesc.getColumnIndex(ref);
+                StructField field = schema.fields()[columnIndex];
+                schema.fields()[columnIndex] = SchemaProcessor.createStructType(field.name(), DataTypes.StringType, true);
                 globalDictRdd = globalDictRdd.mapToPair(new PairFunction<Row, String, Row>() {
                     @Override
                     public Tuple2<String, Row> call(Row row) throws Exception {
-                        return new Tuple2<>(row.getString(columnIndex), row);
+                        return new Tuple2<>(row.get(columnIndex).toString(), row);
                     }
                 }).partitionBy(new NHashPartitioner(partitions)).values().map(new Function<Row, Row>() {
                     private RowEncoder encoder;
@@ -110,7 +114,7 @@ public class FlatTableEncoder implements Serializable {
                                 initialized = true;
                             }
                         }
-                        String original = row.getString(columnIndex);
+                        String original = row.get(columnIndex).toString();
                         int id = encoder.getGlobalDictId(ref, original);
                         Object[] objects = new Object[row.size()];
                         for (int i = 0; i < row.size(); i++) {
@@ -123,7 +127,7 @@ public class FlatTableEncoder implements Serializable {
                     }
                 });
             }
-            dataset = ss.createDataFrame(globalDictRdd, dataset.schema());
+            dataset = ss.createDataFrame(globalDictRdd, schema);
         }
 
         return dataset;

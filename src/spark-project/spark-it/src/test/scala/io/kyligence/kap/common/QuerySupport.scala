@@ -30,13 +30,28 @@ import org.apache.spark.sql.udf.UdfManager
 import org.apache.spark.sql.{DataFrame, SparderEnv}
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
-trait QuerySupport extends BeforeAndAfterAll with BeforeAndAfterEach with Logging with SharedSparkSession {
+trait QuerySupport
+    extends BeforeAndAfterAll
+    with BeforeAndAfterEach
+    with Logging
+    with SharedSparkSession {
   self: Suite =>
+  val sparder = System.getProperty("kap.query.engine.sparder-enabled")
+
   override def beforeAll(): Unit = {
     super.beforeAll()
     System.setProperty("kap.query.engine.sparder-enabled", "true")
     UdfManager.create(spark)
 
+  }
+
+  override def afterAll(): Unit = {
+    super.afterAll()
+    if (sparder != null) {
+      System.setProperty("kap.query.engine.sparder-enabled", sparder)
+    } else {
+      System.clearProperty("kap.query.engine.sparder-enabled")
+    }
   }
 
   def singleQuery(sql: String, project: String): DataFrame = {
@@ -45,17 +60,18 @@ trait QuerySupport extends BeforeAndAfterAll with BeforeAndAfterEach with Loggin
     SparderEnv.getDF
   }
 
-
   def changeJoinType(sql: String, targetType: String): String = {
     if (targetType.equalsIgnoreCase("default")) return sql
     val specialStr = "changeJoinType_DELIMITERS"
-    val replaceSql = sql.replaceAll(System.getProperty("line.separator"), " " + specialStr + " ")
+    val replaceSql = sql.replaceAll(System.getProperty("line.separator"),
+                                    " " + specialStr + " ")
     val tokens = StringUtils.split(replaceSql, null)
     // split white spaces
     var i = 0
     while (i < tokens.length - 1) {
-      if ((tokens(i).equalsIgnoreCase("inner") || tokens(i).equalsIgnoreCase("left")) &&
-        tokens(i + 1).equalsIgnoreCase("join")) {
+      if ((tokens(i).equalsIgnoreCase("inner") || tokens(i).equalsIgnoreCase(
+            "left")) &&
+          tokens(i + 1).equalsIgnoreCase("join")) {
         tokens(i) = targetType.toLowerCase
       }
       i += 1
@@ -66,10 +82,10 @@ trait QuerySupport extends BeforeAndAfterAll with BeforeAndAfterEach with Loggin
     ret
   }
 
-
   def checkWithSparkSql(sqlText: String, project: String): String = {
     val df = sql(sqlText)
     df.show(1000)
-    SparderQueryTest.checkAnswer(df, singleQuery(sqlText, project).collectAsList())
+    SparderQueryTest.checkAnswer(df,
+                                 singleQuery(sqlText, project).collectAsList())
   }
 }

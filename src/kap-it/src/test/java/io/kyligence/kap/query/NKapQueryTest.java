@@ -71,7 +71,6 @@ public class NKapQueryTest extends NKylinTestBase {
     public static void setUp() throws Exception {
         if (Shell.MAC)
             System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
-
         logger.info("setUp in NKapQueryTest");
         joinType = "left";
 
