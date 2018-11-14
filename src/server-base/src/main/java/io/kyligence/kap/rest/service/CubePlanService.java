@@ -85,12 +85,14 @@ public class CubePlanService extends BasicService {
             BeanUtils.copyProperties(request, newRuleBasedCuboid);
             copyForWrite.setNewRuleBasedCuboid(newRuleBasedCuboid);
         });
-        val event = new CubePlanRuleUpdateEvent();
-        event.setApproved(true);
-        event.setProject(request.getProject());
-        event.setCubePlanName(cubePlan.getName());
-        event.setModelName(cubePlan.getModelName());
-        eventManager.post(event);
+        if (request.isLoadData()) {
+            val event = new CubePlanRuleUpdateEvent();
+            event.setApproved(true);
+            event.setProject(request.getProject());
+            event.setCubePlanName(cubePlan.getName());
+            event.setModelName(cubePlan.getModelName());
+            eventManager.post(event);
+        }
         return cubePlan;
     }
 

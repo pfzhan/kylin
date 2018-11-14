@@ -46,6 +46,7 @@ package org.apache.kylin.metadata.datatype;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -78,9 +79,7 @@ public class DataType implements Serializable {
             + "(?:" + "[(]" + "([\\d\\s,]+)" + "[)]" + ")?";
 
     public static synchronized void register(String... typeNames) {
-        for (String typeName : typeNames) {
-            VALID_TYPES.add(typeName);
-        }
+        VALID_TYPES.addAll(Arrays.asList(typeNames));
 
         TYPE_PATTERN = Pattern.compile(//
                 "(" + StringUtils.join(VALID_TYPES, "|") + ")" //
@@ -89,9 +88,7 @@ public class DataType implements Serializable {
     }
 
     public static synchronized void registerComplex(String... typeNames) {
-        for (String typeName : typeNames) {
-            COMPLEX_TYPES.add(typeName);
-        }
+        COMPLEX_TYPES.addAll(Arrays.asList(typeNames));
         COMPLEX_TYPE_PATTERN = Pattern.compile(//
                 "(" + StringUtils.join(COMPLEX_TYPES, "|") + ")" //
                         + TYPE_PATTEN_TAIL,
@@ -151,12 +148,6 @@ public class DataType implements Serializable {
         LEGACY_TYPE_MAP.put("hllc15", "hllc(15)");
         LEGACY_TYPE_MAP.put("hllc16", "hllc(16)");
     }
-    private static final Map<String, String> MEASURE_DEFAULT_TYPE_MAP = new HashMap<>();
-    static {
-        MEASURE_DEFAULT_TYPE_MAP.put("TOP_N", "topn(100, 4)");
-        MEASURE_DEFAULT_TYPE_MAP.put("COUNT_DISTINCT", "bitmap");
-        MEASURE_DEFAULT_TYPE_MAP.put("PERCENTILE", "percentile(100)");
-    }
 
     private static final ConcurrentMap<DataType, DataType> CACHE = new ConcurrentHashMap<DataType, DataType>();
 
@@ -172,13 +163,6 @@ public class DataType implements Serializable {
         return m.matches();
     }
 
-    public static DataType getByColumnType(String expression, String colType) {
-        String defaultType = MEASURE_DEFAULT_TYPE_MAP.get(expression);
-        if (defaultType == null) {
-            defaultType = colType;
-        }
-        return getType(defaultType);
-    }
     public static DataType getType(String type) {
         if (type == null)
             return null;

@@ -58,4 +58,8 @@ public class UpdateRuleBasedCuboidRequest {
 
     @Builder.Default
     private int parentForward = 3;
+
+    @Builder.Default
+    @JsonProperty("load_data")
+    private boolean isLoadData = true;
 }

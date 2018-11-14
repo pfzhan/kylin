@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -50,7 +49,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import lombok.Setter;
 import org.apache.directory.api.util.Strings;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.MeasureTypeFactory;
@@ -64,9 +62,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.Setter;
 
 /**
  */
@@ -83,6 +83,34 @@ public class FunctionDesc implements Serializable {
         return r;
     }
 
+    public static String proposeReturnType(String expression, String colDataType) {
+        return proposeReturnType(expression, colDataType, Maps.newHashMap());
+    }
+
+    public static String proposeReturnType(String expression, String colDataType, Map<String, String> override) {
+        String returnType = override.getOrDefault(expression,
+                EXPRESSION_DEFAULT_TYPE_MAP.getOrDefault(expression, colDataType));
+        switch (expression) {
+        case FunctionDesc.FUNC_SUM:
+            if (colDataType != null) {
+                DataType type = DataType.getType(returnType);
+                if (type.isIntegerFamily()) {
+                    returnType = TYPE_BIGINT;
+                } else if (type.isDecimal()) {
+                    returnType = String.format("decimal(19,%d)", type.getScale());
+                }
+            } else {
+                returnType = "decimal(19,4)";
+            }
+            break;
+        default:
+            break;
+        }
+        return returnType;
+    }
+
+    public static final String TYPE_BIGINT = "bigint";
+
     public static final String FUNC_SUM = "SUM";
     public static final String FUNC_MIN = "MIN";
     public static final String FUNC_MAX = "MAX";
@@ -90,6 +118,7 @@ public class FunctionDesc implements Serializable {
     public static final String FUNC_COUNT_DISTINCT = "COUNT_DISTINCT";
     public static final String FUNC_PERCENTILE = "PERCENTILE_APPROX";
     public static final String FUNC_GROUPING = "GROUPING";
+    public static final String FUNC_TOP_N = "TOP_N";
     public static final Set<String> BUILT_IN_AGGREGATIONS = Sets.newHashSet();
 
     static {
@@ -99,6 +128,14 @@ public class FunctionDesc implements Serializable {
         BUILT_IN_AGGREGATIONS.add(FUNC_SUM);
         BUILT_IN_AGGREGATIONS.add(FUNC_COUNT_DISTINCT);
         BUILT_IN_AGGREGATIONS.add(FUNC_PERCENTILE);
+    }
+
+    private static final Map<String, String> EXPRESSION_DEFAULT_TYPE_MAP = Maps.newHashMap();
+    static {
+        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_TOP_N, "topn(100, 4)");
+        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT_DISTINCT, "bitmap");
+        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_PERCENTILE, "percentile(100)");
+        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT, "bigint");
     }
 
     public static final String PARAMETER_TYPE_CONSTANT = "constant";
@@ -126,12 +163,10 @@ public class FunctionDesc implements Serializable {
             expression = PercentileMeasureType.FUNC_PERCENTILE_APPROX; // for backward compatibility
         }
 
-//        returnDataType = DataType.getType(returnType);
-
         for (ParameterDesc p = parameter; p != null; p = p.getNextParameter()) {
             if (p.isColumnType()) {
                 TblColRef colRef = model.findColumn(p.getValue());
-                returnDataType = DataType.getByColumnType(expression, colRef.getDatatype());
+                returnDataType = DataType.getType(proposeReturnType(expression, colRef.getDatatype()));
                 p.setValue(colRef.getIdentity());
                 p.setColRef(colRef);
             }

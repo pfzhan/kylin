@@ -24,8 +24,10 @@
 
 package io.kyligence.kap.smart.util;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 
@@ -39,35 +41,16 @@ public class CubeUtils {
     private CubeUtils() {
     }
 
+    private static final Map<String, String> EXPRESSION_OVERRIDE_MAP = new HashMap<String, String>() {
+        {
+            put(FunctionDesc.FUNC_COUNT_DISTINCT,
+                    SmartConfig.wrap(KylinConfig.getInstanceFromEnv()).getMeasureCountDistinctType());
+        }
+    };
+
     public static FunctionDesc newFunctionDesc(NDataModel modelDesc, String expression, ParameterDesc param,
             String colDataType) {
-        String returnType = colDataType;
-        switch (expression) {
-        case FunctionDesc.FUNC_SUM:
-            if (colDataType != null) {
-                DataType type = DataType.getType(returnType);
-                if (type.isIntegerFamily()) {
-                    returnType = BIG_INT;
-                } else if (type.isDecimal()) {
-                    returnType = String.format("decimal(19,%d)", type.getScale());
-                }
-            } else {
-                returnType = "decimal(19,4)";
-            }
-            break;
-        case FunctionDesc.FUNC_COUNT:
-            returnType = BIG_INT;
-            break;
-        case FunctionDesc.FUNC_COUNT_DISTINCT:
-            returnType = SmartConfig.wrap(KylinConfig.getInstanceFromEnv()).getMeasureCountDistinctType(); //"hllc(10)"
-            break;
-        case FunctionDesc.FUNC_PERCENTILE:
-            returnType = "percentile(100)";
-            break;
-        default:
-            break;
-        }
-
+        String returnType = FunctionDesc.proposeReturnType(expression, colDataType, EXPRESSION_OVERRIDE_MAP);
         FunctionDesc ret = FunctionDesc.newInstance(expression, param, returnType);
         ret.init(modelDesc);
         return ret;
