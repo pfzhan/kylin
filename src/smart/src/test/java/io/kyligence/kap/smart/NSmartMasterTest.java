@@ -27,12 +27,15 @@ package io.kyligence.kap.smart;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.Assert;
 import org.junit.Before;
@@ -44,13 +47,17 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NTestBase;
 import io.kyligence.kap.smart.model.ModelTree;
+import lombok.val;
 
 public class NSmartMasterTest extends NTestBase {
     private static final Logger logger = LoggerFactory.getLogger(NSmartMasterTest.class);
@@ -618,6 +625,74 @@ public class NSmartMasterTest extends NTestBase {
         */
     }
 
+    @Test
+    public void testSaveAccelerateInfo() throws IOException {
+        String[] sqls = new String[] {
+                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
+                        + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name",
+                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
+                        + "where part_dt = '2012-01-02' group by part_dt, lstg_format_name",
+                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
+                        + "where lstg_format_name > 'ABIN' group by part_dt, lstg_format_name",
+                "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt",
+                "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
+        String draftVersion = UUID.randomUUID().toString();
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls, draftVersion);
+        smartMaster.analyzeSQLs();
+        smartMaster.selectModel();
+        smartMaster.optimizeModel();
+        smartMaster.saveModel();
+
+        smartMaster.selectCubePlan();
+        smartMaster.optimizeCubePlan();
+        smartMaster.saveCubePlan();
+
+        final NSmartContext ctx = smartMaster.getContext();
+        final Map<String, AccelerateInfo> accelerateInfoMap = ctx.getAccelerateInfoMap();
+        Assert.assertEquals(1, ctx.getModelContexts().size());
+        Assert.assertEquals(5, accelerateInfoMap.size());
+
+        // before saveAccelerateInfo
+        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        NCubePlan cubePlan = mdCtx.getTargetCubePlan();
+        final List<NCuboidDesc> allCuboids = cubePlan.getAllCuboids();
+        final List<NCuboidLayout> layouts = collectAllLayouts(allCuboids);
+        Set<FavoriteQueryRealization> fqRealizationsBefore = collectFavoriteQueryRealizations(layouts);
+        Assert.assertTrue(fqRealizationsBefore.isEmpty());
+
+        // do save accelerateInfo
+        smartMaster.saveAccelerateInfo();
+
+        // after saveAccelerateInfo
+        Set<FavoriteQueryRealization> fqRealizationsAfter = collectFavoriteQueryRealizations(layouts);
+        Assert.assertEquals(5, fqRealizationsAfter.size());
+    }
+
+    @Test
+    public void testSaveAccelerateInfoOfOneSqlToManyLayouts() throws IOException {
+        String[] sqls = new String[] { "select a.*, kylin_sales.lstg_format_name as lstg_format_name \n"
+                + "from ( select part_dt, sum(price) as sum_price from kylin_sales\n"
+                + "         where part_dt > '2010-01-01' group by part_dt) a \n"
+                + "join kylin_sales on a.part_dt = kylin_sales.part_dt \n"
+                + "group by lstg_format_name, a.part_dt, a.sum_price" };
+        String draftVersion = UUID.randomUUID().toString();
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls, draftVersion);
+        smartMaster.runAll();
+
+        final NSmartContext ctx = smartMaster.getContext();
+        final Map<String, AccelerateInfo> accelerateInfoMap = ctx.getAccelerateInfoMap();
+        Assert.assertEquals(1, ctx.getModelContexts().size());
+        Assert.assertEquals(1, accelerateInfoMap.size());
+
+        // get favorite query realization relationships from database and validate them
+        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        NCubePlan cubePlan = mdCtx.getTargetCubePlan();
+        final List<NCuboidDesc> allCuboids = cubePlan.getAllCuboids();
+        final List<NCuboidLayout> layouts = collectAllLayouts(allCuboids);
+        val fqRealizationsAfter = collectFavoriteQueryRealizations(layouts);
+        Assert.assertEquals(2, fqRealizationsAfter.size());
+    }
+
     /**
      * Refer to: <ref>NCuboidRefresherTest.testParallelTimeLineRetryWithMultiThread()</ref>
      */
@@ -692,6 +767,8 @@ public class NSmartMasterTest extends NTestBase {
     // TODO if fixed  #7844 delete this method
     private void refreshCubePlanWithRetry(NSmartMaster smartMaster) throws IOException {
         try {
+            KylinConfig externalConfig = smartMaster.getContext().getKylinConfig();
+            KylinConfig.setKylinConfigThreadLocal(externalConfig);
             smartMaster.refreshCubePlanWithRetry();
         } catch (InterruptedException e) {
             logger.error("thread interrupted exception", e);
@@ -713,7 +790,7 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     @Test
-    public void testRenameAllColumns() throws Exception {
+    public void testRenameAllColumns() {
         // test all named columns rename
         String[] sqlStatements = new String[] { "SELECT\n"
                 + "BUYER_ACCOUNT.ACCOUNT_COUNTRY, SELLER_ACCOUNT.ACCOUNT_COUNTRY "

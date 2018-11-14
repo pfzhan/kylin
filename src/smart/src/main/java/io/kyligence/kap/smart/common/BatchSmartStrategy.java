@@ -25,8 +25,9 @@
 package io.kyligence.kap.smart.common;
 
 public class BatchSmartStrategy extends DefaultSmartStrategy {
-    public final static ISmartStrategy INSTANCE = new BatchSmartStrategy();
-    public final static String NAME = "batch";
+
+    public static final ISmartStrategy INSTANCE = new BatchSmartStrategy();
+    public static final String NAME = "batch";
 
     private BatchSmartStrategy() {
         super();

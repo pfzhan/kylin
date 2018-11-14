@@ -30,6 +30,7 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.smart.NSmartContext;
 
 public class NCubeMaster {
+
     private final NSmartContext.NModelContext context;
     private final NProposerProvider proposerProvider;
 
@@ -53,22 +54,22 @@ public class NCubeMaster {
     }
 
     public NCubePlan proposeCuboids(final NCubePlan cubePlan) {
-        return proposerProvider.getCuboidProposer().propose(cubePlan);
+        return proposerProvider.getCuboidProposer().doPropose(cubePlan);
     }
 
     public NCubePlan proposeDimensions(final NCubePlan cubePlan) {
-        return proposerProvider.getDimensionProposer().propose(cubePlan);
+        return proposerProvider.getDimensionProposer().doPropose(cubePlan);
     }
 
     public NCubePlan reduceCuboids(final NCubePlan cubePlan) {
-        return proposerProvider.getCuboidReducer().propose(cubePlan);
+        return proposerProvider.getCuboidReducer().doPropose(cubePlan);
     }
 
     public NCubePlan reduceDimensions(final NCubePlan cubePlan) {
-        return proposerProvider.getDimensionReducer().propose(cubePlan);
+        return proposerProvider.getDimensionReducer().doPropose(cubePlan);
     }
 
     public NCubePlan refreshCuboids(final NCubePlan cubePlan) {
-        return proposerProvider.getCuboidRefresher().propose(cubePlan);
+        return proposerProvider.getCuboidRefresher().doPropose(cubePlan);
     }
 }

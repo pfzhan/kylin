@@ -62,6 +62,7 @@ import io.kyligence.kap.smart.common.AccelerateInfo.QueryLayoutRelation;
 import io.kyligence.kap.smart.model.ModelTree;
 
 class CuboidSuggester {
+
     private static final Logger logger = LoggerFactory.getLogger(CuboidSuggester.class);
 
     private class ColIndexSuggester {
@@ -138,6 +139,7 @@ class CuboidSuggester {
             try {
                 QueryLayoutRelation queryLayoutRelation = ingest(ctx, model);
                 accelerateInfo.getRelatedLayouts().add(queryLayoutRelation);
+                accelerateInfo.setBlockingCause(null);
             } catch (Exception e) {
                 logger.error("Unable to suggest cuboid for CubePlan", e);
                 accelerateInfo.setBlockingCause(e);
@@ -273,16 +275,19 @@ class CuboidSuggester {
         layout.setAuto(true);
         layout.setDraftVersion(context.getDraftVersion());
 
+        String modelId = model.getId();
+        String cubePlanId = cuboidDesc.getCubePlan().getId();
+        int semanticVersion = model.getSemanticVersion();
         for (NCuboidLayout l : cuboidDesc.getLayouts()) {
             if (l.equals(layout)) {
-                return new QueryLayoutRelation(ctx.sql, model.getId(), cuboidDesc.getCubePlan().getId(), l.getId());
+                return new QueryLayoutRelation(ctx.sql, modelId, cubePlanId, l.getId(), semanticVersion);
             }
         }
 
         cuboidDesc.getLayouts().add(layout);
         cuboidLayoutIds.add(layout.getId());
 
-        return new QueryLayoutRelation(ctx.sql, model.getId(), cuboidDesc.getCubePlan().getId(), layout.getId());
+        return new QueryLayoutRelation(ctx.sql, modelId, cubePlanId, layout.getId(), semanticVersion);
     }
 
     private NCuboidDesc createTableIndex(OLAPContext ctx, Map<Integer, Double> dimScores) {

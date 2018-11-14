@@ -26,7 +26,9 @@ package io.kyligence.kap.smart.cube;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -47,10 +49,12 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.NTestBase;
 import io.kyligence.kap.smart.query.Utils;
+import lombok.val;
 
 public class NCuboidRefresherTest extends NTestBase {
 
@@ -84,10 +88,14 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched cuboid id", NCuboidDesc.TABLE_INDEX_START_ID, cuboidDescs.get(0).getId());
             Assert.assertEquals("unmatched layouts size", 1, cuboidDescs.get(0).getLayouts().size());
 
-            final NCuboidLayout layout = cuboidDescs.get(0).getLayouts().get(0);
+            final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
+            final NCuboidLayout layout = layouts.get(0);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
+
+            val fqRealizations = collectFavoriteQueryRealizations(layouts);
+            Assert.assertEquals(1, fqRealizations.size());
         }
 
         showTableExdInfo();
@@ -111,13 +119,18 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched cuboid id", NCuboidDesc.TABLE_INDEX_START_ID, cuboidDescs.get(0).getId());
             Assert.assertEquals("unmatched layouts size", 1, cuboidDescs.get(0).getLayouts().size());
 
-            final NCuboidLayout layout = cuboidDescs.get(0).getLayouts().get(0);
+            final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
+            final NCuboidLayout layout = layouts.get(0);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
 
             smartMaster.saveModel();
             smartMaster.saveCubePlan();
+            smartMaster.saveAccelerateInfo();
+
+            val fqRealizations = collectFavoriteQueryRealizations(layouts);
+            Assert.assertEquals(1, fqRealizations.size());
         }
     }
 
@@ -147,10 +160,14 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched cuboid id", 0, cuboidDescs.get(0).getId());
             Assert.assertEquals("unmatched layouts size", 1, cuboidDescs.get(0).getLayouts().size());
 
-            final NCuboidLayout layout = cuboidDescs.get(0).getLayouts().get(0);
+            final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
+            final NCuboidLayout layout = layouts.get(0);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 1000, 1001]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", 1, layout.getId());
+
+            val fqRealizations = collectFavoriteQueryRealizations(layouts);
+            Assert.assertEquals(1, fqRealizations.size());
         }
 
         showTableExdInfo();
@@ -174,13 +191,18 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched cuboid id", 0, cuboidDescs.get(0).getId());
             Assert.assertEquals("unmatched layouts size", 1, cuboidDescs.get(0).getLayouts().size());
 
-            final NCuboidLayout layout = cuboidDescs.get(0).getLayouts().get(0);
+            final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
+            final NCuboidLayout layout = layouts.get(0);
             Assert.assertEquals("unexpected colOrder", "[1, 0, 1000, 1001]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", 1, layout.getId());
 
             smartMaster.saveModel();
             smartMaster.saveCubePlan();
+            smartMaster.saveAccelerateInfo();
+
+            val fqRealizations = collectFavoriteQueryRealizations(layouts);
+            Assert.assertEquals(1, fqRealizations.size());
         }
     }
 
@@ -211,8 +233,12 @@ public class NCuboidRefresherTest extends NTestBase {
             NCubePlan cubePlan = mdCtx.getTargetCubePlan();
 
             List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();
+            final List<NCuboidLayout> allLayouts = collectAllLayouts(cuboidDescs);
             Assert.assertEquals("unmatched cuboids size", 3, cuboidDescs.size());
-            Assert.assertEquals("unmatched layouts size", 3, collectAllLayouts(cuboidDescs).size());
+            Assert.assertEquals("unmatched layouts size", 3, allLayouts.size());
+
+            val realizations = collectFavoriteQueryRealizations(allLayouts);
+            Assert.assertEquals(4, realizations.size());
         }
 
         showTableExdInfo();
@@ -232,11 +258,24 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals(mdCtx.getTargetModel().getName(), cubePlan.getModelName());
 
             List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();
+            final List<NCuboidLayout> allLayouts = collectAllLayouts(cuboidDescs);
             Assert.assertEquals("unmatched cuboids size", 3, cuboidDescs.size());
-            Assert.assertEquals("unmatched layouts size", 4, collectAllLayouts(cuboidDescs).size());
+            Assert.assertEquals("unmatched layouts size", 4, allLayouts.size());
 
             smartMaster.saveModel();
             smartMaster.saveCubePlan();
+            smartMaster.saveAccelerateInfo();
+
+            // get favorite query realization relationships from database and validate them
+            val realizations = collectFavoriteQueryRealizations(allLayouts);
+            Assert.assertEquals(4, realizations.size());
+
+            val list = Lists.newArrayList(realizations);
+            list.sort(Comparator.comparingLong(FavoriteQueryRealization::getCuboidLayoutId));
+            Assert.assertEquals(1, list.get(0).getCuboidLayoutId());
+            Assert.assertEquals(2, list.get(1).getCuboidLayoutId());
+            Assert.assertEquals(1001, list.get(2).getCuboidLayoutId());
+            Assert.assertEquals(2001, list.get(3).getCuboidLayoutId());
         }
     }
 
@@ -275,6 +314,19 @@ public class NCuboidRefresherTest extends NTestBase {
                 smartMasterB.getContext().getModelContexts().get(0).getTargetCubePlan().getCuboids().get(0).getLayouts()
                         .get(0).getDraftVersion());
 
+        // get favorite query realization relationships from database and validate them
+        List<NCuboidLayout> allLayoutsAfterRunAllB = smartMasterB.getContext().getModelContexts().get(0)
+                .getTargetCubePlan().getCuboids().get(0).getLayouts();
+        val realizations = collectFavoriteQueryRealizations(allLayoutsAfterRunAllB);
+        Assert.assertEquals(2, realizations.size());
+
+        val list = Lists.newArrayList(realizations);
+        list.sort(Comparator.comparingLong(FavoriteQueryRealization::getCuboidLayoutId));
+        final FavoriteQueryRealization queryRealization1 = list.get(0);
+        Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 1, queryRealization1.getCuboidLayoutId());
+        final FavoriteQueryRealization queryRealization2 = list.get(1);
+        Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 2, queryRealization2.getCuboidLayoutId());
+
         showTableExdInfo();
 
         // -----------t3: line A update and validate-------------------------
@@ -298,13 +350,14 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched cuboid id", NCuboidDesc.TABLE_INDEX_START_ID, cuboidDescs.get(0).getId());
             Assert.assertEquals("unmatched layouts size", 2, cuboidDescs.get(0).getLayouts().size());
 
-            final NCuboidLayout layout = cuboidDescs.get(0).getLayouts().get(0);
+            final List<NCuboidLayout> layoutsAfterRefreshA = cuboidDescs.get(0).getLayouts();
+            final NCuboidLayout layout = layoutsAfterRefreshA.get(0);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 1, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout.getId());
             Assert.assertEquals("unexpected draft version", draftVersionB, layout.getDraftVersion());
 
-            final NCuboidLayout layout2 = cuboidDescs.get(0).getLayouts().get(1);
+            final NCuboidLayout layout2 = layoutsAfterRefreshA.get(1);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout2.getId());
@@ -312,7 +365,18 @@ public class NCuboidRefresherTest extends NTestBase {
 
             smartMasterA.saveModel();
             smartMasterA.saveCubePlan();
+            smartMasterA.saveAccelerateInfo();
 
+            // get favorite query realization relationships from database and validate them
+            val realizationsAfterRefreshA = collectFavoriteQueryRealizations(layoutsAfterRefreshA);
+            Assert.assertEquals(2, realizationsAfterRefreshA.size());
+
+            val queryRealizationsList = Lists.newArrayList(realizationsAfterRefreshA);
+            queryRealizationsList.sort(Comparator.comparingLong(FavoriteQueryRealization::getCuboidLayoutId));
+            final FavoriteQueryRealization fqRealization1 = queryRealizationsList.get(0);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 2, fqRealization1.getCuboidLayoutId());
+            final FavoriteQueryRealization fqRealization2 = queryRealizationsList.get(1);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 3, fqRealization2.getCuboidLayoutId());
         }
 
         // -----------t4: line B update and validate-------------------------
@@ -336,16 +400,16 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched cuboids size", 1, cuboidDescs.size());
             Assert.assertEquals("unmatched cuboid id", NCuboidDesc.TABLE_INDEX_START_ID, cuboidDescs.get(0).getId());
 
-            final List<NCuboidLayout> layoutsAfter = cuboidDescs.get(0).getLayouts();
-            Assert.assertEquals("unmatched layouts size", 2, layoutsAfter.size());
+            final List<NCuboidLayout> layoutsAfterRefreshB = cuboidDescs.get(0).getLayouts();
+            Assert.assertEquals("unmatched layouts size", 2, layoutsAfterRefreshB.size());
 
-            final NCuboidLayout layout = layoutsAfter.get(0);
+            final NCuboidLayout layout = layoutsAfterRefreshB.get(0);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
 
-            final NCuboidLayout layout2 = layoutsAfter.get(1);
+            final NCuboidLayout layout2 = layoutsAfterRefreshB.get(1);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 1, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 4, layout2.getId());
@@ -353,6 +417,18 @@ public class NCuboidRefresherTest extends NTestBase {
 
             smartMasterB.saveModel();
             smartMasterB.saveCubePlan();
+            smartMasterB.saveAccelerateInfo();
+
+            // get favorite query realization relationships from database and validate them
+            val realizationsAfterRefreshB = collectFavoriteQueryRealizations(layoutsAfterRefreshB);
+            Assert.assertEquals(2, realizationsAfterRefreshB.size());
+
+            val queryRealizationsList = Lists.newArrayList(realizationsAfterRefreshB);
+            queryRealizationsList.sort(Comparator.comparingLong(FavoriteQueryRealization::getCuboidLayoutId));
+            final FavoriteQueryRealization fqRealization1 = queryRealizationsList.get(0);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 3, fqRealization1.getCuboidLayoutId());
+            final FavoriteQueryRealization fqRealization2 = queryRealizationsList.get(1);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 4, fqRealization2.getCuboidLayoutId());
         }
     }
 
@@ -413,16 +489,16 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched cuboids size", 1, cuboidDescs.size());
             Assert.assertEquals("unmatched cuboid id", NCuboidDesc.TABLE_INDEX_START_ID, cuboidDescs.get(0).getId());
 
-            final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
-            Assert.assertEquals("unmatched layouts size", 2, layouts.size());
+            final List<NCuboidLayout> layoutsAfterRefreshB = cuboidDescs.get(0).getLayouts();
+            Assert.assertEquals("unmatched layouts size", 2, layoutsAfterRefreshB.size());
 
-            final NCuboidLayout layout = layouts.get(0);
+            final NCuboidLayout layout = layoutsAfterRefreshB.get(0);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
             Assert.assertEquals("unexpected draft id", draftVersionA, layout.getDraftVersion());
 
-            final NCuboidLayout layout2 = layouts.get(1);
+            final NCuboidLayout layout2 = layoutsAfterRefreshB.get(1);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 1, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout2.getId());
@@ -430,6 +506,18 @@ public class NCuboidRefresherTest extends NTestBase {
 
             smartMasterB.saveModel();
             smartMasterB.saveCubePlan();
+            smartMasterB.saveAccelerateInfo();
+
+            // get favorite query realization relationships from database and validate them
+            val realizationsAfterRefreshB = collectFavoriteQueryRealizations(layoutsAfterRefreshB);
+            Assert.assertEquals(2, realizationsAfterRefreshB.size());
+
+            val queryRealizationsList = Lists.newArrayList(realizationsAfterRefreshB);
+            queryRealizationsList.sort(Comparator.comparingLong(FavoriteQueryRealization::getCuboidLayoutId));
+            final FavoriteQueryRealization fqRealization1 = queryRealizationsList.get(0);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 1, fqRealization1.getCuboidLayoutId());
+            final FavoriteQueryRealization fqRealization2 = queryRealizationsList.get(1);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 2, fqRealization2.getCuboidLayoutId());
         }
 
         // -----------t4: line A update and validate-------------------------
@@ -452,16 +540,16 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched cuboids size", 1, cuboidDescs.size());
             Assert.assertEquals("unmatched cuboid id", NCuboidDesc.TABLE_INDEX_START_ID, cuboidDescs.get(0).getId());
 
-            final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
-            Assert.assertEquals("unmatched layouts size", 2, layouts.size());
+            final List<NCuboidLayout> layoutsAfterRefreshA = cuboidDescs.get(0).getLayouts();
+            Assert.assertEquals("unmatched layouts size", 2, layoutsAfterRefreshA.size());
 
-            final NCuboidLayout layout = layouts.get(0);
+            final NCuboidLayout layout = layoutsAfterRefreshA.get(0);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 1, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
 
-            final NCuboidLayout layout2 = layouts.get(1);
+            final NCuboidLayout layout2 = layoutsAfterRefreshA.get(1);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout2.getId());
@@ -469,6 +557,18 @@ public class NCuboidRefresherTest extends NTestBase {
 
             smartMasterA.saveModel();
             smartMasterA.saveCubePlan();
+            smartMasterA.saveAccelerateInfo();
+
+            // get favorite query realization relationships from database and validate them
+            val realizationsAfterRefreshA = collectFavoriteQueryRealizations(layoutsAfterRefreshA);
+            Assert.assertEquals(2, realizationsAfterRefreshA.size());
+
+            val queryRealizationsList = Lists.newArrayList(realizationsAfterRefreshA);
+            queryRealizationsList.sort(Comparator.comparingLong(FavoriteQueryRealization::getCuboidLayoutId));
+            final FavoriteQueryRealization fqRealization1 = queryRealizationsList.get(0);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 2, fqRealization1.getCuboidLayoutId());
+            final FavoriteQueryRealization fqRealization2 = queryRealizationsList.get(1);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 3, fqRealization2.getCuboidLayoutId());
         }
     }
 
@@ -510,10 +610,10 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched cuboids size", 1, cuboidDescs.size());
             Assert.assertEquals("unmatched cuboid id", NCuboidDesc.TABLE_INDEX_START_ID, cuboidDescs.get(0).getId());
 
-            final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
-            Assert.assertEquals("unmatched layouts size", 1, layouts.size());
+            final List<NCuboidLayout> layoutsAfterRefreshA = cuboidDescs.get(0).getLayouts();
+            Assert.assertEquals("unmatched layouts size", 1, layoutsAfterRefreshA.size());
 
-            final NCuboidLayout layout = layouts.get(0);
+            final NCuboidLayout layout = layoutsAfterRefreshA.get(0);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
@@ -521,7 +621,15 @@ public class NCuboidRefresherTest extends NTestBase {
 
             smartMasterA.saveModel();
             smartMasterA.saveCubePlan();
+            smartMasterA.saveAccelerateInfo();
 
+            // get favorite query realization relationships from database and validate them
+            val realizationsAfterRefreshA = collectFavoriteQueryRealizations(layoutsAfterRefreshA);
+            Assert.assertEquals(1, realizationsAfterRefreshA.size());
+
+            val queryRealizationsList = Lists.newArrayList(realizationsAfterRefreshA);
+            final FavoriteQueryRealization fqRealization1 = queryRealizationsList.get(0);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 1, fqRealization1.getCuboidLayoutId());
         }
 
         //------------t3: line B propose-------------------------
@@ -560,16 +668,16 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched cuboids size", 1, cuboidDescs.size());
             Assert.assertEquals("unmatched cuboid id", NCuboidDesc.TABLE_INDEX_START_ID, cuboidDescs.get(0).getId());
 
-            final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
-            Assert.assertEquals("unmatched layouts size", 2, layouts.size());
+            final List<NCuboidLayout> layoutsAfterRefreshB = cuboidDescs.get(0).getLayouts();
+            Assert.assertEquals("unmatched layouts size", 2, layoutsAfterRefreshB.size());
 
-            final NCuboidLayout layout = layouts.get(0);
+            final NCuboidLayout layout = layoutsAfterRefreshB.get(0);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
 
-            final NCuboidLayout layout2 = layouts.get(1);
+            final NCuboidLayout layout2 = layoutsAfterRefreshB.get(1);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 1, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout2.getId());
@@ -577,8 +685,19 @@ public class NCuboidRefresherTest extends NTestBase {
 
             smartMasterB.saveModel();
             smartMasterB.saveCubePlan();
-        }
+            smartMasterB.saveAccelerateInfo();
 
+            // get favorite query realization relationships from database and validate them
+            val realizationsAfterRefreshB = collectFavoriteQueryRealizations(layoutsAfterRefreshB);
+            Assert.assertEquals(2, realizationsAfterRefreshB.size());
+
+            val queryRealizationsList = Lists.newArrayList(realizationsAfterRefreshB);
+            queryRealizationsList.sort(Comparator.comparingLong(FavoriteQueryRealization::getCuboidLayoutId));
+            final FavoriteQueryRealization fqRealization1 = queryRealizationsList.get(0);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 1, fqRealization1.getCuboidLayoutId());
+            final FavoriteQueryRealization fqRealization2 = queryRealizationsList.get(1);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 2, fqRealization2.getCuboidLayoutId());
+        }
     }
 
     /**
@@ -640,10 +759,10 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched cuboids size", 2, cuboidDescs.size());
             Assert.assertEquals("unmatched cuboid id", NCuboidDesc.TABLE_INDEX_START_ID, cuboidDescs.get(0).getId());
 
-            final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
-            Assert.assertEquals("unmatched layouts size", 1, layouts.size());
+            final List<NCuboidLayout> layoutsAfterRefreshA = cuboidDescs.get(0).getLayouts();
+            Assert.assertEquals("unmatched layouts size", 1, layoutsAfterRefreshA.size());
 
-            final NCuboidLayout layout = layouts.get(0);
+            final NCuboidLayout layout = layoutsAfterRefreshA.get(0);
             Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
@@ -651,6 +770,13 @@ public class NCuboidRefresherTest extends NTestBase {
 
             smartMasterA.saveModel();
             smartMasterA.saveCubePlan();
+            smartMasterA.saveAccelerateInfo();
+
+            // get favorite query realization relationships from database and validate them
+            val realizationsAfterRefreshA = collectFavoriteQueryRealizations(layoutsAfterRefreshA);
+            Assert.assertEquals(1, realizationsAfterRefreshA.size());
+            val queryRealizationsList = Lists.newArrayList(realizationsAfterRefreshA);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 1, queryRealizationsList.get(0).getCuboidLayoutId());
         }
 
         // -----------t4: line B update and validate-------------------------
@@ -695,6 +821,22 @@ public class NCuboidRefresherTest extends NTestBase {
 
             smartMasterB.saveModel();
             smartMasterB.saveCubePlan();
+            smartMasterB.saveAccelerateInfo();
+
+            // get favorite query realization relationships from database and validate them
+            final List<NCuboidLayout> layoutsAfterRefreshB = Lists.newArrayList();
+            layoutsAfterRefreshB.add(layout);
+            layoutsAfterRefreshB.add(layout2);
+            val realizationsAfterRefreshB = collectFavoriteQueryRealizations(layoutsAfterRefreshB);
+            Assert.assertEquals(2, realizationsAfterRefreshB.size());
+
+            val queryRealizationsList = Lists.newArrayList(realizationsAfterRefreshB);
+            queryRealizationsList.sort(Comparator.comparingLong(FavoriteQueryRealization::getCuboidLayoutId));
+            final FavoriteQueryRealization fqRealization1 = queryRealizationsList.get(0);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 1, fqRealization1.getCuboidLayoutId());
+            final FavoriteQueryRealization fqRealization2 = queryRealizationsList.get(1);
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + NCuboidDesc.CUBOID_DESC_ID_STEP + 1,
+                    fqRealization2.getCuboidLayoutId());
         }
     }
 
@@ -727,6 +869,19 @@ public class NCuboidRefresherTest extends NTestBase {
             final NCubePlan targetCubePlan = smartMasterA.getContext().getModelContexts().get(0).getTargetCubePlan();
             Assert.assertEquals(3, targetCubePlan.getAllCuboids().size());
             checkDraftOfEachLayout(draftVersionA, targetCubePlan.getAllCuboids());
+
+            // get favorite query realization relationships from database and validate them
+            val allLayouts = collectAllLayouts(targetCubePlan.getAllCuboids());
+            val realizations = collectFavoriteQueryRealizations(allLayouts);
+            Assert.assertEquals(5, realizations.size());
+
+            val list = Lists.newArrayList(realizations);
+            list.sort(Comparator.comparingLong(FavoriteQueryRealization::getCuboidLayoutId));
+            Assert.assertEquals(1, list.get(0).getCuboidLayoutId());
+            Assert.assertEquals(1, list.get(1).getCuboidLayoutId());
+            Assert.assertEquals(2, list.get(2).getCuboidLayoutId());
+            Assert.assertEquals(1001, list.get(3).getCuboidLayoutId());
+            Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 1, list.get(4).getCuboidLayoutId());
         }
 
         //------------t2: line B propose-------------------------
@@ -752,6 +907,12 @@ public class NCuboidRefresherTest extends NTestBase {
             allCuboids.remove(3);
             checkDraftOfEachLayout(draftVersionA, allCuboids);
             checkDraftOfEachLayout(draftVersionB, Lists.newArrayList(lastCuboid));
+
+            // get favorite query realization relationships from database and validate them
+            val allLayouts = collectAllLayouts(targetCubePlan.getAllCuboids());
+            val realizations = collectFavoriteQueryRealizations(allLayouts);
+            Assert.assertEquals(7, realizations.size());
+            validateRealizations(realizations);
         }
 
         showTableExdInfo();
@@ -773,6 +934,7 @@ public class NCuboidRefresherTest extends NTestBase {
 
             NCubePlan cubePlan = smartMasterA.getContext().getModelContexts().get(0).getTargetCubePlan();
             List<NCuboidDesc> allCuboidsAfterRefresh = cubePlan.getAllCuboids();
+            val allLayouts = collectAllLayouts(allCuboidsAfterRefresh);
             Assert.assertEquals("unmatched cuboids size", 4, allCuboidsAfterRefresh.size());
             allCuboidsAfterRefresh.remove(3);
             checkDraftOfEachLayout(null, allCuboidsAfterRefresh);
@@ -780,11 +942,17 @@ public class NCuboidRefresherTest extends NTestBase {
 
             smartMasterA.saveModel();
             smartMasterA.saveCubePlan();
+            smartMasterA.saveAccelerateInfo();
+
+            // get favorite query realization relationships from database and validate them
+            val realizations = collectFavoriteQueryRealizations(allLayouts);
+            Assert.assertEquals(7, realizations.size());
+            validateRealizations(realizations);
         }
 
-        // -----------t4: line A update and validate-------------------------
+        // -----------t4: line B update and validate-------------------------
         {
-            smartMasterB = new NSmartMaster(kylinConfig, proj, sqls, draftVersionB);
+            smartMasterB = new NSmartMaster(kylinConfig, proj, otherSqls, draftVersionB);
             smartMasterB.selectModelAndCubePlan();
 
             final NCubePlan targetCubePlan = smartMasterB.getContext().getModelContexts().get(0).getTargetCubePlan();
@@ -799,6 +967,7 @@ public class NCuboidRefresherTest extends NTestBase {
 
             NCubePlan cubePlan = smartMasterB.getContext().getModelContexts().get(0).getTargetCubePlan();
             List<NCuboidDesc> allCuboidsAfterRefresh = cubePlan.getAllCuboids();
+            val allLayouts = collectAllLayouts(allCuboidsAfterRefresh);
             Assert.assertEquals("unmatched cuboids size", 4, allCuboidsAfterRefresh.size());
             final NCuboidDesc lastCuboidAfterRefresh = allCuboidsAfterRefresh.get(3);
             allCuboidsAfterRefresh.remove(3);
@@ -807,7 +976,26 @@ public class NCuboidRefresherTest extends NTestBase {
 
             smartMasterB.saveModel();
             smartMasterB.saveCubePlan();
+            smartMasterB.saveAccelerateInfo();
+
+            // get favorite query realization relationships from database and validate them
+            val realizations = collectFavoriteQueryRealizations(allLayouts);
+            Assert.assertEquals(7, realizations.size());
+            validateRealizations(realizations);
         }
+    }
+
+    private void validateRealizations(Set<FavoriteQueryRealization> realizations) {
+        val list = Lists.newArrayList(realizations);
+        list.sort(Comparator.comparingLong(FavoriteQueryRealization::getCuboidLayoutId));
+        Assert.assertEquals(1, list.get(0).getCuboidLayoutId());
+        Assert.assertEquals(1, list.get(1).getCuboidLayoutId());
+        Assert.assertEquals(2, list.get(2).getCuboidLayoutId());
+        Assert.assertEquals(1001, list.get(3).getCuboidLayoutId());
+        Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 1, list.get(4).getCuboidLayoutId());
+        Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 1, list.get(5).getCuboidLayoutId());
+        Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + NCuboidDesc.CUBOID_DESC_ID_STEP + 1,
+                list.get(6).getCuboidLayoutId());
     }
 
     /**
@@ -864,20 +1052,30 @@ public class NCuboidRefresherTest extends NTestBase {
         Assert.assertEquals(1, allCuboids.size());
 
         final NCuboidDesc cuboidDesc = allCuboids.get(0);
+        final List<NCuboidLayout> allLayouts = cuboidDesc.getLayouts();
         Assert.assertEquals("unmatched cuboid id", NCuboidDesc.TABLE_INDEX_START_ID, cuboidDesc.getId());
-        Assert.assertEquals("unmatched layouts size", 2, cuboidDesc.getLayouts().size());
+        Assert.assertEquals("unmatched layouts size", 2, allLayouts.size());
 
-        final NCuboidLayout layout2 = cuboidDesc.getLayouts().get(0);
+        final NCuboidLayout layout1 = allLayouts.get(0);
+        Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout1.getColOrder().toString());
+        Assert.assertEquals("unexpected override indices", 1, layout1.getLayoutOverrideIndices().size());
+        Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout1.getId());
+        Assert.assertNull("not published error", layout1.getDraftVersion());
+
+        final NCuboidLayout layout2 = allLayouts.get(1);
         Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout2.getColOrder().toString());
-        Assert.assertEquals("unexpected override indices", 1, layout2.getLayoutOverrideIndices().size());
-        Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout2.getId());
+        Assert.assertEquals("unexpected override indices", 0, layout2.getLayoutOverrideIndices().size());
+        Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout2.getId());
         Assert.assertNull("not published error", layout2.getDraftVersion());
 
-        final NCuboidLayout layout = cuboidDesc.getLayouts().get(1);
-        Assert.assertEquals("unexpected colOrder", "[0, 1, 2]", layout.getColOrder().toString());
-        Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
-        Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout.getId());
-        Assert.assertNull("not published error", layout.getDraftVersion());
+        // get favorite query realization relationships from database and validate them
+        val realizations = collectFavoriteQueryRealizations(allLayouts);
+        Assert.assertEquals(2, realizations.size());
+
+        val list = Lists.newArrayList(realizations);
+        list.sort(Comparator.comparingLong(FavoriteQueryRealization::getCuboidLayoutId));
+        Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 2, list.get(0).getCuboidLayoutId());
+        Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 3, list.get(1).getCuboidLayoutId());
     }
 
     private void course(final String[] sqls, final String draftVer, final int sleepSecondsBeforeRefresh,
@@ -901,6 +1099,7 @@ public class NCuboidRefresherTest extends NTestBase {
             try {
                 master.saveModel();
                 master.saveCubePlan();
+                master.saveAccelerateInfo();
                 logger.info("draft version [{}], save success after refresh!!!", draftVer);
                 break;
             } catch (Exception e) {

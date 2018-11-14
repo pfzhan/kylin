@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -43,8 +42,10 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.common.util.KylinConfigUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.spark.KapSparkSession;
 
@@ -60,6 +61,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         kylinConfig.setProperty("kylin.storage.provider.0", "io.kyligence.kap.storage.NDataStorage");
         kylinConfig.setProperty("kap.storage.columnar.hdfs-dir", kylinConfig.getHdfsWorkingDirectory() + "/parquet/");
         kylinConfig.setProperty("kap.smart.conf.model.inner-join.exactly-match", "true");
+        KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
     }
 
     @After

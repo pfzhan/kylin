@@ -27,15 +27,22 @@ package io.kyligence.kap.smart;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -46,9 +53,11 @@ import io.kyligence.kap.smart.query.SQLResult;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.val;
 
 @Getter
 public class NSmartContext {
+
     private final KylinConfig kylinConfig;
     private final SmartConfig smartConfig;
     private final String project;
@@ -79,6 +88,74 @@ public class NSmartContext {
                 }
             }
         });
+    }
+
+    /**
+     * Erase the layout in accelerate info map
+     * @param layout the layout need erase
+     * @return corresponding sqlPatterns of this layout
+     */
+    public Set<String> eraseLayoutInAccelerateInfo(NCuboidLayout layout) {
+
+        Preconditions.checkNotNull(layout);
+        Set<String> sqlPatterns = Sets.newHashSet();
+        for (val entry : accelerateInfoMap.entrySet()) {
+
+            val relatedLayouts = entry.getValue().getRelatedLayouts();
+            val iterator = relatedLayouts.iterator();
+            while (iterator.hasNext()) {
+
+                // only when layoutId, cubePlanId, modelId and semanticVersion consist with queryLayoutRelation would do erase
+                final AccelerateInfo.QueryLayoutRelation next = iterator.next();
+                if (next.consistent(layout)) {
+                    Preconditions.checkState(entry.getKey().equalsIgnoreCase(next.getSql())); // must equal, otherwise error
+                    iterator.remove();
+                    sqlPatterns.add(entry.getKey());
+                }
+            }
+        }
+        return sqlPatterns;
+    }
+
+    /**
+     * generate a biMap of sql and it's hashcode
+     */
+    private BiMap<String, Integer> genSqlHashcodeMap() {
+        BiMap<String, Integer> map = HashBiMap.create();
+        for (String sql : this.sqls) {
+            if (!map.containsKey(sql)) {
+                map.put(sql, sql.hashCode());
+            }
+        }
+        return map;
+    }
+
+    /**
+     * Rebuild accelerationInfoMap by relations between favorite query and layout from database
+     * @param favoriteQueryRealizations serialized relations between layout and favorite query
+     */
+    public void reBuildAccelerationInfoMap(Set<FavoriteQueryRealization> favoriteQueryRealizations) {
+        final BiMap<String, Integer> sqlHashcodeMap = genSqlHashcodeMap();
+        for (FavoriteQueryRealization fqRealization : favoriteQueryRealizations) {
+            final String sql = sqlHashcodeMap.inverse().get(fqRealization.getSqlPatternHash());
+            if (sql == null) {
+                continue;
+            }
+            if (!accelerateInfoMap.containsKey(sql)) {
+                accelerateInfoMap.put(sql, new AccelerateInfo());
+            }
+
+            if (accelerateInfoMap.containsKey(sql)) {
+                val queryRelatedLayouts = accelerateInfoMap.get(sql).getRelatedLayouts();
+                String modelId = fqRealization.getModelId();
+                String cubePlanId = fqRealization.getCubePlanId();
+                long layoutId = fqRealization.getCuboidLayoutId();
+                int semanticVersion = fqRealization.getSemanticVersion();
+                val queryLayoutRelation = new AccelerateInfo.QueryLayoutRelation(sql, modelId, cubePlanId, layoutId,
+                        semanticVersion);
+                queryRelatedLayouts.add(queryLayoutRelation);
+            }
+        }
     }
 
     @Getter

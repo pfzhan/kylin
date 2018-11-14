@@ -41,6 +41,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
+import io.kyligence.kap.common.util.KylinConfigUtils;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.query.Utils;
@@ -92,7 +93,7 @@ public class NSmartDemoTest {
                 }
             } else if (sqlFile.isFile()) {
                 BufferedReader br = new BufferedReader(new FileReader(sqlFile));
-                String line = null;
+                String line;
                 StringBuilder sb = new StringBuilder();
                 while ((line = br.readLine()) != null) {
                     if (line.endsWith(";")) {
@@ -119,6 +120,7 @@ public class NSmartDemoTest {
         kylinConfig.setProperty("kylin.metadata.project-manager-impl",
                 "io.kyligence.kap.metadata.project.NProjectManager");
         kylinConfig.setProperty("kylin.metadata.realization-providers", "io.kyligence.kap.cube.model.NDataflowManager");
+        KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqls);
         smartMaster.runAll();

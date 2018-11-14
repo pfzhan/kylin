@@ -39,7 +39,7 @@ import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 
 public class FavoriteQueryRealizationJDBCDao implements FavoriteQueryRealizationDao {
 
-    private final static String TABLE_PREFIX = "favorite_query_realization_";
+    private static final String TABLE_PREFIX = "favorite_query_realization_";
     private String tableName;
     private KylinConfig config;
 

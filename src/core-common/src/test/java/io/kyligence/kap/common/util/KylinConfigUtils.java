@@ -22,32 +22,16 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.cube;
+package io.kyligence.kap.common.util;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import org.apache.kylin.common.KylinConfig;
 
-import org.apache.kylin.query.relnode.OLAPContext;
+import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-
-public class NCubeContext {
-    private NDataModel dataModel;
-    private Collection<OLAPContext> olapContexts = new ArrayList<>();
-
-    public Collection<OLAPContext> getOlapContexts() {
-        return olapContexts;
-    }
-
-    public void setOlapContexts(Collection<OLAPContext> olapContexts) {
-        this.olapContexts = olapContexts;
-    }
-
-    public NDataModel getDataModel() {
-        return dataModel;
-    }
-
-    public void setDataModel(NDataModel dataModel) {
-        this.dataModel = dataModel;
+public class KylinConfigUtils {
+    public static void setH2DriverAsFavoriteQueryStorageDB(KylinConfig config) {
+        Preconditions.checkNotNull(config);
+        config.setProperty("kylin.favorite.storage-url",
+                "kylin_favorite@jdbc,url=jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1;MODE=MySQL,username=sa,password=,driverClassName=org.h2.Driver");
     }
 }

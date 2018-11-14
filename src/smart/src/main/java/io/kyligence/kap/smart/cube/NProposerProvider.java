@@ -28,7 +28,7 @@ import io.kyligence.kap.smart.NSmartContext;
 
 public class NProposerProvider {
 
-    NProposerProvider(NSmartContext.NModelContext context) {
+    private NProposerProvider(NSmartContext.NModelContext context) {
         this.context = context;
     }
 
@@ -38,23 +38,23 @@ public class NProposerProvider {
         return new NProposerProvider(context);
     }
 
-    public NAbstractCubeProposer getDimensionProposer() {
+    NAbstractCubeProposer getDimensionProposer() {
         return new NDimensionProposer(context);
     }
 
-    public NAbstractCubeProposer getCuboidProposer() {
+    NAbstractCubeProposer getCuboidProposer() {
         return new NCuboidProposer(context);
     }
 
-    public NAbstractCubeProposer getCuboidReducer() {
+    NAbstractCubeProposer getCuboidReducer() {
         return new NCuboidReducer(context);
     }
 
-    public NAbstractCubeProposer getDimensionReducer() {
+    NAbstractCubeProposer getDimensionReducer() {
         return new NDimensionReducer(context);
     }
 
-    public NAbstractCubeProposer getCuboidRefresher() {
+    NAbstractCubeProposer getCuboidRefresher() {
         return new NCuboidRefresher(context);
     }
 }

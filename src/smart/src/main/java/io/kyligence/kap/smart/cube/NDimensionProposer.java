@@ -52,7 +52,7 @@ class NDimensionProposer extends NAbstractCubeProposer {
     }
 
     @Override
-    void doPropose(NCubePlan cubePlan) {
+    public NCubePlan doPropose(NCubePlan cubePlan) {
         Map<Integer, NEncodingDesc> encs = Maps.newTreeMap();
 
         // keep old dimensions
@@ -67,6 +67,7 @@ class NDimensionProposer extends NAbstractCubeProposer {
         }
 
         cubePlan.setCubePlanOverrideEncodings(encs);
+        return cubePlan;
     }
 
     private NEncodingDesc suggestEncoding(TblColRef colRef) {

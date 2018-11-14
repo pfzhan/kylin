@@ -41,7 +41,7 @@ public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
     }
 
     @Override
-    public void createTestMetadata(String ... overlay) {
+    public void createTestMetadata(String... overlay) {
         staticCreateTestMetadata(overlay);
     }
 
@@ -76,6 +76,7 @@ public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
 
     public static KylinConfig getTestConfig() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
+        KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(config);
         return config;
     }
 }

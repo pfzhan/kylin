@@ -24,21 +24,29 @@
 
 package io.kyligence.kap.smart.cube;
 
+import java.util.Collection;
+import java.util.List;
+
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.smart.NSmartContext;
 
-public abstract class NAbstractCubeProposer {
+abstract class NAbstractCubeProposer {
+
     final NSmartContext.NModelContext context;
 
     NAbstractCubeProposer(NSmartContext.NModelContext context) {
         this.context = context;
     }
 
-    // TODO should not pass in CubePlan
-    public NCubePlan propose(NCubePlan cubePlan) {
-        doPropose(cubePlan);
-        return cubePlan;
-    }
+    abstract NCubePlan doPropose(NCubePlan cubePlan);
 
-    abstract void doPropose(NCubePlan cubePlan);
+    List<NCuboidLayout> collectAllLayouts(Collection<NCuboidDesc> cuboidDescs) {
+        List<NCuboidLayout> layouts = Lists.newArrayList();
+        cuboidDescs.forEach(cuboidDesc -> layouts.addAll(cuboidDesc.getLayouts()));
+        return layouts;
+    }
 }

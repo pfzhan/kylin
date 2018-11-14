@@ -38,10 +38,10 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.RemoveCuboidBySqlEvent;
+import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 
 public class RemoveCuboidBySqlHandler extends AbstractEventHandler {
@@ -95,6 +95,7 @@ public class RemoveCuboidBySqlHandler extends AbstractEventHandler {
         master.shrinkCubePlan();
         master.shrinkModel();
         master.saveCubePlan();
+        master.saveAccelerateInfo();
         master.saveModel();
     }
 

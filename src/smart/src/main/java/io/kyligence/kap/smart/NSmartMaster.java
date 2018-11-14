@@ -43,8 +43,11 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealizationJDBCDao;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.val;
 
 public class NSmartMaster {
 
@@ -55,17 +58,20 @@ public class NSmartMaster {
     private NSmartContext context;
     private NProposerProvider proposerProvider;
     private NDataModelManager dataModelManager;
+    FavoriteQueryRealizationJDBCDao dao;
 
     public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls) {
         this.context = new NSmartContext(kylinConfig, project, sqls);
         this.proposerProvider = NProposerProvider.create(context);
         this.dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
+        this.dao = FavoriteQueryRealizationJDBCDao.getInstance(kylinConfig, project);
     }
 
     public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls, String draftVersion) {
         this.context = new NSmartContext(kylinConfig, project, sqls, draftVersion);
         this.proposerProvider = NProposerProvider.create(context);
         this.dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
+        this.dao = FavoriteQueryRealizationJDBCDao.getInstance(kylinConfig, project);
     }
 
     public NSmartContext getContext() {
@@ -135,6 +141,7 @@ public class NSmartMaster {
                 // TODO #7844 losing milliseconds(always ends with 000) when saving metastore 
                 Thread.sleep(1000);
                 saveCubePlan();
+                saveAccelerateInfo();
                 logger.debug("save successfully after refresh, {}", context.getDraftVersion());
                 return;
             } catch (IllegalStateException e) {
@@ -161,15 +168,14 @@ public class NSmartMaster {
         selectCubePlan();
         optimizeCubePlan();
         saveCubePlan();
+        saveAccelerateInfo();
     }
 
     public List<NSmartContext.NModelContext> getModelContext(boolean isOptimize) throws IOException {
         if (isOptimize) {
             runAll();
         } else {
-            analyzeSQLs();
-            selectModel();
-            selectCubePlan();
+            selectModelAndCubePlan();
         }
         return getContext().getModelContexts();
     }
@@ -205,6 +211,26 @@ public class NSmartMaster {
             update.setToAddOrUpdateCuboids(toAddCuboids.toArray(new NDataCuboid[0]));
             dataflowManager.updateDataflow(update);
         }
+    }
+
+    public void saveAccelerateInfo() {
+        List<FavoriteQueryRealization> favoriteQueryRealizations = Lists.newArrayList();
+        val accelerateInfoMap = context.getAccelerateInfoMap();
+        accelerateInfoMap.forEach((sqlPattern, accelerateInfo) -> {
+            if (!accelerateInfo.isBlocked()) {
+                for (val layout : accelerateInfo.getRelatedLayouts()) {
+                    FavoriteQueryRealization realization = new FavoriteQueryRealization();
+                    realization.setSqlPatternHash(sqlPattern.hashCode());
+                    realization.setModelId(layout.getModelId());
+                    realization.setCubePlanId(layout.getCubePlanId());
+                    realization.setCuboidLayoutId(layout.getLayoutId());
+                    favoriteQueryRealizations.add(realization);
+                }
+            }
+        });
+
+        dao.batchDelete(favoriteQueryRealizations);
+        dao.batchInsert(favoriteQueryRealizations);
     }
 
     public void saveModel() throws IOException {

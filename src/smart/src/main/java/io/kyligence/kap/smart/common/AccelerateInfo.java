@@ -26,8 +26,10 @@ package io.kyligence.kap.smart.common;
 
 import java.util.Set;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.cube.model.NCuboidLayout;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -39,6 +41,7 @@ import lombok.ToString;
 @NoArgsConstructor
 @ToString
 public class AccelerateInfo {
+
     private Set<QueryLayoutRelation> relatedLayouts = Sets.newHashSet();
     @Setter
     private Throwable blockingCause;
@@ -58,5 +61,15 @@ public class AccelerateInfo {
         private String modelId;
         private String cubePlanId;
         private long layoutId;
+        private int semanticVersion;
+
+        public boolean consistent(NCuboidLayout layout) {
+
+            Preconditions.checkNotNull(layout);
+            return this.semanticVersion == layout.getModel().getSemanticVersion()
+                    && this.modelId.equalsIgnoreCase(layout.getModel().getId())
+                    && this.cubePlanId.equalsIgnoreCase(layout.getCuboidDesc().getCubePlan().getId())
+                    && this.layoutId == layout.getId();
+        }
     }
 }

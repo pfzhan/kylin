@@ -47,7 +47,7 @@ class NCuboidReducer extends NAbstractCubeProposer {
     }
 
     @Override
-    void doPropose(NCubePlan cubePlan) {
+    public NCubePlan doPropose(NCubePlan cubePlan) {
 
         // get to be removed cuboids
         final Map<NCuboidIdentifier, NCuboidDesc> proposedCuboids = Maps.newLinkedHashMap();
@@ -64,7 +64,7 @@ class NCuboidReducer extends NAbstractCubeProposer {
         // remove cuboids
         Map<NCuboidIdentifier, List<NCuboidLayout>> cuboidLayoutMap = Maps.newHashMap();
 
-        proposedCuboids.forEach((key, value) -> cuboidLayoutMap.put(key, value.getLayouts()));
+        proposedCuboids.forEach((identifier, cuboid) -> cuboidLayoutMap.put(identifier, cuboid.getLayouts()));
 
         cubePlan.removeLayouts(cuboidLayoutMap, this::hasExternalRef, NCuboidLayout::equals, true, false);
 
@@ -73,6 +73,8 @@ class NCuboidReducer extends NAbstractCubeProposer {
             logger.debug("layouts after reduce:");
             nCuboidLayouts.forEach(layout -> logger.debug("{}", layout.getId()));
         });
+
+        return cubePlan;
     }
 
     private boolean hasExternalRef(NCuboidLayout layout) {

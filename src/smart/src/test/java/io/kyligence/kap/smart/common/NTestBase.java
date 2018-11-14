@@ -27,6 +27,7 @@ package io.kyligence.kap.smart.common;
 import java.io.File;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
@@ -36,17 +37,23 @@ import org.junit.After;
 import org.junit.Before;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
+import io.kyligence.kap.common.util.KylinConfigUtils;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryRealizationJDBCDao;
 import io.kyligence.kap.smart.query.Utils;
+import lombok.val;
 
 public abstract class NTestBase {
 
     protected String proj = "learn_kylin";
     protected File tmpMeta;
     protected KylinConfig kylinConfig;
+    protected FavoriteQueryRealizationJDBCDao dao;
 
     @Before
     public void setUp() throws Exception {
@@ -55,7 +62,9 @@ public abstract class NTestBase {
         FileUtils.copyDirectory(new File(metaDir), tmpMeta);
 
         kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
+        KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+        dao = FavoriteQueryRealizationJDBCDao.getInstance(kylinConfig, proj);
     }
 
     @After
@@ -78,5 +87,18 @@ public abstract class NTestBase {
             layouts.addAll(cuboidDesc.getLayouts());
         }
         return layouts;
+    }
+
+    protected Set<FavoriteQueryRealization> collectFavoriteQueryRealizations(List<NCuboidLayout> layouts) {
+        Set<FavoriteQueryRealization> realizations = Sets.newHashSet();
+        layouts.forEach(layout -> {
+            final long layoutId = layout.getId();
+            final String cubePlanId = layout.getCuboidDesc().getCubePlan().getId();
+            final String modelId = layout.getModel().getId();
+
+            val tmp = dao.getByConditions(modelId, cubePlanId, layoutId);
+            realizations.addAll(tmp);
+        });
+        return realizations;
     }
 }

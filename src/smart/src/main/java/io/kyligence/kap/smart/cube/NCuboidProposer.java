@@ -40,7 +40,7 @@ class NCuboidProposer extends NAbstractCubeProposer {
     }
 
     @Override
-    void doPropose(NCubePlan cubePlan) {
+    public NCubePlan doPropose(NCubePlan cubePlan) {
 
         Map<NCuboidIdentifier, NCuboidDesc> cuboidDescMap = cubePlan.getWhiteListCuboidsMap();
 
@@ -48,5 +48,7 @@ class NCuboidProposer extends NAbstractCubeProposer {
         suggester.suggestCuboids(context.getModelTree());
 
         cubePlan.setCuboids(Lists.newArrayList(cuboidDescMap.values()));
+
+        return cubePlan;
     }
 }
