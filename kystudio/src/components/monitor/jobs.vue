@@ -34,7 +34,6 @@
       border
       :data="jobsList"
       highlight-current-row
-      @row-click="showLineSteps"
       @sort-change="sortJobList"
       @selection-change="handleSelectionChange"
       @select="handleSelect"
@@ -44,19 +43,19 @@
     >
       <!-- :default-sort="{prop: 'jobname', order: 'descending'}" -->
       <el-table-column type="selection" align="center" width="55"></el-table-column>
-      <el-table-column
-        :label="$t('JobType')"
-        sortable
-        :width="200"
-      >
+      <el-table-column align="center" width="55">
         <template slot-scope="scope">
-          <i class="el-icon-arrow-right" ></i> {{scope.row.job_name}}
+          <i :class="{
+            'el-icon-ksd-dock_to_right_return': scope.row.id !== selectedJob.id || !showStep,
+            'el-icon-ksd-dock_to_right': scope.row.id == selectedJob.id && showStep}"
+            @click="showLineSteps(scope.row)"></i>
         </template>
       </el-table-column>
+      <el-table-column :label="$t('JobType')" sortable prop="job_name" :width="200"></el-table-column>
       <el-table-column
         :label="$t('TableModelCube')"
         sortable
-        :min-width="180"
+        :min-width="120"
         show-overflow-tooltip
         prop="target_subject">
       </el-table-column>
@@ -626,8 +625,8 @@ export default class JobsList extends Vue {
           var sTop = document.getElementById('scrollBox').scrollTop
           this.beforeScrollPos = sTop
           var result = sTop
-          if (sTop < 112) {
-            result = 112
+          if (sTop < 106) {
+            result = 106
           }
           document.getElementById('stepList').style.top = result + 'px'
         })
@@ -723,7 +722,7 @@ export default class JobsList extends Vue {
     }
     .job-step {
       width: 30%;
-      min-height: calc(~'100vh - 173px');
+      min-height: calc(~'100vh - 167px');
       box-sizing: border-box;
       z-index: 100;
       position: absolute;
@@ -894,12 +893,14 @@ export default class JobsList extends Vue {
       }
     }
     .jobs-table {
+      .el-icon-ksd-dock_to_right_return,
+      .el-icon-ksd-dock_to_right {
+        &:hover {
+          color: @base-color;
+        }
+      }
       tr.current-row2 > td{
         background: @base-color-9;
-      }
-      tr td:nth-child(2) .cell {
-        position:relative;
-        padding: 0px 10px 0px 35px;
       }
       tr .el-icon-arrow-right {
         position:absolute;
