@@ -61,7 +61,7 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules/impact').get(para)
   },
   getPreferrence: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/config').get(para)
+    return Vue.resource(apiUrl + 'projects/query_accelerate_threshold').get(para)
   },
   updateFrequency: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules/frequency').update(para)
@@ -73,7 +73,7 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules/duration').update(para)
   },
   updatePreferrence: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/config').updata(para)
+    return Vue.resource(apiUrl + 'projects/query_accelerate_threshold').update(para)
   },
   getHistoryList: (para) => {
     return Vue.resource(apiUrl + 'query/history_queries').get(para)
