@@ -27,9 +27,7 @@ package io.kyligence.kap.engine.spark;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
-import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.IJoinedFlatTableDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -47,20 +45,21 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructField;
 
-import com.google.common.collect.Sets;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;
+import io.kyligence.kap.query.util.KapQueryUtil;
 
 public class NJoinedFlatTable {
 
     /*
      * Convert IJoinedFlatTableDesc to Dataset
      */
-    
-    public static Dataset<Row> generateDataset(IJoinedFlatTableDesc flatTable, SparkSession ss) {
-        NDataModel model = flatTable.getDataModel();
+
+    public static Dataset<Row> generateDataset(NDataModel model, SparkSession ss) {
         TableDesc rootFactDesc = model.getRootFactTable().getTableDesc();
         Dataset<Row> ds = SourceFactory.createEngineAdapter(rootFactDesc, NSparkCubingEngine.NSparkCubingSource.class)
                 .getSourceData(rootFactDesc, ss, Maps.newHashMap()).alias(model.getRootFactTable().getAlias());
@@ -96,6 +95,13 @@ public class NJoinedFlatTable {
             }
         }
 
+        return ds;
+    }
+
+    public static Dataset<Row> generateDataset(IJoinedFlatTableDesc flatTable, SparkSession ss) {
+        NDataModel model = flatTable.getDataModel();
+        Dataset<Row> ds = generateDataset(model, ss);
+
         if (StringUtils.isNotBlank(model.getFilterCondition())) {
             String afterConvertCondition = replaceDot(model.getFilterCondition(), model);
             ds = ds.where(afterConvertCondition);
@@ -113,10 +119,18 @@ public class NJoinedFlatTable {
             }
         }
         
+        if (flatTable instanceof NDataModelFlatTableDesc) {
+            return selectNModelJoinedFlatTable(ds, (NDataModelFlatTableDesc) flatTable);
+        }
+
         if (flatTable instanceof NCubeJoinedFlatTableDesc) {
             return selectNCubeJoinedFlatTable(ds, (NCubeJoinedFlatTableDesc) flatTable);
         }
 
+        return ds;
+    }
+
+    public static Dataset<Row> selectNModelJoinedFlatTable(Dataset<Row> ds, NDataModelFlatTableDesc flatTable) {
         List<TblColRef> colRefs = flatTable.getAllColumns();
         String[] exprs = new String[colRefs.size()];
         String[] names = new String[exprs.length];
@@ -126,7 +140,7 @@ public class NJoinedFlatTable {
         }
         return ds.selectExpr(exprs).toDF(names);
     }
-    
+
     public static Dataset<Row> selectNCubeJoinedFlatTable(Dataset<Row> ds, NCubeJoinedFlatTableDesc flatTable) {
         List<TblColRef> colRefs = flatTable.getAllColumns();
         List<Integer> colIndices = flatTable.getIndices();
@@ -193,39 +207,7 @@ public class NJoinedFlatTable {
     }
 
     public static void appendJoinStatement(IJoinedFlatTableDesc flatDesc, StringBuilder sql, boolean singleLine) {
-        final String sep = singleLine ? " " : "\n";
-        Set<TableRef> dimTableCache = Sets.newHashSet();
-
-        NDataModel model = flatDesc.getDataModel();
-        TableRef rootTable = model.getRootFactTable();
-        sql.append("FROM " + flatDesc.getDataModel().getRootFactTable().getTableIdentity() + " as "
-                + rootTable.getAlias() + " " + sep);
-
-        for (JoinTableDesc lookupDesc : model.getJoinTables()) {
-            JoinDesc join = lookupDesc.getJoin();
-            TableRef dimTable = lookupDesc.getTableRef();
-            if (join == null || StringUtils.isEmpty(join.getType()) || dimTableCache.contains(dimTable)) {
-                continue;
-            }
-
-            TblColRef[] pk = join.getPrimaryKeyColumns();
-            TblColRef[] fk = join.getForeignKeyColumns();
-            if (pk.length != fk.length) {
-                throw new IllegalArgumentException("Invalid join condition of lookup table:" + lookupDesc);
-            }
-            String joinType = join.getType().toUpperCase();
-            sql.append(joinType + " JOIN " + dimTable.getTableIdentity() + " as " + dimTable.getAlias() + sep);
-            sql.append("ON ");
-            for (int i = 0; i < pk.length; i++) {
-                if (i > 0) {
-                    sql.append(" AND ");
-                }
-                sql.append(fk[i].getExpressionInSourceDB() + " = " + pk[i].getExpressionInSourceDB());
-            }
-            sql.append(sep);
-
-            dimTableCache.add(dimTable);
-        }
+        KapQueryUtil.appendJoinStatement(flatDesc.getDataModel(), sql, singleLine);
     }
 
     private static void appendWhereStatement(IJoinedFlatTableDesc flatDesc, StringBuilder sql, boolean singleLine) {

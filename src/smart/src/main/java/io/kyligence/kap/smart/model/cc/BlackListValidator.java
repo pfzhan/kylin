@@ -24,23 +24,47 @@
 
 package io.kyligence.kap.smart.model.cc;
 
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlCall;
-import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlJdbcFunctionCall;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.SqlSpecialOperator;
+import org.apache.calcite.sql.util.SqlBasicVisitor;
 
-public class ArrayItemRule implements IAdviceRule {
+@SuppressWarnings("rawtypes")
+public class BlackListValidator extends SqlBasicVisitor {
+    private boolean result = true;
+    
+    public boolean getResult() {
+        return result;
+    }
 
     @Override
-    public String matches(SqlCall call) {
-        SqlOperator op = call.getOperator();
-
-        // Workaround, SqlItemOperator is not a public class
-        if (op instanceof SqlSpecialOperator && "ITEM".equalsIgnoreCase(op.getName())) {
-            return call.toSqlString(DatabaseProduct.HIVE.getDialect()).getSql();
+    public Object visit(SqlIdentifier id) {
+        if ("CURRENT_DATE".equalsIgnoreCase(id.toString()) || 
+            "CURRENT_TIME".equalsIgnoreCase(id.toString()) || 
+            "CURRENT_TIMESTAMP".equalsIgnoreCase(id.toString())) {
+            result = false;
         }
-
         return null;
     }
 
+    @SuppressWarnings("unchecked")
+    @Override
+    public Object visit(SqlCall call) {
+        SqlOperator op = call.getOperator();
+        if (op instanceof SqlAggFunction) {
+            result = false;
+            return null;
+        }
+        if (op instanceof SqlJdbcFunctionCall) {
+            if ("{fn CURRENT_DATE}".equalsIgnoreCase(op.getName()) || 
+                "{fn CURRENT_TIME}".equalsIgnoreCase(op.getName()) || 
+                "{fn CURRENT_TIMESTAMP}".equalsIgnoreCase(op.getName())) {
+                result = false;
+                return null;
+            }
+        }
+        return call.getOperator().acceptCall(this, call);
+    }
 }

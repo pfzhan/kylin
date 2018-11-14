@@ -56,6 +56,7 @@ class NModelOptProposer extends NAbstractProposer {
 
             model = modelMaster.proposeJoins(model);
             model = modelMaster.proposePartition(model);
+            model = modelMaster.proposeComputedColumn(model);
             model = modelMaster.proposeScope(model);
 
             modelCtx.setTargetModel(model);

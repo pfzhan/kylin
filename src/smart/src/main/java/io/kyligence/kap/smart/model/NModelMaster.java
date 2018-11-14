@@ -25,18 +25,32 @@
 package io.kyligence.kap.smart.model;
 
 import java.util.ArrayList;
+import java.util.List;
 
+import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.query.relnode.OLAPContext;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.query.util.ConvertToComputedColumn;
+import io.kyligence.kap.smart.NModelSelectProposer;
 import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.query.AbstractQueryRunner;
+import io.kyligence.kap.smart.query.NQueryRunnerFactory;
 import io.kyligence.kap.smart.util.CubeUtils;
 
 public class NModelMaster {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(NModelMaster.class);
+
     private NSmartContext.NModelContext context;
     private NProposerProvider proposerProvider;
 
@@ -65,15 +79,77 @@ public class NModelMaster {
         return modelDesc;
     }
 
-    public NDataModel proposeJoins(NDataModel modelDesc) {
-        return proposerProvider.getJoinProposer().propose(modelDesc);
+    public NDataModel proposeJoins(NDataModel model) {
+        return proposerProvider.getJoinProposer().propose(model);
     }
 
-    public NDataModel proposeScope(NDataModel modelDesc) {
-        return proposerProvider.getScopeProposer().propose(modelDesc);
+    public NDataModel proposeScope(NDataModel model) {
+        return proposerProvider.getScopeProposer().propose(model);
     }
 
-    public NDataModel proposePartition(NDataModel modelDesc) {
-        return proposerProvider.getPartitionProposer().propose(modelDesc);
+    public NDataModel proposePartition(NDataModel model) {
+        return proposerProvider.getPartitionProposer().propose(model);
+    }
+
+    public NDataModel proposeComputedColumn(NDataModel model) {
+        int retryMax = KapConfig.wrap(context.getSmartContext().getKylinConfig()).getComputedColumnMaxRecursionTimes();
+        int retryCount = 0;
+        
+        do {
+            int cntOriginCC = model.getComputedColumnDescs().size();
+            model = proposerProvider.getComputedColumnProposer().propose(model);
+            if (model.getComputedColumnDescs().size() == cntOriginCC) {
+                break;
+            }
+            // New CC detected, need to rebuild ModelContext regarding new coming CC
+            updateContextWithCC(model);
+        } while((retryCount++) < retryMax);
+        return model;
+    }
+
+    private void updateContextWithCC(NDataModel modelDesc) {
+        String project = context.getSmartContext().getProject();
+        KylinConfig config = context.getSmartContext().getKylinConfig();
+        List<String> sqls = Lists.newArrayList();
+        for (OLAPContext olapContext : getContext().getModelTree().getOlapContexts()) {
+            String newSql = olapContext.sql;
+            if (StringUtils.isEmpty(newSql)) {
+                continue;
+            }
+            try {
+                newSql = new ConvertToComputedColumn().transformImpl(newSql, project, modelDesc,
+                        modelDesc.getRootFactTable().getTableDesc().getDatabase());
+            } catch (Exception e) {
+                LOGGER.warn("NModelMaster.updateContextWithCC failed to transform query: {}", newSql, e);
+            }
+            sqls.add(newSql);
+        }
+
+        if (sqls.isEmpty()) {
+            return;
+        }
+
+        try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(config,
+                sqls.toArray(new String[0]), 1, project, Lists.newArrayList(modelDesc))) {
+            extractor.execute();
+            NSmartContext smartContext = context.getSmartContext();
+            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(smartContext.getKylinConfig(),
+                    smartContext.getProject()).build(sqls, extractor.getAllOLAPContexts(), null);
+            ModelTree updatedModelTree = null;
+            for (ModelTree modelContext : modelTrees) {
+                if (NModelSelectProposer.matchModelTree(modelDesc, modelContext)) {
+                    updatedModelTree = modelContext;
+                    break;
+                }
+            }
+            if (updatedModelTree == null) {
+                return;
+            }
+
+            // Update context info
+            this.context.setModelTree(updatedModelTree);
+        } catch (Exception e) {
+            LOGGER.warn("NModelMaster.updateContextWithCC failed to update model tree", e);
+        }
     }
 }

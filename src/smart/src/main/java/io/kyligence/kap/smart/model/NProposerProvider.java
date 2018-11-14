@@ -48,4 +48,8 @@ public class NProposerProvider {
     public NAbstractModelProposer getPartitionProposer() {
         return new NPartitionProposer(context);
     }
+
+    public NAbstractModelProposer getComputedColumnProposer() {
+        return new NComputedColumnProposer(context);
+    }
 }

@@ -194,7 +194,7 @@ public class GreedyModelTreesBuilder {
         ModelTree buildOne(List<OLAPContext> inputCtxs) {
             SmartConfig smartConfig = SmartConfig.wrap(kylinConfig);
 
-            Map<String, JoinTableDesc> joinTables = new HashMap<>();
+            Map<String, JoinTableDesc> joinTables = new LinkedHashMap<>();
             Map<TableRef, String> tableAliasMap = correctedTableAlias;
             List<OLAPContext> usedCtxs = Lists.newArrayList();
             Map<String, TableRef> aliasRefMap = Maps.newHashMap();

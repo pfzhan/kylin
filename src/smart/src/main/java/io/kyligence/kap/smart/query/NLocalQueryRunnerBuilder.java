@@ -24,17 +24,19 @@
 
 package io.kyligence.kap.smart.query;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
@@ -51,7 +53,21 @@ class NLocalQueryRunnerBuilder {
     }
 
     NLocalQueryRunner buildBasic(String projectName) {
-        NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(srcKylinConfig, projectName);
+        Set<String> dumpResources = Sets.newHashSet();
+        Map<String, RootPersistentEntity> mockupResources = Maps.newHashMap();
+        prepareResources(projectName, dumpResources, mockupResources, Lists.newArrayList());
+        return new NLocalQueryRunner(srcKylinConfig, projectName, sqls, dumpResources, mockupResources, nThreads);
+    }
+
+    NLocalQueryRunner buildWithModelDescs(String projectName, List<NDataModel> modelDescs) {
+        Set<String> dumpResources = Sets.newHashSet();
+        Map<String, RootPersistentEntity> mockupResources = Maps.newHashMap();
+        prepareResources(projectName, dumpResources, mockupResources, modelDescs);
+        return new NLocalQueryRunner(srcKylinConfig, projectName, sqls, dumpResources, mockupResources, nThreads);
+    }
+
+    private void prepareResources(String projectName, Set<String> dumpResources,
+            Map<String, RootPersistentEntity> mockupResources, List<NDataModel> dataModels) {
         NProjectManager projectManager = NProjectManager.getInstance(srcKylinConfig);
         ProjectInstance srcProj = projectManager.getProject(projectName);
 
@@ -59,15 +75,14 @@ class NLocalQueryRunnerBuilder {
         dumpProj.setName(projectName);
         dumpProj.setTables(srcProj.getTables());
         dumpProj.init();
-
-        Map<String, RootPersistentEntity> mockupResources = Maps.newHashMap();
         mockupResources.put(dumpProj.getResourcePath(), dumpProj);
 
-        Set<String> dumpResources = Sets.newHashSet();
-        for (TableDesc tableDesc : metadataManager.listAllTables()) {
-            dumpResources.add(tableDesc.getResourcePath());
-        }
+        NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(srcKylinConfig, projectName);
+        metadataManager.listAllTables().forEach(tableDesc -> dumpResources.add(tableDesc.getResourcePath()));
 
-        return new NLocalQueryRunner(srcKylinConfig, projectName, sqls, dumpResources, mockupResources, nThreads);
+        dataModels.forEach(dataModel -> {
+            dataModel.setProject(projectName);
+            mockupResources.put(dataModel.getResourcePath(), dataModel);
+        });
     }
 }

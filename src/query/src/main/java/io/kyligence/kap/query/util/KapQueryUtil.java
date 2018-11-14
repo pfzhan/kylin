@@ -24,74 +24,88 @@
 
 package io.kyligence.kap.query.util;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.source.adhocquery.IPushDownConverter;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 public class KapQueryUtil {
     
     private static final Logger LOGGER = LoggerFactory.getLogger(KapQueryUtil.class);
 
-    private static List<IPushDownConverter> queryTransformers;
-    
-    public static String massageComputedColumn(String origin, String project, String defaultSchema, NDataModel model) {
-        String transformed = origin;
+    public static String massageComputedColumn(NDataModel model, String project, ComputedColumnDesc cc) {
+        String tempConst = "'" + UUID.randomUUID().toString() + "'";
+        StringBuilder forCC = new StringBuilder();
+        forCC.append("select ");
+        forCC.append(cc.getExpression());
+        forCC.append(" ,").append(tempConst);
+        forCC.append(" ");
+        appendJoinStatement(model, forCC, false);
+
+        String ccSql = KeywordDefaultDirtyHack.transform(forCC.toString());
         try {
             // massage nested CC for drafted model
             Map<String, NDataModel> modelMap = Maps.newHashMap();
             modelMap.put(model.getName(), model);
-            transformed = RestoreFromComputedColumn.convertWithGivenModels(transformed, project, defaultSchema,
+            ccSql = RestoreFromComputedColumn.convertWithGivenModels(ccSql, project, "DEFAULT",
                     modelMap);
         } catch (Exception e) {
-            LOGGER.warn("Failed to massage SQL expression [{}] with input model {}", origin, model.getName(), e);
-            return origin;
+            LOGGER.warn("Failed to massage SQL expression [{}] with input model {}", ccSql, model.getName(), e);
         }
-        return massageComputedColumn(transformed, project, defaultSchema);
+
+        return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1);
     }
 
-    public static String massageComputedColumn(String origin, String project, String defaultSchema) {
-        String transformed = origin;
+    public static void appendJoinStatement(NDataModel model, StringBuilder sql, boolean singleLine) {
+        final String sep = singleLine ? " " : "\n";
+        Set<TableRef> dimTableCache = Sets.newHashSet();
 
-        if (queryTransformers == null) {
-            queryTransformers = Lists.newArrayList();
-            String[] classes = KylinConfig.getInstanceFromEnv().getPushDownConverterClassNames();
-            for (String clz : classes) {
-                try {
-                    IPushDownConverter t = (IPushDownConverter) ClassUtil.newInstance(clz);
-                    if (t instanceof SparkSQLFunctionConverter) {
-                        // TODO adjust dialect by data types
-                        ((EscapeTransformer) t).setFunctionDialect(EscapeDialect.HIVE);
-                    }
-                    queryTransformers.add(t);
-                } catch (Exception e) {
-                    throw new RuntimeException("Failed to init query transformer", e);
+        TableRef rootTable = model.getRootFactTable();
+        sql.append("FROM " + model.getRootFactTable().getTableIdentity() + " as "
+                + rootTable.getAlias() + " " + sep);
+
+        for (JoinTableDesc lookupDesc : model.getJoinTables()) {
+            JoinDesc join = lookupDesc.getJoin();
+            TableRef dimTable = lookupDesc.getTableRef();
+            if (join == null || StringUtils.isEmpty(join.getType()) || dimTableCache.contains(dimTable)) {
+                continue;
+            }
+
+            TblColRef[] pk = join.getPrimaryKeyColumns();
+            TblColRef[] fk = join.getForeignKeyColumns();
+            if (pk.length != fk.length) {
+                throw new IllegalArgumentException("Invalid join condition of lookup table:" + lookupDesc);
+            }
+            String joinType = join.getType().toUpperCase();
+            sql.append(joinType + " JOIN " + dimTable.getTableIdentity() + " as " + dimTable.getAlias() + sep);
+            sql.append("ON ");
+            for (int i = 0; i < pk.length; i++) {
+                if (i > 0) {
+                    sql.append(" AND ");
                 }
+                sql.append(fk[i].getExpressionInSourceDB() + " = " + pk[i].getExpressionInSourceDB());
             }
-        }
+            sql.append(sep);
 
-        try {
-            for (IPushDownConverter t : queryTransformers) {
-                transformed = t.convert(transformed, project, defaultSchema, false);
-            }
-        } catch (Exception e) {
-            LOGGER.warn("Failed to massage SQL expression [{}] with pushdown converters", origin, e);
-            return origin;
+            dimTableCache.add(dimTable);
         }
-
-        return transformed;
     }
     
     public static SqlSelect extractSqlSelect(SqlCall selectOrOrderby) {

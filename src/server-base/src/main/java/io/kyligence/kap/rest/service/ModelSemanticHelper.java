@@ -83,7 +83,7 @@ public class ModelSemanticHelper {
         List<NDataModel.NamedColumn> simplifiedColumns = dataModel.getAllNamedColumns();
         Map<String, NDataModel.NamedColumn> dimensionNameMap = Maps.newHashMap();
         for (NDataModel.NamedColumn namedColumn : simplifiedColumns) {
-            dimensionNameMap.put(namedColumn.aliasDotColumn, namedColumn);
+            dimensionNameMap.put(namedColumn.getAliasDotColumn(), namedColumn);
         }
 
         int id = 0;
@@ -95,26 +95,26 @@ public class ModelSemanticHelper {
             val tableRef = new TableRef(dataModel, alias, tableDesc, !isFact);
             for (TblColRef column : tableRef.getColumns()) {
                 val namedColumn = new NDataModel.NamedColumn();
-                namedColumn.id = id++;
-                namedColumn.name = column.getName();
-                namedColumn.aliasDotColumn = alias + "." + column.getName();
-                namedColumn.status = NDataModel.ColumnStatus.EXIST;
-                val dimension = dimensionNameMap.get(namedColumn.aliasDotColumn);
+                namedColumn.setId(id++);
+                namedColumn.setName(column.getName());
+                namedColumn.setAliasDotColumn(alias + "." + column.getName());
+                namedColumn.setStatus(NDataModel.ColumnStatus.EXIST);
+                val dimension = dimensionNameMap.get(namedColumn.getAliasDotColumn());
                 if (dimension != null) {
-                    namedColumn.status = NDataModel.ColumnStatus.DIMENSION;
-                    namedColumn.name = dimension.name;
+                    namedColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
+                    namedColumn.setName(dimension.getName());
                 }
                 columns.add(namedColumn);
             }
         }
         for (ComputedColumnDesc computedColumnDesc : dataModel.getComputedColumnDescs()) {
             NDataModel.NamedColumn namedColumn = new NDataModel.NamedColumn();
-            namedColumn.id = id++;
-            namedColumn.name = computedColumnDesc.getColumnName();
-            namedColumn.aliasDotColumn = computedColumnDesc.getFullName();
-            namedColumn.status = NDataModel.ColumnStatus.EXIST;
+            namedColumn.setId(id++);
+            namedColumn.setName(computedColumnDesc.getColumnName());
+            namedColumn.setAliasDotColumn(computedColumnDesc.getFullName());
+            namedColumn.setStatus(NDataModel.ColumnStatus.EXIST);
             if (dataModel.getAllNamedColumns().stream()
-                    .anyMatch(c -> c.aliasDotColumn.equals(namedColumn.aliasDotColumn))) {
+                    .anyMatch(c -> c.getAliasDotColumn().equals(namedColumn.getAliasDotColumn()))) {
                 // cc already used as named column
                 continue;
             }
@@ -154,7 +154,7 @@ public class ModelSemanticHelper {
         int maxColumnId = originModel.getAllNamedColumns().stream().mapToInt(NDataModel.NamedColumn::getId).max()
                 .orElse(-1) + 1;
         Map<String, NDataModel.NamedColumn> currentNamedColumns = originModel.getAllNamedColumns().stream()
-                .filter(NDataModel.NamedColumn::isExist).collect(Collectors.toMap(c -> c.aliasDotColumn, c -> c));
+                .filter(NDataModel.NamedColumn::isExist).collect(Collectors.toMap(c -> c.getAliasDotColumn(), c -> c));
         Set<String> newComputedColumns = Sets.newHashSet();
         for (ComputedColumnDesc computedColumnDesc : request.getComputedColumnDescs()) {
             newComputedColumns.add(computedColumnDesc.getFullName());
@@ -164,52 +164,52 @@ public class ModelSemanticHelper {
             // create named column for new CC
             newComputedColumns.add(computedColumnDesc.getFullName());
             NDataModel.NamedColumn namedColumn = new NDataModel.NamedColumn();
-            namedColumn.id = maxColumnId++;
-            namedColumn.name = computedColumnDesc.getColumnName();
-            namedColumn.aliasDotColumn = computedColumnDesc.getFullName();
-            namedColumn.status = NDataModel.ColumnStatus.EXIST;
+            namedColumn.setId(maxColumnId++);
+            namedColumn.setName(computedColumnDesc.getColumnName());
+            namedColumn.setAliasDotColumn(computedColumnDesc.getFullName());
+            namedColumn.setStatus(NDataModel.ColumnStatus.EXIST);
             originModel.getAllNamedColumns().add(namedColumn);
         }
 
         Function<List<NDataModel.NamedColumn>, Map<String, NDataModel.NamedColumn>> toExistMap = allCols -> allCols
                 .stream().filter(NDataModel.NamedColumn::isExist)
-                .collect(Collectors.toMap(k -> k.aliasDotColumn, Function.identity()));
+                .collect(Collectors.toMap(k -> k.getAliasDotColumn(), Function.identity()));
 
         // compare originModel and expectedModel's existing allNamedColumn
         val originExistMap = toExistMap.apply(originModel.getAllNamedColumns());
         val newCols = Lists.<NDataModel.NamedColumn> newArrayList();
         compareAndUpdateColumns(originExistMap, toExistMap.apply(expectedModel.getAllNamedColumns()), newCols::add,
-                oldCol -> oldCol.status = NDataModel.ColumnStatus.TOMB, (olCol, newCol) -> olCol.name = newCol.name);
-        int maxId = originModel.getAllNamedColumns().stream().map(c -> c.id).mapToInt(i -> i).max().orElse(-1);
+                oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.TOMB), (olCol, newCol) -> olCol.setName(newCol.getName()));
+        int maxId = originModel.getAllNamedColumns().stream().map(c -> c.getId()).mapToInt(i -> i).max().orElse(-1);
         for (NDataModel.NamedColumn newCol : newCols) {
             maxId++;
-            newCol.id = maxId;
+            newCol.setId(maxId);
             originModel.getAllNamedColumns().add(newCol);
         }
 
         // compare originModel and expectedModel's dimensions
         Function<List<NDataModel.NamedColumn>, Map<String, NDataModel.NamedColumn>> toDimensionMap = allCols -> allCols
                 .stream().filter(NDataModel.NamedColumn::isDimension)
-                .collect(Collectors.toMap(k -> k.aliasDotColumn, Function.identity()));
+                .collect(Collectors.toMap(k -> k.getAliasDotColumn(), Function.identity()));
         val originDimensionMap = toDimensionMap.apply(originModel.getAllNamedColumns());
         compareAndUpdateColumns(originDimensionMap, toDimensionMap.apply(expectedModel.getAllNamedColumns()),
-                newCol -> originExistMap.get(newCol.aliasDotColumn).status = NDataModel.ColumnStatus.DIMENSION,
-                oldCol -> oldCol.status = NDataModel.ColumnStatus.EXIST, (olCol, newCol) -> olCol.name = newCol.name);
+                newCol -> originExistMap.get(newCol.getAliasDotColumn()).setStatus(NDataModel.ColumnStatus.DIMENSION),
+                oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.EXIST), (olCol, newCol) -> olCol.setName(newCol.getName()));
 
         // Move deleted computed column to TOMB status
         Set<String> currentComputedColumns = originModel.getComputedColumnDescs().stream()
                 .map(ComputedColumnDesc::getFullName).collect(Collectors.toSet());
         originModel.getAllNamedColumns().stream()
-                .filter(column -> currentComputedColumns.contains(column.aliasDotColumn))
-                .filter(column -> !newComputedColumns.contains(column.aliasDotColumn))
-                .forEach(unusedColumn -> unusedColumn.status = NDataModel.ColumnStatus.TOMB);
+                .filter(column -> currentComputedColumns.contains(column.getAliasDotColumn()))
+                .filter(column -> !newComputedColumns.contains(column.getAliasDotColumn()))
+                .forEach(unusedColumn -> unusedColumn.setStatus(NDataModel.ColumnStatus.TOMB));
         originModel.setComputedColumnDescs(request.getComputedColumnDescs());
 
         //Move unused named column to EXIST status
         originModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .filter(column -> request.getDimensions().stream()
-                        .noneMatch(dimension -> dimension.aliasDotColumn.equals(column.aliasDotColumn)))
-                .forEach(c -> c.status = NDataModel.ColumnStatus.EXIST);
+                        .noneMatch(dimension -> dimension.getAliasDotColumn().equals(column.getAliasDotColumn())))
+                .forEach(c -> c.setStatus(NDataModel.ColumnStatus.EXIST));
     }
 
     private <K, T> void compareAndUpdateColumns(Map<K, T> origin, Map<K, T> target, Consumer<T> onlyInTarget,

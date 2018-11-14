@@ -27,47 +27,75 @@ package io.kyligence.kap.smart.model.cc;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.smart.model.cc.ComputedColumnAdvisor.CCRuleVisitor;
 
 public class ComputedColumnAdvisorTest {
 
     @Test
     public void sumCCTest() {
         String sql = "select SUM(CASE when MARA_MEDICARE_RISK_SCORE>1 then 1 else 0 end), PAYER as a from Z_PROVDASH_UM_ED group by PAYER";
-        
-        List<String> suggestion = new ComputedColumnAdvisor().suggestCandidate(sql, null);
-        
+
+        List<String> suggestion = suggestCC(sql);
+
         Assert.assertNotNull(suggestion);
         Assert.assertEquals(1, suggestion.size());
-        Assert.assertEquals("CASE WHEN \"MARA_MEDICARE_RISK_SCORE\" > 1 THEN 1 ELSE 0 END", suggestion.get(0));
+        Assert.assertEquals("CASE WHEN MARA_MEDICARE_RISK_SCORE > 1 THEN 1 ELSE 0 END", suggestion.get(0));
     }
-    
+
     @Test
     public void arrayItemCCTest() {
         String sql = "select ARRAY['123', '222'][1],  PAYER from Z_PROVDASH_UM_ED";
-        
-        List<String> suggestion = new ComputedColumnAdvisor().suggestCandidate(sql, null);
-        
+
+        List<String> suggestion = suggestCC(sql);
+
         Assert.assertNotNull(suggestion);
         Assert.assertEquals(1, suggestion.size());
         Assert.assertEquals("ARRAY['123', '222'][1]", suggestion.get(0));
     }
-    
+
     @Test
     public void duplicateCCTest() {
+        String sql = "select SUM(CASE when MARA_MEDICARE_RISK_SCORE>1 then 1 else 0 end), "
+                + "AVG(CASE when MARA_MEDICARE_RISK_SCORE>1 then 1 else 0 end), "
+                + "PAYER as a from Z_PROVDASH_UM_ED group by PAYER";
 
-        String sql = "select SUM(CASE when MARA_MEDICARE_RISK_SCORE>1 then 1 else 0 end), PAYER as a from Z_PROVDASH_UM_ED group by PAYER";
-        
-        ComputedColumnDesc existedCC = new ComputedColumnDesc();
-        existedCC.setInnerExpression("CASE WHEN \"MARA_MEDICARE_RISK_SCORE\" > 1 THEN 1 ELSE 0 END");
-        List<ComputedColumnDesc> blackList = new ArrayList<>(1);
-        blackList.add(existedCC);
-        List<String> suggestion = new ComputedColumnAdvisor().suggestCandidate(sql, blackList);
-        
+        List<String> suggestion = suggestCC(sql);
+
         Assert.assertNotNull(suggestion);
-        Assert.assertTrue(suggestion.isEmpty());
+        Assert.assertEquals(1, suggestion.size());
+        Assert.assertEquals("CASE WHEN MARA_MEDICARE_RISK_SCORE > 1 THEN 1 ELSE 0 END", suggestion.get(0));
+    }
+
+    @Test
+    public void caseCCTest() {
+        String sql = "select CASE when MARA_MEDICARE_RISK_SCORE>1 then 1 else 0 end, PAYER as a from Z_PROVDASH_UM_ED";
+
+        List<String> suggestion = suggestCC(sql);
+
+        Assert.assertNotNull(suggestion);
+        Assert.assertEquals(1, suggestion.size());
+        Assert.assertEquals("CASE WHEN MARA_MEDICARE_RISK_SCORE > 1 THEN 1 ELSE 0 END", suggestion.get(0));
+    }
+
+    @SuppressWarnings({ "unchecked" })
+    private List<String> suggestCC(String sql) {
+
+        SqlNode sqlNode;
+        try {
+            sqlNode = CalciteParser.parse(sql);
+        } catch (SqlParseException e) {
+            return null;
+        }
+
+        CCRuleVisitor ruleVisitor = new CCRuleVisitor();
+        sqlNode.accept(ruleVisitor);
+
+        return new ArrayList<>(ruleVisitor.getSuggestions());
     }
 }

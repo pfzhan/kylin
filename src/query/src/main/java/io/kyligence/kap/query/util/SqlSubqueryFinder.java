@@ -29,6 +29,7 @@ import java.util.List;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlJoin;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
@@ -36,8 +37,10 @@ import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlOrderBy;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlWith;
+import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.calcite.util.Litmus;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 
 import com.google.common.base.Preconditions;
@@ -45,9 +48,11 @@ import com.google.common.base.Preconditions;
 //find child inner select first
 public class SqlSubqueryFinder extends SqlBasicVisitor<SqlNode> {
     private List<SqlCall> sqlSelectsOrOrderbys;
+    private List<SqlIdentifier> subqueryAlias;
 
     SqlSubqueryFinder() {
         this.sqlSelectsOrOrderbys = new ArrayList<>();
+        this.subqueryAlias = new ArrayList<>();
     }
 
     public static List<SqlCall> getSubqueries(String sql) throws SqlParseException {
@@ -77,7 +82,11 @@ public class SqlSubqueryFinder extends SqlBasicVisitor<SqlNode> {
                 sqlSelectsOrOrderbys.add(call);
             }
         }
-
+        
+        if (call instanceof SqlWithItem) {
+            SqlWithItem sqlWithQuery = (SqlWithItem) call;
+            subqueryAlias.add(sqlWithQuery.name);
+        }
         if (call.getKind().equals(SqlKind.UNION)) {
             sqlSelectsOrOrderbys.add(call);
         }
@@ -119,6 +128,17 @@ public class SqlSubqueryFinder extends SqlBasicVisitor<SqlNode> {
                 }
             }
 
+            return null;
+        }
+        
+        @Override
+        public SqlNode visit(SqlIdentifier id) {
+            for (SqlIdentifier alias : subqueryAlias) {
+                if (alias.equalsDeep(id, Litmus.IGNORE)) {
+                    hasRoot = false;
+                    break;
+                }
+            }
             return null;
         }
     }

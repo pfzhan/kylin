@@ -200,12 +200,14 @@ public class QueryAliasMatcher {
         private ColumnRowType buildColumnRowType(String alias, String schemaName, String tableName) {
             OLAPTable olapTable = getTable(schemaName, tableName);
 
-            TableRef tableRef = TblColRef.tableForUnknownModel(alias, olapTable.getSourceTable());
-
             List<TblColRef> columns = new ArrayList<>();
-            for (ColumnDesc sourceColumn : olapTable.getSourceColumns()) {
-                TblColRef colRef = TblColRef.columnForUnknownModel(tableRef, sourceColumn);
-                columns.add(colRef);
+            if (olapTable != null) {
+                TableRef tableRef = TblColRef.tableForUnknownModel(alias, olapTable.getSourceTable());
+                for (ColumnDesc sourceColumn : olapTable.getSourceColumns()) {
+                    TblColRef colRef = TblColRef.columnForUnknownModel(tableRef, sourceColumn);
+                    columns.add(colRef);
+                }
+                
             }
 
             return new ColumnRowType(columns);

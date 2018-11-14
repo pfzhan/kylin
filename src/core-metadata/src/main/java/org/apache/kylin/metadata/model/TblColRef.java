@@ -210,6 +210,11 @@ public class TblColRef implements Serializable {
     public String getBackupTableAlias(){
         return backupTable.getAlias();
     }
+    
+    public String getParserDescription() {
+        return parserDescription;
+    }
+    
     private void markInnerColumn(InnerDataTypeEnum dataType) {
         this.column.setDatatype(dataType.getDataType());
         this.column.getTable().setName(INNER_TABLE_NAME);

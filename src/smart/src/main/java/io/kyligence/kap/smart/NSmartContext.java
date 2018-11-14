@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,7 +31,6 @@ import java.util.Set;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
@@ -43,6 +41,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -64,12 +63,13 @@ public class NSmartContext {
     // only used in auto-modeling
     private String draftVersion;
 
-    @Setter(AccessLevel.PACKAGE)
-    private Map<Integer, Collection<OLAPContext>> olapContexts;
-    @Setter(AccessLevel.PACKAGE)
+    @Setter
     private List<NModelContext> modelContexts;
     @Setter
     private Map<String, AccelerateInfo> accelerateInfoMap;
+    
+    @Getter
+    private Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
 
     private final NTableMetadataManager tableMetadataManager;
     private final Map<String, TableExtDesc.ColumnStats> columnStatsCache = Maps.newConcurrentMap();
@@ -159,9 +159,14 @@ public class NSmartContext {
 
         private NSmartContext smartContext;
 
-        public NModelContext(NSmartContext smartContext) {
+        private NModelContext(NSmartContext smartContext, ModelTree modelTree) {
             this.smartContext = smartContext;
+            this.modelTree = modelTree;
         }
+    }
+
+    public NModelContext createModelContext(ModelTree modelTree) {
+        return new NModelContext(this, modelTree);
     }
 
     public NSmartContext(KylinConfig kylinConfig, String project, String[] sqls, String draftVersion) {

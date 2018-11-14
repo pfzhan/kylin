@@ -104,11 +104,9 @@ public class NSmartMasterTest extends NTestBase {
             smartMaster.analyzeSQLs();
             NSmartContext ctx = smartMaster.getContext();
             Assert.assertEquals(1, ctx.getModelContexts().size());
-            Assert.assertEquals(expectedEffectiveOLAPCtxNum, countInnerObj(ctx.getOlapContexts().values()));
 
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
             Assert.assertNotNull(mdCtx.getModelTree());
-
             ModelTree modelTree = mdCtx.getModelTree();
             Assert.assertEquals(expectedEffectiveOLAPCtxNum, modelTree.getOlapContexts().size());
             Assert.assertEquals(kylinSalesTblDesc, modelTree.getRootFactTable());
@@ -196,9 +194,12 @@ public class NSmartMasterTest extends NTestBase {
             smartMaster.analyzeSQLs();
             NSmartContext ctx = smartMaster.getContext();
             Assert.assertEquals(1, ctx.getModelContexts().size());
-            Assert.assertEquals(expectedEffectiveOLAPCtxNum, countInnerObj(ctx.getOlapContexts().values()));
+
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
             Assert.assertNotNull(mdCtx.getModelTree());
+            ModelTree modelTree = mdCtx.getModelTree();
+            Assert.assertEquals(expectedEffectiveOLAPCtxNum, modelTree.getOlapContexts().size());
+            Assert.assertEquals(kylinSalesTblDesc, modelTree.getRootFactTable());
         }
 
         // select model

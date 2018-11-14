@@ -44,6 +44,8 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.query.SQLResult.Status;
 import io.kyligence.kap.smart.query.mockup.AbstractQueryExecutor;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
@@ -84,6 +86,8 @@ public abstract class AbstractQueryRunner implements Closeable {
                 }
                 if (!isCacheValid) {
                     KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+                    NTableMetadataManager.getInstance(kylinConfig, project);
+                    NDataModelManager.getInstance(kylinConfig, project);
                     record = executor.execute(project, sql);
                     queryCache.put(sql, record);
                 }

@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart.model;
 
-import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -177,8 +176,9 @@ public class NModelMasterTest extends NTestBase {
         smartMaster.analyzeSQLs();
 
         NSmartContext ctx = smartMaster.getContext();
-        Assert.assertEquals(1, ctx.getOlapContexts().values().size());
-        Assert.assertEquals(0, Lists.newArrayList(ctx.getOlapContexts().values()).get(0).iterator().next().allColumns.size());
+        Assert.assertEquals(1, ctx.getModelContexts().size());
+        Assert.assertEquals(0,
+                ctx.getModelContexts().get(0).getModelTree().getOlapContexts().iterator().next().allColumns.size());
         NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
         Assert.assertNotNull(mdCtx);
 

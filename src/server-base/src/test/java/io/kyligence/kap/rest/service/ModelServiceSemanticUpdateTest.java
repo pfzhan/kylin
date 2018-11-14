@@ -141,18 +141,18 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         var request = newSemanticRequest();
         val OLD_ALIAS = "TEST_ORDER";
         val NEW_ALIAS = "NEW_ALIAS";
-        val colCount = request.getAllNamedColumns().stream().filter(n -> n.aliasDotColumn.startsWith("TEST_ORDER"))
+        val colCount = request.getAllNamedColumns().stream().filter(n -> n.getAliasDotColumn().startsWith("TEST_ORDER"))
                 .count();
         request = changeAlias(request, OLD_ALIAS, NEW_ALIAS);
         modelService.updateDataModelSemantic(request);
 
         val model = getTestModel();
-        val tombCount = model.getAllNamedColumns().stream().filter(n -> n.aliasDotColumn.startsWith("TEST_ORDER"))
+        val tombCount = model.getAllNamedColumns().stream().filter(n -> n.getAliasDotColumn().startsWith("TEST_ORDER"))
                 .peek(col -> {
-                    Assert.assertEquals(ColumnStatus.TOMB, col.status);
+                    Assert.assertEquals(ColumnStatus.TOMB, col.getStatus());
                 }).count();
         Assert.assertEquals(colCount, tombCount);
-        val otherTombCount = model.getAllNamedColumns().stream().filter(n -> !n.aliasDotColumn.startsWith("TEST_ORDER"))
+        val otherTombCount = model.getAllNamedColumns().stream().filter(n -> !n.getAliasDotColumn().startsWith("TEST_ORDER"))
                 .filter(nc -> !nc.isExist()).count();
         Assert.assertEquals(1, otherTombCount);
         Assert.assertEquals(203, model.getAllNamedColumns().size());
@@ -210,18 +210,18 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 .filter(cc -> "DEAL_YEAR".equals(cc.getColumnName())).findFirst().orElse(null);
         Assert.assertNotNull(ccDesc);
         NamedColumn ccCol = request.getAllNamedColumns().stream()
-                .filter(c -> c.aliasDotColumn.equals(ccDesc.getFullName())).findFirst().orElse(null);
+                .filter(c -> c.getAliasDotColumn().equals(ccDesc.getFullName())).findFirst().orElse(null);
         Assert.assertNotNull(ccCol);
-        Assert.assertTrue(ccCol.status == ColumnStatus.DIMENSION);
+        Assert.assertTrue(ccCol.getStatus() == ColumnStatus.DIMENSION);
         int ccColId = ccCol.getId();
         request.getComputedColumnDescs().remove(ccDesc);
 
         val prevId = getTestModel().getAllNamedColumns().stream()
-                .filter(n -> n.aliasDotColumn.equals(newCol.aliasDotColumn)).findFirst().map(n -> n.id).orElse(0);
+                .filter(n -> n.getAliasDotColumn().equals(newCol.getAliasDotColumn())).findFirst().map(n -> n.getId()).orElse(0);
         modelService.updateDataModelSemantic(request);
 
         val model = getTestModel();
-        Assert.assertEquals(newCol.name, model.getNameByColumnId(prevId));
+        Assert.assertEquals(newCol.getName(), model.getNameByColumnId(prevId));
         Assert.assertNull(model.getEffectiveDimenionsMap().get(25));
         Assert.assertFalse(model.getComputedColumnNames().contains("DEAL_YEAR"));
         Assert.assertNull(model.getEffectiveDimenionsMap().get(ccColId));
@@ -233,17 +233,17 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         dfMgr.updateDataflow(dfMgr.getDataflowByModelName(request.getName()).getName(),
                 copyForWrite -> copyForWrite.setReconstructing(false));
 
-        newCol.name = "PRICE3";
+        newCol.setName("PRICE3");
         request.getComputedColumnDescs().add(ccDesc);
         modelService.updateDataModelSemantic(request);
         val model2 = getTestModel();
-        Assert.assertEquals(newCol.name, model2.getNameByColumnId(prevId));
+        Assert.assertEquals(newCol.getName(), model2.getNameByColumnId(prevId));
         Assert.assertTrue(model2.getComputedColumnNames().contains("DEAL_YEAR"));
         NamedColumn newCcCol = model2.getAllNamedColumns().stream()
-                .filter(c -> c.aliasDotColumn.equals(ccDesc.getFullName())).filter(c -> c.isExist()).findFirst()
+                .filter(c -> c.getAliasDotColumn().equals(ccDesc.getFullName())).filter(c -> c.isExist()).findFirst()
                 .orElse(null);
         Assert.assertNotNull(newCcCol);
-        Assert.assertNotEquals(ccColId, newCcCol.id);
+        Assert.assertNotEquals(ccColId, newCcCol.getId());
     }
 
     @Test
@@ -283,7 +283,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                     Stream.of(join.getJoin().getPrimaryKey()).map(replaceTableName).toArray(String[]::new));
         });
         newRequest.setAllNamedColumns(request.getAllNamedColumns().stream().filter(NamedColumn::isDimension)
-                .peek(nc -> nc.aliasDotColumn = replaceTableName.apply(nc.aliasDotColumn))
+                .peek(nc -> nc.setAliasDotColumn(replaceTableName.apply(nc.getAliasDotColumn())))
                 .collect(Collectors.toList()));
         return newRequest;
     }

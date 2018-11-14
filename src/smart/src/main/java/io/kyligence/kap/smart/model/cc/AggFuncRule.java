@@ -22,28 +22,48 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.query;
+package io.kyligence.kap.smart.model.cc;
 
 import java.util.List;
 
-import org.apache.kylin.common.KylinConfig;
+import org.apache.calcite.sql.SqlAggFunction;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
+import org.apache.calcite.sql.SqlIdentifier;
+import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlNumericLiteral;
+import org.apache.calcite.sql.SqlOperator;
 
-import io.kyligence.kap.metadata.model.NDataModel;
+public class AggFuncRule implements IAdviceRule {
 
-public final class NQueryRunnerFactory {
-    
-    private NQueryRunnerFactory() { }
+    @SuppressWarnings("unchecked")
+    @Override
+    public String matches(SqlCall call) {
+        SqlOperator op = call.getOperator();
+        if (!(op instanceof SqlAggFunction)) {
+            return null;
+        }
 
-    public static AbstractQueryRunner createForModelSuggestion(KylinConfig srcKylinConfig, String projectName,
-            String[] sqls, int nThreads) {
+        List<SqlNode> params = call.getOperandList();
+        if (params.isEmpty()) {
+            return null;
+        }
 
-        final NLocalQueryRunnerBuilder builder = new NLocalQueryRunnerBuilder(srcKylinConfig, sqls, nThreads);
-        return builder.buildBasic(projectName);
+        SqlNode param = params.get(0);
+        if (param instanceof SqlIdentifier) {
+            return null;
+        }
+
+        if (param instanceof SqlNumericLiteral) {
+            return null;
+        }
+
+        BlackListValidator validator = new BlackListValidator();
+        param.accept(validator);
+        if (!validator.getResult()) {
+            return null;
+        }
+
+        return param.toSqlString(DatabaseProduct.HIVE.getDialect()).getSql();
     }
-
-    public static AbstractQueryRunner createForModelSuggestion(KylinConfig srcKylinConfig, String[] sqls, int nThreads,
-            String projectName, List<NDataModel> modelDescs) {
-        return new NLocalQueryRunnerBuilder(srcKylinConfig, sqls, nThreads).buildWithModelDescs(projectName, modelDescs);
-    }
-
 }

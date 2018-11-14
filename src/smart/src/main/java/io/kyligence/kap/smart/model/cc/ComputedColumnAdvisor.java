@@ -24,83 +24,114 @@
 
 package io.kyligence.kap.smart.model.cc;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
-import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
-import org.apache.calcite.util.Litmus;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.query.util.QueryAliasMatchInfo;
+import io.kyligence.kap.query.util.QueryAliasMatcher;
+import io.kyligence.kap.query.util.SqlSubqueryFinder;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
-public class ComputedColumnAdvisor extends SqlBasicVisitor {
+public class ComputedColumnAdvisor {
 
-    private static Logger logger = LoggerFactory.getLogger(ComputedColumnAdvisor.class);
+    private static Logger LOGGER = LoggerFactory.getLogger(ComputedColumnAdvisor.class);
 
-    private final static IAdviceRule[] registeredRules = new IAdviceRule[] { 
-            new SumAvgRule(), 
-            new ArrayItemRule() 
-            };
+    private static final IAdviceRule[] registeredRules = new IAdviceRule[] { 
+            new AggFuncRule(),       // SUM({EXPR}): advice complicated EXPR as CC expect SUM(COL) and SUM(NUM) cases
+            new ArrayItemRule(),    // array[{INDEX}]: access array item should use CC
+            new CaseWhenRule()      // CASE .. WHEN .. 
+    };
 
-    Set<String> ccSuggestions = new HashSet<>();
+    public List<String> suggestCandidate(String project, NDataModel modelDesc, String sql) {
 
-    public List<String> suggestCandidate(String sql, List<ComputedColumnDesc> existedCCs) {
-        ccSuggestions.clear();
+        TableDesc tableDesc = modelDesc.getRootFactTable().getTableDesc();
+        String schemaName = tableDesc.getDatabase();
+        String tableName = tableDesc.getName();
 
-        SqlNode sqlNode;
+        List<SqlCall> selectOrOrderbys;
         try {
-            sqlNode = CalciteParser.parse(sql);
-            sqlNode.accept(this);
+            selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
         } catch (SqlParseException e) {
-            logger.error("Error in suggesting Computed Column", e);
+            LOGGER.warn("Advice CC failed, error in visiting subqueries", e);
+            return Lists.newArrayList();
         }
 
-        if (existedCCs != null && !existedCCs.isEmpty()) {
-            // remove duplicated CC expression
-            for (ComputedColumnDesc cc : existedCCs) {
-                String ccExpr = cc.getInnerExpression();
-                SqlNode ccNode = CalciteParser.getExpNode(ccExpr);
+        QueryAliasMatcher queryAliasMatcher = new QueryAliasMatcher(project, schemaName);
+        List<String> ccSuggestions = Lists.newArrayList();
+        for (SqlCall selectOrOrderby : selectOrOrderbys) {
+            // Parse query to locate CC expression
+            SqlSelect sqlSelect = KapQueryUtil.extractSqlSelect(selectOrOrderby);
+            QueryAliasMatchInfo info = null;
+            try {
+                info = queryAliasMatcher.match(modelDesc, sqlSelect);
+            } catch (Exception e) {
+                LOGGER.warn("Advice CC failed, error in analyzing query alias, {}", sqlSelect, e);
+            }
+            if (info == null) {
+                // Skip parent query if not directly access table
+                continue;
+            }
 
-                Iterator<String> iterator = ccSuggestions.iterator();
-                while (iterator.hasNext()) {
-                    String ccSuggestion = iterator.next();
-                    SqlNode suggestedNode = CalciteParser.getExpNode(ccSuggestion);
-                    if (ccNode.equalsDeep(suggestedNode, Litmus.IGNORE)) {
-                        iterator.remove();
+            // Get suggested CC expressions
+            CCRuleVisitor ruleVisitor = new CCRuleVisitor();
+            sqlSelect.accept(ruleVisitor);
+            for (String suggestion : ruleVisitor.getSuggestions()) {
+                String expr = suggestion;
+                try {
+                    if (CalciteParser.hasAliasInExpr(expr)) {
+                        expr = CalciteParser.replaceAliasInExpr(expr, info.getAliasMapping());
+                    } else {
+                        // Use root table as default table alias
+                        expr = CalciteParser.insertAliasInExpr(expr, tableName);
                     }
+                } catch (Exception e) {
+                    LOGGER.warn("Cannot resolve table alias of {}", suggestion, e);
+                }
+                ccSuggestions.add(expr);
+            }
+        }
+
+        return ccSuggestions;
+    }
+
+    static class CCRuleVisitor extends SqlBasicVisitor {
+        private Set<String> suggestions = new HashSet<>();
+
+        public Set<String> getSuggestions() {
+            return this.suggestions;
+        }
+
+        @Override
+        public Object visit(SqlIdentifier id) {
+            return null;
+        }
+
+        @Override
+        public Object visit(SqlCall call) {
+            for (IAdviceRule rule : registeredRules) {
+                String suggestedCC = rule.matches(call);
+                if (StringUtils.isNotEmpty(suggestedCC)) {
+                    suggestions.add(suggestedCC);
+                    return null;
                 }
             }
+            return call.getOperator().acceptCall(this, call);
         }
-
-        return new ArrayList(ccSuggestions);
-    }
-
-    @Override
-    public Object visit(SqlIdentifier id) {
-        return null;
-    }
-
-    @Override
-    public Object visit(SqlCall call) {
-        for (IAdviceRule rule : registeredRules) {
-            String suggestedCC = rule.matches(call);
-            if (StringUtils.isNotEmpty(suggestedCC)) {
-                ccSuggestions.add(suggestedCC);
-                return null;
-            }
-        }
-
-        return call.getOperator().acceptCall(this, call);
     }
 }

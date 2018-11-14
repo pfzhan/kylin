@@ -146,6 +146,30 @@ object SparderTypeUtil extends Logging {
     }
   }
 
+  def convertSparkTypeToSqlType(dt: org.apache.spark.sql.types.DataType): SqlTypeName = {
+    dt match {
+      case DecimalType.ByteDecimal => SqlTypeName.DECIMAL
+      case DecimalType.ShortDecimal => SqlTypeName.DECIMAL
+      case DecimalType.IntDecimal => SqlTypeName.DECIMAL
+      case DecimalType.LongDecimal => SqlTypeName.DECIMAL
+      case DecimalType.FloatDecimal => SqlTypeName.DECIMAL
+      case DecimalType.DoubleDecimal => SqlTypeName.DECIMAL
+      case DecimalType.BigIntDecimal => SqlTypeName.DECIMAL
+      case StringType => SqlTypeName.VARCHAR
+      case IntegerType => SqlTypeName.INTEGER
+      case ByteType => SqlTypeName.TINYINT
+      case ShortType => SqlTypeName.SMALLINT
+      case LongType => SqlTypeName.BIGINT
+      case FloatType => SqlTypeName.FLOAT
+      case DoubleType => SqlTypeName.DOUBLE
+      case DateType => SqlTypeName.DATE
+      case TimestampType => SqlTypeName.TIMESTAMP
+      case BooleanType => SqlTypeName.BOOLEAN
+      case _ =>
+        throw new IllegalArgumentException(s"unsupported SqlTypeName $dt")
+    }
+  }
+
   // scalastyle:off
   def convertStringToValue(s: Any, rowType: RelDataType, toCalcite: Boolean): Any = {
     val sqlTypeName = rowType.getSqlTypeName

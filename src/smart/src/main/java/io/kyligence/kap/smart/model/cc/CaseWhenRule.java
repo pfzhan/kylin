@@ -22,28 +22,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart;
+package io.kyligence.kap.smart.model.cc;
 
-import java.util.Arrays;
-import java.util.List;
+import org.apache.calcite.sql.SqlCall;
+import org.apache.calcite.sql.SqlDialect.DatabaseProduct;
+import org.apache.calcite.sql.fun.SqlCase;
 
-import com.google.common.collect.Lists;
+public class CaseWhenRule implements IAdviceRule {
 
-import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
-import io.kyligence.kap.smart.model.ModelTree;
-
-public class NSQLSimpleClusterer {
-    public List<NSmartContext.NModelContext> cluster(NSmartContext smartContext) {
-        GreedyModelTreesBuilder builder = new GreedyModelTreesBuilder(smartContext.getKylinConfig(),
-                smartContext.getProject());
-        List<ModelTree> modelTrees = builder.build(Arrays.asList(smartContext.getSqls()),
-                Lists.newArrayList(smartContext.getOlapContexts().values()), null);
-        List<NSmartContext.NModelContext> result = Lists.newArrayListWithExpectedSize(modelTrees.size());
-        for (ModelTree modelTree : modelTrees) {
-            NSmartContext.NModelContext ctx = new NSmartContext.NModelContext(smartContext);
-            ctx.setModelTree(modelTree);
-            result.add(ctx);
+    @SuppressWarnings("unchecked")
+    @Override
+    public String matches(SqlCall call) {
+        if (call instanceof SqlCase) {
+            BlackListValidator validator = new BlackListValidator();
+            call.accept(validator);
+            if (validator.getResult()) {
+                return call.toSqlString(DatabaseProduct.HIVE.getDialect()).getSql();
+            }
         }
-        return result;
+        return null;
     }
 }

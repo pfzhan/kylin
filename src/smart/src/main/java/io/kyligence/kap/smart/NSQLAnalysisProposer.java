@@ -27,9 +27,15 @@ package io.kyligence.kap.smart;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.query.SQLResult;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
+import io.kyligence.kap.smart.model.ModelTree;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.NQueryRunnerFactory;
 
@@ -37,7 +43,6 @@ import java.util.Map;
 
 class NSQLAnalysisProposer extends NAbstractProposer {
     private static final Logger logger = LoggerFactory.getLogger(NSQLAnalysisProposer.class);
-    private NSQLSimpleClusterer clusterer = new NSQLSimpleClusterer();
 
     NSQLAnalysisProposer(NSmartContext context) {
         super(context);
@@ -48,9 +53,11 @@ class NSQLAnalysisProposer extends NAbstractProposer {
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(context.getKylinConfig(),
                 context.getProject(), context.getSqls(), 1)) {
             extractor.execute();
-            logFailedQuery(extractor);
-            context.setOlapContexts(extractor.getOlapContexts());
-            context.setModelContexts(clusterer.cluster(context));
+            context.logFailedQuery(extractor);
+            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(context.getKylinConfig(), context.getProject())
+                    .build(Arrays.asList(context.getSqls()), extractor.getAllOLAPContexts(), null);
+            context.setModelContexts(
+                    modelTrees.stream().map(tree -> context.createModelContext(tree)).collect(Collectors.toList()));
         } catch (Exception e) {
             logger.error("Failed to get query stats. ", e);
         }

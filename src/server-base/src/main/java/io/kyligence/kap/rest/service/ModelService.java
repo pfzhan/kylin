@@ -46,7 +46,6 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
-import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -660,7 +659,7 @@ public class ModelService extends BasicService {
                 continue;
 
             //replace computed columns with basic columns
-            String ccExpression = massageComputedColumn(dataModelDesc, project, cc);
+            String ccExpression = KapQueryUtil.massageComputedColumn(dataModelDesc, project, cc);
             cc.simpleParserCheck(ccExpression, dataModelDesc.getAliasMap().keySet());
 
             //check by data source, this could be slow
@@ -687,25 +686,6 @@ public class ModelService extends BasicService {
         }
     }
 
-    private static String massageComputedColumn(NDataModel modelDesc, String project, ComputedColumnDesc cc) {
-
-        NDataModelFlatTableDesc flatTableDesc = new NDataModelFlatTableDesc(modelDesc);
-
-        String tempConst = "'" + UUID.randomUUID().toString() + "'";
-
-        StringBuilder forCC = new StringBuilder();
-        forCC.append("select ");
-        forCC.append(cc.getExpression());
-        forCC.append(" ,").append(tempConst);
-        forCC.append(" ");
-        NJoinedFlatTable.appendJoinStatement(flatTableDesc, forCC, false);
-
-        String ccSql = KeywordDefaultDirtyHack.transform(forCC.toString());
-        ccSql = KapQueryUtil.massageComputedColumn(ccSql, project, "DEFAULT", modelDesc);
-
-        return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1);
-    }
-
     public void preProcessBeforeModelSave(NDataModel model, String project) {
 
         model.init(getConfig(), getTableManager(project).getAllTablesMap(),
@@ -713,7 +693,7 @@ public class ModelService extends BasicService {
 
         // Update CC expression from query transformers
         for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
-            String ccExpression = massageComputedColumn(model, project, ccDesc);
+            String ccExpression = KapQueryUtil.massageComputedColumn(model, project, ccDesc);
             ccDesc.setInnerExpression(ccExpression);
         }
     }

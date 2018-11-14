@@ -69,6 +69,8 @@ public class NModelSelectProposer extends NAbstractProposer {
                 modelContext.setOrigModel(model);
                 NDataModel targetModel = NDataModel.getCopyOf(model);
                 initModel(targetModel);
+                targetModel.getComputedColumnDescs().stream()
+                        .forEach(cc -> context.getUsedCC().put(cc.getExpression(), cc));
                 modelContext.setTargetModel(targetModel);
             }
         }
@@ -83,32 +85,38 @@ public class NModelSelectProposer extends NAbstractProposer {
 
     private NDataModel compareWithFactTable(ModelTree modelTree) {
         for (NDataModel model : modelManager.listModels()) {
-            if (model.getRootFactTable().getTableIdentity().equals(modelTree.getRootFactTable().getIdentity())) {
-                List<JoinDesc> modelTreeJoins = Lists.newArrayListWithExpectedSize(modelTree.getJoins().size());
-                TableRef factTblRef = null;
-                if (modelTree.getJoins().isEmpty()) {
-                    factTblRef = model.getRootFactTable();
-                } else {
-                    Map<TableRef, TableRef> joinMap = Maps.newHashMap();
-                    for (JoinTableDesc joinTableDesc : modelTree.getJoins().values()) {
-                        modelTreeJoins.add(joinTableDesc.getJoin());
-                        joinMap.put(joinTableDesc.getJoin().getPKSide(), joinTableDesc.getJoin().getFKSide());
-                    }
-                    for (Map.Entry<TableRef, TableRef> joinEntry : joinMap.entrySet()) {
-                        if (!joinMap.containsKey(joinEntry.getValue())) {
-                            factTblRef = joinEntry.getValue();
-                            break;
-                        }
-                    }
-                }
-                JoinsTree joinsTree = new JoinsTree(factTblRef, modelTreeJoins);
-                //Map<String, String> matching = joinsTree.matches(model.getJoinsTree());
-                //if (matching != null)
-                if (GreedyModelTreesBuilder.matchJoinTree(model.getJoinsTree(), joinsTree))
-                    return (NDataModel) model;
+            if (matchModelTree(model, modelTree)) {
+                return model;
             }
         }
-
         return null;
+    }
+    
+    public static boolean matchModelTree(NDataModel model, ModelTree modelTree) {
+        if (model.getRootFactTable().getTableIdentity().equals(modelTree.getRootFactTable().getIdentity())) {
+            List<JoinDesc> modelTreeJoins = Lists.newArrayListWithExpectedSize(modelTree.getJoins().size());
+            TableRef factTblRef = null;
+            if (modelTree.getJoins().isEmpty()) {
+                factTblRef = model.getRootFactTable();
+            } else {
+                Map<TableRef, TableRef> joinMap = Maps.newHashMap();
+                for (JoinTableDesc joinTableDesc : modelTree.getJoins().values()) {
+                    modelTreeJoins.add(joinTableDesc.getJoin());
+                    joinMap.put(joinTableDesc.getJoin().getPKSide(), joinTableDesc.getJoin().getFKSide());
+                }
+                for (Map.Entry<TableRef, TableRef> joinEntry : joinMap.entrySet()) {
+                    if (!joinMap.containsKey(joinEntry.getValue())) {
+                        factTblRef = joinEntry.getValue();
+                        break;
+                    }
+                }
+            }
+            JoinsTree joinsTree = new JoinsTree(factTblRef, modelTreeJoins);
+            //Map<String, String> matching = joinsTree.matches(model.getJoinsTree());
+            //if (matching != null)
+            if (GreedyModelTreesBuilder.matchJoinTree(model.getJoinsTree(), joinsTree))
+                return true;
+        }
+        return false;
     }
 }

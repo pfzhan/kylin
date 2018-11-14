@@ -28,8 +28,8 @@ import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.NSmartContext;
 
 public abstract class NAbstractModelProposer {
@@ -52,7 +52,7 @@ public abstract class NAbstractModelProposer {
         return modelDesc;
     }
 
-    private void initModel(NDataModel modelDesc) {
+    protected void initModel(NDataModel modelDesc) {
         KylinConfig kylinConfig = modelContext.getSmartContext().getKylinConfig();
         String project = modelContext.getSmartContext().getProject();
         modelDesc.init(kylinConfig, NTableMetadataManager.getInstance(kylinConfig, project).getAllTablesMap(),

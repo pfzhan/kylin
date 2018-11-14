@@ -239,7 +239,16 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
                     cc.getColumnName(), expr, start, end, alias);
             result = result.substring(0, start) + alias + "." + cc.getColumnName() + result.substring(end);
         }
-        return Pair.newPair(result, toBeReplacedExp.size());
+        try {
+            SqlNode inputNodes = CalciteParser.parse(inputSql);
+            int cntNodesBefore = getInputTreeNodes((SqlCall) inputNodes).size();
+            SqlNode resultNodes = CalciteParser.parse(result);
+            int cntNodesAfter = getInputTreeNodes((SqlCall) resultNodes).size();
+            return Pair.newPair(result, cntNodesBefore - cntNodesAfter);
+        } catch (SqlParseException e) {
+            logger.debug("Convert to computedColumn Fail, parse result sql fail: {}", result, e);
+            return Pair.newPair(inputSql, 0);
+        }
     }
     
     private static List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> matchComputedColumn(String inputSql,
