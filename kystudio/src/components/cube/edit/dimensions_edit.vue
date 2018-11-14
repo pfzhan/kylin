@@ -1109,7 +1109,6 @@ export default {
         .el-tag {
           cursor: pointer;
           outline: 0;
-          hidefocus: true;
         }
         .el-tag:focus {
           box-shadow: 1px 0 2px 0 @text-secondary-color,

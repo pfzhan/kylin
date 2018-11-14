@@ -88,16 +88,18 @@
               <span class="close" @click="toggleMenu('dimension')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
+              <span @click="toggleCheckbox" :class="{'active': isShowCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
               <span @click="batchSetDimension"><i class="el-icon-ksd-batch"></i></span>
               <span @click="addCCDimension"><i class="el-icon-ksd-project_add"></i></span>
-              <span><i class="el-icon-ksd-table_delete" @click="deleteDimenisons"></i></span>
+              <span class="ksd-fright batch-del"><i class="el-icon-ksd-table_delete" :class="{'delable': dimensionSelectedList.length>0}" @click="deleteDimenisons"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="dimension-list">
                 <li v-for="(d, i) in allDimension" :key="d.name">
-                  <el-checkbox v-model="dimensionSelectedList" :label="i">{{d.name|omit(18,'...')}}</el-checkbox>
-                  <i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i>
-                  <i class="el-icon-ksd-table_delete" @click="deleteDimenison(i)"></i>
+                  <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="i">{{d.name|omit(18,'...')}}</el-checkbox>
+                  <span v-else>{{d.name|omit(18,'...')}}</span>
+                  <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteDimenison(i)"></i></span>
+                  <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i></span>
                   <span class="li-type ky-option-sub-info">{{d.datatype}}</span>
                 </li>
               </ul>
@@ -114,15 +116,17 @@
               <span class="close" @click="toggleMenu('measure')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
-              <span><i class="el-icon-ksd-project_add" @click="addNewMeasure"></i></span>
-              <span><i class="el-icon-ksd-table_delete" @click="deleteMeasures"></i></span>
+              <span @click="toggleMeaCheckbox" :class="{'active': isShowMeaCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
+              <span @click="addNewMeasure"><i class="el-icon-ksd-project_add"></i></span>
+              <span class="ksd-fright batch-del" @click="deleteMeasures"><i class="el-icon-ksd-table_delete" :class="{'delable': measureSelectedList.length>0}"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="measure-list">
                 <li v-for="(m, i) in modelRender.all_measures" :key="m.name">
-                <el-checkbox v-model="measureSelectedList" :label="i">{{m.name|omit(18,'...')}}</el-checkbox>
-                  <i class="el-icon-ksd-table_edit" @click="editMeasure(m)" v-if="m.name !== 'COUNT_ALL'"></i>
-                  <i class="el-icon-ksd-table_delete" @click="deleteMeasure(i)" v-if="m.name !== 'COUNT_ALL'"></i>
+                  <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :label="i">{{m.name|omit(18,'...')}}</el-checkbox>
+                  <span v-else>{{m.name|omit(18,'...')}}</span>
+                  <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(i)" v-if="m.name !== 'COUNT_ALL'"></i></span>
+                  <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)" v-if="m.name !== 'COUNT_ALL'"></i></span>
                   <span class="li-type ky-option-sub-info">{{m.return_type}}</span>
                 </li>
               </ul>
@@ -139,15 +143,17 @@
               <span class="close" @click="toggleMenu('cc')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
-              <span><i class="el-icon-ksd-project_add" @click="addCC"></i></span>
-              <span><i class="el-icon-ksd-table_delete" @click="delCCs"></i></span>
+              <span @click="toggleCCCheckbox" :class="{'active': isShowCCCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
+              <span @click="addCC"><i class="el-icon-ksd-project_add"></i></span>
+              <span class="ksd-fright batch-del" @click="delCCs"><i class="el-icon-ksd-table_delete" :class="{'delable': ccSelectedList.length>0}"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="measure-list">
                 <li v-for="(m, i) in modelRender.computed_columns" :key="m.name">
-                <el-checkbox v-model="ccSelectedList" :label="i">{{m.columnName|omit(18,'...')}}</el-checkbox>
-                  <!-- <i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i> -->
-                  <i class="el-icon-ksd-table_delete" @click="delCC(i)"></i>
+                  <el-checkbox v-model="ccSelectedList" v-if="isShowCCCheckbox" :label="i">{{m.columnName|omit(18,'...')}}</el-checkbox>
+                  <span v-else>{{m.columnName|omit(18,'...')}}</span>
+                  <!-- <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span> -->
+                  <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="delCC(i)"></i></span>
                   <span class="li-type ky-option-sub-info">{{m.datatype}}</span>
                 </li>
               </ul>
@@ -381,6 +387,9 @@ export default class ModelEdit extends Vue {
   }
   panelAppear = modelRenderConfig.pannelsLayout()
   radio = 1
+  isShowCheckbox = false
+  isShowMeaCheckbox = false
+  isShowCCCheckbox = false
   get allDimension () {
     return this.modelRender.dimensions
   }
@@ -403,6 +412,15 @@ export default class ModelEdit extends Vue {
   }
   showDelTableTip () {
     this.delTipVisible = true
+  }
+  toggleCheckbox () {
+    this.isShowCheckbox = !this.isShowCheckbox
+  }
+  toggleMeaCheckbox () {
+    this.isShowMeaCheckbox = !this.isShowMeaCheckbox
+  }
+  toggleCCCheckbox () {
+    this.isShowCCCheckbox = !this.isShowCCCheckbox
   }
   delTable () {
     this.modelInstance.delTable(this.currentEditTable.guid).then(() => {
@@ -1103,8 +1121,9 @@ export default class ModelEdit extends Vue {
           li {
             line-height:28px;
             height:28px;
-            padding-left: 9px;
-            padding-right: 8px;
+            padding: 0 7px 0px 10px;
+            border-bottom: 1px solid @text-placeholder-color;
+            box-sizing: border-box;
             .li-type{
               position:absolute;
               right:4px;
@@ -1114,21 +1133,29 @@ export default class ModelEdit extends Vue {
             .col-name {
               color:@text-title-color;
             }
-            i {
+            .icon-span {
               display:none;
-              margin-left:10px;
+              margin-left:7px;
               float:right;
-              font-size:12px;
+              font-size:14px;
             }
             &:hover {
               .li-type{
                 display:none;
               }
               background-color:@base-color-10;
-              i{
+              .icon-span{
                 display:inline-block;
-                height:28px;
-                line-height:28px;
+                line-height:22px;
+                height: 22px;
+                width: 22px;
+                text-align: center;
+                margin-top: 3px;
+                border-radius: 2px;
+                &:hover {
+                  background-color: @text-placeholder-color;
+                  color: @base-color;
+                }
               }
             }
           }
@@ -1136,11 +1163,31 @@ export default class ModelEdit extends Vue {
       }
       .panel-sub-title {
         height:28px;
-        background:@text-placeholder-color;
+        background:@grey-3;
         line-height:28px;
+        border-bottom: 1px solid @text-placeholder-color;
+        padding: 0 7px 0px 3px;
         span{
           display: inline-block;
-          margin-left: 10px;
+          margin-left: 4px;
+          width: 22px;
+          height: 22px;
+          text-align: center;
+          line-height: 22px;
+          border-radius: 2px;
+          &:hover {
+            background-color: @text-placeholder-color;
+            color: @base-color;
+          }
+          &.batch-del {
+            margin-top: 3px;
+            .delable {
+              color: @base-color;
+            }
+          }
+          &.active {
+            background-color: @text-placeholder-color;
+          }
         }
       }
       .panel-footer {
