@@ -339,10 +339,11 @@ export default class AggregateModal extends Vue {
 
     switch (editType) {
       case EDIT: {
-        const { aggregateArray } = form
+        const { aggregateArray, isCatchUp } = form
         return {
           projectName,
           modelName: model.name,
+          isCatchUp,
           dimensions: dimensions.map(dimension => dimension.id),
           aggregationGroups: aggregateArray.map(aggregate => ({
             includes: aggregate.includes.map(includeItem => dimensionIdMapping[includeItem]),

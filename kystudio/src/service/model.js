@@ -152,7 +152,7 @@ export default {
   fetchAggregateGroups: (project, model) => {
     return Vue.resource(apiUrl + 'cube_plans/rule').get({ project, model })
   },
-  updateAggregateGroups: (project, model, dimensions, aggregationGroups) => {
-    return Vue.resource(apiUrl + 'cube_plans/rule').update({ project, model, dimensions, aggregation_groups: aggregationGroups })
+  updateAggregateGroups: (project, model, dimensions, aggregationGroups, isCatchUp) => {
+    return Vue.resource(apiUrl + 'cube_plans/rule').update({ project, model, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp })
   }
 }

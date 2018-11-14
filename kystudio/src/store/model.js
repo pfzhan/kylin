@@ -209,7 +209,7 @@ export default {
       return api.model.fetchAggregateGroups(params.projectName, params.modelName)
     },
     [types.UPDATE_AGGREGATE_GROUPS] ({ commit }, params) {
-      return api.model.updateAggregateGroups(params.projectName, params.modelName, params.dimensions, params.aggregationGroups)
+      return api.model.updateAggregateGroups(params.projectName, params.modelName, params.dimensions, params.aggregationGroups, params.isCatchUp)
     }
   },
   getters: {

@@ -51,6 +51,7 @@ export const menusData = [
     path: '/studio',
     icon: 'el-icon-ksd-studio',
     children: [
+      { name: 'project', path: '/studio/project' },
       { name: 'source', path: '/studio/source' },
       { name: 'model', path: '/studio/model' }
     ]

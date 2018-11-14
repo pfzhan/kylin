@@ -15,14 +15,14 @@
           @input="value => inputHandler('name', value)">
         </el-input>
       </el-form-item>
-      <div class="el-form-item is-required" v-if="isFieldShow('type')">
+      <div class="el-form-item is-required" style="padding: 10px 0;" v-if="isFieldShow('type')">
         <label for="name" class="el-form-item__label" style="width: 110px;line-height: 1;">{{$t('projectType')}}</label>
         <div class="el-form-item__content clearfix" style="margin-left: 110px;">
           <!-- project type 2 -->
           <div class="project-type clearfix" :class="{ active: form.type === 'MANUAL_MAINTAIN' }">
-            <div class="project-type-status">
+            <!-- <div class="project-type-status">
               <span class="el-icon-ksd-good_health"></span>
-            </div>
+            </div> -->
             <div class="project-type-button">
               <div class="project-type-icon" @click="inputHandler('type', 'MANUAL_MAINTAIN')">
                 <i class="el-icon-ksd-model-designer"></i>
@@ -34,9 +34,9 @@
           </div>
           <!-- project type 4 -->
           <div class="project-type clearfix" :class="{ active: form.type === 'AUTO_MAINTAIN' }">
-            <div class="project-type-status">
+            <!-- <div class="project-type-status">
               <span class="el-icon-ksd-good_health"></span>
-            </div>
+            </div> -->
             <div class="project-type-button">
               <div class="project-type-icon" @click="inputHandler('type', 'AUTO_MAINTAIN')">
                 <i class="el-icon-ksd-sql-acceleration"></i>

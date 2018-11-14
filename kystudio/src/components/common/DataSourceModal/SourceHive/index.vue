@@ -345,6 +345,7 @@ export default class SourceHive extends Vue {
     height: 470px;
     border: 1px solid @line-border-color;
     transition: height .2s .2s;
+    overflow: auto;
   }
   .content-body.has-tips {
     height: 322px;

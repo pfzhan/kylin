@@ -48,6 +48,10 @@ let routerOptions = {
         path: 'dashboard',
         component: overview
       }, {
+        name: 'SProject',
+        path: 'studio/project',
+        component: () => import('../components/studio/StudioProject/StudioProject.vue')
+      }, {
         name: 'Studio',
         path: 'studio/source',
         component: () => import('../components/studio/StudioSource/index.vue')
