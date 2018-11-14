@@ -25,7 +25,7 @@
             </div> -->
             <div class="project-type-button">
               <div class="project-type-icon" @click="inputHandler('type', 'MANUAL_MAINTAIN')">
-                <i class="el-icon-ksd-model-designer"></i>
+                <i class="el-icon-ksd-model_designer"></i>
               </div>
               <div class="project-type-text">
                 <span class="font-medium">{{$t('projectType2')}}</span>
@@ -39,7 +39,7 @@
             </div> -->
             <div class="project-type-button">
               <div class="project-type-icon" @click="inputHandler('type', 'AUTO_MAINTAIN')">
-                <i class="el-icon-ksd-sql-acceleration"></i>
+                <i class="el-icon-ksd-sql_acceleration"></i>
               </div>
               <div class="project-type-text">
                 <span class="font-medium">{{$t('projectType4')}}</span>

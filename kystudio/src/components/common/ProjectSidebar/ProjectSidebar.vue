@@ -82,9 +82,9 @@ export default class ProjectSidebar extends Vue {
   get projectTypeClass () {
     switch (this.project.maintain_model_type) {
       case 'MANUAL_MAINTAIN':
-        return 'el-icon-ksd-model-designer'
+        return 'el-icon-ksd-model_designer'
       case 'AUTO_MAINTAIN':
-        return 'el-icon-ksd-sql-acceleration'
+        return 'el-icon-ksd-sql_acceleration'
     }
   }
   get projectDetails () {

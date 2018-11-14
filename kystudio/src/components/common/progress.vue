@@ -17,7 +17,7 @@ export default {
       } else if (this.status === 'RUNNING') {
         return ''
       } else if (this.status === 'FINISHED') {
-        return 'el-icon-ksd-good-health'
+        return 'el-icon-ksd-good_health'
       } else if (this.status === 'ERROR') {
         return 'el-icon-ksd-error_01'
       } else if (this.status === 'DISCARDED') {

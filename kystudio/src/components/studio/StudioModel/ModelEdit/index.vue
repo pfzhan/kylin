@@ -15,7 +15,7 @@
             </span>
             <span class="alias-span">{{t.alias}}</span>
           </common-tip>
-          <span v-show="!t.aliasIsEdit" class="close" @click="editTable(t.guid)"><i class="el-icon-ksd-table-setting"></i></span>
+          <span v-show="!t.aliasIsEdit" class="close" @click="editTable(t.guid)"><i class="el-icon-ksd-table_setting"></i></span>
         </div>
         <div class="column-list-box" @dragover='($event) => {allowDropColumn($event, t.guid)}' v-event-stop @drop='(e) => {dropColumn(e, null, t)}' v-scroll>
           <ul >
@@ -258,7 +258,7 @@
             <i v-else class="el-icon-ksd-lookup_table kind"></i>
           </span>
           <span class="alias-span name">{{currentEditTable.alias}}</span>
-          <span class="close" @click="cancelTableEdit"><i class="el-icon-ksd-table-setting"></i></span>
+          <span class="close" @click="cancelTableEdit"><i class="el-icon-ksd-table_setting"></i></span>
         </div>
         <div class="column-list-box"  v-scroll>
           <ul >
