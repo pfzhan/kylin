@@ -42,23 +42,24 @@
 
 package org.apache.kylin.rest.service;
 
+import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
+import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.acl.TableACLManager;
-import org.springframework.security.core.context.SecurityContextHolder;
 
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 public abstract class BasicService {
 
@@ -112,8 +113,8 @@ public abstract class BasicService {
         return NExecutableManager.getInstance(getConfig(), project);
     }
 
-    public QueryFilterRuleManager getQueryFilterRuleManager(String project) {
-        return QueryFilterRuleManager.getInstance(getConfig(), project);
+    public FavoriteRuleManager getFavoriteRuleManager(String project) {
+        return FavoriteRuleManager.getInstance(getConfig(), project);
     }
 
     protected String getUsername() {
@@ -130,5 +131,9 @@ public abstract class BasicService {
 
     public QueryHistoryTimeOffsetManager getQHTimeOffsetManager() {
         return QueryHistoryTimeOffsetManager.getInstance(getConfig());
+    }
+
+    public FavoriteQueryJDBCDao getFavoriteQueryDao() {
+        return FavoriteQueryJDBCDao.getInstance(getConfig());
     }
 }

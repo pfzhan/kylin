@@ -33,6 +33,7 @@ import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryDao;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
@@ -56,6 +57,8 @@ public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
+        getTestConfig().setProperty("kylin.favorite.storage-url",
+                "kylin_favorite@jdbc,url=jdbc:h2:mem:db_default;MODE=MySQL,username=sa,password=,driverClassName=org.h2.Driver");
     }
 
     @After
@@ -65,6 +68,8 @@ public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testHandlerIdempotent() throws Exception {
+        String sqlPattern = "select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME";
+        loadTestDataToDao(sqlPattern);
 
         getTestConfig().setProperty("kylin.server.mode", "query");
 
@@ -77,7 +82,7 @@ public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
         logLayouts(cubePlan1);
         int layoutCount1 = cubePlan1.getAllCuboidLayouts().size();
 
-        event.setSqlPatterns(Lists.newArrayList("select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME"));
+        event.setSqlPatterns(Lists.newArrayList(sqlPattern));
         EventContext eventContext = new EventContext(event, getTestConfig());
         AccelerateEventHandler handler = new AccelerateEventHandler();
         // add favorite sql to update model and post an new AddCuboidEvent
@@ -92,12 +97,25 @@ public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(events);
         Assert.assertEquals(2, events.size());
 
+        // the status of corresponding favorite sql changed to accelerating
+        FavoriteQueryDao favoriteQueryDao = FavoriteQueryJDBCDao.getInstance(getTestConfig());
+        FavoriteQuery favoriteQuery = ((FavoriteQueryJDBCDao) favoriteQueryDao).getFavoriteQuery(sqlPattern.hashCode(), DEFAULT_PROJECT);
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQuery.getStatus());
+
         // run again, and model will not update and will not post an new AddCuboidEvent
         handler.handle(eventContext);
 
         NCubePlan cubePlan3 = cubePlanManager.getCubePlan("all_fixed_length");
         int layoutCount3 = cubePlan3.getAllCuboidLayouts().size();
         Assert.assertEquals(layoutCount3, layoutCount2);
+
+        // now the status changed to fully accelerated
+        favoriteQuery = ((FavoriteQueryJDBCDao) favoriteQueryDao).getFavoriteQuery(sqlPattern.hashCode(), DEFAULT_PROJECT);
+        Assert.assertEquals(FavoriteQueryStatusEnum.FULLY_ACCELERATED, favoriteQuery.getStatus());
+
+        events = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT).getEvents();
+        Assert.assertNotNull(events);
+        Assert.assertEquals(2, events.size());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
 
@@ -168,4 +186,9 @@ public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
     }
 
 
+    private void loadTestDataToDao(String sqlPattern) {
+        FavoriteQueryDao favoriteQueryDao = FavoriteQueryJDBCDao.getInstance(getTestConfig());
+        FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern, sqlPattern.hashCode(), DEFAULT_PROJECT);
+        favoriteQueryDao.batchInsert(Lists.newArrayList(favoriteQuery));
+    }
 }

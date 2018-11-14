@@ -492,8 +492,36 @@ public class Message {
         return "Cannot find favorite rule '%s' ";
     }
 
+    public String getWHITELIST_SQL_NOT_FOUND() {
+        return "Cannot find whitelist's condition ";
+    }
+
     public String getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH() {
         return "Current number of unAccelerated favorite queries has not reached to '%s' ";
+    }
+
+    public String getUPLOADED_FILE_TYPE_OR_SIZE_IS_NOT_DESIRED() {
+        return "The uploaded file is not '.txt/.sql' file or larger than 1MB.";
+    }
+
+    public String getFAIL_TO_VERIFY_SQL() {
+        return "Failed to verify sqls.";
+    }
+
+    public String getNO_SQL_FOUND() {
+        return "No sql found.";
+    }
+
+    public String getSQL_ALREADY_IN_WHITELIST() {
+        return "This SQL statement exists in the white list. It is set by ADMIN, do you need to remove it from the white list and add to black list?";
+    }
+
+    public String getSQL_ALREADY_IN_BLACKLIST() {
+        return "There are SQL statements exist in the black list. They are set by ADMIN, do you need to remove them from the black list and add to white list?";
+    }
+
+    public String getSQL_IN_WHITELIST_OR_ID_NOT_FOUND() {
+        return "Updated sql already exists or white list sql not found";
     }
 
     // Query statistics

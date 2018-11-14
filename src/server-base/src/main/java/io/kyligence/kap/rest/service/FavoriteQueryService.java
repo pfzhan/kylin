@@ -47,10 +47,8 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
-import org.apache.kylin.rest.request.QueryFilterRequest;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,8 +67,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffset;
-import io.kyligence.kap.metadata.query.QueryFilterRule;
-import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -85,7 +82,10 @@ public class FavoriteQueryService extends BasicService {
     @Qualifier("queryHistoryService")
     QueryHistoryService queryHistoryService;
 
-    private FavoriteQueryJDBCDao favoriteQueryJDBCDao = FavoriteQueryJDBCDao.getInstance(getConfig());
+    @Autowired
+    @Qualifier("favoriteRuleService")
+    FavoriteRuleService favoriteRuleService;
+
     private ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private AutoMarkFavoriteRunner autoMarkFavoriteRunner = new AutoMarkFavoriteRunner();
 
@@ -112,7 +112,7 @@ public class FavoriteQueryService extends BasicService {
     @PostConstruct
     void init() {
         if (FavoriteQueryJDBCDao.getSqlPatternHashSet() == null)
-            favoriteQueryJDBCDao.initializeSqlPatternSet();
+            getFavoriteQueryDao().initializeSqlPatternSet();
         if (queryHistoryTimeOffset == null)
             queryHistoryTimeOffset = new QueryHistoryTimeOffset(0, 0);
         scheduler.schedule(new Runnable() {
@@ -163,85 +163,62 @@ public class FavoriteQueryService extends BasicService {
         getQHTimeOffsetManager().save(queryHistoryTimeOffset);
     }
 
-    public void manualFavorite(FavoriteRequest request) throws PersistentException, IOException {
-        final String project = request.getProject();
-        final String sqlPattern = request.getSqlPattern();
-        final int sqlPatternHash = sqlPattern.hashCode();
-        long queryTime = request.getQueryTime();
+    void insertToDaoAndAccelerateForWhitelistChannel(Set<String> sqlPatterns, String project) throws IOException, PersistentException {
+        List<String> sqlsToAccelerate = Lists.newArrayList();
+        List<FavoriteQuery> favoriteQueriesToInsert = Lists.newArrayList();
 
-        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
+        for (String sqlPattern : sqlPatterns) {
+            int sqlPatternHash = sqlPattern.hashCode();
+            FavoriteQuery existFavorite = getFavoriteQueryDao().getFavoriteQuery(sqlPatternHash, project);
+            if (existFavorite != null && !existFavorite.getStatus().equals(FavoriteQueryStatusEnum.WAITING))
+                continue;
 
-        FavoriteQuery existFavorite = favoriteQueryJDBCDao.getFavoriteQuery(sqlPattern.hashCode(), project);
-        if (existFavorite != null && !existFavorite.getStatus().equals(FavoriteQueryStatusEnum.WAITING))
-            return;
+            sqlsToAccelerate.add(sqlPattern);
 
-        if (existFavorite == null) {
-            scheduler.schedule(new Runnable() {
-                @Override
-                public void run() {
-                    final FavoriteQuery newfavoriteQuery = new FavoriteQuery(sqlPattern, sqlPatternHash, project);
-                    newfavoriteQuery.setLastQueryTime(queryTime);
-                    newfavoriteQuery.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
-
-                    favoriteQueryJDBCDao.batchInsert(Lists.newArrayList(newfavoriteQuery));
-
-                    Map<String, Set<Integer>> sqlPatternHashSet = FavoriteQueryJDBCDao.getSqlPatternHashSet();
-
-                    // update sql pattern hash set
-                    Set<Integer> sqlPatternInProj = sqlPatternHashSet.get(project);
-                    if (sqlPatternInProj == null)
-                        sqlPatternInProj = new HashSet<>();
-
-                    sqlPatternInProj.add(sqlPatternHash);
-                    sqlPatternHashSet.put(project, sqlPatternInProj);
-
-                    FavoriteQueryJDBCDao.setSqlPatternHashSet(sqlPatternHashSet);
-                }
-            }, 0, TimeUnit.SECONDS);
-        } else {
-            existFavorite.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
-            favoriteQueryJDBCDao.batchUpdateStatus(Lists.newArrayList(existFavorite));
+            if (existFavorite == null) {
+                FavoriteQuery newFavoriteQuery = new FavoriteQuery(sqlPattern, sqlPatternHash, project);
+                newFavoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_WHITE_LIST);
+                favoriteQueriesToInsert.add(newFavoriteQuery);
+            }
         }
 
-        post(project, Lists.newArrayList(sqlPattern), true);
+        getFavoriteQueryDao().batchInsert(favoriteQueriesToInsert);
+        // accelerate sqls right now
+        if (!sqlsToAccelerate.isEmpty())
+            post(project, sqlsToAccelerate, true);
+    }
+
+    public void manualFavorite(FavoriteRequest request) throws IOException {
+        Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
+        if (QueryHistory.QUERY_HISTORY_FAILED.equals(request.getQueryStatus()))
+            return;
+
+        String sqlPattern = request.getSqlPattern();
+        Set<String> sqlPatterns = new HashSet<>();
+        sqlPatterns.add(sqlPattern);
+        favoriteRuleService.appendSqlToWhitelist(request.getSql(), sqlPattern.hashCode(), request.getProject());
+        favoriteForWhitelistChannel(sqlPatterns, request.getProject());
+    }
+
+    public void favoriteForWhitelistChannel(Set<String> sqlPatterns, String project) {
+        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
+        scheduler.schedule(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    insertToDaoAndAccelerateForWhitelistChannel(sqlPatterns, project);
+                } catch (Exception ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }, 0, TimeUnit.SECONDS);
     }
 
     private void internalFavorite(final Set<FavoriteQuery> favoriteQueries) throws IOException, PersistentException {
-        List<FavoriteQuery> favoriteQueriesToInsert = Lists.newArrayList();
-        Map<String, Set<Integer>> sqlPatternToUpdate = Maps.newHashMap();
-
-        for (FavoriteQuery favoriteQuery : favoriteQueries) {
-            String project = favoriteQuery.getProject();
-            final int sqlPatternHash = favoriteQuery.getSqlPatternHash();
-            if (FavoriteQueryJDBCDao.isInDatabase(project, sqlPatternHash))
-                continue;
-
-            favoriteQueriesToInsert.add(favoriteQuery);
-            Set<Integer> sqlPatternHashSet = sqlPatternToUpdate.get(project);
-
-            if (sqlPatternHashSet == null)
-                sqlPatternHashSet = new HashSet<>();
-
-            sqlPatternHashSet.add(sqlPatternHash);
-            sqlPatternToUpdate.put(project, sqlPatternHashSet);
-        }
-
-        favoriteQueryJDBCDao.batchInsert(favoriteQueriesToInsert);
+        getFavoriteQueryDao().batchInsert(Lists.newArrayList(favoriteQueries));
 
         Map<String, Set<Integer>> sqlPatternHashSet = FavoriteQueryJDBCDao.getSqlPatternHashSet();
-        // update sql pattern hash set
-        for (Map.Entry<String, Set<Integer>> entry : sqlPatternToUpdate.entrySet()) {
-            String project = entry.getKey();
-            Set<Integer> sqlPatternInProj = sqlPatternHashSet.get(project);
-            if (sqlPatternInProj == null)
-                sqlPatternInProj = entry.getValue();
-            else
-                sqlPatternInProj.addAll(entry.getValue());
-
-            sqlPatternHashSet.put(project, sqlPatternInProj);
-        }
         NProjectManager projectManager = getProjectManager();
-        FavoriteQueryJDBCDao.setSqlPatternHashSet(sqlPatternHashSet);
         //acceptAccelerate without apply
         for (String project : sqlPatternHashSet.keySet()) {
             ProjectInstance projectInstance = projectManager.getProject(project);
@@ -258,7 +235,7 @@ public class FavoriteQueryService extends BasicService {
 
     private void accelerateAllUnAcceleratedSqlPattern(String project) throws IOException, PersistentException {
         ProjectInstance projectInstance = getProjectManager().getProject(project);
-        int unAcceleratedSqlPatternSize = favoriteQueryJDBCDao.getUnAcceleratedSqlPattern(project).size();
+        int unAcceleratedSqlPatternSize = getFavoriteQueryDao().getUnAcceleratedSqlPattern(project).size();
         if (unAcceleratedSqlPatternSize < projectInstance.getConfig().getFavoriteQueryAccelerateThreshold()) {
             return;
         } else {
@@ -279,19 +256,26 @@ public class FavoriteQueryService extends BasicService {
             FrequencyStatus newStatus = new FrequencyStatus(startTime);
 
             for (QueryHistory queryHistory : queryHistories) {
-                if (queryHistory.isException())
-                    continue;
-
                 String project = queryHistory.getProject();
                 String sqlPattern = queryHistory.getSqlPattern();
 
+                newStatus.updateFrequency(project, sqlPattern);
+                if (queryHistory.isException())
+                    continue;
+
+                int sqlPatternHash = sqlPattern.hashCode();
+                if (FavoriteQueryJDBCDao.isInDatabase(project, sqlPatternHash))
+                    continue;
+
+                if (isInBlacklist(sqlPatternHash, project))
+                    continue;
+
                 if (matchRuleBySingleRecord(queryHistory)) {
-                    final FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern, sqlPattern.hashCode(), project);
+                    final FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern, sqlPatternHash, project);
                     favoriteQuery.setLastQueryTime(queryHistory.getQueryTime());
+                    favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
                     candidates.add(favoriteQuery);
                 }
-
-                newStatus.updateFrequency(project, sqlPattern);
             }
 
             updateOverallFrequencyStatus(newStatus);
@@ -314,7 +298,7 @@ public class FavoriteQueryService extends BasicService {
         for (Map.Entry<String, Map<String, Integer>> entry : getOverAllStatus().getSqlPatternFreqMap().entrySet()) {
             String project = entry.getKey();
 
-            QueryFilterRule freqRule = getQueryFilterRule(project, QueryFilterRule.FREQUENCY_RULE_NAME);
+            FavoriteRule freqRule = favoriteRuleService.getFavoriteRule(project, FavoriteRule.FREQUENCY_RULE_NAME);
 
             // when project is deleted
             if (freqRule == null || !freqRule.isEnabled())
@@ -336,8 +320,9 @@ public class FavoriteQueryService extends BasicService {
                 distinctFreqMap.put(keyOfDistinctFreqMap, sqlPatternSet);
             }
 
-            int topK = (int) Math
-                    .floor(distinctFreqMap.size() * Float.valueOf(freqRule.getConds().get(0).getRightThreshold()));
+            FavoriteRule.Condition condition = (FavoriteRule.Condition) freqRule.getConds().get(0);
+
+            int topK = (int) Math.floor(distinctFreqMap.size() * Float.valueOf(condition.getRightThreshold()));
             addCandidates(candidates, distinctFreqMap, topK, project);
         }
     }
@@ -351,7 +336,10 @@ public class FavoriteQueryService extends BasicService {
 
         for (int frequency : orderingResult) {
             for (String sqlPattern : sqlPatternsMap.get(frequency)) {
+                if (FavoriteQueryJDBCDao.isInDatabase(project, sqlPattern.hashCode()))
+                    continue;
                 FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern, sqlPattern.hashCode(), project);
+                favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
                 candidates.add(favoriteQuery);
             }
         }
@@ -371,25 +359,38 @@ public class FavoriteQueryService extends BasicService {
     }
 
     boolean matchRuleBySingleRecord(QueryHistory queryHistory) {
-        List<QueryFilterRule> rules = getQueryFilterRuleManager(queryHistory.getProject()).getAllEnabled();
+        List<FavoriteRule> rules = getFavoriteRuleManager(queryHistory.getProject()).getAllEnabled();
 
-        for (QueryFilterRule rule : rules) {
+        for (FavoriteRule rule : rules) {
             if (rule.getConds() == null || rule.getConds().isEmpty())
                 throw new IllegalArgumentException(String.format("Rule %s does not have conditions", rule.getUuid()));
 
-            if (rule.getName().equals(QueryFilterRule.SUBMITTER_RULE_NAME)) {
-                for (QueryFilterRule.QueryHistoryCond submitterCond : rule.getConds()) {
-                    if (queryHistory.getQuerySubmitter().equals(submitterCond.getRightThreshold()))
+            if (rule.getName().equals(FavoriteRule.SUBMITTER_RULE_NAME)) {
+                for (FavoriteRule.AbstractCondition submitterCond : rule.getConds()) {
+                    if (queryHistory.getQuerySubmitter()
+                            .equals(((FavoriteRule.Condition) submitterCond).getRightThreshold()))
                         return true;
                 }
             }
 
-            if (rule.getName().equals(QueryFilterRule.DURATION_RULE_NAME)) {
-                QueryFilterRule.QueryHistoryCond durationCond = rule.getConds().get(0);
+            if (rule.getName().equals(FavoriteRule.DURATION_RULE_NAME)) {
+                FavoriteRule.Condition durationCond = (FavoriteRule.Condition) rule.getConds().get(0);
                 if (queryHistory.getDuration() >= Long.valueOf(durationCond.getLeftThreshold()) * 1000L
                         && queryHistory.getDuration() <= Long.valueOf(durationCond.getRightThreshold()) * 1000L)
                     return true;
             }
+        }
+
+        return false;
+    }
+
+    private boolean isInBlacklist(int sqlPatternHash, String project) {
+        FavoriteRule blacklist = favoriteRuleService.getFavoriteRule(project, FavoriteRule.BLACKLIST_NAME);
+        List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
+
+        for (FavoriteRule.AbstractCondition condition : conditions) {
+            if (sqlPatternHash == ((FavoriteRule.SQLCondition) condition).getSqlPatternHash())
+                return true;
         }
 
         return false;
@@ -405,7 +406,7 @@ public class FavoriteQueryService extends BasicService {
 
     public List<FavoriteQueryResponse> getFavoriteQueriesByPage(String project, int limit, int offset) {
         Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
-        return favoriteQueryJDBCDao.getByPage(project, limit, offset);
+        return getFavoriteQueryDao().getByPage(project, limit, offset);
     }
 
     public int getFavoriteQuerySize(String project) {
@@ -501,7 +502,7 @@ public class FavoriteQueryService extends BasicService {
     }
 
     List<String> getUnAcceleratedSqlPattern(String project) {
-        return favoriteQueryJDBCDao.getUnAcceleratedSqlPattern(project);
+        return getFavoriteQueryDao().getUnAcceleratedSqlPattern(project);
     }
 
     public void acceptAccelerate(String project, int accelerateSize) throws PersistentException, IOException {
@@ -515,27 +516,18 @@ public class FavoriteQueryService extends BasicService {
         int batchAccelerateSize = getConfig().getFavoriteAccelerateBatchSize();
         int count = 1;
 
-        List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
-
         for (String sqlPattern : unAcceleratedSqlPattern.subList(0, accelerateSize)) {
             sqlPatterns.add(sqlPattern);
-            FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern, sqlPattern.hashCode(), project);
-            favoriteQuery.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
-            favoriteQueries.add(favoriteQuery);
 
             if (count % batchAccelerateSize == 0) {
-                favoriteQueryJDBCDao.batchUpdateStatus(favoriteQueries);
                 post(project, sqlPatterns, true);
-
-                favoriteQueries.clear();
                 sqlPatterns.clear();
             }
 
             count++;
         }
 
-        if (!favoriteQueries.isEmpty()) {
-            favoriteQueryJDBCDao.batchUpdateStatus(favoriteQueries);
+        if (!sqlPatterns.isEmpty()) {
             post(project, sqlPatterns, true);
         }
 
@@ -580,97 +572,7 @@ public class FavoriteQueryService extends BasicService {
         getEventManager(project).post(accelerateEvent);
     }
 
-    public Map<String, Object> getFrequencyRule(String project) {
-        QueryFilterRule frequencyRule = getQueryFilterRule(project, QueryFilterRule.FREQUENCY_RULE_NAME);
-        if (frequencyRule == null || frequencyRule.getConds().isEmpty())
-            throw new NotFoundException(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(),
-                    QueryFilterRule.FREQUENCY_RULE_NAME));
-
-        Map<String, Object> result = Maps.newHashMap();
-        result.put(QueryFilterRule.ENABLE, frequencyRule.isEnabled());
-        result.put("freqValue", Float.valueOf(frequencyRule.getConds().get(0).getRightThreshold()));
-
-        return result;
-    }
-
-    public Map<String, Object> getSubmitterRule(String project) {
-        QueryFilterRule submitterRule = getQueryFilterRule(project, QueryFilterRule.SUBMITTER_RULE_NAME);
-        if (submitterRule == null || submitterRule.getConds().isEmpty())
-            throw new NotFoundException(String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(),
-                    QueryFilterRule.SUBMITTER_RULE_NAME));
-
-        Map<String, Object> result = Maps.newHashMap();
-        result.put(QueryFilterRule.ENABLE, submitterRule.isEnabled());
-        List<String> users = Lists.newArrayList();
-        for (QueryFilterRule.QueryHistoryCond cond : submitterRule.getConds()) {
-            users.add(cond.getRightThreshold());
-        }
-        result.put("users", users);
-        result.put("groups", Lists.newArrayList());
-
-        return result;
-    }
-
-    public Map<String, Object> getDurationRule(String project) {
-        QueryFilterRule durationRule = getQueryFilterRule(project, QueryFilterRule.DURATION_RULE_NAME);
-        if (durationRule == null || durationRule.getConds().isEmpty())
-            throw new NotFoundException(
-                    String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), QueryFilterRule.DURATION_RULE_NAME));
-
-        Map<String, Object> result = Maps.newHashMap();
-        result.put(QueryFilterRule.ENABLE, durationRule.isEnabled());
-        result.put("durationValue", Lists.newArrayList(Long.valueOf(durationRule.getConds().get(0).getLeftThreshold()),
-                Long.valueOf(durationRule.getConds().get(0).getRightThreshold())));
-
-        return result;
-    }
-
-    private QueryFilterRule getQueryFilterRule(String project, String ruleName) {
-        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
-        Preconditions.checkArgument(ruleName != null && StringUtils.isNotEmpty(ruleName));
-
-        return getQueryFilterRuleManager(project).getByName(ruleName);
-    }
-
-    public void updateQueryFilterRule(QueryFilterRequest request, String ruleName) throws IOException {
-        Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
-
-        QueryFilterRuleManager manager = getQueryFilterRuleManager(request.getProject());
-        QueryFilterRule rule = manager.getByName(ruleName);
-
-        if (rule == null || rule.getConds().isEmpty())
-            throw new IllegalArgumentException(
-                    String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), ruleName));
-
-        rule.setEnabled(request.isEnable());
-
-        List<QueryFilterRule.QueryHistoryCond> conds = Lists.newArrayList();
-
-        switch (ruleName) {
-        case QueryFilterRule.FREQUENCY_RULE_NAME:
-            QueryFilterRule.QueryHistoryCond freqCond = rule.getConds().get(0);
-            freqCond.setRightThreshold(request.getFreqValue());
-            conds.add(freqCond);
-            break;
-        case QueryFilterRule.SUBMITTER_RULE_NAME:
-            for (String user : request.getUsers()) {
-                conds.add(new QueryFilterRule.QueryHistoryCond(QueryFilterRule.FREQUENCY, null, user));
-            }
-            break;
-        case QueryFilterRule.DURATION:
-            if (request.getDurationValue().length < 2)
-                throw new IllegalArgumentException("Duration rule should have both left threshold and right threshold");
-            QueryFilterRule.QueryHistoryCond durationCond = rule.getConds().get(0);
-            durationCond.setLeftThreshold(request.getDurationValue()[0]);
-            durationCond.setRightThreshold(request.getDurationValue()[1]);
-            conds.add(durationCond);
-            break;
-        default:
-            break;
-        }
-
-        rule.setConds(conds);
-        manager.save(rule);
+    public void scheduleAutoMark() {
         scheduler.schedule(autoMarkFavoriteRunner, 0, TimeUnit.SECONDS);
     }
 
@@ -708,7 +610,7 @@ public class FavoriteQueryService extends BasicService {
                 }
             }
 
-            favoriteQueryJDBCDao.batchUpdate(favoriteQueries);
+            getFavoriteQueryDao().batchUpdate(favoriteQueries);
             queryHistoryTimeOffset.setFavoriteQueryUpdateTimeOffset(endTime);
             try {
                 getQHTimeOffsetManager().save(queryHistoryTimeOffset);

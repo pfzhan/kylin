@@ -56,18 +56,14 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
     private static final String TOTAL_DURATION = "total_duration";
     private static final String AVERAGE_DURATION = "average_duration";
     private static final String STATUS = "status";
+    private static final String CHANNEL = "channel";
     private static final String COMMENT = "comment";
-
 
     public static Map<String, Set<Integer>> getSqlPatternHashSet() {
         return sqlPatternHashSet;
     }
 
-    public static void setSqlPatternHashSet(Map<String, Set<Integer>> updatedMap) {
-        sqlPatternHashSet = updatedMap;
-    }
-
-    private static Map<String, Set<Integer>> sqlPatternHashSet;
+    private static Map<String, Set<Integer>> sqlPatternHashSet = Maps.newConcurrentMap();
 
     public static FavoriteQueryJDBCDao getInstance(KylinConfig kylinConfig) {
         return kylinConfig.getManager(FavoriteQueryJDBCDao.class);
@@ -88,31 +84,33 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
         sb.append(String.format("CREATE TABLE IF NOT EXISTS %s", this.tableName));
         // columns
         sb.append(String.format(
-                "(id INT UNSIGNED AUTO_INCREMENT, %s INT NOT NULL, %s VARCHAR(255) NOT NULL, %s TEXT NOT NULL, %s BIGINT, %s INT, %s INT, %s DECIMAL(10, 6), %s BIGINT, %s DECIMAL(18, 6), %s ENUM('%s', '%s', '%s', '%s', '%s') DEFAULT '%s', %s VARCHAR(500) NOT NULL, ",
+                "(id INT UNSIGNED AUTO_INCREMENT, %s INT NOT NULL, %s VARCHAR(255) NOT NULL, %s TEXT NOT NULL, %s BIGINT, %s INT, %s INT, %s DECIMAL(10, 6), %s BIGINT, %s DECIMAL(18, 6), %s ENUM('%s', '%s', '%s', '%s', '%s') DEFAULT '%s', %s ENUM('%s', '%s'), %s VARCHAR(500), ",
                 SQL_PATTERN_HASH, PROJECT, SQL_PATTERN, LAST_QUERY_TIME, TOTAL_COUNT, SUCCESS_COUNT, SUCCESS_RATE,
                 TOTAL_DURATION, AVERAGE_DURATION, STATUS, FavoriteQueryStatusEnum.WAITING,
                 FavoriteQueryStatusEnum.ACCELERATING, FavoriteQueryStatusEnum.PARTLY_ACCELERATED,
-                FavoriteQueryStatusEnum.FULLY_ACCELERATED, FavoriteQueryStatusEnum.BLOCKED, FavoriteQueryStatusEnum.WAITING, COMMENT));
+                FavoriteQueryStatusEnum.FULLY_ACCELERATED, FavoriteQueryStatusEnum.BLOCKED,
+                FavoriteQueryStatusEnum.WAITING, CHANNEL, FavoriteQuery.CHANNEL_FROM_RULE,
+                FavoriteQuery.CHANNEL_FROM_WHITE_LIST, COMMENT));
         // primary key and indices
         sb.append(String.format(
-                "PRIMARY KEY (id), INDEX %s_sql_pattern_hash_index (%s), INDEX project_index (%s), INDEX last_query_time_index (%s), INDEX status_index (%s))",
-                this.tableName,
-                SQL_PATTERN_HASH, PROJECT, LAST_QUERY_TIME, STATUS));
+                "PRIMARY KEY (id), INDEX %s_sql_pattern_hash_index (%s), INDEX project_index (%s), INDEX last_query_time_index (%s), INDEX status_index (%s), INDEX channel_index (%s))",
+                this.tableName, SQL_PATTERN_HASH, PROJECT, LAST_QUERY_TIME, STATUS, CHANNEL));
         JDBCManager.getInstance(config).getJdbcTemplate().execute(sb.toString());
     }
 
-    public synchronized void initializeSqlPatternSet() {
+    public void initializeSqlPatternSet() {
         //todo: batch query
         final String sql = String.format("SELECT sql_pattern_hash, project FROM %s", this.tableName);
-        List<Pair<String, Integer>> queryResults = JDBCManager.getInstance(config).getJdbcTemplate().query(sql, new RowMapper<Pair<String, Integer>>() {
-            @Override
-            public Pair<String, Integer> mapRow(ResultSet resultSet, int i) throws SQLException {
-                Pair<String, Integer> row = new Pair<>();
-                row.setFirst(resultSet.getString(PROJECT));
-                row.setSecond(resultSet.getInt(SQL_PATTERN_HASH));
-                return row;
-            }
-        });
+        List<Pair<String, Integer>> queryResults = JDBCManager.getInstance(config).getJdbcTemplate().query(sql,
+                new RowMapper<Pair<String, Integer>>() {
+                    @Override
+                    public Pair<String, Integer> mapRow(ResultSet resultSet, int i) throws SQLException {
+                        Pair<String, Integer> row = new Pair<>();
+                        row.setFirst(resultSet.getString(PROJECT));
+                        row.setSecond(resultSet.getInt(SQL_PATTERN_HASH));
+                        return row;
+                    }
+                });
 
         sqlPatternHashSet = Maps.newHashMap();
 
@@ -144,6 +142,33 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
     public void dropTable() {
         final String sql = "DROP TABLE IF EXISTS " + this.tableName;
         JDBCManager.getInstance(config).getJdbcTemplate().execute(sql);
+        sqlPatternHashSet.clear();
+    }
+
+    @Override
+    public void delete(int sqlPatternHash, String project) {
+        final String deleteSql = String.format("DELETE FROM %s WHERE sql_pattern_hash = %d AND project = '%s'",
+                tableName, sqlPatternHash, project);
+        JDBCManager.getInstance(config).getTransactionTemplate().execute(new TransactionCallbackWithoutResult() {
+            @Override
+            protected void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
+                try {
+                    JDBCManager.getInstance(config).getJdbcTemplate().execute(deleteSql);
+                    removeSqlPatternHash(sqlPatternHash, project);
+                } catch (Exception e) {
+                    transactionStatus.setRollbackOnly();
+                    throw e;
+                }
+            }
+        });
+    }
+
+    private void removeSqlPatternHash(int sqlPatternHash, String project) {
+        Set<Integer> sqlPatternHashSetInProj = sqlPatternHashSet.get(project);
+        if (sqlPatternHashSetInProj == null)
+            return;
+        sqlPatternHashSetInProj.remove(sqlPatternHash);
+        sqlPatternHashSet.put(project, sqlPatternHashSetInProj);
     }
 
     // todo: transaction
@@ -210,8 +235,8 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
     }
 
     private void innerUpdateStatus(final List<FavoriteQuery> favoriteQueries) {
-        final String updateSql = String.format("UPDATE %s SET %s=?, %s=? WHERE %s=? and %s=?", this.tableName, STATUS, COMMENT,
-                SQL_PATTERN_HASH, PROJECT);
+        final String updateSql = String.format("UPDATE %s SET %s=?, %s=? WHERE %s=? and %s=?", this.tableName, STATUS,
+                COMMENT, SQL_PATTERN_HASH, PROJECT);
 
         JDBCManager.getInstance(config).getJdbcTemplate().batchUpdate(updateSql, new BatchPreparedStatementSetter() {
             @Override
@@ -233,7 +258,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
     @Override
     public List<FavoriteQueryResponse> getByPage(String project, int limit, int offset) {
         final String sql = String.format("SELECT * FROM %s WHERE project='%s' ORDER BY %s DESC LIMIT %d OFFSET %d",
-                this.tableName, project, LAST_QUERY_TIME, limit, offset*limit);
+                this.tableName, project, LAST_QUERY_TIME, limit, offset * limit);
         return JDBCManager.getInstance(config).getJdbcTemplate().query(sql, new FavoriteRowMapper());
     }
 
@@ -270,6 +295,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
             public void doInTransactionWithoutResult(TransactionStatus transactionStatus) {
                 try {
                     innerInsert(favoriteQueries);
+                    appendSqlPatternHash(favoriteQueries);
                 } catch (Exception e) {
                     transactionStatus.setRollbackOnly();
                     throw e;
@@ -278,11 +304,24 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
         });
     }
 
+    private void appendSqlPatternHash(List<FavoriteQuery> favoriteQueries) {
+        for (FavoriteQuery favoriteQuery : favoriteQueries) {
+            String project = favoriteQuery.getProject();
+            Set<Integer> sqlPatternHashInProj = sqlPatternHashSet.get(project);
+            if (sqlPatternHashInProj == null)
+                sqlPatternHashInProj = new HashSet<>();
+
+            sqlPatternHashInProj.add(favoriteQuery.getSqlPatternHash());
+
+            sqlPatternHashSet.put(project, sqlPatternHashInProj);
+        }
+    }
+
     private void innerInsert(final List<FavoriteQuery> favoriteQueries) {
         String sql = String.format(
-                "INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 this.tableName, SQL_PATTERN_HASH, PROJECT, SQL_PATTERN, LAST_QUERY_TIME, TOTAL_COUNT, SUCCESS_COUNT,
-                SUCCESS_RATE, TOTAL_DURATION, AVERAGE_DURATION, STATUS, COMMENT);
+                SUCCESS_RATE, TOTAL_DURATION, AVERAGE_DURATION, STATUS, CHANNEL, COMMENT);
 
         JDBCManager.getInstance(config).getJdbcTemplate().batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
@@ -295,15 +334,18 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
                 preparedStatement.setInt(5, favoriteQuery.getTotalCount());
                 preparedStatement.setInt(6, favoriteQuery.getSuccessCount());
                 if (favoriteQuery.getTotalCount() != 0) {
-                    preparedStatement.setFloat(7, favoriteQuery.getSuccessCount() / (float) favoriteQuery.getTotalCount());
-                    preparedStatement.setFloat(9, favoriteQuery.getTotalDuration() / (float) favoriteQuery.getTotalCount());
+                    preparedStatement.setFloat(7,
+                            favoriteQuery.getSuccessCount() / (float) favoriteQuery.getTotalCount());
+                    preparedStatement.setFloat(9,
+                            favoriteQuery.getTotalDuration() / (float) favoriteQuery.getTotalCount());
                 } else {
                     preparedStatement.setFloat(7, 0);
                     preparedStatement.setFloat(9, 0);
                 }
                 preparedStatement.setLong(8, favoriteQuery.getTotalDuration());
                 preparedStatement.setString(10, favoriteQuery.getStatus().toString());
-                preparedStatement.setString(11, favoriteQuery.getComment());
+                preparedStatement.setString(11, favoriteQuery.getChannel());
+                preparedStatement.setString(12, favoriteQuery.getComment());
             }
 
             @Override
@@ -328,6 +370,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
             favoriteQuery.setTotalDuration(resultSet.getLong(TOTAL_DURATION));
             favoriteQuery.setAverageDuration(resultSet.getFloat(AVERAGE_DURATION));
             favoriteQuery.setStatus(FavoriteQueryStatusEnum.valueOf(resultSet.getString(STATUS)));
+            favoriteQuery.setChannel(resultSet.getString(CHANNEL));
             favoriteQuery.setComment(resultSet.getString(COMMENT));
 
             return favoriteQuery;

@@ -102,6 +102,9 @@ public class AccelerateEventHandler extends AbstractEventHandler implements Deri
                     addCuboidEvent.setParentId(event.getId());
                     addCuboidEvent.setSqlPatterns(sqls);
                     eventManager.post(addCuboidEvent);
+                    updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.ACCELERATING);
+                } else {
+                    updateFavoriteQueryStatus(sqls, project, FavoriteQueryStatusEnum.FULLY_ACCELERATED);
                 }
 
             }
@@ -159,6 +162,17 @@ public class AccelerateEventHandler extends AbstractEventHandler implements Deri
         for (String model : models) {
             fireEvent(new PostModelSemanticUpdateEvent(), context.getEvent(), context.getConfig(), e -> e.setModelName(model));
         }
+    }
+
+    private void updateFavoriteQueryStatus(List<String> sqlPatterns, String project, FavoriteQueryStatusEnum status) {
+        List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
+        for (String sqlPattern : sqlPatterns) {
+            FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern, sqlPattern.hashCode(), project);
+            favoriteQuery.setStatus(status);
+            favoriteQueries.add(favoriteQuery);
+        }
+        FavoriteQueryJDBCDao favoriteQueryJDBCDao = FavoriteQueryJDBCDao.getInstance(KylinConfig.getInstanceFromEnv());
+        favoriteQueryJDBCDao.batchUpdateStatus(favoriteQueries);
     }
 
     private List<String> getRelatedSqlsFromModelContext(NSmartContext.NModelContext modelContext, Map<String, AccelerateInfo> blockedSqlInfo) {

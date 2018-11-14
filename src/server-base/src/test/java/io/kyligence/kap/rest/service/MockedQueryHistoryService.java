@@ -70,6 +70,8 @@ public class MockedQueryHistoryService extends QueryHistoryService {
             QueryHistory queryHistory = new QueryHistory("sql_pattern" + i, PROJECT,
                     QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN", System.currentTimeMillis(), 6000L);
             queryHistory.setInsertTime(currentTime + 30 * i * 1000L);
+            if (i == 4)
+                queryHistory.setSqlPattern("SELECT *\nFROM TEST_COUNTRY\nLIMIT 500");
             if (i == 5)
                 queryHistory.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
             overallQueryHistories.add(queryHistory);

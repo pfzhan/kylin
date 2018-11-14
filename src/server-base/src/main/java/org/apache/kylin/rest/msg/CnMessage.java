@@ -475,8 +475,37 @@ public class CnMessage extends Message {
         return "无法找到相应的加速规则 '%s' ";
     }
 
+    public String getWHITELIST_SQL_NOT_FOUND() {
+        return "无法找到白名单的SQL语句";
+    }
+
     public String getUNACCELERATE_FAVORITE_QUERIES_NOT_ENOUGH() {
         return "目前待加速的加速查询未达到 '%s' 条";
+    }
+
+    public String getUPLOADED_FILE_TYPE_OR_SIZE_IS_NOT_DESIRED() {
+        return "上传的文件不是 .txt 或者 .sql 文件 或者大于1MB";
+    }
+
+    public String getFAIL_TO_VERIFY_SQL() {
+        return "验证sql失败.";
+    }
+
+    public String getNO_SQL_FOUND() {
+        return "sql不能为空";
+    }
+
+    public String getSQL_ALREADY_IN_WHITELIST() {
+        return "添加的SQL存在于白名单中，存在于白名单的SQL是由管理员设定的，您是否需要将其从白名单消除并添加在黑名单中？";
+    }
+
+    public String getSQL_ALREADY_IN_BLACKLIST() {
+        return "导入的查询中有SQL存在于黑名单，存在于黑名单的SQL是由管理员设定的，您是否需要将其从黑名单消除并添加在白名单中？";
+    }
+
+
+    public String getSQL_IN_WHITELIST_OR_ID_NOT_FOUND() {
+        return "更新的查询已经存在于白名单，或待更新的查询未找到";
     }
 
     // Query statistics

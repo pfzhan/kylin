@@ -33,18 +33,16 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryResponse;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.QueryFilterRule;
-import io.kyligence.kap.metadata.query.QueryFilterRuleManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
-import org.apache.kylin.rest.request.QueryFilterRequest;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -58,7 +56,6 @@ import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -76,8 +73,6 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
             "select lstg_format_name, sum(item_count), count(*) from test_kylin_fact group by lstg_format_name" //
     };
 
-    FavoriteQueryJDBCDao favoriteQueryJDBCDao = FavoriteQueryJDBCDao.getInstance(getTestConfig());
-
     @Mock
     private MockedQueryHistoryService queryHistoryService = Mockito.spy(new MockedQueryHistoryService());
 
@@ -92,23 +87,26 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
         getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
     }
 
-    private static void loadTestDataToH2() {
+    private void loadTestDataToH2() {
         FavoriteQueryJDBCDao favoriteQueryJDBCDao = FavoriteQueryJDBCDao.getInstance(getTestConfig());
         FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql1", "sql1".hashCode(), PROJECT);
         favoriteQuery1.setTotalCount(1);
         favoriteQuery1.setSuccessCount(1);
         favoriteQuery1.setLastQueryTime(10001);
+        favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
         FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql2", "sql2".hashCode(), PROJECT);
         favoriteQuery2.setTotalCount(1);
         favoriteQuery2.setSuccessCount(1);
         favoriteQuery2.setLastQueryTime(10002);
+        favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
         FavoriteQuery favoriteQuery3 = new FavoriteQuery("sql3", "sql3".hashCode(), PROJECT);
         favoriteQuery3.setTotalCount(1);
         favoriteQuery3.setSuccessCount(1);
         favoriteQuery3.setLastQueryTime(10003);
         favoriteQuery3.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
+        favoriteQuery3.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
         favoriteQueryJDBCDao.batchInsert(Lists.newArrayList(favoriteQuery1, favoriteQuery2, favoriteQuery3));
     }
@@ -116,42 +114,22 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
     @Before
     public void setup() throws IOException {
         createTestMetadata();
-        ReflectionTestUtils.setField(favoriteQueryService, "queryHistoryService", queryHistoryService);
         getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         getTestConfig().setProperty("kylin.favorite.storage-url",
                 "kylin_favorite@jdbc,url=jdbc:h2:mem:db_default;MODE=MySQL,username=sa,password=,driverClassName=org.h2.Driver");
+        getTestConfig().setProperty("kylin.favorite.storage-url", "kylin_favorite@jdbc,url=jdbc:h2:mem:db_default;MODE=MySQL,username=sa,password=,driverClassName=org.h2.Driver");
+        ReflectionTestUtils.setField(favoriteQueryService, "queryHistoryService", queryHistoryService);
+        ReflectionTestUtils.setField(favoriteQueryService, "favoriteRuleService", Mockito.spy(new FavoriteRuleService()));
         loadTestDataToH2();
-        favoriteQueryJDBCDao.initializeSqlPatternSet();
         val projectManager = NProjectManager.getInstance(getTestConfig());
-        val queryManager = QueryFilterRuleManager.getInstance(getTestConfig(), "project2");
         val project2 = projectManager.copyForWrite(projectManager.getProject("default"));
         projectManager.createProject("project2", project2.getOwner(), project2.getDescription(),
                 project2.getOverrideKylinProps(), project2.getMaintainModelType());
-        QueryFilterRule.QueryHistoryCond freqCond = new QueryFilterRule.QueryHistoryCond();
-        freqCond.setField(QueryFilterRule.FREQUENCY);
-        freqCond.setRightThreshold("0.1");
-        QueryFilterRule freqRule = new QueryFilterRule(Lists.newArrayList(freqCond),
-                QueryFilterRule.FREQUENCY_RULE_NAME, true);
-        queryManager.save(freqRule);
-        // submitter rule
-        QueryFilterRule.QueryHistoryCond submitterCond = new QueryFilterRule.QueryHistoryCond();
-        submitterCond.setField(QueryFilterRule.SUBMITTER);
-        submitterCond.setRightThreshold("userA");
-        QueryFilterRule submitterRule = new QueryFilterRule(Lists.newArrayList(submitterCond),
-                QueryFilterRule.SUBMITTER_RULE_NAME, true);
-        queryManager.save(submitterRule);
-        // duration rule
-        QueryFilterRule.QueryHistoryCond durationCond = new QueryFilterRule.QueryHistoryCond();
-        durationCond.setField(QueryFilterRule.DURATION);
-        durationCond.setLeftThreshold("0");
-        durationCond.setRightThreshold("180");
-        QueryFilterRule durationRule = new QueryFilterRule(Lists.newArrayList(durationCond),
-                QueryFilterRule.DURATION_RULE_NAME, false);
-        queryManager.save(durationRule);
     }
 
     @After
     public void after() {
+        FavoriteQueryJDBCDao favoriteQueryJDBCDao = FavoriteQueryJDBCDao.getInstance(getTestConfig());
         favoriteQueryJDBCDao.dropTable();
     }
 
@@ -179,84 +157,7 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
         Assert.assertEquals(23, (lastStatus.getAddTime() - firstStatus.getAddTime()) / 1000 / 60 / 60);
     }
 
-    @Test
-    public void testGetFilterRulesAndUpdate() throws IOException {
-        Map<String, Object> frequencyRuleResult = favoriteQueryService.getFrequencyRule(PROJECT);
-        Assert.assertTrue((boolean) frequencyRuleResult.get(QueryFilterRule.ENABLE));
-        Assert.assertEquals(0.1, (float) frequencyRuleResult.get("freqValue"), 0.1);
-
-        Map<String, Object> submitterRuleResult = favoriteQueryService.getSubmitterRule(PROJECT);
-        List<String> users = (ArrayList<String>) submitterRuleResult.get("users");
-        Assert.assertTrue((boolean) submitterRuleResult.get(QueryFilterRule.ENABLE));
-        Assert.assertEquals(3, users.size());
-
-        Map<String, Object> durationRuleResult = favoriteQueryService.getDurationRule(PROJECT);
-        List<Long> durationValues = (ArrayList<Long>) durationRuleResult.get("durationValue");
-        Assert.assertTrue((boolean) durationRuleResult.get(QueryFilterRule.ENABLE));
-        Assert.assertEquals(5, (long) durationValues.get(0));
-        Assert.assertEquals(8, (long) durationValues.get(1));
-
-        // the request of updating frequency rule
-        QueryFilterRequest request = new QueryFilterRequest();
-        request.setProject(PROJECT);
-        request.setEnable(false);
-        request.setFreqValue("0.2");
-
-        favoriteQueryService.updateQueryFilterRule(request, QueryFilterRule.FREQUENCY_RULE_NAME);
-        frequencyRuleResult = favoriteQueryService.getFrequencyRule(PROJECT);
-        Assert.assertFalse((boolean) frequencyRuleResult.get(QueryFilterRule.ENABLE));
-        Assert.assertEquals(0.2, (float) frequencyRuleResult.get("freqValue"), 0.1);
-
-        request.setUsers(Lists.newArrayList("userA", "userB", "userC", "ADMIN"));
-
-        favoriteQueryService.updateQueryFilterRule(request, QueryFilterRule.SUBMITTER_RULE_NAME);
-        submitterRuleResult = favoriteQueryService.getSubmitterRule(PROJECT);
-        users = (ArrayList<String>) submitterRuleResult.get("users");
-        Assert.assertFalse((boolean) submitterRuleResult.get(QueryFilterRule.ENABLE));
-        Assert.assertEquals(4, users.size());
-
-        request.setDurationValue(new String[] { "0", "10" });
-
-        favoriteQueryService.updateQueryFilterRule(request, QueryFilterRule.DURATION_RULE_NAME);
-        durationRuleResult = favoriteQueryService.getDurationRule(PROJECT);
-        durationValues = (ArrayList<Long>) durationRuleResult.get("durationValue");
-        Assert.assertFalse((boolean) durationRuleResult.get(QueryFilterRule.ENABLE));
-        Assert.assertEquals(0, (long) durationValues.get(0));
-        Assert.assertEquals(10, (long) durationValues.get(1));
-    }
-
-    @Test
-    public void testGetRulesWithError() {
-        // assert get rule error
-        try {
-            favoriteQueryService.getFrequencyRule(PROJECT_NEWTEN);
-        } catch (Throwable ex) {
-            Assert.assertEquals(NotFoundException.class, ex.getClass());
-            Assert.assertEquals(
-                    String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), QueryFilterRule.FREQUENCY_RULE_NAME),
-                    ex.getMessage());
-        }
-
-        try {
-            favoriteQueryService.getSubmitterRule(PROJECT_NEWTEN);
-        } catch (Throwable ex) {
-            Assert.assertEquals(NotFoundException.class, ex.getClass());
-            Assert.assertEquals(
-                    String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), QueryFilterRule.SUBMITTER_RULE_NAME),
-                    ex.getMessage());
-        }
-
-        try {
-            favoriteQueryService.getDurationRule(PROJECT_NEWTEN);
-        } catch (Throwable ex) {
-            Assert.assertEquals(NotFoundException.class, ex.getClass());
-            Assert.assertEquals(
-                    String.format(MsgPicker.getMsg().getFAVORITE_RULE_NOT_FOUND(), QueryFilterRule.DURATION_RULE_NAME),
-                    ex.getMessage());
-        }
-    }
-
-    private static List<QueryHistory> queriesForTest() {
+    private List<QueryHistory> queriesForTest() {
         QueryHistory queryHistory1 = new QueryHistory();
         queryHistory1.setSqlPattern("sql1");
         queryHistory1.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
@@ -288,53 +189,39 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
         return Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4);
     }
 
-    private static List<QueryHistory> unaccelerateQueriesForTest() {
-        QueryHistory queryHistory1 = new QueryHistory();
-        queryHistory1.setSqlPattern("sql4");
-        queryHistory1.setQueryStatus(QueryHistory.QUERY_HISTORY_UNACCELERATED);
-        queryHistory1.setProject(PROJECT);
-        queryHistory1.setDuration(1000L);
-        queryHistory1.setQueryTime(1001);
-        queryHistory1.setQuerySubmitter("userA");
+    private void loadUnacceleratedFavoriteQueries() {
+        FavoriteQueryJDBCDao favoriteQueryJDBCDao = FavoriteQueryJDBCDao.getInstance(getTestConfig());
+        FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql4", "sql4".hashCode(), PROJECT);
+        favoriteQuery1.setTotalCount(1);
+        favoriteQuery1.setSuccessCount(1);
+        favoriteQuery1.setLastQueryTime(10001);
+        favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        QueryHistory queryHistory2 = new QueryHistory();
-        queryHistory2.setSqlPattern("sql5");
-        queryHistory2.setQueryStatus(QueryHistory.QUERY_HISTORY_UNACCELERATED);
+        FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql5", "sql5".hashCode(), PROJECT);
+        favoriteQuery2.setTotalCount(1);
+        favoriteQuery2.setSuccessCount(1);
+        favoriteQuery2.setLastQueryTime(10002);
+        favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        queryHistory2.setProject(PROJECT);
-        queryHistory2.setDuration(1000L);
-        queryHistory2.setQueryTime(1002);
-        queryHistory2.setQuerySubmitter("userA");
+        FavoriteQuery favoriteQuery3 = new FavoriteQuery("sql6", "sql6".hashCode(), PROJECT);
+        favoriteQuery3.setTotalCount(1);
+        favoriteQuery3.setSuccessCount(1);
+        favoriteQuery3.setLastQueryTime(10003);
+        favoriteQuery3.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        QueryHistory queryHistory3 = new QueryHistory();
-        queryHistory3.setSqlPattern("sql6");
-        queryHistory3.setQueryStatus(QueryHistory.QUERY_HISTORY_UNACCELERATED);
+        FavoriteQuery favoriteQuery4 = new FavoriteQuery("sql7", "sql7".hashCode(), "project2");
+        favoriteQuery4.setTotalCount(1);
+        favoriteQuery4.setSuccessCount(1);
+        favoriteQuery4.setLastQueryTime(10002);
+        favoriteQuery4.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        queryHistory3.setProject(PROJECT);
-        queryHistory3.setDuration(1000L);
-        queryHistory3.setQueryTime(1003);
-        queryHistory3.setQuerySubmitter("userA");
+        FavoriteQuery favoriteQuery5 = new FavoriteQuery("sql8", "sql8".hashCode(), "project2");
+        favoriteQuery5.setTotalCount(1);
+        favoriteQuery5.setSuccessCount(1);
+        favoriteQuery5.setLastQueryTime(10003);
+        favoriteQuery5.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        QueryHistory queryHistory4 = new QueryHistory();
-        queryHistory4.setSqlPattern("sql7");
-        queryHistory4.setQueryStatus(QueryHistory.QUERY_HISTORY_UNACCELERATED);
-
-        queryHistory4.setProject("project2");
-        queryHistory4.setDuration(1000L);
-        queryHistory4.setQueryTime(1003);
-        queryHistory4.setQuerySubmitter("userA");
-
-        QueryHistory queryHistory5 = new QueryHistory();
-        queryHistory5.setSqlPattern("sql8");
-        queryHistory5.setQueryStatus(QueryHistory.QUERY_HISTORY_UNACCELERATED);
-
-        queryHistory5.setProject("project2");
-        queryHistory5.setDuration(1000L);
-        queryHistory5.setQueryTime(1003);
-        queryHistory5.setQuerySubmitter("userA");
-
-        return Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4, queryHistory5);
-
+        favoriteQueryJDBCDao.batchInsert(Lists.newArrayList(favoriteQuery1, favoriteQuery2, favoriteQuery3, favoriteQuery4, favoriteQuery5));
     }
 
     private void stubUnAcceleratedSqlPatterns(List<String> sqls, String project) {
@@ -435,31 +322,47 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
     @Test
     public void testManualFavorite() throws IOException, PersistentException {
         getTestConfig().setProperty("kylin.server.mode", "query");
-
-        // sql pattern not exists
-        FavoriteRequest request = new FavoriteRequest(PROJECT, "sql_pattern_not_exists", 1000);
-        favoriteQueryService.manualFavorite(request);
+        // when sql pattern not exists
+        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add("sql_pattern_not_exists");}}, PROJECT);
         Mockito.verify(favoriteQueryService).post(PROJECT, Lists.newArrayList("sql_pattern_not_exists"), true);
 
-        List<FavoriteQueryResponse> favoriteQueries = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0);
-        FavoriteQuery newInsertedRow = favoriteQueries.get(favoriteQueries.size() - 1);
+        List<FavoriteQueryResponse> favoriteQueries = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, Integer.MAX_VALUE, 0);
+        FavoriteQuery newInsertedRow = favoriteQueries.get(0);
         Assert.assertEquals("sql_pattern_not_exists", newInsertedRow.getSqlPattern());
-        Assert.assertEquals(favoriteQueries.size(), favoriteQueryService.getFavoriteQuerySize(PROJECT));
+        Assert.assertEquals(FavoriteQuery.CHANNEL_FROM_WHITE_LIST, newInsertedRow.getChannel());
+        // triggered accelerate event
+        EventDao eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
+        Assert.assertEquals(1, eventDao.getEvents().size());
+        AccelerateEvent accelerateEvent = (AccelerateEvent) eventDao.getEvents().get(0);
+        Assert.assertEquals("sql_pattern_not_exists", accelerateEvent.getSqlPatterns().get(0));
 
         // sql pattern exists but not accelerating
-        request.setSqlPattern("sql1");
-        favoriteQueryService.manualFavorite(request);
+        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add("sql1");}}, PROJECT);
         Mockito.verify(favoriteQueryService).post(PROJECT, Lists.newArrayList("sql1"), true);
-
-        favoriteQueries = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0);
-        FavoriteQuery updatedRow = favoriteQueries.get(favoriteQueries.size() - 1);
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, updatedRow.getStatus());
+        // triggered another accelerate event
+        // sql_pattern_not_exists, sql1
+        Assert.assertEquals(2, eventDao.getEvents().size());
 
         // sql pattern exists and is accelerating
-        request.setSqlPattern("sql3");
-        favoriteQueryService.manualFavorite(request);
+        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add("sql3");}}, PROJECT);
         // assert this sql pattern did not post out
         Mockito.verify(favoriteQueryService, Mockito.never()).post(PROJECT, Lists.newArrayList("sql3"), true);
+        Assert.assertEquals(2, eventDao.getEvents().size());
+
+        // when query history is failed
+        FavoriteRequest request = new FavoriteRequest(PROJECT, "test_sql", "test_sql_pattern", 1000, QueryHistory.QUERY_HISTORY_FAILED);
+        favoriteQueryService.manualFavorite(request);
+        Mockito.verify(favoriteQueryService, Mockito.never()).favoriteForWhitelistChannel(Mockito.anySet(), Mockito.anyString());
+
+        FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), PROJECT);
+        FavoriteRule whitelist = favoriteRuleManager.getByName(FavoriteRule.WHITELIST_NAME);
+        int originSqlSize = whitelist.getConds().size();
+        // when query history is succeeded
+        request.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        favoriteQueryService.manualFavorite(request);
+        // saved to whitelist
+        whitelist = favoriteRuleManager.getByName(FavoriteRule.WHITELIST_NAME);
+        Assert.assertEquals(originSqlSize + 1, whitelist.getConds().size());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
     }
@@ -513,9 +416,9 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
         queryHistory.setDuration(0);
         Assert.assertFalse(favoriteQueryService.matchRuleBySingleRecord(queryHistory));
 
-        QueryFilterRuleManager queryFilterRuleManager = Mockito.mock(QueryFilterRuleManager.class);
-        Mockito.when(queryFilterRuleManager.getAllEnabled()).thenReturn(Lists.newArrayList(new QueryFilterRule()));
-        Mockito.when(queryHistoryService.getQueryFilterRuleManager(PROJECT)).thenReturn(queryFilterRuleManager);
+        FavoriteRuleManager favoriteRuleManager = Mockito.mock(FavoriteRuleManager.class);
+        Mockito.when(favoriteRuleManager.getAllEnabled()).thenReturn(Lists.newArrayList(new FavoriteRule()));
+        Mockito.when(queryHistoryService.getFavoriteRuleManager(PROJECT)).thenReturn(favoriteRuleManager);
 
         try {
             favoriteQueryService.matchRuleBySingleRecord(queryHistory);
@@ -613,23 +516,25 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testUpdateFavoriteQueryStatistics() {
+        Mockito.when(favoriteQueryService.getQHTimeOffsetManager())
+                .thenReturn(Mockito.mock(QueryHistoryTimeOffsetManager.class));
         // already loaded three favorite queries whose sql patterns are "sql1", "sql2", "sql3"
         long systemTime = queryHistoryService.getCurrentTime();
-        int originFavoriteQuerySize = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0).size();
+        int originFavoriteQuerySize = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, Integer.MAX_VALUE, 0).size();
         FavoriteQueryService.CollectFavoriteStatisticsRunner updateRunner = favoriteQueryService.new CollectFavoriteStatisticsRunner();
 
         // first round, updated no favorite query
         Mockito.doReturn(systemTime).when(favoriteQueryService).getSystemTime();
         updateRunner.run();
 
-        List<FavoriteQueryResponse> favoriteQueriesInDB = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0);
+        List<FavoriteQueryResponse> favoriteQueriesInDB = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, Integer.MAX_VALUE, 0);
         Assert.assertEquals(originFavoriteQuerySize, favoriteQueriesInDB.size());
 
         // second round, updated two query histories
         Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod()).when(favoriteQueryService)
                 .getSystemTime();
         updateRunner.run();
-        favoriteQueriesInDB = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0);
+        favoriteQueriesInDB = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, Integer.MAX_VALUE, 0);
 
         for (FavoriteQuery favoriteQuery : favoriteQueriesInDB) {
             switch (favoriteQuery.getSqlPattern()) {
@@ -662,7 +567,7 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
         queryHistoryService.insert(queryHistory);
 
         updateRunner.run();
-        favoriteQueriesInDB = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0);
+        favoriteQueriesInDB = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, Integer.MAX_VALUE, 0);
 
         for (FavoriteQuery favoriteQuery : favoriteQueriesInDB) {
             switch (favoriteQuery.getSqlPattern()) {
@@ -695,23 +600,22 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
          */
         // TODO fix it, find the other test which insert data to h2
         // Issue : https://github.com/Kyligence/KAP/issues/8245
-        int limit = 100;
         long systemTime = queryHistoryService.getCurrentTime();
-        int originFavoriteQuerySize = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 100, 0).size();
+        int originFavoriteQuerySize = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, Integer.MAX_VALUE, 0).size();
         FavoriteQueryService.AutoMarkFavoriteRunner autoMarkFavoriteRunner = favoriteQueryService.new AutoMarkFavoriteRunner();
 
         // when current time is 00:00, auto mark runner scanned from 2018-01-01 00:00 to 2018-01-31 23:59:00
         Mockito.doReturn(systemTime).when(favoriteQueryService).getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize,
-                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, limit, 0).size());
+                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, Integer.MAX_VALUE, 0).size());
 
         // current time is 02-01 00:01:00, triggered next round, runner scanned from 2018-01-31 23:59:00 to 2018-02-01 00:00:00, still get nothing
         Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod()).when(favoriteQueryService)
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize,
-                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, limit, 0).size());
+                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, Integer.MAX_VALUE, 0).size());
 
         // at time 02-01 00:01:03, a query history is inserted into influxdb but with insert time as 00:00:59
         QueryHistory queryHistory = new QueryHistory("sql_pattern7", PROJECT, QueryHistory.QUERY_HISTORY_SUCCEEDED,
@@ -725,7 +629,7 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 3,
-                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, limit, 0).size());
+                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, Integer.MAX_VALUE, 0).size());
 
         // current time is 02-01 00:03:00, triggered next round, runner scanned from 2018-02-01 00:01:00 to 2018-02-01 00:02:00
         // scanned two new queries
@@ -733,23 +637,24 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 5,
-                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, limit, 0).size());
+                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, Integer.MAX_VALUE, 0).size());
 
         // current time is 02-01 00:04:00, runner scanned from 2018-02-01 00:02:00 to 2018-02-01 00:03:00
-        // scanned two new queries, but one is failed, which is not expected to be marked as favorite query
+        // scanned two new queries, but one is failed, which is not expected to be marked as favorite query, and the other is in blacklist
+        // so no new query will be inserted to database
         Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod() * 4).when(favoriteQueryService)
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
-        Assert.assertEquals(originFavoriteQuerySize + 6,
-                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, limit, 0).size());
+        Assert.assertEquals(originFavoriteQuerySize + 5,
+                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, Integer.MAX_VALUE, 0).size());
     }
 
     @Test
     public void testAutoMark_AutoApply_AutoAccelerate() throws IOException, PersistentException {
+        // load some unacceleratd favorite queries to h2
+        loadUnacceleratedFavoriteQueries();
         Mockito.when(favoriteQueryService.getQHTimeOffsetManager())
                 .thenReturn(Mockito.mock(QueryHistoryTimeOffsetManager.class));
-        Mockito.doReturn(queriesForTest()).when(queryHistoryService).getQueryHistories(Mockito.anyLong(),
-                Mockito.anyLong());
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
         ProjectInstance projectInstance = projectManager.getProject(PROJECT);
         ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
@@ -769,8 +674,6 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
                 "true");
         projectManager.updateProject(projectInstanceUpdate);
 
-        Mockito.doReturn(unaccelerateQueriesForTest()).when(queryHistoryService).getQueryHistories(Mockito.anyLong(),
-                Mockito.anyLong());
         Mockito.doReturn(queryHistoryService.getCurrentTime()).when(favoriteQueryService).getSystemTime();
 
         FavoriteQueryService.AutoMarkFavoriteRunner autoMarkFavoriteRunner = favoriteQueryService.new AutoMarkFavoriteRunner();
@@ -793,10 +696,10 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testAutoMark_AutoApply_NotReachThreshold() throws IOException, PersistentException {
+        // load some unaccelerated favorite queries to h2
+        loadUnacceleratedFavoriteQueries();
         Mockito.when(favoriteQueryService.getQHTimeOffsetManager())
                 .thenReturn(Mockito.mock(QueryHistoryTimeOffsetManager.class));
-        Mockito.doReturn(queriesForTest()).when(queryHistoryService).getQueryHistories(Mockito.anyLong(),
-                Mockito.anyLong());
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
         ProjectInstance projectInstance = projectManager.getProject(PROJECT);
         ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
@@ -816,8 +719,6 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
                 "true");
         projectManager.updateProject(projectInstanceUpdate);
 
-        Mockito.doReturn(unaccelerateQueriesForTest()).when(queryHistoryService).getQueryHistories(Mockito.anyLong(),
-                Mockito.anyLong());
         Mockito.doReturn(queryHistoryService.getCurrentTime()).when(favoriteQueryService).getSystemTime();
 
         FavoriteQueryService.AutoMarkFavoriteRunner autoMarkFavoriteRunner = favoriteQueryService.new AutoMarkFavoriteRunner();
@@ -836,10 +737,10 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
 
     @Test
     public void testAutoMark_UserApply_ReachThreshold() throws IOException, PersistentException {
+        // load some unaccelerated favorite queries to h2
+        loadUnacceleratedFavoriteQueries();
         Mockito.when(favoriteQueryService.getQHTimeOffsetManager())
                 .thenReturn(Mockito.mock(QueryHistoryTimeOffsetManager.class));
-        Mockito.doReturn(queriesForTest()).when(queryHistoryService).getQueryHistories(Mockito.anyLong(),
-                Mockito.anyLong());
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
         ProjectInstance projectInstance = projectManager.getProject(PROJECT);
         ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
@@ -850,8 +751,6 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
                 "true");
         projectManager.updateProject(projectInstanceUpdate);
 
-        Mockito.doReturn(unaccelerateQueriesForTest()).when(queryHistoryService).getQueryHistories(Mockito.anyLong(),
-                Mockito.anyLong());
         Mockito.doReturn(queryHistoryService.getCurrentTime()).when(favoriteQueryService).getSystemTime();
 
         FavoriteQueryService.AutoMarkFavoriteRunner autoMarkFavoriteRunner = favoriteQueryService.new AutoMarkFavoriteRunner();

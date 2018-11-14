@@ -33,6 +33,9 @@ import lombok.ToString;
 @Setter
 @ToString
 public class FavoriteQuery {
+    public static final String CHANNEL_FROM_RULE = "rule-based";
+    public static final String CHANNEL_FROM_WHITE_LIST = "whitelist-based";
+
     @JsonProperty("sql_pattern")
     private String sqlPattern;
     @JsonProperty("sql_pattern_hash")
@@ -52,6 +55,9 @@ public class FavoriteQuery {
     private long totalDuration;
     @JsonProperty("comment")
     private String comment;
+
+    @JsonProperty("channel")
+    private String channel;
 
     public FavoriteQuery() {
     }

@@ -22,31 +22,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.apache.kylin.rest.request;
+package io.kyligence.kap.rest.response;
 
+import com.google.common.collect.Sets;
+import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.io.Serializable;
+import java.util.Set;
 
 @Getter
 @Setter
-public class FavoriteRequest implements Serializable {
-    private String project;
-    private String sql;
-    private String sqlPattern;
-    private long queryTime;
-    private String queryStatus;
+@NoArgsConstructor
+public class UpdateWhitelistResponse {
+    private boolean capable;
+    private Set<SQLAdvice> sqlAdvices = Sets.newHashSet();
 
-    public FavoriteRequest() {
-
-    }
-
-    public FavoriteRequest(String project, String sql, String sqlPattern, long queryTime, String queryStatus) {
-        this.project = project;
-        this.sql = sql;
-        this.sqlPattern = sqlPattern;
-        this.queryTime = queryTime;
-        this.queryStatus = queryStatus;
+    public UpdateWhitelistResponse(boolean capable, Set<SQLAdvice> sqlAdvices) {
+        this.capable = capable;
+        this.sqlAdvices = sqlAdvices;
     }
 }

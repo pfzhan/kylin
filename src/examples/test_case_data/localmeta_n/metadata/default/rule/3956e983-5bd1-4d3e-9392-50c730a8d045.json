@@ -5,15 +5,15 @@
   "enabled" : "true",
   "name" : "submitter",
   "conds" : [ {
-    "field" : "user",
+    "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$Condition",
     "rightThreshold" : "userA"
   },
     {
-      "field" : "user",
+      "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$Condition",
       "rightThreshold" : "userB"
     },
     {
-      "field" : "user",
+      "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$Condition",
       "rightThreshold" : "userC"
     }]
 }

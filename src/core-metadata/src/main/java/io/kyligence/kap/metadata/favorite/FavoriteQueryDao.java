@@ -37,4 +37,6 @@ public interface FavoriteQueryDao {
     List<String> getUnAcceleratedSqlPattern(String project);
 
     void batchInsert(final List<FavoriteQuery> favoriteQueries);
+
+    void delete(int sqlPatternHash, String project);
 }

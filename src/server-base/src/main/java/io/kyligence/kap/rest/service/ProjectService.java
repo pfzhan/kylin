@@ -25,9 +25,9 @@
 package io.kyligence.kap.rest.service;
 
 import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.QueryFilterRule;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.event.model.AddProjectEvent;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
@@ -77,30 +77,38 @@ public class ProjectService extends BasicService {
                 overrideProps, newProject.getMaintainModelType());
         AddProjectEvent projectEvent = new AddProjectEvent(createdProject.getName());
         getEventManager(createdProject.getName()).post(projectEvent);
+        createDefaultRules(projectName);
         logger.debug("New project created.");
+        return createdProject;
+    }
 
+    private void createDefaultRules(String projectName) throws IOException {
         // create default rules
         // frequency rule
-        QueryFilterRule.QueryHistoryCond freqCond = new QueryFilterRule.QueryHistoryCond();
-        freqCond.setField(QueryFilterRule.FREQUENCY);
+        FavoriteRule.Condition freqCond = new FavoriteRule.Condition();
         freqCond.setRightThreshold("0.1");
-        QueryFilterRule freqRule = new QueryFilterRule(Lists.newArrayList(freqCond), QueryFilterRule.FREQUENCY_RULE_NAME, true);
-        getQueryFilterRuleManager(projectName).save(freqRule);
+        FavoriteRule freqRule = new FavoriteRule(Lists.newArrayList(freqCond), FavoriteRule.FREQUENCY_RULE_NAME, true);
+        getFavoriteRuleManager(projectName).createRule(freqRule);
         // submitter rule
-        QueryFilterRule.QueryHistoryCond submitterCond = new QueryFilterRule.QueryHistoryCond();
-        submitterCond.setField(QueryFilterRule.SUBMITTER);
+        FavoriteRule.Condition submitterCond = new FavoriteRule.Condition();
         submitterCond.setRightThreshold("ADMIN");
-        QueryFilterRule submitterRule = new QueryFilterRule(Lists.newArrayList(submitterCond), QueryFilterRule.SUBMITTER_RULE_NAME, true);
-        getQueryFilterRuleManager(projectName).save(submitterRule);
+        FavoriteRule submitterRule = new FavoriteRule(Lists.newArrayList(submitterCond), FavoriteRule.SUBMITTER_RULE_NAME, true);
+        getFavoriteRuleManager(projectName).createRule(submitterRule);
         // duration rule
-        QueryFilterRule.QueryHistoryCond durationCond = new QueryFilterRule.QueryHistoryCond();
-        durationCond.setField(QueryFilterRule.DURATION);
+        FavoriteRule.Condition durationCond = new FavoriteRule.Condition();
         durationCond.setLeftThreshold("0");
         durationCond.setRightThreshold("180");
-        QueryFilterRule durationRule = new QueryFilterRule(Lists.newArrayList(durationCond), QueryFilterRule.DURATION_RULE_NAME, false);
-        getQueryFilterRuleManager(projectName).save(durationRule);
+        FavoriteRule durationRule = new FavoriteRule(Lists.newArrayList(durationCond), FavoriteRule.DURATION_RULE_NAME, false);
+        getFavoriteRuleManager(projectName).createRule(durationRule);
 
-        return createdProject;
+        // create blacklist and whitelist
+        FavoriteRule blacklist = new FavoriteRule();
+        blacklist.setName(FavoriteRule.BLACKLIST_NAME);
+        getFavoriteRuleManager(projectName).createRule(blacklist);
+
+        FavoriteRule whitelist = new FavoriteRule();
+        whitelist.setName(FavoriteRule.WHITELIST_NAME);
+        getFavoriteRuleManager(projectName).createRule(whitelist);
     }
 
     public List<ProjectInstance> getReadableProjects(final String projectName) {

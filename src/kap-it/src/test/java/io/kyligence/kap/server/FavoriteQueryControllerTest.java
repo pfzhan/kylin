@@ -26,7 +26,7 @@ package io.kyligence.kap.server;
 
 import com.google.common.collect.Lists;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.rest.request.QueryFilterRequest;
+import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -72,7 +72,7 @@ public class FavoriteQueryControllerTest extends AbstractMVCIntegrationTestCase 
     @Test
     public void testUpdateRules() throws Exception {
         // the request of updating frequency rule
-        QueryFilterRequest request = new QueryFilterRequest();
+        FavoriteRuleUpdateRequest request = new FavoriteRuleUpdateRequest();
         request.setProject(PROJECT);
         request.setEnable(false);
         request.setFreqValue("0.2");

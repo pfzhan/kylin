@@ -22,24 +22,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.apache.kylin.rest.request;
+package io.kyligence.kap.rest.response;
 
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.io.Serializable;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Getter
 @Setter
 @NoArgsConstructor
-public class QueryFilterRequest implements Serializable {
+public class FavoriteRuleResponse {
+    private String id;
+    private String sql;
+    private boolean capable;
+    private Set<FavoriteRule.SQLAdvice> sqlAdvices = new HashSet<>();
 
-    private String project;
-    private boolean enable;
-    private String freqValue;
-    private String[] durationValue;
-    private List<String> users;
-    private List<String> groups;
+    public FavoriteRuleResponse(String id, String sql) {
+        this.id = id;
+        this.sql = sql;
+    }
 }

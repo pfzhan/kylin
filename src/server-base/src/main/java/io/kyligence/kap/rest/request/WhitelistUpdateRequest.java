@@ -22,31 +22,17 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.apache.kylin.rest.request;
+package io.kyligence.kap.rest.request;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.io.Serializable;
-
-@Getter
 @Setter
-public class FavoriteRequest implements Serializable {
-    private String project;
+@Getter
+@NoArgsConstructor
+public class WhitelistUpdateRequest {
     private String sql;
-    private String sqlPattern;
-    private long queryTime;
-    private String queryStatus;
-
-    public FavoriteRequest() {
-
-    }
-
-    public FavoriteRequest(String project, String sql, String sqlPattern, long queryTime, String queryStatus) {
-        this.project = project;
-        this.sql = sql;
-        this.sqlPattern = sqlPattern;
-        this.queryTime = queryTime;
-        this.queryStatus = queryStatus;
-    }
+    private String id;
+    private String project;
 }

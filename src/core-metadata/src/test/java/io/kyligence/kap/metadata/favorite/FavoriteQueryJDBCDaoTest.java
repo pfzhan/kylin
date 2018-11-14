@@ -65,10 +65,13 @@ public class FavoriteQueryJDBCDaoTest extends NLocalFileMetadataTestCase {
 
         FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql1", "sql1".hashCode(), PROJECT);
         favoriteQuery1.setLastQueryTime(System.currentTimeMillis() + 1);
+        favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql2", "sql2".hashCode(), PROJECT);
         favoriteQuery2.setLastQueryTime(System.currentTimeMillis() + 2);
+        favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         FavoriteQuery favoriteQuery3 = new FavoriteQuery("sql3", "sql3".hashCode(), PROJECT);
         favoriteQuery3.setLastQueryTime(System.currentTimeMillis() + 3);
+        favoriteQuery3.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
         return Lists.newArrayList(favoriteQuery1, favoriteQuery2, favoriteQuery3);
     }
@@ -76,10 +79,13 @@ public class FavoriteQueryJDBCDaoTest extends NLocalFileMetadataTestCase {
     private List<FavoriteQuery> testDataWithInitialValue() {
         FavoriteQuery favoriteQuery4 = new FavoriteQuery("sql4", "sql4".hashCode(), PROJECT, System.currentTimeMillis() + 3, 5, 100);
         favoriteQuery4.setSuccessCount(4);
+        favoriteQuery4.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         FavoriteQuery favoriteQuery5 = new FavoriteQuery("sql5", "sql5".hashCode(), PROJECT, System.currentTimeMillis() + 4, 5, 100);
         favoriteQuery5.setSuccessCount(4);
+        favoriteQuery5.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         FavoriteQuery favoriteQuery6 = new FavoriteQuery("sql6", "sql6".hashCode(), PROJECT, System.currentTimeMillis() + 5, 5, 100);
         favoriteQuery6.setSuccessCount(4);
+        favoriteQuery6.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
         return Lists.newArrayList(favoriteQuery4, favoriteQuery5, favoriteQuery6);
     }
@@ -99,6 +105,8 @@ public class FavoriteQueryJDBCDaoTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0, latestFavoriteQuery.getTotalCount());
         Assert.assertEquals(0, latestFavoriteQuery.getAverageDuration(), 0.1);
         Assert.assertEquals(0, latestFavoriteQuery.getSuccessRate(), 0.1);
+        Assert.assertEquals(FavoriteQuery.CHANNEL_FROM_RULE, latestFavoriteQuery.getChannel());
+        Assert.assertEquals(3, favoriteQueryDao.getSqlPatternHashSet().get(PROJECT).size());
 
         // then insert another 3 rows with initial values
         favoriteQueryDao.batchInsert(testDataWithInitialValue());
@@ -110,6 +118,8 @@ public class FavoriteQueryJDBCDaoTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(5, latestFavoriteQuery.getTotalCount());
         Assert.assertEquals(20, latestFavoriteQuery.getAverageDuration(), 0.1);
         Assert.assertEquals(0.8, latestFavoriteQuery.getSuccessRate(), 0.1);
+        Assert.assertEquals(FavoriteQuery.CHANNEL_FROM_RULE, latestFavoriteQuery.getChannel());
+        Assert.assertEquals(6, favoriteQueryDao.getSqlPatternHashSet().get(PROJECT).size());
 
         // assert page cutting
         favoriteQueries = favoriteQueryDao.getByPage(PROJECT, 3, 1);
@@ -165,5 +175,17 @@ public class FavoriteQueryJDBCDaoTest extends NLocalFileMetadataTestCase {
         sqlPatterns = favoriteQueryDao.getUnAcceleratedSqlPattern("not_exist_project");
         Assert.assertNotNull(sqlPatterns);
         Assert.assertEquals(0, sqlPatterns.size());
+
+        // delete favorite query
+        favoriteQueryDao.delete("sql1".hashCode(), PROJECT);
+        favoriteQueries = favoriteQueryDao.getByPage(PROJECT, Integer.MAX_VALUE, 0);
+        Assert.assertEquals(5, favoriteQueries.size());
+        Assert.assertEquals(5, favoriteQueryDao.getSqlPatternHashSet().get(PROJECT).size());
+
+        // update the status of not existed favorite query
+        FavoriteQuery updateNotExistFavoriteQuery = new FavoriteQuery("not_exist_sql_pattern", "not_exist_sql_pattern".hashCode(), PROJECT);
+        updateNotExistFavoriteQuery.setStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED);
+        favoriteQueryDao.batchUpdateStatus(Lists.newArrayList(updateNotExistFavoriteQuery));
+
     }
 }

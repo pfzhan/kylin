@@ -1,0 +1,16 @@
+{
+  "uuid" : "5059225e-b3fa-4a77-9d3a-9b151603acc6",
+  "last_modified" : 1536139627948,
+  "version" : "3.0.0.0",
+  "enabled" : "false",
+  "conds" : [ {
+    "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$SQLCondition",
+    "sql" : "select * from test_account",
+    "sqlPatternHash" : 722730360
+  }, {
+    "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$SQLCondition",
+    "sql" : "select count(*) from test_account",
+    "sqlPatternHash" : 1532988718
+  }  ],
+  "name" : "whitelist"
+}

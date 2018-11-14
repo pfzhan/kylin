@@ -25,28 +25,21 @@
 package org.apache.kylin.rest.request;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.List;
 
 @Getter
 @Setter
-public class FavoriteRequest implements Serializable {
+@NoArgsConstructor
+public class FavoriteRuleUpdateRequest implements Serializable {
+
     private String project;
-    private String sql;
-    private String sqlPattern;
-    private long queryTime;
-    private String queryStatus;
-
-    public FavoriteRequest() {
-
-    }
-
-    public FavoriteRequest(String project, String sql, String sqlPattern, long queryTime, String queryStatus) {
-        this.project = project;
-        this.sql = sql;
-        this.sqlPattern = sqlPattern;
-        this.queryTime = queryTime;
-        this.queryStatus = queryStatus;
-    }
+    private boolean enable;
+    private String freqValue;
+    private String[] durationValue;
+    private List<String> users;
+    private List<String> groups;
 }
