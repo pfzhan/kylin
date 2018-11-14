@@ -41,7 +41,7 @@ class NSQLAnalysisProposer extends NAbstractProposer {
     @Override
     void propose() {
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(context.getKylinConfig(),
-                context.getSqls(), 1, context.getProject())) {
+                context.getProject(), context.getSqls(), 1)) {
             extractor.execute();
             context.logFailedQuery(extractor);
             context.setOlapContexts(extractor.getOlapContexts());

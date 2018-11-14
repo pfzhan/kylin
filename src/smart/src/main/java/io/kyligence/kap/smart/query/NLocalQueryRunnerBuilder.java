@@ -21,6 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package io.kyligence.kap.smart.query;
 
 import java.util.Map;
@@ -38,6 +39,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 class NLocalQueryRunnerBuilder {
+
     private KylinConfig srcKylinConfig;
     private String[] sqls;
     private int nThreads;

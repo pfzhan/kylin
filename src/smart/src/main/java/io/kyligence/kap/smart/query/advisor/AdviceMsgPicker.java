@@ -22,17 +22,20 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.query;
+package io.kyligence.kap.smart.query.advisor;
 
-import org.apache.kylin.common.KylinConfig;
+public class AdviceMsgPicker {
+    private static ThreadLocal<AdviceMessage> msg = new ThreadLocal<>();
 
-public final class NQueryRunnerFactory {
-
-    public static AbstractQueryRunner createForModelSuggestion(KylinConfig srcKylinConfig, String projectName,
-            String[] sqls, int nThreads) {
-
-        final NLocalQueryRunnerBuilder builder = new NLocalQueryRunnerBuilder(srcKylinConfig, sqls, nThreads);
-        return builder.buildBasic(projectName);
+    private AdviceMsgPicker() {
     }
 
+    public static AdviceMessage getMsg() {
+        AdviceMessage ret = msg.get();
+        if (ret == null) { // use English by default
+            ret = AdviceMessage.getInstance();
+            msg.set(AdviceMessage.getInstance());
+        }
+        return ret;
+    }
 }

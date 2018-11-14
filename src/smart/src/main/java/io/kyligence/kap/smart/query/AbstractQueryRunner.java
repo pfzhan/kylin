@@ -25,7 +25,9 @@
 package io.kyligence.kap.smart.query;
 
 import java.io.Closeable;
+import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.CountDownLatch;
@@ -33,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.query.relnode.OLAPContext;
 
@@ -42,22 +45,22 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.smart.query.SQLResult.Status;
+import io.kyligence.kap.smart.query.mockup.AbstractQueryExecutor;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 import lombok.Getter;
 
 public abstract class AbstractQueryRunner implements Closeable {
 
-    protected String projectName;
     @Getter
     private final String[] sqls;
+    protected KylinConfig kylinConfig;
+    protected final String projectName;
 
     private final Cache<String, QueryRecord> queryCache = CacheBuilder.newBuilder().maximumSize(20).build();
-
     @Getter
     private final ConcurrentNavigableMap<Integer, SQLResult> queryResults = new ConcurrentSkipListMap<>();
     @Getter
     private final ConcurrentNavigableMap<Integer, Collection<OLAPContext>> olapContexts = new ConcurrentSkipListMap<>();
-
     private final ExecutorService executorService;
 
     AbstractQueryRunner(String projectName, String[] sqls, int threads) {
@@ -66,11 +69,13 @@ public abstract class AbstractQueryRunner implements Closeable {
         this.executorService = Executors.newFixedThreadPool(threads);
     }
 
-    private void submitQueryExecute(final CountDownLatch counter, final MockupQueryExecutor executor,
+    private void submitQueryExecute(final CountDownLatch counter, final AbstractQueryExecutor executor,
             final KylinConfig kylinConfig, final String project, final String sql, final int index) {
+
         Preconditions.checkNotNull(sql, "SQL Statement cannot be null.");
         executorService.execute(() -> {
             try {
+                long begin = System.currentTimeMillis();
                 boolean isCacheValid = false;
                 QueryRecord record = queryCache.getIfPresent(sql);
                 if (record != null && record.getSqlResult() != null
@@ -82,7 +87,17 @@ public abstract class AbstractQueryRunner implements Closeable {
                     record = executor.execute(project, sql);
                     queryCache.put(sql, record);
                 }
+                long end = System.currentTimeMillis();
+
                 SQLResult result = record.getSqlResult();
+                if (result != null) {
+                    ResultDetails details = result.getDetails();
+                    // TODO get an empty query context
+                    QueryContext queryContext = QueryContext.current();
+                    details.enrich(queryContext);
+                    details.enrich(sql, projectName, end - begin);
+                }
+
                 Collection<OLAPContext> olapCtxs = record.getOLAPContexts();
                 queryResults.put(index, result == null ? SQLResult.failedSQL(null) : result);
                 olapContexts.put(index, olapCtxs == null ? Lists.newArrayList() : olapCtxs);
@@ -93,10 +108,10 @@ public abstract class AbstractQueryRunner implements Closeable {
         });
     }
 
-    public void execute() throws Exception {
+    public void execute() throws IOException, InterruptedException {
         KylinConfig config = prepareConfig();
         try {
-            MockupQueryExecutor queryExecutor = new MockupQueryExecutor();
+            AbstractQueryExecutor queryExecutor = new MockupQueryExecutor();
             CountDownLatch latch = new CountDownLatch(sqls.length);
             for (int i = 0; i < sqls.length; i++) {
                 submitQueryExecute(latch, queryExecutor, config, projectName, sqls[i], i);
@@ -107,9 +122,31 @@ public abstract class AbstractQueryRunner implements Closeable {
         }
     }
 
-    public abstract KylinConfig prepareConfig() throws Exception;
+    public void execute(AbstractQueryExecutor queryExecutor) throws IOException, InterruptedException {
 
-    public abstract void cleanupConfig(KylinConfig config) throws Exception;
+        KylinConfig config = prepareConfig();
+        try {
+            CountDownLatch latch = new CountDownLatch(sqls.length);
+            for (int i = 0; i < sqls.length; i++) {
+                submitQueryExecute(latch, queryExecutor, config, projectName, sqls[i], i);
+            }
+            latch.await();
+        } finally {
+            cleanupConfig(config);
+        }
+    }
+
+    public abstract KylinConfig prepareConfig() throws IOException;
+
+    public abstract void cleanupConfig(KylinConfig config) throws IOException;
+
+    public List<SQLResult> getQueryResultList() {
+        return Lists.newArrayList(queryResults.values());
+    }
+
+    public List<Collection<OLAPContext>> getAllOLAPContexts() {
+        return Lists.newArrayList(olapContexts.values());
+    }
 
     @Override
     public void close() {

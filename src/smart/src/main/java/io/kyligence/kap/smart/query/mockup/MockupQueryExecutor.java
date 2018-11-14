@@ -31,35 +31,17 @@ import java.sql.Statement;
 import java.util.Collection;
 
 import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.QueryConnection;
-import org.apache.kylin.query.enumerator.LookupTableEnumerator;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import com.google.common.cache.CacheLoader.InvalidCacheLoadException;
 
 import io.kyligence.kap.smart.query.QueryRecord;
 import io.kyligence.kap.smart.query.SQLResult;
 
-public class MockupQueryExecutor {
-    private static final Logger logger = LoggerFactory.getLogger(MockupQueryExecutor.class);
-
-    private static ThreadLocal<QueryRecord> CURRENT_RECORD = new ThreadLocal<>();
-
-    static QueryRecord getCurrentRecord() {
-        QueryRecord record = CURRENT_RECORD.get();
-        if (record == null) {
-            record = new QueryRecord();
-            CURRENT_RECORD.set(record);
-        }
-        return record;
-    }
-
-    private static void clearCurrentRecord() {
-        CURRENT_RECORD.remove();
-    }
+public class MockupQueryExecutor extends AbstractQueryExecutor {
 
     public QueryRecord execute(String projectName, String sql) {
         OLAPContext.clearThreadLocalContexts();
@@ -79,40 +61,29 @@ public class MockupQueryExecutor {
             return record;
         }
 
-        Connection conn = null;
-        Statement statement = null;
-        ResultSet resultSet = null;
-
-        try {
-            conn = QueryConnection.getConnection(projectName);
-            statement = conn.createStatement();
-            sql = QueryUtil.massageSql(sql, projectName, 0, 0, conn.getSchema());
-            resultSet = statement.executeQuery(sql);
+        try (Connection conn = QueryConnection.getConnection(projectName);
+                Statement statement = conn.createStatement();
+                ResultSet ignored = statement
+                        .executeQuery(QueryUtil.massageSql(sql, projectName, 0, 0, conn.getSchema()))) {
 
             sqlResult.setStatus(SQLResult.Status.SUCCESS);
-        } catch (Throwable e) {
+        } catch (Exception e) {
             Throwable cause = e.getCause();
             boolean printException = true;
-            if (cause != null) {
-                if (cause instanceof com.google.common.cache.CacheLoader.InvalidCacheLoadException) {
-                    StackTraceElement[] stackTrace = e.getCause().getStackTrace();
-                    for (StackTraceElement s : stackTrace) {
-                        if (s.toString().contains(LookupTableEnumerator.class.getName())) {
-                            logger.debug("This query hits table snapshot.");
-
-                            sqlResult.setStatus(SQLResult.Status.SUCCESS);
-                            return record;
-                        }
-                    }
-                } else if (cause instanceof NoRealizationFoundException) {
-                    printException = false;
+            if (cause instanceof InvalidCacheLoadException) {
+                if (isSqlResultStatusModifiedByExceptionCause(sqlResult, cause.getStackTrace())) {
+                    return record;
                 }
+            } else if (cause instanceof NoRealizationFoundException) {
+                printException = false;
             }
 
-            String message = e.getMessage() == null ? e.getClass().toString() + ", check kylin.log for details"
+            String message = e.getMessage() == null
+                    ? String.format("%s, check kylin.log for details", e.getClass().toString())
                     : QueryUtil.makeErrorMsgUserFriendly(e);
-            if (printException)
+            if (printException) {
                 logger.debug("Failed to run in MockupQueryExecutor", e);
+            }
 
             sqlResult.setStatus(SQLResult.Status.FAILED);
             sqlResult.setMessage(message);
@@ -120,9 +91,6 @@ public class MockupQueryExecutor {
         } finally {
             Collection<OLAPContext> ctxs = OLAPContext.getThreadLocalContexts();
             record.setOLAPContexts(ctxs);
-            DBUtils.closeQuietly(statement);
-            DBUtils.closeQuietly(resultSet);
-            DBUtils.closeQuietly(conn);
             clearCurrentRecord();
         }
 

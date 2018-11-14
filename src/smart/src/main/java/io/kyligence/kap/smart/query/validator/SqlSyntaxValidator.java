@@ -22,17 +22,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.query;
+package io.kyligence.kap.smart.query.validator;
 
+import io.kyligence.kap.smart.query.advisor.SqlSyntaxAdvisor;
 import org.apache.kylin.common.KylinConfig;
 
-public final class NQueryRunnerFactory {
+import io.kyligence.kap.smart.query.AbstractQueryRunner;
+import io.kyligence.kap.smart.query.NQueryRunnerFactory;
+import io.kyligence.kap.smart.query.mockup.AbstractQueryExecutor;
 
-    public static AbstractQueryRunner createForModelSuggestion(KylinConfig srcKylinConfig, String projectName,
-            String[] sqls, int nThreads) {
+public class SqlSyntaxValidator extends AbstractSQLValidator {
 
-        final NLocalQueryRunnerBuilder builder = new NLocalQueryRunnerBuilder(srcKylinConfig, sqls, nThreads);
-        return builder.buildBasic(projectName);
+    private String project;
+
+    public SqlSyntaxValidator(KylinConfig kylinConfig, String project, AbstractQueryExecutor queryExecutor) {
+        super(kylinConfig, queryExecutor);
+        this.project = project;
+        this.sqlAdvisor = new SqlSyntaxAdvisor();
+    }
+
+    @Override
+    AbstractQueryRunner createQueryRunner(String[] sqls) {
+        return NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project, sqls, threadCount);
     }
 
 }

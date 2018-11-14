@@ -24,7 +24,9 @@
 package io.kyligence.kap.smart.query;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Set;
@@ -39,23 +41,28 @@ import org.apache.kylin.common.util.JsonUtil;
 import io.kyligence.kap.smart.util.MetaStoreUtil;
 
 class NLocalQueryRunner extends AbstractQueryRunner {
+
     private final Set<String> dumpResources;
     private final Map<String, RootPersistentEntity> mockupResources;
-    final KylinConfig srcKylinConfig;
 
     NLocalQueryRunner(KylinConfig srcKylinConfig, String projectName, String[] sqls, Set<String> dumpResources,
             Map<String, RootPersistentEntity> mockupResources, int threads) {
-        super(projectName, sqls, threads);
 
-        this.srcKylinConfig = srcKylinConfig;
+        super(projectName, sqls, threads);
+        this.kylinConfig = srcKylinConfig;
         this.dumpResources = dumpResources;
         this.mockupResources = mockupResources;
     }
 
     @Override
-    public KylinConfig prepareConfig() throws Exception {
+    public KylinConfig prepareConfig() throws IOException {
         String metaPath = MetaStoreUtil.dumpResources(KylinConfig.getInstanceFromEnv(), dumpResources);
-        File metaDir = new File(new URI(metaPath));
+        File metaDir;
+        try {
+            metaDir = new File(new URI(metaPath));
+        } catch (URISyntaxException e) {
+            throw new IOException(e);
+        }
 
         for (Map.Entry<String, RootPersistentEntity> mockupResource : mockupResources.entrySet()) {
             File dumpFile = new File(metaDir, mockupResource.getKey());
@@ -72,23 +79,21 @@ class NLocalQueryRunner extends AbstractQueryRunner {
         Utils.exposeAllTableAndColumn(config);
         Utils.setLargeCuboidCombinationConf(config);
         Utils.setLargeRowkeySizeConf(config);
-        config.setProperty("kylin.query.disable-cube-noagg-sql",
-                Boolean.toString(srcKylinConfig.isDisableCubeNoAggSQL()));
-        config.setProperty("kylin.query.transformers", StringUtils.join(srcKylinConfig.getQueryTransformers(), ','));
+        config.setProperty("kylin.query.disable-cube-noagg-sql", Boolean.toString(kylinConfig.isDisableCubeNoAggSQL()));
+        config.setProperty("kylin.query.transformers", StringUtils.join(kylinConfig.getQueryTransformers(), ','));
         config.setProperty("kap.query.security.row-acl-enabled", "false");
         config.setProperty("kap.query.security.column-acl-enabled", "false");
 
         config.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.NDataModel");
         config.setProperty("kylin.metadata.data-model-manager-impl",
-            "io.kyligence.kap.metadata.model.NDataModelManager");
-        config.setProperty("kylin.metadata.project-manager-impl",
-            "io.kyligence.kap.metadata.project.NProjectManager");
+                "io.kyligence.kap.metadata.model.NDataModelManager");
+        config.setProperty("kylin.metadata.project-manager-impl", "io.kyligence.kap.metadata.project.NProjectManager");
         config.setProperty("kylin.metadata.realization-providers", "io.kyligence.kap.cube.model.NDataflowManager");
         return config;
     }
 
     @Override
-    public void cleanupConfig(KylinConfig config) throws Exception {
+    public void cleanupConfig(KylinConfig config) throws IOException {
         Utils.clearCacheForKylinConfig(config);
         File metaDir = new File(config.getMetadataUrl().toString());
         if (metaDir.exists() && metaDir.isDirectory()) {

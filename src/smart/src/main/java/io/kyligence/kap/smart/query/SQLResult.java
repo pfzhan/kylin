@@ -30,15 +30,13 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Getter
 @Setter
+@Getter
 @NoArgsConstructor
-@AllArgsConstructor
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class SQLResult implements Serializable {
@@ -51,6 +49,15 @@ public class SQLResult implements Serializable {
 
     @JsonIgnore
     private Throwable exception;
+
+    // used for acceleration validate
+    private transient ResultDetails details = new ResultDetails();
+
+    public SQLResult(Status status, String message, Throwable exception) {
+        this.status = status;
+        this.message = message;
+        this.exception = exception;
+    }
 
     static SQLResult failedSQL(String message) {
         return new SQLResult(Status.FAILED, message, new Exception(message));

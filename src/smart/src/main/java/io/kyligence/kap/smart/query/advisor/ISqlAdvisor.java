@@ -22,17 +22,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.query;
+package io.kyligence.kap.smart.query.advisor;
 
-import org.apache.kylin.common.KylinConfig;
+import java.util.Collection;
+import java.util.List;
 
-public final class NQueryRunnerFactory {
+import org.apache.kylin.query.relnode.OLAPContext;
 
-    public static AbstractQueryRunner createForModelSuggestion(KylinConfig srcKylinConfig, String projectName,
-            String[] sqls, int nThreads) {
+import io.kyligence.kap.smart.query.SQLResult;
 
-        final NLocalQueryRunnerBuilder builder = new NLocalQueryRunnerBuilder(srcKylinConfig, sqls, nThreads);
-        return builder.buildBasic(projectName);
-    }
+public interface ISqlAdvisor {
 
+    SQLAdvice propose(SQLResult sqlResult);
+
+    List<SQLAdvice> propose(SQLResult sqlResult, Collection<OLAPContext> olapContexts);
 }

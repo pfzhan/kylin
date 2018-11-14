@@ -28,8 +28,6 @@ import org.apache.kylin.common.KylinConfig;
 
 public class DefaultQueryRunner extends AbstractQueryRunner {
 
-    private KylinConfig kylinConfig;
-
     public DefaultQueryRunner(KylinConfig kylinConfig, String projectName, String[] sqls) {
         this(kylinConfig, projectName, sqls, 1);
     }
@@ -40,12 +38,12 @@ public class DefaultQueryRunner extends AbstractQueryRunner {
     }
 
     @Override
-    public KylinConfig prepareConfig() throws Exception {
+    public KylinConfig prepareConfig() {
         return this.kylinConfig;
     }
 
     @Override
-    public void cleanupConfig(KylinConfig config) throws Exception {
+    public void cleanupConfig(KylinConfig config) {
         // Do nothing
     }
 }

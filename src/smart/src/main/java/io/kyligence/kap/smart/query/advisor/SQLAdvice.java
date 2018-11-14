@@ -22,17 +22,25 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.smart.query;
+package io.kyligence.kap.smart.query.advisor;
 
-import org.apache.kylin.common.KylinConfig;
+import java.io.Serializable;
 
-public final class NQueryRunnerFactory {
+import io.kyligence.kap.common.obf.IKeep;
+import lombok.AllArgsConstructor;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 
-    public static AbstractQueryRunner createForModelSuggestion(KylinConfig srcKylinConfig, String projectName,
-            String[] sqls, int nThreads) {
+@Getter
+@AllArgsConstructor
+@EqualsAndHashCode
+public class SQLAdvice implements IKeep, Serializable {
 
-        final NLocalQueryRunnerBuilder builder = new NLocalQueryRunnerBuilder(srcKylinConfig, sqls, nThreads);
-        return builder.buildBasic(projectName);
+    private String incapableReason;
+    private String suggestion;
+
+    public static SQLAdvice build(String reason, String suggest) {
+
+        return new SQLAdvice(reason, suggest);
     }
-
 }

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -49,26 +48,13 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import org.apache.calcite.jdbc.Driver;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.query.schema.OLAPSchemaFactory;
 
 public class QueryConnection {
 
-    private static Boolean isRegister = false;
-
     public static Connection getConnection(String project) throws SQLException {
-        if (!isRegister) {
-            try {
-                Class<?> aClass = Thread.currentThread().getContextClassLoader()
-                        .loadClass("org.apache.calcite.jdbc.Driver");
-                Driver o = (Driver) aClass.newInstance();
-                DriverManager.registerDriver(o);
-            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
-                e.printStackTrace();
-            }
-            isRegister = true;
-        }
+
         File olapTmp = OLAPSchemaFactory.createTempOLAPJson(project, KylinConfig.getInstanceFromEnv());
         Properties info = new Properties();
         info.put("model", olapTmp.getAbsolutePath());
