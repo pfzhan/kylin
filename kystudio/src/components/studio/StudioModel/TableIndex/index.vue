@@ -70,6 +70,9 @@
           header-align="center"
           prop="sort"
           align="center">
+          <template slot-scope="scope">
+            <span class="ky-dot-tag" v-show="scope.row.sort">{{scope.row.sort}}</span>
+          </template>
             </el-table-column>
           <el-table-column
           label="Shared"

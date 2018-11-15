@@ -1,94 +1,64 @@
 <template>
   <!-- tableindex的添加和编辑 -->
-  <el-dialog :title="$t('editTableIndexTitle')" class="table-edit-dialog" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
-      <el-form :model="tableIndexMeta" :rules="rules" ref="tableIndexForm" >
+  <el-dialog :title="$t('editTableIndexTitle')" append-to-body class="table-edit-dialog" width="880px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
+      <el-form :model="tableIndexMeta" :rules="rules" ref="tableIndexForm" label-position="top" >
         <el-form-item :label="$t('tableIndexName')" prop="name">
-          <el-input v-model="tableIndexMeta.name" auto-complete="off" size="medium"></el-input>
+          <el-input v-model="tableIndexMeta.name" auto-complete="off" size="medium" style="width:500px"></el-input>
         </el-form-item>
       </el-form>
-      <div class="ky-line-full"></div>
-      <div class="ky-list-title sub-title">{{$t('tableIndexContent')}}</div>
+      <div class="ky-line"></div>
       <div class="ksd-mt-20">
-        <el-steps direction="vertical" :active="3">
-          <el-step :title="$t('selectColumns')">
-            <div slot="description"  class="ksd-mb-20">
-              <div class="ksd-mt-14 ksd-mb-16">
-                <div class="actions"><el-button @click="selectAll" plain  type="primary" size="medium">{{$t('selectAllColumns')}}</el-button> <el-button @click="clearAll" size="medium">{{$t('clearAll')}}</el-button> </div>
-                <ul class="table-index-columns">
-                  <li v-for='(col, index) in tableIndexMeta.col_order' :key='col'>
-                    <span class="sort-icon ksd-mr-10">{{index + 1 + pager * 10}}</span>
-                    <el-select v-model="tableIndexMeta.col_order[index]" filterable style="width:420px">
-                      <el-option
-                        v-for="item in allColumns"
-                        :key="item.full_colname"
-                        :label="item.full_colname"
-                        :value="item.full_colname">
-                      </el-option>
-                    </el-select>
-                    <!-- <el-input style="width:430px" size="medium" v-model="tableIndexMeta.col_order[index]"></el-input> -->
-                    <el-button circle plain  type="primary" icon="el-icon-plus" size="small" @click="addCol('col_order', index)" class="ksd-ml-10"></el-button>
-                    <el-button circle size="small" icon="el-icon-minus" @click="delCol('col_order', index)"></el-button> 
-                  </li>
-                </ul>
-                <!-- <div class="show-pagers">
-                  <ul>
-                    <li v-for="x in totalPage" :key="x" @click="pagerChange(x - 1)">
-                      <span>{{(x - 1)*10 + 1}}</span>
-                         /
-                        <span>{{ (x) * 10}}</span>
-                    </li>
-                  </ul>
-                </div> -->
+        <el-button type="primary" plain size="medium" @click="selectAll">{{$t('selectAllColumns')}}</el-button><el-button plain size="medium" @click="clearAll">{{$t('clearAll')}}</el-button>
+        <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" class="ksd-fright" style="width:200px" placeholder="请输入内容"></el-input>
+         <el-table class="ksd-mt-10"
+          :data="allColumns"
+          type=index
+          border
+          height="450"
+          :row-class-name="tableRowClassName"
+          style="width: 100%">
+          <el-table-column
+            prop="fullName"
+            label="Column Name">
+          </el-table-column>
+          <el-table-column
+            align="center"
+            prop="isUsed"
+            label="Display"
+            width="120">
+            <template slot-scope="scope">
+              <i class="el-icon-success" :class="{active: scope.row.isUsed}" @click="toggleDisplay(scope.row, scope.$index)"></i>
+            </template>
+          </el-table-column>
+          <el-table-column
+            align="center"
+            prop="isSorted"
+            label="Sort By"
+            width="120">
+            <template slot-scope="scope">
+              <div class="action-list">
+                <span class="ky-dot-tag" v-if="scope.row.isUsed" :class="{'no-sorted': !scope.row.isSorted}"  @click="toggleSort(scope.row, scope.$index)">{{scope.row.isSorted ? scope.$index+1 : 1}}</span>
+                <!-- <span v-if="scope.row.isUsed && scope.row.isSorted">{{scope.$index + 1}}</span> -->
+                <span class="up-down">
+                  <i v-visible="scope.row.isUsed && scope.row.isSorted && scope.$index !== 0" @click="upRow(scope.$index)" class="el-icon-ksd-arrow_up"></i>
+                  <i v-visible="scope.row.isUsed && scope.row.isSorted && allColumns[scope.$index+1] && allColumns[scope.$index+1].isSorted" @click="downRow(scope.$index)" class="el-icon-ksd-arrow_down"></i>
+                </span>
               </div>
-            </div>
-          </el-step>
-          <el-step title="Sort By">
-            <div slot="description" class="ksd-mb-20">
-              <div class="ksd-mt-14 ksd-mb-16">
-                <ul class="table-index-columns">
-                  <li v-for='(col, index) in tableIndexMeta.sort_by_columns' :key='col'>
-                    <span class="sort-icon ksd-mr-10">{{index + 1}}</span>
-                    <el-select v-model="tableIndexMeta.sort_by_columns[index]" filterable style="width:420px" placeholder="请选择">
-                      <el-option
-                        v-for="item in sortByColumns"
-                        :key="item"
-                        :label="item"
-                        :value="item">
-                      </el-option>
-                    </el-select>
-                    <!-- <el-input style="width:430px" size="medium" v-model="tableIndexMeta.sort_by_columns[index]"></el-input> -->
-                    <el-button circle plain type="primary" icon="el-icon-plus" size="small"  @click="addCol('sort_by_columns', index)" class="ksd-ml-10"></el-button>
-                    <el-button circle size="small" icon="el-icon-minus" @click="delCol('sort_by_columns', index)"></el-button> 
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </el-step>
-          <el-step title="Shard By">
-            <div slot="title">
-              Shard By
-              <el-switch
-                v-model="openShared"
-                active-text="OFF"
-                inactive-text="ON"
-                :active-value="true"
-                :inactive-value="false">
-              </el-switch>
-            </div>
-            <div slot="description" v-show="openShared" class="ksd-mt-20">
-              <el-select v-model="tableIndexMeta.shard_by_columns[0]" filterable style="width:100%" placeholder="请选择">
-                <el-option
-                  v-for="item in selectedColumns"
-                  :key="item"
-                  :label="item"
-                  :value="item">
-                </el-option>
-              </el-select>
-            </div>
-          </el-step>
-        </el-steps>
+            </template>
+          </el-table-column>
+          <el-table-column
+            align="center"
+            prop="isShared"
+            label="Shard By"
+            width="120">
+            <template slot-scope="scope">
+              <i class="el-icon-success" v-if="scope.row.isUsed" :class="{active: scope.row.isShared}"  @click="toggleShard(scope.row)"></i>
+            </template>
+          </el-table-column>
+        </el-table>
       </div>
       <div slot="footer" class="dialog-footer">
+        <el-checkbox v-model="tableIndexMeta.load_data" :label="true" class="ksd-fleft ksd-mt-8">Load Data into new index after saving</el-checkbox>
         <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" plain :loading="btnLoading" size="medium" @click="submit" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
       </div>
@@ -101,7 +71,7 @@
   import vuex from '../../../../store'
   import { NamedRegex } from 'config'
   import { handleError, kapMessage } from 'util/business'
-  import { objectClone, arrSortByArr } from 'util/index'
+  import { objectClone, arrSortByArr, changeObjectArrProperty, indexOfObjWithSomeKey, filterObjectArray } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
 
@@ -136,13 +106,15 @@
   export default class TableIndexEditModal extends Vue {
     btnLoading = false
     openShared = false
+    searchColumn = ''
     pager = 0
     tableIndexMetaStr = JSON.stringify({
       id: '',
       name: '',
-      col_order: [''],
-      sort_by_columns: [''],
-      shard_by_columns: []
+      col_order: [],
+      sort_by_columns: [],
+      shard_by_columns: [],
+      load_data: true
     })
     tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
     rules = {
@@ -150,43 +122,111 @@
         {validator: this.checkName, trigger: 'blur'}
       ]
     }
-    get allColumns () {
-      let modelUsedTables = []
-      if (this.modelInstance) {
-        modelUsedTables = this.modelInstance.getTableColumns() || []
+    upRow (i) {
+      let t = this.allColumns[i]
+      this.allColumns.splice(i - 1, 0, t)
+      this.allColumns.splice(i + 1, 1)
+    }
+    downRow (i) {
+      let t = this.allColumns[i]
+      this.allColumns.splice(i + 2, 0, t)
+      this.allColumns.splice(i, 1)
+    }
+    tableRowClassName ({row}) {
+      return row.colorful || row.isSorted ? 'row-colorful' : ''
+    }
+    toggleDisplay (t, i) {
+      if (t.isUsed) {
+        if (t.isSorted) {
+          this.toggleSort(t, i)
+        }
+        t.isSorted = false
+        t.isShared = false
       }
-      return modelUsedTables.filter((item) => {
-        return !this.selectedColumns.includes(item.full_colname)
+      t.isUsed = !t.isUsed
+    }
+    // 切换sort状态的列，并带模拟缓动效果
+    toggleSort (t, i) {
+      if (!t.isSorted) {
+        let sortedLen = filterObjectArray(this.allColumns, 'isSorted', true).length
+        if (sortedLen >= 9) {
+          kapMessage('最多只能加9列', {type: 'warning'})
+          return
+        }
+        if (i !== 0) {
+          this.allColumns.splice(i, 1, {})
+          setTimeout(() => {
+            this.allColumns.splice(i, 1)
+            this.allColumns.unshift({})
+          }, 300)
+          setTimeout(() => {
+            this.allColumns.shift()
+            this.allColumns.unshift(t)
+          }, 600)
+        }
+      } else {
+        let s = indexOfObjWithSomeKey(this.allColumns, 'isSorted', false)
+        if (s === -1) {
+          s = this.allColumns.length
+        }
+        this.allColumns.splice(i, 1, {})
+        setTimeout(() => {
+          this.allColumns.splice(i, 1)
+        }, 400)
+        setTimeout(() => {
+          this.allColumns.splice(s - 1, 0, {})
+        }, 600)
+        setTimeout(() => {
+          this.allColumns.splice(s - 1, 1)
+          this.allColumns.splice(s - 1, 0, t)
+        }, 800)
+      }
+      t.isSorted = !t.isSorted
+    }
+    toggleShard (t) {
+      changeObjectArrProperty(this.allColumns, '*', 'isShared', false)
+      t.isShared = !t.isShared
+    }
+    allColumns = []
+    getAllColumns () {
+      this.allColumns = []
+      let result = []
+      let modelUsedTables = this.modelInstance && this.modelInstance.getTableColumns() || []
+      modelUsedTables.forEach((col) => {
+        result.push(col.full_colname)
       })
+      if (this.tableIndexMeta.sort_by_columns) {
+        result = arrSortByArr(result, this.tableIndexMeta.sort_by_columns)
+      }
+      result.forEach((i, index) => {
+        let obj = {fullName: i, isSorted: false, isUsed: false, isShared: false}
+        if (index < this.tableIndexMeta.sort_by_columns.length) {
+          obj.isSorted = true
+          obj.isUsed = true
+        }
+        if (this.tableIndexMeta.col_order.indexOf(i) >= 0) {
+          obj.isUsed = true
+        }
+        if (this.tableIndexMeta.shard_by_columns.indexOf(i) >= 0) {
+          obj.isShared = true
+        }
+        this.allColumns.push(obj)
+      })
+      console.log(this.allColumns)
     }
     get saveBtnDisable () {
-      return Vue.filter('filterArr')(this.tableIndexMeta.col_order, '').length === 0
+      return filterObjectArray(this.allColumns, 'isUsed', true).length === 0
     }
-    // get pagerShowOrder () {
-    //   return this.tableIndexMeta.col_order.slice(this.pager * 10, 10 + 10 * this.pager)
-    // }
-    get sortByColumns () {
-      let arr = Vue.filter('filterArr')(this.tableIndexMeta.col_order, '')
-      let sortColumns = this.tableIndexMeta.sort_by_columns
-      return arr.filter((item) => {
-        return !sortColumns.includes(item)
-      })
-    }
-    get selectedColumns () {
-      return Vue.filter('filterArr')(this.tableIndexMeta.col_order, '')
-    }
-    // get totalPage () {
-    //   let y = this.tableIndexMeta.col_order.length % 10 ? 1 : 0
-    //   return Math.floor(this.tableIndexMeta.col_order.length / 10) + y
-    // }
     @Watch('isShow')
     initTableIndex (val) {
-      if (val && this.tableIndexDesc) {
-        Object.assign(this.tableIndexMeta, this.tableIndexDesc)
-      } else {
-        this.tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
+      if (val) {
+        if (val && this.tableIndexDesc) {
+          Object.assign(this.tableIndexMeta, this.tableIndexDesc)
+        } else {
+          this.tableIndexMeta = JSON.parse(this.tableIndexMetaStr)
+        }
+        this.getAllColumns()
       }
-      this.openShared = this.tableIndexMeta.shard_by_columns.length > 0
     }
     pagerChange (pager) {
       this.pager = pager
@@ -199,14 +239,15 @@
       }
     }
     clearAll () {
-      this.tableIndexMeta.col_order = ['']
-      this.tableIndexMeta.sort_by_columns = ['']
-      this.tableIndexMeta.shard_by_columns = []
+      this.allColumns.forEach((col) => {
+        col.isUsed = false
+        col.isShared = false
+        col.isSorted = false
+      })
     }
     selectAll () {
-      this.tableIndexMeta.col_order = []
       this.allColumns.forEach((col) => {
-        this.tableIndexMeta.col_order.push(col.full_colname)
+        col.isUsed = true
       })
     }
     addCol (dataSet, i) {
@@ -215,14 +256,6 @@
         return
       }
       this.tableIndexMeta[dataSet].splice(i, 0, '')
-    }
-    delCol (dataSet, i) {
-      var data = this.tableIndexMeta[dataSet]
-      if (data.length === 1) {
-        data.splice(0, 1, '')
-      } else {
-        data.splice(i, 1)
-      }
     }
     closeModal (isSubmit) {
       this.hideModal()
@@ -247,7 +280,20 @@
           handleError(res)
         }
         // 按照sort选中列的顺序对col_order进行重新排序
-        this.tableIndexMeta.col_order = arrSortByArr(this.tableIndexMeta.col_order, this.tableIndexMeta.sort_by_columns)
+        this.tableIndexMeta.col_order = []
+        this.tableIndexMeta.sort_by_columns = []
+        this.tableIndexMeta.shard_by_columns = []
+        this.allColumns.forEach((col) => {
+          if (col.isUsed) {
+            this.tableIndexMeta.col_order.push(col.fullName)
+          }
+          if (col.isShared) {
+            this.tableIndexMeta.shard_by_columns.push(col.fullName)
+          }
+          if (col.isSorted) {
+            this.tableIndexMeta.sort_by_columns.push(col.fullName)
+          }
+        })
         this.tableIndexMeta.project = this.currentSelectedProject
         this.tableIndexMeta.model = this.modelInstance.name
         if (this.tableIndexMeta.id) {
@@ -262,6 +308,38 @@
 <style lang="less">
   @import '../../../../assets/styles/variables.less';
   .table-edit-dialog {
+    .action-list {
+      position:relative;
+      .up-down {
+        position: absolute;
+        right:4px;
+        display: none;
+        i {
+          color:@base-color;
+        }
+      }
+      &:hover {
+        .up-down {
+          display: inline-block;
+        }
+      }
+    }
+    .row-colorful {
+      background:@normal-color-2!important;
+    }
+    .el-icon-success {
+      cursor:pointer;
+      &.active{
+        color:@btn-success-normal;
+      }
+      color:@text-placeholder-color;
+    }
+    .ky-dot-tag {
+      cursor:pointer;
+    }
+    .no-sorted {
+      background:@text-placeholder-color;
+    }
     .sub-title {
       margin-top:60px;
     }
