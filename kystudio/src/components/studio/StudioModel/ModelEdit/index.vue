@@ -2,7 +2,7 @@
   <div class="model-edit-outer" @drop='dropTable($event)' v-drag="{sizeChangeCb:dragBox}">
     <div class="model-edit"  @dragover='allowDrop($event)' @dragleave="dragLeave">
       <!-- table box -->
-      <div class="table-box" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
+      <div class="table-box" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
         <div class="table-title"  @mousedown="activeTablePanel(t)" :data-zoom="modelRender.zoom"  v-drag:change.left.top="t.drawSize">
           <el-input v-show="t.aliasIsEdit" v-focus="t.aliasIsEdit" v-event-stop v-model="t.alias" @blur="saveNewAlias(t)" @keyup.enter="saveNewAlias(t)"></el-input>
           <span v-show="!t.aliasIsEdit" @click.stop="changeTableType(t)">
@@ -228,7 +228,7 @@
     <div class="full-screen-cover" v-event-stop @click.stop="cancelTableEdit" v-if="showTableCoverDiv"></div>
     <transition name="slide-fade">
       <!-- 编辑table 快捷按钮 -->
-      <div class="fast-action-box" :style="{'left': (currentEditTable.drawSize.left + currentEditTable.drawSize.width) + 'px', 'top': currentEditTable.drawSize.top + 'px'}" v-event-stop v-if="currentEditTable && showTableCoverDiv">
+      <div class="fast-action-box" :style="tableBoxToolStyleNoZoom(currentEditTable.drawSize)" v-event-stop v-if="currentEditTable && showTableCoverDiv">
         <div v-show="showEditAliasForm">
             <el-input v-model="currentEditAlias" size="mini" @keyup.enter="saveEditTableAlias"></el-input>
             <el-button type="primary" size="mini" icon="el-icon-check" @click="saveEditTableAlias"></el-button><el-button size="mini" @click="showEditAliasForm = false" icon="el-icon-close" plain></el-button>
@@ -257,7 +257,7 @@
       </div>
     </transition>
     <!-- 被编辑table clone dom -->
-    <div class="table-box fast-action-temp-table" :id="currentEditTable.guid + 'temp'" v-event-stop v-if="showTableCoverDiv" :class="{isLookup:currentEditTable.kind==='LOOKUP'}" :style="tableBoxStyle(currentEditTable.drawSize)">
+    <div class="table-box fast-action-temp-table" :id="currentEditTable.guid + 'temp'" v-event-stop v-if="showTableCoverDiv" :class="{isLookup:currentEditTable.kind==='LOOKUP'}" :style="tableBoxStyleNoZoom(currentEditTable.drawSize)">
         <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="currentEditTable.drawSize">
           <span @click.stop="changeTableType(currentEditTable)">
             <i class="el-icon-ksd-fact_table kind" v-if="currentEditTable.kind==='FACT'"></i>
@@ -485,10 +485,18 @@ export default class ModelEdit extends Vue {
   // 放大视图
   addZoom (e) {
     this.modelInstance.addZoom()
+    this.getZoomSpace()
   }
   // 缩小视图
   reduceZoom (e) {
     this.modelInstance.reduceZoom()
+    this.getZoomSpace()
+  }
+  zoomXSpace = 0
+  zoomYSpace = 0
+  getZoomSpace () {
+    this.zoomXSpace = $(this.$el).width() * (1 - this.modelRender.zoom / 10) / 2
+    this.zoomYSpace = $(this.$el).height() * (1 - this.modelRender.zoom / 10) / 2
   }
   // 全屏
   fullScreen () {
@@ -886,6 +894,23 @@ export default class ModelEdit extends Vue {
     return (drawSize) => {
       if (drawSize) {
         return {'z-index': drawSize.zIndex, width: drawSize.width + 'px', height: drawSize.height + 'px', left: drawSize.left + 'px', top: drawSize.top + 'px'}
+      }
+    }
+  }
+  get tableBoxStyleNoZoom () {
+    return (drawSize) => {
+      if (drawSize) {
+        let zoom = this.modelRender.zoom / 10
+        console.log(this.zoomXSpace, this.zoomYSpace)
+        return {'z-index': drawSize.zIndex, width: drawSize.width + 'px', height: drawSize.height + 'px', left: drawSize.left * zoom + this.zoomXSpace + 'px', top: drawSize.top * zoom + this.zoomYSpace + 'px'}
+      }
+    }
+  }
+  get tableBoxToolStyleNoZoom () {
+    return (drawSize) => {
+      if (drawSize) {
+        let zoom = this.modelRender.zoom / 10
+        return {left: this.currentEditTable.drawSize.width + drawSize.left * zoom + this.zoomXSpace + 'px', top: drawSize.top * zoom + this.zoomYSpace + 'px'}
       }
     }
   }

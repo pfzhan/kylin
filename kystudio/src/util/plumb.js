@@ -76,7 +76,7 @@ export function jsPlumbTool () {
       })
     },
     setZoom (zoom) {
-      var transformOrigin = [0.5 + 460 / 40000, 0.5 + 180 / 40000]
+      var transformOrigin = [0.5, 0.5]
       var el = plumbInstance.getContainer()
       var p = [ 'webkit', 'moz', 'ms', 'o' ]
       var s = 'scale(' + zoom + ')'
