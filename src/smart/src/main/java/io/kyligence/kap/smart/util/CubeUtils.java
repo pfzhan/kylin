@@ -24,8 +24,7 @@
 
 package io.kyligence.kap.smart.util;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Collections;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -41,16 +40,11 @@ public class CubeUtils {
     private CubeUtils() {
     }
 
-    private static final Map<String, String> EXPRESSION_OVERRIDE_MAP = new HashMap<String, String>() {
-        {
-            put(FunctionDesc.FUNC_COUNT_DISTINCT,
-                    SmartConfig.wrap(KylinConfig.getInstanceFromEnv()).getMeasureCountDistinctType());
-        }
-    };
-
     public static FunctionDesc newFunctionDesc(NDataModel modelDesc, String expression, ParameterDesc param,
             String colDataType) {
-        String returnType = FunctionDesc.proposeReturnType(expression, colDataType, EXPRESSION_OVERRIDE_MAP);
+        String returnType = FunctionDesc.proposeReturnType(expression, colDataType,
+                Collections.singletonMap(FunctionDesc.FUNC_COUNT_DISTINCT,
+                        SmartConfig.wrap(KylinConfig.getInstanceFromEnv()).getMeasureCountDistinctType()));
         FunctionDesc ret = FunctionDesc.newInstance(expression, param, returnType);
         ret.init(modelDesc);
         return ret;
