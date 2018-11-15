@@ -25,9 +25,13 @@
 package io.kyligence.kap.rest.service;
 
 import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryFilterRule;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.event.model.AddProjectEvent;
+import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
+import lombok.val;
 import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.PersistentException;
@@ -70,7 +74,7 @@ public class ProjectService extends BasicService {
         }
         String owner = SecurityContextHolder.getContext().getAuthentication().getName();
         ProjectInstance createdProject = getProjectManager().createProject(projectName, owner, description,
-                overrideProps);
+                overrideProps, newProject.getMaintainModelType());
         AddProjectEvent projectEvent = new AddProjectEvent(createdProject.getName());
         getEventManager(createdProject.getName()).post(projectEvent);
         logger.debug("New project created.");
@@ -122,5 +126,38 @@ public class ProjectService extends BasicService {
 
         logger.debug("Project updated.");
         return updatedProject;
+    }
+
+    public void updateQueryAccelerateThresholdConfig(String project, Integer threshold, boolean autoApply,
+            boolean batchEnabled) throws IOException {
+        NProjectManager projectManager = getProjectManager();
+        ProjectInstance projectInstance = projectManager.getProject(project);
+        if (projectInstance == null) {
+            throw new BadRequestException("Project '" + project + "' does not exist!");
+        }
+        ProjectInstance updateProject = projectManager.copyForWrite(projectInstance);
+        updateProject.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold", threshold.toString());
+        updateProject.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold-batch-enable",
+                batchEnabled + "");
+        updateProject.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold-auto-apply",
+                autoApply + "");
+        projectManager.updateProject(updateProject);
+    }
+
+    public FavoriteQueryThresholdResponse getQueryAccelerateThresholdConfig(String project) {
+        val projectInstance = getProjectManager().getProject(project);
+        val thresholdResponse = new FavoriteQueryThresholdResponse();
+        val config = projectInstance.getConfig();
+        thresholdResponse.setThreshold(config.getFavoriteQueryAccelerateThreshold());
+        thresholdResponse.setBatchEnabled(config.getFavoriteQueryAccelerateThresholdBatchEnabled());
+        thresholdResponse.setAutoApply(config.getFavoriteQueryAccelerateThresholdAutoApply());
+        return thresholdResponse;
+    }
+
+    public void updateMantainModelType(String project, String maintainModelType) throws IOException {
+        val projectManager = getProjectManager();
+        val projectUpdate = projectManager.copyForWrite(projectManager.getProject(project));
+        projectUpdate.setMaintainModelType(MaintainModelType.valueOf(maintainModelType));
+        projectManager.updateProject(projectUpdate);
     }
 }

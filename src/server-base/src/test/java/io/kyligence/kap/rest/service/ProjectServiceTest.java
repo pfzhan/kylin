@@ -45,7 +45,9 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.List;
 
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -94,15 +96,28 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateProject() throws Exception {
+    public void testCreateProject_AutoMaintain_Pass() throws Exception {
 
         ProjectInstance projectInstance = new ProjectInstance();
         projectInstance.setName("project11");
         projectService.createProject(projectInstance);
         ProjectInstance projectInstance2 = projectManager.getProject("project11");
         Assert.assertTrue(projectInstance2 != null);
+        Assert.assertEquals(projectInstance2.getMaintainModelType(), MaintainModelType.AUTO_MAINTAIN);
         projectManager.dropProject("project11");
+    }
 
+    @Test
+    public void testCreateProject_ManualMaintain_Pass() throws Exception {
+
+        ProjectInstance projectInstance = new ProjectInstance();
+        projectInstance.setName("project11");
+        projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        projectService.createProject(projectInstance);
+        ProjectInstance projectInstance2 = projectManager.getProject("project11");
+        Assert.assertTrue(projectInstance2 != null);
+        Assert.assertEquals(projectInstance2.getMaintainModelType(), MaintainModelType.MANUAL_MAINTAIN);
+        projectManager.dropProject("project11");
     }
 
     @Test
@@ -131,4 +146,24 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
+    @Test
+    public void testUpdateThreshold() throws Exception {
+        projectService.updateQueryAccelerateThresholdConfig("default", 20, false, true);
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects("default");
+    }
+    @Test
+    public void testGetThreshold() throws Exception {
+        val response = projectService.getQueryAccelerateThresholdConfig("default");
+        Assert.assertEquals(20, response.getThreshold());
+        Assert.assertTrue(response.isBatchEnabled());
+        Assert.assertFalse(response.isAutoApply());
+    }
+
+
+    @Test
+    public void testUpdateProjectMaintainType() throws Exception {
+        projectService.updateMantainModelType("default", MaintainModelType.MANUAL_MAINTAIN.name());
+        Assert.assertEquals(MaintainModelType.MANUAL_MAINTAIN,
+                NProjectManager.getInstance(getTestConfig()).getProject("default").getMaintainModelType());
+    }
 }

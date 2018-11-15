@@ -24,7 +24,9 @@
 
 package io.kyligence.kap.rest.controller;
 
+import io.kyligence.kap.rest.request.MaintainModelTypeRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
+import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
 import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.exception.PersistentException;
@@ -114,6 +116,36 @@ public class NProjectController extends NBasicController {
             throw new BadRequestException(msg.getPROJECT_RENAME());
         }
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, updatedProj, "");
+    }
+
+    @RequestMapping(value = "/query_accelerate_threshold", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateQueryAccelerateThresholdConfig(@RequestBody FavoriteQueryThresholdRequest favoriteQueryThresholdRequest) throws IOException {
+        checkProjectName(favoriteQueryThresholdRequest.getProject());
+        checkRequiredArg("threshold", favoriteQueryThresholdRequest.getThreshold());
+        projectService.updateQueryAccelerateThresholdConfig(favoriteQueryThresholdRequest.getProject(), favoriteQueryThresholdRequest.getThreshold(),
+                favoriteQueryThresholdRequest.isAutoApply(), favoriteQueryThresholdRequest.isBatchEnabled());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+
+    }
+
+    @RequestMapping(value = "/query_accelerate_threshold", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getQueryAccelerateThresholdConfig(
+            @RequestParam(value = "project", required = true) String project) {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getQueryAccelerateThresholdConfig(project), "");
+    }
+
+    @RequestMapping(value = "/maintain_model_type", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateMantainModelType(@RequestBody MaintainModelTypeRequest request) throws IOException {
+        checkProjectName(request.getProject());
+        projectService.updateMantainModelType(request.getProject(), request.getMaintainModelType());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+
     }
 
 }

@@ -30,6 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -81,10 +82,10 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         System.setProperty("HADOOP_USER_NAME", "root");
         staticCreateTestMetadata();
         modelService.setSemanticUpdater(semanticService);
-        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
-        modelMgr.updateDataModel("nmodel_basic", copyForWrite -> {
-            copyForWrite.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        });
+        val projectManager = NProjectManager.getInstance(getTestConfig());
+        val projectInstance = projectManager.copyForWrite(projectManager.getProject("default"));
+        projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        projectManager.updateProject(projectInstance);
     }
 
     @Before

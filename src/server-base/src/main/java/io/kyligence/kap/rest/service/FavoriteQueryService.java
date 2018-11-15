@@ -38,6 +38,7 @@ import javax.annotation.PostConstruct;
 
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryResponse;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.val;
@@ -205,7 +206,7 @@ public class FavoriteQueryService extends BasicService {
         post(project, Lists.newArrayList(sqlPattern), true);
     }
 
-    private void internalFavorite(final Set<FavoriteQuery> favoriteQueries) {
+    private void internalFavorite(final Set<FavoriteQuery> favoriteQueries) throws IOException, PersistentException {
         List<FavoriteQuery> favoriteQueriesToInsert = Lists.newArrayList();
         Map<String, Set<Integer>> sqlPatternToUpdate = Maps.newHashMap();
 
@@ -216,7 +217,6 @@ public class FavoriteQueryService extends BasicService {
                 continue;
 
             favoriteQueriesToInsert.add(favoriteQuery);
-
             Set<Integer> sqlPatternHashSet = sqlPatternToUpdate.get(project);
 
             if (sqlPatternHashSet == null)
@@ -240,15 +240,33 @@ public class FavoriteQueryService extends BasicService {
 
             sqlPatternHashSet.put(project, sqlPatternInProj);
         }
-
+        NProjectManager projectManager = getProjectManager();
         FavoriteQueryJDBCDao.setSqlPatternHashSet(sqlPatternHashSet);
+        //acceptAccelerate without apply
+        for (String project : sqlPatternHashSet.keySet()) {
+            ProjectInstance projectInstance = projectManager.getProject(project);
+            if ((projectInstance.getConfig().getFavoriteQueryAccelerateThresholdBatchEnabled())
+                    && projectInstance.getConfig().getFavoriteQueryAccelerateThresholdAutoApply()) {
+                accelerateAllUnAcceleratedSqlPattern(project);
+            }
+        }
     }
 
     long getSystemTime() {
         return System.currentTimeMillis();
     }
 
-    private void autoMark() throws IOException {
+    private void accelerateAllUnAcceleratedSqlPattern(String project) throws IOException, PersistentException {
+        ProjectInstance projectInstance = getProjectManager().getProject(project);
+        int unAcceleratedSqlPatternSize = favoriteQueryJDBCDao.getUnAcceleratedSqlPattern(project).size();
+        if (unAcceleratedSqlPatternSize < projectInstance.getConfig().getFavoriteQueryAccelerateThreshold()) {
+            return;
+        } else {
+            acceptAccelerate(project, unAcceleratedSqlPatternSize);
+        }
+    }
+
+    private void autoMark() throws IOException, PersistentException {
         // scan query histories by the interval of 60 seconds
         long startTime = queryHistoryTimeOffset.getAutoMarkTimeOffset();
         long endTime = startTime + fetchQueryHistoryGapTime;

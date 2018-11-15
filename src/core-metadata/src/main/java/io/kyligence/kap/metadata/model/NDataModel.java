@@ -163,10 +163,6 @@ public class NDataModel extends RootPersistentEntity {
     @JsonProperty("management_type")
     private ManagementType managementType = ManagementType.TABLE_ORIENTED;
 
-    @EqualsAndHashCode.Include
-    @JsonProperty("maintain_model_type")
-    private MaintainModelType maintainModelType = MaintainModelType.AUTO_MAINTAIN;
-
     @JsonProperty("join_tables")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<JoinTableDesc> joinTables;
@@ -359,7 +355,6 @@ public class NDataModel extends RootPersistentEntity {
         this.autoMergeTimeRanges = other.autoMergeTimeRanges;
         this.volatileRange = other.volatileRange;
         this.dataCheckDesc = other.dataCheckDesc;
-        this.maintainModelType = other.maintainModelType;
         this.canvas = other.canvas;
     }
     public KylinConfig getConfig() {
@@ -377,14 +372,6 @@ public class NDataModel extends RootPersistentEntity {
 
     public void setManagementType(ManagementType managementType) {
         this.managementType = managementType;
-    }
-
-    public MaintainModelType getMaintainModelType() {
-        return maintainModelType;
-    }
-
-    public void setMaintainModelType(MaintainModelType maintainModelType) {
-        this.maintainModelType = maintainModelType;
     }
 
     public boolean isAutoMergeEnabled() {

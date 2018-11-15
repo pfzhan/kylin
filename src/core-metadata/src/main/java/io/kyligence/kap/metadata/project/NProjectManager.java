@@ -35,6 +35,8 @@ import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeSet;
 
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.FederatedResourceStore;
@@ -266,13 +268,13 @@ public class NProjectManager {
     }
 
     public ProjectInstance createProject(String projectName, String owner, String description,
-            LinkedHashMap<String, String> overrideProps) throws IOException {
+                                         LinkedHashMap<String, String> overrideProps, MaintainModelType maintainModelType) throws IOException {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
             logger.info("Creating project " + projectName);
 
             ProjectInstance currentProject = getProject(projectName);
             if (currentProject == null) {
-                currentProject = ProjectInstance.create(projectName, owner, description, overrideProps, null, null);
+                currentProject = ProjectInstance.create(projectName, owner, description, overrideProps, null, null, maintainModelType);
             } else {
                 throw new IllegalStateException("The project named " + projectName + "already exists");
             }
@@ -339,6 +341,20 @@ public class NProjectManager {
         }
     }
 
+    public ProjectInstance updateProject(ProjectInstance project) throws IOException {
+        try (AutoLock lock = prjMapLock.lockForWrite()) {
+            if (!projectMap.containsKey(project.getName())) {
+                throw new IllegalArgumentException("Project '" + project.getName() + "' does not exist!");
+            }
+            return save(project);
+        }
+    }
+
+    public ProjectInstance copyForWrite(ProjectInstance projectInstance) throws IOException {
+        Preconditions.checkNotNull(projectInstance);
+        return (ProjectInstance) SerializationUtils.clone(projectInstance);
+    }
+
     public void removeProjectLocal(String proj) {
         try (AutoLock lock = prjMapLock.lockForWrite()) {
             projectMap.removeLocal(proj);
@@ -386,7 +402,7 @@ public class NProjectManager {
             newProject = this.createProject(project, user,
                     "This is a project automatically added when adding realization " + realizationName + "("
                             + realizationType + ")",
-                    null);
+                    null, newProject.getMaintainModelType());
         }
         newProject.addRealizationEntry(realizationType, realizationName);
         save(newProject);

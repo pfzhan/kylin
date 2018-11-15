@@ -48,6 +48,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import lombok.val;
@@ -118,7 +119,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         overrideKylinProps.put("kylin.source.default", "11");
         ProjectInstance projectInstanceUpdate = ProjectInstance.create(projectInstance.getName(),
                 projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps,
-                projectInstance.getRealizationEntries(), projectInstance.getModels());
+                projectInstance.getRealizationEntries(), projectInstance.getModels(), MaintainModelType.AUTO_MAINTAIN);
         projectManager.updateProject(projectInstance, projectInstanceUpdate.getName(),
                 projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
     }

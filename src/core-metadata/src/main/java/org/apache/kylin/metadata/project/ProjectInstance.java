@@ -50,6 +50,8 @@ import java.util.TreeSet;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -104,6 +106,10 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @JsonProperty("ext_filters")
     private Set<String> extFilters = new TreeSet<String>();
 
+    @EqualsAndHashCode.Include
+    @JsonProperty("maintain_model_type")
+    private MaintainModelType maintainModelType = MaintainModelType.AUTO_MAINTAIN;
+
     @JsonProperty("override_kylin_properties")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private LinkedHashMap<String, String> overrideKylinProps;
@@ -119,7 +125,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
 
     public static ProjectInstance create(String name, String owner, String description,
             LinkedHashMap<String, String> overrideProps, List<RealizationEntry> realizationEntries,
-            List<String> models) {
+            List<String> models, MaintainModelType maintainModelType) {
         ProjectInstance projectInstance = new ProjectInstance();
 
         projectInstance.updateRandomUuid();
@@ -129,6 +135,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         projectInstance.setStatus(ProjectStatusEnum.ENABLED);
         projectInstance.setCreateTimeUTC(System.currentTimeMillis());
         projectInstance.setOverrideKylinProps(overrideProps);
+        projectInstance.setMaintainModelType(maintainModelType);
 
         if (realizationEntries != null)
             projectInstance.setRealizationEntries(realizationEntries);
@@ -153,6 +160,14 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @Override
     public String resourceName() {
         return this.name;
+    }
+
+    public MaintainModelType getMaintainModelType() {
+        return maintainModelType;
+    }
+
+    public void setMaintainModelType(MaintainModelType maintainModelType) {
+        this.maintainModelType = maintainModelType;
     }
 
     public String getDescription() {
