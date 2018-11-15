@@ -42,7 +42,7 @@
           </template>
         </el-table-column>
         <el-table-column
-        min-width="140px"
+        min-width="229px"
         show-overflow-tooltip
         prop="alias"
           :label="$t('kylinLang.model.modelNameGrid')">
@@ -50,7 +50,7 @@
         <el-table-column
           prop="fact_table"
           show-overflow-tooltip
-          min-width="230px"
+          min-width="229px"
           :label="$t('kylinLang.common.fact')">
         </el-table-column>
         <el-table-column

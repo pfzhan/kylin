@@ -262,6 +262,17 @@ export function arrSortByArr (arr1, arr2) {
   })
   return arr1
 }
+/*
+* 一个数组按照给定的数组置顶
+* args:arr1 [1,2,3] arr2 [3,2]
+* result: [3,2,1]
+*/
+export function topArrByArr (arr1, arr2) {
+  let tempArr = arr1.filter((x) => {
+    return arr2.indexOf(x) === -1
+  })
+  return arr2.concat(tempArr)
+}
 // 对象克隆
 export function objectClone (obj) {
   if (typeof obj !== 'object') {

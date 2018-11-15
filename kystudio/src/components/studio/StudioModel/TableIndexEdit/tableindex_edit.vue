@@ -11,7 +11,7 @@
         <el-button type="primary" plain size="medium" @click="selectAll">{{$t('selectAllColumns')}}</el-button><el-button plain size="medium" @click="clearAll">{{$t('clearAll')}}</el-button>
         <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" class="ksd-fright" style="width:200px" placeholder="请输入内容"></el-input>
          <el-table class="ksd-mt-10"
-          :data="allColumns"
+          :data="searchAllColumns"
           type=index
           border
           height="450"
@@ -27,7 +27,7 @@
             label="Display"
             width="120">
             <template slot-scope="scope">
-              <i class="el-icon-success" :class="{active: scope.row.isUsed}" @click="toggleDisplay(scope.row, scope.$index)"></i>
+              <i class="el-icon-success" :class="{active: scope.row.isUsed}" @click="toggleDisplay(scope.row)"></i>
             </template>
           </el-table-column>
           <el-table-column
@@ -37,9 +37,9 @@
             width="120">
             <template slot-scope="scope">
               <div class="action-list">
-                <span class="ky-dot-tag" v-if="scope.row.isUsed" :class="{'no-sorted': !scope.row.isSorted}"  @click="toggleSort(scope.row, scope.$index)">{{scope.row.isSorted ? scope.$index+1 : 1}}</span>
+                <span class="ky-dot-tag" v-if="scope.row.isUsed" :class="{'no-sorted': !scope.row.isSorted}"  @click="toggleSort(scope.row)">{{scope.row.isSorted ? getRowIndex(scope.row, 'fullName') + 1 : 1}}</span>
                 <!-- <span v-if="scope.row.isUsed && scope.row.isSorted">{{scope.$index + 1}}</span> -->
-                <span class="up-down">
+                <span class="up-down" :class="{hide: searchColumn}">
                   <i v-visible="scope.row.isUsed && scope.row.isSorted && scope.$index !== 0" @click="upRow(scope.$index)" class="el-icon-ksd-arrow_up"></i>
                   <i v-visible="scope.row.isUsed && scope.row.isSorted && allColumns[scope.$index+1] && allColumns[scope.$index+1].isSorted" @click="downRow(scope.$index)" class="el-icon-ksd-arrow_down"></i>
                 </span>
@@ -71,7 +71,7 @@
   import vuex from '../../../../store'
   import { NamedRegex } from 'config'
   import { handleError, kapMessage } from 'util/business'
-  import { objectClone, arrSortByArr, changeObjectArrProperty, indexOfObjWithSomeKey, filterObjectArray } from 'util/index'
+  import { objectClone, changeObjectArrProperty, indexOfObjWithSomeKey, filterObjectArray, topArrByArr } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
 
@@ -135,7 +135,11 @@
     tableRowClassName ({row}) {
       return row.colorful || row.isSorted ? 'row-colorful' : ''
     }
-    toggleDisplay (t, i) {
+    getRowIndex (t, key) {
+      return indexOfObjWithSomeKey(this.allColumns, key, t[key])
+    }
+    toggleDisplay (t) {
+      let i = this.getRowIndex(t, 'fullName')
       if (t.isUsed) {
         if (t.isSorted) {
           this.toggleSort(t, i)
@@ -146,7 +150,8 @@
       t.isUsed = !t.isUsed
     }
     // 切换sort状态的列，并带模拟缓动效果
-    toggleSort (t, i) {
+    toggleSort (t, index) {
+      let i = index === undefined ? this.getRowIndex(t, 'fullName') : index
       if (!t.isSorted) {
         let sortedLen = filterObjectArray(this.allColumns, 'isSorted', true).length
         if (sortedLen >= 9) {
@@ -174,11 +179,14 @@
           this.allColumns.splice(i, 1)
         }, 400)
         setTimeout(() => {
-          this.allColumns.splice(s - 1, 0, {})
+          this.allColumns.splice(s - 1, 0, {colorful: true})
         }, 600)
         setTimeout(() => {
-          this.allColumns.splice(s - 1, 1)
-          this.allColumns.splice(s - 1, 0, t)
+          t.colorful = true
+          this.allColumns.splice(s - 1, 1, t)
+          setTimeout(() => {
+            t.colorful = false
+          }, 400)
         }, 800)
       }
       t.isSorted = !t.isSorted
@@ -186,6 +194,11 @@
     toggleShard (t) {
       changeObjectArrProperty(this.allColumns, '*', 'isShared', false)
       t.isShared = !t.isShared
+    }
+    get searchAllColumns () {
+      return this.allColumns.filter((col) => {
+        return !this.searchColumn || col.fullName.toUpperCase().indexOf(this.searchColumn.toUpperCase()) >= 0
+      })
     }
     allColumns = []
     getAllColumns () {
@@ -196,11 +209,11 @@
         result.push(col.full_colname)
       })
       if (this.tableIndexMeta.sort_by_columns) {
-        result = arrSortByArr(result, this.tableIndexMeta.sort_by_columns)
+        result = topArrByArr(result, this.tableIndexMeta.sort_by_columns)
       }
       result.forEach((i, index) => {
-        let obj = {fullName: i, isSorted: false, isUsed: false, isShared: false}
-        if (index < this.tableIndexMeta.sort_by_columns.length) {
+        let obj = {fullName: i, isSorted: false, isUsed: false, isShared: false, colorful: false}
+        if (this.tableIndexMeta.sort_by_columns.indexOf(i) >= 0) {
           obj.isSorted = true
           obj.isUsed = true
         }
@@ -212,7 +225,6 @@
         }
         this.allColumns.push(obj)
       })
-      console.log(this.allColumns)
     }
     get saveBtnDisable () {
       return filterObjectArray(this.allColumns, 'isUsed', true).length === 0
@@ -249,13 +261,6 @@
       this.allColumns.forEach((col) => {
         col.isUsed = true
       })
-    }
-    addCol (dataSet, i) {
-      if (dataSet === 'sort_by_columns' && this.tableIndexMeta[dataSet].length === 9) {
-        kapMessage('大哥, 最多只能加9列哎', {type: 'warning'})
-        return
-      }
-      this.tableIndexMeta[dataSet].splice(i, 0, '')
     }
     closeModal (isSubmit) {
       this.hideModal()
