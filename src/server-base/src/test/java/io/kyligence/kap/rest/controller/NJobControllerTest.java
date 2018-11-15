@@ -45,11 +45,13 @@ package io.kyligence.kap.rest.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.request.JobUpdateRequest;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
+import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
@@ -114,22 +116,49 @@ public class NJobControllerTest {
 
     @Test
     public void testDropJob() throws Exception {
-        Mockito.doNothing().when(jobService).dropJob("default", "e1ad7bb0-522e-456a-859d-2eab1df448de");
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs/{project}/{jobId}", "default", "e1ad7bb0-522e-456a-859d-2eab1df448de")
+        Mockito.doNothing().when(jobService).dropJobBatchly("default",
+                Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), "");
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs/{project}", "default")
+                .param("jobIds", "e1ad7bb0-522e-456a-859d-2eab1df448de").param("status", "")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nJobController).dropJob("default", "e1ad7bb0-522e-456a-859d-2eab1df448de");
+        Mockito.verify(nJobController).dropJob("default", Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"),
+                "");
 
     }
 
     @Test
-    public void testUpdateJobStatus() throws Exception {
-        Mockito.doNothing().when(jobService).updateJobStatus("e1ad7bb0-522e-456a-859d-2eab1df448de", "default", "RESUME");
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(mockJobUpdateRequest()))
+    public void testDropJob_selectNoneJob_exception() throws Exception {
+        Mockito.doNothing().when(jobService).dropJobBatchly("default", Lists.newArrayList(), "");
+        mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs/{project}", "default").param("jobIds", "")
+                .param("status", "").accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nJobController).dropJob("default", Lists.newArrayList(), "");
+
+    }
+
+    @Test
+    public void testUpdateJobStatus_PASS() throws Exception {
+        val request = mockJobUpdateRequest();
+        Mockito.doNothing().when(jobService).updateJobStatusBatchly(mockJobUpdateRequest().getJobIds(), "default",
+                "RESUME", mockJobUpdateRequest().getStatus());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nJobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
+    }
+
+    @Test
+    public void testUpdateJobStatus_selectNoneJob_Exception() throws Exception {
+        val request = mockJobUpdateRequest();
+        request.setJobIds(Lists.newArrayList());
+        Mockito.doNothing().when(jobService).updateJobStatusBatchly(mockJobUpdateRequest().getJobIds(), "default",
+                "RESUME", mockJobUpdateRequest().getStatus());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
         Mockito.verify(nJobController).updateJobStatus(Mockito.any(JobUpdateRequest.class));
     }
 
@@ -155,7 +184,7 @@ public class NJobControllerTest {
         JobUpdateRequest jobUpdateRequest = new JobUpdateRequest();
         jobUpdateRequest.setProject("default");
         jobUpdateRequest.setAction("RESUME");
-        jobUpdateRequest.setJobId("e1ad7bb0-522e-456a-859d-2eab1df448de");
+        jobUpdateRequest.setJobIds(Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"));
         return jobUpdateRequest;
     }
 }

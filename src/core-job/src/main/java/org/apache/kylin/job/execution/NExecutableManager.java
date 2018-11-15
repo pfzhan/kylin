@@ -31,14 +31,18 @@ import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import io.kyligence.kap.cube.model.NDataSegment;
+import lombok.val;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -252,6 +256,24 @@ public class NExecutableManager {
         } catch (PersistentException e) {
             logger.error("error get All Jobs", e);
             throw new RuntimeException(e);
+        }
+    }
+
+    public List<AbstractExecutable> getExecutablesByStatus(List<String> jobIds, String status) {
+
+        val executables = getAllExecutables();
+        val resultExecutables = new ArrayList<AbstractExecutable>();
+        if (CollectionUtils.isNotEmpty(jobIds)) {
+            resultExecutables
+                    .addAll(executables.stream().filter(t -> jobIds.contains(t.getId())).collect(Collectors.toList()));
+        } else {
+            resultExecutables.addAll(executables);
+        }
+        if (StringUtils.isNotEmpty(status)) {
+            return resultExecutables.stream().filter(t -> t.getStatus().equals(ExecutableState.valueOf(status)))
+                    .collect(Collectors.toList());
+        } else {
+            return resultExecutables;
         }
     }
 

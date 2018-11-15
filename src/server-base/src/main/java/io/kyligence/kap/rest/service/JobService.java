@@ -45,6 +45,7 @@ import io.kyligence.kap.rest.request.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -242,26 +243,26 @@ public class JobService extends BasicService {
     }
 
 
-    public void dropJob(String project, String jobId) throws IOException {
+    private void dropJob(String project, String jobId) throws IOException {
         NExecutableManager executableManager = getExecutableManager(project);
         executableManager.deleteJob(jobId);
         tableExtService.removeJobIdFromTableExt(jobId, project);
     }
 
-    public void updateJobStatus(String jobId, String project, String action) throws IOException {
-        NExecutableManager executableManager = getExecutableManager(project);
+    private void updateJobStatus(String jobId, String project, String action) throws IOException {
+        val executableManager = getExecutableManager(project);
         switch (JobActionEnum.valueOf(action)) {
-            case RESUME:
-                executableManager.resumeJob(jobId);
-                break;
-            case DISCARD:
-                cancelJob(project, jobId);
-                break;
-            case PAUSE:
-                executableManager.pauseJob(jobId);
-                break;
-            default:
-                throw new IllegalStateException("This job can not do this action: " + action);
+        case RESUME:
+            executableManager.resumeJob(jobId);
+            break;
+        case DISCARD:
+            cancelJob(project, jobId);
+            break;
+        case PAUSE:
+            executableManager.pauseJob(jobId);
+            break;
+        default:
+            throw new IllegalStateException("This job can not do this action: " + action);
         }
 
     }
@@ -316,5 +317,22 @@ public class JobService extends BasicService {
             result.setExecCmd(((ShellExecutable) task).getCmd());
         }
         return result;
+    }
+
+    public void updateJobStatusBatchly(List<String> jobIds, String project, String action, String status)
+            throws IOException {
+        val executableManager = getExecutableManager(project);
+        val jobs = executableManager.getExecutablesByStatus(jobIds, status);
+        for (val job : jobs) {
+            updateJobStatus(job.getId(), project, action);
+        }
+    }
+
+    public void dropJobBatchly(String project, List<String> jobIds, String status) throws IOException {
+        val executableManager = getExecutableManager(project);
+        val jobs = executableManager.getExecutablesByStatus(jobIds, status);
+        for (val job : jobs) {
+            dropJob(project, job.getId());
+        }
     }
 }

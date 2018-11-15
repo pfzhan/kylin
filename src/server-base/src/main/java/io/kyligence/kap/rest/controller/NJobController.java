@@ -34,6 +34,9 @@ import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import io.kyligence.kap.rest.service.JobService;
 
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,21 +76,31 @@ public class NJobController extends NBasicController {
     }
 
 
-    @RequestMapping(value = "/{project}/{jobId}", method = {RequestMethod.DELETE}, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/{project}", method = { RequestMethod.DELETE }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse dropJob(@PathVariable("project") String project, @PathVariable("jobId") String jobId) throws IOException {
+    public EnvelopeResponse dropJob(@PathVariable("project") String project,
+            @RequestParam(value = "jobIds", required = false) List<String> jobIds,
+            @RequestParam(value = "status", required = false) String status) throws IOException {
         checkProjectName(project);
-        jobService.dropJob(project, jobId);
+        if (CollectionUtils.isEmpty(jobIds) && StringUtils.isEmpty(status)) {
+            throw new BadRequestException("At least one job should be selected to delete!");
+        }
+        jobService.dropJobBatchly(project, jobIds, status);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "/status", method = {RequestMethod.PUT}, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/status", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse updateJobStatus(@RequestBody JobUpdateRequest jobUpdateRequest) throws IOException {
         checkProjectName(jobUpdateRequest.getProject());
-        jobService.updateJobStatus(jobUpdateRequest.getJobId(), jobUpdateRequest.getProject(), jobUpdateRequest.getAction());
+        if (CollectionUtils.isEmpty(jobUpdateRequest.getJobIds())
+                && StringUtils.isEmpty(jobUpdateRequest.getStatus())) {
+            throw new BadRequestException("At least one job should be selected to " + jobUpdateRequest.getAction());
+        }
+        jobService.updateJobStatusBatchly(jobUpdateRequest.getJobIds(), jobUpdateRequest.getProject(),
+                jobUpdateRequest.getAction(), jobUpdateRequest.getStatus());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 

@@ -46,6 +46,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.rest.execution.SucceedTestExecutable;
 import io.kyligence.kap.rest.request.JobFilter;
@@ -117,13 +118,13 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setJobName("ob1");
         List<ExecutableResponse> jobs2 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs2.size() == 1);
-        String[] subjects2 = {"model1"};
+        String[] subjects2 = { "model1" };
         jobFilter.setSubjects(subjects2);
         jobFilter.setJobName("");
         jobFilter.setTimeFilter(2);
         List<ExecutableResponse> jobs3 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs3.size() == 1);
-        Integer[] statusInt2 = {0};
+        Integer[] statusInt2 = { 0 };
         jobFilter.setSubjects(subjects);
         jobFilter.setStatus(statusInt2);
         jobFilter.setTimeFilter(1);
@@ -149,7 +150,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setSortBy("target_subject");
         List<ExecutableResponse> jobs9 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs9.size() == 3 && jobs9.get(0).getJobName().equals("sparkjob1"));
-        Integer[] statusInt3 = {0, 1, 2, 4, 8, 16, 32};
+        Integer[] statusInt3 = { 0, 1, 2, 4, 8, 16, 32 };
         jobFilter.setStatus(statusInt3);
         jobFilter.setSortBy("");
         List<ExecutableResponse> jobs10 = jobService.listJobs(jobFilter);
@@ -159,22 +160,21 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(jobs11.size() == 3 && jobs11.get(0).getJobName().equals("sparkjob1"));
     }
 
-
     @Test
     public void testBasic() throws IOException {
         NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
         NDataflowManager dsMgr = NDataflowManager.getInstance(jobService.getConfig(), "default");
         SucceedTestExecutable executable = new SucceedTestExecutable();
         manager.addJob(executable);
-        jobService.updateJobStatus(executable.getId(), "default", "PAUSE");
+        jobService.updateJobStatusBatchly(Lists.newArrayList(executable.getId()), "default", "PAUSE", "");
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.STOPPED));
-        jobService.updateJobStatus(executable.getId(), "default", "RESUME");
+        jobService.updateJobStatusBatchly(Lists.newArrayList(executable.getId()), "default", "RESUME", "");
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.READY));
-        jobService.updateJobStatus(executable.getId(), "default", "DISCARD");
+        jobService.updateJobStatusBatchly(Lists.newArrayList(executable.getId()), "default", "DISCARD", "");
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.DISCARDED));
         Assert.assertTrue(dsMgr.getDataflow("ncube_basic").getSegment(0) == null);
         Mockito.doNothing().when(tableExtService).removeJobIdFromTableExt(executable.getId(), "default");
-        jobService.dropJob("default", executable.getId());
+        jobService.dropJobBatchly("default", Lists.newArrayList(executable.getId()), "");
         List<AbstractExecutable> executables = manager.getAllExecutables();
         Assert.assertTrue(!executables.contains(executable));
     }
@@ -190,9 +190,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.SUCCEED, executable.getStatus());
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("The job " + executable.getId() + " has already been succeed and cannot be discarded.");
-        jobService.updateJobStatus(executable.getId(), "default", "DISCARD");
+        jobService.updateJobStatusBatchly(Lists.newArrayList(executable.getId()), "default", "DISCARD", "");
     }
-
 
     @Test
     public void testUpdateException() throws IOException {
@@ -205,7 +204,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         executable.setName("test");
         manager.addJob(executable);
         thrown.expect(IllegalStateException.class);
-        jobService.updateJobStatus(executable.getId(), "default", "ROLLBACK");
+        jobService.updateJobStatusBatchly(Lists.newArrayList(executable.getId()), "default", "ROLLBACK", "");
     }
 
     @Test
@@ -222,7 +221,6 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         List<ExecutableStepResponse> result = jobService.getJobDetail("default", executable.getId());
         Assert.assertTrue(result.size() == 1);
     }
-
 
     private List<AbstractExecutable> mockJobs() {
         List<AbstractExecutable> jobs = new ArrayList<>();

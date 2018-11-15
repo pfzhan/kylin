@@ -27,12 +27,16 @@ package io.kyligence.kap.rest.request;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Getter
 @Setter
 public class JobUpdateRequest {
 
-    private String jobId;
+    private List<String> jobIds = new ArrayList<>();
     private String project;
     private String action;
+    private String status;
 
 }
