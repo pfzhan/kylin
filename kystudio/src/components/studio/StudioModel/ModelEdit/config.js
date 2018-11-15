@@ -17,7 +17,7 @@ export const modelRenderConfig = {
   tableBoxHeight: 195, // table盒子高度
   tableBoxLeft: 50, // table盒子相对于左侧兄弟元素距离
   tableBoxTop: 50, // table盒子相对于顶部兄弟元素距离
-  zoom: 10,
+  zoom: 9,
   beestViewPos: [530, 160], // 最佳可视位置
   rootBox: rootBox, // 根元素
   drawBox: '.model-edit', // 绘制区域
@@ -60,7 +60,7 @@ export const modelRenderConfig = {
         box: rootBox
       },
       measure: {
-        top: 115,
+        top: 104,
         right: 60,
         width: 250,
         height: 316,
@@ -72,7 +72,7 @@ export const modelRenderConfig = {
         box: rootBox
       },
       setting: {
-        top: 158,
+        top: 134,
         right: 60,
         width: 250,
         height: 410,
@@ -84,7 +84,7 @@ export const modelRenderConfig = {
         box: rootBox
       },
       cc: {
-        top: 158,
+        top: 136,
         right: 60,
         width: 250,
         height: 316,
@@ -99,7 +99,7 @@ export const modelRenderConfig = {
         top: 52,
         left: 10,
         width: 250,
-        height: 316,
+        height: 420,
         limit: {
           height: [80]
         },

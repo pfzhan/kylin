@@ -12,7 +12,7 @@
             <div @click="toggleTableShow(table)" class="table-header">
               <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
               <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-              <span class="ksd-ml-2"><i class="el-icon-ksd-fact_table"></i></span><span class="table-title">{{table.alias}}</span>
+              <span class="ksd-ml-2"><i class="el-icon-ksd-fact_table"></i></span><span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span> </span>
             </div>
             <el-table
               v-if="table.show"
@@ -64,7 +64,7 @@
             <div @click="toggleTableShow(table)" class="table-header">
               <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
               <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
-              <span class="ksd-ml-2"><i class="el-icon-ksd-lookup_table"></i></span><span class="table-title">{{table.alias}}</span>
+              <span class="ksd-ml-2"><i class="el-icon-ksd-lookup_table"></i></span><span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span></span>
             </div>
             <el-table
               v-if="table.show"
@@ -110,6 +110,7 @@
         </div>
     </template>
     <div slot="footer" class="dialog-footer">
+      <span class="ksd-fleft ksd-mt-10">{{$t('totalSelect')}}{{countAllTableSelectColumns()}}</span>
       <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" plain type="primary" @click="submit"  :disabled="isLoading">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
@@ -127,7 +128,7 @@ import store, { types } from './store'
 // import { sourceTypes } from '../../../../config'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
 // import { objectClone } from 'util'
-import { objectClone, sampleGuid } from '../../../../util'
+import { objectClone, sampleGuid, filterObjectArray } from '../../../../util'
 vuex.registerModule(['modals', 'DimensionsModal'], store)
 @Component({
   computed: {
@@ -188,13 +189,13 @@ export default class DimensionsModal extends Vue {
           if (table.alias + '.' + col.name === d.column) {
             if (d.status === 'DIMENSION') {
               col.alias = d.name
-              col.isSelected = true //  dimension的列
+              this.$set(col, 'isSelected', true)
               col.guid = d.guid
             }
             break
           } else {
             col.alias = col.name
-            col.isSelected = false
+            this.$set(col, 'isSelected', false)
             col.guid = null
           }
         }
@@ -263,6 +264,30 @@ export default class DimensionsModal extends Vue {
           }
         })
       })
+    }
+  }
+  get countTableSelectColumns () {
+    return (table) => {
+      if (!table) {
+        return
+      }
+      return filterObjectArray(table.columns, 'isSelected', true).length
+    }
+  }
+  get countAllTableSelectColumns () {
+    return () => {
+      if (!this.tables) {
+        return
+      }
+      let i = 0
+      Object.values(this.tables).forEach((table) => {
+        table.columns && table.columns.forEach((col) => {
+          if (col.isSelected) {
+            i++
+          }
+        })
+      })
+      return i
     }
   }
   submit () {

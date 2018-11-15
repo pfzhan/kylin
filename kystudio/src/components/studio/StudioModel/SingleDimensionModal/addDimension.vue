@@ -1,12 +1,12 @@
 <template>
   <el-dialog append-to-body :title="$t('adddimension')" @close="isShow && handleClose(false)"  width="440px" :visible="isShow" class="add-dimension-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <div>
-      <div class="ky-tips-box">
+      <!-- <div class="ky-tips-box">
         <div class="tips-title">Reminder!</div>
         <p class="tips-content">
           你可以於 Dimension Candidate 新增或選擇已建立的 Computer Column,按下此按鈕       可新增 Computer Column，利用拖曳加入則無此功能
         </p>
-      </div>
+      </div> -->
       <el-form v-if="isFormShow" :model="dimensionInfo" :rules="rules"  ref="dimensionForm" label-width="100px" label-position="top" class="demo-ruleForm">
         <el-form-item :label="$t('dimensionName')" prop="name">
           <el-input v-model="dimensionInfo.name" ></el-input>

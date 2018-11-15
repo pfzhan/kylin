@@ -3,20 +3,13 @@ import Router from 'vue-router'
 import topLeftRightView from 'components/layout/layout_left_right_top'
 import layoutFull from 'components/layout/layout_full'
 import projectList from 'components/project/project_list'
-// import modelTab from 'components/model/model_tab'
-import cubeList from 'components/cube/cube_list'
-import cubeEdit from 'components/cube/edit/cube_desc_edit'
 import login from 'components/user/login'
-// import insight from 'components/insight/insight'
 import setting from 'components/security/reset_password'
 import newQuery from 'components/query/new_query'
 import queryHistory from 'components/query/query_history'
 import favoriteQuery from 'components/query/favorite_query'
 import overview from 'components/overview'
 import messages from 'components/messages'
-// import groupDetail from 'components/security/groupDetail'
-// import cluster from 'components/monitor/cluster'
-// import admin from 'components/monitor/admin'
 import jobs from 'components/monitor/jobs'
 import { bindRouterGuard } from './routerGuard.js'
 Vue.use(Router)
@@ -69,15 +62,6 @@ let routerOptions = {
         meta: {},
         component: () => import('../components/studio/StudioModel/ModelTabs/index.vue')
       }, {
-        name: 'Cubes',
-        path: 'cubes',
-        component: cubeList
-      }, {
-        name: 'CubeEdit',
-        path: 'cubeEdit',
-        component: cubeEdit
-      },
-      {
         name: 'Project',
         path: 'security/project',
         component: projectList
@@ -97,26 +81,11 @@ let routerOptions = {
         path: 'security/group/:groupName',
         component: () => import('../components/security/SecurityUser/index.vue')
       },
-      // {
-      //   name: 'Insight',
-      //   path: 'insight',
-      //   component: insight
-      // },
       {
         name: 'Job',
         path: 'monitor/job',
         component: jobs
       },
-      // {
-      //   name: 'Cluster',
-      //   path: 'monitor/cluster',
-      //   component: cluster
-      // },
-      // {
-      //   name: 'Admin',
-      //   path: 'monitor/admin',
-      //   component: admin
-      // },
       {
         name: 'Setting',
         path: 'setting',

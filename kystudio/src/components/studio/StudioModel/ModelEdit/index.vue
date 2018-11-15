@@ -1,6 +1,6 @@
 <template>
-  <div class="model-edit-outer" @drop='dropTable($event)' v-drag="{sizeChangeCb:dragBox}">
-    <div class="model-edit"  @dragover='allowDrop($event)' @dragleave="dragLeave">
+  <div class="model-edit-outer" @drop='dropTable($event)' v-drag="{sizeChangeCb:dragBox}" @dragleave="dragLeave">
+    <div class="model-edit"  @dragover='allowDrop($event)'>
       <!-- table box -->
       <div class="table-box" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
         <div class="table-title"  @mousedown="activeTablePanel(t)" :data-zoom="modelRender.zoom"  v-drag:change.left.top="t.drawSize">
@@ -38,8 +38,8 @@
     <!-- datasource面板  index 3-->
     <div class="tool-icon icon-ds" :class="{active: panelAppear.datasource.display}" v-event-stop @click="toggleMenu('datasource')"><i class="el-icon-ksd-data_source"></i></div>
       <transition name="bounceleft">
-        <div class="panel-box panel-datasource" v-show="panelAppear.datasource.display" :style="panelStyle('datasource')" v-event-stop>
-          <div class="panel-title"><span class="title">{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
+        <div class="panel-box panel-datasource"  v-show="panelAppear.datasource.display" :style="panelStyle('datasource')" v-event-stop>
+          <div class="panel-title" v-drag:change.left.top="panelAppear.datasource"><span class="title">{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
           <div v-scroll style="height:calc(100% - 50px)">
             <DataSourceBar 
               class="tree-box"
@@ -54,6 +54,7 @@
               @drag="dragTable">
             </DataSourceBar>
           </div>
+          <div class="panel-footer" v-drag:change.height="panelAppear.datasource"><i class="el-icon-ksd-bottom_bar"></i></div>
         </div>
       </transition>
       <!-- datasource面板  end-->
@@ -93,7 +94,7 @@
               <span @click="addCCDimension"><i class="el-icon-ksd-project_add"></i></span>
               <span class="ksd-fright batch-del" v-if="isShowCheckbox" @click="deleteDimenisons"><i class="el-icon-ksd-table_delete" :class="{'delable': dimensionSelectedList.length>0}"></i></span>
             </div>
-            <div class="panel-main-content" v-scroll>
+            <div class="panel-main-content" @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "dimension")}' v-scroll>
               <ul class="dimension-list">
                 <li v-for="(d, i) in allDimension" :key="d.name">
                   <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="i">{{d.name|omit(18,'...')}}</el-checkbox>
@@ -104,7 +105,7 @@
                 </li>
               </ul>
             </div>
-            <div class="panel-footer" v-drag:change.height="panelAppear.dimension"><i class="el-icon-ksd-bottom_bar"></i></div>
+            <div class="panel-footer drag-bar" v-drag:change.height="panelAppear.dimension"><i class="el-icon-ksd-bottom_bar"></i></div>
           </div>
         </transition>
         <!-- measure面板  index 1-->
@@ -120,7 +121,7 @@
               <span @click="addNewMeasure"><i class="el-icon-ksd-project_add"></i></span>
               <span class="ksd-fright batch-del" v-if="isShowMeaCheckbox" @click="deleteMeasures"><i class="el-icon-ksd-table_delete" :class="{'delable': measureSelectedList.length>0}"></i></span>
             </div>
-            <div class="panel-main-content" v-scroll>
+            <div class="panel-main-content"  @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "measure")}' v-scroll>
               <ul class="measure-list">
                 <li v-for="(m, i) in modelRender.all_measures" :key="m.name">
                   <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="i">{{m.name|omit(18,'...')}}</el-checkbox>
@@ -131,7 +132,7 @@
                 </li>
               </ul>
             </div>
-            <div class="panel-footer" v-drag:change.height="panelAppear.measure"><i class="el-icon-ksd-bottom_bar"></i></div>
+            <div class="panel-footer drag-bar" v-drag:change.height="panelAppear.measure"><i class="el-icon-ksd-bottom_bar"></i></div>
           </div>
         </transition>
         <!-- 可计算列 -->
@@ -148,7 +149,7 @@
               <span class="ksd-fright batch-del" v-if="isShowCCCheckbox" @click="delCCs"><i class="el-icon-ksd-table_delete" :class="{'delable': ccSelectedList.length>0}"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
-              <ul class="measure-list">
+              <ul class="cc-list">
                 <li v-for="(m, i) in modelRender.computed_columns" :key="m.name">
                   <el-checkbox v-model="ccSelectedList" v-if="isShowCCCheckbox" :label="i">{{m.columnName|omit(18,'...')}}</el-checkbox>
                   <span v-else>{{m.columnName|omit(18,'...')}}</span>
@@ -158,59 +159,29 @@
                 </li>
               </ul>
             </div>
-            <div class="panel-footer" v-drag:change.height="panelAppear.cc"><i class="el-icon-ksd-bottom_bar"></i></div>
+            <div class="panel-footer drag-bar" v-drag:change.height="panelAppear.cc"><i class="el-icon-ksd-bottom_bar"></i></div>
           </div>
         </transition>
-        <!-- setting面板  index 2-->
-        <!-- <transition name="bounceright">
-          <div class="panel-box panel-setting" @mousedown.stop="activePanel('setting')" :style="panelStyle('setting')" v-if="panelAppear.setting.display">
-            <div class="panel-title" @mousedown="activePanel('setting')" v-drag:change.right.top="panelAppear.setting">
-              <span><i class="el-icon-ksd-setting"></i></span>
-              <span class="title">{{$t('modelSetting')}}</span>
-              <span class="close" @click="toggleMenu('setting')"><i class="el-icon-ksd-close"></i></span>
-            </div>
-            <div class="panel-main-content" style="top:36px;" data-scrollbar>
-              <div :class="{active:autoSetting}">
-                <div><el-radio v-model="modelRender.maintain_model_type" label="MANUAL_MAINTAIN">{{$t('userMaintainedModel')}}<i class="el-icon-ksd-lock ksd-ml-4"></i></el-radio></div>
-                <ul>
-                  <li>{{$t('userMaintainedTip1')}}</li>
-                  <li>{{$t('userMaintainedTip2')}}</li>
-                  <li>{{$t('userMaintainedTip3')}}</li>
-                </ul>
-              </div>
-              <div :class="{active:!autoSetting}">
-                <div><el-radio v-model="modelRender.maintain_model_type" label="AUTO_MAINTAIN">{{$t('systemMaintainedModel')}}<i class="el-icon-ksd-unlock ksd-ml-4"></i></el-radio></div>
-                <ul>
-                  <li>{{$t('systemMaintainedTip1')}}</li>
-                  <li>{{$t('systemMaintainedTip2')}}</li>
-                  <li>{{$t('systemMaintainedTip3')}}</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        </transition> -->
-      <!-- </div> -->
-      <!-- 右侧面板组end -->
 
     <!-- 搜索面板 -->
     <transition name="bouncecenter">
-     <div class="panel-search-box panel-box"  v-event-stop :style="panelStyle('search')" v-if="panelAppear.search.display">
-      <span class="close" @click="toggleMenu('search')"><i class="el-icon-ksd-close"></i></span>
-       <el-input @input="searchModelEverything"  clearable class="search-input" placeholder="search table, dimension, measure, column name" v-model="modelGlobalSearch" prefix-icon="el-icon-search"></el-input>
-       <transition name="bounceleft">
-       <div v-scroll class="search-result-box" v-keyborad-select="{scope:'.search-content', searchKey: modelGlobalSearch}" v-show="modelGlobalSearch && showSearchResult" v-search-highlight="{scope:'.search-name', hightlight: modelGlobalSearch}">
-        <div>
-         <div class="search-group" v-for="(k,v) in searchResultData" :key="v">
-           <ul>
-             <li class="search-content" v-for="(x, i) in k" @click="(e) => {selectResult(e, x)}" :key="x.action + x.name + i"><span class="search-category">[{{$t(x.i18n)}}]</span> <span class="search-name">{{x.name}}</span><span v-html="x.extraInfo"></span></li>
-           </ul>
-           <div class="ky-line"></div>
-         </div>
-         <div v-show="Object.keys(searchResultData).length === 0" class="search-noresult">No Result!</div>
-       </div>
-     </div>
-     </transition>
-    </div>
+      <div class="panel-search-box panel-box"  v-event-stop :style="panelStyle('search')" v-if="panelAppear.search.display">
+        <span class="close" @click="toggleMenu('search')"><i class="el-icon-ksd-close"></i></span>
+        <el-input @input="searchModelEverything"  clearable class="search-input" placeholder="search table, dimension, measure, column name" v-model="modelGlobalSearch" prefix-icon="el-icon-search"></el-input>
+        <transition name="bounceleft">
+          <div v-scroll class="search-result-box" v-keyborad-select="{scope:'.search-content', searchKey: modelGlobalSearch}" v-show="modelGlobalSearch && showSearchResult" v-search-highlight="{scope:'.search-name', hightlight: modelGlobalSearch}">
+            <div>
+            <div class="search-group" v-for="(k,v) in searchResultData" :key="v">
+              <ul>
+                <li class="search-content" v-for="(x, i) in k" @click="(e) => {selectResult(e, x)}" :key="x.action + x.name + i"><span class="search-category">[{{$t(x.i18n)}}]</span> <span class="search-name">{{x.name}}</span><span v-html="x.extraInfo"></span></li>
+              </ul>
+              <div class="ky-line"></div>
+            </div>
+            <div v-show="Object.keys(searchResultData).length === 0" class="search-noresult">No Result!</div>
+          </div>
+        </div>
+        </transition>
+      </div>
     </transition> 
     <PartitionModal/>
     <DimensionModal/>
@@ -224,6 +195,7 @@
     </AddMeasure>
     <SingleDimensionModal/>
     <AddCC/>
+
     <!-- 编辑模型table遮罩 -->
     <div class="full-screen-cover" v-event-stop @click.stop="cancelTableEdit" v-if="showTableCoverDiv"></div>
     <transition name="slide-fade">
@@ -258,30 +230,30 @@
     </transition>
     <!-- 被编辑table clone dom -->
     <div class="table-box fast-action-temp-table" :id="currentEditTable.guid + 'temp'" v-event-stop v-if="showTableCoverDiv" :class="{isLookup:currentEditTable.kind==='LOOKUP'}" :style="tableBoxStyleNoZoom(currentEditTable.drawSize)">
-        <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="currentEditTable.drawSize">
-          <span @click.stop="changeTableType(currentEditTable)">
-            <i class="el-icon-ksd-fact_table kind" v-if="currentEditTable.kind==='FACT'"></i>
-            <i v-else class="el-icon-ksd-lookup_table kind"></i>
-          </span>
-          <span class="alias-span name">{{currentEditTable.alias}}</span>
-          <span class="close" @click="cancelTableEdit"><i class="el-icon-ksd-table_setting"></i></span>
-        </div>
-        <div class="column-list-box"  v-scroll>
-          <ul >
-            <li class="column-li" :class="{'column-li-cc': col.is_computed_column}"  v-for="col in currentEditTable.columns" :key="col.name">
-              <span class="col-name">{{col.name|omit(14,'...')}}</span>
+      <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="currentEditTable.drawSize">
+        <span @click.stop="changeTableType(currentEditTable)">
+          <i class="el-icon-ksd-fact_table kind" v-if="currentEditTable.kind==='FACT'"></i>
+          <i v-else class="el-icon-ksd-lookup_table kind"></i>
+        </span>
+        <span class="alias-span name">{{currentEditTable.alias}}</span>
+        <span class="close" @click="cancelTableEdit"><i class="el-icon-ksd-table_setting"></i></span>
+      </div>
+      <div class="column-list-box"  v-scroll>
+        <ul >
+          <li class="column-li" :class="{'column-li-cc': col.is_computed_column}"  v-for="col in currentEditTable.columns" :key="col.name">
+            <span class="col-name">{{col.name|omit(14,'...')}}</span>
+            <span class="li-type ky-option-sub-info">{{col.datatype}}</span>
+          </li>
+          <template v-if="currentEditTable.kind=== 'FACT'">
+            <li class="column-li column-li-cc"  v-for="col in modelRender.computed_columns" :key="col.name">
+              <span class="col-name">{{col.columnName|omit(14,'...')}}</span>
               <span class="li-type ky-option-sub-info">{{col.datatype}}</span>
             </li>
-            <template v-if="currentEditTable.kind=== 'FACT'">
-              <li class="column-li column-li-cc"  v-for="col in modelRender.computed_columns" :key="col.name">
-                <span class="col-name">{{col.columnName|omit(14,'...')}}</span>
-                <span class="li-type ky-option-sub-info">{{col.datatype}}</span>
-              </li>
-            </template>
-          </ul>
-        </div>
-        <div class="drag-bar"><i class="el-icon-ksd-bottom_bar"></i></div>
+          </template>
+        </ul>
       </div>
+      <div class="drag-bar" v-drag:change.height="currentEditTable.drawSize"><i class="el-icon-ksd-bottom_bar"></i></div>
+    </div>
     
   </div>
 </template>
@@ -720,6 +692,35 @@ export default class ModelEdit extends Vue {
       tables: this.modelRender.tables
     })
   }
+  // 释放列
+  dropColumnToPanel (event, type) {
+    this.removeDragInClass()
+    let guid = this.currentDragColumnData.guid
+    let table = this.modelInstance.getTableByGuid(guid)
+    if (!table) {
+      return
+    }
+    let alias = table.alias
+    let fullName = alias + '.' + this.currentDragColumnData.columnName
+    if (type === 'dimension') {
+      this.showSingleDimensionDialog({
+        dimension: {
+          column: fullName
+        },
+        modelInstance: this.modelInstance
+      })
+    } else if (type === 'measure') {
+      this.measureObj = {
+        name: '',
+        expression: 'SUM(column)',
+        parameter_value: [{type: 'column', value: fullName, table_guid: null}],
+        converted_columns: [],
+        return_type: ''
+      }
+      this.measureVisible = true
+      this.isEditMeasure = false
+    }
+  }
   callJoinDialog (data) {
     // 弹出框弹出
     this.showJoinDialog(data).then(({isSubmit, data}) => {
@@ -767,6 +768,13 @@ export default class ModelEdit extends Vue {
         return
       }
       $(target).parents('.column-list-box').addClass('drag-in')
+    }
+  }
+  allowDropColumnToPanle (e) {
+    e.preventDefault()
+    var target = e.srcElement ? e.srcElement : e.target
+    if (this.currentDragColumn) {
+      $(target).parents('.panel-main-content').addClass('drag-in')
     }
   }
   dragLeave (e) {
@@ -930,6 +938,7 @@ export default class ModelEdit extends Vue {
             project: this.currentSelectedProject,
             renderDom: this.renderBox
           }), this.modelRender, this)
+          this.getZoomSpace()
           this.modelInstance.bindConnClickEvent((ptable, ftable) => {
             // 设置连接弹出框数据
             this.callJoinDialog({
@@ -1000,10 +1009,12 @@ export default class ModelEdit extends Vue {
 </script>
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
-@factShadow: 0 0 4px 0 rgba(58,160,229,0.90);
-@factHoverShadow: 0 0 8px 0 rgba(58,160,229,0.90);
-@lookupShadow:0 0 4px 0 @text-disabled-color;
-@lookupHoverShadow: 0 0 8px 0 @text-disabled-color;
+@fact-title-color: @base-color;
+@lookup-title-color: @base-color-12;
+@fact-shadow: 0 0 4px 0 @base-color;
+@fact-hover-shadow: 0 0 8px 0 @base-color;
+@lookup-shadow:0 0 4px 0 @base-color-12;
+@lookup-hover-shadow: 0 0 8px 0 @base-color-12;
 .drag-in {
   box-shadow: inset 0 0 14px 0 @base-color;
 }
@@ -1013,7 +1024,7 @@ export default class ModelEdit extends Vue {
 .jtk-overlay {
   background-color: @base-color;
   padding: 2px;
-  font: 12px sans-serif;
+  font-size: 12px;
   z-index: 21;
   font-weight: @font-medium;
   border: 2px solid @base-color;
@@ -1113,10 +1124,10 @@ export default class ModelEdit extends Vue {
       width:250px;
       .panel-title {
         background:@text-normal-color;
-        height:36px;
+        height:28px;
         color:#fff;
         font-size:14px;
-        line-height:36px;
+        line-height:28px;
         padding-left: 10px;
         .title{
           margin-left:4px;
@@ -1133,7 +1144,7 @@ export default class ModelEdit extends Vue {
         overflow:hidden;
         position:absolute;
         bottom: 16px;
-        top:64px;
+        top:56px;
         right:0;
         left:0;
         ul {
@@ -1141,7 +1152,7 @@ export default class ModelEdit extends Vue {
           margin-top:15px;
           margin-bottom:17px;
         }
-        .dimension-list , .measure-list{
+        .dimension-list , .measure-list, .cc-list{
           margin-top:0;
           li {
             line-height:28px;
@@ -1228,7 +1239,7 @@ export default class ModelEdit extends Vue {
           padding:10px;
         }
       }
-      height:80%!important;
+      // height:80%!important;
     }
     .panel-setting {
       height:316px;
@@ -1423,6 +1434,17 @@ export default class ModelEdit extends Vue {
     .model-edit {
       height: 100%;
     }
+    .drag-bar {
+      position:absolute;
+      bottom: 0;
+      width:100%;
+      text-align: center;
+      background-color: @background-color3;
+      line-height:16px;
+      &:hover {
+        background-color:@text-placeholder-color;
+      }
+    }
     .box-css();
     .table-box {
       &.isLookup {
@@ -1431,20 +1453,20 @@ export default class ModelEdit extends Vue {
             background-color:@grey-3;
           }
         }
-        box-shadow:@lookupShadow;
+        box-shadow:@lookup-shadow;
         &:hover {
-          box-shadow:@lookupHoverShadow;
+          box-shadow:@lookup-hover-shadow;
         }
         .table-title {
-          background-color: @text-title-color;
+          background-color: @lookup-title-color;
           color:@fff;
         }
       }
       background-color:#fff;
       position:absolute;
-      box-shadow:@factShadow;
+      box-shadow:@fact-shadow;
       &:hover {
-        box-shadow:@factHoverShadow;
+        box-shadow:@fact-hover-shadow;
       }
       overflow-x: hidden;
       .table-title {
@@ -1473,7 +1495,8 @@ export default class ModelEdit extends Vue {
         .name {
           &.tip_box {
             .alias-span {
-              font-size: 16px;
+              font-size: 14px;
+              font-weight: @font-medium;
             }
           }
           text-overflow: ellipsis;
@@ -1490,23 +1513,12 @@ export default class ModelEdit extends Vue {
           color:@grey-3;
         }
         height:32px;
-        background-color: @base-color;
+        background-color: @fact-title-color;
         color:#fff;
         line-height:32px;
         i {
           color:@fff;
           margin: auto 6px 8px;
-        }
-      }
-      .drag-bar {
-        position:absolute;
-        bottom: 0;
-        width:100%;
-        text-align: center;
-        background-color: @background-color3;
-        line-height:16px;
-        &:hover {
-          background-color:@text-placeholder-color;
         }
       }
       .column-list-box {
