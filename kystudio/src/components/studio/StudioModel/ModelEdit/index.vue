@@ -91,7 +91,7 @@
               <span @click="toggleCheckbox" :class="{'active': isShowCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
               <span @click="batchSetDimension"><i class="el-icon-ksd-batch"></i></span>
               <span @click="addCCDimension"><i class="el-icon-ksd-project_add"></i></span>
-              <span class="ksd-fright batch-del"><i class="el-icon-ksd-table_delete" :class="{'delable': dimensionSelectedList.length>0}" @click="deleteDimenisons"></i></span>
+              <span class="ksd-fright batch-del" v-if="isShowCheckbox" @click="deleteDimenisons"><i class="el-icon-ksd-table_delete" :class="{'delable': dimensionSelectedList.length>0}"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="dimension-list">
@@ -118,15 +118,15 @@
             <div class="panel-sub-title">
               <span @click="toggleMeaCheckbox" :class="{'active': isShowMeaCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
               <span @click="addNewMeasure"><i class="el-icon-ksd-project_add"></i></span>
-              <span class="ksd-fright batch-del" @click="deleteMeasures"><i class="el-icon-ksd-table_delete" :class="{'delable': measureSelectedList.length>0}"></i></span>
+              <span class="ksd-fright batch-del" v-if="isShowMeaCheckbox" @click="deleteMeasures"><i class="el-icon-ksd-table_delete" :class="{'delable': measureSelectedList.length>0}"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="measure-list">
                 <li v-for="(m, i) in modelRender.all_measures" :key="m.name">
-                  <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :label="i">{{m.name|omit(18,'...')}}</el-checkbox>
+                  <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="i">{{m.name|omit(18,'...')}}</el-checkbox>
                   <span v-else>{{m.name|omit(18,'...')}}</span>
-                  <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(i)" v-if="m.name !== 'COUNT_ALL'"></i></span>
-                  <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)" v-if="m.name !== 'COUNT_ALL'"></i></span>
+                  <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(i)"></i></span>
+                  <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
                   <span class="li-type ky-option-sub-info">{{m.return_type}}</span>
                 </li>
               </ul>
@@ -145,7 +145,7 @@
             <div class="panel-sub-title">
               <span @click="toggleCCCheckbox" :class="{'active': isShowCCCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
               <span @click="addCC"><i class="el-icon-ksd-project_add"></i></span>
-              <span class="ksd-fright batch-del" @click="delCCs"><i class="el-icon-ksd-table_delete" :class="{'delable': ccSelectedList.length>0}"></i></span>
+              <span class="ksd-fright batch-del" v-if="isShowCCCheckbox" @click="delCCs"><i class="el-icon-ksd-table_delete" :class="{'delable': ccSelectedList.length>0}"></i></span>
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="measure-list">
