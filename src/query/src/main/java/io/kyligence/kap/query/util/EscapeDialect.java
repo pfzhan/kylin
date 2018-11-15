@@ -28,14 +28,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.kyligence.kap.query.util.EscapeFunction.FnConversion;
 
 public abstract class EscapeDialect {
 
-    private static final Logger logger = LoggerFactory.getLogger(EscapeDialect.class);
+    private static final String FN_LENGTH_ALIAS = "CHAR_LENGTH";
 
     /** Define SQL dialect for different data source **/
 
@@ -55,7 +52,7 @@ public abstract class EscapeDialect {
                     , FnConversion.TRIM
                     , FnConversion.PI);
 
-            register("CHAR_LENGTH", FnConversion.FN_LENGTH);
+            register(FN_LENGTH_ALIAS, FnConversion.FN_LENGTH);
         }
 
         @Override
@@ -81,7 +78,7 @@ public abstract class EscapeDialect {
                     , FnConversion.WEEK
                     , FnConversion.TRIM);
 
-            register("CHAR_LENGTH", FnConversion.LENGTH);
+            register(FN_LENGTH_ALIAS, FnConversion.LENGTH);
         }
 
         @Override
@@ -105,7 +102,7 @@ public abstract class EscapeDialect {
                     , FnConversion.TIMESTAMPADD
                     , FnConversion.TIMESTAMPDIFF);
 
-            register("CHAR_LENGTH", FnConversion.LENGTH);
+            register(FN_LENGTH_ALIAS, FnConversion.LENGTH);
         }
 
         @Override
