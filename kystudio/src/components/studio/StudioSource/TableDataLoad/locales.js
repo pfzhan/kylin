@@ -27,7 +27,10 @@ export default {
     scd1Desc: 'This methodology overwrites old with new data, and therefore does not track historical data.',
     scd2Title: 'Type 2 : Add New Row',
     scd2Desc: 'This method tracks historical data by creating multiple records for a given natural key in the dimensional tables with separate surrogate keys and/or different version numbers. Unlimited history is preserved for each insert.',
-    dataRangeTip: 'The range of source data ready to load and query.'
+    dataRangeTip: 'The range of source data ready to load and query.',
+    changeTableTypeCost: 'There are {modelCount} models using this table as fact table, so change the table\'s load type will have a damaging impact on their existing data. {storageSize} data would be invalid instantly and need to reload with new loading settings. Do you really need to change the load type for this table?',
+    confirmToFull: 'Change to full load',
+    confirmToIncremental: 'Change to incremental load'
   },
   'zh-cn': {
     ':': '：',
@@ -57,6 +60,9 @@ export default {
     scd1Desc: 'This methodology overwrites old with new data, and therefore does not track historical data.',
     scd2Title: 'Type 2 : Add New Row',
     scd2Desc: 'This method tracks historical data by creating multiple records for a given natural key in the dimensional tables with separate surrogate keys and/or different version numbers. Unlimited history is preserved for each insert.',
-    dataRangeTip: '数据源表上，可以加载至本系统的一段数据。'
+    dataRangeTip: '数据源表上，可以加载至本系统的一段数据。',
+    changeTableTypeCost: '系统中已有 {modelCount} 个模型以本表为事实表，因此本次转换将改变这些模型的数据加载方式和存储形式。如果转换数据加载方式，这些模型已有的 {storageSize} 数据将立即失效，后续需要重新加载。您确认需要更换数据加载方式吗？',
+    confirmToFull: '确认',
+    confirmToIncremental: '确认'
   }
 }

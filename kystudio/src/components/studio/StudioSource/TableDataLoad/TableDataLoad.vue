@@ -15,11 +15,11 @@
           <span>{{$t(':')}}</span>
         </div>
         <div class="info-value">
-          <el-tooltip effect="dark" :content="$t('incrementalDesc')" placement="top">
-            <el-radio :value="isIncremental" :label="true" @click.native="handleChangeType(true)" :disabled="!partitionColumns.length">{{$t('incrementalLoading')}}</el-radio>
+          <el-tooltip effect="dark" :content="$t('incrementalDesc')" placement="top" v-model="isToolTipShow.incremental">
+            <el-radio :value="isIncremental" :label="true" @click.native="event => handleChangeType(event, true)" :disabled="!partitionColumns.length">{{$t('incrementalLoading')}}</el-radio>
           </el-tooltip>
-          <el-tooltip effect="dark" :content="$t('fullDesc')" placement="top">
-            <el-radio :value="isIncremental" :label="false">{{$t('fullTable')}}</el-radio>
+          <el-tooltip effect="dark" :content="$t('fullDesc')" placement="top" v-model="isToolTipShow.full">
+            <el-radio :value="isIncremental" :label="false" @click.native="event => handleChangeType(event, false)">{{$t('fullTable')}}</el-radio>
           </el-tooltip>
         </div>
       </el-row>
@@ -41,8 +41,8 @@
           <span>{{$t(':')}}</span>
         </div>
         <div class="info-value">
-          <el-radio :value="isIncremental" :label="true" @click.native="handleChangeType(true)" :disabled="!partitionColumns.length">SCD1</el-radio>
-          <el-radio :value="isIncremental" :disabled="!isIncremental" :label="false" @click.native="handleChangeType(false)">SCD2</el-radio>
+          <!-- <el-radio :value="isIncremental" :label="true" @click.native="handleChangeType(true)" :disabled="!partitionColumns.length">SCD1</el-radio>
+          <el-radio :value="isIncremental" :disabled="!isIncremental" :label="false" @click.native="handleChangeType(false)">SCD2</el-radio> -->
         </div>
       </el-row>
       <el-collapse-transition>
@@ -104,7 +104,7 @@
       </el-row>
     </el-row>
 
-    <template v-if="isIncremental">
+    <template v-if="isFact">
       <RelatedModels
         :project-name="projectName"
         :table="table"
@@ -145,7 +145,9 @@ import { partitionColumnTypes } from '../../../../config'
       callSourceTableModal: 'CALL_MODAL'
     }),
     ...mapActions({
-      fetchRelatedModels: 'FETCH_RELATED_MODELS'
+      saveIncrementalTable: 'SAVE_FACT_TABLE',
+      fetchRelatedModels: 'FETCH_RELATED_MODELS',
+      fetchChangeTypeInfo: 'FETCH_CHANGE_TYPE_INFO'
     })
   },
   locales
@@ -159,6 +161,10 @@ export default class TableDataLoad extends Vue {
   relatedModels = []
   isSchemaChangeShow = true
   isDataRangeShow = false
+  isToolTipShow = {
+    incremental: false,
+    full: false
+  }
   get minDataRangeStr () {
     return dayjs(this.table.allRange[0]).format('YYYY-MM-DD')
   }
@@ -175,7 +181,7 @@ export default class TableDataLoad extends Vue {
     return this.table.columns.filter(column => partitionColumnTypes.includes(column.datatype))
   }
   mounted () {
-    if (this.isIncremental) {
+    if (this.isFact) {
       this.loadRelatedModel()
     }
   }
@@ -192,10 +198,30 @@ export default class TableDataLoad extends Vue {
       this.table.userRange = [...this.table.userRange]
     }
   }
-  async handleChangeType () {
-    if (!this.isIncremental && this.partitionColumns.length) {
-      const isSubmit = await this.callSourceTableModal({ editType: 'changeTableType', table: this.table })
-      isSubmit && this.$emit('fresh-tables')
+  hideTooltip () {
+    for (const key in this.isToolTipShow) {
+      this.isToolTipShow[key] = true
+      setTimeout(() => {
+        this.isToolTipShow[key] = false
+      })
+    }
+  }
+  async handleChangeType (event, value) {
+    event.preventDefault()
+    try {
+      if (value !== this.isIncremental) {
+        const { modelCount, modelSize } = await this.getAffectedModelCountAndSize()
+
+        if (modelCount || modelSize) {
+          await this.showUserConfirm({ modelCount, modelSize })
+          this.hideTooltip()  // fix el-tooltip bug
+          await this.setChangeTableType(value)
+        } else if (this.partitionColumns.length) {
+          await this.setChangeTableType(value)
+        }
+      }
+    } catch (e) {
+      handleError(e)
     }
   }
   async handleRefreshTable () {
@@ -247,6 +273,41 @@ export default class TableDataLoad extends Vue {
         this.relatedModels = [ ...this.relatedModels, ...formatedModels ]
         this.addPagination()
       }
+    }
+  }
+  async getAffectedModelCountAndSize () {
+    let modelCount = 0
+    let modelSize = 0
+    try {
+      const projectName = this.projectName
+      const tableName = `${this.table.database}.${this.table.name}`
+      const response = await this.fetchChangeTypeInfo({ projectName, tableName })
+      const result = await handleSuccessAsync(response)
+      modelCount = result.models.length
+      modelSize = result.byte_size
+    } catch (e) {}
+
+    return { modelCount, modelSize }
+  }
+  async showUserConfirm ({ modelCount, modelSize }) {
+    const storageSize = Vue.filter('dataSize')(modelSize)
+    const confirmTitle = this.$t('kylinLang.common.notice')
+    const confirmMessage = this.$t('changeTableTypeCost', { modelCount, storageSize })
+    const confirmButtonText = this.isIncremental ? this.$t('confirmToFull') : this.$t('confirmToIncremental')
+    const cancelButtonText = this.$t('kylinLang.common.cancel')
+    const type = 'warning'
+    await this.$confirm(confirmMessage, confirmTitle, { confirmButtonText, cancelButtonText, type })
+  }
+  async setChangeTableType (isSetIncremental) {
+    if (isSetIncremental) {
+      const isSubmit = await this.callSourceTableModal({ editType: 'changeTableType', table: this.table })
+      isSubmit && this.$emit('fresh-tables')
+    } else {
+      const projectName = this.projectName
+      const tableFullName = `${this.table.database}.${this.table.name}`
+      const isIncremental = false
+      await this.saveIncrementalTable({ projectName, tableFullName, isIncremental })
+      this.$emit('fresh-tables')
     }
   }
   formatModelData (models) {

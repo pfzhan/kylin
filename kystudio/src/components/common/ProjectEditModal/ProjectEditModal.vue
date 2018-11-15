@@ -342,7 +342,7 @@ export default class ProjectEditModal extends Vue {
     margin-right: 10px;
   }
   .project-type {
-    margin-right: 57px;
+    margin-right: 25px;
   }
   .project-type:not(.active) {
     color: @text-disabled-color;

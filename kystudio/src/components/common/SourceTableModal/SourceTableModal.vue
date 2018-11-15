@@ -35,7 +35,7 @@
         <span class="font-medium" slot="label">
           {{$t('loadingRange')}}
         </span>
-        <el-row>
+        <el-row class="data-range-row">
           <el-col :span="22">
             <el-date-picker
               class="margin-top-5"
@@ -48,6 +48,11 @@
               :end-placeholder="$t('kylinLang.common.endTime')"
               @input="value => handleInputDate('newDataRange', value)">
             </el-date-picker>
+          </el-col>
+          <el-col class="data-range-sync" :span="2">
+            <el-tooltip effect="dark" :content="$t('selectAll')" placement="top">
+              <div class="el-icon-ksd-data_range_search"></div>
+            </el-tooltip>
           </el-col>
         </el-row>
       </el-form-item>
@@ -439,6 +444,23 @@ export default class SourceTableModal extends Vue {
   }
   .margin-right-5 {
     margin-right: 5px;
+  }
+  .data-range-row {
+    position: relative;
+  }
+  .data-range-sync {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+  }
+  .el-icon-ksd-data_range_search {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-35%);
+    cursor: not-allowed;
+    color: @text-disabled-color;
   }
 }
 .source-table-modal-tooltip {
