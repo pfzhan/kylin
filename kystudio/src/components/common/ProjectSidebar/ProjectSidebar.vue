@@ -12,13 +12,15 @@
       <div class="project-type">
         <i :class="projectTypeClass"></i>
       </div>
-      <div class="project-name">
-        <span class="font-medium">{{project.name}}</span>
-      </div>
+      <el-tooltip :content="project.name" placement="top" :disabled="!isShowNameTooltip">
+        <div class="project-name">
+          <span class="font-medium">{{project.name}}</span>
+        </div>
+      </el-tooltip>
       <div class="project-detail-list">
         <div class="detail" v-for="(value, key) in projectDetails" :key="key">
           <div class="detail-title font-medium">{{$t(key)}}</div>
-          <div class="detail-value" :style="{ maxHeight: `${windowHeight - 578 > 90 ? windowHeight - 578 : 90}px` }" v-if="value">{{value}}</div>
+          <div class="detail-value" :style="{ maxHeight: `${windowHeight - 565 > 90 ? windowHeight - 565 : 90}px` }" v-if="value">{{value}}</div>
           <div class="detail-value empty-text" v-else>{{$t('empty')}}</div>
           <el-popover
             v-if="key in form"
@@ -79,6 +81,7 @@ export default class ProjectSidebar extends Vue {
   }
   isLoading = false
   windowHeight = 0
+  isShowNameTooltip = false
   get projectTypeClass () {
     switch (this.project.maintain_model_type) {
       case 'MANUAL_MAINTAIN':
@@ -111,6 +114,9 @@ export default class ProjectSidebar extends Vue {
   @Watch('project', { immediate: true })
   onProjectChange () {
     this.resetFormData()
+    setTimeout(() => {
+      this.freshProjectNameTooltipIsShow()
+    })
   }
   handleHide (popoverData) {
     popoverData.isEdit = false
@@ -128,6 +134,11 @@ export default class ProjectSidebar extends Vue {
   }
   refreshHeight () {
     this.windowHeight = window.innerHeight
+  }
+  freshProjectNameTooltipIsShow () {
+    const projectNameEl = this.$el.querySelector('.project-name')
+    const textEl = projectNameEl.querySelector('span')
+    this.isShowNameTooltip = textEl.clientWidth > projectNameEl.clientWidth
   }
   handleResize () {
     this.refreshHeight()
@@ -195,6 +206,11 @@ export default class ProjectSidebar extends Vue {
   }
   .project-name {
     margin-bottom: 20px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    span {
+      display: inline-block;
+    }
   }
   .edit-action {
     position: absolute;
@@ -243,11 +259,16 @@ export default class ProjectSidebar extends Vue {
   .detail-value {
     padding-right: 15px;
     overflow: auto;
+    hyphens: auto;
   }
 }
 .project-sidebar-popper {
   .popover-input {
     margin-bottom: 13px;
+    textarea {
+      min-height: 80px !important;
+      width: 300px;
+    }
   }
   .el-popover__title {
     font-weight: 500;

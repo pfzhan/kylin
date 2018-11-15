@@ -38,9 +38,11 @@
         if (val === 'en') {
           this.lang = 'en'
           this.$store.state.system.lang = 'en'
+          document.documentElement.lang = 'en-us'
         } else {
           this.lang = 'zh-cn'
           this.$store.state.system.lang = 'zh-cn'
+          document.documentElement.lang = 'zh-cn'
         }
       }
     },
@@ -60,6 +62,7 @@
       Vue.config.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang
       this.lang = localStorage.getItem('kystudio_lang') ? localStorage.getItem('kystudio_lang') : this.defaultLang
       this.$store.state.system.lang = this.lang
+      document.documentElement.lang = this.lang === 'en' ? 'en-us' : this.lang
     }
   }
 </script>

@@ -88,7 +88,7 @@
               <el-row style="margin-bottom: 10px;">
                 <span class="switch-title">{{$t('isDataCheck')}}</span>
                 <el-switch
-                  v-model="form.isDataCheck"
+                  :value="form.isDataCheck"
                   active-text="OFF"
                   inactive-text="ON">
                 </el-switch>
@@ -111,7 +111,7 @@
                     min-width="110px"
                     align="center">
                     <template slot-scope="scope">
-                      <el-checkbox v-model="form[scope.row.key]"></el-checkbox>
+                      <el-checkbox :value="form[scope.row.key]"></el-checkbox>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -158,11 +158,11 @@ export default class StudioProject extends Vue {
   tables = []
   models = []
   form = {
-    isDataCheck: false,
-    isDataSkew: false,
-    isKeyDuplicate: false,
-    isReservedWords: false,
-    isSpecialCharacter: false
+    isDataCheck: true,
+    isDataSkew: true,
+    isKeyDuplicate: true,
+    isReservedWords: true,
+    isSpecialCharacter: true
   }
   get tableData () {
     const ignoreTableRow = ['isDataCheck']
@@ -214,6 +214,8 @@ export default class StudioProject extends Vue {
     font-size: 16px;
     color: #263238;
     margin-bottom: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .project-details {
     padding-bottom: 20px;
@@ -233,12 +235,13 @@ export default class StudioProject extends Vue {
   }
   .detail-list {
     width: 100%;
+    box-sizing: border-box;
     .header {
       text-align: center;
     }
     .body {
       position: relative;
-      min-height: 248px;
+      min-height: 334px;
       overflow: auto;
       box-sizing: border-box;
     }
