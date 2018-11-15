@@ -1145,11 +1145,8 @@ export default class ModelEdit extends Vue {
               }
               background-color:@base-color-10;
               .icon-span{
+                .ky-square-box(22px,22px);
                 display:inline-block;
-                line-height:22px;
-                height: 22px;
-                width: 22px;
-                text-align: center;
                 margin-top: 3px;
                 border-radius: 2px;
                 &:hover {
@@ -1168,12 +1165,9 @@ export default class ModelEdit extends Vue {
         border-bottom: 1px solid @text-placeholder-color;
         padding: 0 7px 0px 3px;
         span{
+          .ky-square-box(22px,22px);
           display: inline-block;
           margin-left: 4px;
-          width: 22px;
-          height: 22px;
-          text-align: center;
-          line-height: 22px;
           border-radius: 2px;
           &:hover {
             background-color: @text-placeholder-color;
