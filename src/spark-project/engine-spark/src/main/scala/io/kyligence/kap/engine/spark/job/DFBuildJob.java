@@ -151,8 +151,9 @@ public class DFBuildJob extends NDataflowJob {
             int partition = estimatePartitions(afterPrj, config);
             for (NCuboidLayout layout : nSpanningTree.getLayouts(cuboid)) {
                 Set<Integer> orderedDims = layout.getOrderedDimensions().keySet();
-                Dataset<Row> afterSort = afterPrj.select(NSparkCubingUtil.getColumns(orderedDims))
-                        .repartition(partition)
+                Dataset<Row> intermediate = afterPrj.select(NSparkCubingUtil.getColumns(orderedDims));
+                intermediate = repartitionDataSet(intermediate, partition, layout.getShardByColumns());
+                Dataset<Row> afterSort = intermediate
                         .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
                 saveAndUpdateCuboid(afterSort, cuboidRowCnt, seg, layout);
             }
@@ -171,8 +172,9 @@ public class DFBuildJob extends NDataflowJob {
             Set<Integer> meas = cuboid.getEffectiveMeasures().keySet();
             for (NCuboidLayout layout : nSpanningTree.getLayouts(cuboid)) {
                 Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
-                Dataset<Row> afterSort = afterAgg.select(NSparkCubingUtil.getColumns(rowKeys, meas))
-                        .repartition(partition).sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
+                Dataset<Row> intermediate = afterAgg.select(NSparkCubingUtil.getColumns(rowKeys, meas));
+                intermediate = repartitionDataSet(intermediate, partition, layout.getShardByColumns());
+                Dataset<Row> afterSort = intermediate.sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
                 saveAndUpdateCuboid(afterSort, cuboidRowCnt, seg, layout);
             }
             for (NCuboidDesc child : nSpanningTree.getSpanningCuboidDescs(cuboid)) {
@@ -205,6 +207,15 @@ public class DFBuildJob extends NDataflowJob {
         NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
         update.setToAddOrUpdateCuboids(dataCuboid);
         NDataflowManager.getInstance(config, project).updateDataflow(update);
+    }
+
+    public static Dataset<Row> repartitionDataSet(Dataset<Row> ds, int repartitionNum,
+                                                  List<Integer> shardByColumnIds) {
+        if (shardByColumnIds == null || shardByColumnIds.size() == 0) {
+            return ds.repartition(repartitionNum);
+        } else {
+            return ds.repartition(repartitionNum, NSparkCubingUtil.getColumns(shardByColumnIds));
+        }
     }
 
     public static void fillCuboid(NDataCuboid cuboid) throws IOException {
