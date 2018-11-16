@@ -24,14 +24,12 @@
 
 package io.kyligence.kap.smart.model;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModel.Measure;
-import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
-import io.kyligence.kap.smart.NSmartContext;
-import io.kyligence.kap.smart.util.CubeUtils;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -43,11 +41,15 @@ import org.apache.kylin.query.routing.RealizationChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.Measure;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
+import io.kyligence.kap.smart.NSmartContext;
+import io.kyligence.kap.smart.util.CubeUtils;
 
 /**
  * Define Dimensions and Measures from SQLs
@@ -56,7 +58,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NQueryScopeProposer.class);
 
-    public NQueryScopeProposer(NSmartContext.NModelContext modelCtx) {
+    NQueryScopeProposer(NSmartContext.NModelContext modelCtx) {
         super(modelCtx);
     }
 
@@ -89,7 +91,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
         NDataModel nDataModel;
 
-        public ScopeBuilder(NDataModel nDataModel) {
+        ScopeBuilder(NDataModel nDataModel) {
             this.nDataModel = nDataModel;
             // Load from old model
             setNamedColumns(nDataModel.getAllNamedColumns());
@@ -241,6 +243,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             if (dimensionCandidate.isEmpty()) {
                 throw new IllegalStateException("Suggest no dimension");
             }
+            dimensionCandidate.forEach((colName, col) -> col.status = NDataModel.ColumnStatus.DIMENSION);
 
             FunctionDesc countStar = CubeUtils.newCountStarFuncDesc(nDataModel);
             if (!measureCandidate.containsKey(countStar)) {

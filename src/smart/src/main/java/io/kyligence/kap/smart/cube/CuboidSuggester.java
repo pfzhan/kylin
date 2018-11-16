@@ -54,6 +54,7 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
@@ -64,6 +65,8 @@ import io.kyligence.kap.smart.model.ModelTree;
 class CuboidSuggester {
 
     private static final Logger logger = LoggerFactory.getLogger(CuboidSuggester.class);
+
+    private static final String COLUMN_NOT_FOUND_MSG_TEMPLATE = "Cannot find column %s in model [%s]";
 
     private class ColIndexSuggester {
         OLAPContext olapContext;
@@ -104,19 +107,17 @@ class CuboidSuggester {
     private NSmartContext context;
     private NCubePlan cubePlan;
     private NDataModel model;
-    private Map<TblColRef, Integer> colIdMap;
+
     private Map<FunctionDesc, Integer> aggFuncIdMap;
     private Map<NCuboidIdentifier, NCuboidDesc> collector;
-
     private SortedSet<Long> cuboidLayoutIds = Sets.newTreeSet();
 
     CuboidSuggester(NModelContext context, NCubePlan cubePlan, Map<NCuboidIdentifier, NCuboidDesc> collector) {
+
         this.context = context.getSmartContext();
         this.model = context.getTargetModel();
         this.cubePlan = cubePlan;
         this.collector = collector;
-
-        colIdMap = model.getEffectiveColsMap().inverse();
 
         aggFuncIdMap = Maps.newHashMap();
         model.getEffectiveMeasureMap()
@@ -129,14 +130,18 @@ class CuboidSuggester {
     void suggestCuboids(ModelTree modelTree) {
         final Map<String, AccelerateInfo> sql2AccelerateInfo = context.getAccelerateInfoMap();
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
-            Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
             String sql = ctx.sql;
             if (!sql2AccelerateInfo.containsKey(sql)) {
                 sql2AccelerateInfo.put(sql, new AccelerateInfo());
             }
-            ctx.fixModel(model, aliasMap);
+
             AccelerateInfo accelerateInfo = sql2AccelerateInfo.get(sql);
             try {
+                Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
+                Preconditions.checkState(aliasMap != null,
+                        "%s. Please ensure your input sql compatible with the existing model [%s], the sql is: [%s]",
+                        getMsgTemplateByModelMaintainType(), model.getId(), ctx.sql);
+                ctx.fixModel(model, aliasMap);
                 QueryLayoutRelation queryLayoutRelation = ingest(ctx, model);
                 accelerateInfo.getRelatedLayouts().add(queryLayoutRelation);
                 accelerateInfo.setBlockingCause(null);
@@ -175,7 +180,8 @@ class CuboidSuggester {
         return shardBy;
     }
 
-    private List<Integer> suggestSortBy(OLAPContext ctx) {
+    private List<Integer> suggestSortBy(OLAPContext ctx, Map<TblColRef, Integer> colIdMap) {
+
         // TODO need a more proper fix
         if (CollectionUtils.isEmpty(ctx.getSortColumns())) {
             return Lists.newArrayList();
@@ -184,15 +190,15 @@ class CuboidSuggester {
         List<Integer> ret = Lists.newArrayList();
         for (TblColRef col : ctx.getSortColumns()) {
             final Integer id = colIdMap.get(col);
-            Preconditions.checkNotNull(id);
+            Preconditions.checkState(id != null, COLUMN_NOT_FOUND_MSG_TEMPLATE, id, model.getId());
             ret.add(id);
         }
         return ret;
     }
 
-    private Map<Integer, Double> getDimScores(OLAPContext ctx) {
-        final Map<Integer, Double> dimScores = Maps.newHashMap();
+    private Map<Integer, Double> getDimScores(OLAPContext ctx, Map<TblColRef, Integer> colIdMap) {
 
+        final Map<Integer, Double> dimScores = Maps.newHashMap();
         Set<TblColRef> groupByCols = Sets.newHashSet(ctx.allColumns);
         if (ctx.filterColumns != null)
             groupByCols.removeAll(ctx.filterColumns);
@@ -209,23 +215,22 @@ class CuboidSuggester {
         if (ctx.subqueryJoinParticipants != null)
             groupByCols.addAll(ctx.subqueryJoinParticipants);
 
-        calcDimScores(groupByCols, dimScores, false);
-        calcDimScores(ctx.filterColumns, dimScores, true);
+        calcDimScores(groupByCols, dimScores, colIdMap, false);
+        calcDimScores(ctx.filterColumns, dimScores, colIdMap, true);
 
         return dimScores;
     }
 
-    private void calcDimScores(Set<TblColRef> cols, Map<Integer, Double> dimScores, boolean isFilterCols) {
+    private void calcDimScores(Set<TblColRef> cols, Map<Integer, Double> dimScores, Map<TblColRef, Integer> colIdMap,
+            boolean isFilterCols) {
+
         if (CollectionUtils.isEmpty(cols)) {
             return;
         }
 
         for (TblColRef colRef : cols) {
             Integer colId = colIdMap.get(colRef);
-            if (colId == null) {
-                // FIXME model not contains all columns of ctx, this is not supposed to happen
-                throw new IllegalArgumentException();
-            }
+            Preconditions.checkState(colId != null, COLUMN_NOT_FOUND_MSG_TEMPLATE, colId, model.getId());
             TableExtDesc.ColumnStats columnStats = context.getColumnStats(colRef);
             if (columnStats != null && columnStats.getCardinality() > 0) {
                 if (isFilterCols) {
@@ -240,16 +245,21 @@ class CuboidSuggester {
 
     private QueryLayoutRelation ingest(OLAPContext ctx, NDataModel model) {
 
-        final Map<Integer, Double> dimScores = getDimScores(ctx);
-        SortedSet<Integer> measureIds = Sets.newTreeSet();
+        boolean isTableIndex = ctx.getSQLDigest().isRawQuery;
+
+        // for table index need all effective cols, for agg index only need all dimensions
+        Map<TblColRef, Integer> colIdMap = Maps
+                .newHashMap((isTableIndex ? model.getEffectiveColsMap() : model.getEffectiveDimenionsMap()).inverse());
+
+        final Map<Integer, Double> dimScores = getDimScores(ctx, colIdMap);
 
         // FIXME this line work-around empty dimension case (to be fixed by KAP#7224)
         // Example: 'select count(*) from kylin_sales' or 'select 123 from kylin_sales'
         fixDimScoresIfEmpty(model, dimScores);
 
-        boolean isTableIndex = ctx.getSQLDigest().isRawQuery;
+        SortedSet<Integer> measureIds = Sets.newTreeSet();
         NCuboidDesc cuboidDesc = isTableIndex ? createTableIndex(ctx, dimScores)
-                : createAggregatedIndex(ctx, dimScores, measureIds);
+                : createAggregatedIndex(ctx, dimScores, measureIds, colIdMap);
 
         final NCuboidIdentifier cuboidIdentifier = cuboidDesc.createCuboidIdentifier();
         if (collector.containsKey(cuboidIdentifier)) {
@@ -262,7 +272,7 @@ class CuboidSuggester {
         List<Integer> sortBy = Lists.newArrayList();
         if (isTableIndex) {
             shardBy = suggestShardBy(dimScores.keySet());
-            sortBy = suggestSortBy(ctx);
+            sortBy = suggestSortBy(ctx, colIdMap);
         }
 
         NCuboidLayout layout = new NCuboidLayout();
@@ -300,7 +310,7 @@ class CuboidSuggester {
     }
 
     private NCuboidDesc createAggregatedIndex(OLAPContext ctx, Map<Integer, Double> dimScores,
-            SortedSet<Integer> measureIds) {
+            SortedSet<Integer> measureIds, Map<TblColRef, Integer> colIdMap) {
         // Add default measure count(1)
         measureIds.add(NDataModel.MEASURE_ID_BASE);
 
@@ -311,7 +321,10 @@ class CuboidSuggester {
             } else if (aggFunc.getParameter() != null) {
                 // dimension as measure, put cols to rowkey tail
                 for (TblColRef colRef : aggFunc.getParameter().getColRefs()) {
-                    int colId = colIdMap.get(colRef);
+                    final Integer colId = colIdMap.get(colRef);
+                    Preconditions.checkState(colId != null,
+                            "%s. Cannot create new measure %s in existing model [%s]. Your input sql is: [%s]",
+                            getMsgTemplateByModelMaintainType(), aggFunc, model.getId(), ctx.sql);
                     if (!dimScores.containsKey(colId))
                         dimScores.put(colId, -1D);
                 }
@@ -319,6 +332,14 @@ class CuboidSuggester {
         }
 
         return createCuboidDesc(dimScores.keySet(), measureIds, false);
+    }
+
+    private String getMsgTemplateByModelMaintainType() {
+        Preconditions.checkNotNull(model);
+        if (model.getProjectInstance().getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+            return "Manual model maintain type doesn't support modification";
+        }
+        return "Unexpected state happened in auto model maintain type";
     }
 
     private void fixDimScoresIfEmpty(NDataModel model, Map<Integer, Double> dimScores) {

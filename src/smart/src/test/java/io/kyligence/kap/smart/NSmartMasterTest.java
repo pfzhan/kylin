@@ -35,7 +35,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.Assert;
 import org.junit.Before;
@@ -50,9 +52,11 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NTestBase;
@@ -786,6 +790,102 @@ public class NSmartMasterTest extends NTestBase {
         } catch (Exception e) {
             Assert.assertTrue(e instanceof ExecutionException);
             Assert.assertTrue(e.getCause() instanceof IllegalStateException);
+        }
+    }
+
+    @Test
+    public void testMaintainModelType() throws IOException {
+        String[] sqls = new String[] { //
+                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
+                        + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        smartMaster.runAll();
+        final NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+        final List<NDataModel.Measure> allMeasures = targetModel.getAllMeasures();
+        final List<NDataModel.NamedColumn> allNamedColumns = targetModel.getAllNamedColumns();
+        final List<JoinTableDesc> joinTables = targetModel.getJoinTables();
+        Assert.assertTrue(CollectionUtils.isEmpty(joinTables));
+
+        // set maintain model type to manual
+        NProjectManager.getInstance(kylinConfig).getProject(proj)
+                .setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+
+        // -------------- case 1: add extra measure -----------------------
+        {
+            sqls = new String[] {
+                    "select part_dt, lstg_format_name, sum(price), count(distinct price) from kylin_sales \n"
+                            + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
+            smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+            smartMaster.runAll();
+            final Map<String, AccelerateInfo> accelerateInfoMapCase1 = smartMaster.getContext().getAccelerateInfoMap();
+            Assert.assertEquals(0, accelerateInfoMapCase1.get(sqls[0]).getRelatedLayouts().size());
+
+            final Throwable blockingCause1 = accelerateInfoMapCase1.get(sqls[0]).getBlockingCause();
+            Assert.assertTrue(blockingCause1.getMessage()
+                    .contains("Manual model maintain type doesn't support modification. Cannot create new measure"));
+
+            final List<NCuboidDesc> allCuboids = smartMaster.getContext().getModelContexts().get(0).getTargetCubePlan()
+                    .getAllCuboids();
+            final List<NCuboidLayout> layouts = collectAllLayouts(allCuboids);
+            Assert.assertEquals(1, layouts.size());
+
+            final NDataModel targetModelCase1 = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+            final List<NDataModel.Measure> allMeasuresCase1 = targetModelCase1.getAllMeasures();
+            final List<NDataModel.NamedColumn> allNamedColumnsCase1 = targetModelCase1.getAllNamedColumns();
+            final List<JoinTableDesc> joinTablesCase1 = targetModel.getJoinTables();
+            Assert.assertEquals("measures changed unexpected", allMeasures, allMeasuresCase1);
+            Assert.assertEquals("named columns changed unexpected", allNamedColumns, allNamedColumnsCase1);
+            Assert.assertEquals("join tables changed unexpected", joinTables, joinTablesCase1);
+        }
+
+        // -------------- case 2: add extra column -----------------------
+        {
+            sqls = new String[] { "select part_dt, sum(item_count), lstg_format_name, sum(price) from kylin_sales \n"
+                    + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
+            smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+            smartMaster.runAll();
+
+            final Map<String, AccelerateInfo> accelerateInfoMapCase2 = smartMaster.getContext().getAccelerateInfoMap();
+            Assert.assertEquals(0, accelerateInfoMapCase2.get(sqls[0]).getRelatedLayouts().size());
+
+            final Throwable blockingCause2 = accelerateInfoMapCase2.get(sqls[0]).getBlockingCause();
+            Assert.assertNotNull(blockingCause2);
+            Assert.assertTrue(blockingCause2.getMessage()
+                    .contains("Manual model maintain type doesn't support modification. Cannot create new measure"));
+
+            final NDataModel targetModelCase2 = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+            final List<NDataModel.Measure> allMeasuresCase2 = targetModelCase2.getAllMeasures();
+            final List<NDataModel.NamedColumn> allNamedColumnsCase2 = targetModelCase2.getAllNamedColumns();
+            final List<JoinTableDesc> joinTablesCase2 = targetModel.getJoinTables();
+            Assert.assertEquals("measures changed unexpected", allMeasures, allMeasuresCase2);
+            Assert.assertEquals("named columns changed unexpected", allNamedColumns, allNamedColumnsCase2);
+            Assert.assertEquals("join tables changed unexpected", joinTables, joinTablesCase2);
+        }
+
+        // -------------- case 3: add extra table -----------------------
+        {
+            sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from kylin_sales \n"
+                    + " left join kylin_cal_dt on cal_dt = part_dt \n"
+                    + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
+            smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+            smartMaster.runAll();
+
+            final Map<String, AccelerateInfo> accelerateInfoMapCase3 = smartMaster.getContext().getAccelerateInfoMap();
+            Assert.assertEquals(0, accelerateInfoMapCase3.get(sqls[0]).getRelatedLayouts().size());
+
+            final Throwable blockingCause3 = accelerateInfoMapCase3.get(sqls[0]).getBlockingCause();
+            Assert.assertNotNull(blockingCause3);
+            Assert.assertTrue(
+                    blockingCause3.getMessage().startsWith("Manual model maintain type doesn't support modification. "
+                            + "Please ensure your input sql compatible with the existing model"));
+
+            final NDataModel targetModelCase3 = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+            final List<NDataModel.Measure> allMeasuresCase3 = targetModelCase3.getAllMeasures();
+            final List<NDataModel.NamedColumn> allNamedColumnsCase3 = targetModelCase3.getAllNamedColumns();
+            final List<JoinTableDesc> joinTablesCase3 = targetModel.getJoinTables();
+            Assert.assertEquals("measures changed unexpected", allMeasures, allMeasuresCase3);
+            Assert.assertEquals("named columns changed unexpected", allNamedColumns, allNamedColumnsCase3);
+            Assert.assertEquals("join tables changed unexpected", joinTables, joinTablesCase3);
         }
     }
 

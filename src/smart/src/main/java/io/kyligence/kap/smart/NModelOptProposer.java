@@ -24,11 +24,16 @@
 
 package io.kyligence.kap.smart;
 
+import org.apache.kylin.metadata.project.ProjectInstance;
+
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.model.NModelMaster;
 
-public class NModelOptProposer extends NAbstractProposer {
-    public NModelOptProposer(NSmartContext modelCtx) {
+class NModelOptProposer extends NAbstractProposer {
+
+    NModelOptProposer(NSmartContext modelCtx) {
         super(modelCtx);
     }
 
@@ -36,6 +41,12 @@ public class NModelOptProposer extends NAbstractProposer {
     void propose() {
         if (context.getModelContexts() == null)
             return;
+
+        final ProjectInstance projectInstance = NProjectManager.getInstance(getContext().getKylinConfig())
+                .getProject(getContext().getProject());
+        if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+            return;
+        }
 
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
             NModelMaster modelMaster = new NModelMaster(modelCtx);
