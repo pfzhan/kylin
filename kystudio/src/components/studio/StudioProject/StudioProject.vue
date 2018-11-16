@@ -94,7 +94,7 @@
                 </el-switch>
               </el-row>
               <el-row>
-                <el-table border :data="tableData">
+                <el-table border :data="tableData" v-show="false">
                   <el-table-column
                     prop="title"
                     :label="$t('title')"
@@ -119,8 +119,8 @@
             </el-tab-pane>
             <el-tab-pane :label="$t('configuration')" :name="viewTypes.CONFIGURATION">
             </el-tab-pane>
-            <el-tab-pane :label="$t('other')" :name="viewTypes.OTHER">
-            </el-tab-pane>
+            <!-- <el-tab-pane :label="$t('other')" :name="viewTypes.OTHER">
+            </el-tab-pane> -->
           </el-tabs>
         </div>
       </template>

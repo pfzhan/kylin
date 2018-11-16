@@ -1,7 +1,6 @@
 import dayjs from 'dayjs'
 import { editTypes, volatileTypes } from './handler'
-import { handleSuccessAsync } from '../../../util'
-import { partitionColumnTypes } from '../../../config'
+import { handleSuccessAsync, isDatePartitionType } from '../../../util'
 
 const types = {
   SHOW_MODAL: 'SHOW_MODAL',
@@ -46,9 +45,7 @@ export default {
     },
     partitionColumns (state) {
       return state.table
-        ? state.table.columns.filter(column => partitionColumnTypes.some(partitionColumnType => {
-          return partitionColumnType.test(column.datatype)
-        }))
+        ? state.table.columns.filter(column => isDatePartitionType(column.datatype))
         : []
     },
     modelName (state) {

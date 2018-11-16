@@ -516,5 +516,5 @@ export function cacheLocalStorage (name, val) {
   return localStorage.getItem(name, val)
 }
 export { set, get, push } from './object'
-export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime } from './business'
+export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, isDatePartitionType, isTimePartitionType } from './business'
 export { validate, validateTypes }

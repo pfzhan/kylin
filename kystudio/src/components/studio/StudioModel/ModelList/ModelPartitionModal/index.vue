@@ -75,10 +75,10 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { DatePartitionRule, timeDataType } from '../../../../../config'
+import { timeDataType } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-// import { handleSuccessAsync, handleError } from '../../../util'
+import { isDatePartitionType } from '../../../../../util'
 
 vuex.registerModule(['modals', 'ModelPartitionModal'], store)
 
@@ -169,7 +169,7 @@ export default class ModelPartitionModal extends Vue {
       let alias = tableAndColumn[0]
       if (alias === this.partitionMeta.table) {
         let colInfo = this.getColumnInfo(tableAndColumn[1])
-        if (colInfo && DatePartitionRule.includes(colInfo.datatype)) {
+        if (colInfo && isDatePartitionType(colInfo.datatype)) {
           x.datatype = colInfo.datatype
           result.push(x)
         }

@@ -1,5 +1,5 @@
 import { utcToConfigTimeZone, removeNameSpace, getNameSpaceTopName } from './index'
-import { permissionsMaps, NamedRegex } from 'config/index'
+import { permissionsMaps, NamedRegex, DatePartitionRule, TimePartitionRule } from 'config/index'
 import { MessageBox, Message } from 'kyligence-ui'
 // 成功回调入口
 export function handleSuccess (res, callback, errorcallback) {
@@ -354,3 +354,10 @@ export function filterMutileSqlsToOneLine (_sqls, splitChar) {
   return sqls
 }
 
+export function isDatePartitionType (type) {
+  return DatePartitionRule.some(rule => rule.test(type))
+}
+
+export function isTimePartitionType (type) {
+  return TimePartitionRule.some(rule => rule.test(type))
+}

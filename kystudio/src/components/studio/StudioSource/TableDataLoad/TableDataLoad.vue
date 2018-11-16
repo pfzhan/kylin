@@ -124,8 +124,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import locales from './locales'
 import DataRangeBar from '../../../common/DataRangeBar/DataRangeBar'
 import RelatedModels from '../RelatedModels/RelatedModels'
-import { handleSuccessAsync, handleError } from '../../../../util'
-import { partitionColumnTypes } from '../../../../config'
+import { handleSuccessAsync, handleError, isDatePartitionType } from '../../../../util'
 
 @Component({
   props: {
@@ -178,9 +177,7 @@ export default class TableDataLoad extends Vue {
     return this.table.root_fact
   }
   get partitionColumns () {
-    return this.table.columns.filter(column => partitionColumnTypes.some(partitionColumnType => {
-      return partitionColumnType.test(column.datatype)
-    }))
+    return this.table.columns.filter(column => isDatePartitionType(column.datatype))
   }
   mounted () {
     if (this.isFact) {
