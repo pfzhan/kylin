@@ -178,7 +178,9 @@ export default class TableDataLoad extends Vue {
     return this.table.root_fact
   }
   get partitionColumns () {
-    return this.table.columns.filter(column => partitionColumnTypes.includes(column.datatype))
+    return this.table.columns.filter(column => partitionColumnTypes.some(partitionColumnType => {
+      return partitionColumnType.test(column.datatype)
+    }))
   }
   mounted () {
     if (this.isFact) {

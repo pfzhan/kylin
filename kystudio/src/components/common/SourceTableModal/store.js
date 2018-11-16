@@ -46,7 +46,9 @@ export default {
     },
     partitionColumns (state) {
       return state.table
-        ? state.table.columns.filter(column => partitionColumnTypes.includes(column.datatype))
+        ? state.table.columns.filter(column => partitionColumnTypes.some(partitionColumnType => {
+          return partitionColumnType.test(column.datatype)
+        }))
         : []
     },
     modelName (state) {
