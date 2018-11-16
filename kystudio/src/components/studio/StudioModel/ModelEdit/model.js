@@ -793,7 +793,6 @@ class NModel {
     return new Promise((resolve, reject) => {
       if (indexOfObjWithSomeKey(this.dimensions, 'name', dimension.name) <= 0) {
         dimension.guid = sampleGuid()
-        debugger
         this._mount.dimensions.push(dimension)
         resolve(dimension)
       } else {

@@ -52,7 +52,6 @@ export default class CCAddModal extends Vue {
   }
   closeModal (isSubmit) {
     this.hideModal()
-    this.createModelMeta.newName = ''
     setTimeout(() => {
       this.callback && this.callback(isSubmit)
       this.resetModalForm()

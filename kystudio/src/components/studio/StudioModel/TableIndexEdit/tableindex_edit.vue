@@ -14,6 +14,7 @@
           :data="searchAllColumns"
           type=index
           border
+          @cell-click="cellClick"
           height="450"
           :row-class-name="tableRowClassName"
           style="width: 100%">
@@ -24,7 +25,7 @@
           <el-table-column
             align="center"
             prop="isUsed"
-            label="Display"
+            :label="$t('tableIndex')"
             width="120">
             <template slot-scope="scope">
               <i class="el-icon-success" :class="{active: scope.row.isUsed}" @click="toggleDisplay(scope.row)"></i>
@@ -33,7 +34,7 @@
           <el-table-column
             align="center"
             prop="isSorted"
-            label="Sort By"
+            label="Sort"
             width="120">
             <template slot-scope="scope">
               <div class="action-list">
@@ -49,7 +50,7 @@
           <el-table-column
             align="center"
             prop="isShared"
-            label="Shard By"
+            label="Shard"
             width="120">
             <template slot-scope="scope">
               <i class="el-icon-success" v-if="scope.row.isUsed" :class="{active: scope.row.isShared}"  @click="toggleShard(scope.row)"></i>
@@ -58,7 +59,7 @@
         </el-table>
       </div>
       <div slot="footer" class="dialog-footer">
-        <el-checkbox v-model="tableIndexMeta.load_data" :label="true" class="ksd-fleft ksd-mt-8">Load Data into new index after saving</el-checkbox>
+        <el-checkbox v-model="tableIndexMeta.load_data" :label="true" class="ksd-fleft ksd-mt-8">{{$t('catchup')}}</el-checkbox>
         <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" plain :loading="btnLoading" size="medium" @click="submit" :disabled="saveBtnDisable">{{$t('kylinLang.common.save')}}</el-button>
       </div>
@@ -121,6 +122,19 @@
       name: [
         {validator: this.checkName, trigger: 'blur'}
       ]
+    }
+    cellClick (row, column) {
+      if (column.property === 'isUsed') {
+        this.toggleDisplay(row)
+      } else if (column.property === 'isSorted') {
+        if (row.isUsed) {
+          this.toggleSort(row)
+        }
+      } else if (column.property === 'isShared') {
+        if (row.isUsed) {
+          this.toggleShard(row)
+        }
+      }
     }
     upRow (i) {
       let t = this.allColumns[i]
@@ -266,6 +280,7 @@
       this.hideModal()
       this.tableIndexMeta.name = ''
       setTimeout(() => {
+        console.log(this.callback)
         this.callback && this.callback({
           isSubmit: isSubmit
         })

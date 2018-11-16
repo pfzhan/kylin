@@ -13,7 +13,7 @@
           <div slot="icon"><i class="el-icon-ksd-elapsed_time"></i></div>
           <div slot="description">
             <el-carousel :interval="4000" type="card" height="173px" :autoplay="false" :initial-index="tableIndex.length - 1">
-              <el-carousel-item v-for="item in tableIndex" :key="item.name" @click.native="showTableIndexDetal(item)" :class="{'table-index-active': currentShowTableIndex.id === item.id}">
+              <el-carousel-item v-for="item in tableIndex" :key="item.name" @click.native="showTableIndexDetal(item)" :class="{'table-index-active': currentShowTableIndex && currentShowTableIndex.id === item.id}">
                 <div :class="{'empty-table-index': item.status === 'Empty'}">
                   <div class="slider-content-above">
                     <div class="main-title" :title="item.name">{{item.name|omit(30, '...')}}</div>
@@ -247,9 +247,10 @@ export default class TableIndex extends Vue {
     this.showTableIndexEditModal({
       modelInstance: this.modelInstance,
       tableIndexDesc: isNew ? null : this.currentShowTableIndex
-    }).then(() => {
-      this.getAllTableIndex()
-      // 保存成功或者编辑成功的回调函数
+    }).then((res) => {
+      if (res.isSubmit) {
+        this.getAllTableIndex()
+      }
     })
   }
 }

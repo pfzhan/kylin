@@ -20,7 +20,11 @@ export default {
     'avoidSysChange': 'Avoid system change semantics',
     'allowSysChange': 'Allow system change semantics',
     'delTableTip': 'Once you delete the table, related dimensions, measures and joins will be deleted as well. Are you sure to delete them?',
-    'noFactTable': 'Fact Table is mandatory for model'
+    'noFactTable': 'Fact Table is mandatory for model',
+    switchLookup: 'Switch to Lookup Table',
+    switchFact: 'Switch to Fact Table',
+    editTableAlias: 'Edit table alias',
+    deleteTable: 'Delete the table'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -43,6 +47,10 @@ export default {
     'avoidSysChange': '禁止系统修改模型语义',
     'allowSysChange': '允许系统修改模型语义',
     'delTableTip': '删除本表后，相关的维度、度量和连接关系都会被删除。确认要删除吗？',
-    'noFactTable': '模型需要有一个事实表'
+    'noFactTable': '模型需要有一个事实表',
+    switchLookup: '设置为维度表',
+    switchFact: '设置为事实表',
+    editTableAlias: '编辑别名',
+    deleteTable: '删除本表'
   }
 }

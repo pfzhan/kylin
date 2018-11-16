@@ -207,11 +207,11 @@
             <el-button type="primary" size="mini" icon="el-icon-check" @click="saveEditTableAlias"></el-button><el-button size="mini" @click="showEditAliasForm = false" icon="el-icon-close" plain></el-button>
         </div>
         <div class="action" v-show="!showEditAliasForm && currentEditTable.kind!=='FACT'">
-          <div @click="showEditAliasForm = true"><i class="el-icon-ksd-table_edit"></i> Edit Table Name</div>
+          <div @click="showEditAliasForm = true"><i class="el-icon-ksd-table_edit"></i> {{$t('editTableAlias')}}</div>
         </div>
         <div class="action" @click="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
-          <span v-if="currentEditTable.kind === 'FACT'">Switch to Lookup Table</span>
-          <span v-else>Switch to Fact Table</span>
+          <span v-if="currentEditTable.kind === 'FACT'">{{$t('switchLookup')}}</span>
+          <span v-else>{{$t('switchFact')}}</span>
         </div>
         <el-popover
           popper-class="fast-action-popper"
@@ -222,11 +222,11 @@
           v-model="delTipVisible">
           <p>{{$t('delTableTip')}}</p>
           <div style="text-align: right; margin: 0">
-            <el-button size="mini" type="info" text @click="delTipVisible = false">取消</el-button>
-            <el-button type="primary" size="mini" @click.enter="delTable">确定</el-button>
+            <el-button size="mini" type="info" text @click="delTipVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
+            <el-button type="primary" size="mini" @click.enter="delTable">{{$t('kylinLang.common.ok')}}</el-button>
           </div>
         </el-popover>
-        <div class="action" @click="showDelTableTip"  v-popover:popover5><i class="el-icon-ksd-table_delete"></i> Delete Table</div>
+        <div class="action" @click="showDelTableTip"  v-popover:popover5><i class="el-icon-ksd-table_delete"></i> {{$t('deleteTable')}}</div>
       </div>
     </transition>
     <!-- 被编辑table clone dom -->
