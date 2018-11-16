@@ -421,19 +421,14 @@ class NModel {
     let filterResult = []
     if (joinReg.test(keywords)) {
       Object.values(this.allConnInfo).forEach((conn) => {
-        // let fguid = conn.sourceId
         let pguid = conn.targetId
-        // let ftable = this.getTableByGuid(fguid)
         let ptable = this.getTableByGuid(pguid)
-        console.log(ptable)
         let joinInfo = ptable.getJoinInfo()
         if (leftJoinReg.test(keywords)) {
-          console.log(joinInfo, keywords)
           if (joinInfo.join.type === 'LEFT') {
             filterResult.push(ptable)
           }
         } else if (innerJoinReg.test(keywords)) {
-          console.log(joinInfo, keywords)
           if (joinInfo.join.type === 'INNER') {
             filterResult.push(ptable)
           }
@@ -798,6 +793,7 @@ class NModel {
     return new Promise((resolve, reject) => {
       if (indexOfObjWithSomeKey(this.dimensions, 'name', dimension.name) <= 0) {
         dimension.guid = sampleGuid()
+        debugger
         this._mount.dimensions.push(dimension)
         resolve(dimension)
       } else {

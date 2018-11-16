@@ -21,8 +21,8 @@
           <div class="detail-content">
             <el-row :gutter="20">
               <el-col :span="14">
-                <kap_editor height="220" width="90%" lang="sql" theme="chrome" v-model="props.row.sql_text" dragbar="#393e53">
-                </kap_editor>
+                <kap-editor height="220" width="90%" lang="sql" theme="chrome" v-model="props.row.sql_text" dragbar="#393e53">
+                </kap-editor>
                 <div class="copy-btn ksd-fright">
                   <transition name="fade">
                     <div class="copyStatusMsg" v-show="showCopyStatus" ><i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span></div>

@@ -19,8 +19,8 @@
     </el-form-item>
     <el-form-item :label="$t('expression')" prop="expression" class="ksd-mb-10">
       <span slot="label">{{$t('kylinLang.dataSource.expression')}} <common-tip :content="$t('conditionExpress')" ><i class="el-icon-question"></i></common-tip></span>
-      <kap_editor ref="ccSql" height="100" lang="sql" theme="chrome" v-model="ccObject.expression">
-      </kap_editor>
+      <kap-editor ref="ccSql" height="100" lang="sql" theme="chrome" v-model="ccObject.expression">
+      </kap-editor>
     </el-form-item>
     <div class="ky-sql-check-msg" v-if="errorMsg">
       <div class="ky-error-title">Error Messgae:</div>
@@ -44,7 +44,6 @@ import { handleError, kapMessage } from 'util/business'
 import { objectClone } from 'util/index'
 import { modelErrorMsg } from '../ModelEdit/config'
 import { NamedRegex } from 'config'
-// import $ from 'jquery'
 @Component({
   props: ['isShow', 'ccDesc', 'modelInstance', 'isPureForm'],
   computed: {
@@ -105,8 +104,8 @@ export default class CCForm extends Vue {
   }
   delCC () {
     this.modelInstance.delCC(this.ccObject).then(() => {
-      this.ccObject = JSON.parse(this.ccMeta)
       this.$emit('delSuccess', this.ccObject)
+      this.ccObject = JSON.parse(this.ccMeta)
     })
   }
   cancelCC () {
@@ -115,6 +114,7 @@ export default class CCForm extends Vue {
   errorMsg = ''
   checkRemoteCC (cb) {
     this.modelInstance.generateMetadata().then((data) => {
+      // 组装带cc的模型功校验cc接口使用
       let resData = objectClone(data)
       let ccMeta = this.modelInstance.generateCCMeta(this.ccObject)
       resData.computed_columns.push(ccMeta)
@@ -126,7 +126,6 @@ export default class CCForm extends Vue {
         is_seeking_expr_advice: false
       }).then((res) => {
         this.checkBtnLoading = false
-        // kapMessage(this.$t('kylinLang.common.checkSuccess'))
         this.errorMsg = ''
         cb && cb()
       }, (res) => {
@@ -140,17 +139,21 @@ export default class CCForm extends Vue {
       kapMessage(this.$t(modelErrorMsg[code]), { type: 'warning' })
     })
   }
+  // test temp code
+  checkRemoteCC1 (cb) {
+    cb()
+  }
   addCC () {
     this.$refs['ccForm'].validate((valid) => {
       if (valid) {
-        this.checkRemoteCC(() => {
-          let factTable = this.modelInstance.getFactTable()
+        let factTable = this.modelInstance.getFactTable()
+        if (!factTable) {
+          this.$emit('saveError')
+          kapMessage(this.$t(modelErrorMsg['noFact']), { type: 'warning' })
+          return
+        }
+        this.checkRemoteCC1(() => {
           this.ccObject.table_guid = factTable.guid
-          if (!factTable) {
-            this.$emit('saveError')
-            kapMessage(this.$t(modelErrorMsg['noFact']), { type: 'warning' })
-            return
-          }
           if (this.ccObject.guid) {
             this.modelInstance.editCC(this.ccObject).then((cc) => {
               this.$emit('saveSuccess', cc)
@@ -201,13 +204,13 @@ export default class CCForm extends Vue {
   }
   @Watch('ccDesc')
   initCCDesc () {
+    this.ccObject = JSON.parse(this.ccMeta)
     if (this.ccDesc) {
+      Object.assign(this.ccObject, this.ccDesc)
       this.isEdit = false
     } else {
       this.isEdit = true
     }
-    this.ccObject = JSON.parse(this.ccMeta)
-    Object.assign(this.ccObject, this.ccDesc)
   }
   mounted () {
     this.$on('addCC', this.addCC)

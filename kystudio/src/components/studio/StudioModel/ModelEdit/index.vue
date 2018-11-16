@@ -54,7 +54,7 @@
               @drag="dragTable">
             </DataSourceBar>
           </div>
-          <div class="panel-footer" v-drag:change.height="panelAppear.datasource"><i class="el-icon-ksd-bottom_bar"></i></div>
+          <div class="panel-footer drag-bar" v-drag:change.height="panelAppear.datasource"><i class="el-icon-ksd-bottom_bar"></i></div>
         </div>
       </transition>
       <!-- datasource面板  end-->
@@ -153,8 +153,8 @@
                 <li v-for="(m, i) in modelRender.computed_columns" :key="m.name">
                   <el-checkbox v-model="ccSelectedList" v-if="isShowCCCheckbox" :label="i">{{m.columnName|omit(18,'...')}}</el-checkbox>
                   <span v-else>{{m.columnName|omit(18,'...')}}</span>
-                  <!-- <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span> -->
                   <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="delCC(i)"></i></span>
+                  <span class="icon-span"><i class="el-icon-ksd-details" @click="showCCDetail(m)"></i></span>
                   <span class="li-type ky-option-sub-info">{{m.datatype}}</span>
                 </li>
               </ul>
@@ -195,6 +195,7 @@
     </AddMeasure>
     <SingleDimensionModal/>
     <AddCC/>
+    <ShowCC/>
 
     <!-- 编辑模型table遮罩 -->
     <div class="full-screen-cover" v-event-stop @click.stop="cancelTableEdit" v-if="showTableCoverDiv"></div>
@@ -272,6 +273,7 @@ import TableJoinModal from '../TableJoinModal/index.vue'
 import SingleDimensionModal from '../SingleDimensionModal/addDimension.vue'
 import PartitionModal from '../ModelList/ModelPartitionModal/index.vue'
 import AddCC from '../AddCCModal/addcc.vue'
+import ShowCC from '../ShowCC/showcc.vue'
 import NModel from './model.js'
 import { modelRenderConfig, modelErrorMsg } from './config'
 @Component({
@@ -315,6 +317,9 @@ import { modelRenderConfig, modelErrorMsg } from './config'
     }),
     ...mapActions('CCAddModal', {
       showAddCCDialog: 'CALL_MODAL'
+    }),
+    ...mapActions('ShowCCDialogModal', {
+      showCCDetailDialog: 'CALL_MODAL'
     })
   },
   components: {
@@ -324,7 +329,8 @@ import { modelRenderConfig, modelErrorMsg } from './config'
     TableJoinModal,
     SingleDimensionModal,
     PartitionModal,
-    AddCC
+    AddCC,
+    ShowCC
   },
   locales
 })
@@ -600,6 +606,11 @@ export default class ModelEdit extends Vue {
       return k
     })
     this.modelInstance.delCCByIndex(i)
+  }
+  showCCDetail (cc) {
+    this.showCCDetailDialog({
+      ccDetail: cc
+    })
   }
   // 批量删除CC
   delCCs () {
@@ -909,7 +920,6 @@ export default class ModelEdit extends Vue {
     return (drawSize) => {
       if (drawSize) {
         let zoom = this.modelRender.zoom / 10
-        console.log(this.zoomXSpace, this.zoomYSpace)
         return {'z-index': drawSize.zIndex, width: drawSize.width + 'px', height: drawSize.height + 'px', left: drawSize.left * zoom + this.zoomXSpace + 'px', top: drawSize.top * zoom + this.zoomYSpace + 'px'}
       }
     }
@@ -997,7 +1007,7 @@ export default class ModelEdit extends Vue {
     })
   }
   created () {
-    console.log(this.extraoption)
+    // console.log(this.extraoption)
   }
   beforeDestroy () {
     this.toggleFullScreen(false)
@@ -1448,11 +1458,6 @@ export default class ModelEdit extends Vue {
     .box-css();
     .table-box {
       &.isLookup {
-        .close {
-          &:hover{
-            background-color:@grey-3;
-          }
-        }
         box-shadow:@lookup-shadow;
         &:hover {
           box-shadow:@lookup-hover-shadow;
@@ -1460,6 +1465,11 @@ export default class ModelEdit extends Vue {
         .table-title {
           background-color: @lookup-title-color;
           color:@fff;
+          .close {
+            &:hover{
+              background-color:@base-color-13;
+            }
+          }
         }
       }
       background-color:#fff;
@@ -1472,7 +1482,6 @@ export default class ModelEdit extends Vue {
       .table-title {
         .close {  
           float:right;
-          border-radius:50%;
           font-size:14px;
           width:20px;
           height:20px;
@@ -1481,15 +1490,12 @@ export default class ModelEdit extends Vue {
           margin-top: 4px;
           margin-right: 3px;
           &:hover {
-            background-color:@text-title-color;
-            i {
-              color:@base-color;
-            }
+            background-color:@base-color-11;
           }
           i {
-            color:@grey-3;
             transform:scale(0.8);
             margin: auto;
+            color:@fff;
           }
         }
         .name {

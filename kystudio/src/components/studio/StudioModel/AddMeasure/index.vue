@@ -129,7 +129,7 @@ import $ from 'jquery'
   },
   locales: {
     'en': {requiredName: 'The measure name is required.', name: 'Name', expression: 'Expression', return_type: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredreturn_type: 'The return type is required.', requiredExpress: 'The expression is required.', columns: 'Columns', ccolumns: 'Computed Columns'},
-    'zh-cn': {requiredName: '请输入度量名称', name: '名称', expression: '表达式', return_type: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入列表名称', requiredreturn_type: '请选择度量返回类型', requiredExpress: '请输入表达式。', columns: '普通列', ccolumns: '计算列'}
+    'zh-cn': {requiredName: '请输入度量名称', name: '名称', expression: '表达式', return_type: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入列表名称', requiredreturn_type: '请选择度量返回类型', requiredExpress: '请输入表达式。', columns: '普通列', ccolumns: '可计算列'}
   }
 })
 export default class AddMeasure extends Vue {

@@ -15,8 +15,8 @@
         <div class="ksd_right_box">
           <div class="ksd-title-label ksd-mb-10">{{$t('queryBox')}}</div>
           <div class="query_panel_box ksd-mb-20">
-            <kap_editor ref="insightBox" height="170" lang="sql" theme="chrome" v-model="sourceSchema">
-            </kap_editor>
+            <kap-editor ref="insightBox" height="170" lang="sql" theme="chrome" v-model="sourceSchema">
+            </kap-editor>
             <div class="clearfix operatorBox">
               <p class="tips_box">
                 <el-button size="small" plain="plain" icon="el-icon-ksd-sql" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}</el-button>
@@ -74,8 +74,8 @@
                           <i class="el-icon-arrow-down" v-show="!savequery.isShow"></i>
                           <i class="el-icon-arrow-up" v-show="savequery.isShow"></i>
                         </el-button>
-                        <kap_editor width="99%" height="80" lang="sql" theme="chrome" v-model="savequery.sql" dragbar="#393e53" ref="saveQueries" v-show="savequery.isShow" class="ksd-mt-6">
-                        </kap_editor>
+                        <kap-editor width="99%" height="80" lang="sql" theme="chrome" v-model="savequery.sql" dragbar="#393e53" ref="saveQueries" v-show="savequery.isShow" class="ksd-mt-6">
+                        </kap-editor>
                       </el-form-item>
                       <div class="btn-group">
                         <el-button size="small" type="info" class="remove_query_btn" text @click="removeQuery(savequery.id)">{{$t('kylinLang.common.delete')}}</el-button>

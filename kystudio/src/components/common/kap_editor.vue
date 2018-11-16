@@ -7,7 +7,7 @@
 <script>
 import $ from 'jquery'
 export default {
-  name: 'kap_editor',
+  name: 'kapEditor',
   props: ['height', 'lang', 'theme', 'value', 'width', 'dragbar'],
   data () {
     return {

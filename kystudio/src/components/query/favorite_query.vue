@@ -199,8 +199,8 @@
         </el-col>
         <el-col :span="8">
           <div class="query_panel_box ksd-mt-10">
-            <kap_editor ref="blackInputBox" :height="inputHeight" lang="sql" theme="chrome" v-model="blackSql">
-            </kap_editor>
+            <kap-editor ref="blackInputBox" :height="inputHeight" lang="sql" theme="chrome" v-model="blackSql">
+            </kap-editor>
             <div class="operatorBox" v-show="isEditSql">
               <div class="btn-group ksd-fright">
                 <el-button size="medium" @click="clearSql">{{$t('kylinLang.query.clear')}}</el-button>
@@ -251,8 +251,8 @@
         </el-col>
         <el-col :span="8">
           <div class="query_panel_box ksd-mt-10">
-            <kap_editor ref="whiteInputBox" :height="inputHeight" lang="sql" theme="chrome" v-model="whiteSql">
-            </kap_editor>
+            <kap-editor ref="whiteInputBox" :height="inputHeight" lang="sql" theme="chrome" v-model="whiteSql">
+            </kap-editor>
             <div class="operatorBox" v-show="isEditSql">
               <div class="btn-group ksd-fright">
                 <el-button type="primary" size="medium" plain @click="">{{$t('kylinLang.common.submit')}}</el-button>

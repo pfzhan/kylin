@@ -19,7 +19,7 @@
           style="width: 100%">
           <el-table-column
             prop="fullName"
-            label="Column Name">
+            :label="$t('kylinLang.model.columnName')">
           </el-table-column>
           <el-table-column
             align="center"

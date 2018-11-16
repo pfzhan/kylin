@@ -116,6 +116,7 @@ export default class SingleDimensionModal extends Vue {
     this.dimensionInfo.column = ''
   }
   saveCC (cc) {
+    this.dimensionInfo.datatype = cc.datatype
     this.dimensionInfo.column = cc.tableAlias + '.' + cc.columnName
     this.dimensionInfo.cc = cc
   }
@@ -211,9 +212,13 @@ export default class SingleDimensionModal extends Vue {
     }
     let dimensionNamed = this.dimensionInfo.column.split('.')
     let ntable = this.modelInstance.getTableByAlias(dimensionNamed[0])
-    let datatype = ntable.getColumnType(dimensionNamed[1])
     this.dimensionInfo.table_guid = ntable.guid
-    this.dimensionInfo.datatype = datatype
+    if (this.dimensionInfo.isCC) {
+      this.dimensionInfo.datatype = this.dimensionInfo.datatype
+    } else {
+      let datatype = ntable.getColumnType(dimensionNamed[1])
+      this.dimensionInfo.datatype = datatype
+    }
     if (this.dimension && this.dimension.table_guid) {
       this.modelInstance.editDimension(this.dimensionInfo, this.dimensionInfo._id).then(() => {
         this._handleCloseFunc(isSubmit)

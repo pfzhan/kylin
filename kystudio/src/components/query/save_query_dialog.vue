@@ -3,8 +3,8 @@
     <el-dialog :title="$t('kylinLang.common.save')" :visible.sync="saveQueryFormVisible" width="660px" append-to-body  @close="closeSaveQueryDialog">
       <el-form :model="saveQueryMeta" label-position="top" ref="saveQueryForm" :rules="rules" label-width="85px">
         <el-form-item :label="$t('kylinLang.query.querySql')" prop="sql">
-          <kap_editor height="100" lang="sql" theme="chrome" v-model="saveQueryMeta.sql" dragbar="#393e53">
-          </kap_editor>
+          <kap-editor height="100" lang="sql" theme="chrome" v-model="saveQueryMeta.sql" dragbar="#393e53">
+          </kap-editor>
         </el-form-item>
         <el-form-item :label="$t('kylinLang.query.name')" prop="name">
           <el-input v-model="saveQueryMeta.name" size="medium" auto-complete="off"></el-input>

@@ -8,7 +8,7 @@
 import $ from 'jquery'
 import { filterMutileSqlsToOneLine } from 'util/business'
 export default {
-  name: 'kap_editor',
+  name: 'kapEditor',
   props: ['height', 'lang', 'theme', 'value', 'width', 'dragbar', 'breakPoints'],
   data () {
     return {

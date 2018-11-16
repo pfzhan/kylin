@@ -1,6 +1,6 @@
 <template>
    <el-dialog append-to-body :title="$t('kylinLang.model.addCC')" width="440px" :visible="isShow" @close="closeModal()">
-      <CCEditForm v-if="isShow" @saveSuccess="saveCC" @saveError="saveCCError" :ccDesc="ccObject" ref="ccForm" :isPureForm="true" :modelInstance="modelInstance"/>
+      <CCEditForm v-if="isShow" @saveSuccess="saveCC" @saveError="saveCCError" ref="ccForm" :isPureForm="true" :modelInstance="modelInstance"/>
       <div slot="footer" class="dialog-footer">
         <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
         <el-button type="primary" plain @click="submit" :loading="btnLoading" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
@@ -43,7 +43,7 @@ vuex.registerModule(['modals', 'CCAddModal'], store)
 })
 export default class CCAddModal extends Vue {
   btnLoading = false
-  addCC () {
+  saveCC () {
     this.btnLoading = false
     this.closeModal(true)
   }
