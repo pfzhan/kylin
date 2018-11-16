@@ -7,7 +7,7 @@ export const editTypes = {
 }
 
 export const fieldVisiableMaps = {
-  [editTypes.INCREMENTAL_SETTING]: ['partitionColumn', 'newDataRange'],
+  [editTypes.INCREMENTAL_SETTING]: ['partitionColumn', 'partitionFormat', 'newDataRange'],
   [editTypes.INCREMENTAL_LOADING]: ['newDataRange'],
   [editTypes.REFRESH_RANGE]: ['freshDataRange'],
   [editTypes.DATA_MERGE]: ['isMergeable', 'autoMergeConfigs', 'volatileConfig'],
@@ -41,6 +41,7 @@ export const volatileTypes = [
 export const validateTypes = {
   NEW_DATA_RANGE: 'newDataRange',
   PARTITION_COLUMN: 'partitionColumn',
+  PARTITION_FORMAT: 'partitionFormat',
   VOLATILE_VALUE: 'volatileConfig.value'
 }
 
@@ -61,6 +62,13 @@ export const validate = {
     }
   },
   [validateTypes.PARTITION_COLUMN] (rule, value, callback) {
+    if (!value) {
+      callback(new Error(this.$t('kylinLang.common.pleaseSelect')))
+    } else {
+      callback()
+    }
+  },
+  [validateTypes.PARTITION_FORMAT] (rule, value, callback) {
     if (!value) {
       callback(new Error(this.$t('kylinLang.common.pleaseSelect')))
     } else {

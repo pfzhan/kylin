@@ -30,6 +30,31 @@
           </el-col>
         </el-row>
       </el-form-item>
+      <!-- Partition Column Format -->
+      <el-form-item class="margin-bottom-20" prop="partitionFormat" v-if="isFieldShow('partitionFormat')">
+        <span class="font-medium" slot="label">
+          {{$t('partitionFormat')}}
+        </span>
+        <el-row>
+          <el-col :span="13">
+            <el-select
+              class="margin-top-5"
+              filterable
+              size="medium"
+              :value="form.partitionFormat"
+              :disabled="disabled"
+              :placeholder="$t('kylinLang.common.pleaseChoose')"
+              @input="value => handleInput('partitionFormat', value)">
+              <el-option
+                v-for="format in partitionFormats"
+                :key="format.name"
+                :label="format.value"
+                :value="format.value">
+              </el-option>
+            </el-select>
+          </el-col>
+        </el-row>
+      </el-form-item>
       <!-- New/Change Data Range Picker -->
       <el-form-item class="margin-bottom-0" prop="newDataRange" v-if="isFieldShow('newDataRange')">
         <span class="font-medium" slot="label">
@@ -204,7 +229,7 @@ const {
   PUSHDOWN_CONFIG
 } = editTypes
 
-const { NEW_DATA_RANGE, PARTITION_COLUMN, VOLATILE_VALUE } = validateTypes
+const { NEW_DATA_RANGE, PARTITION_COLUMN, PARTITION_FORMAT, VOLATILE_VALUE } = validateTypes
 
 vuex.registerModule(['modals', 'SourceTableModal'], store)
 
@@ -226,7 +251,8 @@ vuex.registerModule(['modals', 'SourceTableModal'], store)
     ...mapGetters('SourceTableModal', [
       'modelName',
       'tableFullName',
-      'partitionColumns'
+      'partitionColumns',
+      'partitionFormats'
     ])
   },
   methods: {
@@ -255,6 +281,7 @@ export default class SourceTableModal extends Vue {
   rules = {
     [NEW_DATA_RANGE]: [{ validator: this.validate(NEW_DATA_RANGE), trigger: 'blur' }],
     [PARTITION_COLUMN]: [{ validator: this.validate(PARTITION_COLUMN), trigger: 'blur' }],
+    [PARTITION_FORMAT]: [{ validator: this.validate(PARTITION_FORMAT), trigger: 'blur' }],
     [VOLATILE_VALUE]: [{ validator: this.validate(VOLATILE_VALUE), trigger: 'blur' }]
   }
   get modalTitle () {
@@ -348,9 +375,10 @@ export default class SourceTableModal extends Vue {
         const startTime = form.newDataRange[0].getTime()
         const endTime = form.newDataRange[1].getTime()
         const column = form.partitionColumn
+        const format = form.partitionFormat
         const isIncremental = true
         return {
-          settings: { projectName, tableFullName, isIncremental, column },
+          settings: { projectName, tableFullName, isIncremental, column, format },
           ranges: { projectName, tableFullName, startTime, endTime }
         }
       }

@@ -144,8 +144,8 @@ export default {
   previewAclSetOfRowSql: (tableName, project, userName, conditions) => {
     return Vue.resource(apiUrl + 'acl/row/preview/' + project + '/' + tableName).save(conditions)
   },
-  saveFactTable (project, table, fact, column) {
-    return Vue.resource(apiUrl + 'tables/fact').save({project, table, fact, column})
+  saveFactTable (project, table, fact, column, format) {
+    return Vue.resource(apiUrl + 'tables/fact').save({project, table, fact, column, partition_date_format: format})
   },
   saveDataRange (project, table, start, end) {
     return Vue.resource(apiUrl + 'tables/data_range').save({project, table, start, end})

@@ -179,7 +179,7 @@ export default {
       return api.datasource.previewAclSetOfRowSql(para.tableName, para.project, para.userName, para.conditions)
     },
     [types.SAVE_FACT_TABLE]: function ({commit}, para) {
-      return api.datasource.saveFactTable(para.projectName, para.tableFullName, para.isIncremental, para.column)
+      return api.datasource.saveFactTable(para.projectName, para.tableFullName, para.isIncremental, para.column, para.format)
     },
     [types.SAVE_DATA_RANGE]: function ({commit}, para) {
       return api.datasource.saveDataRange(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime))

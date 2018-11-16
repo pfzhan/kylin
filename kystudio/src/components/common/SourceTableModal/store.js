@@ -25,6 +25,7 @@ const initialState = JSON.stringify({
     newDataRange: [new Date(), new Date()],
     freshDataRange: [new Date(), new Date()],
     partitionColumn: '',
+    partitionFormat: '',
     isMergeable: true,
     isAutoMerge: true,
     isVolatile: true,
@@ -50,6 +51,15 @@ export default {
     },
     modelName (state) {
       return !getTableName(state.table, state.model) && state.model ? state.model.name : null
+    },
+    partitionFormats () {
+      return [
+        { name: 'COMPACT_DATE_PATTERN', value: 'yyyyMMdd' },
+        { name: 'DEFAULT_DATE_PATTERN', value: 'yyyy-MM-dd' },
+        { name: 'DEFAULT_TIME_PATTERN', value: 'HH:mm:ss' },
+        { name: 'DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS', value: 'yyyy-MM-dd HH:mm:ss' },
+        { name: 'DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS', value: 'yyyy-MM-dd HH:mm:ss.SSS' }
+      ]
     }
   },
   mutations: {

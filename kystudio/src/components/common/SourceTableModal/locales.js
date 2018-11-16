@@ -41,7 +41,8 @@ export default {
     refreshRangeTip: 'Reload updated records from the source table.',
     autoMergeTip: 'The system can auto-merge segment fragments over different merge threshold. Auto-merge, like defragmentation, will optimize storage to enhance query performance.',
     volatileTip: 'The latest data may change later, the data in the volatile range will not be merged.',
-    selectAll: 'Select All'
+    selectAll: 'Select All',
+    partitionFormat: 'Partition Format'
   },
   'zh-cn': {
     incrementalLoading: '增量加载',
@@ -85,6 +86,7 @@ export default {
     refreshRangeTip: '重新从源表上加载一段更新后的交易记录。',
     autoMergeTip: '根据不同层级的时间周期，系统可以自动合并segment碎片。合并segment就像碎片整理，可以优化查询提升查询性能。',
     volatileTip: '处于变动中的一段最新的数据，处于变动范围的数据不会被合并。',
-    selectAll: '选择所有数据区间'
+    selectAll: '选择所有数据区间',
+    partitionFormat: '时间格式'
   }
 }

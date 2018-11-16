@@ -260,6 +260,7 @@ export default class ProjectSidebar extends Vue {
     padding-right: 15px;
     overflow: auto;
     hyphens: auto;
+    word-wrap: break-word;
   }
 }
 .project-sidebar-popper {
