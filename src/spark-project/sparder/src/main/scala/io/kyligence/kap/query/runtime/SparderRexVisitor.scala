@@ -35,11 +35,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex._
 import org.apache.calcite.sql.SqlKind._
-import org.apache.calcite.sql.`type`.{
-  IntervalSqlType,
-  SqlTypeFamily,
-  SqlTypeName
-}
+import org.apache.calcite.sql.`type`.{IntervalSqlType, SqlTypeFamily, SqlTypeName}
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator
 import org.apache.calcite.util.NlsString
 import org.apache.kylin.common.util.DateFormat
@@ -63,7 +59,7 @@ import scala.collection.mutable.ListBuffer
 class SparderRexVisitor(val df: DataFrame,
                         val rowType: RelDataType,
                         val dataContext: DataContext)
-    extends RexVisitorImpl[Any](true) {
+  extends RexVisitorImpl[Any](true) {
   val fieldNames: Array[String] = df.schema.fieldNames
 
   // scalastyle:off
@@ -164,6 +160,10 @@ class SparderRexVisitor(val df: DataFrame,
       case LIKE =>
         assert(children.size == 2)
         lit(children.head).like(children.last.asInstanceOf[String])
+      case MINUS_PREFIX =>
+        assert(children.size == 1)
+        negate(lit(children.head))
+
       case PLUS =>
         assert(children.size == 2)
         if (op.getName.equals("DATETIME_PLUS")) {
@@ -177,6 +177,7 @@ class SparderRexVisitor(val df: DataFrame,
             case _ =>
           }
         }
+
 
         call.getType.getSqlTypeName match {
           case SqlTypeName.DATE =>
@@ -205,8 +206,10 @@ class SparderRexVisitor(val df: DataFrame,
             .getIntervalQualifier
             .timeUnitRange
             .name
-          if ("DAY".equalsIgnoreCase(timeUnitName) || "SECOND".equalsIgnoreCase(
-                timeUnitName)) {
+          if ("DAY".equalsIgnoreCase(timeUnitName)
+            || "SECOND".equalsIgnoreCase(timeUnitName)
+            || "HOUR".equalsIgnoreCase(timeUnitName)
+            || "MINUTE".equalsIgnoreCase(timeUnitName)) {
             // for ADD_DAY case
             // the calcite plan looks like: /INT(Reinterpret(-($0, 2012-01-01)), 86400000)
             // and the timeUnitName is DAY
@@ -214,6 +217,12 @@ class SparderRexVisitor(val df: DataFrame,
             // for ADD_WEEK case
             // the calcite plan looks like: /INT(CAST(/INT(Reinterpret(-($0, 2000-01-01)), 1000)):INTEGER, 604800)
             // and the timeUnitName is SECOND
+
+            // for MINUTE case
+            // the Calcite plan looks like: CAST(/INT(Reinterpret(-($1, CAST($0):TIMESTAMP(0))), 60000)):INTEGER
+
+            // for HOUR case
+            // the Calcite plan looks like: CAST(/INT(Reinterpret(-($1, CAST($0):TIMESTAMP(0))), 3600000)):INTEGER
 
             // expecting ts instead of seconds
             // so we need to multiply 1000 here
@@ -223,7 +232,7 @@ class SparderRexVisitor(val df: DataFrame,
             ts1.minus(ts2).multiply(1000)
 
           } else if ("MONTH".equalsIgnoreCase(timeUnitName) || "YEAR"
-                       .equalsIgnoreCase(timeUnitName)) {
+            .equalsIgnoreCase(timeUnitName)) {
 
             // for ADD_YEAR case,
             // the calcite plan looks like: CAST(/INT(Reinterpret(-($0, 2000-03-01)), 12)):INTEGER
@@ -248,7 +257,14 @@ class SparderRexVisitor(val df: DataFrame,
         }
       case TIMES =>
         assert(children.size == 2)
-        lit(children.head).multiply(lit(children.last))
+        children.head match {
+          case num: MonthNum => {
+            val ts = lit(children.apply(1)).cast(TimestampType).cast(LongType)
+            lit(ts).multiply(lit(num.num))
+          }
+          case _ =>
+            lit(children.head).multiply(lit(children.last))
+        }
       case DIVIDE =>
         assert(children.size == 2)
         lit(children.head).divide(lit(children.last))
@@ -272,21 +288,18 @@ class SparderRexVisitor(val df: DataFrame,
       case EXTRACT => {
         val timeUnit = children.head.asInstanceOf[String]
         val inputAsTS = children.apply(1)
-        call.operands.get(1).getType.getSqlTypeName.name() match {
-          case "DATE" =>
-          case _ =>
-            throw new UnsupportedSparkFunctionException(
-              s"Unsupported function $timeUnit")
-        }
 
         timeUnit match {
-          case "YEAR"    => year(lit(inputAsTS))
+          case "YEAR" => year(lit(inputAsTS))
           case "QUARTER" => quarter(lit(inputAsTS))
-          case "MONTH"   => month(lit(inputAsTS))
-          case "WEEK"    => weekofyear(lit(inputAsTS))
-          case "DOY"     => dayofyear(lit(inputAsTS))
-          case "DAY"     => dayofmonth(lit(inputAsTS))
-          case "DOW"     => kap_day_of_week(lit(inputAsTS))
+          case "MONTH" => month(lit(inputAsTS))
+          case "WEEK" => weekofyear(lit(inputAsTS))
+          case "DOY" => dayofyear(lit(inputAsTS))
+          case "DAY" => dayofmonth(lit(inputAsTS))
+          case "DOW" => kap_day_of_week(lit(inputAsTS))
+          case "HOUR" => hour(lit(inputAsTS))
+          case "MINUTE" => minute(lit(inputAsTS))
+          case "SECOND" => second(lit(inputAsTS))
           case _ =>
             throw new UnsupportedSparkFunctionException(
               s"Unsupported function $timeUnit")
@@ -313,6 +326,10 @@ class SparderRexVisitor(val df: DataFrame,
         } else {
           trim(lit(children.head))
         }
+      case MOD =>
+        assert(children.size == 2)
+        val (left: Column, right: Any) = getOperands
+        left mod right
 
       case OTHER =>
         val funcName = call.getOperator.getName.toLowerCase
@@ -330,7 +347,7 @@ class SparderRexVisitor(val df: DataFrame,
             abs(
               lit(children.head).cast(SparderTypeUtil
                 .convertSqlTypeNameToSparkType(call.getType.getSqlTypeName)))
-          case "round" =>
+          case "round" | "truncate" =>
             round(
               lit(children.head),
               children.apply(1).asInstanceOf[java.math.BigDecimal].intValue())
@@ -338,14 +355,14 @@ class SparderRexVisitor(val df: DataFrame,
             lit(1).divide(tan(lit(children.head)))
 
           //string_funcs
-          case "lower"            => lower(lit(children.head))
-          case "upper"            => upper(lit(children.head))
-          case "char_length"      => length(lit(children.head))
+          case "lower" => lower(lit(children.head))
+          case "upper" => upper(lit(children.head))
+          case "char_length" => length(lit(children.head))
           case "character_length" => length(lit(children.head))
           case "replace" =>
             regexp_replace(lit(children.head),
-                           children.apply(1).asInstanceOf[String],
-                           children.apply(2).asInstanceOf[String])
+              children.apply(1).asInstanceOf[String],
+              children.apply(2).asInstanceOf[String])
           case "substring" =>
             if (children.length == 3) {
               lit(children.head)
@@ -354,6 +371,9 @@ class SparderRexVisitor(val df: DataFrame,
               throw new UnsupportedOperationException(
                 s"substring must provide three parameters under sparder")
             }
+          case "position" =>
+            val pos = if (children.length == 2) 0 else children.apply(2).asInstanceOf[BigDecimal].intValue()
+            locate(children.head.toString, lit(children.apply(1)), pos)
           case "concat" =>
             concat(lit(children.head), lit(children.apply(1)))
           // time_funcs
@@ -365,6 +385,35 @@ class SparderRexVisitor(val df: DataFrame,
             lit(SparderTypeUtil.toSparkTimestamp(System.currentTimeMillis()))
           case "power" =>
             pow(lit(children.head), lit(children.apply(1)))
+          case "log10" =>
+            log10(lit(children.head))
+          case "ln" =>
+            log(Math.E, lit(children.head))
+          case "exp" =>
+            exp(lit(children.head))
+          case "acos" =>
+            acos(lit(children.head))
+          case "asin" =>
+            asin(lit(children.head))
+          case "atan" =>
+            atan(lit(children.head))
+          case "atan2" =>
+            assert(children.size == 2)
+            atan2(lit(children.head), lit(children.last))
+          case "cos" =>
+            cos(lit(children.head))
+          case "degrees" =>
+            degrees(lit(children.head))
+          case "radians" =>
+            radians(lit(children.head))
+          case "sign" =>
+            signum(lit(children.head))
+          case "tan" =>
+            tan(lit(children.head))
+          case "sin" =>
+            sin(lit(children.head))
+          case "initcap" =>
+            initcap(lit(children.head))
           case _ =>
             throw new UnsupportedOperationException(
               s"Unsupported function $funcName")
@@ -390,7 +439,7 @@ class SparderRexVisitor(val df: DataFrame,
     val v = convertFilterValueAfterAggr(literal)
     v match {
       case Some(toReturn) => toReturn
-      case None           => null
+      case None => null
     }
   }
 
@@ -406,12 +455,12 @@ class SparderRexVisitor(val df: DataFrame,
     literal.getType match {
       case t: IntervalSqlType => {
         if (Seq("MONTH", "YEAR", "QUARTER").contains(
-              t.getIntervalQualifier.timeUnitRange.name)) {
+          t.getIntervalQualifier.timeUnitRange.name)) {
           return Some(
             MonthNum(literal.getValue.asInstanceOf[BigDecimal].intValue))
         }
         if (literal.getType.getFamily
-              .asInstanceOf[SqlTypeFamily] == SqlTypeFamily.INTERVAL_DAY_TIME) {
+          .asInstanceOf[SqlTypeFamily] == SqlTypeFamily.INTERVAL_DAY_TIME) {
           return Some(
             SparderTypeUtil.toSparkTimestamp(
               new java.math.BigDecimal(literal.getValue.toString).longValue()))

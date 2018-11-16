@@ -85,14 +85,14 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     }
 
     private void restoreSparderEnv() {
-        for(String prop: systemProp.keySet()){
+        for (String prop: systemProp.keySet()) {
             restoreIfNeed(prop);
         }
         systemProp.clear();
     }
-    private void restoreIfNeed(String prop){
+    private void restoreIfNeed(String prop) {
         String value = systemProp.get(prop);
-        if(value == null){
+        if (value == null) {
             logger.info("CLear " + prop);
             System.clearProperty(prop);
         } else {

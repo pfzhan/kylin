@@ -24,31 +24,9 @@
 
 package io.kyligence.kap.newten;
 
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 
 public class NAutoTdvtTest extends NAutoTestBase {
-
-    private static final String originalCsvTrueType = System.getProperty("source.csv.truetype");
-
-    @Override
-    @Before
-    public void setup() throws Exception {
-        super.setup();
-    }
-
-    @Override
-    @After
-    public void after() throws Exception {
-        super.after();
-
-        if (originalCsvTrueType == null) {
-            System.clearProperty("source.csv.truetype");
-        } else {
-            System.setProperty("source.csv.truetype", originalCsvTrueType);
-        }
-    }
 
     @Override
     public String getProject() {
