@@ -113,6 +113,24 @@ export default {
     [types.GET_FAVORITE_LIST]: function ({commit}, para) {
       return api.datasource.getFavoriteList(para)
     },
+    [types.LOAD_WHITE_LIST]: function ({commit}, para) {
+      return api.datasource.loadWhiteList(para)
+    },
+    [types.SAVE_WHITE_SQL]: function ({commit}, para) {
+      return api.datasource.saveWhite(para)
+    },
+    [types.DELETE_WHITE_SQL]: function ({commit}, para) {
+      return api.datasource.deleteWhite(para)
+    },
+    [types.LOAD_BLACK_LIST]: function ({commit}, para) {
+      return api.datasource.loadBlackList(para)
+    },
+    [types.ADD_BLACK_SQL]: function ({commit}, para) {
+      return api.datasource.addBlack(para)
+    },
+    [types.DELETE_BLACK_SQL]: function ({commit}, para) {
+      return api.datasource.deleteBlack(para)
+    },
     [types.GET_CANDIDATE_LIST]: function ({commit}, para) {
       return api.datasource.getCandidateList(para)
     },

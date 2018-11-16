@@ -81,6 +81,24 @@ export default {
   getFavoriteList: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries').get(para)
   },
+  loadWhiteList: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/whitelist').get(para)
+  },
+  saveWhite: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/whitelist').update(para)
+  },
+  deleteWhite: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/whitelist').delete(para)
+  },
+  loadBlackList: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/blacklist').get(para)
+  },
+  addBlack: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/blacklist').save(para)
+  },
+  deleteBlack: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/blacklist').delete(para)
+  },
   getCandidateList: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/candidates').get(para)
   },
