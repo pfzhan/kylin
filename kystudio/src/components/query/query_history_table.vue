@@ -42,8 +42,8 @@
                 <div class="realization-block">
                   <span class="label">{{$t('kylinLang.query.realization')}}</span>
                   <div class="tags-block">
-                    <el-tag v-if="!props.row.cube_hit" type="warning" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag>
-                    <el-tag v-else v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName" @click.native="openAgg(modelName)">{{modelName}}</el-tag>
+                    <el-tag v-if="!props.row.cube_hit" type="warning" size="small" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag>
+                    <el-tag v-else size="small" v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName" @click.native="openAgg(modelName)">{{modelName}}</el-tag>
                   </div>
                 </div>
                 <div class="ksd-nobr-text">
@@ -84,8 +84,8 @@
       <el-table-column :renderHeader="renderColumn3" prop="answered_by" header-align="center" width="250" show-overflow-tooltip>
         <template slot-scope="props">
           <div class="tag-ellipsis">
-            <el-tag v-if="!props.row.cube_hit" type="warning" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag>
-            <el-tag v-else v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName">{{modelName}}</el-tag>
+            <el-tag v-if="!props.row.cube_hit" type="warning" size="small" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag>
+            <el-tag v-else v-for="modelName in getAnsweredByList(props.row.answered_by)" size="small" :key="modelName">{{modelName}}</el-tag>
           </div>
         </template>
       </el-table-column>
