@@ -310,11 +310,11 @@ exports.default = {
     rate: '查询成功率',
     frequency: '查询频率',
     avgDuration: '查询平均用时',
-    fullyAcce: '本条查询已被完全加速',
-    partlyAcce: '本条查询已被部分加速',
-    ongoingAcce: '本条查询正在加速中',
-    wartingAcce: '本条查询等待加速',
-    unAcce: '本条查询未被加速，现在去加速。'
+    fullyAcce: '完全加速',
+    partlyAcce: '部分加速',
+    ongoingAcce: '正在加速',
+    wartingAcce: '待加速',
+    unAcce: '尚未加速，点击成为加速查询'
   },
   job: {
   },

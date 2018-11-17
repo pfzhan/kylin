@@ -3,18 +3,19 @@
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
       <el-col  :xs="12" :md="12" :lg="12">
         <el-select v-model="filter.status" @change="filterChange2" style="width:140px;" size="medium">
+          <el-option :label="$t('ALL')" value=""></el-option>
           <el-option
             v-for="(status, status_index) in allStatus"
             :key="status_index"
-            :label="$t(status.name)"
-            :value="status.value">
+            :label="$t(status)"
+            :value="status">
           </el-option>
         </el-select>
         <el-button-group class="action_groups ksd-ml-10">
-          <el-button plain size="medium" :disabled="!(filter.status==8 || filter.status==32) || filter.status == ''" @click="batchResume">{{$t('jobResume')}}</el-button>
-          <el-button plain size="medium" :disabled="filter.status==16 || filter.status==4 || filter.status == ''" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
-          <el-button plain size="medium" :disabled="!(filter.status==2 || filter.status==1) || filter.status == ''" @click="batchPause">{{$t('jobPause')}}</el-button>
-          <el-button plain size="medium" :disabled="!(filter.status==16 || filter.status==4) || filter.status == ''" @click="batchDrop">{{$t('jobDrop')}}</el-button>
+          <el-button plain size="medium" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
+          <el-button plain size="medium" :disabled="!batchBtnsEnabled.discard" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
+          <el-button plain size="medium" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
+          <el-button plain size="medium" :disabled="!batchBtnsEnabled.drop" @click="batchDrop">{{$t('jobDrop')}}</el-button>
         </el-button-group>
         <el-button plain size="medium" class="ksd-ml-20" icon="el-icon-refresh" @click="refreshJobs">{{$t('kylinLang.common.refresh')}}</el-button>
       </el-col>
@@ -51,11 +52,11 @@
             @click="showLineSteps(scope.row)"></i>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('JobType')" sortable prop="job_name" :width="200"></el-table-column>
+      <el-table-column :label="$t('JobType')" sortable prop="job_name" :width="140"></el-table-column>
       <el-table-column
         :label="$t('TableModelCube')"
         sortable
-        :min-width="120"
+        :min-width="140"
         show-overflow-tooltip
         prop="target_subject">
       </el-table-column>
@@ -235,6 +236,7 @@ import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import jobDialog from './job_dialog'
 import TWEEN from '@tweenjs/tween.js'
+import $ from 'jquery'
 import { pageCount } from '../../config'
 import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/business'
 import diagnosisXX from '../security/diagnosis'
@@ -293,18 +295,36 @@ export default class JobsList extends Vue {
     status: this.$store.state.monitor.filter.status,
     subjects: ''
   }
-  allStatus = [
-    {name: 'ALL', value: null},
-    {name: 'PENDING', value: 1},
-    {name: 'RUNNING', value: 2},
-    {name: 'FINISHED', value: 4},
-    {name: 'ERROR', value: 8},
-    {name: 'DISCARDED', value: 16},
-    {name: 'STOPPED', value: 32}
-  ]
+  allStatus = ['PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
   diagnosisVisible = false
   targetId = ''
   searchLoading = false
+  batchBtnsEnabled = {
+    resume: false,
+    discard: false,
+    pause: false,
+    drop: false
+  }
+  getBatchBtnStatus (statusArr) {
+    const batchBtns = {
+      resume: ['ERROR', 'STOPPED'],
+      discard: ['PENDING', 'ERROR', 'RUNNING', 'STOPPED'],
+      pause: ['PENDING', 'RUNNING'],
+      drop: ['DISCARDED', 'FINISHED']
+    }
+    $.each(batchBtns, (key, item) => {
+      this.batchBtnsEnabled[key] = this.isContain(item, statusArr)
+    })
+  }
+  isContain (arr1, arr2) {
+    for (let i = arr2.length - 1; i >= 0; i--) {
+      if (!arr1.includes(arr2[i])) {
+        return false
+      }
+    }
+    return true
+  }
+
   created () {
     this.filter.project = this.currentSelectedProject
     var autoFilter = () => {
@@ -416,19 +436,33 @@ export default class JobsList extends Vue {
     animate()
   }
   handleSelectionChange (val) {
-    this.multipleSelection = val
-    this.idsArr = this.multipleSelection.map((item) => {
-      return item.id
-    })
+    if (val && val.length) {
+      this.multipleSelection = val
+      const selectedStatus = this.multipleSelection.map((item) => {
+        return item.job_status
+      })
+      this.getBatchBtnStatus(selectedStatus)
+      this.idsArr = this.multipleSelection.map((item) => {
+        return item.id
+      })
+    } else {
+      this.batchBtnsEnabled = {
+        resume: false,
+        discard: false,
+        pause: false,
+        drop: false
+      }
+      this.idsArr = []
+    }
   }
   handleSelectAll (val) {
-    if (this.jobTotal > 10 && (this.filter.status !== '' || this.filter.status !== [])) {
+    if (this.jobTotal > 10 && this.filter.status !== '') {
       this.isSelectAllShow = !this.isSelectAllShow
       this.selectedNumber = this.animatedNum(this.jobsList.length, 0)
     }
   }
   handleSelect (val) {
-    if (this.jobTotal > 10 && (this.filter.status !== '' || this.filter.status !== [])) {
+    if (this.jobTotal > 10 && this.filter.status !== '') {
       if (this.multipleSelection.length < 10) {
         this.isSelectAllShow = false
         this.isSelectAll = false

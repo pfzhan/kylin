@@ -56,7 +56,7 @@ export default {
     [types.GET_SPEED_INFO]: function ({ commit }, projectName) {
       return new Promise((resolve, reject) => {
         api.model.getSpeedModelInfo(projectName).then((response) => {
-          commit(types.CACHE_SPEED_INFO, {reachThreshold: response.data.data.reach_threshold, queryCount: response.data.data.size || [], modelCount: response.data.data.optimized_model_num})
+          commit(types.CACHE_SPEED_INFO, {reachThreshold: response.data.data.reach_threshold, queryCount: response.data.data.size, modelCount: response.data.data.optimized_model_num})
           resolve(response)
         }, (response) => {
           commit(types.CACHE_SPEED_INFO, {reachThreshold: false, queryCount: 0, modelCount: 0})

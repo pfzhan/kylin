@@ -24,7 +24,8 @@ export default {
     switchLookup: 'Switch to Lookup Table',
     switchFact: 'Switch to Fact Table',
     editTableAlias: 'Edit table alias',
-    deleteTable: 'Delete the table'
+    deleteTable: 'Delete the table',
+    noSelectJobs: 'Please check at least one item'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -51,6 +52,7 @@ export default {
     switchLookup: '设置为维度表',
     switchFact: '设置为事实表',
     editTableAlias: '编辑别名',
-    deleteTable: '删除本表'
+    deleteTable: '删除本表',
+    noSelectJobs: '请勾选至少一条'
   }
 }

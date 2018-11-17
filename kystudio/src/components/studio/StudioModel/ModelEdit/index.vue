@@ -92,7 +92,14 @@
               <span @click="toggleCheckbox" :class="{'active': isShowCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
               <span @click="batchSetDimension"><i class="el-icon-ksd-batch"></i></span>
               <span @click="addCCDimension"><i class="el-icon-ksd-project_add"></i></span>
-              <span class="ksd-fright batch-del" v-if="isShowCheckbox" @click="deleteDimenisons"><i class="el-icon-ksd-table_delete" :class="{'delable': dimensionSelectedList.length>0}"></i></span>
+              <span class="ksd-fright batch-del" v-if="isShowCheckbox" @click="deleteDimenisons">
+                <el-tooltip :content="$t('kylinLang.common.delete')" placement="bottom" v-if="dimensionSelectedList.length>0">
+                  <i class="el-icon-ksd-table_delete delable"></i>
+                </el-tooltip>
+                <el-tooltip :content="$t('noSelectJobs')" placement="bottom-end" v-else>
+                  <i class="el-icon-ksd-table_delete"></i>
+                </el-tooltip>
+              </span>
             </div>
             <div class="panel-main-content" @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "dimension")}' v-scroll>
               <ul class="dimension-list">
@@ -119,7 +126,14 @@
             <div class="panel-sub-title">
               <span @click="toggleMeaCheckbox" :class="{'active': isShowMeaCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
               <span @click="addNewMeasure"><i class="el-icon-ksd-project_add"></i></span>
-              <span class="ksd-fright batch-del" v-if="isShowMeaCheckbox" @click="deleteMeasures"><i class="el-icon-ksd-table_delete" :class="{'delable': measureSelectedList.length>0}"></i></span>
+              <span class="ksd-fright batch-del" v-if="isShowMeaCheckbox" @click="deleteMeasures">
+                <el-tooltip :content="$t('kylinLang.common.delete')" placement="bottom" v-if="measureSelectedList.length>0">
+                  <i class="el-icon-ksd-table_delete delable"></i>
+                </el-tooltip>
+                <el-tooltip :content="$t('noSelectJobs')" placement="bottom-end" v-else>
+                  <i class="el-icon-ksd-table_delete"></i>
+                </el-tooltip>
+              </span>
             </div>
             <div class="panel-main-content"  @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "measure")}' v-scroll>
               <ul class="measure-list">
@@ -146,7 +160,14 @@
             <div class="panel-sub-title">
               <span @click="toggleCCCheckbox" :class="{'active': isShowCCCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
               <span @click="addCC"><i class="el-icon-ksd-project_add"></i></span>
-              <span class="ksd-fright batch-del" v-if="isShowCCCheckbox" @click="delCCs"><i class="el-icon-ksd-table_delete" :class="{'delable': ccSelectedList.length>0}"></i></span>
+              <span class="ksd-fright batch-del" v-if="isShowCCCheckbox" @click="delCCs">
+                <el-tooltip :content="$t('kylinLang.common.delete')" placement="bottom" v-if="ccSelectedList.length>0">
+                  <i class="el-icon-ksd-table_delete delable"></i>
+                </el-tooltip>
+                <el-tooltip :content="$t('noSelectJobs')" placement="bottom-end" v-else>
+                  <i class="el-icon-ksd-table_delete"></i>
+                </el-tooltip>
+              </span>
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="cc-list">
@@ -1221,8 +1242,13 @@ export default class ModelEdit extends Vue {
           }
           &.batch-del {
             margin-top: 3px;
-            .delable {
-              color: @base-color;
+            .el-icon-ksd-table_delete {
+              cursor: not-allowed;
+              color: @text-normal-color;
+              &.delable {
+                cursor: pointer;
+                color: @base-color;
+              }
             }
           }
           &.active {

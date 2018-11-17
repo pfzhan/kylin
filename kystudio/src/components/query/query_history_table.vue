@@ -96,7 +96,7 @@
           <el-popover
             ref="popover"
             placement="top"
-            width="200"
+            width="160"
             trigger="hover"
             v-if="props.row.accelerate_status === 'UNACCELERATED'">
             <p class="to_acce">{{$t('kylinLang.query.unAcce')}}</p>
