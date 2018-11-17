@@ -1203,6 +1203,7 @@ export default class ModelEdit extends Vue {
           margin-bottom:17px;
         }
         .dimension-list , .measure-list, .cc-list{
+          cursor:default;
           margin-top:0;
           li {
             line-height:28px;
@@ -1240,6 +1241,14 @@ export default class ModelEdit extends Vue {
                   color: @base-color;
                 }
               }
+            }
+          }
+        }
+        .cc-list {
+          li {
+            background-color:@warning-color-2;
+            &:hover {
+              background-color:@warning-color-3;
             }
           }
         }
