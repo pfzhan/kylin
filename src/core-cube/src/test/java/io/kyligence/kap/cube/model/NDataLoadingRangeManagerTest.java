@@ -166,12 +166,6 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         NDataLoadingRange dataLoadingRange2 = dataLoadingRangeManager.getDataLoadingRange(tableName);
         Assert.assertEquals(dataLoadingRange2.getWaterMarkEnd(), -1);
 
-        try {
-            dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange2);
-            Assert.fail();
-        } catch (IllegalStateException ex) {
-            // expected
-        }
 
     }
 

@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -338,17 +339,15 @@ public class ModelService extends BasicService {
     }
 
     public void purgeModel(String model, String project) throws IOException {
-        NDataModel dataModelDesc = getNDataModelByModelName(model, project);
-        if (dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new BadRequestException("Model '" + model + "' is table oriented, can not pruge the model!!");
-        }
         NDataflowManager dataflowManager = getDataflowManager(project);
         val cubePlan = getCubePlan(model, project);
         List<NDataSegment> segments = new ArrayList<>();
         if (cubePlan != null) {
             NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
             NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
-            nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
+            if (dataflow.getStatus().equals(RealizationStatusEnum.ONLINE)) {
+                nDataflowUpdate.setStatus(RealizationStatusEnum.NEW);
+            }
             segments.addAll(dataflow.getSegments());
             NDataSegment[] segmentsArray = new NDataSegment[segments.size()];
             NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
@@ -356,6 +355,14 @@ public class ModelService extends BasicService {
             dataflowManager.updateDataflow(nDataflowUpdate);
         }
 
+    }
+
+    public void purgeModelManually(String model, String project) throws IOException {
+        NDataModel dataModelDesc = getNDataModelByModelName(model, project);
+        if (dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+            throw new BadRequestException("Model '" + model + "' is table oriented, can not pruge the model!!");
+        }
+        purgeModel(model, project);
     }
 
     public void cloneModel(String modelName, String newModelName, String project) throws IOException {
@@ -865,5 +872,41 @@ public class ModelService extends BasicService {
 
     public NDataModel convertToDataModel(ModelRequest modelDesc) throws IOException {
         return semanticUpdater.convertToDataModel(modelDesc);
+    }
+
+    public AffectedModelsResponse getAffectedModelsByToggleTableType(String tableName, String project, boolean fact)
+            throws IOException {
+        val modelManager = getDataModelManager(project);
+        val table = getTableManager(project).getTableDesc(tableName);
+        if (fact) {
+            checkSingleIncrementingLoadingTable(project, tableName);
+        }
+        val response = new AffectedModelsResponse();
+        val models = modelManager.getModelsUsingRootTable(table);
+        var size = 0;
+        response.setModels(models);
+        for (val model : models) {
+            val segments = getSegments(model, project, "0", Long.MAX_VALUE + "");
+            for (val segment : segments) {
+                size += ((NDataSegmentResponse) segment).getBytesSize();
+            }
+        }
+        response.setByteSize(size);
+        return response;
+    }
+
+    public void checkSingleIncrementingLoadingTable(String project, String tableName) throws IOException {
+        val modelManager = getDataModelManager(project);
+        val table = getTableManager(project).getTableDesc(tableName);
+        val modelsUsingTable = modelManager.getModelsUsingTable(table);
+        for (val modelUsingTable : modelsUsingTable) {
+            val modelDesc = modelManager.getDataModelDesc(modelUsingTable);
+            if (!modelDesc.getRootFactTable().getTableDesc().getIdentity().equals(tableName)
+                    || modelDesc.isJoinTable(tableName)) {
+                throw new BadRequestException("Can not set table '" + tableName
+                        + "' incrementing loading, due to another incrementing loading table existed in model '"
+                        + modelUsingTable + "'!");
+            }
+        }
     }
 }

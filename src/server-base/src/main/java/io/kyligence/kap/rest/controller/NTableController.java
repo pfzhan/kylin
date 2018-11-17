@@ -42,6 +42,7 @@ import io.kyligence.kap.rest.service.TableExtService;
 import io.kyligence.kap.rest.service.TableService;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -129,7 +130,7 @@ public class NTableController extends NBasicController {
     @RequestMapping(value = "/fact", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse setTableFact(@RequestBody FactTableRequest factTableRequest) throws IOException {
+    public EnvelopeResponse setTableFact(@RequestBody FactTableRequest factTableRequest) throws IOException, PersistentException {
 
         checkProjectName(factTableRequest.getProject());
         if (factTableRequest.isFact()) {

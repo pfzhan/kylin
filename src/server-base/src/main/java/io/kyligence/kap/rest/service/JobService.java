@@ -29,10 +29,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Comparator;
 import java.util.Date;
-import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
@@ -40,13 +38,11 @@ import com.google.common.base.Predicates;
 import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 import io.kyligence.kap.rest.request.JobActionEnum;
 import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import lombok.val;
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.common.ShellExecutable;
@@ -89,24 +85,16 @@ public class JobService extends BasicService {
         calendar.setTime(new Date());
         long timeStartInMillis = getTimeStartInMillis(calendar, JobTimeFilterEnum.getByCode(jobFilter.getTimeFilter()));
         long timeEndInMillis = Long.MAX_VALUE;
-        List<JobStatusEnum> statusList = new ArrayList<JobStatusEnum>();
-        Integer[] status = jobFilter.getStatus();
-        if (ArrayUtils.isNotEmpty(status)) {
-            for (int stat : status) {
-                statusList.add(JobStatusEnum.getByCode(stat));
-            }
-        }
-        final Set<ExecutableState> states = convertStatusEnumToStates(statusList);
         List<AbstractExecutable> jobs = executableManager.getAllExecutables(timeStartInMillis, timeEndInMillis);
-        ImmutableList<ExecutableResponse> filteredJobs =
-                FluentIterable.from(jobs).filter(Predicates.and(new Predicate<AbstractExecutable>() {
+        ImmutableList<ExecutableResponse> filteredJobs = FluentIterable.from(jobs)
+                .filter(Predicates.and(new Predicate<AbstractExecutable>() {
                     @Override
                     public boolean apply(AbstractExecutable abstractExecutable) {
-                        if (CollectionUtils.isEmpty(states)) {
+                        if (StringUtils.isEmpty(jobFilter.getStatus())) {
                             return true;
                         }
                         ExecutableState state = abstractExecutable.getStatus();
-                        return states.contains(state);
+                        return state.equals(parseToExecutableState(JobStatusEnum.valueOf(jobFilter.getStatus())));
                     }
                 }, new Predicate<AbstractExecutable>() {
                     @Override
@@ -187,18 +175,6 @@ public class JobService extends BasicService {
         }
     }
 
-    private Set<ExecutableState> convertStatusEnumToStates(List<JobStatusEnum> statusList) {
-        Set<ExecutableState> states;
-        if (statusList == null || statusList.isEmpty()) {
-            states = EnumSet.allOf(ExecutableState.class);
-        } else {
-            states = Sets.newHashSet();
-            for (JobStatusEnum status : statusList) {
-                states.add(parseToExecutableState(status));
-            }
-        }
-        return states;
-    }
 
     private ExecutableState parseToExecutableState(JobStatusEnum status) {
         Message msg = MsgPicker.getMsg();

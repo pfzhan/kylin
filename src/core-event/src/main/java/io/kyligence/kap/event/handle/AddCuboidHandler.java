@@ -137,11 +137,12 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
                         String tableName = model.getRootFactTable().getTableIdentity();
                         NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager.getInstance(kylinConfig, project).getDataLoadingRange(tableName);
                         if (dataLoadingRange == null) {
-                            return null;
-                        }
-                        List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
-                        if (CollectionUtils.isNotEmpty(segmentRanges)) {
-                            segmentRangeList.addAll(segmentRanges);
+                            segmentRangeList.add(new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
+                        } else {
+                            List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
+                            if (CollectionUtils.isNotEmpty(segmentRanges)) {
+                                segmentRangeList.addAll(segmentRanges);
+                            }
                         }
 
                     } else {

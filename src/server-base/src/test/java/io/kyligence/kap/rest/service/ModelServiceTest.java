@@ -69,6 +69,7 @@ import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -322,19 +323,19 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testPurgeModel() throws IOException {
+    public void testPurgeModelManually() throws IOException {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel dataModel = modelManager.getDataModelDesc("test_encoding");
         NDataModel modelUpdate = modelManager.copyForWrite(dataModel);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);
-        modelService.purgeModel("test_encoding", "default");
+        modelService.purgeModelManually("test_encoding", "default");
         List<NDataSegment> segments = modelService.getSegments("test_encoding", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
     }
 
     @Test
-    public void testPurgeModel_TableOriented_Exception() throws IOException {
+    public void testPurgeModelManually_TableOriented_Exception() throws IOException {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel dataModel = modelManager.getDataModelDesc("test_encoding");
         NDataModel modelUpdate = modelManager.copyForWrite(dataModel);
@@ -342,7 +343,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelManager.updateDataModelDesc(modelUpdate);
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Model 'test_encoding' is table oriented, can not pruge the model!");
-        modelService.purgeModel("test_encoding", "default");
+        modelService.purgeModelManually("test_encoding", "default");
     }
 
     @Test
@@ -359,7 +360,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testPurgeModelExceptionName() throws IOException {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Data Model with name 'nmodel_basic2222' not found");
-        modelService.purgeModel("nmodel_basic2222", "default");
+        modelService.purgeModelManually("nmodel_basic2222", "default");
     }
 
     @Test
@@ -1738,4 +1739,23 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, dataCheckDesc.getFaultActions());
     }
 
+    @Test
+    public void testGetAffectedModelsByToogleTableType() throws IOException {
+        val response = modelService.getAffectedModelsByToggleTableType("DEFAULT.TEST_KYLIN_FACT", "default", true);
+        Assert.assertEquals(4, response.getModels().size());
+        Assert.assertEquals(5633024L, response.getByteSize());
+    }
+
+    @Test
+    public void testSetIncrementing_LimitedFactTable_exception() throws IOException {
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        val model = modelManager.getDataModelDesc("nmodel_basic");
+        val joinTableDesc = new JoinTableDesc();
+        joinTableDesc.setTable("DEFAULT.TEST_KYLIN_FACT");
+        model.setJoinTables(Lists.newArrayList(joinTableDesc));
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage(
+                "Can not set table 'DEFAULT.TEST_KYLIN_FACT' incrementing loading, due to another incrementing loading table existed in model 'nmodel_basic'!");
+        modelService.checkSingleIncrementingLoadingTable("default", "DEFAULT.TEST_KYLIN_FACT");
+    }
 }

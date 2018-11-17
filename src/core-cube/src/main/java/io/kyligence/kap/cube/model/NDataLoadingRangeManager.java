@@ -229,14 +229,6 @@ public class NDataLoadingRangeManager {
         try (AutoLock lock = rangeMapLock.lockForWrite()) {
             checkNDataLoadingRangeIdentify(dataLoadingRange);
             checkNDataLoadingRangeNotExist(dataLoadingRange);
-
-            TableDesc tableDesc = NTableMetadataManager.getInstance(config, project)
-                    .getTableDesc(dataLoadingRange.getTableName());
-            List<String> models = NDataModelManager.getInstance(config, project).getModelsUsingRootTable(tableDesc);
-            if (CollectionUtils.isNotEmpty(models)) {
-                throw new IllegalStateException("NDataLoadingRange is related in models '" + models
-                        + "' as rootFactTable, it can not be removed !!!");
-            }
             crud.delete(dataLoadingRange);
         }
     }

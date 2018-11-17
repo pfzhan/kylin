@@ -402,7 +402,7 @@ public class NProjectManager {
             newProject = this.createProject(project, user,
                     "This is a project automatically added when adding realization " + realizationName + "("
                             + realizationType + ")",
-                    null, newProject.getMaintainModelType());
+                    null, null);
         }
         newProject.addRealizationEntry(realizationType, realizationName);
         save(newProject);

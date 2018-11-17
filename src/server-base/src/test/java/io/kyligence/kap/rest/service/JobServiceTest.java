@@ -109,9 +109,8 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
         Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
         Mockito.when(executableManager.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs());
-        Integer[] statusInt = {};
         String[] subjects = {};
-        JobFilter jobFilter = new JobFilter(statusInt, "", 4, subjects, "default", "", true);
+        JobFilter jobFilter = new JobFilter("", "", 4, subjects, "default", "", true);
         List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs.size() == 3);
         jobFilter.setTimeFilter(0);
@@ -124,13 +123,12 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setTimeFilter(2);
         List<ExecutableResponse> jobs3 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs3.size() == 1);
-        Integer[] statusInt2 = { 0 };
         jobFilter.setSubjects(subjects);
-        jobFilter.setStatus(statusInt2);
+        jobFilter.setStatus("NEW");
         jobFilter.setTimeFilter(1);
         List<ExecutableResponse> jobs4 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs4.size() == 3);
-        jobFilter.setStatus(statusInt);
+        jobFilter.setStatus("");
         jobFilter.setTimeFilter(3);
         jobFilter.setSortBy("job_name");
         List<ExecutableResponse> jobs5 = jobService.listJobs(jobFilter);
@@ -150,8 +148,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setSortBy("target_subject");
         List<ExecutableResponse> jobs9 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs9.size() == 3 && jobs9.get(0).getJobName().equals("sparkjob1"));
-        Integer[] statusInt3 = { 0, 1, 2, 4, 8, 16, 32 };
-        jobFilter.setStatus(statusInt3);
+        jobFilter.setStatus("");
         jobFilter.setSortBy("");
         List<ExecutableResponse> jobs10 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs9.size() == 3);

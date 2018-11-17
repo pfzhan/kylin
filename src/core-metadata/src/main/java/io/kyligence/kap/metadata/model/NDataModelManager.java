@@ -276,6 +276,7 @@ public class NDataModelManager {
     }
 
     private NDataModel saveDataModelDesc(NDataModel dataModelDesc) throws IOException {
+        dataModelDesc.checkSingleIncrementingLoadingTable();
         if (!dataModelDesc.isDraft())
             dataModelDesc.init(config, this.getAllTablesMap(), listModels(), true);
 

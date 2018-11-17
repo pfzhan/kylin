@@ -22,29 +22,21 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.response;
 
-import lombok.AllArgsConstructor;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
-@AllArgsConstructor
-public class JobFilter {
+public class AffectedModelsResponse {
 
-    private String status;
-
-    private String jobName;
-
-    private int timeFilter;
-
-    private String[] subjects;
-
-    private String project;
-
-    private String sortBy;
-
-    private boolean reverse;
-
+    @JsonProperty("models")
+    private List<String> models;
+    @JsonProperty("byte_size")
+    private long byteSize;
 }

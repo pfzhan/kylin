@@ -135,8 +135,9 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         projectInstance.setStatus(ProjectStatusEnum.ENABLED);
         projectInstance.setCreateTimeUTC(System.currentTimeMillis());
         projectInstance.setOverrideKylinProps(overrideProps);
-        projectInstance.setMaintainModelType(maintainModelType);
-
+        if (maintainModelType != null) {
+            projectInstance.setMaintainModelType(maintainModelType);
+        }
         if (realizationEntries != null)
             projectInstance.setRealizationEntries(realizationEntries);
         else

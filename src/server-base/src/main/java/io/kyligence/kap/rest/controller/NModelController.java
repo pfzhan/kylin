@@ -32,6 +32,7 @@ import java.util.List;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
+import lombok.val;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.exception.PersistentException;
@@ -203,6 +204,21 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelRelations, "");
     }
 
+
+    @RequestMapping(value = "/affected_models", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getAffectedModelsByToggleTableType(
+            @RequestParam(value = "table", required = true) String tableName,
+            @RequestParam(value = "project", required = true) String project,
+            @RequestParam(value = "fact", required = true) boolean fact) throws IOException {
+        checkProjectName(project);
+        checkRequiredArg("table", tableName);
+        val affectedModelResponse = modelService.getAffectedModelsByToggleTableType(tableName, project, fact);
+
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, affectedModelResponse, "");
+    }
+
     @PutMapping(value = "/semantic", produces = "application/vnd.apache.kylin-v2+json")
     @ResponseBody
     public EnvelopeResponse updateSemantic(@RequestBody ModelRequest request) throws IOException, PersistentException {
@@ -267,7 +283,7 @@ public class NModelController extends NBasicController {
                                            @RequestParam(value = "ids", required = false) int[] ids) throws IOException, PersistentException {
         checkProjectName(project);
         if (ArrayUtils.isEmpty(ids)) {
-            modelService.purgeModel(model, project);
+            modelService.purgeModelManually(model, project);
         } else {
             modelService.deleteSegmentById(model, project, ids);
         }

@@ -514,6 +514,18 @@ public class NDataModel extends RootPersistentEntity {
             return lookupTableRefs.contains(t);
     }
 
+    public boolean isJoinTable(String fullTableName) {
+        if (joinTables == null) {
+            return false;
+        }
+        for (val table : joinTables) {
+            if (table.getTable().equals(fullTableName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean isLookupTable(String fullTableName) {
         for (TableRef t : lookupTableRefs) {
             if (t.getTableIdentity().equals(fullTableName))
@@ -966,6 +978,17 @@ public class NDataModel extends RootPersistentEntity {
         this.effectiveDimensions = initAllNamedColumns(NamedColumn::isDimension);
         initAllMeasures();
         initFk2Pk();
+        checkSingleIncrementingLoadingTable();
+    }
+
+    public void checkSingleIncrementingLoadingTable() {
+        if (this.getJoinTables() == null) {
+            return;
+        }
+        for (val table : this.getJoinTables()) {
+            if (table.getTableRef() != null && table.getTableRef().getTableDesc().getFact())
+                throw new IllegalStateException("Only one incrementing loading table can be setted in model!");
+        }
     }
 
     private ImmutableBiMap<Integer, TblColRef> initAllNamedColumns(Predicate<NamedColumn> filter) {

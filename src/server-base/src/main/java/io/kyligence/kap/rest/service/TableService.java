@@ -33,6 +33,7 @@ import com.google.common.collect.SetMultimap;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 
+import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -52,6 +53,7 @@ import io.kyligence.kap.event.model.LoadingRangeUpdateEvent;
 import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.exception.PersistentException;
@@ -366,14 +368,21 @@ public class TableService extends BasicService {
         return (dbTableName[0] + "." + dbTableName[1]).toUpperCase();
     }
 
-    public void setFact(String table, String project, boolean fact, String column) throws IOException {
+    public void setFact(String table, String project, boolean fact, String column)
+            throws IOException, PersistentException {
         NTableMetadataManager tableManager = getTableManager(project);
+
+        val modelManager = getDataModelManager(project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         String tableName = table.substring(table.lastIndexOf(".") + 1);
         String ColumnIdentity = tableName + "." + column;
         boolean oldFact = tableDesc.getFact();
-        if (fact && !oldFact) {
+        //toogle table type,remove all segments in related models
+        if (fact == oldFact) {
+            return;
+        } else if (fact) {
+            modelService.checkSingleIncrementingLoadingTable(project, table);
             NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
             dataLoadingRange.updateRandomUuid();
             dataLoadingRange.setProject(project);
@@ -382,12 +391,40 @@ public class TableService extends BasicService {
             dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
             tableDesc.setFact(fact);
             tableManager.updateTableDesc(tableDesc);
-        } else if (!fact && oldFact) {
+
+        } else {
             NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
             dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange);
             tableDesc.setFact(fact);
             tableManager.updateTableDesc(tableDesc);
         }
+
+        val models = modelManager.getModelsUsingRootTable(tableDesc);
+        for (val model : models) {
+            //follow semanticVersion,#8196
+            modelService.purgeModel(model, project);
+            if (!fact) {
+                buildFullSegment(model, project);
+            }
+        }
+    }
+
+    private void buildFullSegment(String model, String project) throws IOException, PersistentException {
+        val eventManager = getEventManager(project);
+        val dataflowManager = getDataflowManager(project);
+        val cubePlanManager = getCubePlanManager(project);
+        val cubePlan = cubePlanManager.findMatchingCubePlan(model, project, KylinConfig.getInstanceFromEnv());
+        val dataflow = dataflowManager.getDataflow(cubePlan.getName());
+        val newSegment = dataflowManager.appendSegment(dataflow,
+                new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
+        val event = new AddSegmentEvent();
+        event.setSegmentIds(Lists.newArrayList(newSegment.getId()));
+        event.setApproved(true);
+        event.setCubePlanName(cubePlan.getName());
+        event.setModelName(model);
+        event.setSegmentRange(newSegment.getSegRange());
+        event.setProject(project);
+        eventManager.post(event);
     }
 
     public void setDataRange(DateRangeRequest dateRangeRequest) throws IOException, PersistentException {

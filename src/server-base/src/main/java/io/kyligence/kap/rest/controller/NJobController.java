@@ -59,7 +59,7 @@ public class NJobController extends NBasicController {
 
     @RequestMapping(value = "", method = {RequestMethod.GET}, produces = {"application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse getJobList(@RequestParam(value = "status", required = false) Integer[] status,
+    public EnvelopeResponse getJobList(@RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "jobName", required = false) String jobName,
             @RequestParam(value = "timeFilter", required = true) Integer timeFilter,
             @RequestParam(value = "subjects", required = false) String[] subjects,

@@ -48,7 +48,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import lombok.val;
@@ -70,6 +70,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -91,12 +92,16 @@ import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @Slf4j
 public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
     private TableService tableService = Mockito.spy(new TableService());
+
+    @Mock
+    private ModelService modelService = Mockito.spy(ModelService.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -112,16 +117,16 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void setup() throws Exception {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        ReflectionTestUtils.setField(tableService, "modelService", modelService);
+
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject("default");
         LinkedHashMap<String, String> overrideKylinProps = projectInstance.getOverrideKylinProps();
         overrideKylinProps.put("kylin.query.force-limit", "-1");
         overrideKylinProps.put("kylin.source.default", "11");
-        ProjectInstance projectInstanceUpdate = ProjectInstance.create(projectInstance.getName(),
-                projectInstance.getOwner(), projectInstance.getDescription(), overrideKylinProps,
-                projectInstance.getRealizationEntries(), projectInstance.getModels(), MaintainModelType.AUTO_MAINTAIN);
-        projectManager.updateProject(projectInstance, projectInstanceUpdate.getName(),
-                projectInstanceUpdate.getDescription(), projectInstanceUpdate.getOverrideKylinProps());
+        ProjectInstance projectInstanceUpdate = projectManager.copyForWrite(projectInstance);
+        projectInstanceUpdate.setOverrideKylinProps(overrideKylinProps);
+        projectManager.updateProject(projectInstanceUpdate);
     }
 
     @AfterClass
@@ -228,11 +233,6 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
         Assert.assertEquals(dataLoadingRange.getActualQueryStart(), 0);
         Assert.assertEquals(dataLoadingRange.getActualQueryEnd(), 1294364500000L);
-        // test fact table to be set normal
-        thrown.expect(IllegalStateException.class);
-        thrown.expectMessage(
-                "NDataLoadingRange is related in models '[all_fixed_length, nmodel_basic, nmodel_basic_inner, ut_inner_join_cube_partial]' as rootFactTable, it can not be removed !!!");
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "");
     }
 
     @Test
@@ -335,7 +335,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void checkRefreshDataRangeException1() throws IOException {
+    public void checkRefreshDataRangeException1() throws IOException, PersistentException {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("There is no ready segment to refresh!");
         tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
@@ -343,7 +343,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void checkRefreshDataRangeException2() throws IOException {
+    public void checkRefreshDataRangeException2() throws IOException, PersistentException {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Data during refresh range must be ready!");
         tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
@@ -369,7 +369,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetAutoMergeConfig() throws IOException {
+    public void testGetAutoMergeConfig() throws IOException, PersistentException {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel dataModel = modelManager.getDataModelDesc("nmodel_basic");
         dataModel.setManagementType(ManagementType.TABLE_ORIENTED);
@@ -395,7 +395,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testSetAutoMergeConfigByTable() throws IOException {
+    public void testSetAutoMergeConfigByTable() throws IOException, PersistentException {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel dataModel = modelManager.getDataModelDesc("nmodel_basic");
         dataModel.setManagementType(ManagementType.TABLE_ORIENTED);
@@ -436,7 +436,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testSetPushDownMode() throws IOException {
+    public void testSetPushDownMode() throws IOException, PersistentException {
         tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
         tableService.setPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT", true);
         boolean result = tableService.getPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT");
@@ -449,6 +449,59 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(8, result.size());
         Assert.assertTrue(result.get(0).isLoaded());
 
+    }
+
+    @Test
+    public void testSetFact_NoRelatedModels_PASS() throws Exception {
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
+        val dataloadingManager = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "");
+        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").getFact());
+        Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
+        Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").getFact());
+        Assert.assertNotNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
+    }
+
+    @Test
+    public void testSetFact_NotRootFactTable_Exception() throws Exception {
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
+        val dataloadingManager = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "");
+        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").getFact());
+        Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage(
+                "Can not set table 'DEFAULT.TEST_ACCOUNT' incrementing loading, due to another incrementing loading table existed in model 'all_fixed_length'!");
+        tableService.setFact("DEFAULT.TEST_ACCOUNT", "default", true, "CAL_DT");
+    }
+
+    @Test
+    public void testSetFact_IncrementingExists_Exception() throws Exception {
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage(
+                "Can not set table 'DEFAULT.TEST_ACCOUNT' incrementing loading, due to another incrementing loading table existed in model 'all_fixed_length'!");
+        tableService.setFact("DEFAULT.TEST_ACCOUNT", "default", true, "CAL_DT");
+    }
+
+    @Test
+    public void testSetFact_HasRelatedModels_PASS() throws Exception {
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
+        val dataloadingManager = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
+        Mockito.doNothing().when(modelService).purgeModel(Mockito.anyString(), Mockito.anyString());
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT");
+        Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").getFact());
+        Assert.assertNotNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
+        val eventDao = EventDao.getInstance(getTestConfig(), "default");
+        eventDao.deleteAllEvents();
+        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "");
+        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").getFact());
+        Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
+        val events = eventDao.getEvents();
+        Assert.assertEquals(4, events.size());
+        Assert.assertEquals(0L, Long.parseLong(events.get(0).getSegmentRange().getStart().toString()));
+        Assert.assertEquals(Long.MAX_VALUE, Long.parseLong(events.get(0).getSegmentRange().getEnd().toString()));
     }
 
     @Test

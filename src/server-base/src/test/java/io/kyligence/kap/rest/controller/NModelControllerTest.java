@@ -303,7 +303,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDeleteSegmentsAll() throws Exception {
-        Mockito.doNothing().when(modelService).purgeModel("nmodel_basic", "default");
+        Mockito.doNothing().when(modelService).purgeModelManually("nmodel_basic", "default");
         mockMvc.perform(
                 MockMvcRequestBuilders.delete("/api/models/segments/{project}/{model}", "default", "nmodel_basic")
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))

@@ -109,13 +109,13 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
         val runningEventSize = waitForEventFinished(3);
         df = dfManager.getDataflowByModelName(MODEL_NAME);
-        Assert.assertEquals(0, runningEventSize);
+        Assert.assertEquals(1, runningEventSize);
         val allEvents = eventDao.getEvents();
         allEvents.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
         val addEvent = (AddCuboidEvent) allEvents.get(1);
         Assert.assertTrue(CollectionUtils.isEqualCollection(addEvent.getLayoutIds(),
                 Arrays.<Long> asList(1000001L, 1L, 1001L, 1002L, 2001L, 3001L, 20000001001L)));
-        Assert.assertFalse(df.isReconstructing());
+        Assert.assertTrue(df.isReconstructing());
 
     }
 

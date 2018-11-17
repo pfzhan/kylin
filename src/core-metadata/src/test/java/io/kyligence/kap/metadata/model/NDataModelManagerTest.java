@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
@@ -219,5 +220,18 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         allNamedColumns.get(1).name = allNamedColumns.get(0).name;
 
         mgrDefault.createDataModelDesc(nDataModel, "root");
+    }
+
+    @Test
+    public void saveDataModelDesc_MultipleDataLoadingRange_exception() throws IOException {
+
+        NDataModel nDataModel = mgrDefault.copyForWrite(mgrDefault.getDataModelDesc("nmodel_basic"));
+        val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
+        val table = tableManager.getTableDesc("DEFAULT.TEST_ACCOUNT");
+        table.setFact(true);
+        tableManager.updateTableDesc(table);
+        thrown.expect(IllegalStateException.class);
+        thrown.expectMessage("Only one incrementing loading table can be setted in model!");
+        mgrDefault.updateDataModelDesc(nDataModel);
     }
 }
