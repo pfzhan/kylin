@@ -581,6 +581,12 @@ class NModel {
       this._delTableIndexByAlias(alias)
       // 删除对应的 cc
       // this._delCCByAlias(alias)
+      // 删除对应的partition
+      if (this.partition_desc.table_guid === guid) {
+        this.partition_desc.table_guid = null
+        this.partition_desc.partition_date_column = null
+        this.partition_desc.partition_time_column = null
+      }
     }
   }
   getTable (key, val) {
@@ -988,6 +994,7 @@ class NModel {
       }
     })
   }
+  // 删除可计算列
   delCC (ccObj) {
     return new Promise((resolve) => {
       for (let i = 0; i < this._mount.computed_columns.length; i++) {
@@ -1000,11 +1007,11 @@ class NModel {
       }
     })
   }
+  // 按照索引删除可计算列
   delCCByIndex (i) {
     this._mount.computed_columns.splice(i, 1)
   }
-  // _delCCByAlias () {
-  // }
+  // 自动布局
   autoCalcLayer (root, result, deep) {
     var factTable = this.getFactTable()
     if (!factTable) {
@@ -1015,6 +1022,7 @@ class NModel {
     tree.positionTree()
     return tree.nodeDB.db
   }
+  // 添加连接点
   addPlumbPoints (guid, columnName, columnType) {
     var anchor = modelRenderConfig.jsPlumbAnchor
     var scope = 'showlink'
@@ -1032,6 +1040,7 @@ class NModel {
     })
     this.plumbTool.addEndpoint(guid, {anchor: anchor}, endPointConfig)
   }
+  // 添加连线上的图标（连接类型Left/Inner）
   setOverLayLabel (conn) {
     var fid = conn.sourceId
     var pid = conn.targetId

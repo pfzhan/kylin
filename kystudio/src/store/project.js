@@ -143,6 +143,19 @@ export default {
       }
       return null
     },
+    isAutoProject: (state) => {
+      const _filterable = state.allProject.filter(p => {
+        return p.name === state.selected_project
+      })
+      let currentProjectData
+      if (Array.isArray(_filterable) && _filterable.length > 0) {
+        currentProjectData = _filterable[0]
+      }
+      if (currentProjectData) {
+        return currentProjectData.maintain_model_type === 'AUTO_MAINTAIN'
+      }
+      return false
+    },
     selectedProjectDatasource: (state, getters, rootState) => {
       let datasourceKey = null
 

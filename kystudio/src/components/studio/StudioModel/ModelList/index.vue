@@ -6,7 +6,7 @@
         <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model"  @input="searchModels" class="show-search-btn" >
         </el-input>
       </div>
-      <el-button icon="el-icon-plus" type="primary" size="medium" plain class="ksd-mb-14 ksd-mt-8" id="addModel" v-visible="isAdmin || hasPermissionOfProject()" @click="showAddModelDialog"><span>{{$t('kylinLang.common.model')}}</span></el-button>
+      <el-button icon="el-icon-plus" type="primary" size="medium" plain class="ksd-mb-14 ksd-mt-8" id="addModel" v-visible="!isAutoProject && (isAdmin || hasPermissionOfProject())" @click="showAddModelDialog"><span>{{$t('kylinLang.common.model')}}</span></el-button>
       <el-table class="model_list_table"
         :data="modelArray"
         border
@@ -121,9 +121,9 @@
     </div>
     <div class="ksd-null-pic-text" v-if="!showSearchResult">
       <img src="../../../../assets/img/no_model.png">
-      <p v-if="isAdmin || hasPermissionOfProject()">{{$t('noModel')}}</p>
+      <p v-if="!isAutoProject && (isAdmin || hasPermissionOfProject())">{{$t('noModel')}}</p>
       <div>
-      <el-button size="medium" type="primary" icon="el-icon-plus"  v-if="isAdmin || hasPermissionOfProject()" @click="showAddModelDialog">{{$t('kylinLang.common.model')}}</el-button>
+      <el-button size="medium" type="primary" icon="el-icon-plus"  v-if="!isAutoProject && (isAdmin || hasPermissionOfProject())" @click="showAddModelDialog">{{$t('kylinLang.common.model')}}</el-button>
        </div>
     </div>
 
@@ -165,7 +165,8 @@ import '../../../../util/fly.js'
     ...mapGetters([
       'currentSelectedProject',
       'modelsPagerRenderData',
-      'briefMenuGet'
+      'briefMenuGet',
+      'isAutoProject'
     ])
   },
   methods: {
