@@ -742,6 +742,7 @@ export default class LayoutLeftRightTop extends Vue {
             }
           }
           .el-menu {
+            background: @text-title-color;
             .el-submenu__title {
               color: @text-placeholder-color;
               background-color: @text-title-color;
