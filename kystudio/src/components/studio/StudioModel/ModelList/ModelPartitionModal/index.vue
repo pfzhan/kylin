@@ -164,17 +164,14 @@ export default class ModelPartitionModal extends Vue {
       return []
     }
     let result = []
-    this.modelDesc.all_named_columns.forEach((x) => {
-      let tableAndColumn = x.column.split('.')
-      let alias = tableAndColumn[0]
-      if (alias === this.partitionMeta.table) {
-        let colInfo = this.getColumnInfo(tableAndColumn[1])
-        if (colInfo && isDatePartitionType(colInfo.datatype)) {
-          x.datatype = colInfo.datatype
+    let factTable = this.modelInstance.getFactTable()
+    if (factTable) {
+      factTable.columns.forEach((x) => {
+        if (isDatePartitionType(x.datatype)) {
           result.push(x)
         }
-      }
-    })
+      })
+    }
     return result
   }
   get formatList () {

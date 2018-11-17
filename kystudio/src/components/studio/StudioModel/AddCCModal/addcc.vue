@@ -1,5 +1,8 @@
 <template>
-   <el-dialog append-to-body :title="$t('kylinLang.model.addCC')" width="440px" :visible="isShow" @close="closeModal()">
+   <el-dialog append-to-body 
+    :close-on-press-escape="false"
+    :close-on-click-modal="false" 
+    :title="$t('kylinLang.model.addCC')" width="440px" :visible="isShow" @close="closeModal()">
       <CCEditForm v-if="isShow" @saveSuccess="saveCC" @saveError="saveCCError" ref="ccForm" :isPureForm="true" :modelInstance="modelInstance"/>
       <div slot="footer" class="dialog-footer">
         <el-button @click="closeModal" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>

@@ -152,7 +152,7 @@ export default class CCForm extends Vue {
           kapMessage(this.$t(modelErrorMsg['noFact']), { type: 'warning' })
           return
         }
-        this.checkRemoteCC1(() => {
+        this.checkRemoteCC(() => {
           this.ccObject.table_guid = factTable.guid
           if (this.ccObject.guid) {
             this.modelInstance.editCC(this.ccObject).then((cc) => {

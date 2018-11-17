@@ -56,7 +56,7 @@
             header-align="center"
             align="center"
             prop="id"
-            width="80">
+            width="60">
           </el-table-column>
           <el-table-column
             show-overflow-tooltip
@@ -69,6 +69,7 @@
           label="Sort"
           header-align="center"
           prop="sort"
+          width="60"
           align="center">
           <template slot-scope="scope">
             <span class="ky-dot-tag" v-show="scope.row.sort">{{scope.row.sort}}</span>
@@ -76,6 +77,7 @@
             </el-table-column>
           <el-table-column
           label="Shared"
+          width="70"
           header-align="center"
           align="center">
             <template slot-scope="scope">

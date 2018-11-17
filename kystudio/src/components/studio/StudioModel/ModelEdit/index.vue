@@ -1,11 +1,11 @@
 <template>
-  <div class="model-edit-outer" @drop='dropTable($event)' v-drag="{sizeChangeCb:dragBox}" @dragleave="dragLeave">
-    <div class="model-edit"  @dragover='allowDrop($event)'>
+  <div class="model-edit-outer" @drop='dropTable($event)' @dragover='allowDrop($event)' v-drag="{sizeChangeCb:dragBox}" @dragleave="dragLeave">
+    <div class="model-edit">
       <!-- table box -->
       <div class="table-box" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
         <div class="table-title"  @mousedown="activeTablePanel(t)" :data-zoom="modelRender.zoom"  v-drag:change.left.top="t.drawSize">
           <el-input v-show="t.aliasIsEdit" v-focus="t.aliasIsEdit" v-event-stop v-model="t.alias" @blur="saveNewAlias(t)" @keyup.enter="saveNewAlias(t)"></el-input>
-          <span v-show="!t.aliasIsEdit" @click.stop="changeTableType(t)">
+          <span v-show="!t.aliasIsEdit">
             <i class="el-icon-ksd-fact_table kind" v-if="t.kind==='FACT'"></i>
             <i v-else class="el-icon-ksd-lookup_table kind"></i>
           </span>
@@ -219,20 +219,26 @@
     <ShowCC/>
 
     <!-- 编辑模型table遮罩 -->
-    <div class="full-screen-cover" v-event-stop @click.stop="cancelTableEdit" v-if="showTableCoverDiv"></div>
+    <div class="full-screen-cover" v-event-stop @click="cancelTableEdit" v-if="showTableCoverDiv"></div>
     <transition name="slide-fade">
       <!-- 编辑table 快捷按钮 -->
-      <div class="fast-action-box" :style="tableBoxToolStyleNoZoom(currentEditTable.drawSize)" v-event-stop v-if="currentEditTable && showTableCoverDiv">
+      <div class="fast-action-box" v-event-stop @click="cancelTableEdit" :class="{'edge-right': currentEditTable.drawSize.isInRightEdge}" :style="tableBoxToolStyleNoZoom(currentEditTable.drawSize)" v-if="currentEditTable && showTableCoverDiv">
         <div v-show="showEditAliasForm">
-            <el-input v-model="currentEditAlias" size="mini" @keyup.enter="saveEditTableAlias"></el-input>
-            <el-button type="primary" size="mini" icon="el-icon-check" @click="saveEditTableAlias"></el-button><el-button size="mini" @click="showEditAliasForm = false" icon="el-icon-close" plain></el-button>
+          <div class="alias-form" v-event-stop:click>
+              <el-input v-model="currentEditAlias" size="mini" @click.stop @keyup.enter="saveEditTableAlias"></el-input>
+              <el-button type="primary" size="mini" icon="el-icon-check" @click.stop="saveEditTableAlias"></el-button><el-button size="mini" @click.stop="cancelEditAlias" icon="el-icon-close" plain></el-button>
+          </div>
         </div>
-        <div class="action" v-show="!showEditAliasForm && currentEditTable.kind!=='FACT'">
-          <div @click="showEditAliasForm = true"><i class="el-icon-ksd-table_edit"></i> {{$t('editTableAlias')}}</div>
+        <div v-show="!showEditAliasForm && currentEditTable.kind!=='FACT'">
+          <div class="action">
+            <div @click.stop="openEditAliasForm"><i class="el-icon-ksd-table_edit"></i> {{$t('editTableAlias')}}</div>
+          </div>
         </div>
-        <div class="action" @click="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
-          <span v-if="currentEditTable.kind === 'FACT'">{{$t('switchLookup')}}</span>
-          <span v-else>{{$t('switchFact')}}</span>
+        <div>
+          <div class="action switch" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
+            <span v-if="currentEditTable.kind === 'FACT'">{{$t('switchLookup')}}</span>
+            <span v-else>{{$t('switchFact')}}</span>
+          </div>
         </div>
         <el-popover
           popper-class="fast-action-popper"
@@ -247,7 +253,7 @@
             <el-button type="primary" size="mini" @click.enter="delTable">{{$t('kylinLang.common.ok')}}</el-button>
           </div>
         </el-popover>
-        <div class="action" @click="showDelTableTip"  v-popover:popover5><i class="el-icon-ksd-table_delete"></i> {{$t('deleteTable')}}</div>
+        <div class="action del" @click.stop="showDelTableTip"  v-popover:popover5><i class="el-icon-ksd-table_delete"></i> {{$t('deleteTable')}}</div>
       </div>
     </transition>
     <!-- 被编辑table clone dom -->
@@ -484,18 +490,10 @@ export default class ModelEdit extends Vue {
   // 放大视图
   addZoom (e) {
     this.modelInstance.addZoom()
-    this.getZoomSpace()
   }
   // 缩小视图
   reduceZoom (e) {
     this.modelInstance.reduceZoom()
-    this.getZoomSpace()
-  }
-  zoomXSpace = 0
-  zoomYSpace = 0
-  getZoomSpace () {
-    this.zoomXSpace = $(this.$el).width() * (1 - this.modelRender.zoom / 10) / 2
-    this.zoomYSpace = $(this.$el).height() * (1 - this.modelRender.zoom / 10) / 2
   }
   // 全屏
   fullScreen () {
@@ -648,6 +646,13 @@ export default class ModelEdit extends Vue {
     this.measureVisible = true
     this.isEditMeasure = true
   }
+  cancelEditAlias () {
+    this.showEditAliasForm = false
+  }
+  openEditAliasForm () {
+    this.showEditAliasForm = true
+    this.currentEditAlias = this.currentEditTable.alias
+  }
   // 拖动画布
   dragBox (x, y) {
     this.modelInstance.moveModelPosition(x, y)
@@ -685,8 +690,8 @@ export default class ModelEdit extends Vue {
         table: this.currentDragTable,
         alias: this.currentDragTable.split('.')[1],
         drawSize: {
-          left: e.offsetX,
-          top: e.offsetY
+          left: e.offsetX - this.modelRender.zoomXSpace,
+          top: e.offsetY - this.modelRender.zoomYSpace
         }
       })
     }
@@ -806,7 +811,7 @@ export default class ModelEdit extends Vue {
     e.preventDefault()
     var target = e.srcElement ? e.srcElement : e.target
     if (this.currentDragColumn) {
-      $(target).parents('.panel-main-content').addClass('drag-in')
+      $(target).parents('.panel-box').find('.panel-main-content').addClass('drag-in')
     }
   }
   dragLeave (e) {
@@ -941,7 +946,7 @@ export default class ModelEdit extends Vue {
     return (drawSize) => {
       if (drawSize) {
         let zoom = this.modelRender.zoom / 10
-        return {'z-index': drawSize.zIndex, width: drawSize.width + 'px', height: drawSize.height + 'px', left: drawSize.left * zoom + this.zoomXSpace + 'px', top: drawSize.top * zoom + this.zoomYSpace + 'px'}
+        return {'z-index': drawSize.zIndex, width: drawSize.width + 'px', height: drawSize.height + 'px', left: drawSize.left * zoom + this.modelRender.zoomXSpace + 'px', top: drawSize.top * zoom + this.modelRender.zoomYSpace + 'px'}
       }
     }
   }
@@ -949,7 +954,10 @@ export default class ModelEdit extends Vue {
     return (drawSize) => {
       if (drawSize) {
         let zoom = this.modelRender.zoom / 10
-        return {left: this.currentEditTable.drawSize.width + drawSize.left * zoom + this.zoomXSpace + 'px', top: drawSize.top * zoom + this.zoomYSpace + 'px'}
+        if (drawSize.isInRightEdge) {
+          return {left: drawSize.left * zoom + this.modelRender.zoomXSpace - 280 + 'px', top: drawSize.top * zoom + this.modelRender.zoomYSpace + 'px'}
+        }
+        return {left: this.currentEditTable.drawSize.width + drawSize.left * zoom + this.modelRender.zoomXSpace + 'px', top: drawSize.top * zoom + this.modelRender.zoomYSpace + 'px'}
       }
     }
   }
@@ -969,7 +977,6 @@ export default class ModelEdit extends Vue {
             project: this.currentSelectedProject,
             renderDom: this.renderBox
           }), this.modelRender, this)
-          this.getZoomSpace()
           this.modelInstance.bindConnClickEvent((ptable, ftable) => {
             // 设置连接弹出框数据
             this.callJoinDialog({
@@ -1109,13 +1116,18 @@ export default class ModelEdit extends Vue {
     background-color: rgba(24, 32, 36, 0.7);
   }
   .fast-action-box {
+    width:260px;
+    &.edge-right {
+      text-align: right;
+    }
     color:@fff;
     position: absolute;
     z-index: 100001;
     margin-left:10px;
-    div{
-      min-width:180px;
+    div {
       margin-bottom:5px;
+    }
+    div.alias-form{
       .el-input {
         width:140px;
       }
@@ -1124,18 +1136,24 @@ export default class ModelEdit extends Vue {
       }
     }
     div.action {
-      min-width:140px;
+      display: inline-block;
       border-radius: 2px;
       background:black;
       color:@fff;
       height:24px;
       padding-left:5px;
-      padding-right:5px;
+      padding-right:6px;
       font-size:12px;
       line-height:25px;
       cursor:pointer;
       margin-left:0;
       transform: margin-left ease;
+      // &.del {
+      //   max-width:125px;
+      // }
+      // &.switch {
+      //   max-width:142px;
+      // }
       &:hover {
         margin-left: 4px;
       }
@@ -1493,7 +1511,7 @@ export default class ModelEdit extends Vue {
           color:@fff;
           .close {
             &:hover{
-              background-color:@base-color-13;
+              background-color:@base-color-14;
             }
           }
         }
@@ -1513,13 +1531,12 @@ export default class ModelEdit extends Vue {
           height:20px;
           line-height:20px;
           text-align: center;
-          margin-top: 4px;
+          margin-top: 6px;
           margin-right: 3px;
           &:hover {
             background-color:@base-color-11;
           }
           i {
-            transform:scale(0.8);
             margin: auto;
             color:@fff;
           }
@@ -1540,8 +1557,11 @@ export default class ModelEdit extends Vue {
           height:24px;
           float:left;
         }
+        .kind {
+          cursor:move;
+        }
         .kind:hover {
-          background-color:@base-color;
+          // background-color:@base-color;
           color:@grey-3;
         }
         height:32px;

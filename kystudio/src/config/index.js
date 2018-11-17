@@ -618,7 +618,7 @@ export const insightKeyword = [
 export const assignTypes = [{value: 'user', label: 'user'}, {value: 'group', label: 'group'}]
 export const sourceTypes = getFullMapping({
   NEW: 'undefined',
-  HIVE: 9,
+  HIVE: 11,
   RDBMS: 16,
   KAFKA: 1,
   RDBMS2: 8,

@@ -14,6 +14,7 @@ class NTable {
     this.joinInfo = {} // 链接对象
     this.guid = sampleGuid() // identify id
     this.alias = options.alias || options.table // 别名
+    this._parent = options._parent
     this.ST = null
     this.drawSize = Object.assign({}, { // 绘制信息
       left: 100,
@@ -23,8 +24,22 @@ class NTable {
       limit: {
         height: [44]
       },
+      box: modelRenderConfig.rootBox,
+      ignoreEdgeCheck: true,
+      edgeOffset: 200,
+      isInLeftEdge: false,
+      isInRightEdge: false,
       zIndex: zIndex++,
-      sizeChangeCb: () => {
+      sizeChangeCb: (x, y, sw, sh, dragInfo) => {
+        let left = dragInfo.left * (this._parent.zoom / 10) + this._parent.zoomXSpace
+        if (left + dragInfo.width > sw - dragInfo.edgeOffset) {
+          dragInfo.isInRightEdge = true
+        } else if (left < dragInfo.edgeOffset) {
+          dragInfo.isInLeftEdge = true
+        } else {
+          dragInfo.isInLeftEdge = false
+          dragInfo.isInRightEdge = false
+        }
         options.plumbTool.lazyRender(() => {
           options.plumbTool.refreshPlumbInstance()
         })

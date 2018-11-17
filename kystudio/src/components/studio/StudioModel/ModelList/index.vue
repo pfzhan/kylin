@@ -262,9 +262,9 @@ export default class ModelList extends Vue {
         }
       })
     } else if (command === 'dataLoad') {
-      let modelDesc = objectClone(modelDesc)
+      let cloneModelDesc = objectClone(modelDesc)
       this.callModelPartitionDialog({
-        modelDesc: modelDesc
+        modelDesc: cloneModelDesc
       }).then((res) => {
         if (res.isSubmit) {
           this.handleSaveModel(modelDesc)

@@ -40,40 +40,32 @@ export function bindRouterGuard (router) {
           store.state.config.routerConfig.currentPathName = menu.path
         }
       })
-      // for newten
-      // let configPromise = store.dispatch(types.GET_CONF)
-      let authenticationPromise = store.dispatch(types.LOAD_AUTHENTICATION)
-      let projectPromise = store.dispatch(types.LOAD_ALL_PROJECT)
-      let rootPromise = Promise.all([
-        // for newten
-        // configPromise,
-        authenticationPromise,
-        projectPromise
-      ])
-      // 如果是从登陆过来的，所有信息都要重新获取
-      if (from.name === 'Login' && (to.name !== 'access' && to.name !== 'Login')) {
+      let prepositionRequest = () => {
+        let authenticationPromise = store.dispatch(types.LOAD_AUTHENTICATION)
+        let projectPromise = store.dispatch(types.LOAD_ALL_PROJECT)
+        let rootPromise = Promise.all([
+          authenticationPromise,
+          projectPromise
+        ])
         rootPromise.then(() => {
+          store.commit(types.SAVE_CURRENT_LOGIN_USER, { user: store.state.system.authentication.data })
           let configPromise = store.dispatch(types.GET_CONF, {
             projectName: selectedProject
           })
           configPromise.then(() => {
             next()
           })
+        }, (res) => {
+          next()
         })
+      }
+      // 如果是从登陆过来的，所有信息都要重新获取
+      if (from.name === 'Login' && (to.name !== 'access' && to.name !== 'Login')) {
+        prepositionRequest()
       } else if (from.name !== 'access' && from.name !== 'Login' && to.name !== 'access' && to.name !== 'Login') {
         // 如果是非登录页过来的，内页之间的路由跳转的话，就需要判断是否已经拿过权限
         if (store.state.system.authentication === null && store.state.system.serverConfig === null) {
-          rootPromise.then(() => {
-            store.commit(types.SAVE_CURRENT_LOGIN_USER, { user: store.state.system.authentication.data })
-            let configPromise = store.dispatch(types.GET_CONF, {
-              projectName: selectedProject
-            })
-            configPromise.then(() => {
-              next()
-            })
-          }, (res) => {
-            next()
-          })
+          prepositionRequest()
         } else {
           next()
         }

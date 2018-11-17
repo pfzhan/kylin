@@ -209,7 +209,7 @@ Vue.directive('drag', {
     // 盒子碰撞检测
     function checkBoxCollision (changeType, size) {
       // 无自定义盒子和限制
-      if (!dragInfo.box && !limitObj) {
+      if (!dragInfo.box && !limitObj || dragInfo.ignoreEdgeCheck) {
         return true
       }
       if (limitObj) {
@@ -293,7 +293,7 @@ Vue.directive('drag', {
             dragInfo['top'] = 0
           }
         }
-        callback && callback()
+        callback && callback(0, 0, boxW, boxH, dragInfo)
       }, 2)
     })
     oDiv.onmousedown = function (ev) {
@@ -343,7 +343,7 @@ Vue.directive('drag', {
             }
           }
         }
-        callback && callback(x, y)
+        callback && callback(x, y, boxW, boxH, dragInfo)
       }
       document.onmouseup = function () {
         el.className = el.className.replace(/ky-[a-z]+-ing/g, '').replace(/\s+$/, '')

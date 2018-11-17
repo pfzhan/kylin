@@ -229,7 +229,6 @@
         let obj = {fullName: i, isSorted: false, isUsed: false, isShared: false, colorful: false}
         if (this.tableIndexMeta.sort_by_columns.indexOf(i) >= 0) {
           obj.isSorted = true
-          obj.isUsed = true
         }
         if (this.tableIndexMeta.col_order.indexOf(i) >= 0) {
           obj.isUsed = true
@@ -280,7 +279,6 @@
       this.hideModal()
       this.tableIndexMeta.name = ''
       setTimeout(() => {
-        console.log(this.callback)
         this.callback && this.callback({
           isSubmit: isSubmit
         })

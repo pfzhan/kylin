@@ -82,6 +82,8 @@ class NModel {
       this.$set(this._mount, 'all_measures', this.all_measures)
       this.$set(this._mount, 'dimensions', this.dimensions)
       this.$set(this._mount, 'zoom', this.canvas && this.canvas.zoom || modelRenderConfig.zoom)
+      this.$set(this._mount, 'zoomXSpace', 0)
+      this.$set(this._mount, 'zoomYSpace', 0)
       this.$set(this._mount, 'tableIndexColumns', this.tableIndexColumns)
       this.$set(this._mount, 'maintain_model_type', this.maintain_model_type)
       this.$set(this._mount, 'management_type', this.management_type)
@@ -92,6 +94,7 @@ class NModel {
     }
     this.allConnInfo = {}
     this.render()
+    this.getZoomSpace()
   }
   // 初始化数据和渲染数据
   render () {
@@ -675,11 +678,19 @@ class NModel {
   addZoom () {
     var nextZoom = this._mount.zoom + 1 > 10 ? 10 : this._mount.zoom += 1
     this.plumbTool.setZoom(nextZoom / 10)
+    this.getZoomSpace()
   }
   // 缩小视图
   reduceZoom () {
     var nextZoom = this._mount.zoom - 1 < 4 ? 4 : this._mount.zoom -= 1
     this.plumbTool.setZoom(nextZoom / 10)
+    this.getZoomSpace()
+  }
+  getZoomSpace () {
+    if (this.renderDom) {
+      this._mount.zoomXSpace = $(this.renderDom).width() * (1 - this._mount.zoom / 10) / 2
+      this._mount.zoomYSpace = $(this.renderDom).height() * (1 - this._mount.zoom / 10) / 2
+    }
   }
   bindConnClickEvent (cb) {
     this.connClick = (pid, fid) => {
@@ -707,6 +718,7 @@ class NModel {
       options.columns = tableInfo.columns
       options.plumbTool = this.plumbTool
       options.fact = tableInfo.fact
+      options._parent = this._mount
       let table = new NTable(options)
       // this.tables[options.alias] = table
       if (this.vm) {
