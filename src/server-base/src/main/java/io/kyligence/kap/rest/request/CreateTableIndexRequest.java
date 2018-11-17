@@ -65,4 +65,8 @@ public class CreateTableIndexRequest {
     @JsonProperty("storage_type")
     @Builder.Default
     private int storageType = IKapStorageAware.ID_NDATA_STORAGE;
+
+    @Builder.Default
+    @JsonProperty("load_data")
+    private boolean isLoadData = true;
 }

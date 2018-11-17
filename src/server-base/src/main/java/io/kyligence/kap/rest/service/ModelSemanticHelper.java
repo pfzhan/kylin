@@ -243,11 +243,13 @@ public class ModelSemanticHelper {
         for (SimplifiedMeasure simplifiedMeasure : simplifiedMeasures) {
             // TODO just check count(*), update this logic when count(col) is implemented
             val measure = simplifiedMeasure.toMeasure();
+            measure.id = id;
             measures.add(measure);
             val functionDesc = measure.getFunction();
             if (functionDesc.isCount()) {
                 hasCount = true;
             }
+            id++;
         }
         if (!hasCount) {
             FunctionDesc functionDesc = new FunctionDesc();

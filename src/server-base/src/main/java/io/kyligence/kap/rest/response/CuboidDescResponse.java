@@ -94,13 +94,14 @@ public class CuboidDescResponse {
         for (NDataSegment segment : segments) {
             for (NCuboidLayout layout : layouts) {
                 NDataCuboid nDataCuboid = segment.getCuboid(layout.getId());
-                if (nDataCuboid != null) {
-                    if (nDataCuboid.getStatus().equals(SegmentStatusEnum.NEW)) {
-                        status = CuboidStatus.EMPTY;
-                        return;
-                    }
-                    storage += nDataCuboid.getByteSize();
+                if (nDataCuboid == null) {
+                    continue;
                 }
+                if (nDataCuboid.getStatus().equals(SegmentStatusEnum.NEW)) {
+                    status = CuboidStatus.EMPTY;
+                    return;
+                }
+                storage += nDataCuboid.getByteSize();
             }
             long start = Long.parseLong(segment.getSegRange().getStart().toString());
             long end = Long.parseLong(segment.getSegRange().getEnd().toString());

@@ -165,13 +165,15 @@ public class CubePlanService extends BasicService {
                 newCuboid.setCubePlan(copyForWrite);
                 copyForWrite.getCuboids().add(newCuboid);
             });
-            val addEvent = new AddCuboidEvent();
-            addEvent.setApproved(true);
-            addEvent.setProject(request.getProject());
-            addEvent.setModelName(cubePlan.getModelName());
-            addEvent.setCubePlanName(cubePlan.getName());
-            addEvent.setLayoutIds(Arrays.asList(newLayout.getId()));
-            eventManager.post(addEvent);
+            if (request.isLoadData()) {
+                val addEvent = new AddCuboidEvent();
+                addEvent.setApproved(true);
+                addEvent.setProject(request.getProject());
+                addEvent.setModelName(cubePlan.getModelName());
+                addEvent.setCubePlanName(cubePlan.getName());
+                addEvent.setLayoutIds(Arrays.asList(newLayout.getId()));
+                eventManager.post(addEvent);
+            }
         }
     }
 

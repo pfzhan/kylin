@@ -30,7 +30,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -60,6 +59,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.ColumnStatus;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -244,6 +244,20 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 .orElse(null);
         Assert.assertNotNull(newCcCol);
         Assert.assertNotEquals(ccColId, newCcCol.getId());
+    }
+
+    @Test
+    public void testCreateModelWithMultipleMeasures() throws IOException {
+        val request = JsonUtil.readValue(
+                getClass().getResourceAsStream("/ut_request/model_update/model_with_multi_measures.json"),
+                ModelRequest.class);
+        modelService.createModel(request);
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        val model = modelManager.getDataModelDesc("new_model");
+        Assert.assertEquals(3, model.getEffectiveMeasureMap().size());
+        Assert.assertThat(
+                model.getEffectiveMeasureMap().values().stream().map(MeasureDesc::getName).collect(Collectors.toList()),
+                CoreMatchers.is(Lists.newArrayList("SUM_PRICE", "MAX_COUNT", "COUNT_ALL")));
     }
 
     @Test

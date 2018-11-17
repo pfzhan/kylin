@@ -138,7 +138,7 @@ public class FunctionDesc implements Serializable {
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_TOP_N, "topn(100, 4)");
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT_DISTINCT, "bitmap");
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_PERCENTILE, "percentile(100)");
-        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT, "bigint");
+        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT, TYPE_BIGINT);
     }
 
     public static final String PARAMETER_TYPE_CONSTANT = "constant";
@@ -176,7 +176,7 @@ public class FunctionDesc implements Serializable {
             }
         }
         if (returnDataType == null) {
-            returnDataType = DataType.getType("bigint");
+            returnDataType = DataType.getType(TYPE_BIGINT);
         }
         if (!Strings.isEmpty(returnType)) {
             returnDataType = DataType.getType(returnType);
@@ -241,7 +241,7 @@ public class FunctionDesc implements Serializable {
 
                 return parameter.getColRefs().get(0).getType();
             } else if (isCount()) {
-                return DataType.getType("bigint");
+                return DataType.getType(TYPE_BIGINT);
             } else {
                 throw new IllegalArgumentException("unknown measure type " + getMeasureType());
             }
