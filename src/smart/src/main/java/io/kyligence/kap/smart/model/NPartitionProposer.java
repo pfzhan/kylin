@@ -59,14 +59,14 @@ public class NPartitionProposer extends NAbstractModelProposer {
         if (partitionCol == null) {
             return;
         }
-        if (!partitionCol.getType().isDate()) {
-            // Currently only date type supported as partition column
+        if (!partitionCol.getType().isLegalPartitionColumnType()) {
             LOGGER.warn("{} is not date type, cannot be used as partition column", partitionCol);
             return;
         }
 
         PartitionDesc partition = new PartitionDesc();
         partition.setPartitionDateColumn(partitionCol.getIdentity());
+        partition.setPartitionDateFormat(range.getPartitionDateFormat());
         modelDesc.setPartitionDesc(partition);
     }
 }

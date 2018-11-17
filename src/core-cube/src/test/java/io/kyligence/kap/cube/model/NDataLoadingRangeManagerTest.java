@@ -169,4 +169,46 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
 
     }
 
+
+
+    @Test
+    public void testCreateDataLoadingRange_StringColumn() throws IOException {
+
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        String columnName = "TEST_KYLIN_FACT.LSTG_FORMAT_NAME";
+        NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
+        dataLoadingRange.updateRandomUuid();
+        dataLoadingRange.setProject(DEFAULT_PROJECT);
+        dataLoadingRange.setTableName(tableName);
+        dataLoadingRange.setPartitionDateFormat("YYYY");
+        dataLoadingRange.setColumnName(columnName);
+        long start = 1505277121000L;
+        long end = 1536813121000L;
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(start, end);
+        NDataLoadingRange savedDataLoadingRange = dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
+
+        Assert.assertTrue(savedDataLoadingRange.getProject().equals(DEFAULT_PROJECT));
+        Assert.assertTrue(savedDataLoadingRange.getColumnName().equals(columnName));
+    }
+
+    @Test
+    public void testCreateDataLoadingRange_IntegerColumn() throws IOException {
+
+        String tableName = "DEFAULT.TEST_KYLIN_FACT";
+        String columnName = "TEST_KYLIN_FACT.LEAF_CATEG_ID";
+        NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
+        dataLoadingRange.updateRandomUuid();
+        dataLoadingRange.setProject(DEFAULT_PROJECT);
+        dataLoadingRange.setTableName(tableName);
+        dataLoadingRange.setPartitionDateFormat("YYYY");
+        dataLoadingRange.setColumnName(columnName);
+        long start = 1505277121000L;
+        long end = 1536813121000L;
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(start, end);
+        NDataLoadingRange savedDataLoadingRange = dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
+
+        Assert.assertTrue(savedDataLoadingRange.getProject().equals(DEFAULT_PROJECT));
+        Assert.assertTrue(savedDataLoadingRange.getColumnName().equals(columnName));
+    }
+
 }

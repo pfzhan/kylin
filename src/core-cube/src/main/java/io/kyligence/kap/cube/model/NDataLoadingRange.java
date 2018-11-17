@@ -53,6 +53,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.SegmentRange;
 
@@ -72,6 +73,10 @@ public class NDataLoadingRange extends RootPersistentEntity {
     private String tableName;
     @JsonProperty("column_name")
     private String columnName;
+
+    @JsonProperty("partition_date_format")
+    private String partitionDateFormat = DateFormat.DEFAULT_DATE_PATTERN;
+
     @JsonProperty("segment_ranges")
     private List<SegmentRange> segmentRanges = Lists.newArrayList();
     // (waterMarkStart, waterMarkEnd]

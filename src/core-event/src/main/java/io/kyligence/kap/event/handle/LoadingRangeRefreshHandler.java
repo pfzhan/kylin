@@ -71,7 +71,7 @@ public class LoadingRangeRefreshHandler extends AbstractEventHandler {
         }
 
         List<String> modelNames = NDataModelManager.getInstance(kylinConfig, project)
-                .getModelsUsingRootTable(tableDesc);
+                .getTableOrientedModelsUsingRootTable(tableDesc);
         if (CollectionUtils.isNotEmpty(modelNames)) {
             EventManager eventManager = EventManager.getInstance(kylinConfig, project);
             for (String modelName : modelNames) {

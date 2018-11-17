@@ -465,6 +465,19 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testGetRelatedModels_OneModelBasedModel() throws IOException {
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
+        val modelUpdate = modelManager.copyForWrite(modelManager.getDataModelDesc("nmodel_basic"));
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        modelManager.updateDataModelDesc(modelUpdate);
+        List<RelatedModelResponse> models = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT", "");
+        Assert.assertEquals(3, models.size());
+        val modelUpdate2 = modelManager.copyForWrite(modelManager.getDataModelDesc("nmodel_basic"));
+        modelUpdate2.setManagementType(ManagementType.TABLE_ORIENTED);
+        modelManager.updateDataModelDesc(modelUpdate2);
+    }
+
+    @Test
     public void testIsModelsUsingTable() throws IOException {
         boolean result = modelService.isModelsUsingTable("DEFAULT.TEST_KYLIN_FACT", "default");
         Assert.assertTrue(result);

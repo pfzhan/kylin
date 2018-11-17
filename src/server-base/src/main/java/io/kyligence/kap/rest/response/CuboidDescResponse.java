@@ -79,20 +79,8 @@ public class CuboidDescResponse {
         this.setId(nCuboidDesc.getId());
         this.setCubePlan(nCuboidDesc.getCubePlan());
         this.setLayouts(nCuboidDesc.getLayouts());
-        ImmutableSet<TblColRef> dimensionSet = nCuboidDesc.getDimensionSet();
-        if (!CollectionUtils.isEmpty(dimensionSet)) {
-            for (TblColRef dimension : dimensionSet) {
-                this.dimensionsRes.add(dimension.getName());
-            }
-        }
 
-        ImmutableSet<NDataModel.Measure> measureSet = nCuboidDesc.getMeasureSet();
-        if (!CollectionUtils.isEmpty(measureSet)) {
-            for (NDataModel.Measure measure : measureSet) {
-                this.measuresRes.add(measure.getName());
-            }
-        }
-
+        setDimensionsAndMeasures(nCuboidDesc);
         val dataflow = NDataflowManager.getInstance(cubePlan.getConfig(), cubePlan.getProject())
                 .getDataflow(cubePlan.getName());
         Segments<NDataSegment> segments = dataflow.getSegments().getSegmentsExcludeRefreshingAndMerging();
@@ -124,4 +112,19 @@ public class CuboidDescResponse {
         this.storageSize = storage;
     }
 
+    private void setDimensionsAndMeasures(NCuboidDesc nCuboidDesc) {
+        ImmutableSet<TblColRef> dimensionSet = nCuboidDesc.getDimensionSet();
+        if (!CollectionUtils.isEmpty(dimensionSet)) {
+            for (TblColRef dimension : dimensionSet) {
+                this.dimensionsRes.add(dimension.getName());
+            }
+        }
+
+        ImmutableSet<NDataModel.Measure> measureSet = nCuboidDesc.getMeasureSet();
+        if (!CollectionUtils.isEmpty(measureSet)) {
+            for (NDataModel.Measure measure : measureSet) {
+                this.measuresRes.add(measure.getName());
+            }
+        }
+    }
 }

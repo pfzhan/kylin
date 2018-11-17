@@ -168,7 +168,7 @@ public class NDataLoadingRangeManager {
             }
             String columnType = columnDesc.getDatatype();
             DataType dataType = DataType.getType(columnType);
-            if (dataType == null || !dataType.isDate()) {
+            if (dataType == null || !dataType.isLegalPartitionColumnType()) {
                 throw new IllegalArgumentException(DATA_LOADING_RANGE + dataLoadingRange.resourceName() + "' 's column "
                         + columnName + " 's dataType does not support partition column");
             }
@@ -258,7 +258,7 @@ public class NDataLoadingRangeManager {
             dataLoadingRange = copyForWrite(dataLoadingRange);
 
             TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
-            List<String> models = NDataModelManager.getInstance(config, project).getModelsUsingRootTable(tableDesc);
+            List<String> models = NDataModelManager.getInstance(config, project).getTableOrientedModelsUsingRootTable(tableDesc);
             boolean needUpdateWaterMark = false;
 
             if (CollectionUtils.isEmpty(models)) {

@@ -137,7 +137,7 @@ public class NTableController extends NBasicController {
             checkRequiredArg("column", factTableRequest.getColumn());
         }
         tableService.setFact(factTableRequest.getTable(), factTableRequest.getProject(), factTableRequest.isFact(),
-                factTableRequest.getColumn());
+                factTableRequest.getColumn(), factTableRequest.getPartitionDateFormat());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 

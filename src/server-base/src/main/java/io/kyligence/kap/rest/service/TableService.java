@@ -51,6 +51,7 @@ import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.LoadingRangeUpdateEvent;
 import lombok.val;
+import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -59,6 +60,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -368,7 +370,7 @@ public class TableService extends BasicService {
         return (dbTableName[0] + "." + dbTableName[1]).toUpperCase();
     }
 
-    public void setFact(String table, String project, boolean fact, String column)
+    public void setFact(String table, String project, boolean fact, String column, String dateFormat)
             throws IOException, PersistentException {
         NTableMetadataManager tableManager = getTableManager(project);
 
@@ -376,7 +378,7 @@ public class TableService extends BasicService {
         TableDesc tableDesc = tableManager.getTableDesc(table);
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         String tableName = table.substring(table.lastIndexOf(".") + 1);
-        String ColumnIdentity = tableName + "." + column;
+        String columnIdentity = tableName + "." + column;
         boolean oldFact = tableDesc.getFact();
         //toogle table type,remove all segments in related models
         if (fact == oldFact) {
@@ -387,7 +389,8 @@ public class TableService extends BasicService {
             dataLoadingRange.updateRandomUuid();
             dataLoadingRange.setProject(project);
             dataLoadingRange.setTableName(table);
-            dataLoadingRange.setColumnName(ColumnIdentity);
+            dataLoadingRange.setColumnName(columnIdentity);
+            dataLoadingRange.setPartitionDateFormat(dateFormat);
             dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
             tableDesc.setFact(fact);
             tableManager.updateTableDesc(tableDesc);
@@ -399,14 +402,38 @@ public class TableService extends BasicService {
             tableManager.updateTableDesc(tableDesc);
         }
 
-        val models = modelManager.getModelsUsingRootTable(tableDesc);
+        val models = modelManager.getTableOrientedModelsUsingRootTable(tableDesc);
         for (val model : models) {
             //follow semanticVersion,#8196
             modelService.purgeModel(model, project);
+            syncPartitionDesc(model, project, columnIdentity, dateFormat);
             if (!fact) {
                 buildFullSegment(model, project);
             }
         }
+    }
+
+    private void syncPartitionDesc(String model, String project, String column, String dateFormat) throws IOException {
+        val dataloadingManager = getDataLoadingRangeManager(project);
+        val datamodelManager = getDataModelManager(project);
+        val modelDesc = datamodelManager.getDataModelDesc(model);
+        val dataloadingRange = dataloadingManager.getDataLoadingRange(modelDesc.getRootFactTableName());
+        val modelUpdate = datamodelManager.copyForWrite(modelDesc);
+        //full load
+        if (dataloadingRange == null) {
+            modelUpdate.setPartitionDesc(null);
+        } else {
+            var partition = modelUpdate.getPartitionDesc();
+            if (partition == null) {
+                partition = new PartitionDesc();
+            }
+            partition.setPartitionDateColumn(column);
+            if (StringUtils.isNotEmpty(dateFormat)) {
+                partition.setPartitionDateFormat(dateFormat);
+            }
+            modelUpdate.setPartitionDesc(partition);
+        }
+        datamodelManager.updateDataModelDesc(modelUpdate);
     }
 
     private void buildFullSegment(String model, String project) throws IOException, PersistentException {

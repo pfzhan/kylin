@@ -122,6 +122,7 @@ public class NTableControllerTest {
         factTableRequest.setProject("default");
         factTableRequest.setTable("table1");
         factTableRequest.setColumn("CAL_DT");
+        factTableRequest.setPartitionDateFormat("YYYY-mm-DD");
         factTableRequest.setFact(true);
         return factTableRequest;
     }
@@ -130,8 +131,8 @@ public class NTableControllerTest {
         final TableLoadRequest tableLoadRequest = new TableLoadRequest();
         tableLoadRequest.setProject("default");
         tableLoadRequest.setDatasourceType(11);
-        String[] tables = {"table1"};
-        String[] dbs = {"db1"};
+        String[] tables = { "table1" };
+        String[] dbs = { "db1" };
         tableLoadRequest.setTables(tables);
         tableLoadRequest.setDatabases(dbs);
         return tableLoadRequest;
@@ -193,7 +194,7 @@ public class NTableControllerTest {
     public void testSetTableFact() throws Exception {
         final FactTableRequest factTableRequest = mockFactTableRequest();
         Mockito.doNothing().when(tableService).setFact(factTableRequest.getProject(), factTableRequest.getTable(),
-                factTableRequest.isFact(), factTableRequest.getColumn());
+                factTableRequest.isFact(), factTableRequest.getColumn(), factTableRequest.getPartitionDateFormat());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/fact").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(factTableRequest))
@@ -207,7 +208,7 @@ public class NTableControllerTest {
         final FactTableRequest factTableRequest = mockFactTableRequest();
         factTableRequest.setColumn("");
         Mockito.doNothing().when(tableService).setFact(factTableRequest.getProject(), factTableRequest.getTable(),
-                factTableRequest.isFact(), factTableRequest.getColumn());
+                factTableRequest.isFact(), factTableRequest.getColumn(), factTableRequest.getPartitionDateFormat());
 
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/fact").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(factTableRequest))
@@ -463,7 +464,7 @@ public class NTableControllerTest {
         autoMergeRequest.setProject("default");
         autoMergeRequest.setTable("DEFAULT.TEST_KYLIN_FACT");
         autoMergeRequest.setAutoMergeEnabled(true);
-        autoMergeRequest.setAutoMergeTimeRanges(new String[]{"MINUTE"});
+        autoMergeRequest.setAutoMergeTimeRanges(new String[] { "MINUTE" });
         autoMergeRequest.setVolatileRangeEnabled(true);
         autoMergeRequest.setVolatileRangeNumber(7);
         autoMergeRequest.setVolatileRangeType("MINUTE");

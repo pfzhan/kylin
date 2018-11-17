@@ -287,7 +287,7 @@ public class ModelService extends BasicService {
             throws IOException {
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         NDataModelManager dataModelManager = getDataModelManager(project);
-        List<String> models = dataModelManager.getModelsUsingRootTable(tableDesc);
+        List<String> models = dataModelManager.getTableOrientedModelsUsingRootTable(tableDesc);
         List<RelatedModelResponse> relatedModel = new ArrayList<>();
         for (String model : models) {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
@@ -882,7 +882,7 @@ public class ModelService extends BasicService {
             checkSingleIncrementingLoadingTable(project, tableName);
         }
         val response = new AffectedModelsResponse();
-        val models = modelManager.getModelsUsingRootTable(table);
+        val models = modelManager.getTableOrientedModelsUsingRootTable(table);
         var size = 0;
         response.setModels(models);
         for (val model : models) {

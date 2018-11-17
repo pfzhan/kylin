@@ -276,6 +276,10 @@ public class DataType implements Serializable {
         return DataTypeSerializer.create(this).getStorageBytesEstimate(count);
     }
 
+    public boolean isLegalPartitionColumnType() {
+        return isStringFamily() || isDateTimeFamily() || isIntegerFamily();
+    }
+
     public boolean isStringFamily() {
         return STRING_FAMILY.contains(name);
     }

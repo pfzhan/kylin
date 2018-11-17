@@ -197,6 +197,19 @@ public class NDataModelManager {
         }
     }
 
+    public List<String> getTableOrientedModelsUsingRootTable(TableDesc table) throws IOException {
+        try (AutoLock lock = modelMapLock.lockForRead()) {
+            List<String> models = new ArrayList<>();
+            for (NDataModel modelDesc : listModels()) {
+                if (modelDesc.isRootFactTable(table)
+                        && modelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+                    models.add(modelDesc.getName());
+                }
+            }
+            return models;
+        }
+    }
+
     public boolean isTableInAnyModel(TableDesc table) {
         try (AutoLock lock = modelMapLock.lockForRead()) {
             for (NDataModel model : listModels()) {

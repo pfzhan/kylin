@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -114,6 +113,77 @@ public class DefaultPartitionConditionBuilderTest {
         String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
         Assert.assertEquals(
                 "((UNKNOWN_ALIAS.DATE_COLUMN = '2016-02-22' AND UNKNOWN_ALIAS.HOUR_COLUMN >= '0') OR (UNKNOWN_ALIAS.DATE_COLUMN > '2016-02-22')) AND ((UNKNOWN_ALIAS.DATE_COLUMN = '2016-02-23' AND UNKNOWN_ALIAS.HOUR_COLUMN < '1') OR (UNKNOWN_ALIAS.DATE_COLUMN < '2016-02-23'))",
+                condition);
+    }
+
+    @Test
+    public void testDatePartition_BigInt() {
+        PartitionDesc partitionDesc = new PartitionDesc();
+        TblColRef col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "DATE_COLUMN", "bigint");
+        partitionDesc.setPartitionDateColumnRef(col);
+        partitionDesc.setPartitionDateColumn(col.getCanonicalName());
+        partitionDesc.setPartitionDateFormat("yyyy-MM-dd");
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
+                DateFormat.stringToMillis("2016-02-22"), DateFormat.stringToMillis("2016-02-23"));
+        String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
+        Assert.assertEquals("UNKNOWN_ALIAS.DATE_COLUMN >= 20160222 AND UNKNOWN_ALIAS.DATE_COLUMN < 20160223",
+                condition);
+    }
+
+    @Test
+    public void testDatePartition_Date() {
+        PartitionDesc partitionDesc = new PartitionDesc();
+        TblColRef col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "DATE_COLUMN", "date");
+        partitionDesc.setPartitionDateColumnRef(col);
+        partitionDesc.setPartitionDateColumn(col.getCanonicalName());
+        partitionDesc.setPartitionDateFormat("yyyy/MM/dd");
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
+                DateFormat.stringToMillis("2016-02-22"), DateFormat.stringToMillis("2016-02-23"));
+        String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
+        Assert.assertEquals("UNKNOWN_ALIAS.DATE_COLUMN >= '2016/02/22' AND UNKNOWN_ALIAS.DATE_COLUMN < '2016/02/23'",
+                condition);
+    }
+
+    @Test
+    public void testDatePartition_Long() {
+        PartitionDesc partitionDesc = new PartitionDesc();
+        TblColRef col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "DATE_COLUMN", "long");
+        partitionDesc.setPartitionDateColumnRef(col);
+        partitionDesc.setPartitionDateColumn(col.getCanonicalName());
+        partitionDesc.setPartitionDateFormat("yyyyMMdd");
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
+                DateFormat.stringToMillis("2016-02-22"), DateFormat.stringToMillis("2016-02-23"));
+        String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
+        Assert.assertEquals("UNKNOWN_ALIAS.DATE_COLUMN >= 20160222 AND UNKNOWN_ALIAS.DATE_COLUMN < 20160223",
+                condition);
+    }
+
+    @Test
+    public void testDatePartition_Int() {
+        PartitionDesc partitionDesc = new PartitionDesc();
+        TblColRef col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "DATE_COLUMN", "int");
+        partitionDesc.setPartitionDateColumnRef(col);
+        partitionDesc.setPartitionDateColumn(col.getCanonicalName());
+        partitionDesc.setPartitionDateFormat("yyyy-MM-dd");
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
+                DateFormat.stringToMillis("2016-02-22"), DateFormat.stringToMillis("2016-02-23"));
+        String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
+        Assert.assertEquals("UNKNOWN_ALIAS.DATE_COLUMN >= 20160222 AND UNKNOWN_ALIAS.DATE_COLUMN < 20160223",
+                condition);
+    }
+
+    @Test
+    public void testDatePartition_Timestamp() {
+        PartitionDesc partitionDesc = new PartitionDesc();
+        TblColRef col = TblColRef.mockup(TableDesc.mockup("DEFAULT.TABLE_NAME"), 1, "DATE_COLUMN", "timestamp");
+        partitionDesc.setPartitionDateColumnRef(col);
+        partitionDesc.setPartitionDateColumn(col.getCanonicalName());
+        partitionDesc.setPartitionDateFormat("yyyy-MM-dd HH:mm:ss");
+        SegmentRange.TimePartitionedSegmentRange range = new SegmentRange.TimePartitionedSegmentRange(
+                DateFormat.stringToMillis("2016-02-22"), DateFormat.stringToMillis("2016-02-23"));
+        String condition = partitionConditionBuilder.buildDateRangeCondition(partitionDesc, null, range);
+        Assert.assertEquals(
+                "UNKNOWN_ALIAS.DATE_COLUMN >= '2016-02-22 00:00:00' AND UNKNOWN_ALIAS.DATE_COLUMN < '2016-02-23 00:00:00'",
                 condition);
     }
 

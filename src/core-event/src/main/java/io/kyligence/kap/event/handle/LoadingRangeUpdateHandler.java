@@ -64,7 +64,7 @@ public class LoadingRangeUpdateHandler extends AbstractEventHandler {
             throw new IllegalArgumentException("TableDesc '" + tableName + "' does not exist");
         }
         List<String> modelNames = NDataModelManager.getInstance(kylinConfig, project)
-                .getModelsUsingRootTable(tableDesc);
+                .getTableOrientedModelsUsingRootTable(tableDesc);
         if (CollectionUtils.isNotEmpty(modelNames)) {
             AddSegmentEvent addSegmentEvent;
             NDataflow df;
