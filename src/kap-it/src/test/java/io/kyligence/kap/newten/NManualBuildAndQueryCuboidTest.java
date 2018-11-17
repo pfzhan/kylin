@@ -35,7 +35,6 @@ import org.apache.kylin.measure.bitmap.BitmapCounter;
 import org.apache.kylin.measure.bitmap.BitmapSerializer;
 import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.api.java.function.MapFunction;
@@ -50,13 +49,14 @@ import org.apache.spark.sql.types.StructType;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.spark_project.guava.collect.Sets;
 
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.cube.model.NCuboidDesc;
@@ -71,7 +71,6 @@ import io.kyligence.kap.engine.spark.job.CuboidAggregator;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
 
-@Ignore("prepare move to spark-project")
 public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NManualBuildAndQueryTest.class);
@@ -80,23 +79,67 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
     private static StructType OUT_SCHEMA = null;
 
+    Map<String, String> systemProp = Maps.newHashMap();
+
     @Before
     public void setup() throws Exception {
         super.init();
         System.setProperty("spark.local", "true");
         System.setProperty("noBuild", "false");
-        System.setProperty("isDeveloperMode", "true");
+        System.setProperty("isDeveloperMode", "false");
+
+        setSparderEnv();
     }
 
     @After
     public void after() {
         NDefaultScheduler.destroyInstance();
         super.cleanupTestMetadata();
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
+
         System.clearProperty("noBuild");
         System.clearProperty("isDeveloperMode");
         System.clearProperty("spark.local");
-        System.clearProperty("noBuild");
+
+        restoreSparderEnv();
+    }
+
+    private void setSparderEnv() {
+        logger.info("Set Sparder Env.");
+        systemProp.put("kylin.engine.spark.build-class-name",
+                System.getProperty("kylin.engine.spark.build-class-name"));
+        systemProp.put("kylin.engine.spark.merge-class-name",
+                System.getProperty("kylin.engine.spark.merge-class-name"));
+        systemProp.put("kylin.storage.provider.20", System.getProperty("kylin.storage.provider.20"));
+        systemProp.put("source.csv.truetype", System.getProperty("source.csv.truetype"));
+        systemProp.put("kap.query.engine.sparder-enabled", System.getProperty("kap.query.engine.sparder-enabled"));
+        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.DFBuildJob");
+        System.setProperty("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.DFMergeJob");
+        System.setProperty("kylin.storage.provider.20", "io.kyligence.kap.storage.ParquetDataStorage");
+        System.setProperty("source.csv.truetype", "true");
+        System.setProperty("kap.query.engine.sparder-enabled", "true");
+    }
+
+    private void restoreSparderEnv() {
+        for (String prop : systemProp.keySet()) {
+            restoreIfNeed(prop);
+        }
+        systemProp.clear();
+    }
+
+    private void restoreIfNeed(String prop) {
+        String value = systemProp.get(prop);
+        if (value == null) {
+            logger.info("CLear " + prop);
+            System.clearProperty(prop);
+        } else {
+            logger.info("restore " + prop);
+            System.setProperty(prop, value);
+        }
+    }
+
+    @Override
+    public String getProject() {
+        return DEFAULT_PROJECT;
     }
 
     @Test
@@ -126,39 +169,46 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
             nDataCuboids.addAll(segment.getSegDetails().getCuboids());
         }
         for (NDataCuboid cuboid : nDataCuboids) {
+            Set<Integer> rowKeys = cuboid.getCuboidLayout().getOrderedDimensions().keySet();
+
             Dataset<Row> layoutDataset = StorageFactory
                     .createEngineAdapter(cuboid.getCuboidLayout(), NSparkCubingEngine.NSparkCubingStorage.class)
                     .getCuboidData(cuboid, ss);
-
-            System.out.println("Query cuboid ------------ ");
+            layoutDataset = layoutDataset.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid)))
+                    .sort(NSparkCubingUtil.getColumns(rowKeys));
+            System.out.println("Query cuboid ------------ " + cuboid.getCuboidLayoutId());
             layoutDataset = dsConvertToOriginal(layoutDataset, cuboid.getCuboidLayout());
             layoutDataset.show(10);
 
-            PartitionDesc partitionDesc = cuboid.getSegDetails().getDataflow().getModel().getPartitionDesc();
             NDataSegment segment = cuboid.getSegDetails().getDataSegment();
             Dataset<Row> ds = initFlatTable(dfName, new SegmentRange.TimePartitionedSegmentRange(
                     segment.getTSRange().getStart(), segment.getTSRange().getEnd()));
 
-            Integer partitionColId = cuboid.getCuboidLayout().getCuboidDesc().getCubePlan().getEffectiveDimCols()
-                    .inverse().get(partitionDesc.getPartitionDateColumnRef());
-            Set<Integer> rowKeys = cuboid.getCuboidLayout().getOrderedDimensions().keySet();
-
-            Dataset<Row> afterAgg = ds;
             if (cuboid.getCuboidLayout().getCuboidDesc().getId() < NCuboidDesc.TABLE_INDEX_START_ID) {
-                afterAgg = queryCuboidLayout(cuboid.getCuboidLayout(), ds);
+                ds = queryCuboidLayout(cuboid.getCuboidLayout(), ds);
             }
 
-            Dataset<Row> exceptDs = afterAgg
-                    .select(NSparkCubingUtil.getColumns(rowKeys,
-                            cuboid.getCuboidLayout().getOrderedDimensions().keySet()))
+            Dataset<Row> exceptDs = ds.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid)))
                     .sort(NSparkCubingUtil.getColumns(rowKeys));
 
             System.out.println("Spark sql ------------ ");
             exceptDs.show(10);
 
             Assert.assertEquals(layoutDataset.count(), exceptDs.count());
-            SparderQueryTest.checkAnswer(layoutDataset, exceptDs.collectAsList());
+            String msg = SparderQueryTest.checkAnswer(layoutDataset, exceptDs.collectAsList());
+            Assert.assertNull(msg);
         }
+    }
+
+    private Set<Integer> chooseMeas(NDataCuboid cuboid) {
+        Set<Integer> meaSet = Sets.newHashSet();
+        for (Map.Entry<Integer, NDataModel.Measure> entry : cuboid.getCuboidLayout().getOrderedMeasures().entrySet()) {
+            if (entry.getValue().getFunction().getReturnDataType().getName().equals("hllc")) {
+                continue;
+            }
+            meaSet.add(entry.getKey());
+        }
+        return meaSet;
     }
 
     private Dataset<Row> queryCuboidLayout(NCuboidLayout layout, Dataset<Row> ds) {
@@ -176,29 +226,23 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
                 final String[] columns = layoutDs.columns();
                 String function = measureDesc.getFunction().getReturnDataType().getName();
 
-                switch (function) {
-                    case "bitmap":
-                        final int finalIndex = convertOutSchema(layoutDs, entry.getKey().toString(), DataTypes.LongType);
-                        layoutDs = layoutDs.map(new MapFunction<Row, Row>() {
-                            @Override
-                            public Row call(Row value) throws Exception {
-                                Object[] ret = new Object[value.size()];
-                                for (int i = 0; i < columns.length; i++) {
-                                    if (i == finalIndex) {
-                                        BitmapSerializer serializer = new BitmapSerializer(DataType.ANY);
-                                        byte[] bytes = (byte[]) value.get(i);
-                                        ByteBuffer buf = ByteBuffer.wrap(bytes);
-                                        BitmapCounter bitmapCounter = serializer.deserialize(buf);
-                                        ret[i] = bitmapCounter.getCount();
-                                    } else {
-                                        ret[i] = value.get(i);
-                                    }
-                                }
-                                return RowFactory.create(ret);
+                if ("bitmap".equals(function)) {
+                    final int finalIndex = convertOutSchema(layoutDs, entry.getKey().toString(), DataTypes.LongType);
+                    layoutDs = layoutDs.map((MapFunction<Row, Row>) value -> {
+                        Object[] ret = new Object[value.size()];
+                        for (int i = 0; i < columns.length; i++) {
+                            if (i == finalIndex) {
+                                BitmapSerializer serializer = new BitmapSerializer(DataType.ANY);
+                                byte[] bytes = (byte[]) value.get(i);
+                                ByteBuffer buf = ByteBuffer.wrap(bytes);
+                                BitmapCounter bitmapCounter = serializer.deserialize(buf);
+                                ret[i] = bitmapCounter.getCount();
+                            } else {
+                                ret[i] = value.get(i);
                             }
-                        }, RowEncoder.apply(OUT_SCHEMA));
-                        continue;
-                    default:
+                        }
+                        return RowFactory.create(ret);
+                    }, RowEncoder.apply(OUT_SCHEMA));
                 }
             }
         }
@@ -206,7 +250,7 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
     }
 
     private Integer convertOutSchema(Dataset<Row> layoutDs, String fieldName,
-                                     org.apache.spark.sql.types.DataType dataType) {
+            org.apache.spark.sql.types.DataType dataType) {
         StructField[] structFieldList = layoutDs.schema().fields();
         String[] columns = layoutDs.columns();
 
@@ -231,7 +275,7 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         System.out.println(getTestConfig().getMetadataUrl());
         NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataflow df = dsMgr.getDataflow(dfName);
-        NDataModel model = (NDataModel) df.getModel();
+        NDataModel model = df.getModel();
 
         NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getCubePlan(), segmentRange);
         Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTable, ss);

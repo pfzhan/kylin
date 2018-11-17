@@ -101,6 +101,8 @@ public abstract class ResourceStore {
     public static final String PROJECT_DICT_RESOURCE_ROOT = DICT_RESOURCE_ROOT + "/project_dict";
     public static final String SPARDER_DICT_RESOURCE_ROOT = "/sparder/sdict";
 
+    public static final String GLOBAL_DICT_RESOURCE_ROOT = DICT_RESOURCE_ROOT + "/global_dict";
+
     public static final String METASTORE_UUID_TAG = "/UUID";
     public static final String QUERY_HISTORY_TIME_OFFSET = "/query_history_time_offset.json";
 

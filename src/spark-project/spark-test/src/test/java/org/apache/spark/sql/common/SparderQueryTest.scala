@@ -43,6 +43,7 @@ package org.apache.spark.sql.common
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+
 import java.util.TimeZone
 
 import org.apache.kylin.common.{KapConfig, QueryContext}
@@ -111,13 +112,13 @@ object SparderQueryTest {
   // compare string .
   def prepareRow(row: Row): Row = {
     Row.fromSeq(row.toSeq.map {
-      case null                    => null
+      case null => null
       case d: java.math.BigDecimal => d.longValue().toString
-      case db: Double              => db.toLong.toString
+      case db: Double => BigDecimal.apply(db).setScale(0, BigDecimal.RoundingMode.HALF_UP).longValue().toString
       // Convert array to Seq for easy equality check.
       case b: Array[_] => b.toSeq
-      case r: Row      => prepareRow(r)
-      case o           => o.toString
+      case r: Row => prepareRow(r)
+      case o => o.toString
     })
   }
 
@@ -125,16 +126,18 @@ object SparderQueryTest {
                kylinAnswer: Seq[Row],
                isSorted: Boolean = false): Option[String] = {
     if (prepareAnswer(sparkAnswer, isSorted) != prepareAnswer(kylinAnswer,
-                                                              isSorted)) {
+      isSorted)) {
       val errorMessage =
         s"""
            |== Results ==
-           |${sideBySide(
-             s"== Kylin Answer - ${kylinAnswer.size} ==" +:
-               prepareAnswer(kylinAnswer, isSorted).map(_.toString()),
-             s"== Spark Answer - ${sparkAnswer.size} ==" +:
-               prepareAnswer(sparkAnswer, isSorted).map(_.toString())
-           ).mkString("\n")}
+           |${
+          sideBySide(
+            s"== Kylin Answer - ${kylinAnswer.size} ==" +:
+              prepareAnswer(kylinAnswer, isSorted).map(_.toString()),
+            s"== Spark Answer - ${sparkAnswer.size} ==" +:
+              prepareAnswer(sparkAnswer, isSorted).map(_.toString())
+          ).mkString("\n")
+        }
         """.stripMargin
       return Some(errorMessage)
     }
@@ -145,7 +148,7 @@ object SparderQueryTest {
                   expectedAnswer: java.util.List[Row]): String = {
     checkAnswer(df, expectedAnswer.asScala) match {
       case Some(errorMessage) => errorMessage
-      case None               => null
+      case None => null
     }
   }
 
@@ -160,8 +163,8 @@ object SparderQueryTest {
                                        expectedAnswer: Row,
                                        absTol: Double) = {
     require(actualAnswer.length == expectedAnswer.length,
-            s"actual answer length ${actualAnswer.length} != " +
-              s"expected answer length ${expectedAnswer.length}")
+      s"actual answer length ${actualAnswer.length} != " +
+        s"expected answer length ${expectedAnswer.length}")
 
     // TODO: support other numeric types besides Double
     // TODO: support struct types?

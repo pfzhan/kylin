@@ -31,7 +31,7 @@ import io.kyligence.kap.engine.spark.builder._
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.storage.StorageFactory
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.{Dataset, Row, SparkSession}
+import org.apache.spark.sql.SparkSession
 
 import scala.collection.JavaConverters._
 
@@ -39,12 +39,14 @@ class DFChooser(toBuildTree: NSpanningTree,
                 var seg: NDataSegment,
                 ss: SparkSession,
                 config: KylinConfig)
-    extends Logging {
+  extends Logging {
   var reuseSources: java.util.Map[java.lang.Long, NBuildSourceInfo] =
     Maps.newHashMap[java.lang.Long, NBuildSourceInfo]()
   var flatTableSource: NBuildSourceInfo = _
+  var flatTableEncodeSource: NBuildSourceInfo = _
   val flatTableDesc =
     new NCubeJoinedFlatTableDesc(seg.getCubePlan, seg.getSegRange)
+
   @throws[Exception]
   def decideSources(): Unit = {
     var map = Map.empty[Long, NBuildSourceInfo]
@@ -52,8 +54,8 @@ class DFChooser(toBuildTree: NSpanningTree,
       .foreach { desc =>
         val layout = NCuboidLayoutChooser
           .selectLayoutForBuild(seg,
-                                desc.getEffectiveDimCols.keySet,
-                                toBuildTree.retrieveAllMeasures(desc))
+            desc.getEffectiveDimCols.keySet,
+            toBuildTree.retrieveAllMeasures(desc))
         if (layout != null) {
           if (map.contains(layout.getId)) {
             map.apply(layout.getId).addCuboid(desc)
@@ -62,12 +64,13 @@ class DFChooser(toBuildTree: NSpanningTree,
             map += (layout.getId -> nBuildSourceInfo)
           }
         } else {
-          if (flatTableSource == null) {
+          if (flatTableEncodeSource == null) {
             val snapshotBuilder = new NSnapshotBuilder(seg, ss)
             seg = snapshotBuilder.buildSnapshot
-            flatTableSource = getFlatTable
+            flatTableSource = getFlatTable()._1
+            flatTableEncodeSource = getFlatTable()._2
           }
-          flatTableSource.getToBuildCuboids.add(desc)
+          flatTableEncodeSource.getToBuildCuboids.add(desc)
         }
       }
     map.foreach(entry => reuseSources.put(entry._1, entry._2))
@@ -81,7 +84,7 @@ class DFChooser(toBuildTree: NSpanningTree,
     Preconditions.checkState(dataCuboid != null)
     val layoutDs = StorageFactory
       .createEngineAdapter(layout,
-                           classOf[NSparkCubingEngine.NSparkCubingStorage])
+        classOf[NSparkCubingEngine.NSparkCubingStorage])
       .getCuboidData(dataCuboid, ss)
     layoutDs.persist
     buildSource.setDataset(layoutDs)
@@ -93,8 +96,9 @@ class DFChooser(toBuildTree: NSpanningTree,
       s"Reuse a suitable layout: ${layout.getId} for building cuboid: ${cuboidDesc.getId}")
     buildSource
   }
+
   @throws[Exception]
-  private def getFlatTable = {
+  private def getFlatTable(): (NBuildSourceInfo, NBuildSourceInfo) = {
 
     val flatTable =
       new NCubeJoinedFlatTableDesc(seg.getCubePlan, seg.getSegRange)
@@ -105,9 +109,9 @@ class DFChooser(toBuildTree: NSpanningTree,
     val dictionaryBuilder = new DictionaryBuilder(seg, afterJoin)
     seg = dictionaryBuilder.buildDictionary // note the segment instance is updated
     afterJoin.unpersist
-    val afterEncode =
-      new FlatTableEncoder(afterJoin, seg, config, ss).encode.persist
-    val rowcount = afterEncode.count
+    val afterEncode = DFFlatTableEncoder.encode(afterJoin, seg, config).persist
+    afterEncode.unpersist
+    val rowcount = afterJoin.count
     // TODO: should use better method to detect the modifications.
     if (0 == rowcount) {
       throw new RuntimeException(
@@ -135,10 +139,15 @@ class DFChooser(toBuildTree: NSpanningTree,
     val sourceInfo = new NBuildSourceInfo
     sourceInfo.setByteSize(sourceSize / 1024)
     sourceInfo.setCount(rowcount)
-    sourceInfo.setDataset(afterEncode)
+    sourceInfo.setDataset(afterJoin)
+
+    val encodeSourceInfo = new NBuildSourceInfo
+    encodeSourceInfo.setByteSize(sourceInfo.getByteSize)
+    encodeSourceInfo.setCount(sourceInfo.getCount)
+    encodeSourceInfo.setDataset(afterEncode)
     logInfo(
       "No suitable ready layouts could be reused, generate dataset from flat table.")
-    sourceInfo
+    (sourceInfo, encodeSourceInfo)
   }
 }
 
@@ -148,8 +157,8 @@ object DFChooser {
             ss: SparkSession,
             config: KylinConfig): DFChooser =
     new DFChooser(toBuildTree: NSpanningTree,
-                  seg: NDataSegment,
-                  ss: SparkSession,
-                  config: KylinConfig)
+      seg: NDataSegment,
+      ss: SparkSession,
+      config: KylinConfig)
 
 }

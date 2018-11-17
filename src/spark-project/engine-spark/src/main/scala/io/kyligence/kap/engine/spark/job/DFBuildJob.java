@@ -95,7 +95,7 @@ public class DFBuildJob extends NDataflowJob {
                 // choose source
                 DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, ss, config);
                 datasetChooser.decideSources();
-                NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
+                NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableEncodeSource();
                 Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
 
                 // note segment (source count, dictionary etc) maybe updated as a result of source select
@@ -106,7 +106,7 @@ public class DFBuildJob extends NDataflowJob {
                     sources.add(buildFromFlatTable);
                     // build cuboids from flat table
                     for (NCuboidDesc cuboid : buildFromFlatTable.getToBuildCuboids()) {
-                        recursiveBuildCuboid(seg, cuboid, buildFromFlatTable.getDataset(),
+                        recursiveBuildCuboid(seg, cuboid, chooseFlatDs(cuboid, datasetChooser),
                                 cubePlan.getEffectiveMeasures(), nSpanningTree);
                     }
                 }
@@ -128,6 +128,16 @@ public class DFBuildJob extends NDataflowJob {
             KylinConfig.removeKylinConfigThreadLocal();
             logger.info("Finish build take" + (System.currentTimeMillis() - start) + " ms");
         }
+    }
+
+    private Dataset<Row> chooseFlatDs(NCuboidDesc cuboid, DFChooser chooser) {
+        Dataset<Row> parent = null;
+        if (cuboid.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
+            parent = chooser.flatTableSource().getDataset();
+        } else {
+            parent = chooser.flatTableEncodeSource().getDataset();
+        }
+        return parent;
     }
 
     private void recursiveBuildCuboid(NDataSegment seg, NCuboidDesc cuboid, Dataset<Row> parent,
@@ -168,7 +178,7 @@ public class DFBuildJob extends NDataflowJob {
             for (NCuboidDesc child : nSpanningTree.getSpanningCuboidDescs(cuboid)) {
                 recursiveBuildCuboid(seg, child, afterAgg, measures, nSpanningTree);
             }
-            //            afterAgg.unpersist();
+//            afterAgg.unpersist();
         }
     }
 

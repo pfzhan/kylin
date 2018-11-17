@@ -63,10 +63,10 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.collect.Sets;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.kv.NCubeDimEncMap;
@@ -258,8 +258,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         buildCuboid(cubeName, segmentRange, toBuildLayouts, getProject());
     }
 
-    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts, String prj)
-            throws Exception {
+    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts,
+            String prj) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         NExecutableManager execMgr = NExecutableManager.getInstance(config, prj);

@@ -338,6 +338,18 @@ abstract public class KylinConfigBase implements Serializable {
         throw new RuntimeException("Please set 'kylin.env.zookeeper-connect-string' in kylin.properties");
     }
 
+    public boolean isZookeeperAclEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.env.zookeeper-acl-enabled", "false"));
+    }
+
+    public String getZKAuths() {
+        return getOptional("kylin.env.zookeeper.zk-auth", "digest:ADMIN:KYLIN");
+    }
+
+    public String getZKAcls() {
+        return getOptional("kylin.env.zookeeper.zk-acl", "world:anyone:rwcda");
+    }
+
     // ============================================================================
     // METADATA
     // ============================================================================
@@ -460,6 +472,18 @@ abstract public class KylinConfigBase implements Serializable {
 
     public int getAppendDictVersionTTL() {
         return Integer.parseInt(getOptional("kylin.dictionary.append-version-ttl", "259200000"));
+    }
+
+    public int getGlobalDictV2HashPartitions() {
+        return Integer.parseInt(getOptional("kylin.dictionary.globalV2-hash-partitions", "100"));
+    }
+
+    public int getGlobalDictV2MaxVersions() {
+        return Integer.parseInt(getOptional("kylin.dictionary.globalV2-max-versions", "3"));
+    }
+
+    public int getGlobalDictV2VersionTTL() {
+        return Integer.parseInt(getOptional("kylin.dictionary.globalV2-version-ttl", "259200000"));
     }
 
     public int getCachedSnapshotMaxEntrySize() {
@@ -1073,11 +1097,14 @@ abstract public class KylinConfigBase implements Serializable {
         return getFileName(kylinHome + File.separator + "lib", JOB_JAR_NAME_PATTERN);
     }
 
-    public String getSparkBuildClassName(){
-        return getOptional("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.builder.NDataflowBuildJob");
+    public String getSparkBuildClassName() {
+        return getOptional("kylin.engine.spark.build-class-name",
+                "io.kyligence.kap.engine.spark.builder.NDataflowBuildJob");
     }
-    public String getSparkMergeClassName(){
-        return getOptional("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.builder.NDataflowMergeJob");
+
+    public String getSparkMergeClassName() {
+        return getOptional("kylin.engine.spark.merge-class-name",
+                "io.kyligence.kap.engine.spark.builder.NDataflowMergeJob");
     }
 
     public void overrideSparkJobJarPath(String path) {
@@ -1484,7 +1511,8 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public StorageURL getFavoriteStorageUrl() {
-        return StorageURL.valueOf(this.getOptional("kylin.favorite.storage-url", "kylin_favorite@jdbc,url=jdbc:mysql://localhost:3306/kylin,username=root,password="));
+        return StorageURL.valueOf(this.getOptional("kylin.favorite.storage-url",
+                "kylin_favorite@jdbc,url=jdbc:mysql://localhost:3306/kylin,username=root,password="));
     }
 
     public int getFavoriteAccelerateBatchSize() {
