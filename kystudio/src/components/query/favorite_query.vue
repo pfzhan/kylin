@@ -1246,7 +1246,7 @@ export default class FavoriteQuery extends Vue {
     .favorite-table {
       .status-icon {
         font-size: 20px;
-        &.el-icon-ksd-acclerate_pedding,
+        &.el-icon-ksd-acclerate_pendding,
         &.el-icon-ksd-acclerate_ongoing {
           color: @base-color;
         }
