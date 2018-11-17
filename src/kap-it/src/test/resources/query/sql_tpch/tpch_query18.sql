@@ -1,30 +1,40 @@
---  The Large Volume Customer Query finds a list of the top 100 customers who have ever placed large quantity orders. 
---  The query lists the customer name, customer key, the order key, date and total price and the quantity for the order.
---
---  Sum quantity from lineitem, filter by sum(quantity), group by customer name, custkey, orderkey, orderdate and totalprice
-
+with q18_tmp_cached as (
 select
-    c_name,
-    c_custkey,
-    o_orderkey,
-    o_orderdate,
-    o_totalprice,
-    sum(l_quantity)
+	l_orderkey,
+	sum(l_quantity) as t_sum_quantity
 from
-    v_lineitem
-    inner join v_orders on l_orderkey = o_orderkey
-    inner join customer on o_custkey = c_custkey
+	lineitem
 where
-    o_orderkey is not null
+	l_orderkey is not null
 group by
-    c_name,
-    c_custkey,
-    o_orderkey,
-    o_orderdate,
-    o_totalprice
-having
-    sum(l_quantity) > 300
+	l_orderkey
+)
+select
+	c_name,
+	c_custkey,
+	o_orderkey,
+	o_orderdate,
+	o_totalprice,
+	sum(l_quantity)
+from
+	customer,
+	orders,
+	q18_tmp_cached t,
+	lineitem l
+where
+	c_custkey = o_custkey
+	and o_orderkey = t.l_orderkey
+	and o_orderkey is not null
+	and t.t_sum_quantity > 300
+	and o_orderkey = l.l_orderkey
+	and l.l_orderkey is not null
+group by
+	c_name,
+	c_custkey,
+	o_orderkey,
+	o_orderdate,
+	o_totalprice
 order by
-    o_totalprice desc,
-    o_orderdate 
-limit 100
+	o_totalprice desc,
+	o_orderdate 
+limit 100;

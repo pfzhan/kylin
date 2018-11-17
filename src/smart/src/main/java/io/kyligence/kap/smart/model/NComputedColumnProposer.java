@@ -55,7 +55,6 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.model.cc.ComputedColumnAdvisor;
@@ -75,17 +74,6 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
     protected void doPropose(NDataModel nDataModel) {
         LOGGER.trace("Propose computed column for model [{}]", nDataModel.getId());
 
-        Set<String> ccSuggestions = Sets.newHashSet();
-        ModelTree modelTree = modelContext.getModelTree();
-        // Load from context
-        for (OLAPContext ctx : modelTree.getOlapContexts()) {
-            // fix models to update alias
-            Map<String, String> matchingAlias = RealizationChooser.matches(nDataModel, ctx);
-            ctx.fixModel(nDataModel, matchingAlias);
-            ccSuggestions.addAll(collectCandidate(ctx, matchingAlias));
-            ctx.unfixModel();
-        }
-
         KylinConfig config = getModelContext().getSmartContext().getKylinConfig();
         String project = getModelContext().getSmartContext().getProject();
         List<NDataModel> otherModels = NDataModelManager.getInstance(config, project).getDataModels().stream()
@@ -96,19 +84,12 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
 
         // pre-init to construct join-tree
         initModel(nDataModel);
-        TableRef rootTable = nDataModel.getRootFactTable();
-
-        for (OLAPContext olapContext : modelContext.getModelTree().getOlapContexts()) {
-            String sql = olapContext.sql;
-
-            ComputedColumnAdvisor advisor = new ComputedColumnAdvisor();
-            ccSuggestions.addAll(advisor.suggestCandidate(project, nDataModel, sql));
-        }
-
+        Set<String> ccSuggestions = collectComputedColumnSuggestion(modelContext, nDataModel);
         if (ccSuggestions.isEmpty()) {
             return;
         }
 
+        TableRef rootTable = nDataModel.getRootFactTable();
         List<ComputedColumnDesc> validCCs = new ArrayList<>();
         for (String ccSuggestion : ccSuggestions) {
             ComputedColumnDesc ccDesc = modelContext.getSmartContext().getUsedCC().get(ccSuggestion);
@@ -188,29 +169,31 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             if (e.getCause() != null) {
                 msg = e.getCause().getMessage();
             }
-            throw new RuntimeException(
+            throw new IllegalStateException(
                     "Auto model failed to evaluate CC " + cols + ", suggested CC expression not valid: \n" + msg, e);
         }
     }
+    
+    private Set<String> collectComputedColumnSuggestion(NModelContext modelContext, NDataModel nDataModel) {
+        Set<String> ccSuggestions = Sets.newHashSet();
+        
+        ModelTree modelTree = modelContext.getModelTree();
+        String project = modelContext.getSmartContext().getProject();
 
-    private static String increateIndex(String oldAlias) {
-        if (oldAlias == null || !oldAlias.startsWith(CC_NAME_PRIFIX) || oldAlias.equals(CC_NAME_PRIFIX)) {
-            return DEFAULT_CC_NAME;
+        // Load from context
+        for (OLAPContext ctx : modelTree.getOlapContexts()) {
+            // fix models to update alias
+            Map<String, String> matchingAlias = RealizationChooser.matches(nDataModel, ctx);
+            ctx.fixModel(nDataModel, matchingAlias);
+            ccSuggestions.addAll(collectInnerColumnCandidate(ctx, matchingAlias));
+            ccSuggestions.addAll(collectSqlAdvisorCandidate(project, ctx, nDataModel));
+            ctx.unfixModel();
         }
 
-        String idxStr = oldAlias.substring(CC_NAME_PRIFIX.length());
-        Integer idx;
-        try {
-            idx = Integer.valueOf(idxStr);
-        } catch (NumberFormatException e) {
-            return DEFAULT_CC_NAME;
-        }
-
-        idx++;
-        return CC_NAME_PRIFIX + idx.toString();
+        return ccSuggestions;
     }
 
-    private Set<String> collectCandidate(OLAPContext context, Map<String, String> matchingAlias) {
+    private Set<String> collectInnerColumnCandidate(OLAPContext context, Map<String, String> matchingAlias) {
         Set<TblColRef> usedCols = Sets.newHashSet();
         Set<String> candidate = Sets.newHashSet();
         usedCols.addAll(context.allColumns);
@@ -228,5 +211,28 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             }
         }
         return candidate;
+    }
+    
+    private List<String> collectSqlAdvisorCandidate(String project, OLAPContext context, NDataModel nDataModel) {
+        String sql = context.sql;
+        ComputedColumnAdvisor advisor = new ComputedColumnAdvisor();
+        return advisor.suggestCandidate(project, nDataModel, sql);
+    }
+
+    private static String increateIndex(String oldAlias) {
+        if (oldAlias == null || !oldAlias.startsWith(CC_NAME_PRIFIX) || oldAlias.equals(CC_NAME_PRIFIX)) {
+            return DEFAULT_CC_NAME;
+        }
+
+        String idxStr = oldAlias.substring(CC_NAME_PRIFIX.length());
+        Integer idx;
+        try {
+            idx = Integer.valueOf(idxStr);
+        } catch (NumberFormatException e) {
+            return DEFAULT_CC_NAME;
+        }
+
+        idx++;
+        return CC_NAME_PRIFIX + idx.toString();
     }
 }

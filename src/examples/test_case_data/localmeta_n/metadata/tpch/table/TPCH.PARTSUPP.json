@@ -2,7 +2,7 @@
   "uuid" : "288e90b0-16aa-41a7-8c8b-90ac91b2aa05",
   "last_modified" : 1494334079346,
   "version" : "2.0.0",
-  "name" : "V_PARTSUPP",
+  "name" : "PARTSUPP",
   "columns" : [ {
     "id" : "1",
     "name" : "PS_PARTKEY",
@@ -23,10 +23,6 @@
     "id" : "5",
     "name" : "PS_COMMENT",
     "datatype" : "varchar(256)"
-  }, {
-    "id" : "6",
-    "name" : "PS_PARTVALUE",
-    "datatype" : "double"
   } ],
   "source_type" : 11,
   "table_type" : "VIRTUAL_VIEW",

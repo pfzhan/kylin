@@ -1,25 +1,25 @@
---  Filter by some part, filter by l_quantity < t_avg_quantity, sum up price
-
-with q17_avg as (
-    select
-        l_partkey,
-        0.2 * avg(l_quantity) as t_avg_quantity
-    from
-        v_lineitem
-        inner join part on l_partkey = p_partkey
-    where
-        p_brand = 'Brand#23'
-        and p_container = 'MED BOX'
-    group by
-        l_partkey
+with q17_part as (
+  select p_partkey from part where  
+  p_brand = 'Brand#23'
+  and p_container = 'MED BOX'
+),
+q17_avg as (
+  select l_partkey as t_partkey, 0.2 * avg(l_quantity) as t_avg_quantity
+  from lineitem 
+  where l_partkey IN (select p_partkey from q17_part)
+  group by l_partkey
+),
+q17_price as (
+  select
+  l_quantity,
+  l_partkey,
+  l_extendedprice
+  from
+  lineitem
+  where
+  l_partkey IN (select p_partkey from q17_part)
 )
-
 select cast(sum(l_extendedprice) / 7.0 as decimal(32,2)) as avg_yearly
-from
-    v_lineitem
-    inner join part on l_partkey = p_partkey
-    inner join q17_avg on q17_avg.l_partkey = v_lineitem.l_partkey
+from q17_avg, q17_price
 where 
-    p_brand = 'Brand#23'
-    and p_container = 'MED BOX'
-    and l_quantity < t_avg_quantity
+t_partkey = l_partkey and l_quantity < t_avg_quantity;

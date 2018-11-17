@@ -2,7 +2,7 @@
   "uuid" : "29576012-b54f-4319-8b20-ed3a3d202314",
   "last_modified" : 1494334079302,
   "version" : "2.0.0",
-  "name" : "V_LINEITEM",
+  "name" : "LINEITEM",
   "columns" : [ {
     "id" : "1",
     "name" : "L_ORDERKEY",
@@ -46,15 +46,15 @@
   }, {
     "id" : "11",
     "name" : "L_SHIPDATE",
-    "datatype" : "varchar(256)"
+    "datatype" : "date"
   }, {
     "id" : "12",
     "name" : "L_COMMITDATE",
-    "datatype" : "varchar(256)"
+    "datatype" : "date"
   }, {
     "id" : "13",
     "name" : "L_RECEIPTDATE",
-    "datatype" : "varchar(256)"
+    "datatype" : "date"
   }, {
     "id" : "14",
     "name" : "L_SHIPINSTRUCT",
@@ -67,30 +67,6 @@
     "id" : "16",
     "name" : "L_COMMENT",
     "datatype" : "varchar(256)"
-  }, {
-    "id" : "17",
-    "name" : "L_SHIPYEAR",
-    "datatype" : "integer"
-  }, {
-    "id" : "18",
-    "name" : "L_RECEIPTDELAYED",
-    "datatype" : "integer"
-  }, {
-    "id" : "19",
-    "name" : "L_SHIPDELAYED",
-    "datatype" : "integer"
-  }, {
-    "id" : "20",
-    "name" : "L_SALEPRICE",
-    "datatype" : "decimal"
-  }, {
-    "id" : "21",
-    "name" : "L_TAXPRICE",
-    "datatype" : "double"
-  }, {
-    "id" : "22",
-    "name" : "L_SUPPLYCOST",
-    "datatype" : "double"
   } ],
   "source_type" : 11,
   "table_type" : "VIRTUAL_VIEW",

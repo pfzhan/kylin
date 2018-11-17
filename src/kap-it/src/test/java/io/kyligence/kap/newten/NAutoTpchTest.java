@@ -37,7 +37,7 @@ public class NAutoTpchTest extends NAutoTestBase {
     }
 
     //KAP#7892 fix this
-    @Ignore
+//    @Ignore
     @Test
     public void testTpch() throws Exception {
         kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
@@ -46,7 +46,7 @@ public class NAutoTpchTest extends NAutoTestBase {
         * See #7257, #7268, #7269
         * Plus the precision difference between query cuboid and SparkSQL
         */
-        new TestScenario("sql_tpch", CompareLevel.SAME_ROWCOUNT).execute();
+        new TestScenario("sql_tpch", CompareLevel.SAME_ROWCOUNT).execute(false);
     }
 
     @Test

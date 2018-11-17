@@ -1,5 +1,3 @@
--- Sum revenue from lineitem, filter by shipdate range, nation name, group by supplier nation, customer nation and year.
-
 select
 	supp_nation,
 	cust_nation,
@@ -10,12 +8,12 @@ from
 		select
 			n1.n_name as supp_nation,
 			n2.n_name as cust_nation,
-			l_shipyear as l_year,
-			l_saleprice as volume
+			year(l_shipdate) as l_year,
+			l_extendedprice * (1 - l_discount) as volume
 		from
-			v_lineitem 
+			lineitem 
 			inner join supplier on s_suppkey = l_suppkey
-			inner join v_orders on l_orderkey = o_orderkey
+			inner join orders on l_orderkey = o_orderkey
 			inner join customer on o_custkey = c_custkey
 			inner join nation n1 on s_nationkey = n1.n_nationkey
 			inner join nation n2 on c_nationkey = n2.n_nationkey
@@ -33,4 +31,4 @@ group by
 order by
 	supp_nation,
 	cust_nation,
-	l_year
+	l_year;

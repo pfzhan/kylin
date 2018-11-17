@@ -1,12 +1,9 @@
--- This query finds the most important subset of suppliers' stock in a given nation.
--- Sum part value from partsupp, filter by nation name, part_value, group by partkey
-
 with q11_part_tmp_cached as (
 	select
 		ps_partkey,
-		sum(ps_partvalue) as part_value
+		sum(ps_supplycost * ps_availqty) as part_value
 	from
-		v_partsupp
+		partsupp
 		inner join supplier on ps_suppkey = s_suppkey
 		inner join nation on s_nationkey = n_nationkey
 	where
@@ -15,9 +12,9 @@ with q11_part_tmp_cached as (
 ),
 q11_sum_tmp_cached as (
 	select
-		sum(ps_partvalue) as total_value
+		sum(ps_supplycost * ps_availqty) as total_value
 	from
-		v_partsupp
+		partsupp
 		inner join supplier on ps_suppkey = s_suppkey
 		inner join nation on s_nationkey = n_nationkey
 	where

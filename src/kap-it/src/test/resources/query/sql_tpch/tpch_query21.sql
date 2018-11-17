@@ -9,8 +9,8 @@ from
         s_name,
         l1.l_orderkey
     from
-        v_lineitem l1
-        inner join v_orders on l1.l_orderkey = o_orderkey
+        lineitem l1
+        inner join orders on l1.l_orderkey = o_orderkey
         inner join supplier on l1.l_suppkey = s_suppkey
         inner join nation on s_nationkey = n_nationkey
         inner join (
@@ -18,7 +18,7 @@ from
                 l_orderkey,
                 count (distinct l_suppkey)
             from
-                v_lineitem inner join v_orders on l_orderkey = o_orderkey
+                lineitem inner join orders on l_orderkey = o_orderkey
             where
                 o_orderstatus = 'F'
             group by
@@ -31,10 +31,10 @@ from
                 l_orderkey,
                 count (distinct l_suppkey)
             from
-                v_lineitem inner join v_orders on l_orderkey = o_orderkey
+                lineitem inner join orders on l_orderkey = o_orderkey
             where
                 o_orderstatus = 'F'
-                and l_receiptdelayed = 1
+                and l_receiptdate > l_commitdate
             group by
                 l_orderkey
             having
@@ -42,7 +42,7 @@ from
         ) l3 on l1.l_orderkey = l3.l_orderkey
     where
         o_orderstatus = 'F'
-        and l_receiptdelayed = 1
+        and l1.l_receiptdate > l1.l_commitdate
         and n_name = 'SAUDI ARABIA'
     group by
         l1.l_suppkey,

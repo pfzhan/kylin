@@ -27,7 +27,6 @@ package io.kyligence.kap.smart.model;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;

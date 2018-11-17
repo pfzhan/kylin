@@ -2,7 +2,7 @@
   "uuid" : "44e2b22e-a0a6-4c51-b2dd-1e7f18841fc9",
   "last_modified" : 1494334079326,
   "version" : "2.0.0",
-  "name" : "V_ORDERS",
+  "name" : "ORDERS",
   "columns" : [ {
     "id" : "1",
     "name" : "O_ORDERKEY",
@@ -22,7 +22,7 @@
   }, {
     "id" : "5",
     "name" : "O_ORDERDATE",
-    "datatype" : "varchar(256)"
+    "datatype" : "date"
   }, {
     "id" : "6",
     "name" : "O_ORDERPRIORITY",
@@ -39,10 +39,6 @@
     "id" : "9",
     "name" : "O_COMMENT",
     "datatype" : "varchar(256)"
-  }, {
-    "id" : "10",
-    "name" : "O_ORDERYEAR",
-    "datatype" : "integer"
   } ],
   "source_type" : 11,
   "table_type" : "VIRTUAL_VIEW",

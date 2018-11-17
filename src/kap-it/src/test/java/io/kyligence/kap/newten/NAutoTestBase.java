@@ -27,8 +27,10 @@ package io.kyligence.kap.newten;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -51,6 +53,7 @@ import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.spark.KapSparkSession;
+import lombok.Getter;
 
 public class NAutoTestBase extends NLocalWithSparkSessionTest {
     private static final Logger logger = LoggerFactory.getLogger(NAutoTestBase.class);
@@ -115,6 +118,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         restoreSparderEnv();
     }
 
+    @Getter
     class TestScenario {
 
         String name;
@@ -145,21 +149,28 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
             this.joinType = joinType;
             this.queries = fetchPartialQueries(name, start, end, joinType, exclusionList);
         }
-
+        
         public void execute() throws Exception {
-            executeTestScenario(this);
+            execute(true);
+        }
+
+        public void execute(boolean useQueryPattern) throws Exception {
+            executeTestScenario(useQueryPattern, this);
         }
     }
 
-    @SuppressWarnings("unchecked")
-    protected void executeTestScenario(TestScenario... tests) throws Exception {
+    protected void executeTestScenario(boolean useQueryPattern, TestScenario... tests) throws Exception {
 
-        List<Pair<String, String>> queries = new ArrayList<>();
-        for (TestScenario test : tests) {
-            queries.addAll(test.queries);
+        List<Pair<String, String>> cubeQueries = Arrays.stream(tests).flatMap(t -> t.queries.stream())
+                .map(p -> new Pair<>(p.getFirst(), p.getSecond()))
+                .collect(Collectors.toList());
+        if (useQueryPattern) {
+            for (Pair<String, String> pair : cubeQueries) {
+                String query = pair.getSecond();
+                pair.setSecond(QueryPatternUtil.normalizeSQLPattern(query));
+            }
         }
-
-        buildCubeWithSparkSession(queries);
+        buildCubeWithSparkSession(cubeQueries);
 
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use(getProject());
@@ -179,10 +190,12 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         kapSparkSession.close();
     }
 
-    protected NSmartMaster proposeCubeWithSmartMaster(List<Pair<String, String>> queries) throws Exception {
+    protected NSmartMaster proposeCubeWithSmartMaster(List<Pair<String, String>> queries)
+            throws Exception {
         List<String> sqlList = new ArrayList<>();
         for (Pair<String, String> queryPair : queries) {
-            sqlList.add(QueryPatternUtil.normalizeSQLPattern(queryPair.getSecond()));
+            String query = queryPair.getSecond();
+            sqlList.add(query);
         }
 
         NSmartMaster master = new NSmartMaster(kylinConfig, getProject(), sqlList.toArray(new String[0]));
