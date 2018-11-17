@@ -235,9 +235,11 @@
           </div>
         </div>
         <div>
-          <div class="action switch" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
-            <span v-if="currentEditTable.kind === 'FACT'">{{$t('switchLookup')}}</span>
-            <span v-else>{{$t('switchFact')}}</span>
+          <div class="action switch" v-if="currentEditTable.kind === 'FACT'" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
+            <span >{{$t('switchLookup')}}</span>
+          </div>
+          <div class="action switch" v-if="modelInstance.checkTableCanSwitchFact(currentEditTable.guid)" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
+            <span >{{$t('switchFact')}}</span>
           </div>
         </div>
         <el-popover

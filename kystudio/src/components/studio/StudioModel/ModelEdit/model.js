@@ -510,6 +510,17 @@ class NModel {
     }
     return item
   }
+  checkTableCanSwitchFact (guid) {
+    let ntable = this.getTableByGuid(guid)
+    let factTable = this.getFactTable()
+    if (factTable) {
+      return false
+    }
+    if (ntable && ntable.getJoinInfo()) {
+      return false
+    }
+    return true
+  }
   checkTableCanDel (guid) {
     if (this._checkTableUseInConn(guid)) {
       return false
