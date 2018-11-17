@@ -643,6 +643,10 @@ public class NSmartMasterTest extends NTestBase {
         String draftVersion = UUID.randomUUID().toString();
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls, draftVersion);
         smartMaster.analyzeSQLs();
+        Assert.assertEquals(5, smartMaster.getContext().getAccelerateInfoMap().size());
+        for (Map.Entry<String, AccelerateInfo> accelerateInfoEntry : smartMaster.getContext().getAccelerateInfoMap().entrySet()) {
+            Assert.assertEquals(false, accelerateInfoEntry.getValue().isBlocked());
+        }
         smartMaster.selectModel();
         smartMaster.optimizeModel();
         smartMaster.saveModel();

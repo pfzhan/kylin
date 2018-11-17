@@ -139,10 +139,15 @@ public class FavoriteQueryJDBCDaoTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(6, sqlPatterns.size());
 
         // update accelerate status
+        String testCommnet = "for test";
         for (FavoriteQuery favoriteQuery : favoriteQueriesToUpdate) {
             favoriteQuery.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
+            favoriteQuery.setComment(testCommnet);
         }
         favoriteQueryDao.batchUpdateStatus(favoriteQueriesToUpdate);
+
+        FavoriteQuery favoriteQuery = favoriteQueryDao.getFavoriteQuery(favoriteQueriesToUpdate.get(0).getSqlPatternHash(), PROJECT);
+        Assert.assertEquals(favoriteQuery.getComment(), testCommnet);
 
         sqlPatterns = favoriteQueryDao.getUnAcceleratedSqlPattern(PROJECT);
         Assert.assertEquals(3, sqlPatterns.size());

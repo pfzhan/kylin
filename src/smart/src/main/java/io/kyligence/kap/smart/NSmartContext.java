@@ -48,8 +48,6 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.model.ModelTree;
-import io.kyligence.kap.smart.query.AbstractQueryRunner;
-import io.kyligence.kap.smart.query.SQLResult;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.Setter;
@@ -75,20 +73,6 @@ public class NSmartContext {
 
     private final NTableMetadataManager tableMetadataManager;
     private final Map<String, TableExtDesc.ColumnStats> columnStatsCache = Maps.newConcurrentMap();
-
-    void logFailedQuery(AbstractQueryRunner extractor) {
-        final Map<Integer, SQLResult> queryResultMap = extractor.getQueryResults();
-
-        queryResultMap.forEach((index, sqlResult) -> {
-            if (sqlResult.getStatus() == SQLResult.Status.FAILED) {
-                AccelerateInfo accelerateInfo = new AccelerateInfo();
-                accelerateInfo.setBlockingCause(sqlResult.getException());
-                if (!this.accelerateInfoMap.containsKey(sqls[index])) {
-                    this.accelerateInfoMap.put(sqls[index], accelerateInfo);
-                }
-            }
-        });
-    }
 
     /**
      * Erase the layout in accelerate info map

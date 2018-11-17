@@ -32,12 +32,21 @@ import io.kyligence.kap.event.model.AccelerateEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.lang.reflect.Field;
 import java.util.List;
 
 @Slf4j
@@ -90,18 +99,6 @@ public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
         int layoutCount3 = cubePlan3.getAllCuboidLayouts().size();
         Assert.assertEquals(layoutCount3, layoutCount2);
 
-        // cancel favorite sql will not update model and cubePlan, just post an new RemoveCuboidEvent
-        event.setFavoriteMark(false);
-        handler.handle(eventContext);
-
-        NCubePlan cubePlan4 = cubePlanManager.getCubePlan("all_fixed_length");
-        int layoutCount4 = cubePlan4.getAllCuboidLayouts().size();
-        Assert.assertEquals(layoutCount3, layoutCount4);
-
-        events = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT).getEvents();
-        Assert.assertNotNull(events);
-        Assert.assertEquals(3, events.size());
-
         getTestConfig().setProperty("kylin.server.mode", "all");
 
     }
@@ -112,6 +109,62 @@ public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
                     layout.getCuboidDesc().getId(), layout.isAuto(), layout.isManual(), layout.getColOrder(),
                     layout.getSortByColumns());
         }
+    }
+
+    @Test
+    public void testAccelerateSqlIsBlocked() throws Exception {
+        getTestConfig().setProperty("kylin.server.mode", "query");
+        getTestConfig().setProperty("kylin.favorite.storage-url", "kylin_favorite@jdbc,url=jdbc:h2:mem:db_default;MODE=MySQL,username=sa,password=,driverClassName=org.h2.Driver");
+
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        ProjectInstance projectInstance = projectManager.getProject(DEFAULT_PROJECT);
+        projectInstance = projectManager.copyForWrite(projectInstance);
+        projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        projectManager.updateProject(projectInstance);
+
+        NDataModel dataModel = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getDataModelDesc("all_fixed_length");
+
+        for (NDataModel.NamedColumn namedColumn : dataModel.getAllNamedColumns()) {
+            if (namedColumn.getId() == 16) {
+                Class<?> clazz = namedColumn.getClass();
+                Field field = clazz.getDeclaredField("status");
+                field.setAccessible(true);
+                field.set(namedColumn, NDataModel.ColumnStatus.EXIST);
+            }
+        }
+
+        NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT).updateDataModelDesc(dataModel.copy());
+
+
+        String sql = "select CAL_DT, LSTG_FORMAT_NAME, max(SLR_SEGMENT_CD) " +
+                "from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME";
+        FavoriteQuery favoriteQuery = new FavoriteQuery(sql, sql.hashCode(), DEFAULT_PROJECT, System.currentTimeMillis() + 3, 5, 100);
+        FavoriteQueryJDBCDao.getInstance(getTestConfig()).batchInsert(Lists.newArrayList(favoriteQuery));
+
+        AccelerateEvent event = new AccelerateEvent();
+        event.setFavoriteMark(true);
+        event.setModels(Lists.newArrayList());
+        event.setProject(DEFAULT_PROJECT);
+        event.setSqlPatterns(Lists.newArrayList(sql));
+        EventContext eventContext = new EventContext(event, getTestConfig());
+        AccelerateEventHandler handler = new AccelerateEventHandler();
+
+        handler.handle(eventContext);
+
+        List<Event> events = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT).getEvents();
+        // the sql is blocked, so that there is no AddCuboidEvent, there is only the AccelerateEvent
+        Assert.assertEquals(1, events.size());
+        Assert.assertEquals(AccelerateEvent.class, events.get(0).getClass());
+
+        // the query's status is updated to blocked
+        favoriteQuery = FavoriteQueryJDBCDao.getInstance(getTestConfig()).getFavoriteQuery(sql.hashCode(), DEFAULT_PROJECT);
+        Assert.assertEquals(FavoriteQueryStatusEnum.BLOCKED, favoriteQuery.getStatus());
+
+        projectInstance = projectManager.getProject(DEFAULT_PROJECT);
+        projectInstance = projectManager.copyForWrite(projectInstance);
+        projectInstance.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
+        projectManager.updateProject(projectInstance);
+        getTestConfig().setProperty("kylin.server.mode", "all");
     }
 
 

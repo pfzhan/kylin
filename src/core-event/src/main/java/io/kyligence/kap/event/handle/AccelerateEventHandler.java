@@ -27,7 +27,13 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import com.google.common.collect.Maps;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -45,7 +51,6 @@ import io.kyligence.kap.event.model.AccelerateEvent;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.PostModelSemanticUpdateEvent;
-import io.kyligence.kap.event.model.RemoveCuboidBySqlEvent;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.model.ModelTree;
@@ -53,6 +58,8 @@ import io.kyligence.kap.smart.model.ModelTree;
 public class AccelerateEventHandler extends AbstractEventHandler implements DeriveEventMixin {
 
     private static final Logger logger = LoggerFactory.getLogger(AccelerateEventHandler.class);
+
+    private int BLOCKING_CAUSE_MAX_LENGTH = 500;
 
     @Override
     public void doHandle(EventContext eventContext) throws Exception {
@@ -73,16 +80,17 @@ public class AccelerateEventHandler extends AbstractEventHandler implements Deri
                 releaseDataflow(event.getModels(), eventContext);
                 return;
             }
+            Map<String, AccelerateInfo> blockedSqlInfo = getBlockedSqlInfo(master.getContext());
             EventManager eventManager = EventManager.getInstance(kylinConfig, project);
             for (NSmartContext.NModelContext modelContext : modelContexts) {
 
-                List<String> sqls = getRelatedSqlsFromModelContext(modelContext);
+                List<String> sqls = getRelatedSqlsFromModelContext(modelContext, blockedSqlInfo);
+
                 NCubePlan origCubePlan = modelContext.getOrigCubePlan();
                 NCubePlan targetCubePlan = modelContext.getTargetCubePlan();
                 Pair<List<Long>, List<Long>> updatedLayoutsPair = calcUpdatedLayoutIds(origCubePlan, targetCubePlan);
                 List<Long> addedLayoutIds = updatedLayoutsPair.getFirst();
                 AddCuboidEvent addCuboidEvent;
-                RemoveCuboidBySqlEvent removeCuboidEvent;
                 if (CollectionUtils.isNotEmpty(addedLayoutIds)) {
                     addCuboidEvent = new AddCuboidEvent();
                     addCuboidEvent.setApproved(eventAutoApproved);
@@ -96,20 +104,55 @@ public class AccelerateEventHandler extends AbstractEventHandler implements Deri
                     eventManager.post(addCuboidEvent);
                 }
 
-                if (!event.isFavoriteMark() && origCubePlan != null) {
-                    removeCuboidEvent = new RemoveCuboidBySqlEvent();
-                    removeCuboidEvent.setSqlList(Lists.newArrayList(sqls));
-                    removeCuboidEvent.setApproved(eventAutoApproved);
-                    removeCuboidEvent.setProject(project);
-                    removeCuboidEvent.setModelName(origCubePlan.getModelName());
-                    removeCuboidEvent.setCubePlanName(origCubePlan.getName());
-                    removeCuboidEvent.setParentId(event.getId());
-                    eventManager.post(removeCuboidEvent);
-                }
-
             }
+
+            if (blockedSqlInfo.size() > 0) {
+                updateBlockedSqlStatus(blockedSqlInfo, kylinConfig, project);
+            }
+
         }
         releaseDataflow(event.getModels(), eventContext);
+    }
+
+    protected Map<String, AccelerateInfo> getBlockedSqlInfo(NSmartContext context) {
+        Map<String, AccelerateInfo> blockedSqlInfo = Maps.newHashMap();
+        if (context == null) {
+            return blockedSqlInfo;
+        }
+        Map<String, AccelerateInfo> accelerateInfoMap = context.getAccelerateInfoMap();
+        if (accelerateInfoMap == null || accelerateInfoMap.size() == 0) {
+            return blockedSqlInfo;
+        }
+        for (Map.Entry<String, AccelerateInfo> accelerateInfoEntry : accelerateInfoMap.entrySet()) {
+            AccelerateInfo accelerateInfo = accelerateInfoEntry.getValue();
+            if (accelerateInfo.isBlocked()) {
+                blockedSqlInfo.put(accelerateInfoEntry.getKey(), accelerateInfo);
+            }
+        }
+        return blockedSqlInfo;
+    }
+
+    private void updateBlockedSqlStatus(Map<String, AccelerateInfo> blockedSqlInfo, KylinConfig kylinConfig, String project) {
+        if (blockedSqlInfo == null || blockedSqlInfo.size() == 0) {
+            return;
+        }
+        List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
+        FavoriteQuery favoriteQuery;
+        for (Map.Entry<String, AccelerateInfo> accelerateInfoEntry : blockedSqlInfo.entrySet()) {
+            String sqlPattern = accelerateInfoEntry.getKey();
+            favoriteQuery = new FavoriteQuery(sqlPattern, sqlPattern.hashCode(), project);
+            favoriteQuery.setStatus(FavoriteQueryStatusEnum.BLOCKED);
+            Throwable blockingCause = accelerateInfoEntry.getValue().getBlockingCause();
+            if (blockingCause != null) {
+                String blockingCauseStr = blockingCause.toString();
+                if (blockingCauseStr.length() > BLOCKING_CAUSE_MAX_LENGTH) {
+                    blockingCauseStr = blockingCauseStr.substring(0, BLOCKING_CAUSE_MAX_LENGTH - 1);
+                }
+                favoriteQuery.setComment(blockingCauseStr);
+            }
+            favoriteQueries.add(favoriteQuery);
+        }
+        FavoriteQueryJDBCDao.getInstance(kylinConfig).batchUpdateStatus(favoriteQueries);
     }
 
     private void releaseDataflow(List<String> models, EventContext context) throws PersistentException {
@@ -118,7 +161,7 @@ public class AccelerateEventHandler extends AbstractEventHandler implements Deri
         }
     }
 
-    private List<String> getRelatedSqlsFromModelContext(NSmartContext.NModelContext modelContext) {
+    private List<String> getRelatedSqlsFromModelContext(NSmartContext.NModelContext modelContext, Map<String, AccelerateInfo> blockedSqlInfo) {
         List<String> sqls = Lists.newArrayList();
         if (modelContext == null) {
             return sqls;
@@ -133,7 +176,10 @@ public class AccelerateEventHandler extends AbstractEventHandler implements Deri
         }
         Iterator<OLAPContext> iterator = olapContexts.iterator();
         while (iterator.hasNext()) {
-            sqls.add(iterator.next().sql);
+            String sql = iterator.next().sql;
+            if (!blockedSqlInfo.containsKey(sql)) {
+                sqls.add(sql);
+            }
         }
 
         return sqls;

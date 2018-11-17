@@ -693,22 +693,25 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
         The mocked query history service will be generating test data from 2018-02-01 00:00:00 to 2018-02-01 00:02:30 every 30 seconds,
         and the last auto mark time is 2018-01-01 00:00:00
          */
+        // TODO fix it, find the other test which insert data to h2
+        // Issue : https://github.com/Kyligence/KAP/issues/8245
+        int limit = 100;
         long systemTime = queryHistoryService.getCurrentTime();
-        int originFavoriteQuerySize = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0).size();
+        int originFavoriteQuerySize = favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 100, 0).size();
         FavoriteQueryService.AutoMarkFavoriteRunner autoMarkFavoriteRunner = favoriteQueryService.new AutoMarkFavoriteRunner();
 
         // when current time is 00:00, auto mark runner scanned from 2018-01-01 00:00 to 2018-01-31 23:59:00
         Mockito.doReturn(systemTime).when(favoriteQueryService).getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize,
-                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0).size());
+                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, limit, 0).size());
 
         // current time is 02-01 00:01:00, triggered next round, runner scanned from 2018-01-31 23:59:00 to 2018-02-01 00:00:00, still get nothing
         Mockito.doReturn(systemTime + getTestConfig().getQueryHistoryScanPeriod()).when(favoriteQueryService)
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize,
-                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0).size());
+                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, limit, 0).size());
 
         // at time 02-01 00:01:03, a query history is inserted into influxdb but with insert time as 00:00:59
         QueryHistory queryHistory = new QueryHistory("sql_pattern7", PROJECT, QueryHistory.QUERY_HISTORY_SUCCEEDED,
@@ -722,7 +725,7 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 3,
-                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0).size());
+                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, limit, 0).size());
 
         // current time is 02-01 00:03:00, triggered next round, runner scanned from 2018-02-01 00:01:00 to 2018-02-01 00:02:00
         // scanned two new queries
@@ -730,7 +733,7 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 5,
-                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0).size());
+                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, limit, 0).size());
 
         // current time is 02-01 00:04:00, runner scanned from 2018-02-01 00:02:00 to 2018-02-01 00:03:00
         // scanned two new queries, but one is failed, which is not expected to be marked as favorite query
@@ -738,7 +741,7 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
                 .getSystemTime();
         autoMarkFavoriteRunner.run();
         Assert.assertEquals(originFavoriteQuerySize + 6,
-                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0).size());
+                favoriteQueryService.getFavoriteQueriesByPage(PROJECT, limit, 0).size());
     }
 
     @Test

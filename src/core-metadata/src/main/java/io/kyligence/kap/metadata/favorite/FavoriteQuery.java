@@ -50,6 +50,8 @@ public class FavoriteQuery {
     private int successCount;
     @JsonProperty("total_duration")
     private long totalDuration;
+    @JsonProperty("comment")
+    private String comment;
 
     public FavoriteQuery() {
     }

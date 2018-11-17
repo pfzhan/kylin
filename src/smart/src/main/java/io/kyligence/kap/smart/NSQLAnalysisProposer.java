@@ -24,11 +24,16 @@
 
 package io.kyligence.kap.smart;
 
+import io.kyligence.kap.smart.common.AccelerateInfo;
+import io.kyligence.kap.smart.query.SQLResult;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.NQueryRunnerFactory;
+
+import java.util.Map;
 
 class NSQLAnalysisProposer extends NAbstractProposer {
     private static final Logger logger = LoggerFactory.getLogger(NSQLAnalysisProposer.class);
@@ -43,11 +48,29 @@ class NSQLAnalysisProposer extends NAbstractProposer {
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(context.getKylinConfig(),
                 context.getProject(), context.getSqls(), 1)) {
             extractor.execute();
-            context.logFailedQuery(extractor);
+            logFailedQuery(extractor);
             context.setOlapContexts(extractor.getOlapContexts());
             context.setModelContexts(clusterer.cluster(context));
         } catch (Exception e) {
             logger.error("Failed to get query stats. ", e);
         }
+    }
+
+    private void logFailedQuery(AbstractQueryRunner extractor) {
+        final Map<Integer, SQLResult> queryResultMap = extractor.getQueryResults();
+
+        queryResultMap.forEach((index, sqlResult) -> {
+            if (sqlResult.getStatus() == SQLResult.Status.FAILED) {
+                AccelerateInfo accelerateInfo = new AccelerateInfo();
+                Throwable throwable = sqlResult.getException();
+                if (!(throwable instanceof NoRealizationFoundException
+                        || throwable.getCause() instanceof NoRealizationFoundException)) {
+                    accelerateInfo.setBlockingCause(sqlResult.getException());
+                }
+                if (!context.getAccelerateInfoMap().containsKey(context.getSqls()[index])) {
+                    context.getAccelerateInfoMap().put(context.getSqls()[index], accelerateInfo);
+                }
+            }
+        });
     }
 }

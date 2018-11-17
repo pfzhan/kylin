@@ -56,6 +56,8 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
     private static final String TOTAL_DURATION = "total_duration";
     private static final String AVERAGE_DURATION = "average_duration";
     private static final String STATUS = "status";
+    private static final String COMMENT = "comment";
+
 
     public static Map<String, Set<Integer>> getSqlPatternHashSet() {
         return sqlPatternHashSet;
@@ -86,11 +88,11 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
         sb.append(String.format("CREATE TABLE IF NOT EXISTS %s", this.tableName));
         // columns
         sb.append(String.format(
-                "(id INT UNSIGNED AUTO_INCREMENT, %s INT NOT NULL, %s VARCHAR(255) NOT NULL, %s TEXT NOT NULL, %s BIGINT, %s INT, %s INT, %s DECIMAL(10, 6), %s BIGINT, %s DECIMAL(18, 6), %s ENUM('%s', '%s', '%s', '%s') DEFAULT '%s', ",
+                "(id INT UNSIGNED AUTO_INCREMENT, %s INT NOT NULL, %s VARCHAR(255) NOT NULL, %s TEXT NOT NULL, %s BIGINT, %s INT, %s INT, %s DECIMAL(10, 6), %s BIGINT, %s DECIMAL(18, 6), %s ENUM('%s', '%s', '%s', '%s', '%s') DEFAULT '%s', %s VARCHAR(500) NOT NULL, ",
                 SQL_PATTERN_HASH, PROJECT, SQL_PATTERN, LAST_QUERY_TIME, TOTAL_COUNT, SUCCESS_COUNT, SUCCESS_RATE,
                 TOTAL_DURATION, AVERAGE_DURATION, STATUS, FavoriteQueryStatusEnum.WAITING,
                 FavoriteQueryStatusEnum.ACCELERATING, FavoriteQueryStatusEnum.PARTLY_ACCELERATED,
-                FavoriteQueryStatusEnum.FULLY_ACCELERATED, FavoriteQueryStatusEnum.WAITING));
+                FavoriteQueryStatusEnum.FULLY_ACCELERATED, FavoriteQueryStatusEnum.BLOCKED, FavoriteQueryStatusEnum.WAITING, COMMENT));
         // primary key and indices
         sb.append(String.format(
                 "PRIMARY KEY (id), INDEX %s_sql_pattern_hash_index (%s), INDEX project_index (%s), INDEX last_query_time_index (%s), INDEX status_index (%s))",
@@ -208,7 +210,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
     }
 
     private void innerUpdateStatus(final List<FavoriteQuery> favoriteQueries) {
-        final String updateSql = String.format("UPDATE %s SET %s=? WHERE %s=? and %s=?", this.tableName, STATUS,
+        final String updateSql = String.format("UPDATE %s SET %s=?, %s=? WHERE %s=? and %s=?", this.tableName, STATUS, COMMENT,
                 SQL_PATTERN_HASH, PROJECT);
 
         JDBCManager.getInstance(config).getJdbcTemplate().batchUpdate(updateSql, new BatchPreparedStatementSetter() {
@@ -216,8 +218,9 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
             public void setValues(PreparedStatement preparedStatement, int i) throws SQLException {
                 FavoriteQuery favoriteQuery = favoriteQueries.get(i);
                 preparedStatement.setString(1, favoriteQuery.getStatus().toString());
-                preparedStatement.setInt(2, favoriteQuery.getSqlPatternHash());
-                preparedStatement.setString(3, favoriteQuery.getProject());
+                preparedStatement.setString(2, favoriteQuery.getComment());
+                preparedStatement.setInt(3, favoriteQuery.getSqlPatternHash());
+                preparedStatement.setString(4, favoriteQuery.getProject());
             }
 
             @Override
@@ -277,9 +280,9 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
 
     private void innerInsert(final List<FavoriteQuery> favoriteQueries) {
         String sql = String.format(
-                "INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO %s (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 this.tableName, SQL_PATTERN_HASH, PROJECT, SQL_PATTERN, LAST_QUERY_TIME, TOTAL_COUNT, SUCCESS_COUNT,
-                SUCCESS_RATE, TOTAL_DURATION, AVERAGE_DURATION, STATUS);
+                SUCCESS_RATE, TOTAL_DURATION, AVERAGE_DURATION, STATUS, COMMENT);
 
         JDBCManager.getInstance(config).getJdbcTemplate().batchUpdate(sql, new BatchPreparedStatementSetter() {
             @Override
@@ -300,6 +303,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
                 }
                 preparedStatement.setLong(8, favoriteQuery.getTotalDuration());
                 preparedStatement.setString(10, favoriteQuery.getStatus().toString());
+                preparedStatement.setString(11, favoriteQuery.getComment());
             }
 
             @Override
@@ -324,6 +328,7 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
             favoriteQuery.setTotalDuration(resultSet.getLong(TOTAL_DURATION));
             favoriteQuery.setAverageDuration(resultSet.getFloat(AVERAGE_DURATION));
             favoriteQuery.setStatus(FavoriteQueryStatusEnum.valueOf(resultSet.getString(STATUS)));
+            favoriteQuery.setComment(resultSet.getString(COMMENT));
 
             return favoriteQuery;
         }
