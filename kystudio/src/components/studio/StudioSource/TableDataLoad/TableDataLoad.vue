@@ -209,7 +209,7 @@ export default class TableDataLoad extends Vue {
     event.preventDefault()
     try {
       if (value !== this.isIncremental) {
-        const { modelCount, modelSize } = await this.getAffectedModelCountAndSize()
+        const { modelCount, modelSize } = await this.getAffectedModelCountAndSize(value)
 
         if (modelCount || modelSize) {
           await this.showUserConfirm({ modelCount, modelSize })
@@ -274,13 +274,13 @@ export default class TableDataLoad extends Vue {
       }
     }
   }
-  async getAffectedModelCountAndSize () {
+  async getAffectedModelCountAndSize (isSelectFact) {
     let modelCount = 0
     let modelSize = 0
     try {
       const projectName = this.projectName
       const tableName = `${this.table.database}.${this.table.name}`
-      const response = await this.fetchChangeTypeInfo({ projectName, tableName })
+      const response = await this.fetchChangeTypeInfo({ projectName, tableName, isSelectFact })
       const result = await handleSuccessAsync(response)
       modelCount = result.models.length
       modelSize = result.byte_size

@@ -183,8 +183,8 @@ export default {
   deleteTable (project, database, table) {
     return Vue.resource(apiUrl + `tables/${project}/${database}/${table}`).delete()
   },
-  fetchChangeTypeInfo (project, table) {
-    return Vue.resource(apiUrl + `models/affected_models`).get({ project, table })
+  fetchChangeTypeInfo (project, table, fact) {
+    return Vue.resource(apiUrl + `models/affected_models`).get({ project, table, fact })
   },
   fetchRangeFreshInfo (project, table, start, end) {
     return Vue.resource(apiUrl + `tables/affected_data_range`).get({ project, table, start, end })
