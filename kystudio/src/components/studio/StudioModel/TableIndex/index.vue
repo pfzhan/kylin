@@ -3,7 +3,7 @@
      <div class="left-part">
       <div class="ksd-mb-20">
         <el-button type="primary" icon="el-icon-ksd-project_add" @click="editTableIndex(true)">Create Table Index</el-button>
-        <el-button type="primary" disabled icon="el-icon-ksd-table_refresh">Refresh</el-button>
+        <!-- <el-button type="primary" disabled icon="el-icon-ksd-table_refresh">Refresh</el-button> -->
         <!-- <el-button icon="el-icon-ksd-table_delete">Delete</el-button> -->
         <el-input style="width:200px" v-model="tableIndexFilter" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" :placeholder="$t('searchTip')" class="ksd-fright ksd-mr-20"></el-input>
       </div>

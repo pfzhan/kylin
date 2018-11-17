@@ -28,7 +28,7 @@
             :label="$t('tableIndex')"
             width="120">
             <template slot-scope="scope">
-              <i class="el-icon-success" :class="{active: scope.row.isUsed}" @click="toggleDisplay(scope.row)"></i>
+              <i class="el-icon-success" :class="{active: scope.row.isUsed}" @click.stop="toggleDisplay(scope.row)"></i>
             </template>
           </el-table-column>
           <el-table-column
@@ -38,11 +38,11 @@
             width="120">
             <template slot-scope="scope">
               <div class="action-list">
-                <span class="ky-dot-tag" v-if="scope.row.isUsed" :class="{'no-sorted': !scope.row.isSorted}"  @click="toggleSort(scope.row)">{{scope.row.isSorted ? getRowIndex(scope.row, 'fullName') + 1 : 1}}</span>
+                <span class="ky-dot-tag" v-if="scope.row.isUsed" :class="{'no-sorted': !scope.row.isSorted}"  @click.stop="toggleSort(scope.row)">{{scope.row.isSorted ? getRowIndex(scope.row, 'fullName') + 1 : 1}}</span>
                 <!-- <span v-if="scope.row.isUsed && scope.row.isSorted">{{scope.$index + 1}}</span> -->
                 <span class="up-down" :class="{hide: searchColumn}">
-                  <i v-visible="scope.row.isUsed && scope.row.isSorted && scope.$index !== 0" @click="upRow(scope.$index)" class="el-icon-ksd-arrow_up"></i>
-                  <i v-visible="scope.row.isUsed && scope.row.isSorted && allColumns[scope.$index+1] && allColumns[scope.$index+1].isSorted" @click="downRow(scope.$index)" class="el-icon-ksd-arrow_down"></i>
+                  <i v-visible="scope.row.isUsed && scope.row.isSorted && scope.$index !== 0" @click.stop="upRow(scope.$index)" class="el-icon-ksd-arrow_up"></i>
+                  <i v-visible="scope.row.isUsed && scope.row.isSorted && allColumns[scope.$index+1] && allColumns[scope.$index+1].isSorted" @click.stop="downRow(scope.$index)" class="el-icon-ksd-arrow_down"></i>
                 </span>
               </div>
             </template>
@@ -53,7 +53,7 @@
             label="Shard"
             width="120">
             <template slot-scope="scope">
-              <i class="el-icon-success" v-if="scope.row.isUsed" :class="{active: scope.row.isShared}"  @click="toggleShard(scope.row)"></i>
+              <i class="el-icon-success" v-if="scope.row.isUsed" :class="{active: scope.row.isShared}"  @click.stop="toggleShard(scope.row)"></i>
             </template>
           </el-table-column>
         </el-table>

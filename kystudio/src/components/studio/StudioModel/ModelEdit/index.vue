@@ -821,8 +821,8 @@ export default class ModelEdit extends Vue {
   searchHandleStart = false // 标识业务弹窗是不是通过搜索弹出的
   selectResult (e, select) {
     this.searchHandleStart = true
-    this.showSearchResult = false
-    this.modelGlobalSearch = ''
+    // this.showSearchResult = false
+    // this.modelGlobalSearch = ''
     var moreInfo = select.more
     if (select.action === 'showtable') {
       if (select.more) {

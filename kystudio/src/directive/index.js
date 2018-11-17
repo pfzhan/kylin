@@ -149,9 +149,11 @@ Vue.directive('search-highlight', function (el, binding) {
 })
 var list = null
 var scrollInstance = null
+let st = null // 定时器全局变量
 Vue.directive('keyborad-select', {
   unbind: function () {
     $(document).unbind('keyup')
+    clearInterval(st)
   },
   componentUpdated: function (el, binding) {
     var searchScope = binding.value.scope
@@ -161,7 +163,7 @@ Vue.directive('keyborad-select', {
   inserted: function (el, binding) {
     var index = -1
     selectList()
-    $(document).keyup(function (event) {
+    let handleKey = (event) => {
       if (event.keyCode === 40 || event.keyCode === 39) {
         index = index + 1 >= list.length ? 0 : index + 1
         selectList(index)
@@ -173,6 +175,16 @@ Vue.directive('keyborad-select', {
       if (event.keyCode === 13 && index >= 0) {
         list.eq(index).click()
       }
+    }
+    $(document).keydown((event) => {
+      handleKey(event)
+      clearInterval(st)
+      st = setInterval(() => {
+        handleKey(event)
+      }, 300)
+    })
+    $(document).keyup(function (event) {
+      clearInterval(st)
     })
     function selectList (i) {
       if (!list) {
@@ -180,9 +192,8 @@ Vue.directive('keyborad-select', {
       }
       list.removeClass('active')
       if (i >= 0) {
-        let height = $(el).height()
         if (scrollInstance) {
-          scrollInstance.scrollTo(100, height / list.length * i, 400)
+          scrollInstance.scrollTo(100, 32 * i + 5, 400)
         }
         list.eq(i).addClass('active')
       }
