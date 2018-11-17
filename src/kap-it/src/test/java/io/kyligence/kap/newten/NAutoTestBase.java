@@ -64,6 +64,8 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         kylinConfig.setProperty("kylin.storage.provider.0", "io.kyligence.kap.storage.NDataStorage");
         kylinConfig.setProperty("kap.storage.columnar.hdfs-dir", kylinConfig.getHdfsWorkingDirectory() + "/parquet/");
         kylinConfig.setProperty("kap.smart.conf.model.inner-join.exactly-match", "true");
+        kylinConfig.setProperty("kylin.query.pushdown.runner-class-name",
+                "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
         setSparderEnv();
     }
