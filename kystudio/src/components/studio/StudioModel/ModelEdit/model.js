@@ -324,7 +324,7 @@ class NModel {
         result.push(this.allConnInfo[i])
       }
     }
-    return result.length ? result : false
+    return result
   }
   _replaceAlias (alias, fullName) {
     return alias + '.' + fullName.split('.')[1]
@@ -496,6 +496,41 @@ class NModel {
       }
     }
     return item
+  }
+  checkTableCanDel (guid) {
+    if (this._checkTableUseInConn(guid)) {
+      return false
+    }
+    if (this._checkTableUseInDimension(guid)) {
+      return false
+    }
+    if (this._checkTableUseInMeasure(guid)) {
+      return false
+    }
+    if (this._checkTableUseInCC(guid)) {
+      return false
+    }
+    if (this._checkTableUseInPartition(guid)) {
+      return false
+    }
+    return true
+  }
+  _checkTableUseInConn (guid) {
+    let conns = this.getAllConnectsByAlias(guid)
+    if (conns.length) {
+      return true
+    }
+  }
+  _checkTableUseInDimension (guid) {
+    return indexOfObjWithSomeKey(this.dimensions, 'table_guid', guid) >= 0
+  }
+  _checkTableUseInMeasure (guid) {
+  }
+  _checkTableUseInCC (guid) {
+    return indexOfObjWithSomeKey(this._mount.computed_columns, 'table_guid', guid) >= 0
+  }
+  _checkTableUseInPartition (guid) {
+    return this.partition_desc.table_guid === guid
   }
   delTable (guid) {
     return new Promise((resolve, reject) => {
