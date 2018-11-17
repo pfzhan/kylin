@@ -208,7 +208,7 @@ class NModel {
         }
         metaData.join_tables = this._generateLookups()
         metaData.all_named_columns = this._generateAllColumns()
-        metaData.simplified_measures = this._mount.all_measures
+        metaData.simplified_measures = this._generateAllMeasureColumns()
         metaData.computed_columns = objectClone(this.computed_columns)
         metaData.last_modified = this.last_modified
         metaData.filter_condition = this.filter_condition
@@ -302,6 +302,19 @@ class NModel {
       delete col.table_guid
     })
     return allNamedColumns
+  }
+  _generateAllMeasureColumns () {
+    let allMeasures = objectClone(this._mount.all_measures)
+    // 移除前端业务字断
+    allMeasures.forEach((col) => {
+      delete col.parameter_value[0].table_guid
+      if (col.converted_columns && col.converted_columns.length) {
+        col.converted_columns.forEach((k) => {
+          delete k.table_guid
+        })
+      }
+    })
+    return allMeasures
   }
   _generateTableRectData () {
     let canvasInfo = {
@@ -525,6 +538,19 @@ class NModel {
     return indexOfObjWithSomeKey(this.dimensions, 'table_guid', guid) >= 0
   }
   _checkTableUseInMeasure (guid) {
+    let checkUsed = false
+    this._mount.all_measures.forEach((measure) => {
+      if (!checkUsed) {
+        if (indexOfObjWithSomeKey(measure.parameter_value, 'table_guid', guid) >= 0) {
+          checkUsed = true
+        } else if (measure.converted_columns && measure.converted_columns.length) {
+          checkUsed = indexOfObjWithSomeKey(measure.converted_columns, 'table_guid', guid) >= 0
+        } else {
+          checkUsed = false
+        }
+      }
+    })
+    return checkUsed
   }
   _checkTableUseInCC (guid) {
     return indexOfObjWithSomeKey(this._mount.computed_columns, 'table_guid', guid) >= 0
