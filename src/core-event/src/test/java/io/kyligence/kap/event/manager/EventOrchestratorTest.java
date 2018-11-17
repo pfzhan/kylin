@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.event.model.RemoveCuboidByIdEvent;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
 import org.junit.Assert;
@@ -41,7 +42,6 @@ import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.LoadingRangeUpdateEvent;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
-import io.kyligence.kap.event.model.RemoveCuboidBySqlEvent;
 import io.kyligence.kap.event.model.RemoveSegmentEvent;
 import io.kyligence.kap.event.model.AccelerateEvent;
 
@@ -164,8 +164,7 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
         initEvents.add(removeSegmentEvent);
 
         Thread.sleep(10);
-        RemoveCuboidBySqlEvent removeCuboidEvent = new RemoveCuboidBySqlEvent();
-        removeCuboidEvent.setSqlList(Lists.<String>newArrayList());
+        RemoveCuboidByIdEvent removeCuboidEvent = new RemoveCuboidByIdEvent();
         removeCuboidEvent.setApproved(true);
         removeCuboidEvent.setProject(DEFAULT_PROJECT);
         removeCuboidEvent.setModelName("nmodel_basic");
@@ -181,8 +180,7 @@ public class EventOrchestratorTest extends NLocalFileMetadataTestCase {
         initEvents.add(addCuboidEvent);
 
         Thread.sleep(10);
-        removeCuboidEvent = new RemoveCuboidBySqlEvent();
-        removeCuboidEvent.setSqlList(Lists.<String>newArrayList());
+        removeCuboidEvent = new RemoveCuboidByIdEvent();
         removeCuboidEvent.setApproved(true);
         removeCuboidEvent.setProject(DEFAULT_PROJECT);
         removeCuboidEvent.setModelName("nmodel_basic");

@@ -63,7 +63,6 @@ import io.kyligence.kap.event.handle.LoadingRangeRefreshHandler;
 import io.kyligence.kap.event.handle.LoadingRangeUpdateHandler;
 import io.kyligence.kap.event.handle.AccelerateEventHandler;
 import io.kyligence.kap.event.handle.RefreshSegmentHandler;
-import io.kyligence.kap.event.handle.RemoveCuboidBySqlHandler;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
@@ -107,7 +106,6 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         System.setProperty("isDeveloperMode", "false");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "30");
 
-        new RemoveCuboidBySqlHandler();
         new AccelerateEventHandler();
         new LoadingRangeUpdateHandler();
         new LoadingRangeRefreshHandler();
@@ -153,7 +151,6 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         testLoadingRangeFlow();
         testRefreshFlow();
         testCuboidEventFlow();
-        testRemoveEventFlow();
         testEventErrorFlow();
     }
 
@@ -216,32 +213,6 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         Event updatedEvent = EventDao.getInstance(config, getProject()).getEvent(loadingRangeUpdateEvent.getUuid());
         Assert.assertEquals(EventStatus.ERROR, updatedEvent.getStatus());
         Assert.assertTrue(updatedEvent.getMsg().contains("TableDesc 'errorTable' does not exist"));
-    }
-
-    private void testRemoveEventFlow() throws PersistentException, InterruptedException {
-        int layoutCount = 0;
-        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), getProject());
-        NCubePlan cubePlan1 = cubePlanManager.getCubePlan("all_fixed_length");
-        layoutCount += cubePlan1.getAllCuboidLayouts().size();
-
-        AccelerateEvent event = new AccelerateEvent();
-        event.setModels(Lists.newArrayList());
-        event.setProject(getProject());
-        event.setFavoriteMark(false);
-        event.setSqlPatterns(Lists.newArrayList("select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT"));
-        event.setApproved(true);
-        eventManager.post(event);
-
-
-        waitForEventFinished(config);
-
-        int newLayoutCount = 0;
-        NCubePlan cubePlan3 = cubePlanManager.getCubePlan("all_fixed_length");
-        newLayoutCount += cubePlan3.getAllCuboidLayouts().size();
-
-        // the num of cuboidLayouts should be reduced by one
-        Assert.assertEquals(layoutCount - 1, newLayoutCount);
-
     }
 
     public void testLoadingRangeFlow() throws Exception {

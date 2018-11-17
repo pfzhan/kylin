@@ -60,7 +60,6 @@ import io.kyligence.kap.event.handle.PostModelSemanticUpdateHandler;
 import io.kyligence.kap.event.handle.ProjectHandler;
 import io.kyligence.kap.event.handle.RefreshSegmentHandler;
 import io.kyligence.kap.event.handle.RemoveCuboidByIdHandler;
-import io.kyligence.kap.event.handle.RemoveCuboidBySqlHandler;
 import io.kyligence.kap.event.handle.RemoveSegmentHandler;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -117,7 +116,6 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         new AddSegmentHandler();
         new MergeSegmentHandler();
         new RemoveSegmentHandler();
-        new RemoveCuboidBySqlHandler();
         new RemoveCuboidByIdHandler();
         new AddCuboidHandler();
         new AccelerateEventHandler();
