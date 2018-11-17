@@ -138,7 +138,7 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
     // Store数据注入
     ...mapState('DimensionsModal', {
       isShow: state => state.isShow,
-      tables: state => objectClone(state.modelDesc.tables),
+      tables: state => objectClone(state.modelDesc && state.modelDesc.tables),
       modelDesc: state => state.modelDesc,
       usedColumns: state => state.modelDesc.dimensions,
       callback: state => state.callback

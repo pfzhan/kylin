@@ -563,18 +563,20 @@ export default class LayoutLeftRightTop extends Vue {
     return 0
   }
   ST = null
-  async loadCircleSpeedInfo () {
+  loadCircleSpeedInfo () {
     if (this.currentSelectedProject) {
-      return await this.getSpeedInfo(this.currentSelectedProject)
+      return this.getSpeedInfo(this.currentSelectedProject)
     }
   }
   circleLoadSpeedInfo () {
+    clearTimeout(this.ST)
     this.ST = setTimeout(() => {
-      this.loadCircleSpeedInfo()
-      if (this._isDestroyed) {
-        return
-      }
-      this.circleLoadSpeedInfo()
+      this.loadCircleSpeedInfo().then(() => {
+        if (this._isDestroyed) {
+          return
+        }
+        this.circleLoadSpeedInfo()
+      })
     }, speedInfoTimer)
   }
   mounted () {
