@@ -50,6 +50,7 @@ public class NAutoTpchTest extends NAutoTestBase {
     }
 
     @Test
+    @Ignore("blocked by the same col as dimension and measure, see issue https://github.com/Kyligence/KAP/issues/8249")
     public void testReProposeCase() throws Exception {
         // verify issue https://github.com/Kyligence/KAP/issues/7515
         kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
