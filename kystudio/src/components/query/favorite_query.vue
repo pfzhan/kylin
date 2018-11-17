@@ -453,7 +453,7 @@ export default class FavoriteQuery extends Vue {
   }
   submitterObj = {
     enable: true,
-    users: ['Admin'],
+    users: ['ADMIN'],
     groups: []
   }
   durationObj = {
@@ -463,10 +463,10 @@ export default class FavoriteQuery extends Vue {
   selectedUser = ''
   options = [{
     label: this.$t('kylinLang.menu.user'),
-    options: ['Admin']
+    options: ['ADMIN']
   }]
   oldFrequencyValue = 0.2
-  oldSubmitterUsers = ['Admin']
+  oldSubmitterUsers = ['ADMIN']
   oldDurationValue = [50, 80]
   impactRatio = 55
 
@@ -1163,10 +1163,10 @@ export default class FavoriteQuery extends Vue {
     }
     .submitterDialog {
       .vip-users {
-        margin-top: 10px;
         .user-label {
           font-size: 14px;
           margin-right: 8px;
+          margin-top: 5px;
         }
       }
     }
