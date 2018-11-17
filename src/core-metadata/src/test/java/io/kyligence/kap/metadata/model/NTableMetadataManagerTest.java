@@ -112,4 +112,32 @@ public class NTableMetadataManagerTest extends NLocalFileMetadataTestCase {
 
         mgrDefault.removeTableExt(tableKylinFact);
     }
+
+    @Test
+    public void testGetTableExt() throws IOException {
+        final TableDesc tableDesc = mgrDefault.getTableDesc(tableKylinFact);
+
+        final TableExtDesc t1 = mgrDefault.getTableExtIfExists(tableDesc);
+        Assert.assertNull(t1);
+
+        final TableExtDesc t2 = mgrDefault.getOrCreateTableExt(tableDesc);
+        Assert.assertNotNull(t2);
+        Assert.assertEquals(0, t2.getColumnStats().size());
+        Assert.assertEquals(0, t2.getTotalRows());
+
+        final TableExtDesc t3 = mgrDefault.getTableExtIfExists(tableDesc);
+        Assert.assertNull(t3);
+
+        t2.setTotalRows(100);
+        mgrDefault.saveTableExt(t2);
+
+        final TableExtDesc t4 = mgrDefault.getTableExtIfExists(tableDesc);
+        Assert.assertNotNull(t4);
+        Assert.assertEquals(100, t4.getTotalRows());
+
+        final TableExtDesc t5 = mgrDefault.getOrCreateTableExt(tableDesc);
+        Assert.assertNotNull(t5);
+        Assert.assertEquals(100, t5.getTotalRows());
+
+    }
 }

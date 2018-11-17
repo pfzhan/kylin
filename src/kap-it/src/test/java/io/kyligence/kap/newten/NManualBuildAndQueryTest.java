@@ -33,6 +33,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -40,6 +41,8 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockedDistributedLock;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.spark.SparkContext;
 import org.junit.After;
 import org.junit.Assert;
@@ -359,19 +362,25 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         long end = SegmentRange.dateToLong("2012-06-01");
         buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+        validateTableExt(df.getModel().getRootFactTableName(), 2054, 1, 11);
+
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
         buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+        validateTableExt(df.getModel().getRootFactTableName(), 4903, 2, 11);
 
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2013-06-01");
         buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+        validateTableExt(df.getModel().getRootFactTableName(), 7075, 3, 11);
+
         start = SegmentRange.dateToLong("2013-06-01");
         end = SegmentRange.dateToLong("2015-01-01");
         buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end),
                 Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+        validateTableExt(df.getModel().getRootFactTableName(), 10000, 4, 11);
 
         /**
          * Round2. Merge two segments
@@ -407,5 +416,15 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         //Assert.assertEquals(31, secondSegment.getDictionaries().size());
         Assert.assertEquals(7, firstSegment.getSnapshots().size());
         Assert.assertEquals(7, secondSegment.getSnapshots().size());
+    }
+
+    private void validateTableExt(String tableName, long rows, int segSize, int colStats) {
+        final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getTestConfig(), getProject());
+        final TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
+        final TableExtDesc tableExt = tableMetadataManager.getTableExtIfExists(tableDesc);
+        Assert.assertNotNull(tableExt);
+        Assert.assertEquals(rows, tableExt.getTotalRows());
+        Assert.assertEquals(colStats, tableExt.getColumnStats().size());
+        Assert.assertEquals(segSize, tableExt.getLoadingRange().size());
     }
 }

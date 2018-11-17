@@ -46,6 +46,7 @@ import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.percentile.PercentileCounter;
 import org.apache.kylin.measure.topn.TopNCounter;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -260,6 +261,9 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("hdfs", distMetaUrl.getScheme());
         Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
 
+        final NSparkAnalysisStep analysisStep = job.getSparkAnalysisStep();
+        Assert.assertNotNull(analysisStep);
+
         // launch the job
         execMgr.addJob(job);
 
@@ -295,7 +299,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         validateCube(0);
         validateTableIndex(0);
-        validateTableExt();
+        validateTableExt(df.getModel().getRootFactTableName(), 10000, 1, 11);
     }
 
     @Test
@@ -642,17 +646,14 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals("英国", resultFromLayout.get(9999)[1].toString());
     }
 
-    private void validateTableExt() {
+    private void validateTableExt(String tableName, long rows, int segSize, int colStats) {
         final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config, getProject());
-        final NDataflowManager dataflowManager = NDataflowManager.getInstance(config, getProject());
-
-        final NDataModel dataModel = dataflowManager.getDataflow("ncube_basic").getModel();
-
-        final TableExtDesc tableExt = tableMetadataManager
-                .getTableExtIfExists(dataModel.getRootFactTable().getTableDesc());
+        final TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
+        final TableExtDesc tableExt = tableMetadataManager.getTableExtIfExists(tableDesc);
         Assert.assertNotNull(tableExt);
-        Assert.assertEquals(11, tableExt.getColumnStats().size());
-        Assert.assertTrue(tableExt.getTotalRows() > 0);
+        Assert.assertEquals(rows, tableExt.getTotalRows());
+        Assert.assertEquals(colStats, tableExt.getColumnStats().size());
+        Assert.assertEquals(segSize, tableExt.getLoadingRange().size());
     }
 
     @Test
@@ -678,7 +679,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN");
 
-        String targetSubject =job.getTargetSubject();
+        String targetSubject = job.getTargetSubject();
         Assert.assertEquals(modelAlias, targetSubject);
     }
 }
