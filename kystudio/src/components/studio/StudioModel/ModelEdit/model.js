@@ -47,7 +47,6 @@ class NModel {
           x.isCC = true
           x.cc = this.computed_columns[k]
         }
-        x.datatype = this.getColumnType(x.column)
         return x
       }
     })
@@ -217,6 +216,7 @@ class NModel {
         metaData.maintain_model_type = this._mount.maintain_model_type
         metaData.management_type = this.management_type
         metaData.canvas = this._generateTableRectData()
+        // metaData = _filterData(metaData)
         resolve(metaData)
       } catch (e) {
         reject(e)
@@ -295,7 +295,13 @@ class NModel {
     return result
   }
   _generateAllColumns () {
-    return [...this._mount.dimensions, ...this.tableIndexColumns]
+    let allNamedColumns = objectClone([...this._mount.dimensions, ...this.tableIndexColumns])
+    // 移除前端业务字断
+    allNamedColumns.forEach((col) => {
+      delete col.guid
+      delete col.table_guid
+    })
+    return allNamedColumns
   }
   _generateTableRectData () {
     let canvasInfo = {

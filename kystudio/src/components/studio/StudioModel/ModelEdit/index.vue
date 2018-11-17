@@ -90,7 +90,7 @@
             </div>
             <div class="panel-sub-title">
               <span @click="toggleCheckbox" :class="{'active': isShowCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
-              <span @click="batchSetDimension"><i class="el-icon-ksd-batch"></i></span>
+              <span @click="batchSetDimension"><i class="el-icon-ksd-backup"></i></span>
               <span @click="addCCDimension"><i class="el-icon-ksd-project_add"></i></span>
               <span class="ksd-fright batch-del" v-if="isShowCheckbox" @click="deleteDimenisons">
                 <el-tooltip :content="$t('kylinLang.common.delete')" placement="bottom" v-if="dimensionSelectedList.length>0">

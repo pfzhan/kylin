@@ -319,6 +319,7 @@ export default class DimensionsModal extends Vue {
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .dimension-modal{
+  cursor:default;
   .table-title {
     font-size: 14px;
     margin-left: 5px;

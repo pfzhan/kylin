@@ -14,7 +14,7 @@ class NTable {
     this.joinInfo = {} // 链接对象
     this.guid = sampleGuid() // identify id
     this.alias = options.alias || options.table // 别名
-    this._parent = options._parent
+    // this._parent = options._parent
     this.ST = null
     this.drawSize = Object.assign({}, { // 绘制信息
       left: 100,
@@ -31,7 +31,8 @@ class NTable {
       isInRightEdge: false,
       zIndex: zIndex++,
       sizeChangeCb: (x, y, sw, sh, dragInfo) => {
-        let left = dragInfo.left * (this._parent.zoom / 10) + this._parent.zoomXSpace
+        let _parent = options._parent
+        let left = dragInfo.left * (_parent.zoom / 10) + _parent.zoomXSpace
         if (left + dragInfo.width > sw - dragInfo.edgeOffset) {
           dragInfo.isInRightEdge = true
         } else if (left < dragInfo.edgeOffset) {
