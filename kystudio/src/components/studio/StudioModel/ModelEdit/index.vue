@@ -1487,6 +1487,7 @@ export default class ModelEdit extends Vue {
   .model-edit-outer{
     .model-edit {
       height: 100%;
+      position:relative;
     }
     .drag-bar {
       position:absolute;

@@ -220,7 +220,7 @@ export default class QueryHistoryTable extends Vue {
   }
 
   toAcce (event, row) {
-    this.markFav({project: this.currentSelectedProject, sqlPattern: row.sql_pattern, queryTime: row.query_time, queryStatus: row.query_status}).then((res) => {
+    this.markFav({project: this.currentSelectedProject, sql: row.sql_text, sqlPattern: row.sql_pattern, queryTime: row.query_time, queryStatus: row.query_status}).then((res) => {
       handleSuccess(res, () => {
         if (this._isDestroyed) {
           return
