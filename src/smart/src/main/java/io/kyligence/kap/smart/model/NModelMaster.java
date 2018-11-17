@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.query.util.ConvertToComputedColumn;
 import io.kyligence.kap.smart.NModelSelectProposer;
@@ -95,9 +96,14 @@ public class NModelMaster {
         int retryCount = 0;
         
         do {
-            int cntOriginCC = model.getComputedColumnDescs().size();
-            model = proposerProvider.getComputedColumnProposer().propose(model);
-            if (model.getComputedColumnDescs().size() == cntOriginCC) {
+            List<ComputedColumnDesc> originalCCs = Lists.newArrayList(model.getComputedColumnDescs());
+            try {
+                model = proposerProvider.getComputedColumnProposer().propose(model);
+            } catch (Exception e) {
+                LOGGER.error("Propose failed, will discard new computed columns.", e);
+                model.setComputedColumnDescs(originalCCs);
+            }
+            if (model.getComputedColumnDescs().size() == originalCCs.size()) {
                 break;
             }
             // New CC detected, need to rebuild ModelContext regarding new coming CC
@@ -128,6 +134,7 @@ public class NModelMaster {
             return;
         }
 
+        // Rebuild modelTrees and find match one to replace original
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(config,
                 sqls.toArray(new String[0]), 1, project, Lists.newArrayList(modelDesc))) {
             extractor.execute();

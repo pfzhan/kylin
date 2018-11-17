@@ -4,9 +4,9 @@ select
 	o_orderdate,
 	o_shippriority
 from
-    lineitem
-    inner join orders on l_orderkey = o_orderkey
-    inner join customer on c_custkey = o_custkey
+    tpch.lineitem
+    inner join tpch.orders on l_orderkey = o_orderkey
+    inner join tpch.customer on c_custkey = o_custkey
 where
 	c_mktsegment = 'BUILDING'
 	and o_orderdate < '1995-03-22'

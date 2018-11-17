@@ -13,7 +13,7 @@ select
 		else 0
 	end) as low_line_count
 from
-	lineitem inner join orders on o_orderkey = l_orderkey
+	tpch.lineitem inner join tpch.orders on o_orderkey = l_orderkey
 where
 	l_shipmode in ('REG AIR', 'MAIL')
 	and l_commitdate < l_receiptdate

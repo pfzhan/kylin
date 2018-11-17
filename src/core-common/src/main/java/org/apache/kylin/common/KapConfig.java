@@ -564,4 +564,8 @@ public class KapConfig {
         return config.getOptional("kylin.storage.columnar.separate-override-files",
                 "core-site.xml,hdfs-site.xml,yarn-site.xml");
     }
+
+    public boolean enableQueryPattern() {
+        return Boolean.valueOf(config.getOptional("kap.query.favorite.collect-as-pattern", "true"));
+    }
 }

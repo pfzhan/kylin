@@ -9,16 +9,16 @@ from
         s_name,
         l1.l_orderkey
     from
-        lineitem l1
-        inner join orders on l1.l_orderkey = o_orderkey
-        inner join supplier on l1.l_suppkey = s_suppkey
-        inner join nation on s_nationkey = n_nationkey
+        tpch.lineitem l1
+        inner join tpch.orders on l1.l_orderkey = o_orderkey
+        inner join tpch.supplier on l1.l_suppkey = s_suppkey
+        inner join tpch.nation on s_nationkey = n_nationkey
         inner join (
             select
                 l_orderkey,
                 count (distinct l_suppkey)
             from
-                lineitem inner join orders on l_orderkey = o_orderkey
+                tpch.lineitem inner join tpch.orders on l_orderkey = o_orderkey
             where
                 o_orderstatus = 'F'
             group by
@@ -31,7 +31,7 @@ from
                 l_orderkey,
                 count (distinct l_suppkey)
             from
-                lineitem inner join orders on l_orderkey = o_orderkey
+                tpch.lineitem inner join tpch.orders on l_orderkey = o_orderkey
             where
                 o_orderstatus = 'F'
                 and l_receiptdate > l_commitdate

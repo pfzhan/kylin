@@ -37,16 +37,17 @@ public class NAutoTpchTest extends NAutoTestBase {
     }
 
     //KAP#7892 fix this
-//    @Ignore
     @Test
     public void testTpch() throws Exception {
         kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
+        kylinConfig.setProperty("kylin.query.transformers", "io.kyligence.kap.query.util.ConvertToComputedColumn");
+        kylinConfig.setProperty("kap.query.favorite.collect-as-pattern", "false");
         /*
         * Reason for not using CompareLevel.SAME:
         * See #7257, #7268, #7269
         * Plus the precision difference between query cuboid and SparkSQL
         */
-        new TestScenario("sql_tpch", CompareLevel.SAME_ROWCOUNT).execute(false);
+        new TestScenario("sql_tpch", CompareLevel.SAME_ROWCOUNT).execute();
     }
 
     @Test

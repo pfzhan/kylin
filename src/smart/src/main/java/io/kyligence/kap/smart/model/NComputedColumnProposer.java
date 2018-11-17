@@ -97,7 +97,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                 ccDesc = new ComputedColumnDesc();
                 ccDesc.setColumnName(DEFAULT_CC_NAME);
                 ccDesc.setTableIdentity(rootTable.getTableIdentity());
-                ccDesc.setTableAlias(rootTable.getTableName());
+                ccDesc.setTableAlias(nDataModel.getRootFactTableAlias());
                 ccDesc.setComment("Auto suggested from: " + ccSuggestion);
                 ccDesc.setDatatype("ANY"); // resolve data type later
                 ccDesc.setExpression(ccSuggestion);
@@ -105,44 +105,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             }
             nDataModel.getComputedColumnDescs().add(ccDesc);
 
-            // Resolve CC name, Limit 99 retries to avoid infinite loop
-            int retryCount = 0;
-            boolean isValidCC = false;
-            while (retryCount < 99) {
-                retryCount++;
-                try {
-                    // Init model to check CC availability
-                    nDataModel.init(config, NTableMetadataManager.getInstance(config, project).getAllTablesMap(),
-                            otherModels, false);
-                    // No exception, check passed
-                    isValidCC = true;
-                    break;
-                } catch (BadModelException e) {
-                    switch (e.getCauseType()) {
-                    case SAME_NAME_DIFF_EXPR:
-                    case WRONG_POSITION_DUE_TO_NAME:
-                    case SELF_CONFLICT:
-                        // updating CC auto index to resolve name conflict
-                        String ccName = ccDesc.getColumnName();
-                        ccDesc.setColumnName(increateIndex(ccName));
-                        break;
-                    case SAME_EXPR_DIFF_NAME:
-                        ccDesc.setColumnName(e.getAdvise());
-                        break;
-                    case WRONG_POSITION_DUE_TO_EXPR:
-                    case LOOKUP_CC_NOT_REFERENCING_ITSELF:
-                        LOGGER.debug("Bad CC suggestion: {}", ccDesc.getExpression(), e);
-                        retryCount = 99; // fail directly
-                        break;
-                    default:
-                        break;
-                    }
-                } catch (Exception e) {
-                    LOGGER.debug("Check CC with model failed", e);
-                    break; // break loop
-                }
-            }
-
+            boolean isValidCC = resolveCCName(ccDesc, nDataModel, otherModels);
             if (isValidCC) {
                 validCCs.add(ccDesc);
                 modelContext.getSmartContext().getUsedCC().put(ccDesc.getExpression(), ccDesc);
@@ -165,18 +128,14 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             }
         } catch (Exception e) {
             // Fail directly if error in validating SQL
-            String msg = e.getMessage();
-            if (e.getCause() != null) {
-                msg = e.getCause().getMessage();
-            }
             throw new IllegalStateException(
-                    "Auto model failed to evaluate CC " + cols + ", suggested CC expression not valid: \n" + msg, e);
+                    "Auto model failed to evaluate CC " + cols + ", suggested CC expression not valid.", e);
         }
     }
-    
+
     private Set<String> collectComputedColumnSuggestion(NModelContext modelContext, NDataModel nDataModel) {
         Set<String> ccSuggestions = Sets.newHashSet();
-        
+
         ModelTree modelTree = modelContext.getModelTree();
         String project = modelContext.getSmartContext().getProject();
 
@@ -217,6 +176,49 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         String sql = context.sql;
         ComputedColumnAdvisor advisor = new ComputedColumnAdvisor();
         return advisor.suggestCandidate(project, nDataModel, sql);
+    }
+    
+    private boolean resolveCCName(ComputedColumnDesc ccDesc, NDataModel nDataModel, 
+            List<NDataModel> otherModels) {
+        KylinConfig config = getModelContext().getSmartContext().getKylinConfig();
+        String project = getModelContext().getSmartContext().getProject();
+
+        // Resolve CC name, Limit 99 retries to avoid infinite loop
+        int retryCount = 0;
+        while (retryCount < 99) {
+            retryCount++;
+            try {
+                // Init model to check CC availability
+                nDataModel.init(config, NTableMetadataManager.getInstance(config, project).getAllTablesMap(),
+                        otherModels, false);
+                // No exception, check passed
+                return true;
+            } catch (BadModelException e) {
+                switch (e.getCauseType()) {
+                case SAME_NAME_DIFF_EXPR:
+                case WRONG_POSITION_DUE_TO_NAME:
+                case SELF_CONFLICT:
+                    // updating CC auto index to resolve name conflict
+                    String ccName = ccDesc.getColumnName();
+                    ccDesc.setColumnName(increateIndex(ccName));
+                    break;
+                case SAME_EXPR_DIFF_NAME:
+                    ccDesc.setColumnName(e.getAdvise());
+                    break;
+                case WRONG_POSITION_DUE_TO_EXPR:
+                case LOOKUP_CC_NOT_REFERENCING_ITSELF:
+                    LOGGER.debug("Bad CC suggestion: {}", ccDesc.getExpression(), e);
+                    retryCount = 99; // fail directly
+                    break;
+                default:
+                    break;
+                }
+            } catch (Exception e) {
+                LOGGER.debug("Check CC with model failed", e);
+                break; // break loop
+            }
+        }
+        return false;
     }
 
     private static String increateIndex(String oldAlias) {

@@ -390,10 +390,10 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     }
 
     @Override
-    protected void executeTestScenario(boolean useQueryPattern, TestScenario... tests) throws Exception {
+    protected void executeTestScenario(TestScenario... tests) throws Exception {
         if ("true".equals(System.getProperty("skipAutoModelingCI"))) { // -DskipAutoModelingCI=true
             return;
         }
-        super.executeTestScenario(useQueryPattern, tests);
+        super.executeTestScenario(tests);
     }
 }

@@ -11,14 +11,14 @@ from
 				else 0
 			end as peru_volumn
 		from
-	    	lineitem
-		    inner join part on l_partkey = p_partkey
-		    inner join supplier on l_suppkey = s_suppkey
-			inner join orders on l_orderkey = o_orderkey
-			inner join customer on o_custkey = c_custkey
-		    inner join nation n1 on c_nationkey = n1.n_nationkey
-		    inner join nation n2 on s_nationkey = n2.n_nationkey
-		    inner join region on n1.n_regionkey = r_regionkey
+	    	tpch.lineitem
+		    inner join tpch.part on l_partkey = p_partkey
+		    inner join tpch.supplier on l_suppkey = s_suppkey
+			inner join tpch.orders on l_orderkey = o_orderkey
+			inner join tpch.customer on o_custkey = c_custkey
+		    inner join tpch.nation n1 on c_nationkey = n1.n_nationkey
+		    inner join tpch.nation n2 on s_nationkey = n2.n_nationkey
+		    inner join tpch.region on n1.n_regionkey = r_regionkey
 		where
 			r_name = 'AMERICA'
 			and o_orderdate between '1995-01-01' and '1996-12-31'

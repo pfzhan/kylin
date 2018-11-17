@@ -1,7 +1,7 @@
 select
 	sum(l_extendedprice* (1 - l_discount)) as revenue
 from
-	lineitem inner join part on p_partkey = l_partkey
+	tpch.lineitem inner join tpch.part on p_partkey = l_partkey
 where
 	(
 		p_brand = 'Brand#32'

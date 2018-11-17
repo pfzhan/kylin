@@ -3,7 +3,7 @@ select
 	l_orderkey,
 	sum(l_quantity) as t_sum_quantity
 from
-	lineitem
+	tpch.lineitem
 where
 	l_orderkey is not null
 group by
@@ -17,10 +17,10 @@ select
 	o_totalprice,
 	sum(l_quantity)
 from
-	customer,
-	orders,
+	tpch.customer,
+	tpch.orders,
 	q18_tmp_cached t,
-	lineitem l
+	tpch.lineitem l
 where
 	c_custkey = o_custkey
 	and o_orderkey = t.l_orderkey

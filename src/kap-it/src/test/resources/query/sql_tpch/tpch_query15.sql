@@ -3,7 +3,7 @@ select
 	l_suppkey as supplier_no,
 	sum(l_extendedprice * (1 - l_discount)) as total_revenue
 from
-	lineitem
+	tpch.lineitem
 where
 	l_shipdate >= '1996-01-01'
 	and l_shipdate < '1996-04-01'
@@ -22,7 +22,7 @@ select
 	s_phone,
 	total_revenue
 from
-	supplier,
+	tpch.supplier,
 	revenue_cached,
 	max_revenue_cached
 where

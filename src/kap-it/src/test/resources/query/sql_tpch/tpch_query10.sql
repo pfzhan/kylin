@@ -8,10 +8,10 @@ select
 	c_phone,
 	c_comment
 from
-    lineitem
-    inner join orders on l_orderkey = o_orderkey
-	inner join customer on c_custkey = o_custkey
-    inner join nation on c_nationkey = n_nationkey
+    tpch.lineitem
+    inner join tpch.orders on l_orderkey = o_orderkey
+	inner join tpch.customer on c_custkey = o_custkey
+    inner join tpch.nation on c_nationkey = n_nationkey
 where
 	c_custkey = o_custkey
 	and l_orderkey = o_orderkey

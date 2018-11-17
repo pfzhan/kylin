@@ -57,7 +57,7 @@ import lombok.Getter;
 
 public class NAutoTestBase extends NLocalWithSparkSessionTest {
     private static final Logger logger = LoggerFactory.getLogger(NAutoTestBase.class);
-    protected static KylinConfig kylinConfig;
+    protected KylinConfig kylinConfig;
     private static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/query";
     Map<String, String> systemProp = Maps.newHashMap();
     @Before
@@ -151,24 +151,18 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         }
         
         public void execute() throws Exception {
-            execute(true);
-        }
-
-        public void execute(boolean useQueryPattern) throws Exception {
-            executeTestScenario(useQueryPattern, this);
+            executeTestScenario(this);
         }
     }
 
-    protected void executeTestScenario(boolean useQueryPattern, TestScenario... tests) throws Exception {
+    protected void executeTestScenario(TestScenario... tests) throws Exception {
 
         List<Pair<String, String>> cubeQueries = Arrays.stream(tests).flatMap(t -> t.queries.stream())
                 .map(p -> new Pair<>(p.getFirst(), p.getSecond()))
                 .collect(Collectors.toList());
-        if (useQueryPattern) {
-            for (Pair<String, String> pair : cubeQueries) {
-                String query = pair.getSecond();
-                pair.setSecond(QueryPatternUtil.normalizeSQLPattern(query));
-            }
+        for (Pair<String, String> pair : cubeQueries) {
+            String query = pair.getSecond();
+            pair.setSecond(QueryPatternUtil.normalizeSQLPattern(query));
         }
         buildCubeWithSparkSession(cubeQueries);
 
@@ -188,6 +182,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         }
 
         kapSparkSession.close();
+        FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
     }
 
     protected NSmartMaster proposeCubeWithSmartMaster(List<Pair<String, String>> queries)

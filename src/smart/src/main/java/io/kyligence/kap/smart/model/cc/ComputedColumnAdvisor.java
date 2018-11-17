@@ -68,7 +68,7 @@ public class ComputedColumnAdvisor {
         try {
             selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
         } catch (SqlParseException e) {
-            LOGGER.warn("Advice CC failed, error in visiting subqueries", e);
+            LOGGER.warn("Advice CC failed, error in visiting subqueries, {}", e.getMessage());
             return Lists.newArrayList();
         }
 
@@ -77,11 +77,14 @@ public class ComputedColumnAdvisor {
         for (SqlCall selectOrOrderby : selectOrOrderbys) {
             // Parse query to locate CC expression
             SqlSelect sqlSelect = KapQueryUtil.extractSqlSelect(selectOrOrderby);
+            if (sqlSelect == null) {
+                continue;
+            }
             QueryAliasMatchInfo info = null;
             try {
                 info = queryAliasMatcher.match(modelDesc, sqlSelect);
             } catch (Exception e) {
-                LOGGER.warn("Advice CC failed, error in analyzing query alias, {}", sqlSelect, e);
+                LOGGER.warn("Advice CC failed, error in analyzing query alias, {}, {}", sqlSelect, e.getMessage());
             }
             if (info == null) {
                 // Skip parent query if not directly access table

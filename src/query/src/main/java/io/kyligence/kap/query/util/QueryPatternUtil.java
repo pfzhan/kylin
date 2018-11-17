@@ -41,7 +41,10 @@
  */
 package io.kyligence.kap.query.util;
 
-import com.google.common.collect.Sets;
+import java.util.List;
+import java.util.Set;
+
+import org.apache.calcite.avatica.util.TimeUnit;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
@@ -59,13 +62,12 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.DateString;
-import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.Sets;
 
 public class QueryPatternUtil {
 
@@ -80,6 +82,13 @@ public class QueryPatternUtil {
 
     private QueryPatternUtil() {
         throw new IllegalStateException("Wrong usage for utility class.");
+    }
+    
+    public static String normalizeSQLPattern(String sqlToNormalize) {
+        if (!KapConfig.getInstanceFromEnv().enableQueryPattern()) {
+            return sqlToNormalize;
+        }
+        return normalizeSQLPatternImpl(sqlToNormalize);
     }
 
     /**
@@ -100,7 +109,7 @@ public class QueryPatternUtil {
      * @return               normalized SQL statement in uppercase
      * @throws SqlParseException if there is a parsing error
      */
-    public static String normalizeSQLPattern(String sqlToNormalize) {
+    static String normalizeSQLPatternImpl(String sqlToNormalize) {
         SqlNode sqlNode;
         try {
             sqlNode = CalciteParser.parse(sqlToNormalize);

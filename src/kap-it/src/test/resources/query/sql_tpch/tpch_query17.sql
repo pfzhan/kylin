@@ -1,11 +1,11 @@
 with q17_part as (
-  select p_partkey from part where  
+  select p_partkey from tpch.part where  
   p_brand = 'Brand#23'
   and p_container = 'MED BOX'
 ),
 q17_avg as (
   select l_partkey as t_partkey, 0.2 * avg(l_quantity) as t_avg_quantity
-  from lineitem 
+  from tpch.lineitem 
   where l_partkey IN (select p_partkey from q17_part)
   group by l_partkey
 ),
@@ -15,7 +15,7 @@ q17_price as (
   l_partkey,
   l_extendedprice
   from
-  lineitem
+  tpch.lineitem
   where
   l_partkey IN (select p_partkey from q17_part)
 )

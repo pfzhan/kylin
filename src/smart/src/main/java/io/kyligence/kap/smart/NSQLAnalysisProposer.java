@@ -53,7 +53,7 @@ class NSQLAnalysisProposer extends NAbstractProposer {
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(context.getKylinConfig(),
                 context.getProject(), context.getSqls(), 1)) {
             extractor.execute();
-            context.logFailedQuery(extractor);
+            logFailedQuery(extractor);
             List<ModelTree> modelTrees = new GreedyModelTreesBuilder(context.getKylinConfig(), context.getProject())
                     .build(Arrays.asList(context.getSqls()), extractor.getAllOLAPContexts(), null);
             context.setModelContexts(

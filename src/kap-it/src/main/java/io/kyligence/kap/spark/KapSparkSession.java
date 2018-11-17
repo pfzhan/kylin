@@ -40,6 +40,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.query.schema.OLAPSchemaFactory;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -60,8 +61,6 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
-
-//import io.kyligence.kap.smart.NSmartController;
 
 @SuppressWarnings("serial")
 public class KapSparkSession extends SparkSession {
@@ -140,6 +139,7 @@ public class KapSparkSession extends SparkSession {
     }
 
     public Dataset<Row> queryFromCube(String sqlText) {
+        sqlText = QueryUtil.massageSql(sqlText, project, 0, 0, "DEFAULT");
         return sql(sqlText);
     }
 

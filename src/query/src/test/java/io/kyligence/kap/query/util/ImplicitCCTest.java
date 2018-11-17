@@ -89,7 +89,7 @@ public class ImplicitCCTest {
         String s3 = "WITH a1 AS\n" + "  (SELECT * FROM t)\n" + "SELECT a1\n" + "FROM\n"
                 + "  (WITH a2 AS (SELECT * FROM t) \n" + "    SELECT a2 FROM t2)\n" + "ORDER BY c_customer_id";
 
-        Assert.assertEquals(3, SqlSubqueryFinder.getSubqueries(s1).size());
+        Assert.assertEquals(1, SqlSubqueryFinder.getSubqueries(s1).size());
         Assert.assertEquals(3, SqlSubqueryFinder.getSubqueries(s2).size());
         Assert.assertEquals(3, SqlSubqueryFinder.getSubqueries(s3).size());
     }

@@ -4,7 +4,7 @@ select
 	c_custkey,
 	substring(c_phone, 1, 2) as cntrycode
 from
-	customer
+	tpch.customer
 where
 	substring(c_phone, 1, 2) = '13' or
 	substring(c_phone, 1, 2) = '31' or
@@ -27,7 +27,7 @@ q22_orders_tmp_cached as (
 select
 	o_custkey
 from
-	orders
+	tpch.orders
 group by
 	o_custkey
 )

@@ -243,7 +243,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
             if (dimensionCandidate.isEmpty()) {
                 throw new IllegalStateException("Suggest no dimension");
             }
-            dimensionCandidate.forEach((colName, col) -> col.status = NDataModel.ColumnStatus.DIMENSION);
+            dimensionCandidate.forEach((colName, col) -> col.setStatus(NDataModel.ColumnStatus.DIMENSION));
 
             FunctionDesc countStar = CubeUtils.newCountStarFuncDesc(nDataModel);
             if (!measureCandidate.containsKey(countStar)) {

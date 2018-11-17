@@ -27,11 +27,11 @@ select
 	s_phone,
 	s_comment
 from
-	part,
-	partsupp,
-	supplier,
-	nation,
-	region,
+	tpch.part,
+	tpch.partsupp,
+	tpch.supplier,
+	tpch.nation,
+	tpch.region,
 	q2_min_ps_supplycost
 where
 	p_partkey = ps_partkey

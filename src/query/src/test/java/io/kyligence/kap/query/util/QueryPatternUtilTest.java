@@ -52,7 +52,7 @@ public class QueryPatternUtilTest {
                 + "TEMP_TEST__2143701310__0_, 1 X__ALIAS__0\n"
                 + "FROM TDVT.CALCS CALCS\n"
                 + "GROUP BY 1";
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         Assert.assertEquals(sql, actual);
     }
 
@@ -81,14 +81,14 @@ public class QueryPatternUtilTest {
                 + "HAVING SUM(PRICE) > 1) TABLEAUSQL\n"
                 + "GROUP BY 2\n"
                 + "HAVING COUNT(1) > 1";
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         Assert.assertEquals(expected, actual);
     }
 
     @Test
     public void testSelectNumericColumn() {
         String sql1 = "SELECT 1, 2, 3\nFROM A";
-        String actual1 = QueryPatternUtil.normalizeSQLPattern(sql1);
+        String actual1 = QueryPatternUtil.normalizeSQLPatternImpl(sql1);
         Assert.assertEquals(sql1, actual1);
 
         String sql2 = "SELECT 97 AS TEMP_Test__415603459__0_,\n"
@@ -98,7 +98,7 @@ public class QueryPatternUtilTest {
         String expected2 = "SELECT 97 TEMP_TEST__415603459__0_, 1 X__ALIAS__0\n"
                 + "FROM TDVT.CALCS CALCS\n"
                 + "GROUP BY 1";
-        String actual2 = QueryPatternUtil.normalizeSQLPattern(sql2);
+        String actual2 = QueryPatternUtil.normalizeSQLPatternImpl(sql2);
         Assert.assertEquals(expected2, actual2);
     }
 
@@ -106,7 +106,7 @@ public class QueryPatternUtilTest {
     public void testLiteralComparison() {
         String sql1 = "select ks.price as price, ks.part_dt as dt from kylin_sales as ks "
                 + "where NOT(ks.price <= 60.0) and ks.part_dt > '2012-02-05' and ks.name <> 'Baby'";
-        String actual1 = QueryPatternUtil.normalizeSQLPattern(sql1);
+        String actual1 = QueryPatternUtil.normalizeSQLPatternImpl(sql1);
 
         String expected1 = "SELECT KS.PRICE PRICE, KS.PART_DT DT\n"
                 + "FROM KYLIN_SALES KS\n"
@@ -115,7 +115,7 @@ public class QueryPatternUtilTest {
 
         String sql2 = "select ks.price > 50, ks.part_dt <= '2008-04-23' "
                 + "from kylin_sales as ks";
-        String actual2 = QueryPatternUtil.normalizeSQLPattern(sql2);
+        String actual2 = QueryPatternUtil.normalizeSQLPatternImpl(sql2);
         String expected2 = "SELECT KS.PRICE > 1, KS.PART_DT <= '2010-01-02'\nFROM KYLIN_SALES KS";
         Assert.assertEquals(expected2, actual2);
     }
@@ -127,7 +127,7 @@ public class QueryPatternUtilTest {
                 + "from sales.customer a, sales.customer b\n"
                 + "where (a.id <> b.id and a.city = b.city and a.country = b.country)\n";
 
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         String expected = "SELECT B.FIRSTNAME FIRSTNAME1, B.LASTNAME LASTNAME1, "
                 + "A.FIRSTNAME FIRSTNAME2, A.LASTNAME LASTNAME2, B.CITY, B.COUNTRY\n"
                 + "FROM SALES.CUSTOMER A,\n"
@@ -141,7 +141,7 @@ public class QueryPatternUtilTest {
     public void testStringComparison() {
         String sql = "select ks.price as price from kylin_sales as ks \n"
                 + "where ks.dt <= '200310' and ks.dt > '2012-02'";
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         String expected = "SELECT KS.PRICE PRICE\n"
                 + "FROM KYLIN_SALES KS\n"
                 + "WHERE KS.DT <= 'Z' AND KS.DT > 'A'";
@@ -158,8 +158,8 @@ public class QueryPatternUtilTest {
                 + "from kylin_sales as s inner join kylin_account a "
                 + "on s.name = a.name and s.price > 8000"
                 + "where s.account is not null";
-        String pattern1 = QueryPatternUtil.normalizeSQLPattern(sql1);
-        String pattern2 = QueryPatternUtil.normalizeSQLPattern(sql2);
+        String pattern1 = QueryPatternUtil.normalizeSQLPatternImpl(sql1);
+        String pattern2 = QueryPatternUtil.normalizeSQLPatternImpl(sql2);
         Assert.assertEquals(pattern1, pattern2);
     }
 
@@ -168,7 +168,7 @@ public class QueryPatternUtilTest {
         String sql0 = "select first_name, last_name from sales "
                 + "where phone_number not in (10, 20, 30) "
                 + "and last_name in ('Swift', 'Bloomberg')";
-        String actual0 = QueryPatternUtil.normalizeSQLPattern(sql0);
+        String actual0 = QueryPatternUtil.normalizeSQLPatternImpl(sql0);
         String expected0 = "SELECT FIRST_NAME, LAST_NAME\nFROM SALES\n"
                 + "WHERE PHONE_NUMBER NOT IN (1) "
                 + "AND LAST_NAME IN ('A')";
@@ -176,7 +176,7 @@ public class QueryPatternUtilTest {
         String sql1 = "select first_name, last_name from sales "
                 + "where phone_number not in (103952, 202342, 422583) "
                 + "and last_name in ('Sam', 'Jobs')";
-        String actual1 = QueryPatternUtil.normalizeSQLPattern(sql1);
+        String actual1 = QueryPatternUtil.normalizeSQLPatternImpl(sql1);
         Assert.assertEquals(actual0, actual1);
 
         String sql2 = "select sum(PRICE) as GMV, LSTG_FORMAT_NAME as FORMAT_NAME\n"
@@ -189,7 +189,7 @@ public class QueryPatternUtilTest {
                 + "WHERE LSTG_FORMAT_NAME IN ('A') OR LSTG_FORMAT_NAME >= 'A' "
                 + "AND LSTG_FORMAT_NAME <= 'Z'\n"
                 + "GROUP BY LSTG_FORMAT_NAME";
-        String actual2 = QueryPatternUtil.normalizeSQLPattern(sql2);
+        String actual2 = QueryPatternUtil.normalizeSQLPatternImpl(sql2);
         Assert.assertEquals(expected2, actual2);
 
         String sql3 = "SELECT ProductName\n"
@@ -202,7 +202,7 @@ public class QueryPatternUtilTest {
                 + "WHERE ID IN (SELECT PRODUCTID\n"
                 + "FROM ORDERITEM\n"
                 + "WHERE QUANTITY IN (1))";
-        String actual3 = QueryPatternUtil.normalizeSQLPattern(sql3);
+        String actual3 = QueryPatternUtil.normalizeSQLPatternImpl(sql3);
         Assert.assertEquals(expected3, actual3);
 
         String sql4 = "SELECT ProductName\n"
@@ -215,7 +215,7 @@ public class QueryPatternUtilTest {
                 + "WHERE ID IN ('A', (SELECT PRODUCTID\n"
                 + "FROM ORDERITEM\n"
                 + "WHERE QUANTITY IN (1)))";
-        String actual4 = QueryPatternUtil.normalizeSQLPattern(sql4);
+        String actual4 = QueryPatternUtil.normalizeSQLPatternImpl(sql4);
         Assert.assertEquals(expected4, actual4);
     }
 
@@ -234,7 +234,7 @@ public class QueryPatternUtilTest {
                 + "ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n"
                 + "WHERE META_CATEG_NAME NOT LIKE 'A' AND META_CATE_ID LIKE 'A'\n"
                 + "GROUP BY META_CATEG_NAME";
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         Assert.assertEquals(expected, actual);
     }
 
@@ -246,7 +246,7 @@ public class QueryPatternUtilTest {
                 + "and l_shipdate < '1994-01-01'\n"
                 + "and l_discount between 0.05 and 0.07\n"
                 + "and l_quantity < 25";
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         String expected = "SELECT SUM(L_EXTENDEDPRICE) - SUM(L_SALEPRICE) REVENUE\n"
                 + "FROM V_LINEITEM\n"
                 + "WHERE L_SHIPDATE >= DATE '2010-01-01' AND L_SHIPDATE < '2010-01-02' "
@@ -257,7 +257,7 @@ public class QueryPatternUtilTest {
     @Test
     public void testDistinct() {
         String sql = "SELECT distinct LSTG_FORMAT_NAME from test_kylin_fact";
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         String expected = "SELECT DISTINCT LSTG_FORMAT_NAME\n"
                 + "FROM TEST_KYLIN_FACT";
         Assert.assertEquals(expected, actual);
@@ -269,7 +269,7 @@ public class QueryPatternUtilTest {
                 + " FROM TEST_KYLIN_FACT \n"
                 + " inner JOIN EDW.TEST_CAL_DT AS TEST_CAL_DT ON (TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT) \n"
                 + " GROUP BY TEST_CAL_DT.WEEK_BEG_DT";
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         String expected = "SELECT TIMESTAMPADD(DAY, 1, WEEK_BEG_DT) X, WEEK_BEG_DT\n"
                 + "FROM TEST_KYLIN_FACT\n"
                 + "INNER JOIN EDW.TEST_CAL_DT TEST_CAL_DT ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n"
@@ -293,7 +293,7 @@ public class QueryPatternUtilTest {
                 + "SELECT KY.PRICE PRICE, KY.PART_DT DT\n"
                 + "FROM KYLIN_SALES KY\n"
                 + "WHERE KY.PRICE < 2 AND KY.PART_DT < DATE '2010-01-02'";
-        String actual = QueryPatternUtil.normalizeSQLPattern(unionSql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(unionSql);
         Assert.assertEquals(expected, actual);
     }
 
@@ -304,7 +304,7 @@ public class QueryPatternUtilTest {
                 + "where 40 >= ky.price and date '2015-08-22' < ky.part_dt "
                 + "and '2018-01-09' > ky.part_dt";
 
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         String expected = "SELECT KY.PRICE PRICE, KY.PART_DT DT\n"
                 + "FROM KYLIN_SALES KY\n"
                 + "WHERE 2 >= KY.PRICE AND DATE '2010-01-01' < KY.PART_DT "
@@ -335,7 +335,7 @@ public class QueryPatternUtilTest {
                 + "AND CHAR_LENGTH(LSTG_FORMAT_NAME) > 1 "
                 + "AND 'A' || LSTG_FORMAT_NAME || 'A' || 'A' || 'A' = 'A'\n"
                 + "GROUP BY LSTG_FORMAT_NAME";
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         Assert.assertEquals(expected, actual);
     }
 
@@ -352,7 +352,7 @@ public class QueryPatternUtilTest {
                 + "between '2013-01-07' and '2013-01-15' or cal_dt between '2012-01-01' and '2012-01-15'\n"
                 + "group by cal_dt, lstg_format_name)t\n"
                 + "where cal_dt between '2013-01-06' and '2013-01-15'";
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         String expected = "SELECT *\n"
                 + "FROM (SELECT CAL_DT, LSTG_FORMAT_NAME, SUM(PRICE) GMV, "
                 + "1 * SUM(PRICE) / (FIRST_VALUE(SUM(PRICE)) OVER (PARTITION BY LSTG_FORMAT_NAME "
@@ -380,7 +380,7 @@ public class QueryPatternUtilTest {
                 + "WHERE KS.PRICE > 1 AND KS.PART_DT > '2010-01-01') (SELECT A.PRICE, A.DT\n"
                 + "FROM A\n"
                 + "WHERE A.DT < '2010-01-02')";
-        String actual = QueryPatternUtil.normalizeSQLPattern(withSelect);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(withSelect);
         Assert.assertEquals(expected, actual);
     }
 
@@ -397,7 +397,7 @@ public class QueryPatternUtilTest {
                 + "FROM KYLIN_SALES KS\n"
                 + "WHERE KS.PRICE > 1 AND KS.PART_DT > '2010-01-01') A\n"
                 + "WHERE A.DT < '2010-01-02'";
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         Assert.assertEquals(expected, actual);
     }
 
@@ -407,7 +407,7 @@ public class QueryPatternUtilTest {
                 + "FROM KYLIN_SALES KS\n"
                 + "WHERE KS.PART_DT <= '2020-08-08' "
                 + "AND KS.PART_DT > date '2002-02-08'";
-        String actual = QueryPatternUtil.normalizeSQLPattern(sql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         String expected = "SELECT KS.PRICE PRICE, KS.PART_DT DT\n"
                 + "FROM KYLIN_SALES KS\n"
                 + "WHERE KS.PART_DT <= '2010-01-02' "
@@ -446,7 +446,7 @@ public class QueryPatternUtilTest {
                 + "    ) t2\n" //
                 + "    on t1.week_beg_dt = t2.week_beg_dt\n" //
                 + "where t1.week_beg_dt > '2012-08-23'";
-        String actual = QueryPatternUtil.normalizeSQLPattern(complexSql);
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(complexSql);
         String expected = "SELECT T1.WEEK_BEG_DT, T1.SUM_PRICE, T2.CNT\n"
                 + "FROM (SELECT TEST_CAL_DT.WEEK_BEG_DT, SUM(TEST_KYLIN_FACT.PRICE) SUM_PRICE\n"
                 + "FROM DB1.TEST_KYLIN_FACT TEST_KYLIN_FACT\n"
