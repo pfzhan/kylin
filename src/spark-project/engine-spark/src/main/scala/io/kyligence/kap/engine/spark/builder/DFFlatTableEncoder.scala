@@ -32,7 +32,6 @@ import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import scala.collection.JavaConverters._
 import scala.collection.mutable._
 
-// scalastyle:off
 object DFFlatTableEncoder extends Logging {
 
   def encode(df: DataFrame, seg: NDataSegment, config: KylinConfig): Dataset[Row] = {
@@ -73,7 +72,6 @@ object DFFlatTableEncoder extends Logging {
                 val objects = new Array[Any](rowFields.size)
                 for (i <- rowFields.indices) {
                   if (i == columnIndex) {
-                    println("encode value -->" + rowFields.apply(i) + ", code -->" + bucketDict.encode(rowFields.apply(i)))
                     objects(i) = bucketDict.encode(rowFields.apply(i))
                   } else objects(i) = rowFields.apply(i)
                 }
