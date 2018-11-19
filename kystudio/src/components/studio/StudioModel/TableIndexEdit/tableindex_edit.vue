@@ -1,62 +1,41 @@
 <template>
   <!-- tableindex的添加和编辑 -->
   <el-dialog :title="$t('editTableIndexTitle')" append-to-body class="table-edit-dialog" width="880px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
-      <el-form :model="tableIndexMeta" :rules="rules" ref="tableIndexForm" label-position="top" >
+      <el-form :model="tableIndexMeta" :rules="rules" ref="tableIndexForm" label-position="top">
         <el-form-item :label="$t('tableIndexName')" prop="name">
-          <el-input v-model="tableIndexMeta.name" auto-complete="off" size="medium" style="width:500px"></el-input>
+          <el-input v-model="tableIndexMeta.name" auto-complete="off" placeholder="" size="medium" style="width:500px"></el-input>
         </el-form-item>
       </el-form>
       <div class="ky-line"></div>
       <div class="ksd-mt-20">
         <el-button type="primary" plain size="medium" @click="selectAll">{{$t('selectAllColumns')}}</el-button><el-button plain size="medium" @click="clearAll">{{$t('clearAll')}}</el-button>
-        <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" class="ksd-fright" style="width:200px" placeholder="请输入内容"></el-input>
-         <el-table class="ksd-mt-10"
-          :data="searchAllColumns"
-          type=index
-          border
-          @cell-click="cellClick"
-          height="450"
-          :row-class-name="tableRowClassName"
-          style="width: 100%">
-          <el-table-column
-            prop="fullName"
-            :label="$t('kylinLang.model.columnName')">
-          </el-table-column>
-          <el-table-column
-            align="center"
-            prop="isUsed"
-            :label="$t('tableIndex')"
-            width="120">
-            <template slot-scope="scope">
-              <i class="el-icon-success" :class="{active: scope.row.isUsed}" @click.stop="toggleDisplay(scope.row)"></i>
-            </template>
-          </el-table-column>
-          <el-table-column
-            align="center"
-            prop="isSorted"
-            label="Sort"
-            width="120">
-            <template slot-scope="scope">
-              <div class="action-list">
-                <span class="ky-dot-tag" v-if="scope.row.isUsed" :class="{'no-sorted': !scope.row.isSorted}"  @click.stop="toggleSort(scope.row)">{{scope.row.isSorted ? getRowIndex(scope.row, 'fullName') + 1 : 1}}</span>
-                <!-- <span v-if="scope.row.isUsed && scope.row.isSorted">{{scope.$index + 1}}</span> -->
+        <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" class="ksd-fright" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
+       <el-row class="table-header table-row ksd-mt-10">
+         <el-col :span="12">{{$t('kylinLang.model.columnName')}}</el-col>
+         <el-col :span="4">{{$t('tableIndex')}}</el-col>
+         <el-col :span="4">Sort</el-col>
+         <el-col :span="4">Shard</el-col>
+       </el-row>
+       <div class="table-content" v-scroll>
+         <transition-group name="flip-list" tag="div">
+          <el-row v-for="col in searchAllColumns" :key="col.fullName" class="table-row" :class="tableRowClassName(col)">
+            <el-col :span="12">{{col.fullName}}</el-col>
+            <el-col :span="4" @click.native="toggleDisplay(col)"><i class="el-icon-success" :class="{active: col.isUsed}" ></i></el-col>
+            <el-col :span="4" >
+              <div class="action-list" @click="toggleSort(col)" v-if="!(sortCount >= 9 && getRowIndex(col, 'fullName') + 1 > 9)">
+                <span class="ky-dot-tag" v-if="col.isUsed" :class="{'no-sorted': !col.isSorted}">{{col.isSorted ? getRowIndex(col, 'fullName') + 1 : sortCount + 1}}</span>
                 <span class="up-down" :class="{hide: searchColumn}">
-                  <i v-visible="scope.row.isUsed && scope.row.isSorted && scope.$index !== 0" @click.stop="upRow(scope.$index)" class="el-icon-ksd-arrow_up"></i>
-                  <i v-visible="scope.row.isUsed && scope.row.isSorted && allColumns[scope.$index+1] && allColumns[scope.$index+1].isSorted" @click.stop="downRow(scope.$index)" class="el-icon-ksd-arrow_down"></i>
+                  <i v-visible="col.isUsed && col.isSorted && !checkIsTopSort(col)" @click.stop="upRow(col)" class="el-icon-ksd-arrow_up"></i>
+                  <i v-visible="col.isUsed && col.isSorted && !checkIsBottomSort(col)" @click.stop="downRow(col)" class="el-icon-ksd-arrow_down"></i>
                 </span>
               </div>
-            </template>
-          </el-table-column>
-          <el-table-column
-            align="center"
-            prop="isShared"
-            label="Shard"
-            width="120">
-            <template slot-scope="scope">
-              <i class="el-icon-success" v-if="scope.row.isUsed" :class="{active: scope.row.isShared}"  @click.stop="toggleShard(scope.row)"></i>
-            </template>
-          </el-table-column>
-        </el-table>
+            </el-col>
+            <el-col :span="4" @click.native="toggleShard(col)">
+              <i class="el-icon-success" v-if="col.isUsed" :class="{active: col.isShared}"></i>
+            </el-col>
+        </el-row>
+       </transition-group>
+       </div>
       </div>
       <div slot="footer" class="dialog-footer">
         <el-checkbox v-model="tableIndexMeta.load_data" :label="true" class="ksd-fleft ksd-mt-8">{{$t('catchup')}}</el-checkbox>
@@ -123,34 +102,40 @@
         {validator: this.checkName, trigger: 'blur'}
       ]
     }
-    cellClick (row, column) {
-      if (column.property === 'isUsed') {
-        this.toggleDisplay(row)
-      } else if (column.property === 'isSorted') {
-        if (row.isUsed) {
-          this.toggleSort(row)
-        }
-      } else if (column.property === 'isShared') {
-        if (row.isUsed) {
-          this.toggleShard(row)
-        }
-      }
-    }
-    upRow (i) {
-      let t = this.allColumns[i]
-      this.allColumns.splice(i - 1, 0, t)
+    upRow (col) {
+      let i = this.getRowIndex(col, 'fullName')
+      this.allColumns.splice(i - 1, 0, col)
       this.allColumns.splice(i + 1, 1)
     }
-    downRow (i) {
-      let t = this.allColumns[i]
-      this.allColumns.splice(i + 2, 0, t)
+    downRow (col) {
+      let i = this.getRowIndex(col, 'fullName')
+      this.allColumns.splice(i + 2, 0, col)
       this.allColumns.splice(i, 1)
     }
-    tableRowClassName ({row}) {
+    tableRowClassName (row) {
       return row.colorful || row.isSorted ? 'row-colorful' : ''
     }
     getRowIndex (t, key) {
       return indexOfObjWithSomeKey(this.allColumns, key, t[key])
+    }
+    checkIsTopSort (col) {
+      let i = this.getRowIndex(col, 'fullName')
+      if (i === 0 && col.isSorted) {
+        return true
+      }
+    }
+    checkIsBottomSort (col) {
+      let i = this.getRowIndex(col, 'fullName')
+      let nextCol = this.allColumns[i + 1]
+      if (nextCol && !nextCol.isSorted && col.isSorted) {
+        return true
+      }
+    }
+    get sortCount () {
+      if (!this.isShow) {
+        return
+      }
+      return filterObjectArray(this.allColumns, 'isSorted', true).length
     }
     toggleDisplay (t) {
       let i = this.getRowIndex(t, 'fullName')
@@ -166,50 +151,33 @@
     // 切换sort状态的列，并带模拟缓动效果
     toggleSort (t, index) {
       let i = index === undefined ? this.getRowIndex(t, 'fullName') : index
+      let sortedLen = filterObjectArray(this.allColumns, 'isSorted', true).length
       if (!t.isSorted) {
-        let sortedLen = filterObjectArray(this.allColumns, 'isSorted', true).length
         if (sortedLen >= 9) {
-          kapMessage('最多只能加9列', {type: 'warning'})
+          kapMessage(this.$t('sortLimitTip'), {type: 'warning'})
           return
         }
-        if (i !== 0) {
-          this.allColumns.splice(i, 1, {})
-          setTimeout(() => {
-            this.allColumns.splice(i, 1)
-            this.allColumns.unshift({})
-          }, 300)
-          setTimeout(() => {
-            this.allColumns.shift()
-            this.allColumns.unshift(t)
-          }, 600)
-        }
+        this.allColumns.splice(i, 1)
+        this.allColumns.splice(sortedLen, 0, t)
       } else {
         let s = indexOfObjWithSomeKey(this.allColumns, 'isSorted', false)
         if (s === -1) {
           s = this.allColumns.length
         }
-        this.allColumns.splice(i, 1, {})
-        setTimeout(() => {
-          this.allColumns.splice(i, 1)
-        }, 400)
-        setTimeout(() => {
-          this.allColumns.splice(s - 1, 0, {colorful: true})
-        }, 600)
-        setTimeout(() => {
-          t.colorful = true
-          this.allColumns.splice(s - 1, 1, t)
-          setTimeout(() => {
-            t.colorful = false
-          }, 400)
-        }, 800)
+        this.allColumns.splice(i, 1)
+        this.allColumns.splice(sortedLen - 1, 0, t)
       }
       t.isSorted = !t.isSorted
     }
     toggleShard (t) {
+      let shardStatus = t.isShared
       changeObjectArrProperty(this.allColumns, '*', 'isShared', false)
-      t.isShared = !t.isShared
+      t.isShared = !shardStatus
     }
     get searchAllColumns () {
+      if (!this.isShow) {
+        return
+      }
       return this.allColumns.filter((col) => {
         return !this.searchColumn || col.fullName.toUpperCase().indexOf(this.searchColumn.toUpperCase()) >= 0
       })
@@ -326,6 +294,39 @@
 <style lang="less">
   @import '../../../../assets/styles/variables.less';
   .table-edit-dialog {
+    .table-header {
+      .el-col {
+        border-top: 1px solid @line-border-color;
+        background-color: @modeledit-bg-color;
+        font-weight:@font-medium;
+      }
+    }
+    .table-row {
+      height:48px;
+      .el-col {
+        height:48px;
+        border-right: 1px solid @line-border-color;
+        border-bottom: 1px solid @line-border-color;
+        line-height:48px;
+        text-align:center;
+        &:nth-child(1) {
+          border-left: 1px solid @line-border-color;
+        }
+      }
+    }
+    .table-content {
+      height:400px;
+      .el-row {
+         &:hover {
+          .el-col {
+            background-color:@base-color-9;
+          }
+        }
+      }
+    }
+    .flip-list-move {
+      transition: transform .5s;
+    }
     .action-list {
       position:relative;
       .up-down {
