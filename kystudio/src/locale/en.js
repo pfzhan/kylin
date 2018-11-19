@@ -297,6 +297,7 @@ exports.default = {
     isCubeHit: 'If Hit Cache:',
     queryId: 'Query ID:',
     to: 'To',
+    type: 'Type',
     startTime_th: 'Start Time',
     latency_th: 'Duration',
     realization_th: 'Answered By',

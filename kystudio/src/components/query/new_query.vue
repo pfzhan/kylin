@@ -229,7 +229,7 @@ export default class NewQuery extends Vue {
   }
   changeLimit () {
     if (this.hasLimit) {
-      this.listRows = 50000
+      this.listRows = 500
     } else {
       this.listRows = 0
     }

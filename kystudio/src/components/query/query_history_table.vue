@@ -89,7 +89,7 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.query.submitter')" prop="submitter" header-align="center" width="200">
+      <el-table-column :label="$t('kylinLang.query.submitter')" prop="submitter" align="center" width="200">
       </el-table-column>
       <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="120">
         <template slot-scope="props">

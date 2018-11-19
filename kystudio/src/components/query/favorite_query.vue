@@ -100,6 +100,8 @@
       ref="favoriteTable"
       style="width: 100%">
       <el-table-column :label="$t('kylinLang.query.sqlContent_th')" prop="sql_pattern" header-align="center" show-overflow-tooltip></el-table-column>
+      <el-table-column :label="$t('kylinLang.query.type')" prop="channel" sortable align="center" width="135">
+      </el-table-column>
       <el-table-column :label="$t('kylinLang.query.lastModefied')" prop="last_query_time" sortable header-align="center" width="210">
         <template slot-scope="props">
           {{transToGmtTime(props.row.last_query_time)}}
@@ -747,6 +749,7 @@ export default class FavoriteQuery extends Vue {
     this.activeIndex = -1
     this.inputHeight = 564
     this.blackSql = ''
+    this.isEditSql = false
     this.getBlackList()
   }
 
@@ -773,6 +776,7 @@ export default class FavoriteQuery extends Vue {
   openWhiteList () {
     this.whiteListVisible = true
     this.activeIndex = 0
+    this.isEditSql = false
     setTimeout(() => {
       this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(true)
     }, 0)
