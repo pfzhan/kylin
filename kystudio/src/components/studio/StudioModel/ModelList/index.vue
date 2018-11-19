@@ -268,6 +268,7 @@ export default class ModelList extends Vue {
         modelDesc: cloneModelDesc
       }).then((res) => {
         if (res.isSubmit) {
+          modelDesc.project = this.currentSelectedProject
           this.handleSaveModel(modelDesc)
         }
       })

@@ -6,7 +6,7 @@
           <img v-show="!briefMenuGet" src="../../assets/img/big_logo.png" class="logo" @click="goHome">
           <img v-show="briefMenuGet" src="../../assets/img/small_logo.png" class="logo" @click="goHome">
           <div class="ky-line"></div>
-          <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" unique-opened router :collapse="briefMenuGet">
+          <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" @open="clearMenu" unique-opened router :collapse="briefMenuGet">
             <template v-for="(item,index) in menus">
               <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
                 <i :class="item.icon" class="ksd-fs-16"></i>
@@ -280,11 +280,12 @@ export default class LayoutLeftRightTop extends Vue {
       handleError(res)
     })
   }
+  flyer = null
   flyEvent (event) {
     var targetArea = $('#monitor')
     var targetDom = targetArea.find('.menu-icon')
     var offset = targetDom.offset()
-    var flyer = $('<span class="fly-box"></span>')
+    this.flyer = $('<span class="fly-box"></span>')
     let leftOffset = 64
     if (this.$lang === 'en') {
       leftOffset = 74
@@ -292,7 +293,7 @@ export default class LayoutLeftRightTop extends Vue {
     if (this.briefMenuGet) {
       leftOffset = 20
     }
-    flyer.fly({
+    this.flyer.fly({
       start: {
         left: event.pageX,
         top: event.pageY
@@ -310,14 +311,16 @@ export default class LayoutLeftRightTop extends Vue {
             targetDom.removeClass('rotateY')
             targetDom.fadeTo('fast', 1)
           })
-          flyer.fadeOut(1500, () => {
-            flyer.remove()
+          this.flyer.fadeOut(1500, () => {
+            this.flyer.remove()
           })
         }, 3000)
       }
     })
   }
-
+  clearMenu () {
+    this.flyer && this.flyer.remove()
+  }
   created () {
     // this.reloadRouter()
     this.defaultActive = this.$route.path || '/overview'

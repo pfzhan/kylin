@@ -131,7 +131,7 @@ exports.default = {
     saveDraft: '系统正在响应保存草稿的请求，请稍后。',
     streamingConnectHiveError: '尚不支持Hive表与Streaming表关联。',
     seeDetail: '详情',
-    notConnectServer: '目前无法连接到KAP。请检查您的网络连接状况和KAP服务器运行状态。',
+    notConnectServer: '目前无法连接到Kyligence Enterprise, 请检查您的网络连接状况和Kyligence Enterprise服务器运行状态。',
     timeOut: '请求超时！',
     willClose: '未保存的信息可能丢失，您是否继续关闭?',
     overwriteWarnTip: '当前操作将覆盖之前的结果，您确认要继续吗？',
