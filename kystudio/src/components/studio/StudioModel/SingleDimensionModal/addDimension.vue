@@ -12,7 +12,7 @@
           <el-input v-model="dimensionInfo.name" ></el-input>
         </el-form-item>
         <el-form-item :label="$t('dimensionCandidate')" prop="column">
-          <el-select filterable style="width:350px" place-holder="" :disabled="showCC" v-model="dimensionInfo.column">
+          <el-select filterable style="width:350px" :placeholder="$t('kylinLang.common.pleaseSelect')" :disabled="showCC" v-model="dimensionInfo.column">
             <el-option-group
               v-for="(columns, key) in allColumnsGroup"
               :key="key"

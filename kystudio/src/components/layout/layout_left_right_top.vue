@@ -118,7 +118,7 @@
       </el-row>
       <div slot="footer" class="dialog-footer">
         <el-button size="medium" @click="ignoreSpeed" :loading="btnLoadingCancel">{{$t('ignore')}}</el-button>
-        <el-button size="medium" type="primary" plain @click="applySpeed" :loading="btnLoading">{{$t('apply')}}</el-button>
+        <el-button size="medium" type="primary" plain @click="applySpeed" :loading="applyBtnLoading">{{$t('apply')}}</el-button>
       </div>
     </el-dialog>
   </div>
@@ -227,7 +227,7 @@ export default class LayoutLeftRightTop extends Vue {
   }
   menus = menusData
   resetPasswordFormVisible = false
-  btnLoading = false
+  applyBtnLoading = false
   btnLoadingCancel = false
   rotateVisibel = false
 
@@ -251,7 +251,7 @@ export default class LayoutLeftRightTop extends Vue {
     if (!this.currentSelectedProject) {
       return
     }
-    var loadingName = loadingname || 'btnLoading'
+    var loadingName = loadingname || 'applyBtnLoading'
     this.getSpeedInfo(this.currentSelectedProject).then(() => {
       this[loadingName] = false
     }, (res) => {
@@ -260,12 +260,12 @@ export default class LayoutLeftRightTop extends Vue {
     })
   }
   applySpeed (event) {
-    this.btnLoading = true
+    this.applyBtnLoading = true
     this.applySpeedInfo({size: this.modelSpeedEvents, project: this.currentSelectedProject}).then(() => {
       this.flyEvent(event)
       this.loadSpeedInfo()
     }, (res) => {
-      this.btnLoading = false
+      this.applyBtnLoading = false
       handleError(res)
     })
   }
@@ -571,7 +571,14 @@ export default class LayoutLeftRightTop extends Vue {
   ST = null
   loadCircleSpeedInfo () {
     if (this.currentSelectedProject) {
-      return this.getSpeedInfo(this.currentSelectedProject)
+      // 如果apply活着ignore接口还在进行中，先暂停轮训的请求发送
+      if (this.applyBtnLoading || this.btnLoadingCancel) {
+        return new Promise((resolve) => {
+          resolve()
+        })
+      } else {
+        return this.getSpeedInfo(this.currentSelectedProject)
+      }
     }
   }
   circleLoadSpeedInfo () {
