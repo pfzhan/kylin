@@ -8,7 +8,7 @@
     @close="isShow && handleClose(false)" 
     :close-on-press-escape="false" 
     :close-on-click-modal="false">     
-    <div class="ky-list-title">分区设置</div>
+    <div class="ky-list-title">{{$t('partitionSet')}}</div>
     <!-- <div class="ky-list-sub-title">一级分区</div>
     <el-form :inline="true" :model="form" class="demo-form-inline">
       <el-form-item label="表">
@@ -54,10 +54,10 @@
         </el-select>
       </el-form-item>
     </el-form>
-    <div class="ky-line"></div>
+    <!-- <div class="ky-line"></div>
     <div class="ky-list-title ksd-mt-16">Where 条件设置</div>
     <el-input type="textarea" class="where-area" v-model="filterCondition"></el-input>
-    <div class="ksd-mt-10">Please input : “column_name = value”, i.e. Region = Beijing</div>
+    <div class="ksd-mt-10">Please input : “column_name = value”, i.e. Region = Beijing</div> -->
     <div slot="footer" class="dialog-footer">
       <!-- <span class="ksd-fleft up-performance"><i class="el-icon-ksd-arrow_up"></i>提升<i>5%</i></span> -->
       <!-- <span class="ksd-fleft down-performance"><i class="el-icon-ksd-arrow_down"></i>下降<span>5%</span></span> -->

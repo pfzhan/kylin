@@ -76,7 +76,7 @@
           </template>
             </el-table-column>
           <el-table-column
-          label="Shared"
+          label="Shard"
           width="70"
           header-align="center"
           align="center">
