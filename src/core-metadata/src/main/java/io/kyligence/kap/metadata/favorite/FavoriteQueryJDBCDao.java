@@ -112,8 +112,6 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
                     }
                 });
 
-        sqlPatternHashSet = Maps.newHashMap();
-
         for (Pair<String, Integer> oneRow : queryResults) {
             String project = oneRow.getFirst();
             final Integer sqlPatternHash = oneRow.getSecond();
@@ -260,6 +258,12 @@ public class FavoriteQueryJDBCDao implements FavoriteQueryDao {
         final String sql = String.format("SELECT * FROM %s WHERE project='%s' ORDER BY %s DESC LIMIT %d OFFSET %d",
                 this.tableName, project, LAST_QUERY_TIME, limit, offset * limit);
         return JDBCManager.getInstance(config).getJdbcTemplate().query(sql, new FavoriteRowMapper());
+    }
+
+    public int getRulebasedFQSize(String project) {
+        final String sql = String.format("SELECT count(*) FROM %s WHERE project='%s' AND channel='%s'", this.tableName,
+                project, FavoriteQuery.CHANNEL_FROM_RULE);
+        return JDBCManager.getInstance(config).getJdbcTemplate().queryForObject(sql, Integer.class);
     }
 
     @Override

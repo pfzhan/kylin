@@ -79,7 +79,7 @@ public class FavoriteQueryJDBCDaoTest extends NLocalFileMetadataTestCase {
     private List<FavoriteQuery> testDataWithInitialValue() {
         FavoriteQuery favoriteQuery4 = new FavoriteQuery("sql4", "sql4".hashCode(), PROJECT, System.currentTimeMillis() + 3, 5, 100);
         favoriteQuery4.setSuccessCount(4);
-        favoriteQuery4.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
+        favoriteQuery4.setChannel(FavoriteQuery.CHANNEL_FROM_WHITE_LIST);
         FavoriteQuery favoriteQuery5 = new FavoriteQuery("sql5", "sql5".hashCode(), PROJECT, System.currentTimeMillis() + 4, 5, 100);
         favoriteQuery5.setSuccessCount(4);
         favoriteQuery5.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
@@ -187,5 +187,10 @@ public class FavoriteQueryJDBCDaoTest extends NLocalFileMetadataTestCase {
         updateNotExistFavoriteQuery.setStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED);
         favoriteQueryDao.batchUpdateStatus(Lists.newArrayList(updateNotExistFavoriteQuery));
 
+        // get rule-based favorite query size
+        int size = favoriteQueryDao.getRulebasedFQSize(PROJECT);
+        Assert.assertEquals(4, size);
+        size = favoriteQueryDao.getRulebasedFQSize("not_exist_project");
+        Assert.assertEquals(0, size);
     }
 }

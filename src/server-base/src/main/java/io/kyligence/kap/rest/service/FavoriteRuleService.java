@@ -258,8 +258,8 @@ public class FavoriteRuleService extends BasicService {
             String sqlPattern = QueryPatternUtil.normalizeSQLPattern(getMassageSql(sql, project));
             int sqlPatternHash = sqlPattern.hashCode();
 
-            FavoriteRule.SQLCondition newSqlCondition = new FavoriteRule.SQLCondition(sql,
-                    sqlPatternHash, result.isCapable());
+            FavoriteRule.SQLCondition newSqlCondition = new FavoriteRule.SQLCondition(sql, sqlPatternHash,
+                    result.isCapable());
 
             if (result.isCapable()) {
                 capableSqlPatterns.add(sqlPattern);
@@ -385,5 +385,24 @@ public class FavoriteRuleService extends BasicService {
     public void removeWhitelistSql(String id, String project) throws IOException {
         Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
         getFavoriteRuleManager(project).removeSqlCondition(id, FavoriteRule.WHITELIST_NAME);
+    }
+
+    public double getFavoriteRuleOverallImpact(String project) {
+        // get rule based favorite query size
+        int favoriteQuerySize = getFavoriteQueryDao().getRulebasedFQSize(project);
+        int sqlPatternSizeOfQueryHistory;
+
+        Map<String, Integer> sqlPatternFreqMapInProj = favoriteQueryService.getOverAllStatus().getSqlPatternFreqMap()
+                .get(project);
+
+        if (sqlPatternFreqMapInProj == null)
+            sqlPatternSizeOfQueryHistory = 0;
+        else
+            sqlPatternSizeOfQueryHistory = sqlPatternFreqMapInProj.size();
+
+        if (sqlPatternSizeOfQueryHistory == 0)
+            return 0;
+
+        return favoriteQuerySize / (double) sqlPatternSizeOfQueryHistory;
     }
 }

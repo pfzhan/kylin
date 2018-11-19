@@ -221,6 +221,17 @@ public class FavoriteQueryControllerTest {
     }
 
     @Test
+    public void testGetFavoriteRuleOverallImpact() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/rules/impact")
+                .contentType(MediaType.APPLICATION_JSON)
+                .param("project", PROJECT)
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(favoriteQueryController, Mockito.only()).getRulesOverallImpact(PROJECT);
+    }
+
+    @Test
     public void testUpdateWhitelist() throws Exception {
         WhitelistUpdateRequest request = new WhitelistUpdateRequest();
         request.setId("test_id");

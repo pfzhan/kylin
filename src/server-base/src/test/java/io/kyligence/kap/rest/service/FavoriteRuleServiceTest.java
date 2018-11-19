@@ -25,7 +25,9 @@
 package io.kyligence.kap.rest.service;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.rest.response.FavoriteRuleResponse;
 import io.kyligence.kap.rest.response.UpdateWhitelistResponse;
@@ -355,5 +357,36 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse((boolean) durationRuleResult.get(FavoriteRule.ENABLE));
         Assert.assertEquals(0, (long) durationValues.get(0));
         Assert.assertEquals(10, (long) durationValues.get(1));
+    }
+
+    @Test
+    public void testGetFavoriteRuleOverallImpact() {
+        // mock the case when already have 3 rule-based favorite queries in database
+        FavoriteQueryJDBCDao favoriteQueryDao = Mockito.mock(FavoriteQueryJDBCDao.class);
+        Mockito.doReturn(3).when(favoriteQueryDao).getRulebasedFQSize(PROJECT);
+        Mockito.doReturn(favoriteQueryDao).when(favoriteRuleService).getFavoriteQueryDao();
+
+        // case of query history sql pattern is 0
+        FavoriteQueryService.FrequencyStatus frequencyStatus = favoriteQueryService.new FrequencyStatus(System.currentTimeMillis());
+        Mockito.doReturn(frequencyStatus).when(favoriteQueryService).getOverAllStatus();
+
+        double result = favoriteRuleService.getFavoriteRuleOverallImpact(PROJECT);
+        Assert.assertEquals(0, result, 0.1);
+
+        // case of query history sql pattern size is greater than 0, which is 5
+        Map<String, Map<String, Integer>> sqlPatternMap = Maps.newHashMap();
+        Map<String, Integer> sqlPatternInProj = Maps.newHashMap();
+        sqlPatternInProj.put("test_sql1", 1);
+        sqlPatternInProj.put("test_sql2", 1);
+        sqlPatternInProj.put("test_sql3", 1);
+        sqlPatternInProj.put("test_sql4", 1);
+        sqlPatternInProj.put("test_sql5", 1);
+        sqlPatternMap.put(PROJECT, sqlPatternInProj);
+        frequencyStatus.setSqlPatternFreqMap(sqlPatternMap);
+
+        Mockito.doReturn(frequencyStatus).when(favoriteQueryService).getOverAllStatus();
+
+        result = favoriteRuleService.getFavoriteRuleOverallImpact(PROJECT);
+        Assert.assertEquals(0.6, result, 0.1);
     }
 }

@@ -171,8 +171,7 @@ public class FavoriteQueryController extends NBasicController {
     public EnvelopeResponse loadSqlsToWhitelist(@RequestParam("file") MultipartFile file,
             @RequestParam("project") String project) throws IOException {
         favoriteRuleService.loadSqlsToWhitelist(file, project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "",
-                "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @RequestMapping(value = "/whitelist", method = RequestMethod.PUT)
@@ -200,5 +199,12 @@ public class FavoriteQueryController extends NBasicController {
             throws IOException {
         favoriteRuleService.removeWhitelistSql(id, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
+    @RequestMapping(value = "rules/impact", method = RequestMethod.GET)
+    @ResponseBody
+    public EnvelopeResponse getRulesOverallImpact(@RequestParam("project") String project) {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                favoriteRuleService.getFavoriteRuleOverallImpact(project), "");
     }
 }

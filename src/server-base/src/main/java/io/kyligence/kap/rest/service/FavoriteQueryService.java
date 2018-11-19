@@ -111,8 +111,7 @@ public class FavoriteQueryService extends BasicService {
 
     @PostConstruct
     void init() {
-        if (FavoriteQueryJDBCDao.getSqlPatternHashSet() == null)
-            getFavoriteQueryDao().initializeSqlPatternSet();
+        getFavoriteQueryDao().initializeSqlPatternSet();
         if (queryHistoryTimeOffset == null)
             queryHistoryTimeOffset = new QueryHistoryTimeOffset(0, 0);
         scheduler.schedule(new Runnable() {
