@@ -7,7 +7,8 @@ export default {
     selectAllColumns: 'Select All Columns',
     clearAll: 'Clear All',
     tableIndex: 'Index',
-    catchup: 'Load data into new index after saving'
+    catchup: 'Load data into new index after saving',
+    sortLimitTip: 'At most nine \'sort\' column is allowed.'
   },
   'zh-cn': {
     editTableIndexTitle: '编辑表明细索引',
@@ -17,6 +18,7 @@ export default {
     selectAllColumns: '选择所有列',
     clearAll: '清空选择',
     tableIndex: '索引列',
-    catchup: '保存后，向新索引中加载数据'
+    catchup: '保存后，向新索引中加载数据',
+    sortLimitTip: '最多只能加9个sort列'
   }
 }

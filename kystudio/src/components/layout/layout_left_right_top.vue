@@ -248,6 +248,9 @@ export default class LayoutLeftRightTop extends Vue {
   }
 
   loadSpeedInfo (loadingname) {
+    if (!this.currentSelectedProject) {
+      return
+    }
     var loadingName = loadingname || 'btnLoading'
     this.getSpeedInfo(this.currentSelectedProject).then(() => {
       this[loadingName] = false
