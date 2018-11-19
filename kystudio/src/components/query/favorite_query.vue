@@ -741,6 +741,9 @@ export default class FavoriteQuery extends Vue {
       }
     })
   }
+  beforeDestroy () {
+    window.onresize = null
+  }
 
   pageCurrentChange (offset, pageSize) {
     this.favoriteCurrentPage = offset + 1

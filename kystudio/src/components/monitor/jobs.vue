@@ -39,17 +39,18 @@
       @selection-change="handleSelectionChange"
       @select="handleSelect"
       @select-all="handleSelectAll"
+      @cell-click="showLineSteps"
       :row-class-name="tableRowClassName"
       :style="{width:showStep?'70%':'100%'}"
     >
       <!-- :default-sort="{prop: 'jobname', order: 'descending'}" -->
       <el-table-column type="selection" align="center" width="55"></el-table-column>
-      <el-table-column align="center" width="55">
+      <el-table-column align="center" width="55" prop="icon">
         <template slot-scope="scope">
           <i :class="{
-            'el-icon-ksd-dock_to_right_return': scope.row.id !== selectedJob.id || !showStep,
-            'el-icon-ksd-dock_to_right': scope.row.id == selectedJob.id && showStep}"
-            @click="showLineSteps(scope.row)"></i>
+          'el-icon-ksd-dock_to_right_return': scope.row.id !== selectedJob.id || !showStep,
+          'el-icon-ksd-dock_to_right': scope.row.id == selectedJob.id && showStep}"
+          ></i>
         </template>
       </el-table-column>
       <el-table-column :label="$t('JobType')" sortable prop="job_name" :width="140"></el-table-column>
@@ -326,6 +327,7 @@ export default class JobsList extends Vue {
   }
 
   created () {
+    this.selectedJob = {} // 防止切换project时，发一个不存在该项目jobId的jobDetail的请求
     this.filter.project = this.currentSelectedProject
     var autoFilter = () => {
       this.stCycle = setTimeout(() => {
@@ -643,31 +645,33 @@ export default class JobsList extends Vue {
       })
     })
   }
-  showLineSteps (row) {
-    var needShow = false
-    if (row.id !== this.selectedJob.id) {
-      needShow = true
-    } else {
-      needShow = !this.showStep
-    }
-    this.showStep = needShow
-    this.selectedJob = row
-    this.getJobDetail({project: this.currentSelectedProject, jobId: row.id}).then((res) => {
-      handleSuccess(res, (data) => {
-        this.$nextTick(() => {
-          this.$set(this.selectedJob, 'details', data)
-          var sTop = document.getElementById('scrollBox').scrollTop
-          this.beforeScrollPos = sTop
-          var result = sTop
-          if (sTop < 106) {
-            result = 106
-          }
-          document.getElementById('stepList').style.top = result + 'px'
+  showLineSteps (row, column, cell) {
+    if (column.property === 'icon') {
+      var needShow = false
+      if (row.id !== this.selectedJob.id) {
+        needShow = true
+      } else {
+        needShow = !this.showStep
+      }
+      this.showStep = needShow
+      this.selectedJob = row
+      this.getJobDetail({project: this.currentSelectedProject, jobId: row.id}).then((res) => {
+        handleSuccess(res, (data) => {
+          this.$nextTick(() => {
+            this.$set(this.selectedJob, 'details', data)
+            var sTop = document.getElementById('scrollBox').scrollTop
+            this.beforeScrollPos = sTop
+            var result = sTop
+            if (sTop < 106) {
+              result = 106
+            }
+            document.getElementById('stepList').style.top = result + 'px'
+          })
+        }, (resError) => {
+          handleError(resError)
         })
-      }, (resError) => {
-        handleError(resError)
       })
-    })
+    }
   }
   clickKey (step) {
     this.stepAttrToShow = 'cmd'
