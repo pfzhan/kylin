@@ -60,7 +60,7 @@ export const modelRenderConfig = {
         box: rootBox
       },
       measure: {
-        top: 104,
+        top: 114,
         right: 60,
         width: 250,
         height: 316,
@@ -84,7 +84,7 @@ export const modelRenderConfig = {
         box: rootBox
       },
       cc: {
-        top: 136,
+        top: 156,
         right: 60,
         width: 250,
         height: 316,

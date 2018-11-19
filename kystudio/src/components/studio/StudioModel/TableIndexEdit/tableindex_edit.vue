@@ -10,31 +10,33 @@
       <div class="ksd-mt-20">
         <el-button type="primary" plain size="medium" @click="selectAll">{{$t('selectAllColumns')}}</el-button><el-button plain size="medium" @click="clearAll">{{$t('clearAll')}}</el-button>
         <el-input v-model="searchColumn" size="medium" prefix-icon="el-icon-search" class="ksd-fright" style="width:200px" :placeholder="$t('kylinLang.common.pleaseFilter')"></el-input>
-       <el-row class="table-header table-row ksd-mt-10">
-         <el-col :span="12">{{$t('kylinLang.model.columnName')}}</el-col>
-         <el-col :span="4">{{$t('tableIndex')}}</el-col>
-         <el-col :span="4">Sort</el-col>
-         <el-col :span="4">Shard</el-col>
-       </el-row>
-       <div class="table-content" v-scroll>
-         <transition-group name="flip-list" tag="div">
-          <el-row v-for="col in searchAllColumns" :key="col.fullName" class="table-row" :class="tableRowClassName(col)">
-            <el-col :span="12">{{col.fullName}}</el-col>
-            <el-col :span="4" @click.native="toggleDisplay(col)"><i class="el-icon-success" :class="{active: col.isUsed}" ></i></el-col>
-            <el-col :span="4" >
-              <div class="action-list" @click="toggleSort(col)" v-if="!(sortCount >= 9 && getRowIndex(col, 'fullName') + 1 > 9)">
-                <span class="ky-dot-tag" v-if="col.isUsed" :class="{'no-sorted': !col.isSorted}">{{col.isSorted ? getRowIndex(col, 'fullName') + 1 : sortCount + 1}}</span>
-                <span class="up-down" :class="{hide: searchColumn}">
-                  <i v-visible="col.isUsed && col.isSorted && !checkIsTopSort(col)" @click.stop="upRow(col)" class="el-icon-ksd-arrow_up"></i>
-                  <i v-visible="col.isUsed && col.isSorted && !checkIsBottomSort(col)" @click.stop="downRow(col)" class="el-icon-ksd-arrow_down"></i>
-                </span>
-              </div>
-            </el-col>
-            <el-col :span="4" @click.native="toggleShard(col)">
-              <i class="el-icon-success" v-if="col.isUsed" :class="{active: col.isShared}"></i>
-            </el-col>
-        </el-row>
-       </transition-group>
+       <div class="ky-simple-table">
+          <el-row class="table-header table-row ksd-mt-10">
+            <el-col :span="12">{{$t('kylinLang.model.columnName')}}</el-col>
+            <el-col :span="4">{{$t('tableIndex')}}</el-col>
+            <el-col :span="4">Sort</el-col>
+            <el-col :span="4">Shard</el-col>
+          </el-row>
+          <div class="table-content" v-scroll>
+            <transition-group name="flip-list" tag="div">
+                <el-row v-for="col in searchAllColumns" :key="col.fullName" class="table-row" :class="tableRowClassName(col)">
+                  <el-col :span="12" :title="col.fullName">{{col.fullName}}</el-col>
+                  <el-col :span="4" @click.native="toggleDisplay(col)"><i class="el-icon-success" :class="{active: col.isUsed}" ></i></el-col>
+                  <el-col :span="4" >
+                    <div class="action-list" @click="toggleSort(col)" v-if="!(sortCount >= 9 && getRowIndex(col, 'fullName') + 1 > 9)">
+                      <span class="ky-dot-tag" v-if="col.isUsed" :class="{'no-sorted': !col.isSorted}">{{col.isSorted ? getRowIndex(col, 'fullName') + 1 : sortCount + 1}}</span>
+                      <span class="up-down" :class="{hide: searchColumn}">
+                        <i v-visible="col.isUsed && col.isSorted && !checkIsTopSort(col)" @click.stop="upRow(col)" class="el-icon-ksd-arrow_up"></i>
+                        <i v-visible="col.isUsed && col.isSorted && !checkIsBottomSort(col)" @click.stop="downRow(col)" class="el-icon-ksd-arrow_down"></i>
+                      </span>
+                    </div>
+                  </el-col>
+                  <el-col :span="4" @click.native="toggleShard(col)">
+                    <i class="el-icon-success" v-if="col.isUsed" :class="{active: col.isShared}"></i>
+                  </el-col>
+                </el-row>
+              </transition-group>
+          </div>
        </div>
       </div>
       <div slot="footer" class="dialog-footer">
@@ -294,37 +296,6 @@
 <style lang="less">
   @import '../../../../assets/styles/variables.less';
   .table-edit-dialog {
-    .table-header {
-      .el-col {
-        border-top: 1px solid @line-border-color;
-        background-color: @modeledit-bg-color;
-        font-weight:@font-medium;
-      }
-    }
-    .table-row {
-      height:48px;
-      .el-col {
-        height:48px;
-        border-right: 1px solid @line-border-color;
-        border-bottom: 1px solid @line-border-color;
-        line-height:48px;
-        text-align:center;
-        &:nth-child(1) {
-          border-left: 1px solid @line-border-color;
-        }
-      }
-    }
-    .table-content {
-      overflow: hidden;
-      max-height:400px;
-      .el-row {
-         &:hover {
-          .el-col {
-            background-color:@base-color-9;
-          }
-        }
-      }
-    }
     .flip-list-move {
       transition: transform .5s;
     }

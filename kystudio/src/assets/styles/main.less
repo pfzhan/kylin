@@ -233,6 +233,41 @@ i[class^=el-icon-]{
     margin-top:2px;
   }
 }
+.ky-simple-table {
+  .table-header {
+    .el-col {
+      border-top: 1px solid @line-border-color;
+      background-color: @modeledit-bg-color;
+      font-weight:@font-medium;
+    }
+  }
+  .table-row {
+    height:48px;
+    .el-col {
+      height:48px;
+      border-right: 1px solid @line-border-color;
+      border-bottom: 1px solid @line-border-color;
+      line-height:48px;
+      text-align:center;
+      text-overflow: ellipsis;
+      padding: 0 10px;
+      &:nth-child(1) {
+        border-left: 1px solid @line-border-color;
+      }
+    }
+  }
+  .table-content {
+    overflow: hidden;
+    max-height:400px;
+    .el-row {
+       &:hover {
+        .el-col {
+          background-color:@base-color-9;
+        }
+      }
+    }
+  }
+}
   table.ksd-table{
     border-top:solid 1px @line-border-color;
     border-left:solid 1px @line-border-color;
