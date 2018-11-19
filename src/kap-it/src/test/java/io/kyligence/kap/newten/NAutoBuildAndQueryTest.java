@@ -25,7 +25,7 @@
 package io.kyligence.kap.newten;
 
 import java.io.File;
-import java.util.HashMap;   
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -270,12 +270,10 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
      * Test Kylin test queries with auto modeling
      */
 
-    // FIXME to be fixed in #6812, failed in query[90,91,111].sql, because countColumn() does not merge into newten
     // FIXME query02 will be fixed in #7257
     @Test
     public void testCommonQuery() throws Exception {
-        String[] exclusionList = new String[] { "query02.sql", "query90.sql", "query91.sql", "query110.sql",
-                "query111.sql" };
+        String[] exclusionList = new String[] { "query02.sql" };
         new TestScenario("sql", CompareLevel.SAME, exclusionList).execute();
     }
 

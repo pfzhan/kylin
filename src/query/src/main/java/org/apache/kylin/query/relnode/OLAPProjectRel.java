@@ -298,11 +298,11 @@ public class OLAPProjectRel extends Project implements OLAPRel {
                 }
             }
         };
-        
+
         try {
             SqlNode sqlCall = rexNodeToSqlConverter.convertCall(call);
             return sqlCall.toSqlString(SqlDialect.DatabaseProduct.HIVE.getDialect()).toString();
-        } catch (Exception e) {
+        } catch (Exception| Error e) {
             return call.toString();
         }
     }
