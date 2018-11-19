@@ -225,7 +225,7 @@
       <div class="fast-action-box" v-event-stop @click="cancelTableEdit" :class="{'edge-right': currentEditTable.drawSize.isInRightEdge}" :style="tableBoxToolStyleNoZoom(currentEditTable.drawSize)" v-if="currentEditTable && showTableCoverDiv">
         <div v-show="showEditAliasForm">
           <div class="alias-form" v-event-stop:click>
-              <el-input v-model="currentEditAlias" size="mini" @click.stop @keyup.enter="saveEditTableAlias"></el-input>
+              <el-input v-model="currentEditAlias" size="mini" @click.stop @keyup.enter.native="saveEditTableAlias"></el-input>
               <el-button type="primary" size="mini" icon="el-icon-check" @click.stop="saveEditTableAlias"></el-button><el-button size="mini" @click.stop="cancelEditAlias" icon="el-icon-close" plain></el-button>
           </div>
         </div>

@@ -315,7 +315,8 @@
       }
     }
     .table-content {
-      height:400px;
+      overflow: hidden;
+      max-height:400px;
       .el-row {
          &:hover {
           .el-col {
