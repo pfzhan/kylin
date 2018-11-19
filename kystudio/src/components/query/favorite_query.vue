@@ -733,8 +733,11 @@ export default class FavoriteQuery extends Vue {
       $('#favo-menu-item').removeClass('rotateY').css('opacity', 0)
       this.drawImpactChart()
       window.onresize = () => {
-        $('#fillgauge').empty()
-        this.drawImpactChart()
+        const targetDom = this.$el.querySelector('#fillgauge')
+        if (targetDom) {
+          $(targetDom).empty()
+          this.drawImpactChart()
+        }
       }
     })
   }
