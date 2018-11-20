@@ -29,13 +29,13 @@
       <el-form-item :label="$t('partitionDateColumn')">
         <el-col :span="12">
           <el-form-item prop="date1">
-             <el-select v-model="partitionMeta.table" @change="partitionTableChange" placeholder="表" style="width:248px">
+             <el-select v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:248px">
               <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
             </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-select v-model="partitionMeta.column" placeholder="列" filterable style="width:248px">
+          <el-select v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:248px">
           <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
             <span style="float: left">{{ t.name }}</span>
             <span class="ky-option-sub-info">{{ t.datatype }}</span>
