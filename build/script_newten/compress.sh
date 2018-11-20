@@ -68,6 +68,7 @@ cp spark/jars/jersey-server-*.jar ${package_name}/ext/
 mkdir ${package_name}/server
 cp -rf server/webapp/dist ${package_name}/server/public
 cp -rf server/newten.jar ${package_name}/server/
+rm -rf server/
 
 #add udf jar to lib
 cp ../src/udf/target/kap-udf-${release_version}.jar ${package_name}/lib/kylin-udf-${release_version}.jar

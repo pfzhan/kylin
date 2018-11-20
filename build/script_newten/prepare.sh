@@ -32,6 +32,6 @@ then
 fi
 
 cd kystudio
-mkdir -p build/server/webapp
+mkdir -p ../build/server/webapp
 
 cp -rf ./dist ../build/server/webapp
