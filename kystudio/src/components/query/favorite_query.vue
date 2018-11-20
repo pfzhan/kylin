@@ -470,7 +470,7 @@ export default class FavoriteQuery extends Vue {
   oldFrequencyValue = 0.2
   oldSubmitterUsers = ['ADMIN']
   oldDurationValue = [50, 80]
-  impactRatio = 55
+  impactRatio = 0
 
   applySpeed (event) {
     this.applySpeedInfo({size: this.modelSpeedEvents, project: this.currentSelectedProject}).then(() => {
@@ -627,7 +627,14 @@ export default class FavoriteQuery extends Vue {
   }
 
   loadRuleImpactRatio () {
-    this.getRulesImpact({project: this.currentSelectedProject})
+    this.getRulesImpact({project: this.currentSelectedProject}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.impactRatio = data.toFixed(2) * 100
+        this.drawImpactChart()
+      })
+    }, (res) => {
+      handleError(res)
+    })
   }
 
   async loadFavoriteList (pageIndex, pageSize) {
@@ -707,6 +714,7 @@ export default class FavoriteQuery extends Vue {
     this.getFrequencyObj()
     this.getSubmitterObj()
     this.getDurationObj()
+    this.loadRuleImpactRatio()
     this.getPreferrence({project: this.currentSelectedProject}).then((res) => {
       handleSuccess(res, (data) => {
         this.preSettingObj = data
@@ -731,7 +739,6 @@ export default class FavoriteQuery extends Vue {
   mounted () {
     this.$nextTick(() => {
       $('#favo-menu-item').removeClass('rotateY').css('opacity', 0)
-      this.drawImpactChart()
       window.onresize = () => {
         const targetDom = this.$el.querySelector('#fillgauge')
         if (targetDom) {

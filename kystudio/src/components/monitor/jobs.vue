@@ -90,7 +90,7 @@
         :width="140"
         :label="$t('Duration')">
         <template slot-scope="scope">
-          {{scope.row.duration/60000 | number(2) }}  mins
+          {{scope.row.duration/60 | number(2) }}  mins
         </template>
       </el-table-column>
       <el-table-column
@@ -149,7 +149,7 @@
             </tr>
             <tr>
               <td>{{$t('duration')}}</td>
-              <td class="greyd0">{{selectedJob.duration/60000 | number(2)}} mins</td>
+              <td class="greyd0">{{selectedJob.duration/60 | number(2)}} mins</td>
             </tr>
           </table>
         </div>
