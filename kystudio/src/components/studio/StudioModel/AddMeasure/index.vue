@@ -6,7 +6,7 @@
           <el-input class="measures-width" size="medium" v-model="measure.name" @blur="upperCaseName"></el-input>
         </div>
       </el-form-item>
-      <el-form-item :label="$t('expression')">
+      <el-form-item :label="$t('expression')" prop="expression">
         <el-select :popper-append-to-body="false" class="measures-width" size="medium" v-model="measure.expression" @change="changeExpression">
           <el-option
             v-for="item in expressionsConf"
@@ -27,7 +27,7 @@
         </el-select>
       </el-form-item>
       <div class="ksd-fs-16 ksd-mb-6 value-label" v-if="measure.expression === 'TOP_N'">{{$t('paramValue')}}</div>
-      <el-form-item :label="isOrderBy" class="ksd-mb-10">
+      <el-form-item :label="isOrderBy" class="ksd-mb-10" prop="parameterValue">
         <el-tag type="info" class="measures-width" v-if="measure.expression === 'SUM(constant)' || measure.expression === 'COUNT(constant)'">1</el-tag>
         <div class="measure-flex-row" v-else>
           <div class="flex-item">
@@ -128,8 +128,8 @@ import $ from 'jquery'
     CCEditForm
   },
   locales: {
-    'en': {requiredName: 'The measure name is required.', name: 'Name', expression: 'Expression', return_type: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredreturn_type: 'The return type is required.', requiredExpress: 'The expression is required.', columns: 'Columns', ccolumns: 'Computed Columns'},
-    'zh-cn': {requiredName: '请输入度量名称', name: '名称', expression: '表达式', return_type: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入列表名称', requiredreturn_type: '请选择度量返回类型', requiredExpress: '请输入表达式。', columns: '普通列', ccolumns: '可计算列'}
+    'en': {requiredName: 'The measure name is required.', name: 'Name', expression: 'Expression', return_type: 'Return Type', paramValue: 'Param Value', nameReuse: 'The measure name is reused.', requiredCCName: 'The column name is required.', requiredreturn_type: 'The return type is required.', requiredExpress: 'The expression is required.', columns: 'Columns', ccolumns: 'Computed Columns', requiredParamValue: 'The param value is Required.'},
+    'zh-cn': {requiredName: '请输入度量名称', name: '名称', expression: '表达式', return_type: '返回类型', paramValue: '参数值', nameReuse: 'Measure名称已被使用', requiredCCName: '请输入列表名称', requiredreturn_type: '请选择度量返回类型', requiredExpress: '请选择表达式。', columns: '普通列', ccolumns: '可计算列', requiredParamValue: '请选择参数值。'}
   }
 })
 export default class AddMeasure extends Vue {
@@ -146,7 +146,9 @@ export default class AddMeasure extends Vue {
     name: [
       { required: true, message: this.$t('requiredName'), trigger: 'blur' },
       { validator: this.validateName, trigger: 'blur' }
-    ]
+    ],
+    expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }],
+    parameterValue: [{ required: true, message: this.$t('requiredParamValue'), trigger: 'change' }]
   }
   ccRules = {
     name: [{ required: true, message: this.$t('requiredCCName'), trigger: 'blur' }],
@@ -224,6 +226,7 @@ export default class AddMeasure extends Vue {
       this.measure.parameter_value[0].value = 1
     } else {
       this.measure.parameter_value[0].type = 'column'
+      this.measure.parameter_value[0].value = ''
     }
     if (this.measure.expression === 'TOP_N') {
       this.measure.converted_columns = [{type: 'column', value: '', table_guid: null}]
