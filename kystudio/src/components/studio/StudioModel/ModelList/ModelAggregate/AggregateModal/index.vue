@@ -39,6 +39,7 @@
               filterable
               :ref="`aggregate.include.${aggregateIdx}`"
               :value="aggregate.includes"
+              :placeholder="$t('kylinLang.common.pleaseSelect')"
               @input="value => handleInput(`aggregateArray.${aggregateIdx}.includes`, value)"
               @remove-tag="value => handleRemoveIncludeRules(value, aggregateIdx)">
               <el-option
@@ -56,6 +57,7 @@
               multiple
               filterable
               :value="aggregate.mandatory"
+              :placeholder="$t('kylinLang.common.pleaseSelect')"
               @change="value => handleInput(`aggregateArray.${aggregateIdx}.mandatory`, value)">
               <el-option
                 v-for="dimension in getUnusedDimensions(aggregateIdx)"
@@ -75,6 +77,7 @@
                 multiple
                 filterable
                 :value="hierarchy.items"
+                :placeholder="$t('kylinLang.common.pleaseSelect')"
                 @change="value => handleInput(`aggregateArray.${aggregateIdx}.hierarchyArray.${hierarchyRowIdx}.items`, value)">
                 <el-option
                   v-for="dimension in getUnusedDimensions(aggregateIdx)"
@@ -104,6 +107,7 @@
                 multiple
                 filterable
                 :value="joint.items"
+                :placeholder="$t('kylinLang.common.pleaseSelect')"
                 @change="value => handleInput(`aggregateArray.${aggregateIdx}.jointArray.${jointRowIdx}.items`, value)">
                 <el-option
                   v-for="dimension in getUnusedDimensions(aggregateIdx)"
