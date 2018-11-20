@@ -28,7 +28,7 @@ if [[ "$CHECKENV_ING" == "" ]]; then
         touch ${ERRORS}
         
         export CHECKENV_REPORT_PFX=">   "
-        export QUIT_MESSASGE_LOG=${ERRORS}
+        export QUIT_MESSAGE_LOG=${ERRORS}
         
         for f in ${dir}/check-*.sh
         do

@@ -13,8 +13,8 @@ then
     # misc functions
     function quit {
         echo "$@"
-        if [[ -n "${QUIT_MESSASGE_LOG}" ]]; then
-            echo `setColor 31 "$@"` >> ${QUIT_MESSASGE_LOG}
+        if [[ -n "${QUIT_MESSAGE_LOG}" ]]; then
+            echo `setColor 31 "$@"` >> ${QUIT_MESSAGE_LOG}
         fi
         exit 1
     }

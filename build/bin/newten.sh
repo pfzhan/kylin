@@ -7,8 +7,8 @@ cd "${dir}"
 
 function quit {
         echo "$@"
-        if [[ -n "${QUIT_MESSASGE_LOG}" ]]; then
-            echo `setColor 31 "$@"` >> ${QUIT_MESSASGE_LOG}
+        if [[ -n "${QUIT_MESSAGE_LOG}" ]]; then
+            echo `setColor 31 "$@"` >> ${QUIT_MESSAGE_LOG}
         fi
         exit 1
     }
@@ -40,7 +40,7 @@ then
     port=7070
     java -Dkylin.hadoop.conf.dir=../hadoop_conf -Dhdp.version=current -Dserver.port=$port -Dloader.path=../hadoop_conf  -jar newten.jar PROD >> ../logs/kylin.out 2>&1 & echo $! > ../pid &
 
-    echo "Kylin is start. http://localhost:$port/kylin/index.html"
+    echo "Kylin is starting. Please checkout http://localhost:$port/kylin/index.html"
 
 
 

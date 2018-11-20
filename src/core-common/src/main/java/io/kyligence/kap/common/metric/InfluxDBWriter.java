@@ -83,7 +83,7 @@ public class InfluxDBWriter implements MetricWriter {
                         flushDuration(KapConfig.getInstanceFromEnv().getInfluxDBFlushDuration()).jitterDuration(500));
 
         if (!getInfluxDB().databaseExists(DEFAULT_DATABASE)) {
-            logger.info("Create influxDB Database {}", DEFAULT_DATABASE);
+            logger.info("Create influxDB database {}", DEFAULT_DATABASE);
             getInfluxDB().createDatabase(DEFAULT_DATABASE);
 
             // create retention policy and use it as the default
@@ -107,13 +107,13 @@ public class InfluxDBWriter implements MetricWriter {
                     tryConnectInfluxDB();
 
                     if (!Type.INFLUX.name().equals(System.getProperty("kap.metric.diagnosis.graph-writer-type"))) {
-                        // failback to 'INFLUX', reset "kap.metric.diagnosis.graph-writer-type" to "INFLUX"
-                        logger.info("failback to 'INFLUX'");
+                        // fallback to 'INFLUX', reset "kap.metric.diagnosis.graph-writer-type" to "INFLUX"
+                        logger.info("Fallback to 'INFLUX'");
                         System.setProperty("kap.metric.diagnosis.graph-writer-type", Type.INFLUX.name());
                     }
 
                 } catch (Exception ex) {
-                    logger.error("monitor influxDB error", ex);
+                    logger.error("Monitor influxDB error", ex);
                 }
             }
         }, 60, 60, TimeUnit.SECONDS);
@@ -123,7 +123,7 @@ public class InfluxDBWriter implements MetricWriter {
             public void run() {
                 getInfluxDB().close();
                 scheduledExecutorService.shutdownNow();
-                logger.info("Shutdown influxdb writer");
+                logger.info("Shutdown InfluxDB writer");
             }
         }));
     }
@@ -131,7 +131,7 @@ public class InfluxDBWriter implements MetricWriter {
     private static void tryConnectInfluxDB() {
         try {
             final Pong pong = getInfluxDB().ping();
-            logger.info("Connected influxDB successful. [{}]", pong);
+            logger.info("Connected to influxDB successfully. [{}]", pong);
             isConnected = true;
         } catch (Throwable th) {
             isConnected = false;
@@ -143,7 +143,7 @@ public class InfluxDBWriter implements MetricWriter {
     public void write(String dbName, String measurement, Map<String, String> tags, Map<String, Object> fields,
             long timestamp) throws Throwable {
         if (!isConnected) {
-            throw new IllegalStateException("Unable to got Influxdb connection");
+            throw new IllegalStateException("Unable to got InfluxDB connection");
         }
 
         Point p = Point.measurement(measurement) //
