@@ -175,9 +175,9 @@
         this.allColumns.splice(sortedLen - 1, 0, t)
       }
       t.isSorted = !t.isSorted
-      this.$nextTick(() => {
+      setTimeout(() => {
         this.lockSortAnimate = false
-      })
+      }, 300)
     }
     toggleShard (t) {
       let shardStatus = t.isShared
