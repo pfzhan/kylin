@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.newten;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
@@ -52,7 +51,6 @@ public class NAutoTpchTest extends NAutoTestBase {
     }
 
     @Test
-    @Ignore("blocked by the same col as dimension and measure, see issue https://github.com/Kyligence/KAP/issues/8249")
     public void testReProposeCase() throws Exception {
         // verify issue https://github.com/Kyligence/KAP/issues/7515
         overwriteSystemProp("kap.smart.conf.measure.count-distinct.return-type", "bitmap");

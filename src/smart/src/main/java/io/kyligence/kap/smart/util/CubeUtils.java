@@ -25,10 +25,12 @@
 package io.kyligence.kap.smart.util;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.metadata.model.TblColRef;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.common.SmartConfig;
@@ -61,4 +63,28 @@ public class CubeUtils {
         measure.id = id;
         return measure;
     }
+
+    public static boolean isValidMeasure(FunctionDesc functionDesc) {
+        List<TblColRef> colRefs = functionDesc.getParameter().getColRefs();
+        if (colRefs == null || colRefs.isEmpty())
+            return true;
+
+        boolean isMaxMin = functionDesc.isMax() || functionDesc.isMin();
+        for (TblColRef colRef : colRefs) {
+            if (!colRef.isQualified()) {
+                return false;
+            }
+
+            if (isMaxMin && colRef.getType().isStringFamily()) {
+                return false;
+            }
+
+            if (isMaxMin && colRef.getType().isDateTimeFamily()) {
+                return false;
+            }
+        }
+
+        return !functionDesc.isGrouping();
+    }
+
 }
