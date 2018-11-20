@@ -63,6 +63,8 @@ public class AccelerateEventHandlerTest extends NLocalFileMetadataTestCase {
 
     @After
     public void tearDown() throws Exception {
+        FavoriteQueryJDBCDao favoriteQueryJDBCDao = FavoriteQueryJDBCDao.getInstance(getTestConfig());
+        favoriteQueryJDBCDao.dropTable();
         this.cleanupTestMetadata();
     }
 

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.rest.service.ServiceTestBase;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,6 +65,13 @@ public class GarbageCleanServiceTest extends ServiceTestBase {
         getTestConfig().setProperty("kylin.favorite.storage-url",
                 "kylin_favorite@jdbc,url=jdbc:h2:mem:db_default;MODE=MySQL,username=sa,password=,driverClassName=org.h2.Driver");
         initData();
+    }
+
+    @After
+    public void after() {
+        FavoriteQueryJDBCDao favoriteQueryJDBCDao = FavoriteQueryJDBCDao.getInstance(getTestConfig());
+        favoriteQueryJDBCDao.dropTable();
+        cleanupTestMetadata();
     }
 
     private static void initData() throws IOException {
