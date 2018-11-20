@@ -3,7 +3,7 @@ export default {
     searchModel: 'Search Model',
     relatedModel: 'Related Model',
     total: '（Total: {count}）',
-    dicardConfirm: 'Are you sure to discard this model?',
+    dicardConfirm: 'Are you sure to unlink this model?',
     discard: 'Unlink'
   },
   'zh-cn': {

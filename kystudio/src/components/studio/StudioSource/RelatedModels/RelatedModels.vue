@@ -105,14 +105,16 @@ export default class RelatedModels extends Vue {
     const { columnCount, relatedModels } = this
     const modelCardGroups = []
 
-    relatedModels.forEach((relatedModel, index) => {
-      if (index % columnCount === 0) {
-        modelCardGroups.push([relatedModel])
-      } else {
-        const groupIdx = Math.floor(index / columnCount)
-        modelCardGroups[groupIdx].push(relatedModel)
-      }
-    })
+    relatedModels
+      .filter(relatedModel => relatedModel.management_type !== 'MODEL_BASED')
+      .forEach((relatedModel, index) => {
+        if (index % columnCount === 0) {
+          modelCardGroups.push([relatedModel])
+        } else {
+          const groupIdx = Math.floor(index / columnCount)
+          modelCardGroups[groupIdx].push(relatedModel)
+        }
+      })
     return modelCardGroups
   }
   @Watch('filterText')
