@@ -29,9 +29,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.jdbc.core.BatchPreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.transaction.TransactionStatus;
@@ -39,7 +41,7 @@ import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 
 public class FavoriteQueryRealizationJDBCDao implements FavoriteQueryRealizationDao {
 
-    private static final String TABLE_PREFIX = "favorite_query_realization_";
+    private static final String TABLE_PREFIX = "fq_realization_";
     private String tableName;
     private KylinConfig config;
 
@@ -60,12 +62,22 @@ public class FavoriteQueryRealizationJDBCDao implements FavoriteQueryRealization
     }
 
     private FavoriteQueryRealizationJDBCDao(KylinConfig kylinConfig, String project) {
-        this.tableName = TABLE_PREFIX + project;
+        String projectId = getProjectId(project, kylinConfig);
+        this.tableName = TABLE_PREFIX + projectId;
         this.config = kylinConfig;
-        createTableIfNotExists();
+        createTableIfNotExists(projectId);
     }
 
-    private void createTableIfNotExists() {
+    private String getProjectId(String projectName, KylinConfig kylinConfig) {
+        NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
+        ProjectInstance projectInstance = projectManager.getProject(projectName);
+        // MySQL does not support middle bar for the table name
+        return projectInstance.getId().replace('-', '_');
+    }
+
+    private void createTableIfNotExists(String projectId) {
+        // h2 does not allow numbers in index names
+        String indexPrefix = projectId.replaceAll("[\\d.]", "");
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("CREATE TABLE IF NOT EXISTS %s", tableName));
         // columns
@@ -75,7 +87,7 @@ public class FavoriteQueryRealizationJDBCDao implements FavoriteQueryRealization
         // primary key and indices
         sb.append(String.format(
                 "PRIMARY KEY (id), INDEX %s_sql_pattern_hash_key (%s), INDEX %s_model_cube_index (%s ,%s ,%s))",
-                this.tableName, SQL_PATTERN_HASH, this.tableName, MODEL_ID, CUBE_PLAN_ID, CUBOID_LAYOUT_ID));
+                indexPrefix, SQL_PATTERN_HASH, indexPrefix, MODEL_ID, CUBE_PLAN_ID, CUBOID_LAYOUT_ID));
         JDBCManager.getInstance(config).getJdbcTemplate().execute(sb.toString());
     }
 

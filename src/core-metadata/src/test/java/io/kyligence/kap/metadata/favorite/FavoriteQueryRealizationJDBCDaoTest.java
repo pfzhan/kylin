@@ -24,9 +24,13 @@
 
 package io.kyligence.kap.metadata.favorite;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
+import org.apache.commons.lang.RandomStringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
@@ -163,6 +167,18 @@ public class FavoriteQueryRealizationJDBCDaoTest extends NLocalFileMetadataTestC
         list = dao.getByConditions(modelId, null, null);
         // no record insert into db
         Assert.assertEquals(size, list.size());
+    }
+
+    @Test
+    public void testTooLongProjectName() throws IOException {
+        val projectManager = NProjectManager.getInstance(getTestConfig());
+        val project = projectManager.copyForWrite(projectManager.getProject("default"));
+        String projectName = RandomStringUtils.random(200, true, true);
+        projectManager.createProject(projectName, project.getOwner(), project.getDescription(),
+                project.getOverrideKylinProps(), project.getMaintainModelType());
+
+        FavoriteQueryRealizationJDBCDao favoriteQueryRealizationJDBCDao = FavoriteQueryRealizationJDBCDao.getInstance(getTestConfig(), projectName);
+        Assert.assertNotNull(favoriteQueryRealizationJDBCDao);
     }
 
 }
