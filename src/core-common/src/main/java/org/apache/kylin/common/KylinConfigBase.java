@@ -426,7 +426,7 @@ abstract public class KylinConfigBase implements Serializable {
 
     public DistributedLockFactory getDistributedLockFactory() {
         String clsName = getOptional("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.storage.hbase.util.ZookeeperDistributedLock$Factory");
+                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         return (DistributedLockFactory) ClassUtil.newInstance(clsName);
     }
 
