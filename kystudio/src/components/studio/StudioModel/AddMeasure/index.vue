@@ -27,7 +27,7 @@
         </el-select>
       </el-form-item>
       <div class="ksd-fs-16 ksd-mb-6 value-label" v-if="measure.expression === 'TOP_N'">{{$t('paramValue')}}</div>
-      <el-form-item :label="isOrderBy" class="ksd-mb-10" prop="parameterValue">
+      <el-form-item :label="isOrderBy" class="ksd-mb-10">
         <el-tag type="info" class="measures-width" v-if="measure.expression === 'SUM(constant)' || measure.expression === 'COUNT(constant)'">1</el-tag>
         <div class="measure-flex-row" v-else>
           <div class="flex-item">
