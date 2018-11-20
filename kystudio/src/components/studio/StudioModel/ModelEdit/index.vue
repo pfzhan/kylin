@@ -186,7 +186,7 @@
 
     <!-- 搜索面板 -->
     <transition name="bouncecenter">
-      <div class="panel-search-box panel-box"  v-event-stop :style="panelStyle('search')" v-if="panelAppear.search.display">
+      <div class="panel-search-box panel-box" :class="{'full-screen': isFullScreen}"  v-event-stop :style="panelStyle('search')" v-if="panelAppear.search.display">
         <span class="close" @click="toggleMenu('search')"><i class="el-icon-ksd-close"></i></span>
         <el-input @input="searchModelEverything"  clearable class="search-input" placeholder="search table, dimension, measure, column name" v-model="modelGlobalSearch" prefix-icon="el-icon-search"></el-input>
         <transition name="bounceleft">
@@ -1331,6 +1331,9 @@ export default class ModelEdit extends Vue {
       }
     }
     .panel-search-box {
+      &.full-screen {
+        top:88px!important;
+      }
       width:100%!important;
       height:100%!important;
       position:fixed;
