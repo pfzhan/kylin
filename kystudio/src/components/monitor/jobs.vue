@@ -82,7 +82,7 @@
         show-overflow-tooltip
         sortable>
         <template slot-scope="scope">
-          {{scope.row.create_time}}
+          {{transToGmtTime(scope.row.create_time)}}
         </template>
       </el-table-column>
       <el-table-column
@@ -384,7 +384,6 @@ export default class JobsList extends Vue {
   }
   get jobsList () {
     return this.$store.state.monitor.jobsList.map((m) => {
-      m.gmtTime = transToGmtTime(m.exec_start_time, this)
       if (this.selectedJob) {
         if (m.id === this.selectedJob.id) {
           this.getJobDetail({project: this.currentSelectedProject, jobId: m.id}).then((res) => {
