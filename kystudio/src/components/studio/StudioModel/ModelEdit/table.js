@@ -26,13 +26,14 @@ class NTable {
       },
       box: modelRenderConfig.rootBox,
       ignoreEdgeCheck: true,
-      edgeOffset: 200,
-      isInLeftEdge: false,
-      isInRightEdge: false,
+      edgeOffset: 200, // 边缘检测提前缓冲距离
+      isInLeftEdge: false, // 是否已经拖到边缘左侧
+      isInRightEdge: false, // 是否已经拖到边缘右侧
       zIndex: zIndex++,
       sizeChangeCb: (x, y, sw, sh, dragInfo) => {
         let _parent = options._parent
         let left = dragInfo.left * (_parent.zoom / 10) + _parent.zoomXSpace
+        // 判断是否到达边缘
         if (left + dragInfo.width > sw - dragInfo.edgeOffset) {
           dragInfo.isInRightEdge = true
         } else if (left < dragInfo.edgeOffset) {
@@ -71,7 +72,6 @@ class NTable {
       },
       kind: this.kind
     }
-    // }
   }
   getColumnType (columnName) {
     let len = this.columns && this.columns.length || 0

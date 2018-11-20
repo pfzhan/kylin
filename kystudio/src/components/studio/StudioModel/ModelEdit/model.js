@@ -300,6 +300,8 @@ class NModel {
     allNamedColumns.forEach((col) => {
       delete col.guid
       delete col.table_guid
+      delete col.isCC
+      delete col.cc
     })
     return allNamedColumns
   }
@@ -692,15 +694,12 @@ class NModel {
   changeTableType (t) {
     t.kind = t.kind === modelRenderConfig.tableKind.fact ? modelRenderConfig.tableKind.lookup : modelRenderConfig.tableKind.fact
     this.setUniqueAlias(t)
-    // 转移fact的名字
+    // 将所有和fact相关的ccdimension，ccmeasure，cctableindex,cclist 换上新的fact 指纹
     this._updateAllMeasuresCCToNewFactTable()
     this._updateAllNamedColumnsCCToNewFactTable()
     this._updateCCToNewFactTable()
-    // 删除原来facttable上的cc
+    // 改变别名且替换掉所有关联的别名信息
     this.changeAlias()
-  }
-  _removeCCRelevance () {
-
   }
   _checkSameAlias (guid, newAlias) {
     var hasAlias = 0
@@ -819,24 +818,32 @@ class NModel {
     return this.tables[options.alias]
   }
   _getTableOriginInfo (tableFullName) {
+    let getTableBySource = () => {
+      if (this.datasource) {
+        let i = indexOfObjWithSomeKey(this.datasource, 'table', tableFullName)
+        if (i >= 0) {
+          return this.datasource[i]
+        }
+      }
+      return []
+    }
     let tableNamed = tableFullName.split('.')
     const currentDatasource = this.globalDataSource[this.project]
-    if (this.datasource) {
-      let i = indexOfObjWithSomeKey(this.datasource, 'table', tableFullName)
-      if (i >= 0) {
-        return this.datasource[i]
-      }
-    }
     if (currentDatasource) {
       let i = indexOfObjWithSomeKeys(currentDatasource, 'database', tableNamed[0], 'name', tableNamed[1])
       if (i >= 0) {
         let globalTableInfo = currentDatasource[i]
         globalTableInfo.table = globalTableInfo.database + '.' + globalTableInfo.name
-        this.datasource.push(globalTableInfo)
-        return currentDatasource[i]
+        let k = indexOfObjWithSomeKey(this.datasource, 'table', tableFullName)
+        if (k < 0) {
+          this.datasource.push(globalTableInfo)
+        }
+        return globalTableInfo
+      } else {
+        return getTableBySource()
       }
     }
-    return []// 需要报错
+    return getTableBySource()
   }
   getTableByGuid (guid) {
     for (var i in this.tables) {
