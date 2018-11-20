@@ -151,7 +151,12 @@
       t.isUsed = !t.isUsed
     }
     // 切换sort状态的列，并带模拟缓动效果
+    lockSortAnimate = false
     toggleSort (t, index) {
+      if (this.lockSortAnimate) {
+        return
+      }
+      this.lockSortAnimate = true
       let i = index === undefined ? this.getRowIndex(t, 'fullName') : index
       let sortedLen = filterObjectArray(this.allColumns, 'isSorted', true).length
       if (!t.isSorted) {
@@ -170,6 +175,9 @@
         this.allColumns.splice(sortedLen - 1, 0, t)
       }
       t.isSorted = !t.isSorted
+      this.$nextTick(() => {
+        this.lockSortAnimate = false
+      })
     }
     toggleShard (t) {
       let shardStatus = t.isShared
