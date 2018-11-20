@@ -424,7 +424,6 @@ public class FavoriteQueryService extends BasicService {
         smartMaster.analyzeSQLs();
         smartMaster.selectModel();
         smartMaster.optimizeModel();
-        smartMaster.renameModel();
 
         List<NSmartContext.NModelContext> modelContexts = Lists.newArrayList();
 

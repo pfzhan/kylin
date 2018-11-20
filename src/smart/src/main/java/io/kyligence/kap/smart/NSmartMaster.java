@@ -119,6 +119,9 @@ public class NSmartMaster {
             NDataModel originalModel = modelCtx.getOrigModel();
             NDataModel targetModel = modelCtx.getTargetModel();
             if (originalModel == null) {
+                if (targetModel.getRootFactTable() == null) {
+                    return;
+                }
                 String rootTableAlias = targetModel.getRootFactTable().getAlias();
                 String modelName = getModelName(MODEL_NAME_PREFIX + rootTableAlias, usedNames);
                 targetModel.setAlias(modelName);
