@@ -1,6 +1,6 @@
 <template>
 	<div>
-	   {{tips}}
+	   {{tips || $t('kylinLang.common.noData') }}
 	</div>
 </template>
 <script>
@@ -9,7 +9,7 @@ export default {
   props: ['content'],
   data () {
     return {
-      tips: this.content || this.$t('kylinLang.common.noData')
+      tips: this.content
     }
   }
 }
