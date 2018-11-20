@@ -56,19 +56,22 @@
                     <template slot-scope="scope">
                       <div v-if="scope.row.key === 'dataRange'">
                         <div>{{$t(scope.row.key)}}</div>
-                        <div class="slot">slot</div>
+                        <div class="slot" v-if="scope.row.value">slot</div>
                       </div>
                       <div v-else>{{$t(scope.row.key)}}</div>
                     </template>
                   </el-table-column>
                   <el-table-column prop="value">
                     <template slot-scope="scope">
-                      <div v-if="scope.row.key === 'dataRange'">
-                        <div>{{scope.row.value.startDate}} {{scope.row.value.to}}</div>
-                        <div>{{scope.row.value.endDate}}</div>
-                      </div>
-                      <div v-else-if="scope.row.key === 'storage'">{{scope.row.value | dataSize}}</div>
-                      <div v-else>{{scope.row.value}}</div>
+                      <template v-if="scope.row.value !== undefined">
+                        <div v-if="scope.row.key === 'dataRange'">
+                          <div>{{scope.row.value.startDate}} {{scope.row.value.to}}</div>
+                          <div>{{scope.row.value.endDate}}</div>
+                        </div>
+                        <div v-else-if="scope.row.key === 'storage'">{{scope.row.value | dataSize}}</div>
+                        <div v-else>{{scope.row.value}}</div>
+                      </template>
+                      <div v-else>{{$t('kylinLang.common.null')}}</div>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -156,8 +159,8 @@ export default class ModelAggregate extends Vue {
     const startDate = dayjs(this.cuboidData.start_time).format('YYYY-MM-DD HH:mm:ss')
     const endDate = dayjs(this.cuboidData.end_time).format('YYYY-MM-DD HH:mm:ss')
     const storage = this.cuboidData.storage_size
-    const queryCount = this.cuboidData.amount || 0
-    const dataRange = { startDate, to: this.$t('to'), endDate }
+    const queryCount = this.cuboidData.amount || undefined
+    const dataRange = (this.cuboidData.start_time && this.cuboidData.end_time) ? { startDate, to: this.$t('to'), endDate } : undefined
     return { id, dimensions, measures, dataRange, storage, queryCount }
   }
   async handleClickNode (node) {

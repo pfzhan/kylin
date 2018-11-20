@@ -154,7 +154,8 @@ exports.default = {
     OFF: 'OFF',
     willGo: 'You have unsaved information detected, do you want to continue?',
     go: 'Continue',
-    catchUp: 'Load data into new index after saving'
+    catchUp: 'Load data into new index after saving',
+    null: 'Null'
   },
   model: {
     draft: 'Draft',
