@@ -9,7 +9,7 @@
       </div>
     </section>
 
-    <section class="body">
+    <section class="body" v-scroll>
       <div v-if="isShowLoadSource" class="btn-group">
         <el-button plain size="medium" type="primary" icon="el-icon-ksd-add_data_source" @click="importDataSource(sourceTypes.NEW, currentProjectData)">
           {{$t('addDatasource')}}
