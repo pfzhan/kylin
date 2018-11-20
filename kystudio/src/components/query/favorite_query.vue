@@ -176,7 +176,7 @@
           <i class="el-icon-ksd-what"></i>
         </el-tooltip>
       </span>
-      <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}}</span>
+      <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}} ({{blackSqlList.size}})</span>
       <el-row :gutter="20">
         <el-col :span="16">
           <div class="clearfix ksd-mt-10">
@@ -234,7 +234,7 @@
           <i class="el-icon-ksd-what"></i>
         </el-tooltip>
       </span>
-      <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}}</span>
+      <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}} ({{whiteSqlList.size}})</span>
       <el-row :gutter="20">
         <el-col :span="16">
           <div class="clearfix ksd-mt-10">
@@ -244,10 +244,11 @@
                 :action="actionUrl"
                 :data="uploadData"
                 multiple :auto-upload="true"
+                :before-upload="beforeUpload"
                 :on-success="uploadSuccess"
                 :on-error="uploadError"
                 :show-file-list="false">
-                <el-button type="primary" size="medium" plain icon="el-icon-ksd-query_import">{{$t('kylinLang.common.import')}}
+                <el-button type="primary" size="medium" plain icon="el-icon-ksd-query_import" :loading="importLoading">{{$t('kylinLang.common.import')}}
                 </el-button>
               </el-upload>
             </div>
@@ -433,6 +434,7 @@ export default class FavoriteQuery extends Vue {
   isBlackErrorMessage = false
   whiteMessages = []
   blackMessages = []
+  importLoading = false
   preSettingObj = {
     auto_apply: false,
     batch_enabled: true,
@@ -842,18 +844,23 @@ export default class FavoriteQuery extends Vue {
       project: this.currentSelectedProject
     }
   }
+  beforeUpload () {
+    this.importLoading = true
+  }
   uploadSuccess (response) {
     this.$message({
       type: 'success',
       message: this.$t('kylinLang.common.actionSuccess')
     })
     this.getWhiteList()
+    this.importLoading = false
   }
   uploadError (err, file, fileList) {
     handleError({
       data: JSON.parse(err.message),
       status: err.status
     })
+    this.importLoading = false
   }
 
   saveWhiteSql () {
