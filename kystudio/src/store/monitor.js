@@ -10,9 +10,9 @@ export default {
     totalPushDownQueries: 0,
     filter: {
       timeFilter: 4,
-      jobName: '',
+      jobName: [],
       sortby: 'last_modify',
-      status: []
+      status: ''
     }
   },
   mutations: {
@@ -36,7 +36,7 @@ export default {
       state.totalSlowQueries = 0
       state.totalPushDownQueries = 0
       state.filter.timeFilter = 4
-      state.filter.jobName = ''
+      state.filter.jobName = []
       state.filter.sortby = 'last_modify'
       state.filter.status = ''
     }

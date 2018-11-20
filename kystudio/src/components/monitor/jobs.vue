@@ -20,7 +20,7 @@
         <el-button plain size="medium" class="ksd-ml-20" icon="el-icon-refresh" @click="refreshJobs">{{$t('kylinLang.common.refresh')}}</el-button>
       </el-col>
       <el-col  :xs="24" :md="12" :lg="12">
-        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.jobName"  @input="filterChange" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
+        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.subject"  @input="filterChange" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
         </el-input>
       </el-col>
     </el-row>
@@ -53,7 +53,7 @@
           ></i>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('JobType')" sortable prop="job_name" :width="140"></el-table-column>
+      <el-table-column :renderHeader="renderColumn" prop="job_name" :width="140"></el-table-column>
       <el-table-column
         :label="$t('TableModelCube')"
         sortable
@@ -294,9 +294,10 @@ export default class JobsList extends Vue {
     jobName: this.$store.state.monitor.filter.jobName,
     sortBy: this.$store.state.monitor.filter.sortby,
     status: this.$store.state.monitor.filter.status,
-    subjects: ''
+    subject: ''
   }
   allStatus = ['PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
+  jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INDEX_RECONSTRUCT']
   diagnosisVisible = false
   targetId = ''
   searchLoading = false
@@ -324,6 +325,24 @@ export default class JobsList extends Vue {
       }
     }
     return true
+  }
+  renderColumn (h) {
+    let items = []
+    for (let i = 0; i < this.jobTypeFilteArr.length; i++) {
+      items.push(<el-checkbox label={this.jobTypeFilteArr[i]} key={this.jobTypeFilteArr[i]}></el-checkbox>)
+    }
+    return (<span>
+      <span>{this.$t('JobType')}</span>
+      <el-popover
+        ref="jobTypeFilterPopover"
+        placement="bottom"
+        popperClass="filter-popover">
+        <el-checkbox-group class="filter-groups" value={this.filter.jobName} onInput={val => (this.filter.jobName = val)} onChange={this.filterChange2}>
+          {items}
+        </el-checkbox-group>
+        <i class="el-icon-ksd-filter" slot="reference"></i>
+      </el-popover>
+    </span>)
   }
 
   created () {
@@ -931,6 +950,10 @@ export default class JobsList extends Vue {
       }
     }
     .jobs-table {
+      .el-icon-ksd-filter {
+        position: relative;
+        top: 1px;
+      }
       .el-icon-ksd-dock_to_right_return,
       .el-icon-ksd-dock_to_right {
         &:hover {

@@ -6,7 +6,7 @@ Vue.use(VueResource)
 
 export default {
   getJobsList: (params) => {
-    return Vue.resource(apiUrl + 'jobs').get(params)
+    return Vue.resource(apiUrl + 'jobs{?jobName}').get(params)
   },
   getJobDetail: (para) => {
     return Vue.resource(apiUrl + 'jobs/detail').get(para)
