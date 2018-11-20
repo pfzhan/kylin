@@ -252,7 +252,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
         // FIXME  https://github.com/Kyligence/KAP/issues/8090   percentile and sql_intersect_count do not support
         //                new TestScenario("sql_intersect_count", CompareLevel.NONE, "left")
         //                new TestScenario("sql_percentile", CompareLevel.NONE)//,
-                new TestScenario("sql_powerbi", CompareLevel.SAME),
+//                new TestScenario("sql_powerbi", CompareLevel.SAME),
                 new TestScenario("sql_raw", CompareLevel.SAME),
                 new TestScenario("sql_rawtable", CompareLevel.SAME),
                 new TestScenario("sql_subquery", CompareLevel.SAME)
@@ -279,20 +279,27 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
     @Test
     public void testDistinct() throws Exception {
-        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
+        overwriteSystemProp("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
         new TestScenario("sql_distinct", CompareLevel.SAME).execute();
     }
 
     @Test
     public void testDistinctDim() throws Exception {
-        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
+        overwriteSystemProp("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
         new TestScenario("sql_distinct_dim", CompareLevel.SAME).execute();
     }
 
     @Test
     public void testDistinctPrecisely() throws Exception {
-        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
+        overwriteSystemProp("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
         new TestScenario("sql_distinct_precisely", CompareLevel.SAME, "left").execute();
+    }
+
+    @Test
+    public void testPowerBI() throws Exception {
+        overwriteSystemProp("kylin.query.pushdown.runner-class-name",
+                "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
+        new TestScenario("sql_powerbi", CompareLevel.SAME).execute();
     }
 
     @Ignore("not storage query, skip")

@@ -26,6 +26,7 @@ package io.kyligence.kap.smart.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -92,9 +94,17 @@ public class NModelMaster {
     }
 
     public NDataModel proposeComputedColumn(NDataModel model) {
-        int retryMax = KapConfig.wrap(context.getSmartContext().getKylinConfig()).getComputedColumnMaxRecursionTimes();
+        KapConfig kapConfig = KapConfig.wrap(context.getSmartContext().getKylinConfig());
+        Set<String> transformers = Sets.newHashSet(kapConfig.getKylinConfig().getQueryTransformers());
+        boolean isComputedColumnEnabled = transformers.contains(ConvertToComputedColumn.class.getCanonicalName())
+                && kapConfig.isImplicitComputedColumnConvertEnabled();
+        if (!isComputedColumnEnabled) {
+            return model;
+        }
+
+        int retryMax = kapConfig.getComputedColumnMaxRecursionTimes();
         int retryCount = 0;
-        
+
         do {
             List<ComputedColumnDesc> originalCCs = Lists.newArrayList(model.getComputedColumnDescs());
             try {

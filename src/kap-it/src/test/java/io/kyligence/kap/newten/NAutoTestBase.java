@@ -64,37 +64,34 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         super.init();
         kylinConfig = getTestConfig();
-        kylinConfig.setProperty("kylin.storage.provider.0", "io.kyligence.kap.storage.NDataStorage");
-        kylinConfig.setProperty("kap.storage.columnar.hdfs-dir", kylinConfig.getHdfsWorkingDirectory() + "/parquet/");
-        kylinConfig.setProperty("kap.smart.conf.model.inner-join.exactly-match", "true");
-        kylinConfig.setProperty("kylin.query.pushdown.runner-class-name",
-                "io.kyligence.kap.storage.parquet.adhoc.PushDownRunnerSparkImpl");
+        overwriteSystemProp("kylin.storage.provider.0", "io.kyligence.kap.storage.NDataStorage");
+        overwriteSystemProp("kap.storage.columnar.hdfs-dir", kylinConfig.getHdfsWorkingDirectory() + "/parquet/");
+        overwriteSystemProp("kap.smart.conf.model.inner-join.exactly-match", "true");
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
         setSparderEnv();
     }
 
     private void setSparderEnv() {
         logger.info("Set Sparder Env.");
-        systemProp.put("kylin.engine.spark.build-class-name",
-                System.getProperty("kylin.engine.spark.build-class-name"));
-        systemProp.put("kylin.engine.spark.merge-class-name",
-                System.getProperty("kylin.engine.spark.merge-class-name"));
-        systemProp.put("kylin.storage.provider.20", System.getProperty("kylin.storage.provider.20"));
-        systemProp.put("source.csv.truetype", System.getProperty("source.csv.truetype"));
-        systemProp.put("kap.query.engine.sparder-enabled", System.getProperty("kap.query.engine.sparder-enabled"));
-        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.DFBuildJob");
-        System.setProperty("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.DFMergeJob");
-        System.setProperty("kylin.storage.provider.20", "io.kyligence.kap.storage.ParquetDataStorage");
-        System.setProperty("source.csv.truetype", "true");
-        System.setProperty("kap.query.engine.sparder-enabled", "true");
+        overwriteSystemProp("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.DFBuildJob");
+        overwriteSystemProp("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.DFMergeJob");
+        overwriteSystemProp("kylin.storage.provider.20", "io.kyligence.kap.storage.ParquetDataStorage");
+        overwriteSystemProp("source.csv.truetype", "true");
+        overwriteSystemProp("kap.query.engine.sparder-enabled", "true");
     }
-
-    private void restoreSparderEnv() {
+    
+    protected void overwriteSystemProp(String key, String value) {
+        systemProp.put(key, System.getProperty(key));
+        System.setProperty(key, value);
+    }
+    
+    protected void restoreAllSystemProp() {
         for (String prop: systemProp.keySet()) {
             restoreIfNeed(prop);
         }
         systemProp.clear();
     }
+
     private void restoreIfNeed(String prop) {
         String value = systemProp.get(prop);
         if (value == null) {
@@ -115,7 +112,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
         Candidate.restorePriorities();
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
-        restoreSparderEnv();
+        restoreAllSystemProp();
     }
 
     @Getter
