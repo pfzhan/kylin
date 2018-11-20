@@ -12,7 +12,7 @@
         <el-step :title="$t(key) + '(' + tableIndex.length + ')'" status="finish" v-if="tableIndex.length" v-for="(tableIndex, key) in tableIndexGroup" :key="key">
           <div slot="icon"><i class="el-icon-ksd-elapsed_time"></i></div>
           <div slot="description">
-            <el-carousel :interval="4000" type="card" height="173px" :autoplay="false" :initial-index="tableIndex.length - 1">
+            <el-carousel :indicator-position="tableIndex.length === 1 ? 'none' : ''" :arrow="tableIndex.length === 1 ? 'never' : 'hover'"  :interval="4000" type="card" height="173px" :autoplay="false" :initial-index="tableIndex.length - 1">
               <el-carousel-item v-for="item in tableIndex" :key="item.name" @click.native="showTableIndexDetal(item)" :class="{'table-index-active': currentShowTableIndex && currentShowTableIndex.id === item.id}">
                 <div :class="{'empty-table-index': item.status === 'Empty'}">
                   <div class="slider-content-above">
