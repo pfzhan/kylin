@@ -981,11 +981,11 @@ export default class FavoriteQuery extends Vue {
   onWhiteSqlFilterChange () {}
 
   blackSqlListsPageChange (offset, pageSize) {
-    this.getBlackList(offset + 1, pageSize)
+    this.getBlackList(offset, pageSize)
   }
 
   whiteSqlListsPageChange (offset, pageSize) {
-    this.getWhiteList(offset + 1, pageSize)
+    this.getWhiteList(offset, pageSize)
   }
 
   renderColumn (h) {
