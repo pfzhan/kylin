@@ -67,10 +67,14 @@
               size="medium"
               type="datetimerange"
               range-separator="-"
+              :class="{ 'is-disabled': !isPickerEditable }"
               :value="form.newDataRange"
+              :editable="false"
               :disabled="disabled"
               :start-placeholder="$t('kylinLang.common.startTime')"
               :end-placeholder="$t('kylinLang.common.endTime')"
+              @blur="handleBlur"
+              @focus="handleFocus"
               @input="value => handleInputDate('newDataRange', value)">
             </el-date-picker>
           </el-col>
@@ -278,6 +282,7 @@ export default class SourceTableModal extends Vue {
   isLoading = false
   autoMergeTypes = autoMergeTypes
   volatileTypes = volatileTypes
+  isPickerEditable = true
   rules = {
     [NEW_DATA_RANGE]: [{ validator: this.validate(NEW_DATA_RANGE), trigger: 'blur' }],
     [PARTITION_COLUMN]: [{ validator: this.validate(PARTITION_COLUMN), trigger: 'blur' }],
@@ -314,6 +319,12 @@ export default class SourceTableModal extends Vue {
     const newConfigs = [...this.form[path]]
     newConfigs.splice(index, 1)
     this.setModalForm({ [path]: newConfigs })
+  }
+  handleBlur () {
+    this.isPickerEditable = true
+  }
+  handleFocus () {
+    this.isPickerEditable = false
   }
   closeHandler (isSubmit) {
     this.hideModal()
