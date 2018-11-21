@@ -136,7 +136,6 @@ public class NDataStorageQuery implements IStorageQuery {
         otherDims.removeAll(groups);
 
         Preconditions.checkNotNull(cuboidLayout, "cuboid not found"); // TODO: throw no realization found exception?
-        context.setCuboidId(cuboidLayout.getId());
 
         // expand derived (xxxD means contains host columns only, derived columns were translated)
         Set<TblColRef> derivedPostAggregation = Sets.newHashSet();

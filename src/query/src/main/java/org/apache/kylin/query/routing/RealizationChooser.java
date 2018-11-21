@@ -180,6 +180,7 @@ public class RealizationChooser {
             storageContext.setCandidate(layoutCandidate);
             storageContext.setDimensions(dimensions);
             storageContext.setMetrics(metrics);
+            storageContext.setCuboidId(cuboidLayout.getId());
             logger.info("Choose model name: {}", cuboidLayout.getCuboidDesc().getModel().getName());
             logger.info("Choose cubePlan name: {}", cuboidLayout.getCuboidDesc().getCubePlan().getName());
             logger.info("Choose cuboid layout ID: {} dimensions: {}, measures: {}", cuboidLayout.getId(),
