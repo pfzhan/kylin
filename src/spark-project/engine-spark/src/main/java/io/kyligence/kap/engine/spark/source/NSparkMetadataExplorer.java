@@ -43,24 +43,19 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.SparderEnv;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleDataDeployer, Serializable {
-    private SparkSession ss;
-
-    public NSparkMetadataExplorer(SparkSession ss) {
-        this.ss = ss;
-    }
 
     public NSparkTableMetaExplorer getTableMetaExplorer() {
-        return new NSparkTableMetaExplorer(ss);
+        return new NSparkTableMetaExplorer();
     }
 
     @Override
     public List<String> listDatabases() throws Exception {
-        Dataset<Row> dataset = ss.sql("show databases");
+        Dataset<Row> dataset = SparderEnv.getSparkSession().sql("show databases");
         return datasetRow2String(dataset, "databaseName");
     }
 
@@ -82,7 +77,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
         if (StringUtils.isNotBlank(database)) {
             sql = String.format(sql + " in %s", database);
         }
-        Dataset<Row> dataset = ss.sql(sql);
+        Dataset<Row> dataset = SparderEnv.getSparkSession().sql(sql);
         return datasetRow2String(dataset, "tableName");
     }
 
@@ -161,7 +156,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
 
     @Override
     public void createSampleDatabase(String database) throws Exception {
-        ss.sql(generateCreateSchemaSql(database));
+        SparderEnv.getSparkSession().sql(generateCreateSchemaSql(database));
     }
 
     private String generateCreateSchemaSql(String schemaName) {
@@ -172,7 +167,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
     public void createSampleTable(TableDesc table) throws Exception {
         String[] createTableSqls = generateCreateTableSql(table);
         for (String sql : createTableSqls) {
-            ss.sql(sql);
+            SparderEnv.getSparkSession().sql(sql);
         }
     }
 
@@ -199,7 +194,7 @@ public class NSparkMetadataExplorer implements ISourceMetadataExplorer, ISampleD
 
     @Override
     public void loadSampleData(String tableName, String tableFileDir) throws Exception {
-        Dataset<Row> dataset = ss.read().csv(tableFileDir + "/" + tableName + ".csv").toDF();
+        Dataset<Row> dataset = SparderEnv.getSparkSession().read().csv(tableFileDir + "/" + tableName + ".csv").toDF();
         if (tableName.indexOf(".") > 0) {
             tableName = tableName.substring(tableName.indexOf(".") + 1);
         }

@@ -23,26 +23,22 @@
  */
 package io.kyligence.kap.engine.spark.source;
 
-import com.google.common.collect.Lists;
-import org.apache.parquet.Strings;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparkSession;
-
 import java.io.Serializable;
 import java.util.List;
 
-public class NSparkTableMetaExplorer implements Serializable {
-    private SparkSession ss;
+import org.apache.parquet.Strings;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderEnv;
 
-    public NSparkTableMetaExplorer(SparkSession ss) {
-        this.ss = ss;
-    }
+import com.google.common.collect.Lists;
+
+public class NSparkTableMetaExplorer implements Serializable {
 
     private Dataset<Row> getTableDesc(String database, String tableName) {
         String sql = Strings.isNullOrEmpty(database) ? String.format("describe formatted %s", tableName)
                 : String.format("describe formatted %s.%s", database, tableName);
-        return ss.sql(sql);
+        return SparderEnv.getSparkSession().sql(sql);
     }
 
     public NSparkTableMeta getSparkTableMeta(String database, String tableName) {

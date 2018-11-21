@@ -39,14 +39,14 @@ public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testListDatabases() throws Exception {
-        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer(ss);
+        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer();
         List<String> databases = sparkMetadataExplorer.listDatabases();
         Assert.assertTrue(databases != null && databases.size() > 0);
     }
 
     @Test
     public void testListTables() throws Exception {
-        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer(ss);
+        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer();
         List<String> tables = sparkMetadataExplorer.listTables("");
         Assert.assertTrue(tables != null && tables.size() > 0);
     }
@@ -54,7 +54,7 @@ public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
     @Test
     public void testListTablesInDatabase() throws Exception {
         String testDataBase = "SSB";
-        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer(ss);
+        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer();
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "ssb");
         sparkMetadataExplorer.createSampleDatabase(testDataBase);
         Assert.assertTrue(ss.catalog().databaseExists(testDataBase));
@@ -72,7 +72,7 @@ public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
     public void testGetTableDesc() throws Exception {
         populateSSWithCSVData(getTestConfig(), "ssb", ss);
 
-        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer(ss);
+        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer();
         Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sparkMetadataExplorer.loadTableMetadata("",
                 "p_lineorder", "ssb");
         Assert.assertTrue(tableDescTableExtDescPair != null && tableDescTableExtDescPair.getFirst() != null);
@@ -80,7 +80,7 @@ public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testCreateSampleDatabase() throws Exception {
-        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer(ss);
+        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer();
         sparkMetadataExplorer.createSampleDatabase("test");
         List<String> databases = sparkMetadataExplorer.listDatabases();
         Assert.assertTrue(databases != null && databases.contains("test"));
@@ -88,7 +88,7 @@ public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testCreateSampleTable() throws Exception {
-        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer(ss);
+        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer();
         NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), "default");
         TableDesc fact = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
         sparkMetadataExplorer.createSampleTable(fact);
@@ -98,7 +98,7 @@ public class NSparkMetadataExplorerTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testLoadData() throws Exception {
-        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer(ss);
+        NSparkMetadataExplorer sparkMetadataExplorer = new NSparkMetadataExplorer();
         sparkMetadataExplorer.loadSampleData("SSB.PART", "../examples/test_metadata/data/");
         List<Row> rows = ss.sql("select * from part").collectAsList();
         Assert.assertTrue(rows != null && rows.size() > 0);

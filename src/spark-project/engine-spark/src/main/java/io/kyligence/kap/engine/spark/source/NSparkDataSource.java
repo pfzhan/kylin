@@ -32,22 +32,15 @@ import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.ISampleDataDeployer;
 import org.apache.kylin.source.ISource;
 import org.apache.kylin.source.ISourceMetadataExplorer;
-import org.apache.spark.sql.SparderEnv;
-import org.apache.spark.sql.SparkSession;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 
 public class NSparkDataSource implements ISource, IKeepNames {
-    private SparkSession ss;
-
-    public NSparkDataSource() {
-        ss = SparderEnv.getSparkSession();
-    }
 
     @Override
     public ISourceMetadataExplorer getSourceMetadataExplorer() {
-        return new NSparkMetadataExplorer(ss);
+        return new NSparkMetadataExplorer();
     }
 
     @Override
@@ -71,7 +64,7 @@ public class NSparkDataSource implements ISource, IKeepNames {
 
     @Override
     public ISampleDataDeployer getSampleDataDeployer() {
-        return new NSparkMetadataExplorer(ss);
+        return new NSparkMetadataExplorer();
     }
 
     @Override
@@ -80,6 +73,5 @@ public class NSparkDataSource implements ISource, IKeepNames {
         end = StringUtils.isEmpty(end) ? "" + Long.MAX_VALUE : end;
         return new SegmentRange.TimePartitionedSegmentRange(Long.parseLong(start), Long.parseLong(end));
     }
-
 
 }
