@@ -38,11 +38,13 @@ export function getUserRange (table) {
   let minUserRange = 0
   let maxUserRange = 0
 
-  minQueryableRange && minQueryableRange > minReadyableRange
+  const isUsingMinQueryRange = (minQueryableRange && minQueryableRange > minReadyableRange) || !minReadyableRange
+  isUsingMinQueryRange
     ? (minUserRange = minQueryableRange)
     : (minUserRange = minReadyableRange)
 
-  maxQueryableRange && maxQueryableRange < maxReadyableRange
+  const isUsingMaxQueryRange = (maxQueryableRange && maxQueryableRange < maxReadyableRange) || !maxReadyableRange
+  isUsingMaxQueryRange
     ? (maxUserRange = maxQueryableRange)
     : (maxUserRange = maxReadyableRange)
 
