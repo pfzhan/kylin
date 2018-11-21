@@ -45,7 +45,7 @@ class TestQueryAndBuildFunSuite
     with SSSource
     with Logging {
 
-  override val DEFAULT_PROJECT = "sparder"
+  override val DEFAULT_PROJECT = "default"
 
   case class FloderInfo(floder: String, filter: List[String] = List())
 

@@ -24,15 +24,9 @@
 
 package io.kyligence.kap.engine.spark.mockup;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -43,14 +37,22 @@ import org.apache.kylin.source.ISourceMetadataExplorer;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.util.SparderTypeUtil;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.engine.spark.NJoinedFlatTable;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 @SuppressWarnings("serial")
 public class CsvSourceTest extends NLocalWithSparkSessionTest {
@@ -69,7 +71,7 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
         for (int i = 0; i < colDescs.length; i++) {
             StructField field = schema.fields()[i];
             Assert.assertEquals(field.name(), colDescs[i].getName());
-            Assert.assertEquals(field.dataType(), DataTypes.StringType);
+            Assert.assertEquals(field.dataType(), SparderTypeUtil.kylinCubeDataTypeToSparkType(colDescs[i].getType()));
         }
 
     }
@@ -84,13 +86,13 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
         List<String> tables = sourceMetadataExplorer.listTables(getProject().toUpperCase());
         String table = DEFAULT_TABLE.split("\\.")[1];
         Assert.assertTrue(tables.contains(table));
-        Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sourceMetadataExplorer.loadTableMetadata(database, table, getProject());
+        Pair<TableDesc, TableExtDesc> tableDescTableExtDescPair = sourceMetadataExplorer.loadTableMetadata(database,
+                table, getProject());
         TableDesc tableDesc = tableDescTableExtDescPair.getFirst();
 
         IReadableTable readableTable = csvSource.createReadableTable(tableDesc);
         Assert.assertTrue(readableTable.exists());
     }
-
 
     @Test
     public void testGetFlatTable() {
@@ -122,8 +124,10 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
     @Test
     public void testGetSegmentRange() {
         SegmentRange segmentRange = new CsvSource().getSegmentRange("0", "21423423");
-        Assert.assertTrue(segmentRange instanceof SegmentRange.TimePartitionedSegmentRange && segmentRange.getStart().equals(0L) && segmentRange.getEnd().equals(21423423L));
+        Assert.assertTrue(segmentRange instanceof SegmentRange.TimePartitionedSegmentRange
+                && segmentRange.getStart().equals(0L) && segmentRange.getEnd().equals(21423423L));
         SegmentRange segmentRange2 = new CsvSource().getSegmentRange("", "");
-        Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
+        Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange
+                && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
     }
 }

@@ -103,13 +103,13 @@ public class TableAnalyzerTest extends NLocalWithSparkSessionTest {
         int PRICE = 8;
         {
             Assert.assertEquals(0, result.getNullOrBlankCount(PRICE));
-            Assert.assertEquals(6, result.getMaxLength(PRICE));
-            Assert.assertEquals("290.48", result.getMaxLengthValue(PRICE));
-            Assert.assertEquals(2, result.getMinLength(PRICE));
-            Assert.assertEquals(".3", result.getMinLengthValue(PRICE));
+            Assert.assertEquals(8, result.getMaxLength(PRICE));
+            Assert.assertEquals("290.4800", result.getMaxLengthValue(PRICE));
+            Assert.assertEquals(6, result.getMinLength(PRICE));
+            Assert.assertEquals("9.1000", result.getMinLengthValue(PRICE));
             Assert.assertEquals(999.84d, result.getMaxNumeral(PRICE), 0.0001d);
             Assert.assertEquals(-99.79, result.getMinNumeral(PRICE), 0.0001d);
-            Assert.assertEquals(9595, result.getCardinality(PRICE));
+            Assert.assertEquals(9443, result.getCardinality(PRICE));
         }
     }
 }

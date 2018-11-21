@@ -24,21 +24,23 @@
 
 package io.kyligence.kap.engine.spark.source;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.util.SparderTypeUtil;
 import org.junit.Assert;
 import org.junit.Test;
+
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 @SuppressWarnings("serial")
 public class NSparkSourceTest extends NLocalWithSparkSessionTest {
@@ -57,15 +59,17 @@ public class NSparkSourceTest extends NLocalWithSparkSessionTest {
         for (int i = 0; i < colDescs.length; i++) {
             StructField field = schema.fields()[i];
             Assert.assertEquals(field.name(), colDescs[i].getName());
-            Assert.assertEquals(field.dataType(), DataTypes.StringType);
+            Assert.assertEquals(field.dataType(), SparderTypeUtil.kylinCubeDataTypeToSparkType(colDescs[i].getType()));
         }
     }
 
     @Test
     public void testGetSegmentRange() {
         SegmentRange segmentRange = new NSparkDataSource().getSegmentRange("0", "21423423");
-        Assert.assertTrue(segmentRange instanceof SegmentRange.TimePartitionedSegmentRange && segmentRange.getStart().equals(0L) && segmentRange.getEnd().equals(21423423L));
+        Assert.assertTrue(segmentRange instanceof SegmentRange.TimePartitionedSegmentRange
+                && segmentRange.getStart().equals(0L) && segmentRange.getEnd().equals(21423423L));
         SegmentRange segmentRange2 = new NSparkDataSource().getSegmentRange("", "");
-        Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
+        Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange
+                && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
     }
 }

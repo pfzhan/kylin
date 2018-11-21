@@ -1,5 +1,5 @@
 {
-  "uuid": "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+  "uuid": "cb596712-3a09-46f8-aea1-988b43fe9b6c",
   "name": "nmodel_full_measure_test",
   "fact_table": "DEFAULT.TEST_MEASURE",
   "owner": "ADMIN",
@@ -390,6 +390,30 @@
         "configuration": {
           "topn.encoding.TEST_MEASURE.ID2": "int:4"
         }
+      }
+    },
+    {
+      "id": 1026,
+      "name": "COUNT_COL_DECIMAL",
+      "function": {
+        "expression": "COUNT",
+        "parameter": {
+          "type": "column",
+          "value": "TEST_MEASURE.price1"
+        },
+        "returntype": "bigint"
+      }
+    },
+    {
+      "id": 1027,
+      "name": "COUNT_COL_INT",
+      "function": {
+        "expression": "COUNT",
+        "parameter": {
+          "type": "column",
+          "value": "TEST_MEASURE.id1"
+        },
+        "returntype": "bigint"
       }
     }
   ],

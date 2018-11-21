@@ -59,7 +59,7 @@ public class NumericalColumnAnalysisDelegateTest extends NLocalWithSparkSessionT
                 .createEngineAdapter(tableDesc, NSparkCubingEngine.NSparkCubingSource.class)
                 .getSourceData(tableDesc, ss, Maps.newHashMap());
         for (final Row row : sourceData.collectAsList()) {
-            delegate.analyze(row, row.getString(COL_IDX));
+            delegate.analyze(row, row.get(COL_IDX));
         }
 
         Assert.assertEquals(999.84d, delegate.getMax(), 0.00001);

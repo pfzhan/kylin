@@ -61,7 +61,7 @@ public class ColumnCardinalityAnalysisDelegateTest extends NLocalWithSparkSessio
                 .createEngineAdapter(tableDesc, NSparkCubingEngine.NSparkCubingSource.class)
                 .getSourceData(tableDesc, ss, Maps.newHashMap());
         for (final Row row : sourceData.collectAsList()) {
-            delegate.analyze(row, row.getString(COL_IDX));
+            delegate.analyze(row, row.get(COL_IDX));
         }
 
         Assert.assertEquals(5, delegate.getCardinality());

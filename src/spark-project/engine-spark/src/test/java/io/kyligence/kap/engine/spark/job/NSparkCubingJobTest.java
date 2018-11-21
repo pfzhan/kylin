@@ -32,9 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
@@ -75,6 +72,10 @@ import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.builder.NDictionaryBuilder;
 import io.kyligence.kap.engine.spark.builder.NSnapshotBuilder;
+import io.kyligence.kap.engine.spark.storage.ParquetStorage;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 @SuppressWarnings("serial")
 public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
@@ -638,12 +639,12 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NCuboidLayout layout = dataCuboid.getCuboidLayout();
         Assert.assertEquals(10000, seg.getCuboid(20000000001L).getRows());
 
-        List<Object[]> resultFromLayout = getCuboidDataAfterDecoding(seg, 20000000001L);
-        // The table index cuboid should sort by column 0, assert it's order.
-        Assert.assertEquals("Australia", resultFromLayout.get(0)[1].toString());
-        Assert.assertEquals("Australia", resultFromLayout.get(1)[1].toString());
-        Assert.assertEquals("英国", resultFromLayout.get(9998)[1].toString());
-        Assert.assertEquals("英国", resultFromLayout.get(9999)[1].toString());
+        ParquetStorage storage = new ParquetStorage();
+        Dataset<Row> ret = storage.getCuboidData(dataCuboid, ss);
+        Assert.assertEquals("Australia", ret.collectAsList().get(0).apply(1).toString());
+        Assert.assertEquals("Australia", ret.collectAsList().get(1).apply(1).toString());
+        Assert.assertEquals("英国", ret.collectAsList().get(9998).apply(1).toString());
+        Assert.assertEquals("英国", ret.collectAsList().get(9999).apply(1).toString());
     }
 
     private void validateTableExt(String tableName, long rows, int segSize, int colStats) {

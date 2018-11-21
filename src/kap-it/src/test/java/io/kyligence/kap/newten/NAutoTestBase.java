@@ -42,6 +42,7 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.SparkContext;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,6 +56,7 @@ import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.spark.KapSparkSession;
 import lombok.Getter;
 
+@Ignore
 public class NAutoTestBase extends NLocalWithSparkSessionTest {
     private static final Logger logger = LoggerFactory.getLogger(NAutoTestBase.class);
     protected KylinConfig kylinConfig;
@@ -68,23 +70,13 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kap.storage.columnar.hdfs-dir", kylinConfig.getHdfsWorkingDirectory() + "/parquet/");
         overwriteSystemProp("kap.smart.conf.model.inner-join.exactly-match", "true");
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
-        setSparderEnv();
     }
 
-    private void setSparderEnv() {
-        logger.info("Set Sparder Env.");
-        overwriteSystemProp("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.DFBuildJob");
-        overwriteSystemProp("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.DFMergeJob");
-        overwriteSystemProp("kylin.storage.provider.20", "io.kyligence.kap.storage.ParquetDataStorage");
-        overwriteSystemProp("source.csv.truetype", "true");
-        overwriteSystemProp("kap.query.engine.sparder-enabled", "true");
-    }
-    
     protected void overwriteSystemProp(String key, String value) {
         systemProp.put(key, System.getProperty(key));
         System.setProperty(key, value);
     }
-    
+
     protected void restoreAllSystemProp() {
         for (String prop: systemProp.keySet()) {
             restoreIfNeed(prop);

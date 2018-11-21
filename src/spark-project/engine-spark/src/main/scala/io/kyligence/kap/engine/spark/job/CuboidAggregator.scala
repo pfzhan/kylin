@@ -98,8 +98,8 @@ object CuboidAggregator {
               countDistinct(column).as(measureEntry._1.toString)
             } else {
               val udfName = UdfManager.register(function.getReturnDataType,
-                                                function.getExpression,
-                                                !afterAgg)
+                function.getExpression,
+                !afterAgg)
               if (!afterAgg) {
                 callUDF(udfName, column.cast(StringType))
                   .as(measureEntry._1.toString)

@@ -23,15 +23,6 @@
     "source_rows" : 9896,
     "source_byte_size" : 1645
   }, {
-    "cuboid_layout_id" : 2,
-    "status" : "READY",
-    "build_job_id" : "12a83ab2-ee40-404f-b2ce-71698e497dc1",
-    "rows" : 9896,
-    "byte_size" : 249856,
-    "file_count" : 2,
-    "source_rows" : 9896,
-    "source_byte_size" : 1645
-  }, {
     "cuboid_layout_id" : 1001,
     "status" : "READY",
     "build_job_id" : "12a83ab2-ee40-404f-b2ce-71698e497dc1",

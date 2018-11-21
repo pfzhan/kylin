@@ -46,11 +46,14 @@ public class MockupQueryExecutorTest extends NLocalFileMetadataTestCase {
     @After
     public void cleanup() throws IOException {
         this.cleanupTestMetadata();
+        System.clearProperty("kap.query.engine.sparder-enabled");
     }
 
     @Before
     public void setup() throws IOException {
         this.createTestMetadata();
+
+        System.setProperty("kap.query.engine.sparder-enabled", "false");
 
         KylinConfig mockupConfig = getTestConfig();
         mockupConfig = Utils.newKylinConfig(mockupConfig.getMetadataUrl().toString());

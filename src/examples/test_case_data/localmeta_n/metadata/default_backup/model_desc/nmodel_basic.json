@@ -1,13 +1,14 @@
 {
-  "uuid": "741ca86a-1f13-46da-a59f-95fb68615e3a",
-  "name": "nmodel_basic_inner",
+  "uuid": "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+  "name": "nmodel_basic",
   "fact_table": "DEFAULT.TEST_KYLIN_FACT",
   "owner": "ADMIN",
+  "maintain_model_type": "MANUAL_MAINTAIN",
   "join_tables": [
     {
       "table": "DEFAULT.TEST_ORDER",
       "join": {
-        "type": "INNER",
+        "type": "LEFT",
         "primary_key": [
           "TEST_ORDER.ORDER_ID"
         ],
@@ -19,7 +20,7 @@
     {
       "table": "EDW.TEST_SELLER_TYPE_DIM",
       "join": {
-        "type": "INNER",
+        "type": "LEFT",
         "primary_key": [
           "TEST_SELLER_TYPE_DIM.SELLER_TYPE_CD"
         ],
@@ -31,7 +32,7 @@
     {
       "table": "EDW.TEST_CAL_DT",
       "join": {
-        "type": "INNER",
+        "type": "LEFT",
         "primary_key": [
           "TEST_CAL_DT.CAL_DT"
         ],
@@ -43,7 +44,7 @@
     {
       "table": "DEFAULT.TEST_CATEGORY_GROUPINGS",
       "join": {
-        "type": "INNER",
+        "type": "LEFT",
         "primary_key": [
           "TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID",
           "TEST_CATEGORY_GROUPINGS.SITE_ID"
@@ -57,7 +58,7 @@
     {
       "table": "EDW.TEST_SITES",
       "join": {
-        "type": "INNER",
+        "type": "LEFT",
         "primary_key": [
           "TEST_SITES.SITE_ID"
         ],
@@ -70,7 +71,7 @@
       "table": "DEFAULT.TEST_COUNTRY",
       "alias": "BUYER_COUNTRY",
       "join": {
-        "type": "INNER",
+        "type": "LEFT",
         "primary_key": [
           "BUYER_COUNTRY.COUNTRY"
         ],
@@ -83,7 +84,7 @@
       "table": "DEFAULT.TEST_COUNTRY",
       "alias": "SELLER_COUNTRY",
       "join": {
-        "type": "INNER",
+        "type": "LEFT",
         "primary_key": [
           "SELLER_COUNTRY.COUNTRY"
         ],
@@ -96,7 +97,7 @@
       "table": "DEFAULT.TEST_ACCOUNT",
       "alias": "SELLER_ACCOUNT",
       "join": {
-        "type": "INNER",
+        "type": "LEFT",
         "primary_key": [
           "SELLER_ACCOUNT.ACCOUNT_ID"
         ],
@@ -109,7 +110,7 @@
       "table": "DEFAULT.TEST_ACCOUNT",
       "alias": "BUYER_ACCOUNT",
       "join": {
-        "type": "INNER",
+        "type": "LEFT",
         "primary_key": [
           "BUYER_ACCOUNT.ACCOUNT_ID"
         ],
@@ -123,171 +124,227 @@
     {
       "id": 0,
       "name": "SITE_NAME",
-      "column": "TEST_SITES.SITE_NAME"
+      "column": "TEST_SITES.SITE_NAME",
+      "status": "DIMENSION"
     },
     {
       "id": 1,
       "name": "TRANS_ID",
-      "column": "TEST_KYLIN_FACT.TRANS_ID"
+      "column": "TEST_KYLIN_FACT.TRANS_ID",
+      "status": "DIMENSION"
     },
     {
       "id": 2,
       "name": "CAL_DT",
-      "column": "TEST_KYLIN_FACT.CAL_DT"
+      "column": "TEST_KYLIN_FACT.CAL_DT",
+      "status": "DIMENSION"
     },
     {
       "id": 3,
       "name": "LSTG_FORMAT_NAME",
-      "column": "TEST_KYLIN_FACT.LSTG_FORMAT_NAME"
+      "column": "TEST_KYLIN_FACT.LSTG_FORMAT_NAME",
+      "status": "DIMENSION"
     },
     {
       "id": 4,
       "name": "LSTG_SITE_ID",
-      "column": "TEST_KYLIN_FACT.LSTG_SITE_ID"
+      "column": "TEST_KYLIN_FACT.LSTG_SITE_ID",
+      "status": "DIMENSION"
     },
     {
       "id": 5,
       "name": "META_CATEG_NAME",
-      "column": "TEST_CATEGORY_GROUPINGS.META_CATEG_NAME"
+      "column": "TEST_CATEGORY_GROUPINGS.META_CATEG_NAME",
+      "status": "DIMENSION"
     },
     {
       "id": 6,
       "name": "CATEG_LVL2_NAME",
-      "column": "TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME"
+      "column": "TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME",
+      "status": "DIMENSION"
     },
     {
       "id": 7,
       "name": "CATEG_LVL3_NAME",
-      "column": "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME"
+      "column": "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME",
+      "status": "DIMENSION"
     },
     {
       "id": 8,
       "name": "LEAF_CATEG_ID",
-      "column": "TEST_KYLIN_FACT.LEAF_CATEG_ID"
+      "column": "TEST_KYLIN_FACT.LEAF_CATEG_ID",
+      "status": "DIMENSION"
     },
     {
       "id": 9,
       "name": "SELLER_ID",
-      "column": "TEST_KYLIN_FACT.SELLER_ID"
+      "column": "TEST_KYLIN_FACT.SELLER_ID",
+      "status": "DIMENSION"
     },
     {
       "id": 10,
       "name": "WEEK_BEG_DT",
       "column": "TEST_CAL_DT.WEEK_BEG_DT",
-      "tomb": true
+      "status": "TOMB"
     },
     {
       "id": 11,
       "name": "PRICE",
-      "column": "TEST_KYLIN_FACT.PRICE"
+      "column": "TEST_KYLIN_FACT.PRICE",
+      "status": "EXIST"
     },
     {
       "id": 12,
       "name": "ITEM_COUNT",
-      "column": "TEST_KYLIN_FACT.ITEM_COUNT"
+      "column": "TEST_KYLIN_FACT.ITEM_COUNT",
+      "status": "EXIST"
     },
     {
       "id": 13,
       "name": "ORDER_ID",
-      "column": "TEST_KYLIN_FACT.ORDER_ID"
+      "column": "TEST_KYLIN_FACT.ORDER_ID",
+      "status": "DIMENSION"
     },
     {
       "id": 14,
       "name": "TEST_DATE_ENC",
-      "column": "TEST_ORDER.TEST_DATE_ENC"
+      "column": "TEST_ORDER.TEST_DATE_ENC",
+      "status": "DIMENSION"
     },
     {
       "id": 15,
       "name": "TEST_TIME_ENC",
-      "column": "TEST_ORDER.TEST_TIME_ENC"
+      "column": "TEST_ORDER.TEST_TIME_ENC",
+      "status": "DIMENSION"
     },
     {
       "id": 16,
       "name": "SLR_SEGMENT_CD",
-      "column": "TEST_KYLIN_FACT.SLR_SEGMENT_CD"
+      "column": "TEST_KYLIN_FACT.SLR_SEGMENT_CD",
+      "status": "DIMENSION"
     },
     {
       "id": 17,
       "name": "BUYER_ID",
-      "column": "TEST_ORDER.BUYER_ID"
+      "column": "TEST_ORDER.BUYER_ID",
+      "status": "DIMENSION"
     },
     {
       "id": 18,
       "name": "SELLER_BUYER_LEVEL",
-      "column": "SELLER_ACCOUNT.ACCOUNT_BUYER_LEVEL"
+      "column": "SELLER_ACCOUNT.ACCOUNT_BUYER_LEVEL",
+      "status": "DIMENSION"
     },
     {
       "id": 19,
       "name": "SELLER_SELLER_LEVEL",
-      "column": "SELLER_ACCOUNT.ACCOUNT_SELLER_LEVEL"
+      "column": "SELLER_ACCOUNT.ACCOUNT_SELLER_LEVEL",
+      "status": "DIMENSION"
     },
     {
       "id": 20,
       "name": "SELLER_COUNTRY",
-      "column": "SELLER_ACCOUNT.ACCOUNT_COUNTRY"
+      "column": "SELLER_ACCOUNT.ACCOUNT_COUNTRY",
+      "status": "DIMENSION"
     },
     {
       "id": 21,
       "name": "SELLER_COUNTRY_NAME",
-      "column": "SELLER_COUNTRY.NAME"
+      "column": "SELLER_COUNTRY.NAME",
+      "status": "DIMENSION"
     },
     {
       "id": 22,
       "name": "BUYER_BUYER_LEVEL",
-      "column": "BUYER_ACCOUNT.ACCOUNT_BUYER_LEVEL"
+      "column": "BUYER_ACCOUNT.ACCOUNT_BUYER_LEVEL",
+      "status": "DIMENSION"
     },
     {
       "id": 23,
       "name": "BUYER_SELLER_LEVEL",
-      "column": "BUYER_ACCOUNT.ACCOUNT_SELLER_LEVEL"
+      "column": "BUYER_ACCOUNT.ACCOUNT_SELLER_LEVEL",
+      "status": "DIMENSION"
     },
     {
       "id": 24,
       "name": "BUYER_COUNTRY",
-      "column": "BUYER_ACCOUNT.ACCOUNT_COUNTRY"
+      "column": "BUYER_ACCOUNT.ACCOUNT_COUNTRY",
+      "status": "DIMENSION"
     },
     {
       "id": 25,
       "name": "BUYER_COUNTRY_NAME",
-      "column": "BUYER_COUNTRY.NAME"
+      "column": "BUYER_COUNTRY.NAME",
+      "status": "DIMENSION"
     },
     {
       "id": 26,
       "name": "TEST_COUNT_DISTINCT_BITMAP",
-      "column": "TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP"
+      "column": "TEST_KYLIN_FACT.TEST_COUNT_DISTINCT_BITMAP",
+      "status": "DIMENSION"
     },
     {
       "id": 27,
       "name": "DEAL_AMOUNT",
-      "column": "TEST_KYLIN_FACT.DEAL_AMOUNT"
+      "column": "TEST_KYLIN_FACT.DEAL_AMOUNT",
+      "status": "DIMENSION"
     },
     {
       "id": 28,
       "name": "DEAL_YEAR",
-      "column": "TEST_KYLIN_FACT.DEAL_YEAR"
+      "column": "TEST_KYLIN_FACT.DEAL_YEAR",
+      "status": "DIMENSION"
     },
     {
       "id": 29,
-      "name": "NEST1",
-      "column": "TEST_KYLIN_FACT.NEST1"
+      "name": "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME",
+      "column": "TEST_KYLIN_FACT.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME",
+      "status": "DIMENSION"
     },
     {
       "id": 30,
-      "name": "NEST2",
-      "column": "TEST_KYLIN_FACT.NEST2"
+      "name": "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
+      "column": "TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
+      "status": "DIMENSION"
     },
     {
       "id": 31,
-      "name": "NEST3",
-      "column": "TEST_KYLIN_FACT.NEST3"
+      "name": "LEFTJOIN_BUYER_COUNTRY_ABBR",
+      "column": "TEST_KYLIN_FACT.LEFTJOIN_BUYER_COUNTRY_ABBR",
+      "status": "DIMENSION"
     },
     {
       "id": 32,
-      "name": "NEST4",
-      "column": "TEST_KYLIN_FACT.NEST4"
+      "name": "LEFTJOIN_SELLER_COUNTRY_ABBR",
+      "column": "TEST_KYLIN_FACT.LEFTJOIN_SELLER_COUNTRY_ABBR",
+      "status": "DIMENSION"
     },
     {
       "id": 33,
+      "name": "NEST1",
+      "column": "TEST_KYLIN_FACT.NEST1",
+      "status": "DIMENSION"
+    },
+    {
+      "id": 34,
+      "name": "NEST2",
+      "column": "TEST_KYLIN_FACT.NEST2",
+      "status": "DIMENSION"
+    },
+    {
+      "id": 35,
+      "name": "NEST3",
+      "column": "TEST_KYLIN_FACT.NEST3",
+      "status": "DIMENSION"
+    },
+    {
+      "id": 36,
+      "name": "NEST4",
+      "column": "TEST_KYLIN_FACT.NEST4",
+      "status": "DIMENSION"
+    },
+    {
+      "id": 37,
       "name": "CAL_DT1",
       "column": "TEST_CAL_DT.CAL_DT",
       "status": "DIMENSION"
@@ -537,10 +594,11 @@
   "computed_columns": [
     {
       "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "DEAL_AMOUNT",
       "expression": "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
       "datatype": "decimal",
-      "comment": "deal amount of inner join model (with legacy expression format)"
+      "comment": "deal amount of left join model (with legacy expression format)"
     },
     {
       "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
@@ -552,6 +610,39 @@
     },
     {
       "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
+      "columnName": "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME",
+      "expression": "CONCAT(BUYER_ACCOUNT.ACCOUNT_ID, BUYER_COUNTRY.NAME)",
+      "datatype": "string",
+      "comment": "synthetically concat buyer's account id and buyer country"
+    },
+    {
+      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
+      "columnName": "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
+      "expression": "CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)",
+      "datatype": "string",
+      "comment": "synthetically concat seller's account id and seller country"
+    },
+    {
+      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
+      "columnName": "LEFTJOIN_BUYER_COUNTRY_ABBR",
+      "expression": "SUBSTR(BUYER_ACCOUNT.ACCOUNT_COUNTRY,0,1)",
+      "datatype": "string",
+      "comment": "first char of country of buyer account"
+    },
+    {
+      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
+      "columnName": "LEFTJOIN_SELLER_COUNTRY_ABBR",
+      "expression": "SUBSTR(SELLER_ACCOUNT.ACCOUNT_COUNTRY,0,1)",
+      "datatype": "string",
+      "comment": "first char of country of seller account"
+    },
+    {
+      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "NEST1",
       "expression": "TEST_KYLIN_FACT.PRICE + 11",
       "datatype": "decimal",
@@ -559,6 +650,7 @@
     },
     {
       "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "NEST2",
       "expression": "TEST_KYLIN_FACT.NEST1 * 12",
       "innerExpression": "(TEST_KYLIN_FACT.PRICE + 11) * 12",
@@ -567,6 +659,7 @@
     },
     {
       "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "NEST3",
       "expression": "round(TEST_KYLIN_FACT.NEST2, 0)",
       "innerExpression": "round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0)",
@@ -575,6 +668,7 @@
     },
     {
       "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "NEST4",
       "expression": "TEST_KYLIN_FACT.NEST3 * TEST_KYLIN_FACT.ITEM_COUNT",
       "innerExpression": "round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0) * TEST_KYLIN_FACT.ITEM_COUNT",

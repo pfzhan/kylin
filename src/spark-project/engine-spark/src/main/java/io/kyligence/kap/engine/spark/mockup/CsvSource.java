@@ -145,12 +145,7 @@ public class CsvSource implements ISource {
                         }
                     }
                     StructType structType = SchemaProcessor.buildSchemaWithRawTable(tblColDescs.toArray(new ColumnDesc[0]));
-                    if("true".equals(System.getProperty("source.csv.truetype"))) {
-                        return ss.read().option("delimiter", ",").schema(structType).csv(path);
-                    }
-                    return ss.read().option("delimiter", ",").csv(path).toDF(structType.fieldNames());
-
-
+                    return ss.read().option("delimiter", ",").schema(structType).csv(path);
                 }
             };
         }

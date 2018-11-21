@@ -79,7 +79,7 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
-import io.kyligence.kap.engine.spark.storage.NParquetStorage;
+import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
@@ -191,7 +191,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         NDataSegDetails segCuboids = seg.getSegDetails();
         NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(segCuboids, cuboidLayoutId);
         List<Object[]> resultFromLayout = new ArrayList<>();
-        NParquetStorage storage = new NParquetStorage();
+        ParquetStorage storage = new ParquetStorage();
         Dataset<Row> ret = storage.getCuboidData(dataCuboid, ss);
         IDimensionEncodingMap dimEncoding = new NCubeDimEncMap(seg);
 

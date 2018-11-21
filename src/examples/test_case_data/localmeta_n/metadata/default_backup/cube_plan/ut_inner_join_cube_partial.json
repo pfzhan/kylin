@@ -3,7 +3,7 @@
   "last_modified": 1509531215483,
   "version": "2.3.0.20500",
   "name": "ut_inner_join_cube_partial",
-  "model_name": "nmodel_basic_inner",
+  "model_name": "ut_inner_join_cube_partial",
   "description": "refer to ut_inner_join_cube_partial in pre-newten, it's a converted version",
   "cubeplan_override_encodings": {
     "9": {

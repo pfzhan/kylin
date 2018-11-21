@@ -58,7 +58,7 @@ public class StringColumnAnalysisDelegateTest extends NLocalWithSparkSessionTest
 
         final StringColumnAnalysisDelegate delegate = new StringColumnAnalysisDelegate(tableDesc.getColumns()[COL_IDX]);
         for (final Row row : sourceData.collectAsList()) {
-            delegate.analyze(row, row.getString(COL_IDX));
+            delegate.analyze(row, row.get(COL_IDX));
         }
 
         Assert.assertEquals(4, delegate.getMaxLength());

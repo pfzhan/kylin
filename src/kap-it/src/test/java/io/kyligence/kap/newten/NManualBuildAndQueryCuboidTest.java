@@ -56,7 +56,6 @@ import org.spark_project.guava.collect.Sets;
 
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.cube.model.NCuboidDesc;
@@ -75,11 +74,9 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
     private static final Logger logger = LoggerFactory.getLogger(NManualBuildAndQueryTest.class);
 
-    private static final String DEFAULT_PROJECT = "sparder";
+    private static final String DEFAULT_PROJECT = "default";
 
     private static StructType OUT_SCHEMA = null;
-
-    Map<String, String> systemProp = Maps.newHashMap();
 
     @Before
     public void setup() throws Exception {
@@ -87,8 +84,6 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         System.setProperty("spark.local", "true");
         System.setProperty("noBuild", "false");
         System.setProperty("isDeveloperMode", "false");
-
-        setSparderEnv();
     }
 
     @After
@@ -99,42 +94,6 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         System.clearProperty("noBuild");
         System.clearProperty("isDeveloperMode");
         System.clearProperty("spark.local");
-
-        restoreSparderEnv();
-    }
-
-    private void setSparderEnv() {
-        logger.info("Set Sparder Env.");
-        systemProp.put("kylin.engine.spark.build-class-name",
-                System.getProperty("kylin.engine.spark.build-class-name"));
-        systemProp.put("kylin.engine.spark.merge-class-name",
-                System.getProperty("kylin.engine.spark.merge-class-name"));
-        systemProp.put("kylin.storage.provider.20", System.getProperty("kylin.storage.provider.20"));
-        systemProp.put("source.csv.truetype", System.getProperty("source.csv.truetype"));
-        systemProp.put("kap.query.engine.sparder-enabled", System.getProperty("kap.query.engine.sparder-enabled"));
-        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.DFBuildJob");
-        System.setProperty("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.DFMergeJob");
-        System.setProperty("kylin.storage.provider.20", "io.kyligence.kap.storage.ParquetDataStorage");
-        System.setProperty("source.csv.truetype", "true");
-        System.setProperty("kap.query.engine.sparder-enabled", "true");
-    }
-
-    private void restoreSparderEnv() {
-        for (String prop : systemProp.keySet()) {
-            restoreIfNeed(prop);
-        }
-        systemProp.clear();
-    }
-
-    private void restoreIfNeed(String prop) {
-        String value = systemProp.get(prop);
-        if (value == null) {
-            logger.info("CLear " + prop);
-            System.clearProperty(prop);
-        } else {
-            logger.info("restore " + prop);
-            System.setProperty(prop, value);
-        }
     }
 
     @Override

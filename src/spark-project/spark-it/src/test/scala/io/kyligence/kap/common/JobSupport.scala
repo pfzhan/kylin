@@ -63,34 +63,12 @@ trait JobSupport extends BeforeAndAfterAll with BeforeAndAfterEach {
     super.beforeAll()
     System.setProperty("kylin.job.scheduler.poll-interval-second",
                        schedulerInterval)
-    setSparderEnv()
     scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT)
     scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv),
                    new MockJobLock)
     if (!scheduler.hasStarted) {
       throw new RuntimeException("scheduler has not been started")
     }
-  }
-
-  private def setSparderEnv(): Unit = {
-    systemProp.put("kylin.engine.spark.build-class-name",
-                   System.getProperty("kylin.engine.spark.build-class-name"))
-    systemProp.put("kylin.engine.spark.merge-class-name",
-                   System.getProperty("kylin.engine.spark.merge-class-name"))
-    systemProp.put("kylin.storage.provider.20",
-                   System.getProperty("kylin.storage.provider.20"))
-    systemProp.put("source.csv.truetype",
-                   System.getProperty("source.csv.truetype"))
-    systemProp.put("kap.query.engine.sparder-enabled",
-                   System.getProperty("kap.query.engine.sparder-enabled"))
-    System.setProperty("kylin.engine.spark.build-class-name",
-                       "io.kyligence.kap.engine.spark.job.DFBuildJob")
-    System.setProperty("kylin.engine.spark.merge-class-name",
-                       "io.kyligence.kap.engine.spark.job.DFMergeJob")
-    System.setProperty("kylin.storage.provider.20",
-                       "io.kyligence.kap.storage.ParquetDataStorage")
-    System.setProperty("source.csv.truetype", "true")
-    System.setProperty("kap.query.engine.sparder-enabled", "true")
   }
 
   private def restoreSparderEnv(): Unit = {

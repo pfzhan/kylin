@@ -451,7 +451,7 @@ public class KapConfig {
     }
 
     public boolean isSparderEnabled() {
-        return Boolean.valueOf(config.getOptional("kap.query.engine.sparder-enabled", "false"));
+        return Boolean.valueOf(config.getOptional("kap.query.engine.sparder-enabled", "true"));
     }
 
     public String sparderFileFormat() {

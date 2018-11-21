@@ -1099,12 +1099,12 @@ abstract public class KylinConfigBase implements Serializable {
 
     public String getSparkBuildClassName() {
         return getOptional("kylin.engine.spark.build-class-name",
-                "io.kyligence.kap.engine.spark.builder.NDataflowBuildJob");
+                "io.kyligence.kap.engine.spark.job.DFBuildJob");
     }
 
     public String getSparkMergeClassName() {
         return getOptional("kylin.engine.spark.merge-class-name",
-                "io.kyligence.kap.engine.spark.builder.NDataflowMergeJob");
+                "io.kyligence.kap.engine.spark.job.DFMergeJob");
     }
 
     public void overrideSparkJobJarPath(String path) {

@@ -101,7 +101,7 @@ object SparderTypeUtil extends Logging {
   // scalastyle:off
   def kylinCubeDataTypeToSparkType(dataTp: DataType): org.apache.spark.sql.types.DataType = {
     dataTp.getName match {
-      case "decimal" => DecimalType(29, 4)
+      case "decimal" => DecimalType(dataTp.getPrecision, dataTp.getScale)
       case "date" => DateType
       case "time" => DateType
       case "timestamp" => TimestampType
