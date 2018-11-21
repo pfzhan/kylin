@@ -109,21 +109,22 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
         Mockito.when(jobService.getExecutableManager("default")).thenReturn(executableManager);
         Mockito.when(executableManager.getAllExecutables(Mockito.anyLong(), Mockito.anyLong())).thenReturn(mockJobs());
-        String[] subjects = {};
-        JobFilter jobFilter = new JobFilter("", "", 4, subjects, "default", "", true);
+        List<String> jobNames = Lists.newArrayList();
+        JobFilter jobFilter = new JobFilter("", jobNames, 4, "", "default", "", true);
         List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs.size() == 3);
         jobFilter.setTimeFilter(0);
-        jobFilter.setJobName("ob1");
+        jobNames.add("sparkjob1");
+        jobFilter.setJobNames(jobNames);
         List<ExecutableResponse> jobs2 = jobService.listJobs(jobFilter);
-        Assert.assertTrue(jobs2.size() == 1);
-        String[] subjects2 = { "model1" };
-        jobFilter.setSubjects(subjects2);
-        jobFilter.setJobName("");
+        Assert.assertEquals(1, jobs2.size());
+        jobFilter.setSubject("model1");
+        jobNames.remove(0);
+        jobFilter.setJobNames(jobNames);
         jobFilter.setTimeFilter(2);
         List<ExecutableResponse> jobs3 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs3.size() == 1);
-        jobFilter.setSubjects(subjects);
+        jobFilter.setSubject("");
         jobFilter.setStatus("NEW");
         jobFilter.setTimeFilter(1);
         List<ExecutableResponse> jobs4 = jobService.listJobs(jobFilter);
@@ -140,7 +141,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setSortBy("duration");
         jobFilter.setReverse(true);
         List<ExecutableResponse> jobs7 = jobService.listJobs(jobFilter);
-        Assert.assertTrue(jobs7.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob2"));
+        Assert.assertTrue(jobs7.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob3"));
         jobFilter.setSortBy("exec_start_time");
         jobFilter.setReverse(false);
         List<ExecutableResponse> jobs8 = jobService.listJobs(jobFilter);
@@ -155,6 +156,11 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setSortBy("job_status");
         List<ExecutableResponse> jobs11 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs11.size() == 3 && jobs11.get(0).getJobName().equals("sparkjob1"));
+        jobFilter.setSortBy("create_time");
+        List<ExecutableResponse> jobs12 = jobService.listJobs(jobFilter);
+        Assert.assertTrue(jobs12.size() == 3 && jobs12.get(0).getJobName().equals("sparkjob1")
+                && jobs12.get(0).getCreateTime() > 0L);
+
     }
 
     @Test
@@ -226,14 +232,14 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         job1.initConfig(KylinConfig.getInstanceFromEnv());
         job1.setName("sparkjob1");
         job1.setTargetSubject("model1");
-        job1.setStartTime(1506585216000L);
+        job1.setStartTime(1506758016000L);
         job1.setEndTime(1506758016000L);
         SucceedTestExecutable job2 = new SucceedTestExecutable();
         job2.setProject("default");
         job2.initConfig(KylinConfig.getInstanceFromEnv());
         job2.setName("sparkjob2");
         job2.setTargetSubject("model2");
-        job2.setStartTime(1506585215000L);
+        job2.setStartTime(1506585216000L);
         job2.setEndTime(1506758017000L);
         SucceedTestExecutable job3 = new SucceedTestExecutable();
         job3.setProject("default");

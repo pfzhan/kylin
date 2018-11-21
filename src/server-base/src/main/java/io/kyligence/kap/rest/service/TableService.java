@@ -314,7 +314,7 @@ public class TableService extends BasicService {
                 rtableDesc.setSegmentRanges(getSegmentRangesWithStatus(dataLoadingRange));
                 rtableDesc.setActualQueryStart(dataLoadingRange.getActualQueryStart());
                 rtableDesc.setActualQueryEnd(dataLoadingRange.getActualQueryEnd());
-                SegmentRange segmentRange = dataLoadingRange.getCoveredSegmentRange();
+                SegmentRange segmentRange = dataLoadingRange.getCoveredReadySegmentRange();
                 if (segmentRange != null) {
                     rtableDesc.setReadyStart(Long.parseLong(segmentRange.getStart().toString()));
                     rtableDesc.setReadyEnd(Long.parseLong(segmentRange.getEnd().toString()));

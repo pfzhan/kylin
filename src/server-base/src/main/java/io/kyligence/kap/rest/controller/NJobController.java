@@ -57,19 +57,19 @@ public class NJobController extends NBasicController {
     @Qualifier("jobService")
     private JobService jobService;
 
-    @RequestMapping(value = "", method = {RequestMethod.GET}, produces = {"application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getJobList(@RequestParam(value = "status", required = false) String status,
-            @RequestParam(value = "jobName", required = false) String jobName,
+            @RequestParam(value = "jobNames", required = false) List<String> jobNames,
             @RequestParam(value = "timeFilter", required = true) Integer timeFilter,
-            @RequestParam(value = "subjects", required = false) String[] subjects,
+            @RequestParam(value = "subject", required = false) String subject,
             @RequestParam(value = "project", required = true) String project,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
-        JobFilter jobFilter = new JobFilter(status, jobName, timeFilter, subjects, project, sortBy, reverse);
+        JobFilter jobFilter = new JobFilter(status, jobNames, timeFilter, subject, project, sortBy, reverse);
         List<ExecutableResponse> executables = jobService.listJobs(jobFilter);
         Map<String, Object> result = getDataResponse("jobList", executables, pageOffset, pageSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");

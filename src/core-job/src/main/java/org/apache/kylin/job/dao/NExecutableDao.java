@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.NavigableSet;
 
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -47,6 +48,8 @@ public class NExecutableDao {
     private static final Serializer<ExecutableOutputPO> JOB_OUTPUT_SERIALIZER = new JsonSerializer<ExecutableOutputPO>(
             ExecutableOutputPO.class);
     private static final Logger logger = LoggerFactory.getLogger(ExecutableDao.class);
+    private static final String CREATE_TIME = "createTime";
+
 
     public static NExecutableDao getInstance(KylinConfig config) {
         return config.getManager(NExecutableDao.class);
@@ -216,6 +219,8 @@ public class NExecutableDao {
     public void addJobOutput(ExecutableOutputPO output, String project) throws PersistentException {
         try {
             output.setLastModified(0);
+            val info = output.getInfo();
+            info.put(CREATE_TIME, "" + System.currentTimeMillis());
             writeJobOutputResource(pathOfJobOutput(output.getUuid(), project), output);
         } catch (IOException e) {
             logger.error("error update job output id:" + output.getUuid(), e);

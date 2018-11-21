@@ -43,7 +43,7 @@ import io.kyligence.kap.rest.request.JobFilter;
 import io.kyligence.kap.rest.response.ExecutableResponse;
 import io.kyligence.kap.rest.response.ExecutableStepResponse;
 import lombok.val;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.JobStatusEnum;
@@ -73,6 +73,7 @@ public class JobService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
     private static final String JOB_NAME = "job_name";
+    private static final String CREATE_TIME = "create_time";
     private static final String TARGET_SUBJECT = "target_subject";
     private static final String JOB_STATUS = "job_status";
     private static final String EXEC_START_TIME = "exec_start_time";
@@ -99,20 +100,20 @@ public class JobService extends BasicService {
                 }, new Predicate<AbstractExecutable>() {
                     @Override
                     public boolean apply(AbstractExecutable abstractExecutable) {
-                        String[] subjects = jobFilter.getSubjects();
-                        if (ArrayUtils.isEmpty(subjects)) {
+                        String subject = jobFilter.getSubject();
+                        if (StringUtils.isEmpty(subject)) {
                             return true;
                         }
-                        return Lists.newArrayList(subjects).contains(abstractExecutable.getTargetSubject());
+                        return abstractExecutable.getTargetSubject().toLowerCase().contains(subject.toLowerCase());
                     }
                 }, new Predicate<AbstractExecutable>() {
                     @Override
                     public boolean apply(AbstractExecutable abstractExecutable) {
-                        String jobName = jobFilter.getJobName();
-                        if (StringUtils.isEmpty(jobName)) {
+                        List<String> jobNames = jobFilter.getJobNames();
+                        if (CollectionUtils.isEmpty(jobNames)) {
                             return true;
                         }
-                        return abstractExecutable.getName().toLowerCase().contains(jobName.toLowerCase());
+                        return jobNames.contains(abstractExecutable.getName());
                     }
                 })).transform(new Function<AbstractExecutable, ExecutableResponse>() {
                     @Override
@@ -145,6 +146,8 @@ public class JobService extends BasicService {
                 return o1.getStatus().compareTo(o2.getStatus());
             case EXEC_START_TIME:
                 return o1.getExecStartTime() < o2.getExecStartTime() ? -1 : 1;
+            case CREATE_TIME:
+                return o1.getCreateTime() < o2.getCreateTime() ? -1 : 1;
             case DURATION:
                 return o1.getDuration() < o2.getDuration() ? -1 : 1;
             default:
@@ -289,6 +292,7 @@ public class JobService extends BasicService {
         }
         result.setExecStartTime(AbstractExecutable.getStartTime(stepOutput));
         result.setExecEndTime(AbstractExecutable.getEndTime(stepOutput));
+        result.setCreateTime(AbstractExecutable.getCreateTime(stepOutput));
         if (task instanceof ShellExecutable) {
             result.setExecCmd(((ShellExecutable) task).getCmd());
         }

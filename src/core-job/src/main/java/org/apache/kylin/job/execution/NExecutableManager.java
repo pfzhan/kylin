@@ -497,7 +497,11 @@ public class NExecutableManager {
                 jobOutput.setStatus(newStatus.toString());
             }
             if (info != null) {
-                jobOutput.setInfo(info);
+                if (jobOutput.getInfo() != null) {
+                    jobOutput.getInfo().putAll(info);
+                } else {
+                    jobOutput.setInfo(info);
+                }
             }
             if (output != null) {
                 jobOutput.setContent(output);

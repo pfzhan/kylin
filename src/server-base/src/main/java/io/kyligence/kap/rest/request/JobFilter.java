@@ -28,6 +28,8 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+
 @Getter
 @Setter
 @AllArgsConstructor
@@ -35,11 +37,11 @@ public class JobFilter {
 
     private String status;
 
-    private String jobName;
+    private List<String> jobNames;
 
     private int timeFilter;
 
-    private String[] subjects;
+    private String subject;
 
     private String project;
 

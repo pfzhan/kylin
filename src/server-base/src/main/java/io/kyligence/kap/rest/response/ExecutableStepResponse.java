@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.rest.response;
 
-
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobStepCmdTypeEnum;
@@ -50,6 +49,9 @@ public class ExecutableStepResponse {
     @JsonProperty("exec_end_time")
     private long execEndTime;
 
+    @JsonProperty("create_time")
+    private long createTime;
+
     @JsonProperty("step_status")
     private JobStatusEnum status = JobStatusEnum.PENDING;
 
@@ -58,7 +60,6 @@ public class ExecutableStepResponse {
 
     @JsonProperty("info")
     private ConcurrentHashMap<String, String> info = new ConcurrentHashMap<String, String>();
-
 
     public void putInfo(String key, String value) {
         getInfo().put(key, value);
@@ -136,4 +137,11 @@ public class ExecutableStepResponse {
         this.info = info;
     }
 
+    public long getCreateTime() {
+        return createTime;
+    }
+
+    public void setCreateTime(long createTime) {
+        this.createTime = createTime;
+    }
 }

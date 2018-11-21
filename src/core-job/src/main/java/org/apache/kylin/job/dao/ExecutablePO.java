@@ -49,6 +49,8 @@ import java.util.Set;
 
 import com.google.common.collect.Sets;
 import io.kyligence.kap.cube.model.NDataSegment;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -57,6 +59,8 @@ import com.google.common.collect.Maps;
 
 /**
  */
+@Setter
+@Getter
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class ExecutablePO extends RootPersistentEntity {
@@ -91,84 +95,4 @@ public class ExecutablePO extends RootPersistentEntity {
     @JsonProperty("target_subject")
 
     private String targetSubject;
-
-    public long getDataRangeStart() {
-        return dataRangeStart;
-    }
-
-    public void setDataRangeStart(long dataRangeStart) {
-        this.dataRangeStart = dataRangeStart;
-    }
-
-    public long getDataRangeEnd() {
-        return dataRangeEnd;
-    }
-
-    public void setDataRangeEnd(long dataRangeEnd) {
-        this.dataRangeEnd = dataRangeEnd;
-    }
-
-    public String getJobType() {
-        return jobType;
-    }
-
-    public void setJobType(String jobType) {
-        this.jobType = jobType;
-    }
-
-    public String getTargetSubject() {
-        return targetSubject;
-    }
-
-    public void setTargetSubject(String targetSubject) {
-        this.targetSubject = targetSubject;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getProject() {
-        return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
-    }
-
-    public List<ExecutablePO> getTasks() {
-        return tasks;
-    }
-
-    public void setTasks(List<ExecutablePO> tasks) {
-        this.tasks = tasks;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
-    public Map<String, String> getParams() {
-        return params;
-    }
-
-    public void setParams(Map<String, String> params) {
-        this.params = params;
-    }
-
-    public Set<NDataSegment> getSegments() {
-        return segments;
-    }
-
-    public void setSegments(Set<NDataSegment> segments) {
-        this.segments = segments;
-    }
 }

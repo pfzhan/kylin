@@ -73,6 +73,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     protected static final String SUBMITTER = "submitter";
     protected static final String NOTIFY_LIST = "notify_list";
     protected static final String START_TIME = "startTime";
+    protected static final String CREATE_TIME = "createTime";
     public static final String END_TIME = "endTime";
     public static final String INTERRUPT_TIME = "interruptTime";
     protected static final String PARENT_ID = "parentId";
@@ -409,6 +410,10 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return getExtraInfoAsLong(output, START_TIME, 0L);
     }
 
+    public static long getCreateTime(Output output) {
+        return getExtraInfoAsLong(output, CREATE_TIME, 0L);
+    }
+
     public static long getEndTime(Output output) {
         return getExtraInfoAsLong(output, END_TIME, 0L);
     }
@@ -459,6 +464,10 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     public final long getStartTime() {
         return getExtraInfoAsLong(START_TIME, 0L);
+    }
+
+    public final long getCreateTime() {
+        return getExtraInfoAsLong(CREATE_TIME, 0L);
     }
 
     public final long getEndTime() {
