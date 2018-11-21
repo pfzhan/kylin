@@ -35,6 +35,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -264,6 +265,23 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
         Assert.assertEquals(0, data.get("size"));
         Assert.assertEquals(false, data.get("reach_threshold"));
         Assert.assertEquals(0, data.get("optimized_model_num"));
+    }
+
+    @Test
+    public void testGetAccelerateTipsInManualTypeProject() throws IOException {
+        val projectManager = NProjectManager.getInstance(getTestConfig());
+        val manualProject = projectManager.copyForWrite(projectManager.getProject(PROJECT_NEWTEN));
+        manualProject.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        projectManager.updateProject(manualProject);
+
+        stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqlsToAnalyze), PROJECT_NEWTEN);
+
+        Map<String, Object> manualProjData = favoriteQueryService.getAccelerateTips(PROJECT_NEWTEN);
+        Assert.assertEquals(0, manualProjData.get("optimized_model_num"));
+
+        // change project type back to auto
+        manualProject.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
+        projectManager.updateProject(manualProject);
     }
 
     @Test

@@ -428,6 +428,10 @@ public class FavoriteQueryService extends BasicService {
         List<NSmartContext.NModelContext> modelContexts = Lists.newArrayList();
 
         for (NSmartContext.NModelContext modelContext : smartMaster.getContext().getModelContexts()) {
+            // case in manual maintain type project and no model is selected
+            if (modelContext.getOrigModel() == null && modelContext.getTargetModel() == null)
+                continue;
+
             if ((modelContext.getOrigModel() == null && modelContext.getTargetModel() != null)
                     || !modelContext.getOrigModel().equals(modelContext.getTargetModel())) {
                 optimizedModelNum++;
@@ -435,7 +439,7 @@ public class FavoriteQueryService extends BasicService {
                 modelContexts.add(modelContext);
         }
 
-        if (optimizedModelNum == smartMaster.getContext().getModelContexts().size())
+        if (modelContexts.isEmpty())
             return optimizedModelNum;
 
         smartMaster.selectCubePlan();
