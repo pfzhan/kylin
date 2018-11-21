@@ -219,7 +219,8 @@ export default class PartitionChart extends Vue {
       const parentChroma = hcl.c
       const parentLightness = hcl.l
       const currentLightness = (lightness - parentLightness) * Math.random() + parentLightness
-      child.color = d3.hcl(parentHue, parentChroma, currentLightness).toString()
+
+      child.color = d3.hcl(parentHue, parentChroma, currentLightness > 100 ? 100 : currentLightness).toString()
       if (child.children) {
         child.children.forEach(updateChildrenColor)
       }
