@@ -26,14 +26,15 @@ package io.kyligence.kap.engine.spark.builder;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.UUID;
 
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.dict.lookup.NSnapshotManager;
-import org.apache.kylin.dict.lookup.NSnapshotTable;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableDesc;
-import org.apache.kylin.source.IReadableTable;
 import org.apache.kylin.source.SourceFactory;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,6 +45,7 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 public class NSnapshotBuilder {
@@ -66,11 +68,15 @@ public class NSnapshotBuilder {
             boolean isLookupTable = model.isLookupTable(lookupDesc.getTableRef());
 
             if (isLookupTable && seg.getSnapshots().get(tableDesc.getIdentity()) == null) {
-                IReadableTable readableTable = SourceFactory.createReadableTable(tableDesc);
-                NSnapshotTable snapshot = NSnapshotManager
-                        .getInstance(KylinConfig.getInstanceFromEnv(), this.seg.getProject())
-                        .buildSnapshot(readableTable, tableDesc);
-                newSnapMap.put(tableDesc.getIdentity(), snapshot.getResourcePath());
+
+                Dataset<Row> sourceData = SourceFactory
+                        .createEngineAdapter(tableDesc, NSparkCubingEngine.NSparkCubingSource.class)
+                        .getSourceData(tableDesc, ss, Maps.newHashMap());
+                String tableName = tableDesc.getProject() + ResourceStore.SNAPSHOT_RESOURCE_ROOT + "/"
+                        + tableDesc.getName() + "/" + UUID.randomUUID();
+                String resourcePath = KapConfig.wrap(seg.getConfig()).getReadHdfsWorkingDirectory() + "/" + tableName;
+                sourceData.write().parquet(resourcePath);
+                newSnapMap.put(tableDesc.getIdentity(), resourcePath);
             }
         }
 

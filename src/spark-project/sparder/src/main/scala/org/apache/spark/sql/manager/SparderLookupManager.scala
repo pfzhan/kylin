@@ -50,7 +50,7 @@ import org.apache.spark.sql.types.{
   StructType
 }
 import org.apache.spark.sql.util.SparderTypeUtil
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SparderEnv, SparkSession}
 
 // scalastyle:off
 object SparderLookupManager extends Logging {
@@ -76,18 +76,14 @@ object SparderLookupManager extends Logging {
   def create(name: String,
              sourcePath: String,
              kylinConfig: KylinConfig): Dataset[Row] = {
-    val manager: SnapshotManager = SnapshotManager.getInstance(kylinConfig)
-
     val names = name.split("@")
     val projectName = names.apply(0)
     val tableName = names.apply(1)
-    val snapshot = manager.getSnapshotTable(sourcePath)
     val metaMgr = NTableMetadataManager.getInstance(kylinConfig, projectName)
     val tableDesc = metaMgr.getTableDesc(tableName)
     val columns = tableDesc.getColumns
-    val data = convertRow(tableDesc, snapshot)
     val dfTableName = Integer.toHexString(System.identityHashCode(name))
-    val schema = StructType(Range(0, data.get(0).size).map(index => {
+    val schema = StructType(Range(0, columns.size).map(index => {
       val sparderType =
         if (SparderTypeUtil.isDateTimeFamilyType(
               columns(index).getType.getName)) DateType
@@ -97,12 +93,9 @@ object SparderLookupManager extends Logging {
                                         columns(index).getName).toString,
                   sparderType)
     }))
-
-    val df = SparkSession.getDefaultSession.get.createDataFrame(data, schema)
-    logInfo(
-      s"add snapshot table :$tableName, table path:$sourcePath, row count:${data.size()}")
-    sourceCache.put(sourcePath, df)
-    df
+    SparderEnv.getSparkSession.read
+      .parquet(sourcePath)
+      .toDF(schema.fieldNames: _*)
   }
 
   def convertRow(tableDesc: TableDesc,

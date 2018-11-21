@@ -100,7 +100,7 @@ class TestQueryAndBuildFunSuite
   test("buildKylinFact") {
     var result = queryFolders
       .flatMap { folder =>
-        queryFolderWithoutCompare(folder)
+        queryFolder(folder)
       }
       .filter(_ != null)
     if (result.nonEmpty) {
@@ -109,14 +109,14 @@ class TestQueryAndBuildFunSuite
     assert(result.isEmpty)
     result = noneCompare
       .flatMap { folder =>
-        queryFolder(folder)
+        queryFolderWithoutCompare(folder)
       }
       .filter(_ != null)
     print(result)
     assert(result.isEmpty)
   }
 
-  private def queryFolderWithoutCompare(floderInfo: FloderInfo) = {
+  private def queryFolder(floderInfo: FloderInfo) = {
     QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + floderInfo.floder)
       .filter { tp =>
@@ -136,7 +136,7 @@ class TestQueryAndBuildFunSuite
       }
   }
 
-  private def queryFolder(floderInfo: FloderInfo) = {
+  private def queryFolderWithoutCompare(floderInfo: FloderInfo) = {
     QueryFetcher
       .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + floderInfo.floder)
       .filter { tp =>

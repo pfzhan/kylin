@@ -110,7 +110,7 @@ public class JoinDescUtil {
 //                tableKindByJoins.add(TableKind.FACT);
 //            } else {
             // todo https://github.com/Kyligence/KAP/issues/8090
-                tableKindByJoins.add(TableKind.FACT); // set to FACT if want to bypass dup-key on lookup table
+                tableKindByJoins.add(TableKind.LOOKUP); // set to FACT if want to bypass dup-key on lookup table
 //            }
         }
         return tableKindByJoins;
