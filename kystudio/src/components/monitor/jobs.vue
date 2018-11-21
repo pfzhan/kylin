@@ -66,7 +66,8 @@
         :min-width="180"
         show-overflow-tooltip>
         <template slot-scope="scope">
-            {{transToGmtTime(scope.row.data_range_start)}} - {{transToGmtTime(scope.row.data_range_end)}}
+          <span v-if="scope.row.data_range_end==9223372036854776000">{{$t('fullLoad')}}</span>
+          <span v-else>{{transToGmtTime(scope.row.data_range_start)}} - {{transToGmtTime(scope.row.data_range_end)}}</span>
         </template>
       </el-table-column>
       <el-table-column
@@ -264,8 +265,8 @@ import diagnosisXX from '../security/diagnosis'
     'diagnosis': diagnosisXX
   },
   locales: {
-    'en': {dataRange: 'Data Range', JobType: 'Job Type', JobName: 'Job Name', TargetSubject: 'Target Subject', ProgressStatus: 'Job Status', startTime: 'Start Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', diagnosis: 'Generate Diagnosis Package', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting', noSelectJobs: 'Please check at least one job.', selectedJobs: '{selectedNumber} jobs have been selected', selectAll: 'All Select'},
-    'zh-cn': {dataRange: '数据范围', JobType: 'Job 类型', JobName: '任务', TargetSubject: '任务对象', ProgressStatus: '任务状态', startTime: '任务开始时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '终止', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要终止任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', diagnosis: '诊断', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间', noSelectJobs: '请勾选至少一项任务。', selectedJobs: '目前已选择当页{selectedNumber}条任务。', selectAll: '全选'}
+    'en': {dataRange: 'Data Range', JobType: 'Job Type', JobName: 'Job Name', TargetSubject: 'Target Subject', ProgressStatus: 'Job Status', startTime: 'Start Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDiagnosis: 'Diagnosis', jobDrop: 'Drop', tip_jobDiagnosis: 'Download Diagnosis Info For This Job', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', diagnosis: 'Generate Diagnosis Package', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting', noSelectJobs: 'Please check at least one job.', selectedJobs: '{selectedNumber} jobs have been selected', selectAll: 'All Select', fullLoad: 'Full Load'},
+    'zh-cn': {dataRange: '数据范围', JobType: 'Job 类型', JobName: '任务', TargetSubject: '任务对象', ProgressStatus: '任务状态', startTime: '任务开始时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDiagnosis: '诊断', jobDrop: '删除', tip_jobDiagnosis: '下载Job诊断包', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '终止', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要终止任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', diagnosis: '诊断', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间', noSelectJobs: '请勾选至少一项任务。', selectedJobs: '目前已选择当页{selectedNumber}条任务。', selectAll: '全选', fullLoad: '全量加载'}
   }
 })
 export default class JobsList extends Vue {
@@ -291,11 +292,13 @@ export default class JobsList extends Vue {
     pageOffset: 0,
     pageSize: pageCount,
     timeFilter: 4,
-    jobName: this.$store.state.monitor.filter.jobName,
-    sortBy: this.$store.state.monitor.filter.sortby,
-    status: this.$store.state.monitor.filter.status,
+    jobName: '',
+    sortBy: 'last_modify',
+    status: '',
     subject: ''
   }
+  jobsList = []
+  jobTotal = 0
   allStatus = ['PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
   jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INDEX_RECONSTRUCT']
   diagnosisVisible = false
@@ -360,7 +363,7 @@ export default class JobsList extends Vue {
       }, 30000)
     }
     autoFilter()
-    this.loadJobsList(this.filter)
+    this.getJobsList()
   }
   mounted () {
     window.addEventListener('click', this.closeIt)
@@ -375,32 +378,37 @@ export default class JobsList extends Vue {
     if (document.getElementById('scrollBox')) {
       document.getElementById('scrollBox').removeEventListener('scroll', this.scrollRightBar, false)
     }
-    this.$store.state.monitor.filter = {
-      timeFilter: this.filter.timeFilter,
-      jobName: this.filter.jobName,
-      sortby: this.filter.sortby,
-      status: this.filter.status
-    }
   }
-  get jobsList () {
-    return this.$store.state.monitor.jobsList.map((m) => {
-      if (this.selectedJob) {
-        if (m.id === this.selectedJob.id) {
-          this.getJobDetail({project: this.currentSelectedProject, jobId: m.id}).then((res) => {
-            handleSuccess(res, (data) => {
-              this.selectedJob = m
-              this.selectedJob['details'] = data
-            })
-          }, (resError) => {
-            handleError(resError)
+  getJobsList () {
+    return this.loadJobsList(this.filter).then((res) => {
+      handleSuccess(res, (data) => {
+        if (data.size) {
+          this.jobsList = data.jobList.map((m) => {
+            if (this.selectedJob) {
+              if (m.id === this.selectedJob.id) {
+                this.getJobDetail({project: this.currentSelectedProject, jobId: m.id}).then((res) => {
+                  handleSuccess(res, (data) => {
+                    this.selectedJob = m
+                    this.selectedJob['details'] = data
+                  })
+                }, (resError) => {
+                  handleError(resError)
+                })
+              }
+            }
+            return m
           })
+          this.jobTotal = data.size
+        } else {
+          this.jobsList = []
+          this.jobTotal = 0
         }
-      }
-      return m
+        this.searchLoading = false
+      })
+    }, (res) => {
+      handleError(res)
+      this.searchLoading = false
     })
-  }
-  get jobTotal () {
-    return this.$store.state.monitor.totalJobs
   }
   get getJobStatusTag () {
     if (this.selectedJob.job_status === 'PENDING') {
@@ -589,11 +597,7 @@ export default class JobsList extends Vue {
   }
   refreshJobs () {
     this.filter.project = this.currentSelectedProject
-    return this.loadJobsList(this.filter).then(() => {
-      this.searchLoading = false
-    }, () => {
-      this.searchLoading = false
-    })
+    return this.getJobsList()
   }
   sortJobList (column, prop, order) {
     let _column = column.column
@@ -609,7 +613,7 @@ export default class JobsList extends Vue {
     } else if (_column.label === this.$t('Duration')) {
       this.filter.sortby = 'duration'
     }
-    this.loadJobsList(this.filter)
+    this.getJobsList()
   }
   resume (jobIds) {
     kapConfirm(this.$t('resumeJob')).then(() => {
