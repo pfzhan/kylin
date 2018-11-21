@@ -72,6 +72,7 @@
     closeModal (isSubmit) {
       this.hideModal()
       this.modelEdit.newName = ''
+      this.$refs.renameForm.resetFields()
       setTimeout(() => {
         this.callback && this.callback(isSubmit)
         this.resetModalForm()

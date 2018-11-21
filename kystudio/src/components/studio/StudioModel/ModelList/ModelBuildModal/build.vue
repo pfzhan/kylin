@@ -81,6 +81,7 @@
     }
     closeModal (isSubmit) {
       this.hideModal()
+      this.$refs.buildForm.resetFields()
       setTimeout(() => {
         this.callback && this.callback(isSubmit)
         this.resetModalForm()

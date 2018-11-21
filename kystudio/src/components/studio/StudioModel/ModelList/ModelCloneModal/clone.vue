@@ -72,6 +72,7 @@
     closeModal (isSubmit) {
       this.hideModal()
       this.modelClone.newName = ''
+      this.$refs.cloneForm.resetFields()
       setTimeout(() => {
         this.callback && this.callback(isSubmit)
         this.resetModalForm()

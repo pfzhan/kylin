@@ -84,6 +84,7 @@ export default class ModelAddModal extends Vue {
   closeModal (isSubmit) {
     this.hideModal()
     this.createModelMeta.newName = ''
+    this.$refs.addModelForm.resetFields()
     setTimeout(() => {
       this.callback && this.callback(isSubmit)
       this.resetModalForm()
