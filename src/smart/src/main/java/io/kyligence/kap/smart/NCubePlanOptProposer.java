@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.smart;
 
-import io.kyligence.kap.smart.cube.NCubeMaster;
 import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.smart.cube.NCubeMaster;
 
 public class NCubePlanOptProposer extends NAbstractProposer {
     public NCubePlanOptProposer(NSmartContext modelCtx) {
@@ -39,6 +39,10 @@ public class NCubePlanOptProposer extends NAbstractProposer {
 
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
             NCubeMaster cubeMaster = new NCubeMaster(modelCtx);
+            if (modelCtx.withoutTargetModel()) {
+                continue;
+            }
+
             NCubePlan cubePlan = modelCtx.getTargetCubePlan();
             if (cubePlan == null)
                 cubePlan = cubeMaster.proposeInitialCube();

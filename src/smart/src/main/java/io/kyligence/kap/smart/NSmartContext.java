@@ -67,7 +67,7 @@ public class NSmartContext {
     private List<NModelContext> modelContexts;
     @Setter
     private Map<String, AccelerateInfo> accelerateInfoMap;
-    
+
     @Getter
     private Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
 
@@ -162,6 +162,10 @@ public class NSmartContext {
         private NModelContext(NSmartContext smartContext, ModelTree modelTree) {
             this.smartContext = smartContext;
             this.modelTree = modelTree;
+        }
+
+        public boolean withoutTargetModel() {
+            return this.targetModel == null;
         }
     }
 

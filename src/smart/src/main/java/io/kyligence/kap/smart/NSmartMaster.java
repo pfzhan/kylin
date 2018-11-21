@@ -116,12 +116,13 @@ public class NSmartMaster {
         }
         List<NSmartContext.NModelContext> modelContexts = context.getModelContexts();
         for (NSmartContext.NModelContext modelCtx : modelContexts) {
+            if (modelCtx.withoutTargetModel()) {
+                continue;
+            }
+
             NDataModel originalModel = modelCtx.getOrigModel();
             NDataModel targetModel = modelCtx.getTargetModel();
             if (originalModel == null) {
-                if (targetModel.getRootFactTable() == null) {
-                    return;
-                }
                 String rootTableAlias = targetModel.getRootFactTable().getAlias();
                 String modelName = getModelName(MODEL_NAME_PREFIX + rootTableAlias, usedNames);
                 targetModel.setAlias(modelName);
@@ -187,6 +188,9 @@ public class NSmartMaster {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(context.getKylinConfig(), context.getProject());
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(context.getKylinConfig(), context.getProject());
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
+            if (modelCtx.withoutTargetModel()) {
+                continue;
+            }
             NCubePlan cubePlan = modelCtx.getTargetCubePlan();
             if (cubePlanManager.getCubePlan(cubePlan.getName()) == null) {
                 cubePlanManager.createCubePlan(cubePlan);
@@ -238,6 +242,9 @@ public class NSmartMaster {
 
     public void saveModel() throws IOException {
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
+            if (modelCtx.withoutTargetModel()) {
+                continue;
+            }
             NDataModel model = modelCtx.getTargetModel();
             if (dataModelManager.getDataModelDesc(model.getName()) != null) {
                 dataModelManager.updateDataModelDesc(model);

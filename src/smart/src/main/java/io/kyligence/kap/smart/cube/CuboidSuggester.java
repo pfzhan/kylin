@@ -230,7 +230,7 @@ class CuboidSuggester {
 
         for (TblColRef colRef : cols) {
             Integer colId = colIdMap.get(colRef);
-            Preconditions.checkState(colId != null, COLUMN_NOT_FOUND_MSG_TEMPLATE, colId, model.getId());
+            Preconditions.checkState(colId != null, COLUMN_NOT_FOUND_MSG_TEMPLATE, colRef, model.getId());
             TableExtDesc.ColumnStats columnStats = context.getColumnStats(colRef);
             if (columnStats != null && columnStats.getCardinality() > 0) {
                 if (isFilterCols) {
@@ -322,9 +322,8 @@ class CuboidSuggester {
                 // dimension as measure, put cols to rowkey tail
                 for (TblColRef colRef : aggFunc.getParameter().getColRefs()) {
                     final Integer colId = colIdMap.get(colRef);
-                    Preconditions.checkState(colId != null,
-                            "%s. Cannot create new measure %s in existing model [%s]. Your input sql is: [%s]",
-                            getMsgTemplateByModelMaintainType(), aggFunc, model.getId(), ctx.sql);
+                    Preconditions.checkState(colId != null, getMsgTemplateByModelMaintainType(), aggFunc,
+                            model.getAlias(), ctx.sql);
                     if (!dimScores.containsKey(colId))
                         dimScores.put(colId, -1D);
                 }
@@ -337,17 +336,21 @@ class CuboidSuggester {
     private String getMsgTemplateByModelMaintainType() {
         Preconditions.checkNotNull(model);
         if (model.getProjectInstance().getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            return "Manual model maintain type doesn't support modification";
+            return "In the current manually designed project, the system "
+                    + "cannot modify the model semantic (correlation of dimensions, "
+                    + "measures and tables). Please add measure %s into model %s, "
+                    + "then the system could accelerate this query. Your input sql is [%s]";
         }
-        return "Unexpected state happened in auto model maintain type";
+        return "Unexpected state happened in SQL acceleration project %s. "
+                + "Cannot create new measure %s in existing model [%s]. Your input sql is: [%s]";
     }
 
     private void fixDimScoresIfEmpty(NDataModel model, Map<Integer, Double> dimScores) {
         if (dimScores.isEmpty()) {
             Map<String, NDataModel.NamedColumn> dimensionCandidate = new HashMap<>();
-            for (NDataModel.NamedColumn namedColumn : model.getAllNamedColumns()) {
-                dimensionCandidate.put(namedColumn.getName(), namedColumn);
-            }
+            model.getAllNamedColumns().stream() //
+                    .filter(NDataModel.NamedColumn::isDimension) //
+                    .forEach(namedColumn -> dimensionCandidate.put(namedColumn.getName(), namedColumn));
             for (NDataModel.Measure measure : model.getAllMeasures()) {
                 FunctionDesc agg = measure.getFunction();
                 if (agg == null || agg.getParameter() == null || !agg.getParameter().isColumnType()) {

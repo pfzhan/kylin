@@ -32,15 +32,19 @@ import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import io.kyligence.kap.smart.model.ModelTree;
 
@@ -51,8 +55,7 @@ public class NModelSelectProposer extends NAbstractProposer {
     public NModelSelectProposer(NSmartContext context) {
         super(context);
 
-        modelManager = NDataModelManager.getInstance(context.getKylinConfig(),
-                context.getProject());
+        modelManager = NDataModelManager.getInstance(context.getKylinConfig(), context.getProject());
     }
 
     @Override
@@ -74,6 +77,24 @@ public class NModelSelectProposer extends NAbstractProposer {
                 modelContext.setTargetModel(targetModel);
             }
         }
+
+        // if manual maintain type and selected model is null, record error message
+        final ProjectInstance projectInstance = NProjectManager.getInstance(getContext().getKylinConfig())
+                .getProject(getContext().getProject());
+        final Map<String, AccelerateInfo> sql2AccelerateInfo = context.getAccelerateInfoMap();
+
+        if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
+            context.getModelContexts().forEach(modelCtx -> {
+                if (modelCtx.withoutTargetModel()) {
+                    modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {
+                        AccelerateInfo accelerateInfo = sql2AccelerateInfo.get(olapContext.sql);
+                        accelerateInfo.setBlockingCause(new IllegalStateException(
+                                "No model matches this query. In the current manually designed project, "
+                                        + "the system cannot suggest a new model to accelerate this query."));
+                    });
+                }
+            });
+        }
     }
 
     private void initModel(NDataModel modelDesc) {
@@ -91,7 +112,7 @@ public class NModelSelectProposer extends NAbstractProposer {
         }
         return null;
     }
-    
+
     public static boolean matchModelTree(NDataModel model, ModelTree modelTree) {
         if (model.getRootFactTable().getTableIdentity().equals(modelTree.getRootFactTable().getIdentity())) {
             List<JoinDesc> modelTreeJoins = Lists.newArrayListWithExpectedSize(modelTree.getJoins().size());
