@@ -24,11 +24,11 @@
 
 package io.kyligence.kap.metadata.project;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
@@ -49,6 +49,8 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
+import lombok.val;
 
 /**
  * This is a second level cache that is built on top of first level cached objects,
@@ -56,104 +58,57 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
  * <p/>
  * On any object update, the L2 cache simply gets wiped out because it's cheap to rebuild.
  */
-class NProjectL2Cache {
+class NProjectLoader {
 
-    private static final Logger logger = LoggerFactory.getLogger(NProjectL2Cache.class);
+    private static final Logger logger = LoggerFactory.getLogger(NProjectLoader.class);
 
     private NProjectManager mgr;
-    private Map<String, ProjectCache> projectCaches = new ConcurrentSkipListMap<>(String.CASE_INSENSITIVE_ORDER);
 
-    NProjectL2Cache(NProjectManager mgr) {
+    NProjectLoader(NProjectManager mgr) {
         this.mgr = mgr;
     }
 
     public void clear() {
-        projectCaches.clear();
-    }
-
-    public ExternalFilterDesc getExternalFilterDesc(String project, String extFilterName) {
-        ProjectCache prjCache = getCache(project);
-        return prjCache.extFilters.get(extFilterName);
     }
 
     public Map<String, ExternalFilterDesc> listExternalFilterDesc(String project) {
-        ProjectCache prjCache = getCache(project);
+        ProjectBundle prjCache = load(project);
         return Collections.unmodifiableMap(prjCache.extFilters);
     }
 
     public List<TableDesc> listDefinedTables(String project) {
-        ProjectCache prjCache = getCache(project);
+        ProjectBundle prjCache = load(project);
         List<TableDesc> result = Lists.newArrayListWithCapacity(prjCache.tables.size());
-        for (TableCache tableCache : prjCache.tables.values()) {
-            result.add(tableCache.tableDesc);
+        for (TableBundle tableBundle : prjCache.tables.values()) {
+            result.add(tableBundle.tableDesc);
         }
         return result;
     }
 
     public Set<TableDesc> listExposedTables(String project) {
-        ProjectCache prjCache = getCache(project);
+        ProjectBundle prjCache = load(project);
         return Collections.unmodifiableSet(prjCache.exposedTables);
     }
 
     public Set<ColumnDesc> listExposedColumns(String project, String table) {
-        TableCache tableCache = getCache(project).tables.get(table);
-        if (tableCache == null)
+        TableBundle tableBundle = load(project).tables.get(table);
+        if (tableBundle == null)
             return Collections.emptySet();
         else
-            return Collections.unmodifiableSet(tableCache.exposedColumns);
-    }
-
-    public boolean isDefinedTable(String project, String table) {
-        TableCache tableCache = getCache(project).tables.get(table);
-        if (tableCache == null)
-            return false;
-        else
-            return true;
-    }
-
-    public boolean isExposedTable(String project, String table) {
-        TableCache tableCache = getCache(project).tables.get(table);
-        if (tableCache == null)
-            return false;
-        else
-            return tableCache.exposed;
-    }
-
-    public boolean isDefinedColumn(String project, String table, String col) {
-        TableCache tableCache = getCache(project).tables.get(table);
-        if (tableCache == null)
-            return false;
-
-        for (ColumnDesc colDesc : tableCache.tableDesc.getColumns()) {
-            if (colDesc.getName().equals(col))
-                return true;
-        }
-        return false;
-    }
-
-    public boolean isExposedColumn(String project, String table, String col) {
-        TableCache tableCache = getCache(project).tables.get(table);
-        if (tableCache == null)
-            return false;
-
-        for (ColumnDesc colDesc : tableCache.exposedColumns) {
-            if (colDesc.getName().equals(col))
-                return true;
-        }
-        return false;
+            return Collections.unmodifiableSet(tableBundle.exposedColumns);
     }
 
     public Set<IRealization> listAllRealizations(String project) {
-        ProjectCache prjCache = getCache(project);
+        ProjectBundle prjCache = load(project);
         return Collections.unmodifiableSet(prjCache.realizations);
     }
 
     public Set<IRealization> getRealizationsByTable(String project, String table) {
-        TableCache tableCache = getCache(project).tables.get(table);
-        if (tableCache == null)
+        TableBundle tableBundle = load(project).tables.get(table);
+        if (tableBundle == null)
             return Collections.emptySet();
         else
-            return Collections.unmodifiableSet(tableCache.realizations);
+            return Collections.unmodifiableSet(tableBundle.realizations);
     }
 
     public List<MeasureDesc> listEffectiveRewriteMeasures(String project, String table, boolean onlyRewriteMeasure) {
@@ -165,7 +120,7 @@ class NProjectL2Cache {
 
             for (MeasureDesc m : r.getMeasures()) {
                 FunctionDesc func = m.getFunction();
-                if (belongToTable(func, table, r.getModel())) {
+                if (belongToTable(table, r.getModel())) {
                     if (!onlyRewriteMeasure || func.needRewrite()) {
                         result.add(m);
                     }
@@ -175,7 +130,22 @@ class NProjectL2Cache {
         return result;
     }
 
-    private boolean belongToTable(FunctionDesc func, String table, NDataModel model) {
+    public List<ColumnDesc> listComputedColumns(String project, TableDesc tableDesc) {
+        Set<IRealization> realizations = getRealizationsByTable(project, tableDesc.getIdentity());
+        List<ColumnDesc> result = Lists.newArrayList();
+        for (IRealization r : realizations) {
+            if (!r.isReady())
+                continue;
+            val computedColumns = ComputedColumnUtil.createComputedColumns(r.getModel().getComputedColumnDescs(),
+                    tableDesc);
+            if (belongToTable(tableDesc.getIdentity(), r.getModel())) {
+                result.addAll(Arrays.asList(computedColumns));
+            }
+        }
+        return result;
+    }
+
+    private boolean belongToTable(String table, NDataModel model) {
         // measure belong to the fact table
         return model.getRootFactTable().getTableIdentity().equals(table);
     }
@@ -184,18 +154,9 @@ class NProjectL2Cache {
     // build the cache
     // ----------------------------------------------------------------------------
 
-    private ProjectCache getCache(String project) {
-        ProjectCache result = projectCaches.get(project);
-        if (result == null) {
-            result = loadCache(project);
-            projectCaches.put(project, result);
-        }
-        return result;
-    }
-
-    private ProjectCache loadCache(String project) {
-        logger.debug("Loading L2 project cache for " + project);
-        ProjectCache projectCache = new ProjectCache(project);
+    private ProjectBundle load(String project) {
+//        logger.debug("Loading L2 project cache for " + project);
+        ProjectBundle projectBundle = new ProjectBundle(project);
 
         ProjectInstance pi = mgr.getProject(project);
 
@@ -207,7 +168,7 @@ class NProjectL2Cache {
         for (String tableName : pi.getTables()) {
             TableDesc tableDesc = metaMgr.getTableDesc(tableName);
             if (tableDesc != null) {
-                projectCache.tables.put(tableDesc.getIdentity(), new TableCache(tableDesc));
+                projectBundle.tables.put(tableDesc.getIdentity(), new TableBundle(tableDesc));
             } else {
                 logger.warn("Table '" + tableName + "' defined under project '" + project + "' is not found");
             }
@@ -216,7 +177,7 @@ class NProjectL2Cache {
         for (String extFilterName : pi.getExtFilters()) {
             ExternalFilterDesc filterDesc = metaMgr.getExtFilterDesc(extFilterName);
             if (filterDesc != null) {
-                projectCache.extFilters.put(extFilterName, filterDesc);
+                projectBundle.extFilters.put(extFilterName, filterDesc);
             } else {
                 logger.warn(
                         "External Filter '" + extFilterName + "' defined under project '" + project + "' is not found");
@@ -227,31 +188,25 @@ class NProjectL2Cache {
         for (RealizationEntry entry : pi.getRealizationEntries()) {
             IRealization realization = registry.getRealization(entry.getType(), entry.getRealization());
             if (realization != null) {
-                projectCache.realizations.add(realization);
+                projectBundle.realizations.add(realization);
             } else {
                 logger.warn("Realization '" + entry + "' defined under project '" + project + "' is not found");
             }
 
-            //check if there's raw table parasite
-            //TODO: ugly impl here
-            IRealization parasite = registry.getRealization("INVERTED_INDEX", entry.getRealization());
-            if (parasite != null) {
-                projectCache.realizations.add(parasite);
+        }
+
+        for (IRealization realization : projectBundle.realizations) {
+            if (sanityCheck(projectBundle, realization, project)) {
+                mapTableToRealization(projectBundle, realization);
+                markExposedTablesAndColumns(projectBundle, realization);
             }
         }
 
-        for (IRealization realization : projectCache.realizations) {
-            if (sanityCheck(projectCache, realization, project)) {
-                mapTableToRealization(projectCache, realization);
-                markExposedTablesAndColumns(projectCache, realization);
-            }
-        }
-
-        return projectCache;
+        return projectBundle;
     }
 
     // check all columns reported by realization does exists
-    private boolean sanityCheck(ProjectCache prjCache, IRealization realization, String project) {
+    private boolean sanityCheck(ProjectBundle prjCache, IRealization realization, String project) {
         if (realization == null)
             return false;
 
@@ -285,7 +240,7 @@ class NProjectL2Cache {
 
             // auto-define table required by realization for some legacy test case
             if (prjCache.tables.get(table.getIdentity()) == null) {
-                prjCache.tables.put(table.getIdentity(), new TableCache(table));
+                prjCache.tables.put(table.getIdentity(), new TableBundle(table));
                 logger.warn(
                         "Realization '" + realization.getCanonicalName() + "' reports column '" + col.getCanonicalName()
                                 + "' whose table is not defined in project '" + prjCache.project + "'");
@@ -295,45 +250,45 @@ class NProjectL2Cache {
         return true;
     }
 
-    private void mapTableToRealization(ProjectCache prjCache, IRealization realization) {
+    private void mapTableToRealization(ProjectBundle prjCache, IRealization realization) {
         for (TblColRef col : realization.getAllColumns()) {
-            TableCache tableCache = prjCache.tables.get(col.getTable());
-            tableCache.realizations.add(realization);
+            TableBundle tableBundle = prjCache.tables.get(col.getTable());
+            tableBundle.realizations.add(realization);
         }
     }
 
-    private void markExposedTablesAndColumns(ProjectCache prjCache, IRealization realization) {
+    private void markExposedTablesAndColumns(ProjectBundle prjCache, IRealization realization) {
         if (!realization.isReady()) {
             return;
         }
 
         for (TblColRef col : realization.getAllColumns()) {
-            TableCache tableCache = prjCache.tables.get(col.getTable());
-            prjCache.exposedTables.add(tableCache.tableDesc);
-            tableCache.exposed = true;
-            tableCache.exposedColumns.add(col.getColumnDesc());
+            TableBundle tableBundle = prjCache.tables.get(col.getTable());
+            prjCache.exposedTables.add(tableBundle.tableDesc);
+            tableBundle.exposed = true;
+            tableBundle.exposedColumns.add(col.getColumnDesc());
         }
     }
 
-    private static class ProjectCache {
+    private static class ProjectBundle {
         private String project;
-        private Map<String, TableCache> tables = Maps.newHashMap();
+        private Map<String, TableBundle> tables = Maps.newHashMap();
         private Set<TableDesc> exposedTables = Sets.newHashSet();
         private Set<IRealization> realizations = Sets.newHashSet();
         private Map<String, ExternalFilterDesc> extFilters = Maps.newHashMap();
 
-        ProjectCache(String project) {
+        ProjectBundle(String project) {
             this.project = project;
         }
     }
 
-    private static class TableCache {
+    private static class TableBundle {
         private boolean exposed = false;
         private TableDesc tableDesc;
         private Set<ColumnDesc> exposedColumns = Sets.newLinkedHashSet();
         private Set<IRealization> realizations = Sets.newLinkedHashSet();
 
-        TableCache(TableDesc tableDesc) {
+        TableBundle(TableDesc tableDesc) {
             this.tableDesc = tableDesc;
         }
     }

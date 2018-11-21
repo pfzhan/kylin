@@ -521,10 +521,10 @@ public class QueryAliasMatcher {
             ret = resolveTblColRef(alias2CRT, col);
         }
 
-        if (ret == null) {
-            throw new IllegalStateException(
-                    "The join condition column " + sqlIdentifier.toString() + " cannot be resolved");
-        }
+//        if (ret == null) {
+//            throw new IllegalStateException(
+//                    "The join condition column " + sqlIdentifier.toString() + " cannot be resolved");
+//        }
         return ret;
     }
 

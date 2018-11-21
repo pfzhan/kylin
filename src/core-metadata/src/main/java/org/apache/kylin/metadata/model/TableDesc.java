@@ -50,6 +50,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringSplitter;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -155,7 +156,7 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
 
     @Override
     public String resourceName() {
-        return makeResourceName(getIdentity(), getProject());
+        return getIdentity();
     }
 
     public TableDesc appendColumns(ColumnDesc[] computedColumns, boolean makeCopy) {
@@ -216,11 +217,8 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
 
     @Override
     public String getResourcePath() {
-        if (isBorrowedFromGlobal()) {
-            return concatResourcePath(getIdentity(), null);
-        }
-
-        return concatResourcePath(getIdentity(), project);
+        return new StringBuilder().append("/").append(project).append(ResourceStore.TABLE_RESOURCE_ROOT).append("/")
+                .append(getIdentity()).append(MetadataConstants.FILE_SURFIX).toString();
     }
 
     /**
