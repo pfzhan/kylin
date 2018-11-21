@@ -176,7 +176,9 @@
           <i class="el-icon-ksd-what"></i>
         </el-tooltip>
       </span>
-      <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}} ({{blackSqlList.size}})</span>
+      <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}}
+        <span v-if="blackSqlList.size">({{blackSqlList.size}})</span>
+      </span>
       <el-row :gutter="20">
         <el-col :span="16">
           <div class="clearfix ksd-mt-10">
@@ -234,7 +236,9 @@
           <i class="el-icon-ksd-what"></i>
         </el-tooltip>
       </span>
-      <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}} ({{whiteSqlList.size}})</span>
+      <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}}
+        <span v-if="whiteSqlList.size">({{whiteSqlList.size}})</span>
+      </span>
       <el-row :gutter="20">
         <el-col :span="16">
           <div class="clearfix ksd-mt-10">
