@@ -419,7 +419,13 @@ import sqlFormatter from 'sql-formatter'
 })
 export default class FavoriteQuery extends Vue {
   favQueList = {}
-  statusFilteArr = [{name: 'el-icon-ksd-acclerate_all', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_pendding', value: 'WAITING'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_ongoing', value: 'ACCELERATING'}]
+  statusFilteArr = [
+    {name: 'el-icon-ksd-acclerate_all', value: 'FULLY_ACCELERATED'},
+    {name: 'el-icon-ksd-acclerate_pendding', value: 'WAITING'},
+    {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED'},
+    {name: 'el-icon-ksd-acclerate_ongoing', value: 'ACCELERATING'},
+    {name: 'el-icon-ksd-table_discard', value: 'BLOCKED'}
+  ]
   checkedStatus = []
   preferrenceVisible = false
   blackListVisible = false
