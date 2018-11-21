@@ -292,7 +292,7 @@ export default class JobsList extends Vue {
     pageOffset: 0,
     pageSize: pageCount,
     timeFilter: 4,
-    jobName: '',
+    jobNames: [],
     sortBy: 'last_modify',
     status: '',
     subject: ''
@@ -340,7 +340,7 @@ export default class JobsList extends Vue {
         ref="jobTypeFilterPopover"
         placement="bottom"
         popperClass="filter-popover">
-        <el-checkbox-group class="filter-groups" value={this.filter.jobName} onInput={val => (this.filter.jobName = val)} onChange={this.filterChange2}>
+        <el-checkbox-group class="filter-groups" value={this.filter.jobNames} onInput={val => (this.filter.jobNames = val)} onChange={this.filterChange2}>
           {items}
         </el-checkbox-group>
         <i class="el-icon-ksd-filter" slot="reference"></i>

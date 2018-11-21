@@ -133,6 +133,9 @@
           <el-tooltip class="item" effect="dark" :content="$t('kylinLang.query.wartingAcce')" placement="top" v-if="props.row.status === 'WAITING'">
             <i class="status-icon el-icon-ksd-acclerate_pendding"></i>
           </el-tooltip>
+          <el-tooltip class="item" effect="dark" :content="props.row.comment" placement="top-end" v-if="props.row.status === 'BLOCKED'">
+            <i class="status-icon el-icon-ksd-table_discard"></i>
+          </el-tooltip>
         </template>
       </el-table-column>
     </el-table>
@@ -1281,6 +1284,9 @@ export default class FavoriteQuery extends Vue {
         &.el-icon-ksd-acclerate_portion,
         &.el-icon-ksd-acclerate_all {
           color: @normal-color-1;
+        }
+        &.el-icon-ksd-table_discard {
+          color: @text-disabled-color;
         }
       }
       .el-icon-ksd-filter {
