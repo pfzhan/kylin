@@ -113,10 +113,10 @@ public class ModelSemanticHelper {
             namedColumn.setName(computedColumnDesc.getColumnName());
             namedColumn.setAliasDotColumn(computedColumnDesc.getFullName());
             namedColumn.setStatus(NDataModel.ColumnStatus.EXIST);
-            if (dataModel.getAllNamedColumns().stream()
-                    .anyMatch(c -> c.getAliasDotColumn().equals(namedColumn.getAliasDotColumn()))) {
-                // cc already used as named column
-                continue;
+            val dimension = dimensionNameMap.get(namedColumn.getAliasDotColumn());
+            if (dimension != null) {
+                namedColumn.setStatus(NDataModel.ColumnStatus.DIMENSION);
+                namedColumn.setName(dimension.getName());
             }
             columns.add(namedColumn);
         }
@@ -179,7 +179,8 @@ public class ModelSemanticHelper {
         val originExistMap = toExistMap.apply(originModel.getAllNamedColumns());
         val newCols = Lists.<NDataModel.NamedColumn> newArrayList();
         compareAndUpdateColumns(originExistMap, toExistMap.apply(expectedModel.getAllNamedColumns()), newCols::add,
-                oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.TOMB), (olCol, newCol) -> olCol.setName(newCol.getName()));
+                oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.TOMB),
+                (olCol, newCol) -> olCol.setName(newCol.getName()));
         int maxId = originModel.getAllNamedColumns().stream().map(c -> c.getId()).mapToInt(i -> i).max().orElse(-1);
         for (NDataModel.NamedColumn newCol : newCols) {
             maxId++;
@@ -194,7 +195,8 @@ public class ModelSemanticHelper {
         val originDimensionMap = toDimensionMap.apply(originModel.getAllNamedColumns());
         compareAndUpdateColumns(originDimensionMap, toDimensionMap.apply(expectedModel.getAllNamedColumns()),
                 newCol -> originExistMap.get(newCol.getAliasDotColumn()).setStatus(NDataModel.ColumnStatus.DIMENSION),
-                oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.EXIST), (olCol, newCol) -> olCol.setName(newCol.getName()));
+                oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.EXIST),
+                (olCol, newCol) -> olCol.setName(newCol.getName()));
 
         // Move deleted computed column to TOMB status
         Set<String> currentComputedColumns = originModel.getComputedColumnDescs().stream()

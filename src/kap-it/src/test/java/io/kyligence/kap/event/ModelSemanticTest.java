@@ -180,7 +180,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     private long waitForEventFinished(int expectedSize) throws Exception {
         EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        List<Event> events = Lists.newArrayList();
+        List<Event> events;
         val startTime = System.currentTimeMillis();
         while (true) {
             int finishedEventNum = 0;

@@ -34,9 +34,11 @@ import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
+import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 
 import com.google.common.base.Preconditions;
@@ -107,6 +109,19 @@ public class ComputedColumnUtil {
         }
         return ccUsedColsInModel;
     }
+
+    public static ColumnDesc[] createComputedColumns(List<ComputedColumnDesc> computedColumnDescs, final TableDesc tableDesc) {
+        final MutableInt id = new MutableInt(tableDesc.getColumnCount());
+        return computedColumnDescs.stream()
+                .filter(input -> tableDesc.getIdentity().equalsIgnoreCase(input.getTableIdentity())).map(input -> {
+                    id.increment();
+                    ColumnDesc columnDesc = new ColumnDesc(id.toString(), input.getColumnName(), input.getDatatype(),
+                            input.getComment(), null, null, input.getInnerExpression());
+                    columnDesc.init(tableDesc);
+                    return columnDesc;
+                }).toArray(ColumnDesc[]::new);
+    }
+
 
     private static Set<String> getCCUsedCols(NDataModel model, String colName, String ccExpr) {
         Set<String> usedCols = new HashSet<>();

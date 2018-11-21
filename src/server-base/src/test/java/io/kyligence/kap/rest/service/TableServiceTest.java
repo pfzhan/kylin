@@ -83,7 +83,6 @@ import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
@@ -160,7 +159,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testLoadTableToProject() throws IOException {
         List<TableDesc> tables = tableService.getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", true);
-        NTableDesc nTableDesc = new NTableDesc(tables.get(0));
+        TableDesc nTableDesc = new TableDesc(tables.get(0));
         TableExtDesc tableExt = new TableExtDesc();
         tableExt.setIdentity("DEFAULT.TEST_COUNTRY");
         tableExt.updateRandomUuid();
