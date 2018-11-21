@@ -771,7 +771,7 @@ export default class FavoriteQuery extends Vue {
   async getWhiteList (pageIndex, pageSize) {
     const res = await this.loadWhiteList({
       project: this.currentSelectedProject,
-      limit: pageSize || 10,
+      limit: pageSize || 5,
       offset: pageIndex || 0
     })
     const data = await handleSuccessAsync(res)
@@ -781,7 +781,7 @@ export default class FavoriteQuery extends Vue {
   async getBlackList (pageIndex, pageSize) {
     const res = await this.loadBlackList({
       project: this.currentSelectedProject,
-      limit: pageSize || 10,
+      limit: pageSize || 5,
       offset: pageIndex || 0
     })
     const data = await handleSuccessAsync(res)
@@ -848,10 +848,10 @@ export default class FavoriteQuery extends Vue {
     this.importLoading = true
   }
   uploadSuccess (response) {
-    this.$message({
-      type: 'success',
-      message: this.$t('kylinLang.common.actionSuccess')
-    })
+    // this.$message({
+    //   type: 'success',
+    //   message: this.$t('kylinLang.common.actionSuccess')
+    // })
     this.getWhiteList()
     this.importLoading = false
   }
