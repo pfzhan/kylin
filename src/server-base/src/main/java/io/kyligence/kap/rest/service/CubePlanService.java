@@ -213,7 +213,7 @@ public class CubePlanService extends BasicService {
         Preconditions.checkState(cubePlan != null);
         List<TableIndexResponse> result = Lists.newArrayList();
         for (NCuboidLayout cuboidLayout : cubePlan.getAllCuboidLayouts()) {
-            if (cuboidLayout.isManual() && cuboidLayout.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
+            if (cuboidLayout.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
                 result.add(convertToResponse(cuboidLayout, cubePlan.getModel()));
             }
         }
@@ -232,12 +232,10 @@ public class CubePlanService extends BasicService {
 
     private TableIndexResponse convertToResponse(NCuboidLayout cuboidLayout, NDataModel model) {
         val response = new TableIndexResponse();
+        BeanUtils.copyProperties(cuboidLayout, response);
         response.setColOrder(convertColumnIdName(cuboidLayout.getColOrder(), model));
         response.setShardByColumns(convertColumnIdName(cuboidLayout.getShardByColumns(), model));
         response.setSortByColumns(convertColumnIdName(cuboidLayout.getSortByColumns(), model));
-        response.setName(cuboidLayout.getName());
-        response.setId(cuboidLayout.getId());
-        response.setOwner(cuboidLayout.getOwner());
         response.setProject(model.getProject());
         response.setModel(model.getName());
 

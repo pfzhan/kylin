@@ -47,6 +47,12 @@ public class TableIndexResponse {
 
     private Status status;
 
+    @JsonProperty("manual")
+    private boolean isManual = false;
+
+    @JsonProperty("auto")
+    private boolean isAuto = false;
+
     @JsonProperty("col_order")
     private List<String> colOrder;
 

@@ -241,6 +241,7 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetTableIndex() throws IOException, PersistentException {
+        val originSize = cubePlanService.getTableIndexs("default", "nmodel_basic").size();
         cubePlanService
                 .createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic").name("ti1")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
@@ -260,8 +261,8 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
                 .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
                 .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
         val result = cubePlanService.getTableIndexs("default", "nmodel_basic");
-        Assert.assertEquals(3, result.size());
-        val first = result.get(0);
+        Assert.assertEquals(3 + originSize, result.size());
+        val first = result.get(originSize);
         Assert.assertThat(first.getColOrder(), CoreMatchers.is(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID",
                 "TEST_KYLIN_FACT.CAL_DT", "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID")));
         Assert.assertThat(first.getShardByColumns(), CoreMatchers.is(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")));
@@ -273,6 +274,8 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("ADMIN", first.getOwner());
         Assert.assertEquals("nmodel_basic", first.getModel());
         Assert.assertEquals(TableIndexResponse.Status.EMPTY, first.getStatus());
+        Assert.assertTrue(first.isManual());
+        Assert.assertFalse(first.isAuto());
     }
 
     @Test
