@@ -34,16 +34,22 @@
                     <el-tag v-if="~['OFFLINE', 'NEW'].indexOf(relatedModel.status)" size="small" type="danger">Offline</el-tag>
                   </template>
                 </el-col>
-                <el-col class="range-time" :span="24">
-                  <div class="lable">Start Time :</div>
+                <el-col class="range-time" :span="24" v-if="isIncremental">
+                  <div class="lable">{{$t('startTime')}}</div>
                   <span v-if="!isNaN(new Date(relatedModel.startTime).getTime())">
                     {{getGMTDate(relatedModel.startTime)}}
                   </span>
+                  <span v-else>
+                    {{$t('kylinLang.common.nan')}}
+                  </span>
                 </el-col>
-                <el-col class="range-time" :span="24">
-                  <div class="lable">End Time :</div>
+                <el-col class="range-time" :span="24" v-if="isIncremental">
+                  <div class="lable">{{$t('endTime')}}</div>
                   <span v-if="!isNaN(new Date(relatedModel.endTime).getTime())">
                     {{getGMTDate(relatedModel.endTime)}}
+                  </span>
+                  <span v-else>
+                    {{$t('kylinLang.common.nan')}}
                   </span>
                 </el-col>
               </el-row>
@@ -100,6 +106,9 @@ export default class RelatedModels extends Vue {
   }
   get span () {
     return 24 / this.columnCount
+  }
+  get isIncremental () {
+    return this.table.fact
   }
   get modelCardGroups () {
     const { columnCount, relatedModels } = this

@@ -154,7 +154,8 @@ exports.default = {
     willGo: '检测到您有未保存的信息，是否继续跳转？',
     go: '跳转',
     catchUp: '保存后，向新索引中加载数据',
-    null: '无'
+    null: '无',
+    nan: 'NaN'
   },
   model: {
     modelName: '模型名称：',
