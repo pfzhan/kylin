@@ -31,16 +31,9 @@ import com.google.common.cache.{
   RemovalListener,
   RemovalNotification
 }
-import com.google.common.collect.Lists
 import io.kyligence.kap.metadata.model.NTableMetadataManager
-import org.apache.kylin.common.KylinConfig
-import org.apache.kylin.common.util.DateFormat
-import org.apache.kylin.dict.lookup.{
-  SnapshotManager,
-  SnapshotTable,
-  SnapshotTableSerializer
-}
-import org.apache.kylin.metadata.model.TableDesc
+import org.apache.kylin.common.{KapConfig, KylinConfig}
+import org.apache.kylin.dict.lookup.SnapshotTableSerializer
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.utils.DeriveTableColumnInfo
 import org.apache.spark.sql.types.{
@@ -50,7 +43,7 @@ import org.apache.spark.sql.types.{
   StructType
 }
 import org.apache.spark.sql.util.SparderTypeUtil
-import org.apache.spark.sql.{DataFrame, Dataset, Row, SparderEnv, SparkSession}
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SparderEnv}
 
 // scalastyle:off
 object SparderLookupManager extends Logging {
@@ -93,43 +86,10 @@ object SparderLookupManager extends Logging {
                                         columns(index).getName).toString,
                   sparderType)
     }))
+    val rsourcePath = KapConfig.getInstanceFromEnv.getReadHdfsWorkingDirectory + sourcePath
     SparderEnv.getSparkSession.read
-      .parquet(sourcePath)
+      .parquet(rsourcePath)
       .toDF(schema.fieldNames: _*)
-  }
-
-  def convertRow(tableDesc: TableDesc,
-                 snapshotTable: SnapshotTable): java.util.ArrayList[Row] = {
-    val dataTimeIndex = tableDesc.getColumns.indices
-      .zip(tableDesc.getColumns)
-      .filter(_._2.getType.isDateTimeFamily)
-      .map(_._1)
-
-    val dataIndex = tableDesc.getColumns.indices
-      .zip(tableDesc.getColumns)
-      .filter(_._2.getType.isDate)
-      .map(_._1)
-
-    val data: java.util.ArrayList[Row] =
-      Lists.newArrayListWithCapacity(snapshotTable.getRowCount)
-    val reader = snapshotTable.getReader
-    while (reader.next()) {
-      val rowData = reader.getRow
-      val sparderData = new Array[Any](rowData.size)
-      Array.copy(rowData, 0, sparderData, 0, rowData.size)
-      for (index <- dataTimeIndex) {
-        if (dataIndex.contains(index)) {
-          sparderData(index) =
-            new java.sql.Date(DateFormat.stringToMillis(rowData.apply(index)))
-        } else {
-          sparderData(index) = String.valueOf(
-            SparderTypeUtil.toSparkTimestamp(
-              DateFormat.stringToMillis(rowData.apply(index))))
-        }
-      }
-      data.add(Row.fromSeq(sparderData))
-    }
-    data
   }
 
   def getOrCreate(name: String,

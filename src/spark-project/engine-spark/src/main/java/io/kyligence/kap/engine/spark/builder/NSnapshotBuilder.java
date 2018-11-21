@@ -72,11 +72,11 @@ public class NSnapshotBuilder {
                 Dataset<Row> sourceData = SourceFactory
                         .createEngineAdapter(tableDesc, NSparkCubingEngine.NSparkCubingSource.class)
                         .getSourceData(tableDesc, ss, Maps.newHashMap());
-                String tableName = tableDesc.getProject() + ResourceStore.SNAPSHOT_RESOURCE_ROOT + "/"
+                String snapshotTablePath = tableDesc.getProject() + ResourceStore.SNAPSHOT_RESOURCE_ROOT + "/"
                         + tableDesc.getName() + "/" + UUID.randomUUID();
-                String resourcePath = KapConfig.wrap(seg.getConfig()).getReadHdfsWorkingDirectory() + "/" + tableName;
+                String resourcePath = KapConfig.wrap(seg.getConfig()).getReadHdfsWorkingDirectory() + "/" + snapshotTablePath;
                 sourceData.write().parquet(resourcePath);
-                newSnapMap.put(tableDesc.getIdentity(), resourcePath);
+                newSnapMap.put(tableDesc.getIdentity(), snapshotTablePath);
             }
         }
 
