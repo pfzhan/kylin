@@ -158,8 +158,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(jobs11.size() == 3 && jobs11.get(0).getJobName().equals("sparkjob1"));
         jobFilter.setSortBy("create_time");
         List<ExecutableResponse> jobs12 = jobService.listJobs(jobFilter);
-        Assert.assertTrue(jobs12.size() == 3 && jobs12.get(0).getJobName().equals("sparkjob1")
-                && jobs12.get(0).getCreateTime() > 0L);
+        Assert.assertTrue(jobs12.size() == 3 && jobs12.get(0).getJobName().equals("sparkjob1"));
 
     }
 
@@ -223,6 +222,22 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
         List<ExecutableStepResponse> result = jobService.getJobDetail("default", executable.getId());
         Assert.assertTrue(result.size() == 1);
+    }
+
+    @Test
+    public void testGetJobCreateTime() {
+        NExecutableManager manager = NExecutableManager.getInstance(jobService.getConfig(), "default");
+        SucceedTestExecutable executable = new SucceedTestExecutable();
+        executable.setParam("test1", "test1");
+        executable.setParam("test2", "test2");
+        executable.setParam("test3", "test3");
+        executable.setProject("default");
+        executable.setName("test_create_time");
+        manager.addJob(executable);
+        List<String> jobNames = Lists.newArrayList();
+        JobFilter jobFilter = new JobFilter("", jobNames, 4, "", "default", "", true);
+        List<ExecutableResponse> jobs = jobService.listJobs(jobFilter);
+        Assert.assertTrue(jobs.get(0).getCreateTime() > 0);
     }
 
     private List<AbstractExecutable> mockJobs() {
