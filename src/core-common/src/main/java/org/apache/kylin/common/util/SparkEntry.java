@@ -49,24 +49,30 @@ import org.apache.commons.lang.StringUtils;
 public final class SparkEntry {
 
     public static void main(String[] args) throws Exception {
-        System.out.println("SparkEntry args:" + StringUtils.join(args, " "));
-        if (!(args.length >= 2)) {
-            throw new IllegalArgumentException(String.valueOf("-className is required"));
+        try {
+            System.out.println("SparkEntry args:" + StringUtils.join(args, " "));
+            if (!(args.length >= 2)) {
+                throw new IllegalArgumentException(String.valueOf("-className is required"));
+            }
+            if (!(args[0].equals("-className"))) {
+                throw new IllegalArgumentException(String.valueOf("-className is required"));
+            }
+            final String className = args[1];
+            final Object o = Class.<AbstractApplication>forName(className).newInstance();
+            if (!(o instanceof AbstractApplication)) {
+                System.out.println(String.valueOf(className + " is not a subClass of AbstractApplication"));
+                System.exit(1);
+            }
+            String[] appArgs = new String[args.length - 2];
+            for (int i = 2; i < args.length; i++) {
+                appArgs[i - 2] = args[i];
+            }
+            AbstractApplication abstractApplication = (AbstractApplication) o;
+            abstractApplication.execute(appArgs);
+            System.exit(0);
+        } catch (Throwable th){
+            th.printStackTrace();
+            System.exit(1);
         }
-        if (!(args[0].equals("-className"))) {
-            throw new IllegalArgumentException(String.valueOf("-className is required"));
-        }
-        final String className = args[1];
-        final Object o = Class.<AbstractApplication> forName(className).newInstance();
-        if (!(o instanceof AbstractApplication)) {
-            throw new IllegalArgumentException(String.valueOf(className + " is not a subClass of AbstractApplication"));
-        }
-        String[] appArgs = new String[args.length - 2];
-        for (int i = 2; i < args.length; i++) {
-            appArgs[i - 2] = args[i];
-        }
-        AbstractApplication abstractApplication = (AbstractApplication) o;
-        abstractApplication.execute(appArgs);
-        System.exit(0);
     }
 }
