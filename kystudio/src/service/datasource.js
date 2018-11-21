@@ -31,7 +31,8 @@ export default {
     return Vue.resource(apiUrl + 'query/statistics').get(para)
   },
   query: (para) => {
-    return Vue.resource(apiUrl + 'query').save(para)
+    const vm = window.kapVm
+    return vm.$http.post(apiUrl + 'query', para, {headers: {'X-Progress-Invisiable': 'true'}})
   },
   saveQuery: (para) => {
     return Vue.resource(apiUrl + 'query/saved_queries').save(para)
