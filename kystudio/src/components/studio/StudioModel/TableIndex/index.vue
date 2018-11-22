@@ -12,7 +12,7 @@
         <el-step :title="$t(key) + '(' + tableIndex.length + ')'" status="finish" v-if="tableIndex.length" v-for="(tableIndex, key) in tableIndexGroup" :key="key">
           <div slot="icon"><i class="el-icon-ksd-elapsed_time"></i></div>
           <div slot="description">
-            <el-carousel indicator-position="none" :arrow="tableIndex.length === 1 ? 'never' : 'hover'"  :interval="4000" type="card" height="187px" :autoplay="false" :initial-index="tableIndex.length - 1">
+            <el-carousel @change="(i) => {changeTableIndexCard(tableIndex[i])}"  indicator-position="none" :arrow="tableIndex.length === 1 ? 'never' : 'hover'"  :interval="4000" type="card" height="187px" :autoplay="false" :initial-index="tableIndex.length - 1">
               <el-carousel-item class="card-box" v-for="item in tableIndex" :key="item.name" @click.native="showTableIndexDetal(item)" :class="{'table-index-active': currentShowTableIndex && currentShowTableIndex.id === item.id}">
                 <img v-if="item.manual" class="icon-tableindex-type" src="../../../../assets/img/icon_model/index_manual.png"/>
                 <img v-else class="icon-tableindex-type" src="../../../../assets/img/icon_model/index_auto.png"/>
@@ -53,6 +53,7 @@
         <div class="ksd-prl-20 ksd-ptb-8">
           <el-table
           :data="showTableIndexDetail"
+          height="529px"
           border class="ksd-mt-14 table-index-detail">
           <el-table-column
             :label="$t('ID')"
@@ -88,7 +89,7 @@
             </template>
             </el-table-column>         
           </el-table>
-          <pager ref="pager" :perPageSize="15" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></pager>
+          <kap-pager layout="total, prev, pager, next" class="ksd-mt-10 ksd-center" ref="pager" :perPageSize="currentCount" :totalSize="totalTableIndexColumnSize"  v-on:handleCurrentChange='currentChange'></kap-pager>
         </div> 
       </el-card>
     </div>
@@ -162,10 +163,10 @@ import NModel from '../ModelEdit/model.js'
       if (!this.currentShowTableIndex || !this.currentShowTableIndex.col_order) {
         return []
       }
-      let tableIndexList = this.currentShowTableIndex.col_order.slice(15 * (this.currentPage - 1), 15 * (this.currentPage))
+      let tableIndexList = this.currentShowTableIndex.col_order.slice(this.currentCount * this.currentPage, this.currentCount * (this.currentPage + 1))
       let renderData = tableIndexList.map((item, i) => {
         let newitem = {
-          id: 15 * (this.currentPage - 1) + i + 1,
+          id: this.currentCount * this.currentPage + i + 1,
           column: item,
           sort: this.currentShowTableIndex.sort_by_columns.indexOf(item) + 1 || '',
           shared: this.currentShowTableIndex.shard_by_columns.includes(item)
@@ -197,7 +198,8 @@ export default class TableIndex extends Vue {
   rawTableIndexOptions = []
   shardbyColumn = ''
   totalRawTable = 10
-  currentPage = 1
+  currentPage = 0
+  currentCount = 10
   searchLoading = false
   transToGmtTime = transToGmtTime
   tableIndexFilter = ''
@@ -209,8 +211,9 @@ export default class TableIndex extends Vue {
   showTableIndexDetal (item) {
     this.currentShowTableIndex = item
   }
-  currentChange (curPage) {
-    this.currentPage = curPage
+  currentChange (size, count) {
+    this.currentPage = size
+    this.currentCount = count
   }
   delTableIndex (id) {
     // 删除警告
@@ -240,15 +243,17 @@ export default class TableIndex extends Vue {
       handleSuccess(res, (data) => {
         this.tableIndexBaseList.splice(0, this.tableIndexBaseList.length - 1)
         this.tableIndexBaseList = data.table_indexs
-        this.currentShowTableIndex = data.table_indexs[data.table_indexs.length - 1]
+        setTimeout(() => {
+          this.currentShowTableIndex = data.table_indexs[data.table_indexs.length - 1]
+        }, 0)
       })
     }, (res) => {
       handleError(res)
     })
   }
-  addSortbyCol () {}
-  changeRawTable () {}
-  sortTable () {}
+  changeTableIndexCard (item) {
+    this.currentShowTableIndex = item
+  }
   editTableIndex (isNew) {
     this.showTableIndexEditModal({
       modelInstance: this.modelInstance,
