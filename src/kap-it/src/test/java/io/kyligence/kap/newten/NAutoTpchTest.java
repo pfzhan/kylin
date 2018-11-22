@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.newten;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;

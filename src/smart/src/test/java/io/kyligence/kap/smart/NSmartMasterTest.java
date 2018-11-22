@@ -25,7 +25,6 @@
 package io.kyligence.kap.smart;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1004,14 +1003,11 @@ public class NSmartMasterTest extends NTestBase {
         smartMaster.selectModel();
         smartMaster.optimizeModel();
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
-        String[] namedColumns = new String[9];
-        for (int i = 0; i < 9; ++i) {
-            String namedColumn = model.getAllNamedColumns().get(i).getAliasDotColumn();
-            namedColumns[i] = namedColumn;
-        }
-        Arrays.sort(namedColumns);
-        String namedColumn1 = namedColumns[0];
-        String namedColumn2 = namedColumns[1];
+        String[] namedColumns = model.getAllNamedColumns().stream().map(NDataModel.NamedColumn::getAliasDotColumn)
+                .sorted().toArray(String[]::new);
+
+        String namedColumn1 = namedColumns[2];
+        String namedColumn2 = namedColumns[7];
         Assert.assertEquals("TEST_ACCOUNT.ACCOUNT_COUNTRY", namedColumn1);
         Assert.assertEquals("TEST_ACCOUNT_1.ACCOUNT_COUNTRY", namedColumn2);
     }

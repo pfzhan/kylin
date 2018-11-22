@@ -24,6 +24,14 @@
 
 package io.kyligence.kap.smart.model;
 
+import java.io.IOException;
+import java.util.List;
+
+import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.junit.Assert;
+import org.junit.Test;
+
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -31,20 +39,13 @@ import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.NTestBase;
 import lombok.val;
-import org.apache.kylin.metadata.model.PartitionDesc;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.junit.Assert;
-import org.junit.Test;
-
-import java.io.IOException;
-import java.util.List;
 
 public class NModelMasterTest extends NTestBase {
     @Test
     public void testNormal() throws IOException {
         preparePartition();
 
-        String[] sqls = new String[]{ //
+        String[] sqls = new String[] { //
                 "select 1", // not effective olap_context
                 "create table a", // not effective olap_context
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales where part_dt = '2012-01-01' group by part_dt, lstg_format_name", //
@@ -81,8 +82,8 @@ public class NModelMasterTest extends NTestBase {
             Assert.assertEquals("left", joins.get(0).getJoin().getType());
             Assert.assertEquals("DEFAULT.KYLIN_CAL_DT", joins.get(0).getTable());
             Assert.assertEquals("KYLIN_CAL_DT", joins.get(0).getAlias());
-            Assert.assertArrayEquals(new String[]{"KYLIN_CAL_DT.CAL_DT"}, joins.get(0).getJoin().getPrimaryKey());
-            Assert.assertArrayEquals(new String[]{"KYLIN_SALES.PART_DT"}, joins.get(0).getJoin().getForeignKey());
+            Assert.assertArrayEquals(new String[] { "KYLIN_CAL_DT.CAL_DT" }, joins.get(0).getJoin().getPrimaryKey());
+            Assert.assertArrayEquals(new String[] { "KYLIN_SALES.PART_DT" }, joins.get(0).getJoin().getForeignKey());
         }
 
         // propose again, should return same result
@@ -104,7 +105,7 @@ public class NModelMasterTest extends NTestBase {
             Assert.assertFalse(dataModel.getAllNamedColumns().isEmpty());
             Assert.assertEquals(3, allMeasures.size());
             Assert.assertEquals("SUM_PRICE", allMeasures.get(1).getName());
-            Assert.assertEquals("SUM_ITEM_COUNT", allMeasures.get(2).getName());
+            Assert.assertEquals("SUM_ITEM_COUNT", allMeasures.get(0).getName());
         }
 
         // propose again, should return same result
@@ -115,7 +116,7 @@ public class NModelMasterTest extends NTestBase {
     @Test
     public void testSqlWithoutPartition() throws IOException {
 
-        String[] sqls = new String[]{
+        String[] sqls = new String[] {
                 "SELECT kylin_category_groupings.meta_categ_name, kylin_category_groupings.categ_lvl2_name, "
                         + " sum(kylin_sales.price) as GMV, count(*) as trans_cnt"
                         + " FROM kylin_sales inner JOIN kylin_category_groupings"
@@ -140,8 +141,8 @@ public class NModelMasterTest extends NTestBase {
         dataModel = modelMaster.proposeScope(dataModel);
         {
             Assert.assertNotNull(dataModel);
-            Assert.assertEquals(5, dataModel.getAllNamedColumns().size());
-            Assert.assertEquals(-1, dataModel.getColumnIdByColumnName("KYLIN_SALES.PART_DT"));
+            Assert.assertEquals(48, dataModel.getAllNamedColumns().size());
+            Assert.assertEquals(43, dataModel.getColumnIdByColumnName("KYLIN_SALES.PART_DT"));
             Assert.assertEquals(2, dataModel.getAllMeasures().size());
             Assert.assertEquals(1, dataModel.getJoinTables().size());
         }
@@ -153,8 +154,7 @@ public class NModelMasterTest extends NTestBase {
         dataModel = modelMaster.proposeScope(dataModel);
         {
             Assert.assertNotNull(dataModel);
-            Assert.assertEquals(6, dataModel.getAllNamedColumns().size());
-            Assert.assertNotEquals(-1, dataModel.getColumnIdByColumnName("KYLIN_SALES.PART_DT"));
+            Assert.assertEquals(48, dataModel.getAllNamedColumns().size());
             Assert.assertEquals(2, dataModel.getAllMeasures().size());
             Assert.assertEquals(1, dataModel.getJoinTables().size());
         }
@@ -162,15 +162,12 @@ public class NModelMasterTest extends NTestBase {
 
     @Test
     public void testSqlWithEmptyAllColsInContext() throws IOException {
-        String[] sqls = new String[]{
-                "SELECT count(*) as cnt from " +
-                        "KYLIN_SALES as KYLIN_SALES  \n" +
-                        "INNER JOIN KYLIN_CAL_DT as KYLIN_CAL_DT ON KYLIN_SALES.PART_DT = KYLIN_CAL_DT.CAL_DT \n" +
-                        "INNER JOIN KYLIN_CATEGORY_GROUPINGS as KYLIN_CATEGORY_GROUPINGS \n" +
-                        "    ON KYLIN_SALES.LEAF_CATEG_ID = KYLIN_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND KYLIN_SALES.LSTG_SITE_ID = KYLIN_CATEGORY_GROUPINGS.SITE_ID \n" +
-                        "INNER JOIN KYLIN_ACCOUNT as BUYER_ACCOUNT ON KYLIN_SALES.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID \n" +
-                        "INNER JOIN KYLIN_COUNTRY as BUYER_COUNTRY ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY \n"
-        };
+        String[] sqls = new String[] { "SELECT count(*) as cnt from " + "KYLIN_SALES as KYLIN_SALES  \n"
+                + "INNER JOIN KYLIN_CAL_DT as KYLIN_CAL_DT ON KYLIN_SALES.PART_DT = KYLIN_CAL_DT.CAL_DT \n"
+                + "INNER JOIN KYLIN_CATEGORY_GROUPINGS as KYLIN_CATEGORY_GROUPINGS \n"
+                + "    ON KYLIN_SALES.LEAF_CATEG_ID = KYLIN_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND KYLIN_SALES.LSTG_SITE_ID = KYLIN_CATEGORY_GROUPINGS.SITE_ID \n"
+                + "INNER JOIN KYLIN_ACCOUNT as BUYER_ACCOUNT ON KYLIN_SALES.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID \n"
+                + "INNER JOIN KYLIN_COUNTRY as BUYER_COUNTRY ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY \n" };
 
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
         smartMaster.analyzeSQLs();
@@ -190,7 +187,7 @@ public class NModelMasterTest extends NTestBase {
         dataModel = modelMaster.proposeScope(dataModel);
         {
             Assert.assertNotNull(dataModel);
-            Assert.assertEquals(5, dataModel.getAllNamedColumns().size());
+            Assert.assertEquals(157, dataModel.getAllNamedColumns().size());
         }
     }
 
