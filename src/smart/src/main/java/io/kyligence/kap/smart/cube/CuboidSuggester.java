@@ -66,9 +66,9 @@ class CuboidSuggester {
 
     private static final Logger logger = LoggerFactory.getLogger(CuboidSuggester.class);
 
-    private static final String COLUMN_NOT_FOUND_PTN = "Column not found. Please add column [%s] into the model [%s]";
-    private static final String MEASURE_NOT_FOUND_PTN = "Please add measure [%s] into model [%s] to enable system accelerate this query";
-    private static final String TABLE_NOT_MATCHED = "Query and model mismatch. Please make sure the model [%s] contains all tables [%s] in your input query.";
+    private static final String COLUMN_NOT_FOUND_PTN = "Column not found. Please add column [%s] into the model [%s].";
+    private static final String MEASURE_NOT_FOUND_PTN = "Please add measure [%s] into model [%s] to enable system accelerate this query.";
+    private static final String TABLE_NOT_MATCHED = "The join of model [%s] has some difference with the joins of this query. Please adjust model's join to match the query.";
 
     private class ColIndexSuggester {
         OLAPContext olapContext;
@@ -140,11 +140,8 @@ class CuboidSuggester {
             AccelerateInfo accelerateInfo = sql2AccelerateInfo.get(sql);
             try {
                 Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
-                Set<String> allTables = Sets.newHashSet();
-                ctx.allTableScans.forEach(tableScan -> allTables.add(tableScan.getTableName()));
-                String allTableStr = String.join(", ", allTables);
                 Preconditions.checkState(aliasMap != null, getMsgTemplateByModelMaintainType(TABLE_NOT_MATCHED),
-                        model.getAlias(), allTableStr);
+                        model.getAlias());
                 ctx.fixModel(model, aliasMap);
                 QueryLayoutRelation queryLayoutRelation = ingest(ctx, model);
                 accelerateInfo.getRelatedLayouts().add(queryLayoutRelation);

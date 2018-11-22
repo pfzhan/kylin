@@ -907,9 +907,9 @@ public class NSmartMasterTest extends NTestBase {
             final Map<String, AccelerateInfo> accelerateInfoMapCase1 = smartMaster.getContext().getAccelerateInfoMap();
             Assert.assertEquals(0, accelerateInfoMapCase1.get(sqls[0]).getRelatedLayouts().size());
 
-            String prefix = "In the current manually designed project, the system cannot modify "
-                    + "the model semantic (correlation of dimensions, measures and tables). ";
-            String postFix = "so that the system could accelerate this query.";
+            String prefix = "In the model designer project, the system is not allowed to modify the semantic layer"
+                    + " (dimensions, measures, tables, and joins) of the model. ";
+            String postFix = "to enable system accelerate this query.";
             final Throwable blockingCause1 = accelerateInfoMapCase1.get(sqls[0]).getBlockingCause();
             Assert.assertTrue(blockingCause1.getMessage().startsWith(prefix) //
                     && blockingCause1.getMessage().endsWith(postFix));
@@ -938,9 +938,8 @@ public class NSmartMasterTest extends NTestBase {
             final Map<String, AccelerateInfo> accelerateInfoMapCase2 = smartMaster.getContext().getAccelerateInfoMap();
             Assert.assertEquals(0, accelerateInfoMapCase2.get(sqls[0]).getRelatedLayouts().size());
 
-            String prefix = "In the current manually designed project, the system "
-                    + "cannot modify the model semantic (correlation of dimensions, measures and tables). "
-                    + "Please add measure";
+            String prefix = "In the model designer project, the system is not allowed to modify the semantic layer"
+                    + " (dimensions, measures, tables, and joins) of the model. Please add measure";
             final Throwable blockingCause2 = accelerateInfoMapCase2.get(sqls[0]).getBlockingCause();
             Assert.assertNotNull(blockingCause2);
             Assert.assertTrue(blockingCause2.getMessage().startsWith(prefix));
@@ -965,10 +964,9 @@ public class NSmartMasterTest extends NTestBase {
             final Map<String, AccelerateInfo> accelerateInfoMapCase3 = smartMaster.getContext().getAccelerateInfoMap();
             Assert.assertEquals(0, accelerateInfoMapCase3.get(sqls[0]).getRelatedLayouts().size());
 
-            String preFix = "In the current manually designed project, the system "
-                    + "cannot modify the model semantic (correlation of dimensions, measures and tables). "
-                    + "Query and model mismatch. Please make sure the model";
-            String postFix = "contains all tables [DEFAULT.KYLIN_CAL_DT, DEFAULT.KYLIN_SALES] in your input query.";
+            String preFix = "In the model designer project, the system is not allowed to modify the semantic layer "
+                    + "(dimensions, measures, tables, and joins) of the model.";
+            String postFix = "has some difference with the joins of this query. Please adjust model's join to match the query.";
             final Throwable blockingCause3 = accelerateInfoMapCase3.get(sqls[0]).getBlockingCause();
             Assert.assertNotNull(blockingCause3);
             Assert.assertTrue(blockingCause3.getMessage().startsWith(preFix) //
