@@ -7,7 +7,7 @@
       <el-button type="primary" icon="el-icon-ksd-table_delete">
         {{$t('kylinLang.common.delete')}}
       </el-button> -->
-      <el-button type="primary" icon="el-icon-ksd-backup" @click="handleAggregateGroup">
+      <el-button type="primary" icon="el-icon-ksd-backup" @click="handleAggregateGroup" v-if="!isSpeedProject">
         {{$t('aggregateGroup')}}
       </el-button>
     </div>
@@ -98,13 +98,14 @@
 <script>
 import Vue from 'vue'
 import dayjs from 'dayjs'
-import { mapActions } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMaps } from './handle'
 import FlowerChart from '../../../../common/FlowerChart'
 import PartitionChart from '../../../../common/PartitionChart'
 import { handleSuccessAsync } from '../../../../../util'
+import { speedProjectTypes } from '../../../../../config'
 import AggregateModal from './AggregateModal/index.vue'
 
 @Component({
@@ -115,6 +116,11 @@ import AggregateModal from './AggregateModal/index.vue'
     projectName: {
       type: String
     }
+  },
+  computed: {
+    ...mapGetters([
+      'currentProjectData'
+    ])
   },
   methods: {
     ...mapActions('AggregateModal', {
@@ -151,6 +157,9 @@ export default class ModelAggregate extends Vue {
       ...this.cuboidDetail.dimensions.map(dimension => ({ content: dimension })),
       ...this.cuboidDetail.measures.map(measure => ({ content: measure }))
     ]
+  }
+  get isSpeedProject () {
+    return speedProjectTypes.includes(this.currentProjectData.maintain_model_type)
   }
   get cuboidDetail () {
     const id = this.cuboidData.id
