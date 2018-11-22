@@ -48,7 +48,7 @@
       <el-card class="box-card">
         <div slot="header" class="clearfix">
           <span><i class="el-icon-ksd-index_handy" v-if="currentShowTableIndex && currentShowTableIndex.manual"></i><i v-if="currentShowTableIndex && !currentShowTableIndex.manual" class="el-icon-ksd-index_auto"></i> {{$t('tableIndexDetail')}}</span>
-          <div class="ksd-fright ksd-fs-14"><span class="ksd-mr-4" v-if="currentShowTableIndex && currentShowTableIndex.manual">{{$t('manualAdvice')}}</span><span class="ksd-mr-4" v-else>{{$t('autoAdvice')}}</span><el-button size="mini" v-if="currentShowTableIndex && currentShowTableIndex.manual" @click="editTableIndex(false)"  icon="el-icon-ksd-table_edit">{{$t('kylinLang.common.edit')}}</el-button></div>
+          <div class="ksd-fright ksd-fs-14"><span class="ksd-mr-4" v-if="currentShowTableIndex && currentShowTableIndex.manual">{{$t('manualAdvice')}}</span><span class="ksd-mr-4" v-if="currentShowTableIndex && !currentShowTableIndex.manual">{{$t('autoAdvice')}}</span><el-button size="mini" v-if="currentShowTableIndex && currentShowTableIndex.manual" @click="editTableIndex(false)"  icon="el-icon-ksd-table_edit">{{$t('kylinLang.common.edit')}}</el-button></div>
         </div>
         <div class="ksd-prl-20 ksd-ptb-8">
           <el-table
