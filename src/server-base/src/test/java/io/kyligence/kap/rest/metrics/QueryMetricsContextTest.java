@@ -24,15 +24,16 @@
 
 package io.kyligence.kap.rest.metrics;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -49,7 +50,7 @@ import org.mockito.Mockito;
 import java.util.List;
 import java.util.Map;
 
-public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
+public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
     private final String QUERY_ID = "3395dd9a-a8fb-47c0-b586-363271ca52e2";
 
@@ -314,6 +315,40 @@ public class QueryMetricsContextTest extends LocalFileMetadataTestCase {
             final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
             Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_TEXT));
             Assert.assertEquals(massagedSql, influxdbFields.get(QueryHistory.SQL_PATTERN));
+        } finally {
+            QueryContext.reset();
+            QueryMetricsContext.reset();
+            QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
+                    "BLACK_HOLE");
+        }
+    }
+
+    @Test
+    public void testMassagedSqlIsNull() {
+        QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
+        try {
+            final String origSql = "select * from test_massage_sql_is_null";
+            final String sqlPattern = QueryPatternUtil.normalizeSQLPattern(origSql);
+            // massaged sql is not set, so it is null
+            final QueryContext queryContext = QueryContext.current();
+            QueryMetricsContext.start(queryContext.getQueryId());
+            Assert.assertEquals(true, QueryMetricsContext.isStarted());
+
+            final SQLRequest request = new SQLRequest();
+            request.setProject("default");
+            request.setSql(origSql);
+            request.setUsername("ADMIN");
+
+            final SQLResponse response = new SQLResponse();
+            response.setHitExceptionCache(true);
+            response.setServer("localhost");
+            response.setSuite("suite_1");
+
+            final QueryMetricsContext metricsContext = QueryMetricsContext.collect(request, response, queryContext);
+
+            final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
+            Assert.assertEquals(origSql, influxdbFields.get(QueryHistory.SQL_TEXT));
+            Assert.assertEquals(sqlPattern, influxdbFields.get(QueryHistory.SQL_PATTERN));
         } finally {
             QueryContext.reset();
             QueryMetricsContext.reset();

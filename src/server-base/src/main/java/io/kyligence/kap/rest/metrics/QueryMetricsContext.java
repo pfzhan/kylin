@@ -45,6 +45,7 @@ import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.slf4j.Logger;
@@ -142,7 +143,14 @@ public class QueryMetricsContext {
     }
 
     private void doCollect(final SQLRequest request, final SQLResponse response, final QueryContext context) {
-        this.sql = QueryContext.current().getCorrectedSql();
+        String correctedSql = QueryContext.current().getCorrectedSql();
+
+        // this case happens when a query hit cache, the process did not proceed to the place where massaged sql is set
+        if (correctedSql == null) {
+            correctedSql = QueryUtil.massageSql(request.getSql(), request.getProject(), request.getLimit(), request.getOffset(), null);
+        }
+
+        this.sql = correctedSql;
 
         this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(this.sql);
 
