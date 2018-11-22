@@ -48,7 +48,7 @@ export function getUserRange (table) {
     ? (maxUserRange = maxQueryableRange)
     : (maxUserRange = maxReadyableRange)
 
-  return [ minUserRange, maxUserRange ]
+  return minUserRange && maxUserRange ? [ minUserRange, maxUserRange ] : []
 }
 
 function getQueryableRange (table) {

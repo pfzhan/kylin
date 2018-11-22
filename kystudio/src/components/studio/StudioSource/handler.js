@@ -22,14 +22,16 @@ export function getSelectedTableDetail (tableDetail) {
     return column
   })
   const segments = getAllSegments(tableDetail.segment_ranges)
+  const userRange = getUserRange(tableDetail)
+  const allRange = getAllSegmentsRange(tableDetail)
 
   return {
     ...tableDetail,
     mapper_rows: tableDetail.mapper_rows || [],
     sample_rows: tableDetail.sample_rows || [],
     total_rows: tableDetail.total_rows || [],
-    userRange: getUserRange(tableDetail),
-    allRange: getAllSegmentsRange(tableDetail),
+    userRange: userRange.length ? userRange : allRange,
+    allRange,
     ...checkRangeDisabled(segments),
     columns
   }
