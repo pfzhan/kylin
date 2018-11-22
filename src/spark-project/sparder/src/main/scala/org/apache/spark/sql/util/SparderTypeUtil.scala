@@ -148,13 +148,6 @@ object SparderTypeUtil extends Logging {
 
   def convertSparkTypeToSqlType(dt: org.apache.spark.sql.types.DataType): SqlTypeName = {
     dt match {
-      case DecimalType.ByteDecimal => SqlTypeName.DECIMAL
-      case DecimalType.ShortDecimal => SqlTypeName.DECIMAL
-      case DecimalType.IntDecimal => SqlTypeName.DECIMAL
-      case DecimalType.LongDecimal => SqlTypeName.DECIMAL
-      case DecimalType.FloatDecimal => SqlTypeName.DECIMAL
-      case DecimalType.DoubleDecimal => SqlTypeName.DECIMAL
-      case DecimalType.BigIntDecimal => SqlTypeName.DECIMAL
       case StringType => SqlTypeName.VARCHAR
       case IntegerType => SqlTypeName.INTEGER
       case ByteType => SqlTypeName.TINYINT
@@ -165,8 +158,13 @@ object SparderTypeUtil extends Logging {
       case DateType => SqlTypeName.DATE
       case TimestampType => SqlTypeName.TIMESTAMP
       case BooleanType => SqlTypeName.BOOLEAN
-      case _ =>
-        throw new IllegalArgumentException(s"unsupported SqlTypeName $dt")
+      case _ => {
+        if (dt.isInstanceOf[DecimalType]) {
+          SqlTypeName.DECIMAL
+        } else {
+          throw new IllegalArgumentException(s"unsupported SqlTypeName $dt")
+        }
+      }
     }
   }
 

@@ -125,32 +125,35 @@ public class NModelMaster {
     private void updateContextWithCC(NDataModel modelDesc) {
         String project = context.getSmartContext().getProject();
         KylinConfig config = context.getSmartContext().getKylinConfig();
-        List<String> sqls = Lists.newArrayList();
+        List<String> newQueries = Lists.newArrayList();
+        List<String> oldQueries = Lists.newArrayList();
         for (OLAPContext olapContext : getContext().getModelTree().getOlapContexts()) {
-            String newSql = olapContext.sql;
-            if (StringUtils.isEmpty(newSql)) {
+            String oldQuery = olapContext.sql;
+            if (StringUtils.isEmpty(oldQuery)) {
                 continue;
             }
+            String newQuery = oldQuery;
             try {
-                newSql = new ConvertToComputedColumn().transformImpl(newSql, project, modelDesc,
+                newQuery = new ConvertToComputedColumn().transformImpl(oldQuery, project, modelDesc,
                         modelDesc.getRootFactTable().getTableDesc().getDatabase());
             } catch (Exception e) {
-                LOGGER.warn("NModelMaster.updateContextWithCC failed to transform query: {}", newSql, e);
+                LOGGER.warn("NModelMaster.updateContextWithCC failed to transform query: {}", oldQuery, e);
             }
-            sqls.add(newSql);
+            newQueries.add(newQuery);
+            oldQueries.add(oldQuery);
         }
 
-        if (sqls.isEmpty()) {
+        if (newQueries.isEmpty()) {
             return;
         }
 
         // Rebuild modelTrees and find match one to replace original
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(config,
-                sqls.toArray(new String[0]), 1, project, Lists.newArrayList(modelDesc))) {
+                newQueries.toArray(new String[0]), 1, project, Lists.newArrayList(modelDesc))) {
             extractor.execute();
             NSmartContext smartContext = context.getSmartContext();
             List<ModelTree> modelTrees = new GreedyModelTreesBuilder(smartContext.getKylinConfig(),
-                    smartContext.getProject()).build(sqls, extractor.getAllOLAPContexts(), null);
+                    smartContext.getProject()).build(oldQueries, extractor.getAllOLAPContexts(), null);
             ModelTree updatedModelTree = null;
             for (ModelTree modelContext : modelTrees) {
                 if (NModelSelectProposer.matchModelTree(modelDesc, modelContext)) {
