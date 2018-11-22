@@ -30,7 +30,12 @@ export default {
     longAgo: 'Long Ago',
     tableIndexName: 'Table Index Name:',
     tableIndexId: 'Table Index ID:',
-    searchTip: 'Search Table Index ID'
+    searchTip: 'Search Table Index ID',
+    broken: 'Broken',
+    available: 'Available',
+    empty: 'Empty',
+    manualAdvice: 'User-defined index',
+    autoAdvice: 'System-defined index'
   },
   'zh-cn': {
     noSupportRawTable: '只有KAP PLUS 提供Raw Table功能',
@@ -60,6 +65,11 @@ export default {
     longAgo: '很久以前',
     tableIndexName: '表明细索引名：',
     tableIndexId: '表明细索引ID：',
-    searchTip: '搜索明细索引ID'
+    searchTip: '搜索明细索引ID',
+    broken: '破损',
+    available: '可用',
+    empty: '待刷新',
+    manualAdvice: '用户定义的索引',
+    autoAdvice: '系统推荐的索引'
   }
 }
