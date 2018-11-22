@@ -88,9 +88,9 @@ public class NModelSelectProposer extends NAbstractProposer {
                 if (modelCtx.withoutTargetModel()) {
                     modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {
                         AccelerateInfo accelerateInfo = sql2AccelerateInfo.get(olapContext.sql);
-                        accelerateInfo.setBlockingCause(new IllegalStateException(
-                                "No model matches this query. In the current manually designed project, "
-                                        + "the system cannot suggest a new model to accelerate this query."));
+                        accelerateInfo.setBlockingCause(
+                                new IllegalStateException("No model matches this query. In the model designer project, "
+                                        + "the system is not allowed to suggest a new model accelerate this query."));
                     });
                 }
             });

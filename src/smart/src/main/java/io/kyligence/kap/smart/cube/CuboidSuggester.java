@@ -67,7 +67,7 @@ class CuboidSuggester {
     private static final Logger logger = LoggerFactory.getLogger(CuboidSuggester.class);
 
     private static final String COLUMN_NOT_FOUND_PTN = "Column not found. Please add column [%s] into the model [%s]";
-    private static final String MEASURE_NOT_FOUND_PTN = "Please add measure [%s] into model [%s], so that the system could accelerate this query.";
+    private static final String MEASURE_NOT_FOUND_PTN = "Please add measure [%s] into model [%s] to enable system accelerate this query";
     private static final String TABLE_NOT_MATCHED = "Query and model mismatch. Please make sure the model [%s] contains all tables [%s] in your input query.";
 
     private class ColIndexSuggester {
@@ -341,8 +341,8 @@ class CuboidSuggester {
 
     private String getMsgTemplateByModelMaintainType(String messagePattern) {
         Preconditions.checkNotNull(model);
-        String rst = "In the current manually designed project, the system cannot modify"
-                + " the model semantic (correlation of dimensions, measures and tables). ";
+        String rst = "In the model designer project, the system is not allowed to modify the semantic layer "
+                + "(dimensions, measures, tables, and joins) of the model. ";
         return model.getProjectInstance().getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN
                 ? rst + messagePattern
                 : messagePattern;
