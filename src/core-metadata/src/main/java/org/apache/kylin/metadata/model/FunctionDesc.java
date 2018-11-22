@@ -47,7 +47,6 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.directory.api.util.Strings;
 import org.apache.kylin.measure.MeasureType;
@@ -61,9 +60,9 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Setter;
@@ -119,21 +118,13 @@ public class FunctionDesc implements Serializable {
     public static final String FUNC_PERCENTILE = "PERCENTILE_APPROX";
     public static final String FUNC_GROUPING = "GROUPING";
     public static final String FUNC_TOP_N = "TOP_N";
-    public static final Set<String> BUILT_IN_AGGREGATIONS = Sets.newHashSet();
-    public static final Set<String> DIMENSION_AS_MEASURES = Sets.newHashSet();
-
-    static {
-        DIMENSION_AS_MEASURES.add(FUNC_MAX);
-        DIMENSION_AS_MEASURES.add(FUNC_MIN);
-        DIMENSION_AS_MEASURES.add(FUNC_COUNT_DISTINCT);
-
-        BUILT_IN_AGGREGATIONS.addAll(DIMENSION_AS_MEASURES);
-        BUILT_IN_AGGREGATIONS.add(FUNC_COUNT);
-        BUILT_IN_AGGREGATIONS.add(FUNC_SUM);
-        BUILT_IN_AGGREGATIONS.add(FUNC_PERCENTILE);
-    }
+    public static final ImmutableSet<String> DIMENSION_AS_MEASURES = ImmutableSet.<String> builder()
+            .add(FUNC_MAX, FUNC_MIN, FUNC_COUNT_DISTINCT).build();
+    public static final ImmutableSet<String> BUILT_IN_AGGREGATIONS = ImmutableSet.<String> builder()
+            .add(FUNC_MAX, FUNC_MIN, FUNC_COUNT_DISTINCT).add(FUNC_COUNT, FUNC_SUM, FUNC_PERCENTILE).build();
 
     private static final Map<String, String> EXPRESSION_DEFAULT_TYPE_MAP = Maps.newHashMap();
+
     static {
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_TOP_N, "topn(100, 4)");
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT_DISTINCT, "bitmap");
@@ -194,7 +185,7 @@ public class FunctionDesc implements Serializable {
         }
     }
 
-    public MeasureType<?> getMeasureType() {
+    public MeasureType getMeasureType() {
         //like max(cal_dt)
         if (isDimensionAsMetric && !isCountDistinct()) {
             return null;

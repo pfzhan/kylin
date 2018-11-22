@@ -11,18 +11,14 @@ with q11_part_tmp_cached as (
 	group by ps_partkey
 ),
 q11_sum_tmp_cached as (
-	select
-		sum(ps_supplycost * ps_availqty) as total_value
-	from
-		tpch.partsupp
-		inner join tpch.supplier on ps_suppkey = s_suppkey
-		inner join tpch.nation on s_nationkey = n_nationkey
-	where
-		n_name = 'GERMANY'
+select
+	sum(part_value) as total_value
+from
+	q11_part_tmp_cached
 )
 
 select
-	ps_partkey, 
+	ps_partkey,
 	part_value
 from (
 	select

@@ -26,6 +26,7 @@ package io.kyligence.kap.query.util;
 
 import java.util.List;
 
+import org.apache.calcite.plan.RelOptCostImpl;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.hep.HepPlanner;
 import org.apache.calcite.plan.hep.HepProgram;
@@ -40,7 +41,7 @@ public class HepUtils {
 
     public static RelNode runRuleCollection(RelNode rel, List<RelOptRule> ruleCollection) {
         HepProgram program = HepProgram.builder().addRuleCollection(ruleCollection).build();
-        HepPlanner planner = new HepPlanner(program);
+        HepPlanner planner = new HepPlanner(program, null, true, null, RelOptCostImpl.FACTORY);
         planner.setRoot(rel);
         return planner.findBestExp();
     }
