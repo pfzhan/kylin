@@ -45,6 +45,7 @@
         <module>spark-test</module>
         <module>engine-spark</module>
         <module>spark-it</module>
+        <module>index</module>
     </modules>
 
     <dependencies>
