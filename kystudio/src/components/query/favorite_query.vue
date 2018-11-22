@@ -789,6 +789,16 @@ export default class FavoriteQuery extends Vue {
     })
     const data = await handleSuccessAsync(res)
     this.whiteSqlList = data
+    if (this.whiteSqlList.size > 0) {
+      this.activeSql(this.whiteSqlList.sqls[0], 0)
+    } else {
+      this.whiteSql = ''
+      this.activeIndex = -1
+      this.isEditSql = false
+      this.whiteMessages = []
+      this.isWhiteErrorMessage = false
+      this.inputHeight = 564
+    }
   }
 
   async getBlackList (pageIndex, pageSize) {
@@ -799,6 +809,16 @@ export default class FavoriteQuery extends Vue {
     })
     const data = await handleSuccessAsync(res)
     this.blackSqlList = data
+    if (this.blackSqlList.size > 0) {
+      this.viewBlackSql(this.blackSqlList.sqls[0].sql, 0)
+    } else {
+      this.blackSql = ''
+      this.activeIndex = -1
+      this.isEditSql = false
+      this.blackMessages = []
+      this.isBlackErrorMessage = false
+      this.inputHeight = 564
+    }
   }
 
   openWhiteList () {
@@ -809,7 +829,6 @@ export default class FavoriteQuery extends Vue {
       this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(true)
     }, 0)
     this.getWhiteList()
-    this.whiteSqlList.size > 0 && this.activeSql(this.whiteSqlList.sqls[0], 0)
   }
 
   activeSql (sqlObj, index) {
@@ -861,10 +880,6 @@ export default class FavoriteQuery extends Vue {
     this.importLoading = true
   }
   uploadSuccess (response) {
-    // this.$message({
-    //   type: 'success',
-    //   message: this.$t('kylinLang.common.actionSuccess')
-    // })
     this.getWhiteList()
     this.importLoading = false
   }
