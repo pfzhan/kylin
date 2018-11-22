@@ -643,4 +643,8 @@ export const pageSizeMapping = {
   SEGMENT_CHART: 50
 }
 
+export const speedProjectTypes = [
+  'AUTO_MAINTAIN'
+]
+
 export { projectCfgs } from './projectCfgs'

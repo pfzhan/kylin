@@ -130,7 +130,7 @@ import { Component, Watch } from 'vue-property-decorator'
 // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
 import { handleError, kapConfirm, hasRole, hasPermission } from '../../util/business'
 import { objectClone, getQueryString, cacheSessionStorage, cacheLocalStorage } from '../../util/index'
-import { permissions, menusData, speedInfoTimer } from '../../config'
+import { permissions, menusData, speedInfoTimer, speedProjectTypes } from '../../config'
 import { mapActions, mapMutations, mapGetters } from 'vuex'
 import projectSelect from '../project/project_select'
 import changeLang from '../common/change_lang'
@@ -181,7 +181,8 @@ import $ from 'jquery'
       'currentPathNameGet',
       'isFullScreen',
       'currentSelectedProject',
-      'briefMenuGet'
+      'briefMenuGet',
+      'currentProjectData'
     ]),
     modelSpeedEvents () {
       return this.$store.state.model.modelSpeedEvents
@@ -487,6 +488,9 @@ export default class LayoutLeftRightTop extends Vue {
   hasAdminProjectPermission () {
     return hasPermission(this, permissions.ADMINISTRATION.mask)
   }
+  get isSpeedProject () {
+    return speedProjectTypes.includes(this.currentProjectData.maintain_model_type)
+  }
   get isAdmin () {
     return hasRole(this, 'ROLE_ADMIN')
   }
@@ -583,14 +587,16 @@ export default class LayoutLeftRightTop extends Vue {
   }
   circleLoadSpeedInfo () {
     clearTimeout(this.ST)
-    this.ST = setTimeout(() => {
-      this.loadCircleSpeedInfo().then(() => {
-        if (this._isDestroyed) {
-          return
-        }
-        this.circleLoadSpeedInfo()
-      })
-    }, speedInfoTimer)
+    if (this.isSpeedProject) {
+      this.ST = setTimeout(() => {
+        this.loadCircleSpeedInfo().then(() => {
+          if (this._isDestroyed) {
+            return
+          }
+          this.circleLoadSpeedInfo()
+        })
+      }, speedInfoTimer)
+    }
   }
   mounted () {
     // 接受cloud的参数
@@ -612,8 +618,10 @@ export default class LayoutLeftRightTop extends Vue {
         this.defaultActive = menu.path
       }
     })
-    // 获取加速信息
-    this.loadSpeedInfo()
+    if (this.isSpeedProject) {
+      // 获取加速信息
+      this.loadSpeedInfo()
+    }
   }
   destroyed () {
     clearTimeout(this.ST)
