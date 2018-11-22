@@ -66,7 +66,9 @@ class CuboidSuggester {
 
     private static final Logger logger = LoggerFactory.getLogger(CuboidSuggester.class);
 
-    private static final String COLUMN_NOT_FOUND_MSG_TEMPLATE = "Cannot find column %s in model [%s]";
+    private static final String COLUMN_NOT_FOUND_PTN = "Column not found. Please add column [%s] into the model [%s]";
+    private static final String MEASURE_NOT_FOUND_PTN = "Please add measure [%s] into model [%s], so that the system could accelerate this query.";
+    private static final String TABLE_NOT_MATCHED = "Query and model mismatch. Please make sure the model [%s] contains all tables [%s] in your input query.";
 
     private class ColIndexSuggester {
         OLAPContext olapContext;
@@ -138,9 +140,11 @@ class CuboidSuggester {
             AccelerateInfo accelerateInfo = sql2AccelerateInfo.get(sql);
             try {
                 Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
-                Preconditions.checkState(aliasMap != null,
-                        "%s. Please ensure your input sql compatible with the existing model [%s], the sql is: [%s]",
-                        getMsgTemplateByModelMaintainType(), model.getId(), ctx.sql);
+                Set<String> allTables = Sets.newHashSet();
+                ctx.allTableScans.forEach(tableScan -> allTables.add(tableScan.getTableName()));
+                String allTableStr = String.join(", ", allTables);
+                Preconditions.checkState(aliasMap != null, getMsgTemplateByModelMaintainType(TABLE_NOT_MATCHED),
+                        model.getAlias(), allTableStr);
                 ctx.fixModel(model, aliasMap);
                 QueryLayoutRelation queryLayoutRelation = ingest(ctx, model);
                 accelerateInfo.getRelatedLayouts().add(queryLayoutRelation);
@@ -190,7 +194,8 @@ class CuboidSuggester {
         List<Integer> ret = Lists.newArrayList();
         for (TblColRef col : ctx.getSortColumns()) {
             final Integer id = colIdMap.get(col);
-            Preconditions.checkState(id != null, COLUMN_NOT_FOUND_MSG_TEMPLATE, id, model.getId());
+            Preconditions.checkState(id != null, getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN),
+                    col.getIdentity(), model.getId());
             ret.add(id);
         }
         return ret;
@@ -230,7 +235,8 @@ class CuboidSuggester {
 
         for (TblColRef colRef : cols) {
             Integer colId = colIdMap.get(colRef);
-            Preconditions.checkState(colId != null, COLUMN_NOT_FOUND_MSG_TEMPLATE, colRef, model.getId());
+            Preconditions.checkState(colId != null, getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN),
+                    colRef.getIdentity(), model.getId());
             TableExtDesc.ColumnStats columnStats = context.getColumnStats(colRef);
             if (columnStats != null && columnStats.getCardinality() > 0) {
                 if (isFilterCols) {
@@ -322,8 +328,8 @@ class CuboidSuggester {
                 // dimension as measure, put cols to rowkey tail
                 for (TblColRef colRef : aggFunc.getParameter().getColRefs()) {
                     final Integer colId = colIdMap.get(colRef);
-                    Preconditions.checkState(colId != null, getMsgTemplateByModelMaintainType(), aggFunc,
-                            model.getAlias(), ctx.sql);
+                    Preconditions.checkState(colId != null, getMsgTemplateByModelMaintainType(MEASURE_NOT_FOUND_PTN),
+                            aggFunc, model.getAlias());
                     if (!dimScores.containsKey(colId))
                         dimScores.put(colId, -1D);
                 }
@@ -333,16 +339,13 @@ class CuboidSuggester {
         return createCuboidDesc(dimScores.keySet(), measureIds, false);
     }
 
-    private String getMsgTemplateByModelMaintainType() {
+    private String getMsgTemplateByModelMaintainType(String messagePattern) {
         Preconditions.checkNotNull(model);
-        if (model.getProjectInstance().getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            return "In the current manually designed project, the system "
-                    + "cannot modify the model semantic (correlation of dimensions, "
-                    + "measures and tables). Please add measure %s into model %s, "
-                    + "then the system could accelerate this query. Your input sql is [%s]";
-        }
-        return "Unexpected state happened in SQL acceleration project %s. "
-                + "Cannot create new measure %s in existing model [%s]. Your input sql is: [%s]";
+        String rst = "In the current manually designed project, the system cannot modify"
+                + " the model semantic (correlation of dimensions, measures and tables). ";
+        return model.getProjectInstance().getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN
+                ? rst + messagePattern
+                : messagePattern;
     }
 
     private void fixDimScoresIfEmpty(NDataModel model, Map<Integer, Double> dimScores) {
