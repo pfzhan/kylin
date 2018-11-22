@@ -83,7 +83,7 @@ public class NProjectManager {
     // ============================================================================
 
     private KylinConfig config;
-    private NProjectLoader projectLoader;
+    private NProjectL2Cache l2Cache;
 
     // project name => ProjectInstance
     private CaseInsensitiveStringCache<ProjectInstance> projectMap;
@@ -96,7 +96,7 @@ public class NProjectManager {
         logger.info("Initializing ProjectManager with metadata url " + config);
         this.config = config;
         this.projectMap = new CaseInsensitiveStringCache<ProjectInstance>(config, "", "project");
-        this.projectLoader = new NProjectLoader(this);
+        this.l2Cache = new NProjectL2Cache(this);
         serializer = new JsonSerializer<>(ProjectInstance.class);
 
         // touch lower level metadata before registering my listener
@@ -123,7 +123,7 @@ public class NProjectManager {
     }
 
     public void clearL2Cache() {
-        projectLoader.clear();
+        l2Cache.clear();
     }
 
     //in Newten
@@ -478,15 +478,15 @@ public class NProjectManager {
     }
 
     public Map<String, ExternalFilterDesc> listExternalFilterDescs(String project) {
-        return projectLoader.listExternalFilterDesc(project);
+        return l2Cache.listExternalFilterDesc(project);
     }
 
     public List<TableDesc> listDefinedTables(String project) {
-        return projectLoader.listDefinedTables(project);
+        return l2Cache.listDefinedTables(project);
     }
 
     private Collection<TableDesc> listExposedTablesByRealizations(String project) {
-        return projectLoader.listExposedTables(project);
+        return l2Cache.listExposedTables(project);
     }
 
     public Collection<TableDesc> listExposedTables(String project, boolean exposeMore) {
@@ -498,8 +498,8 @@ public class NProjectManager {
     }
 
     public List<ColumnDesc> listExposedColumns(String project, TableDesc tableDesc, boolean exposeMore) {
-        Set<ColumnDesc> exposedColumns = Sets.newHashSet(projectLoader.listExposedColumns(project, tableDesc.getIdentity()));
-        exposedColumns.addAll(projectLoader.listComputedColumns(project, tableDesc));
+        Set<ColumnDesc> exposedColumns = l2Cache.listExposedColumns(project, tableDesc.getIdentity());
+
         if (exposeMore) {
             Set<ColumnDesc> dedup = Sets.newHashSet(tableDesc.getColumns());
             dedup.addAll(exposedColumns);
@@ -510,19 +510,19 @@ public class NProjectManager {
     }
 
     public Set<IRealization> listAllRealizations(String project) {
-        return projectLoader.listAllRealizations(project);
+        return l2Cache.listAllRealizations(project);
     }
 
     public Set<IRealization> getRealizationsByTable(String project, String tableName) {
-        return projectLoader.getRealizationsByTable(project, tableName.toUpperCase());
+        return l2Cache.getRealizationsByTable(project, tableName.toUpperCase());
     }
 
     public List<MeasureDesc> listEffectiveRewriteMeasures(String project, String factTable) {
-        return projectLoader.listEffectiveRewriteMeasures(project, factTable.toUpperCase(), true);
+        return l2Cache.listEffectiveRewriteMeasures(project, factTable.toUpperCase(), true);
     }
 
     public List<MeasureDesc> listEffectiveMeasures(String project, String factTable) {
-        return projectLoader.listEffectiveRewriteMeasures(project, factTable.toUpperCase(), false);
+        return l2Cache.listEffectiveRewriteMeasures(project, factTable.toUpperCase(), false);
     }
 
     KylinConfig getConfig() {

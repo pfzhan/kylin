@@ -791,7 +791,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testFailureModelUpdateDueToComputedColumnConflict2()
             throws IOException, NoSuchFieldException, IllegalAccessException {
         expectedEx.expect(IllegalArgumentException.class);
-        expectedEx.expectMessage("There is already a column named CAL_DT on table DEFAULT.TEST_KYLIN_FACT,"
+        expectedEx.expectMessage("There is already a column named cal_dt on table DEFAULT.TEST_KYLIN_FACT,"
                 + " please change your computed column name");
 
         Serializer<NDataModel> serializer = modelService.getDataModelManager("default").getDataModelSerializer();
@@ -1267,8 +1267,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         contents = contents.replace(" \"columnName\": \"LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME\",",
                 " \"columnName\": \"LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME_2\",");
-        contents = contents.replace(" \"column\": \"TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME\"",
-                " \"column\": \"TEST_KYLIN_FACT.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME_2\"");
         contents = contents.replace("\"CONCAT(SELLER_ACCOUNT.ACCOUNT_ID, SELLER_COUNTRY.NAME)\"", "null");
 
         InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());

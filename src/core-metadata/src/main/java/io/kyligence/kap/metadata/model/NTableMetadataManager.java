@@ -128,8 +128,9 @@ public class NTableMetadataManager {
     private void initSrcTable() throws IOException, ClassNotFoundException {
         this.srcTableMap = new CaseInsensitiveStringCache<>(config, project, "table");
         String resourceRootPath = "/" + project + ResourceStore.TABLE_RESOURCE_ROOT;
-        this.srcTableCrud = new CachedCrudAssist<TableDesc>(getStore(), resourceRootPath, TableDesc.class,
-                srcTableMap) {
+        this.srcTableCrud = new CachedCrudAssist<TableDesc>(getStore(), resourceRootPath,
+                // TODO: ugly casting here
+                (Class<TableDesc>) (Class.forName(NTableDesc.class.getName())), srcTableMap) {
             @Override
             protected TableDesc initEntityAfterReload(TableDesc t, String resourceName) {
                 t.init(project);

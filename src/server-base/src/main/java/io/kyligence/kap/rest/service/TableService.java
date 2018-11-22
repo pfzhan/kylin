@@ -39,6 +39,7 @@ import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
@@ -160,7 +161,7 @@ public class TableService extends BasicService {
             TableDesc tableDesc = pair.getFirst();
             TableExtDesc extDesc = pair.getSecond();
             TableDesc origTable = tableMetaMgr.getTableDesc(tableDesc.getIdentity());
-            val nTableDesc = new TableDesc(tableDesc);
+            NTableDesc nTableDesc = new NTableDesc(tableDesc);
             if (origTable == null || origTable.getProject() == null) {
                 nTableDesc.setUuid(UUID.randomUUID().toString());
                 nTableDesc.setLastModified(0);

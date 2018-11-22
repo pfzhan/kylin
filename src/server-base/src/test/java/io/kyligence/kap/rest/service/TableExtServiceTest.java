@@ -45,6 +45,7 @@ package io.kyligence.kap.rest.service;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import io.kyligence.kap.metadata.model.NTableDesc;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.response.LoadTableResponse;
@@ -128,7 +129,7 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
         tableExtDesc.setProject("default");
         tableExtDesc.setIdentity("DEFAULT.TEST_REMOVE");
         tableExtDesc.setJodID("test");
-        TableDesc tableDesc = new TableDesc();
+        NTableDesc tableDesc = new NTableDesc();
         tableDesc.setProject("default");
         tableDesc.setName("TEST_REMOVE");
         tableDesc.setDatabase("DEFAULT");

@@ -56,12 +56,14 @@ import java.util.function.Predicate;
 
 import javax.annotation.Nullable;
 
+import lombok.ToString;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.SerializationUtils;
+import org.apache.commons.lang.mutable.MutableInt;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -70,6 +72,7 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -108,7 +111,6 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.ToString;
 import lombok.val;
 
 @Data
@@ -358,7 +360,6 @@ public class NDataModel extends RootPersistentEntity {
         this.dataCheckDesc = other.dataCheckDesc;
         this.canvas = other.canvas;
     }
-
     public KylinConfig getConfig() {
         return config;
     }
@@ -579,7 +580,7 @@ public class NDataModel extends RootPersistentEntity {
         throw new IllegalArgumentException("Table not found by " + tableIdentity + " in model " + name);
     }
 
-    public void init(KylinConfig config, Map<String, TableDesc> tables) {
+    public void init(KylinConfig config, Map<String, TableDesc> tables, boolean isOnlineModel) {
         this.config = config;
 
         initJoinTablesForUpgrade();
@@ -887,12 +888,11 @@ public class NDataModel extends RootPersistentEntity {
             if (tableDesc == null)
                 continue;
 
-            TableDesc extendedTableDesc = tableDesc
-                    .appendColumns(ComputedColumnUtil.createComputedColumns(computedColumnDescs, tableDesc), true);
+            TableDesc extendedTableDesc = tableDesc.appendColumns(createComputedColumns(tableDesc), !isOnlineModel);
             tables.put(s, extendedTableDesc);
         }
 
-        init(config, tables);
+        init(config, tables, isOnlineModel);
 
         initComputedColumns(otherModels);
         initMultilevelPartitionCols();
@@ -1085,7 +1085,8 @@ public class NDataModel extends RootPersistentEntity {
                 throw new BadModelException(
                         "A computed column should be defined on root fact table if its expression is not referring its hosting alias table, cc: "
                                 + newCC.getFullName(),
-                        BadModelException.CauseType.LOOKUP_CC_NOT_REFERENCING_ITSELF, null, null, newCC.getFullName());
+                        BadModelException.CauseType.LOOKUP_CC_NOT_REFERENCING_ITSELF, null, null,
+                        newCC.getFullName());
             }
         }
         checkCCExprHealth();
@@ -1124,9 +1125,8 @@ public class NDataModel extends RootPersistentEntity {
                 }
                 // self check, two cc cannot define same expression
                 if (isLiteralSameCCExpr(a, b)) {
-                    throw new BadModelException(
-                            "In current model, computed column " + a.getFullName() + " share same expression as "
-                                    + b.getFullName() + ", please remove one",
+                    throw new BadModelException("In current model, computed column " + a.getFullName()
+                            + " share same expression as " + b.getFullName() + ", please remove one",
                             BadModelException.CauseType.SELF_CONFLICT, null, null, a.getFullName());
                 }
             }
@@ -1154,8 +1154,7 @@ public class NDataModel extends RootPersistentEntity {
         }
     }
 
-    private void singleCCConflictCheck(NDataModel existingModel, ComputedColumnDesc existingCC,
-            ComputedColumnDesc newCC) {
+    private void singleCCConflictCheck(NDataModel existingModel, ComputedColumnDesc existingCC, ComputedColumnDesc newCC) {
         AliasMapping aliasMapping = null;
         JoinsTree ccJoinsTree = getCCExprRelatedSubgraph(newCC, this);
         Map<String, String> matches = ccJoinsTree.matches(existingModel.getJoinsTree());
@@ -1224,7 +1223,8 @@ public class NDataModel extends RootPersistentEntity {
         String adviseName = existingCC.getColumnName();
         String msg = String.format(
                 "Expression %s in computed column %s is already defined by computed column %s from model %s, you should use the same column name: ' %s ' .",
-                newCC.getExpression(), newCC.getFullName(), existingCC.getFullName(), existingModel.getName(),
+                newCC.getExpression(), newCC.getFullName(),
+                existingCC.getFullName(), existingModel.getName(),
                 existingCC.getColumnName());
         throw new BadModelException(msg, BadModelException.CauseType.SAME_EXPR_DIFF_NAME, adviseName,
                 existingModel.getName(), newCC.getFullName());
@@ -1346,6 +1346,17 @@ public class NDataModel extends RootPersistentEntity {
         definition0 = definition0.replaceAll("\\s*", "");
         definition1 = definition1.replaceAll("\\s*", "");
         return definition0.equalsIgnoreCase(definition1);
+    }
+
+    private ColumnDesc[] createComputedColumns(final TableDesc tableDesc) {
+        final MutableInt id = new MutableInt(tableDesc.getColumnCount());
+        return this.computedColumnDescs.stream()
+                .filter(input -> tableDesc.getIdentity().equalsIgnoreCase(input.getTableIdentity())).map(input -> {
+                    id.increment();
+                    ColumnDesc columnDesc = new ColumnDesc(id.toString(), input.getColumnName(), input.getDatatype(),
+                            input.getComment(), null, null, input.getInnerExpression());
+                    return columnDesc;
+                }).toArray(ColumnDesc[]::new);
     }
 
     public ComputedColumnDesc findCCByCCColumnName(final String columnName) {
