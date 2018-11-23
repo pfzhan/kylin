@@ -26,7 +26,9 @@ package io.kyligence.kap.smart.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
@@ -38,6 +40,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
@@ -101,32 +104,25 @@ public class NModelMaster {
         if (!isComputedColumnEnabled) {
             return model;
         }
-
-        int retryMax = kapConfig.getComputedColumnMaxRecursionTimes();
-        int retryCount = 0;
-
-        do {
-            List<ComputedColumnDesc> originalCCs = Lists.newArrayList(model.getComputedColumnDescs());
-            try {
-                model = proposerProvider.getComputedColumnProposer().propose(model);
-            } catch (Exception e) {
-                LOGGER.error("Propose failed, will discard new computed columns.", e);
-                model.setComputedColumnDescs(originalCCs);
+        
+        List<ComputedColumnDesc> originalCCs = Lists.newArrayList(model.getComputedColumnDescs());
+        try {
+            model = proposerProvider.getComputedColumnProposer().propose(model);
+            if (model.getComputedColumnDescs().size() != originalCCs.size()) {
+                // New CC detected, need to rebuild ModelContext regarding new coming CC
+                updateContextWithCC(model);
             }
-            if (model.getComputedColumnDescs().size() == originalCCs.size()) {
-                break;
-            }
-            // New CC detected, need to rebuild ModelContext regarding new coming CC
-            updateContextWithCC(model);
-        } while((retryCount++) < retryMax);
+        } catch (Exception e) {
+            LOGGER.error("Propose failed, will discard new computed columns.", e);
+            model.setComputedColumnDescs(originalCCs);
+        }
         return model;
     }
 
     private void updateContextWithCC(NDataModel modelDesc) {
         String project = context.getSmartContext().getProject();
         KylinConfig config = context.getSmartContext().getKylinConfig();
-        List<String> newQueries = Lists.newArrayList();
-        List<String> oldQueries = Lists.newArrayList();
+        Map<String, String> mapNewAndOldQueries = Maps.newHashMap();
         for (OLAPContext olapContext : getContext().getModelTree().getOlapContexts()) {
             String oldQuery = olapContext.sql;
             if (StringUtils.isEmpty(oldQuery)) {
@@ -139,13 +135,15 @@ public class NModelMaster {
             } catch (Exception e) {
                 LOGGER.warn("NModelMaster.updateContextWithCC failed to transform query: {}", oldQuery, e);
             }
-            newQueries.add(newQuery);
-            oldQueries.add(oldQuery);
+            mapNewAndOldQueries.put(newQuery, oldQuery);
         }
-
-        if (newQueries.isEmpty()) {
+        
+        if (mapNewAndOldQueries.isEmpty()) {
             return;
         }
+
+        List<String> newQueries = Lists.newArrayList(mapNewAndOldQueries.keySet());
+        List<String> oldQueries = newQueries.stream().map(mapNewAndOldQueries::get).collect(Collectors.toList());
 
         // Rebuild modelTrees and find match one to replace original
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(config,

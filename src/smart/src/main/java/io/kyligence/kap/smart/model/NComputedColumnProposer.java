@@ -41,6 +41,7 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.util.SparderTypeUtil;
 import org.slf4j.Logger;
@@ -119,7 +120,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                 .collect(Collectors.toList());
         String cols = StringUtils.join(expressions, ",");
         try {
-            SparkSession ss = SparkSession.builder().enableHiveSupport().getOrCreate();
+            SparkSession ss = SparderEnv.getSparkSession();
             Dataset<Row> ds = NJoinedFlatTable.generateDataset(nDataModel, ss)
                     .selectExpr(expressions.stream().map(NSparkCubingUtil::convertFromDot).toArray(String[]::new));
             for (int i = 0; i < validCCs.size(); i++) {

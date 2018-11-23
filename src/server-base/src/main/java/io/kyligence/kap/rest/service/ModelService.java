@@ -54,6 +54,7 @@ import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -666,7 +667,7 @@ public class ModelService extends BasicService {
             long ts = System.currentTimeMillis();
             try {
                 NDataModelFlatTableDesc flatTableDesc = new NDataModelFlatTableDesc(dataModelDesc, true);
-                SparkSession ss = SparkSession.builder().enableHiveSupport().getOrCreate();
+                SparkSession ss = SparderEnv.getSparkSession();
                 Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTableDesc, ss);
                 ds.selectExpr(NSparkCubingUtil.convertFromDot(ccExpression));
             } catch (Exception e) {
