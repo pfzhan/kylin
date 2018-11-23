@@ -810,7 +810,7 @@ export default class FavoriteQuery extends Vue {
     const data = await handleSuccessAsync(res)
     this.blackSqlList = data
     if (this.blackSqlList.size > 0) {
-      this.viewBlackSql(this.blackSqlList.sqls[0].sql, 0)
+      this.toView(this.blackSqlList.sqls[0].sql, 0)
     } else {
       this.blackSql = ''
       this.activeIndex = -1
@@ -912,6 +912,7 @@ export default class FavoriteQuery extends Vue {
   }
 
   toView (sql, index) {
+    this.isBlackErrorMessage = false
     this.inputHeight = 564
     this.activeIndex = index
     this.isEditSql = false
@@ -920,7 +921,6 @@ export default class FavoriteQuery extends Vue {
   }
 
   viewBlackSql (sql, index) {
-    this.isBlackErrorMessage = false
     if (this.blackSql && this.isEditSql) {
       kapConfirm(this.$t('giveUpEdit')).then(() => {
         this.toView(sql, index)
