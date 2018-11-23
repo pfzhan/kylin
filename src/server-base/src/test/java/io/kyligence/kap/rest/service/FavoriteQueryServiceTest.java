@@ -424,6 +424,37 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
     }
 
     @Test
+    public void testFailedQueryHistoryNotAutoMarkedByFrequencyRule() throws IOException {
+        FavoriteQueryService.AutoMarkFavoriteRunner autoMarkRunner = favoriteQueryService.new AutoMarkFavoriteRunner();
+        long startTime = favoriteQueryService.getQHTimeOffsetManager().get().getAutoMarkTimeOffset();
+        Mockito.doReturn(startTime + getTestConfig().getQueryHistoryScanPeriod() * 2).when(favoriteQueryService).getSystemTime();
+
+        QueryHistory succeededQueryHistory = new QueryHistory();
+        succeededQueryHistory.setSqlPattern("succeeded_query");
+        succeededQueryHistory.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        succeededQueryHistory.setProject(PROJECT);
+        succeededQueryHistory.setQueryTime(1001);
+        succeededQueryHistory.setQuerySubmitter("ADMIN");
+
+        QueryHistory failedQueryHistory = new QueryHistory();
+        failedQueryHistory.setSqlPattern("failed_query");
+        failedQueryHistory.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
+        failedQueryHistory.setProject(PROJECT);
+        failedQueryHistory.setQueryTime(1001);
+        failedQueryHistory.setQuerySubmitter("ADMIN");
+
+        Mockito.doReturn(Lists.newArrayList(succeededQueryHistory, failedQueryHistory)).when(queryHistoryService).getQueryHistories(Mockito.anyLong(), Mockito.anyLong());
+
+        autoMarkRunner.run();
+
+        FavoriteQueryService.FrequencyStatus overallStatus = favoriteQueryService.getOverAllStatus();
+        Map<String, Integer> sqlPatternFreqInProj = overallStatus.getSqlPatternFreqMap().get(PROJECT);
+
+        Assert.assertEquals(1, sqlPatternFreqInProj.size());
+        Assert.assertEquals(1, (int) sqlPatternFreqInProj.get("succeeded_query"));
+    }
+
+    @Test
     public void testMatchRule() {
         QueryHistory queryHistory = new QueryHistory();
         queryHistory.setProject(PROJECT);

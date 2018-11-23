@@ -258,7 +258,6 @@ public class FavoriteQueryService extends BasicService {
                 String project = queryHistory.getProject();
                 String sqlPattern = queryHistory.getSqlPattern();
 
-                newStatus.updateFrequency(project, sqlPattern);
                 if (queryHistory.isException())
                     continue;
 
@@ -275,6 +274,8 @@ public class FavoriteQueryService extends BasicService {
                     favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
                     candidates.add(favoriteQuery);
                 }
+
+                newStatus.updateFrequency(project, sqlPattern);
             }
 
             updateOverallFrequencyStatus(newStatus);
