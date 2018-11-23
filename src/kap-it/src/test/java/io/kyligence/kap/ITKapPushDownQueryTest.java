@@ -57,7 +57,6 @@ public class ITKapPushDownQueryTest extends KapTestBase {
     @BeforeClass
     public static void setUp() throws Exception {
         logger.info("setUp in ITKapPushDownQueryTest");
-        System.setProperty("needCheckCC", "true");
         setupAll();
         RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_inner_join_cube]");
         RemoveBlackoutRealizationsRule.blackList.add("INVERTED_INDEX[name=ci_left_join_cube]");
@@ -66,7 +65,6 @@ public class ITKapPushDownQueryTest extends KapTestBase {
     @AfterClass
     public static void tearDown() {
         logger.info("tearDown in ITKapPushDownQueryTest");
-        System.clearProperty("needCheckCC");
         RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_inner_join_cube]");
         RemoveBlackoutRealizationsRule.blackList.remove("INVERTED_INDEX[name=ci_left_join_cube]");
         KylinConfig.getInstanceFromEnv().setProperty(PUSHDOWN_RUNNER_KEY, "");

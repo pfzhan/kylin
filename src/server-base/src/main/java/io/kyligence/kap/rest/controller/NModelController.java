@@ -29,10 +29,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-import io.kyligence.kap.rest.request.SegmentsRequest;
-import io.kyligence.kap.rest.response.NSpanningTreeResponse;
-import io.kyligence.kap.rest.service.ModelSemanticHelper;
-import lombok.val;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.exception.PersistentException;
@@ -59,7 +55,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
@@ -67,10 +62,14 @@ import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NSpanningTreeResponse;
+import io.kyligence.kap.rest.service.ModelSemanticHelper;
 import io.kyligence.kap.rest.service.ModelService;
+import lombok.val;
 
 @Controller
 @RequestMapping(value = "/models")
@@ -331,17 +330,12 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/computed_columns/check", method = { RequestMethod.POST }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse checkComputedColumns(@RequestBody ComputedColumnCheckRequest modelRequest) throws IOException {
-        try {
-            NDataModel modelDesc = modelService.convertToDataModel(modelRequest.getModelDesc());
-            modelDesc.setSeekingCCAdvice(modelRequest.isSeekingExprAdvice());
-
-            modelService.primaryCheck(modelDesc);
-            modelService.checkComputedColumn(modelDesc, modelRequest.getProject(), modelRequest.getCcInCheck());
-        } catch (BadModelException e) {
-            return new EnvelopeResponse(ResponseCode.CODE_UNDEFINED, e, e.getMessage());
-        }
-
+    public EnvelopeResponse checkComputedColumns(@RequestBody ComputedColumnCheckRequest modelRequest)
+            throws IOException {
+        NDataModel modelDesc = modelService.convertToDataModel(modelRequest.getModelDesc());
+        modelDesc.setSeekingCCAdvice(modelRequest.isSeekingExprAdvice());
+        modelService.primaryCheck(modelDesc);
+        modelService.checkComputedColumn(modelDesc, modelRequest.getProject(), modelRequest.getCcInCheck());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 

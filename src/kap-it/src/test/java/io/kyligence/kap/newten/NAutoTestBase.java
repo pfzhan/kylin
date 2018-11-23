@@ -107,7 +107,6 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         restoreAllSystemProp();
     }
 
-    @Getter
     class TestScenario {
 
         String name;

@@ -106,16 +106,14 @@ public class ComputedColumnDesc implements Serializable {
                     "Computed column has to be defined on fact table or limited lookup table");
         }
 
-        if ("true".equals(System.getProperty("needCheckCC"))) {
-            try {
-                simpleParserCheck(expression, aliasSet);
-            } catch (Exception e) {
-                String legacyHandled = handleLegacyCC(expression, rootFactTableName, aliasSet);
-                if (legacyHandled != null) {
-                    expression = legacyHandled;
-                } else {
-                    throw e;
-                }
+        try {
+            simpleParserCheck(expression, aliasSet);
+        } catch (Exception e) {
+            String legacyHandled = handleLegacyCC(expression, rootFactTableName, aliasSet);
+            if (legacyHandled != null) {
+                expression = legacyHandled;
+            } else {
+                throw e;
             }
         }
     }
