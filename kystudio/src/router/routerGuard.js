@@ -1,3 +1,4 @@
+import Vue from 'vue'
 import * as types from '../store/types'
 import { menusData } from '../config'
 import store from '../store'
@@ -19,8 +20,8 @@ export function bindRouterGuard (router) {
       }).then(() => {
         if (to.name === 'refresh') {
           next()
-          this.$nextTick(() => {
-            this.$router.replace('studio/model')
+          Vue.nextTick(() => {
+            router.replace('studio/model')
           })
           return
         }
