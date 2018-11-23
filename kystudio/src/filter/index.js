@@ -65,7 +65,7 @@ Vue.filter('timeFormatHasTimeZone', function (value) {
 })
 
 Vue.filter('fixed', function (value, len) {
-  var filterValue = value || ''
+  var filterValue = !isNaN(+value) ? +value : 0
   var reg = new RegExp('^(\\d+?(?:\\.\\d{' + len + '})).*$')
   return ('' + filterValue).replace(reg, '$1')
 })

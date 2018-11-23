@@ -359,6 +359,7 @@ export default class NewQuery extends Vue {
         display: flex;
         flex-grow: 1;
         align-items: flex-start;
+        white-space: inherit;
         .el-checkbox__input {
           flex-grow: 0;
         }
@@ -384,7 +385,7 @@ export default class NewQuery extends Vue {
           }
           .btn-group {
             position: absolute;
-            top: 65px;
+            bottom: 10px;
             right: 20px;
             .remove_query_btn {
               color: @text-normal-color;
