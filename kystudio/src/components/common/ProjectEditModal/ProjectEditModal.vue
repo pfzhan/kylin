@@ -354,7 +354,7 @@ export default class ProjectEditModal extends Vue {
     text-align: center;
     line-height: 90px;
     border-radius: 6px;
-    font-size: 65px;
+    font-size: 42px;
     overflow: hidden;
     color: @base-color;
     cursor: pointer;
