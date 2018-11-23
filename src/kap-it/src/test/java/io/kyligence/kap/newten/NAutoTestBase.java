@@ -54,7 +54,6 @@ import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.spark.KapSparkSession;
-import lombok.Getter;
 
 @Ignore
 public class NAutoTestBase extends NLocalWithSparkSessionTest {
