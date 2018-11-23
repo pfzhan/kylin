@@ -104,8 +104,8 @@ public class NModelMasterTest extends NTestBase {
             List<NDataModel.Measure> allMeasures = dataModel.getAllMeasures();
             Assert.assertFalse(dataModel.getAllNamedColumns().isEmpty());
             Assert.assertEquals(3, allMeasures.size());
+            Assert.assertEquals("COUNT_ALL", allMeasures.get(0).getName());
             Assert.assertEquals("SUM_PRICE", allMeasures.get(1).getName());
-            Assert.assertEquals("SUM_ITEM_COUNT", allMeasures.get(0).getName());
         }
 
         // propose again, should return same result

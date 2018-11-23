@@ -24,11 +24,14 @@
 
 package io.kyligence.kap.smart;
 
+import java.util.Map;
+
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.NModelMaster;
 
 class NModelOptProposer extends NAbstractProposer {
@@ -51,13 +54,29 @@ class NModelOptProposer extends NAbstractProposer {
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
             NModelMaster modelMaster = new NModelMaster(modelCtx);
             NDataModel model = modelCtx.getTargetModel();
-            if (model == null)
+            if (model == null) {
                 model = modelMaster.proposeInitialModel();
+            }
 
-            model = modelMaster.proposeJoins(model);
-            model = modelMaster.proposePartition(model);
-            model = modelMaster.proposeComputedColumn(model);
-            model = modelMaster.proposeScope(model);
+            try {
+                model = modelMaster.proposeJoins(model);
+                model = modelMaster.proposePartition(model);
+                model = modelMaster.proposeComputedColumn(model);
+                model = modelMaster.proposeScope(model);
+            } catch (Exception e) {
+                final Map<String, AccelerateInfo> sql2AccelerateInfo = context.getAccelerateInfoMap();
+                logger.error("Unexpected exception occurs.", e);
+                modelCtx.getModelTree().getOlapContexts().forEach(olapCtx -> {
+                    String sql = olapCtx.sql;
+                    if (!sql2AccelerateInfo.containsKey(sql)) {
+                        AccelerateInfo info = new AccelerateInfo();
+                        info.setBlockingCause(e);
+                        sql2AccelerateInfo.put(sql, info);
+                    } else {
+                        sql2AccelerateInfo.get(sql).setBlockingCause(e);
+                    }
+                });
+            }
 
             modelCtx.setTargetModel(model);
         }

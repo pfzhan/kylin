@@ -44,8 +44,9 @@ public class NCubePlanOptProposer extends NAbstractProposer {
             }
 
             NCubePlan cubePlan = modelCtx.getTargetCubePlan();
-            if (cubePlan == null)
+            if (cubePlan == null) {
                 cubePlan = cubeMaster.proposeInitialCube();
+            }
 
             cubePlan = cubeMaster.proposeDimensions(cubePlan);
             cubePlan = cubeMaster.proposeCuboids(cubePlan);

@@ -24,7 +24,12 @@
 
 package io.kyligence.kap.smart;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public abstract class NAbstractProposer {
+
+    protected static Logger logger = LoggerFactory.getLogger(NAbstractProposer.class);
 
     protected NSmartContext context;
 

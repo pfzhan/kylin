@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -39,8 +40,10 @@ import org.apache.kylin.query.routing.RealizationChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -86,8 +89,8 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
     private class ScopeBuilder {
 
         // column_identity <====> NamedColumn
-        Map<String, NDataModel.NamedColumn> candidateNamedColumns = Maps.newHashMap();
-        Map<FunctionDesc, NDataModel.Measure> candidateMeasures = Maps.newHashMap();
+        Map<String, NDataModel.NamedColumn> candidateNamedColumns = Maps.newLinkedHashMap();
+        Map<FunctionDesc, NDataModel.Measure> candidateMeasures = Maps.newLinkedHashMap();
         Set<TblColRef> dimensionAsMeasureColumns = Sets.newHashSet();
 
         Set<TblColRef> allTableColumns = Sets.newHashSet();
@@ -137,7 +140,8 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
         private void injectCandidateColumns(OLAPContext ctx) {
 
-            // add all table columns of ctx to all columns
+            // add all table columns of the ctx to allColumns,
+            // use TreeSet can get a steady test result in different circumstances
             Set<TblColRef> allColumns = new TreeSet<>(Comparator.comparing(TblColRef::getIdentity));
             allColumns.addAll(allTableColumns);
 
@@ -181,40 +185,38 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
         private void build() {
 
-            // 1. 
+            // 1. ensure a dimension exist, otherwise throw exception
             Map<String, NDataModel.NamedColumn> candidateDimensions = Maps.newHashMap();
             for (val entry : candidateNamedColumns.entrySet()) {
                 if (entry.getValue().isDimension()) {
                     candidateDimensions.put(entry.getKey(), entry.getValue());
+                    break;
                 }
             }
 
             // FIXME work around empty dimension case
-            // all named columns are used as measures
             if (candidateDimensions.isEmpty()) {
-                // dim place holder for none
                 final TblColRef tblColRef = allTableColumns.iterator().next();
                 NamedColumn column = transferToNamedColumn(tblColRef, ColumnStatus.DIMENSION);
                 candidateDimensions.put(tblColRef.getIdentity(), column);
+                candidateNamedColumns.put(tblColRef.getIdentity(), column);
+            }
 
-                candidateNamedColumns.putAll(candidateDimensions);
-            }
-            if (candidateDimensions.isEmpty()) {
-                throw new IllegalStateException("Suggest no dimension");
-            }
+            Preconditions.checkState(!candidateDimensions.isEmpty(),
+                    "Auto-modeling cannot suggest any available dimension.");
 
             // 2. publish all measures
-            FunctionDesc countStar = CubeUtils.newCountStarFuncDesc(dataModel);
-            if (!candidateMeasures.containsKey(countStar)) {
-                final Measure newMeasure = CubeUtils.newMeasure(countStar, "COUNT_ALL", ++maxMeasureId);
-                candidateMeasures.put(countStar, newMeasure);
-            }
-
-            List<NDataModel.Measure> measures = Lists.newArrayList(candidateMeasures.values());
+            List<Measure> measures = Lists.newArrayList(candidateMeasures.values());
+            Preconditions.checkState(
+                    Ordering.natural().isOrdered(measures.stream().map(Measure::getId).collect(Collectors.toList())),
+                    "Unsorted measures exception in process of proposing model.");
             dataModel.setAllMeasures(measures);
 
             // 3. publish all named columns
-            List<NDataModel.NamedColumn> namedColumns = Lists.newArrayList(candidateNamedColumns.values());
+            List<NamedColumn> namedColumns = Lists.newArrayList(candidateNamedColumns.values());
+            Preconditions.checkState(
+                    Ordering.natural().isOrdered(measures.stream().map(Measure::getId).collect(Collectors.toList())),
+                    "Unsorted named columns exception in process of proposing model.");
             dataModel.setAllNamedColumns(namedColumns);
         }
 

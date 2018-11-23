@@ -30,8 +30,6 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import org.apache.kylin.metadata.realization.IRealization;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NDataflow;
@@ -39,7 +37,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class NCubePlanSelectProposer extends NAbstractProposer {
-    private static final Logger logger = LoggerFactory.getLogger(NCubePlanSelectProposer.class);
 
     private final NProjectManager projectManager;
 

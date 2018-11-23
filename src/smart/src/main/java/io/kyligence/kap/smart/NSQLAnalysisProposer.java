@@ -24,25 +24,21 @@
 
 package io.kyligence.kap.smart;
 
-import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.smart.query.SQLResult;
-import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
+import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import io.kyligence.kap.smart.model.ModelTree;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.NQueryRunnerFactory;
-
-import java.util.Map;
+import io.kyligence.kap.smart.query.SQLResult;
 
 class NSQLAnalysisProposer extends NAbstractProposer {
-    private static final Logger logger = LoggerFactory.getLogger(NSQLAnalysisProposer.class);
 
     NSQLAnalysisProposer(NSmartContext context) {
         super(context);

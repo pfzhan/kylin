@@ -138,6 +138,10 @@ class CuboidSuggester {
             }
 
             AccelerateInfo accelerateInfo = sql2AccelerateInfo.get(sql);
+            if (accelerateInfo.isBlocked()) {
+                continue;
+            }
+
             try {
                 Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
                 Preconditions.checkState(aliasMap != null, getMsgTemplateByModelMaintainType(TABLE_NOT_MATCHED),
@@ -145,10 +149,10 @@ class CuboidSuggester {
                 ctx.fixModel(model, aliasMap);
                 QueryLayoutRelation queryLayoutRelation = ingest(ctx, model);
                 accelerateInfo.getRelatedLayouts().add(queryLayoutRelation);
-                accelerateInfo.setBlockingCause(null);
             } catch (Exception e) {
                 logger.error("Unable to suggest cuboid for CubePlan", e);
                 accelerateInfo.setBlockingCause(e);
+                accelerateInfo.getRelatedLayouts().clear();
             } finally {
                 ctx.unfixModel();
             }
