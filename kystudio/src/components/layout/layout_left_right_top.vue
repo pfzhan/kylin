@@ -577,7 +577,7 @@ export default class LayoutLeftRightTop extends Vue {
   loadCircleSpeedInfo () {
     if (this.currentSelectedProject) {
       // 如果apply活着ignore接口还在进行中，先暂停轮训的请求发送
-      if (this.applyBtnLoading || this.btnLoadingCancel) {
+      if (this.applyBtnLoading || this.btnLoadingCancel || this.reachThreshold) {
         return new Promise((resolve) => {
           resolve()
         })

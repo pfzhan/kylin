@@ -18,7 +18,7 @@
             <transition name="full-model-slide-fade">
               <div class="cell-content" v-if="showModelDetail" :class="{'hidden-cell': props.$index !== activeIndex}">
                 <i class="el-icon-ksd-full_screen_1 ksd-fright full-model-box" v-if="!showFull" @click="toggleShowFull(props.$index)"></i>
-                <i class="el-icon-ksd-collapse_1 ksd-fright full-model-box" v-else @click="showFull = false"></i>
+                <i class="el-icon-ksd-collapse_1 ksd-fright full-model-box" v-else @click="toggleShowFull(props.$index)"></i>
                 <el-tabs activeName="first" class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" />
@@ -356,7 +356,7 @@ export default class ModelList extends Vue {
     this.showModelDetail = false
     this.$nextTick(() => {
       this.showModelDetail = true
-      this.showFull = true
+      this.showFull = !this.showFull
       this.activeIndex = index
       var scrollBoxDom = document.getElementById('scrollBox')
       if (scrollBoxDom) {
@@ -455,9 +455,9 @@ export default class ModelList extends Vue {
       position: relative;
       .full-model-box {
         color: #455A64;
-        font-size: 28px;
-        top: -15px;
-        right: -15px;
+        font-size: 20px;
+        top: 10px;
+        right: 0px;
         position: absolute;
         cursor: pointer;
         z-index: 10;
@@ -504,8 +504,8 @@ export default class ModelList extends Vue {
               display: none;
             }
             .full-model-box {
-              top: 5px;
-              right: 5px;
+              top: 20px;
+              right: 20px;
             }
           }
         }
