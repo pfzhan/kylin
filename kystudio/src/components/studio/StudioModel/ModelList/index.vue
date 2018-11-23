@@ -15,30 +15,32 @@
         style="width: 100%">
         <el-table-column type="expand" min-width="30">
           <template slot-scope="props">
-            <div class="cell-content" :class="{'hidden-cell': props.$index !== activeIndex}">
-              <i class="el-icon-ksd-full_screen_1 ksd-fright full-model-box" v-if="!showFull" @click="toggleShowFull(props.$index)"></i>
-              <i class="el-icon-ksd-collapse_1 ksd-fright full-model-box" v-else @click="showFull = false"></i>
-              <el-tabs activeName="first" class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
-                <el-tab-pane :label="$t('segment')" name="first">
-                  <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" />
-                </el-tab-pane>
-                <el-tab-pane :label="$t('aggregate')" name="second">
-                  <ModelAggregate :model="props.row" :project-name="currentSelectedProject" v-if="props.row.tabTypes === 'second'" />
-                </el-tab-pane>
-                <el-tab-pane :label="$t('tableIndex')" name="third">
-                  <TableIndex :modelDesc="props.row"></TableIndex>
-                </el-tab-pane>
-                <el-tab-pane label="JSON" name="forth">
-                  <el-input
-                    class="model-json"
-                    :value="JSON.stringify(props.row, '', 4)"
-                    type="textarea"
-                    :rows="18"
-                    :readonly="true">
-                  </el-input>
-                </el-tab-pane>
-              </el-tabs>
-            </div>
+            <transition name="full-model-slide-fade">
+              <div class="cell-content" v-if="showModelDetail" :class="{'hidden-cell': props.$index !== activeIndex}">
+                <i class="el-icon-ksd-full_screen_1 ksd-fright full-model-box" v-if="!showFull" @click="toggleShowFull(props.$index)"></i>
+                <i class="el-icon-ksd-collapse_1 ksd-fright full-model-box" v-else @click="showFull = false"></i>
+                <el-tabs activeName="first" class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
+                  <el-tab-pane :label="$t('segment')" name="first">
+                    <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" />
+                  </el-tab-pane>
+                  <el-tab-pane :label="$t('aggregate')" name="second">
+                    <ModelAggregate :model="props.row" :project-name="currentSelectedProject" v-if="props.row.tabTypes === 'second'" />
+                  </el-tab-pane>
+                  <el-tab-pane :label="$t('tableIndex')" name="third">
+                    <TableIndex :modelDesc="props.row" v-if="props.row.tabTypes === 'third'"></TableIndex>
+                  </el-tab-pane>
+                  <el-tab-pane label="JSON" name="forth">
+                    <el-input
+                      class="model-json"
+                      :value="JSON.stringify(props.row, '', 4)"
+                      type="textarea"
+                      :rows="18"
+                      :readonly="true">
+                    </el-input>
+                  </el-tab-pane>
+                </el-tabs>
+              </div>
+            </transition>
           </template>
         </el-table-column>
         <el-table-column
@@ -217,6 +219,7 @@ export default class ModelList extends Vue {
   createModelVisible = false
   cloneFormVisible = false
   modelCheckModeVisible = false
+  showModelDetail = true
   dataRangeVal = []
   createModelFormRule = {
     modelName: [
@@ -350,8 +353,16 @@ export default class ModelList extends Vue {
   }
   // 全屏查看模型附属信息
   toggleShowFull (index) {
-    this.showFull = true
-    this.activeIndex = index
+    this.showModelDetail = false
+    this.$nextTick(() => {
+      this.showModelDetail = true
+      this.showFull = true
+      this.activeIndex = index
+      var scrollBoxDom = document.getElementById('scrollBox')
+      if (scrollBoxDom) {
+        scrollBoxDom.scrollTop = 0
+      }
+    })
   }
   // 加载模型列表
   loadModelsList () {
@@ -403,6 +414,16 @@ export default class ModelList extends Vue {
 <style lang="less">
 @import '../../../../assets/styles/variables.less';
 .mode-list{
+  .full-model-slide-fade-enter-active {
+    transition: all .3s ease;
+  }
+  .full-model-slide-fade-leave-active {
+    transition: all .3s cubic-bezier(1.0, 0.5, 0.8, 1.0);
+  }
+  .full-model-slide-fade-enter, .full-model-slide-fade-leave-to {
+    transform: translateY(10px);
+    opacity: 0;
+  }
   .model-detail-tabs {
     &>.el-tabs__header{
       margin-bottom:0;
