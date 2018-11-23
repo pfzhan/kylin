@@ -144,9 +144,9 @@ export default class DataSourceBar extends Vue {
     return this.tableArray.reduce((columns, table) => [...columns, ...table.children], [])
   }
   get currentSourceTypes () {
-    const projectProperies = this.currentProjectData['override_kylin_properties']
-    return projectProperies && projectProperies['kylin.source.default']
-      ? [+projectProperies['kylin.source.default']]
+    const { override_kylin_properties: overrideKylinProperties } = this.currentProjectData || {}
+    return overrideKylinProperties && overrideKylinProperties['kylin.source.default']
+      ? [+overrideKylinProperties['kylin.source.default']]
       : []
   }
   get foreignKeys () {

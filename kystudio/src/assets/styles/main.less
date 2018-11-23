@@ -744,6 +744,8 @@ i[class^=el-icon-]{
   margin-left: 250px;
   overflow: auto;
   max-height: calc(~'100vh - 134px');
+  min-height: 100%;
+  position: relative;
 }
 
 .font-medium {
@@ -757,4 +759,15 @@ i[class^=el-icon-]{
 .el-button--small.is-circle {
   padding: 7px;
   font-size: 16px;
+}
+
+.empty-page {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  transform: translateY(-50%);
+}
+.center {
+  text-align: center;
 }

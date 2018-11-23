@@ -489,7 +489,8 @@ export default class LayoutLeftRightTop extends Vue {
     return hasPermission(this, permissions.ADMINISTRATION.mask)
   }
   get isSpeedProject () {
-    return speedProjectTypes.includes(this.currentProjectData.maintain_model_type)
+    const { maintain_model_type: maintainModelType } = this.currentProjectData || {}
+    return speedProjectTypes.includes(maintainModelType)
   }
   get isAdmin () {
     return hasRole(this, 'ROLE_ADMIN')

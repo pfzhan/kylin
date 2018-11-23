@@ -394,7 +394,9 @@ export default class ModelList extends Vue {
   }
   created () {
     this.filterArgs.project = this.currentSelectedProject
-    this.loadModelsList()
+    if (this.filterArgs.project) {
+      this.loadModelsList()
+    }
   }
 }
 </script>

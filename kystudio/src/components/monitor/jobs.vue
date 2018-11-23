@@ -362,8 +362,10 @@ export default class JobsList extends Vue {
         })
       }, 30000)
     }
-    autoFilter()
-    this.getJobsList()
+    if (this.currentSelectedProject) {
+      autoFilter()
+      this.getJobsList()
+    }
   }
   mounted () {
     window.addEventListener('click', this.closeIt)

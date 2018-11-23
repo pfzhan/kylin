@@ -124,6 +124,10 @@
           </el-tabs>
         </div>
       </template>
+      <div class="empty-page" v-else>
+        <el-row class="center"><img :src="emptyImg" /></el-row>
+        <el-row class="center">{{$t('kylinLang.common.noData')}}</el-row>
+      </div>
     </div>
   </div>
 </template>
@@ -138,6 +142,7 @@ import locales from './locales'
 import { viewTypes } from './handler'
 import { sourceTypes } from '../../../config'
 import ProjectSidebar from '../../common/ProjectSidebar/ProjectSidebar.vue'
+import emptyImg from '../../../assets/img/empty.svg'
 
 @Component({
   computed: {
@@ -164,6 +169,7 @@ export default class StudioProject extends Vue {
     isReservedWords: true,
     isSpecialCharacter: true
   }
+  emptyImg = emptyImg
   get tableData () {
     const ignoreTableRow = ['isDataCheck']
 

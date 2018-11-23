@@ -9,37 +9,43 @@
     </section>
 
     <section class="body">
-      <div class="project-type">
-        <i :class="projectTypeClass"></i>
-      </div>
-      <el-tooltip :content="project.name" placement="top" :disabled="!isShowNameTooltip">
-        <div class="project-name">
-          <span class="font-medium">{{project.name}}</span>
+      <template v-if="project">
+        <div class="project-type">
+          <i :class="projectTypeClass"></i>
         </div>
-      </el-tooltip>
-      <div class="project-detail-list">
-        <div class="detail" v-for="(value, key) in projectDetails" :key="key">
-          <div class="detail-title font-medium">{{$t(key)}}</div>
-          <div class="detail-value" :style="{ maxHeight: `${windowHeight - 565 > 90 ? windowHeight - 565 : 90}px` }" v-if="value">{{value}}</div>
-          <div class="detail-value empty-text" v-else>{{$t('empty')}}</div>
-          <el-popover
-            v-if="key in form"
-            placement="bottom"
-            popper-class="project-sidebar-popper"
-            trigger="click"
-            :title="$t(key)"
-            v-model="form[key].isEdit"
-            @after-leave="handleHide(form[key])">
-            <el-input class="popover-input" size="small" v-model="form[key].value" type="textarea"></el-input>
-            <div style="text-align: right;">
-              <el-button type="info" size="mini" text @click="handleHide(form[key])" :disabled="isLoading">{{$t('kylinLang.common.cancel')}}</el-button>
-              <el-button type="primary" size="mini" text @click="handleSubmit(form[key])" :loading="isLoading">{{$t('kylinLang.common.submit')}}</el-button>
-            </div>
-            <div class="edit-action" slot="reference">
-              <i class="el-icon-ksd-table_edit"></i>
-            </div>
-          </el-popover>
+        <el-tooltip :content="project.name" placement="top" :disabled="!isShowNameTooltip">
+          <div class="project-name">
+            <span class="font-medium">{{project.name}}</span>
+          </div>
+        </el-tooltip>
+        <div class="project-detail-list">
+          <div class="detail" v-for="(value, key) in projectDetails" :key="key">
+            <div class="detail-title font-medium">{{$t(key)}}</div>
+            <div class="detail-value" :style="{ maxHeight: `${windowHeight - 565 > 90 ? windowHeight - 565 : 90}px` }" v-if="value">{{value}}</div>
+            <div class="detail-value empty-text" v-else>{{$t('empty')}}</div>
+            <el-popover
+              v-if="key in form"
+              placement="bottom"
+              popper-class="project-sidebar-popper"
+              trigger="click"
+              :title="$t(key)"
+              v-model="form[key].isEdit"
+              @after-leave="handleHide(form[key])">
+              <el-input class="popover-input" size="small" v-model="form[key].value" type="textarea"></el-input>
+              <div style="text-align: right;">
+                <el-button type="info" size="mini" text @click="handleHide(form[key])" :disabled="isLoading">{{$t('kylinLang.common.cancel')}}</el-button>
+                <el-button type="primary" size="mini" text @click="handleSubmit(form[key])" :loading="isLoading">{{$t('kylinLang.common.submit')}}</el-button>
+              </div>
+              <div class="edit-action" slot="reference">
+                <i class="el-icon-ksd-table_edit"></i>
+              </div>
+            </el-popover>
+          </div>
         </div>
+      </template>
+      <div class="empty-page" v-else>
+        <el-row class="center"><img :src="emptyImg" /></el-row>
+        <el-row class="center">{{$t('kylinLang.common.noData')}}</el-row>
       </div>
     </section>
   </aside>
@@ -53,12 +59,13 @@ import { mapActions } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
+import emptyImg from '../../../assets/img/empty.svg'
 
 @Component({
   props: {
     project: {
       type: Object,
-      default: () => ({})
+      default: (value) => ({})
     }
   },
   methods: {
@@ -82,6 +89,7 @@ export default class ProjectSidebar extends Vue {
   isLoading = false
   windowHeight = 0
   isShowNameTooltip = false
+  emptyImg = emptyImg
   get projectTypeClass () {
     switch (this.project.maintain_model_type) {
       case 'MANUAL_MAINTAIN':
@@ -112,11 +120,13 @@ export default class ProjectSidebar extends Vue {
     }
   }
   @Watch('project', { immediate: true })
-  onProjectChange () {
-    this.resetFormData()
-    setTimeout(() => {
-      this.freshProjectNameTooltipIsShow()
-    })
+  onProjectChange (value) {
+    if (value) {
+      this.resetFormData()
+      setTimeout(() => {
+        this.freshProjectNameTooltipIsShow()
+      })
+    }
   }
   handleHide (popoverData) {
     popoverData.isEdit = false
@@ -184,6 +194,7 @@ export default class ProjectSidebar extends Vue {
   .body {
     height: calc(~"100% - 63px");
     overflow: auto;
+    position: relative;
   }
   .body .btn-group {
     text-align: center;
