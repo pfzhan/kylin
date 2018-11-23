@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.newten;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
@@ -38,7 +37,6 @@ public class NAutoTpchTest extends NAutoTestBase {
 
     //KAP#7892 fix this
     @Test
-    @Ignore // TODO #8401 this test case failed in full CI, put it back once issue fixed
     public void testTpch() throws Exception {
         overwriteSystemProp("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
         overwriteSystemProp("kylin.query.transformers", "io.kyligence.kap.query.util.ConvertToComputedColumn");

@@ -34,6 +34,7 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.newten.NAutoTestBase;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -56,11 +57,9 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals("CC_AUTO_1", computedColumnDesc.getColumnName());
         Assert.assertEquals("CASE WHEN TEST_KYLIN_FACT.PRICE > 100 THEN 100 ELSE TEST_KYLIN_FACT.PRICE END",
                 computedColumnDesc.getExpression());
-        Assert.assertEquals(2, model.getAllNamedColumns().size());
-        Assert.assertEquals("CAL_DT", model.getAllNamedColumns().get(0).getName());
-        Assert.assertEquals("CC_AUTO_1", model.getAllNamedColumns().get(1).getName());
         Assert.assertEquals(1, model.getEffectiveDimensions().size());
         Assert.assertEquals("CAL_DT", model.getEffectiveDimensions().get(0).getName());
+        Assert.assertTrue(model.getAllNamedColumns().stream().map(NamedColumn::getName).anyMatch("CC_AUTO_1"::equals));
         Measure measure = model.getEffectiveMeasures().get(1001);
         Assert.assertNotNull(measure);
         Assert.assertTrue(measure.getFunction().isSum());

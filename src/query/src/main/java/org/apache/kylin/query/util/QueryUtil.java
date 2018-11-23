@@ -43,11 +43,14 @@
 
 package org.apache.kylin.query.util;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -62,19 +65,23 @@ public class QueryUtil {
 
     protected static final Logger logger = LoggerFactory.getLogger(QueryUtil.class);
 
-    private static List<IQueryTransformer> queryTransformers;
+    static List<IQueryTransformer> queryTransformers = Collections.emptyList();
 
     public interface IQueryTransformer {
         String transform(String sql, String project, String defaultSchema);
     }
 
     public static String massageSql(String sql, String project, int limit, int offset, String defaultSchema) {
-        sql = sql.trim();
-        sql = sql.replace("\r", " ").replace("\n", System.getProperty("line.separator"));
-
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         ProjectInstance projectInstance = projectManager.getProject(project);
         KylinConfig kylinConfig = projectInstance.getConfig();
+        return massageSql(kylinConfig, sql, project, limit, offset, defaultSchema);
+    }
+
+    static String massageSql(KylinConfig kylinConfig, String sql, String project, int limit, int offset,
+            String defaultSchema) {
+        sql = sql.trim();
+        sql = sql.replace("\r", " ").replace("\n", System.getProperty("line.separator"));
 
         while (sql.endsWith(";"))
             sql = sql.substring(0, sql.length() - 1);
@@ -94,29 +101,33 @@ public class QueryUtil {
         }
 
         // customizable SQL transformation
-        if (queryTransformers == null) {
-            initQueryTransformers();
-        }
+        initQueryTransformersIfNeeded(kylinConfig);
         for (IQueryTransformer t : queryTransformers) {
             sql = t.transform(sql, project, defaultSchema);
         }
         return sql;
     }
 
-    private static void initQueryTransformers() {
-        List<IQueryTransformer> transformers = Lists.newArrayList();
+    static void initQueryTransformersIfNeeded(KylinConfig kylinConfig) {
+        String[] currentTransformers = queryTransformers.stream().map(Object::getClass).map(Class::getCanonicalName)
+                .toArray(String[]::new);
+        String[] configTransformers = kylinConfig.getQueryTransformers();
+        boolean skipInit = Objects.deepEquals(currentTransformers, configTransformers);
+        if (skipInit) {
+            return;
+        }
 
-        String[] classes = KylinConfig.getInstanceFromEnv().getQueryTransformers();
-        for (String clz : classes) {
+        List<IQueryTransformer> transformers = Lists.newArrayList();
+        for (String clz : configTransformers) {
             try {
                 IQueryTransformer t = (IQueryTransformer) ClassUtil.newInstance(clz);
                 transformers.add(t);
             } catch (Exception e) {
-                throw new RuntimeException("Failed to init query transformer", e);
+                throw new IllegalStateException("Failed to init query transformer", e);
             }
         }
 
-        queryTransformers = transformers;
+        queryTransformers = Collections.unmodifiableList(transformers);
     }
 
     public static String makeErrorMsgUserFriendly(Throwable e) {
