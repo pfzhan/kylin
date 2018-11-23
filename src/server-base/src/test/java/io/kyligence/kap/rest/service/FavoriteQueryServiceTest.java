@@ -233,10 +233,18 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
     public void testGetAccelerateTips() throws IOException {
         stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqlsToAnalyze), PROJECT_NEWTEN);
 
-        // case of no model
+        // case of not reached threshold
         Map<String, Object> newten_data = favoriteQueryService.getAccelerateTips(PROJECT_NEWTEN);
         Assert.assertEquals(4, newten_data.get("size"));
         Assert.assertEquals(false, newten_data.get("reach_threshold"));
+        Assert.assertEquals(0, newten_data.get("optimized_model_num"));
+
+        // case of no model
+        System.setProperty("kylin.favorite.query-accelerate-threshold", "1");
+
+        newten_data = favoriteQueryService.getAccelerateTips(PROJECT_NEWTEN);
+        Assert.assertEquals(4, newten_data.get("size"));
+        Assert.assertEquals(true, newten_data.get("reach_threshold"));
         Assert.assertEquals(1, newten_data.get("optimized_model_num"));
 
         NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), PROJECT_NEWTEN, sqlsToAnalyze);
@@ -252,7 +260,6 @@ public class FavoriteQueryServiceTest extends ServiceTestBase {
 
         stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqlsToAnalyze), PROJECT_NEWTEN);
 
-        System.setProperty("kylin.favorite.query-accelerate-threshold", "1");
         newten_data = favoriteQueryService.getAccelerateTips("newten");
         Assert.assertEquals(4, newten_data.get("size"));
         Assert.assertEquals(true, newten_data.get("reach_threshold"));

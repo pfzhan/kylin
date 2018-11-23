@@ -481,14 +481,8 @@ public class FavoriteQueryService extends BasicService {
         List<String> unAcceleratedSqls = getUnAcceleratedSqlPattern(project);
         int optimizedModelNum = 0;
 
-        if (!unAcceleratedSqls.isEmpty()) {
-            optimizedModelNum = getOptimizedModelNum(project,
-                    unAcceleratedSqls.toArray(new String[unAcceleratedSqls.size()]));
-        }
-
         data.put("size", unAcceleratedSqls.size());
         data.put("reach_threshold", false);
-        data.put("optimized_model_num", optimizedModelNum);
 
         ProjectInstance projectInstance = getProjectManager().getProject(project);
         int ignoreCount = 1;
@@ -497,8 +491,15 @@ public class FavoriteQueryService extends BasicService {
         else
             ignoreCountMap.put(project, 1);
 
-        if (unAcceleratedSqls.size() >= projectInstance.getConfig().getFavoriteQueryAccelerateThreshold() * ignoreCount)
+        if (unAcceleratedSqls.size() >= projectInstance.getConfig().getFavoriteQueryAccelerateThreshold() * ignoreCount) {
             data.put("reach_threshold", true);
+            if (!unAcceleratedSqls.isEmpty()) {
+                optimizedModelNum = getOptimizedModelNum(project,
+                        unAcceleratedSqls.toArray(new String[unAcceleratedSqls.size()]));
+            }
+        }
+
+        data.put("optimized_model_num", optimizedModelNum);
 
         return data;
     }
