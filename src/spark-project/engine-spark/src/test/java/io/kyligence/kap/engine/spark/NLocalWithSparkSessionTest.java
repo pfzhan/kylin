@@ -235,8 +235,6 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     protected void fullBuildCube(String dfName, String prj) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));

@@ -95,8 +95,6 @@ public class NEventFlowTest extends NLocalWithSparkSessionTest {
         init();
         EventOrchestratorManager.destroyInstance();
         config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         eventManager = EventManager.getInstance(config, getProject());

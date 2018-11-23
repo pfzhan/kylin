@@ -93,8 +93,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         }
 
         config = getTestConfig();
-        config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
     }
 
     @After
@@ -148,9 +146,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void testBuildSnapshot() throws Exception {
         KylinConfig config = getTestConfig();
         System.out.println(getTestConfig().getMetadataUrl());
-        config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
-
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("ncube_basic");
 
@@ -167,8 +162,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Ignore("should be covered by nencodingtest")
     public void testBuildWithEncoding() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         config.setProperty("kylin.job.scheduler.provider.110",
                 "io.kyligence.kap.job.impl.threadpool.NDefaultScheduler");
@@ -526,8 +519,6 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Ignore("the build process is tested in manual & auto test, no need to build again")
     public void testMergeJob() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());

@@ -103,9 +103,6 @@ trait JobSupport extends BeforeAndAfterAll with BeforeAndAfterEach {
   protected def fullBuildCube(dfName: String,
                               prj: String = DEFAULT_PROJECT): Unit = {
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
-    config.setProperty(
-      "kylin.metadata.distributed-lock-impl",
-      "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory")
     config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128")
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
     Assert.assertTrue(config.getHdfsWorkingDirectory.startsWith("file:"))
@@ -168,9 +165,6 @@ trait JobSupport extends BeforeAndAfterAll with BeforeAndAfterEach {
   def buildFourSegementAndMerge(dfName: String,
                                 prj: String = DEFAULT_PROJECT): Unit = {
     val config = KylinConfig.getInstanceFromEnv
-    config.setProperty(
-      "kylin.metadata.distributed-lock-impl",
-      "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory")
     config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128")
     val dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
     val execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT)
@@ -262,9 +256,6 @@ trait JobSupport extends BeforeAndAfterAll with BeforeAndAfterEach {
   def buildTwoSegementAndMerge(dfName: String,
                                prj: String = DEFAULT_PROJECT): Unit = {
     val config = KylinConfig.getInstanceFromEnv
-    config.setProperty(
-      "kylin.metadata.distributed-lock-impl",
-      "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory")
     config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128")
     val dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
     val execMgr = NExecutableManager.getInstance(config, DEFAULT_PROJECT)

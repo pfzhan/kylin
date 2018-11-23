@@ -23,14 +23,22 @@
  */
 package io.kyligence.kap.newten;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.Lists;
+import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.engine.spark.NJoinedFlatTable;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.job.CuboidAggregator;
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockedDistributedLock;
 import org.apache.kylin.measure.bitmap.BitmapCounter;
 import org.apache.kylin.measure.bitmap.BitmapSerializer;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -54,21 +62,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Sets;
 
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.engine.spark.job.CuboidAggregator;
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import io.kyligence.kap.metadata.model.NDataModel;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
@@ -104,7 +101,6 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
     @Test
     public void testBasics() throws Exception {
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.distributed-lock-impl", MockedDistributedLock.MockedFactory.class.getName());
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         buildCubes();
@@ -115,8 +111,6 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
     private void compareCuboidParquetWithSparkSql(String dfName) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
@@ -130,25 +124,20 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         for (NDataCuboid cuboid : nDataCuboids) {
             Set<Integer> rowKeys = cuboid.getCuboidLayout().getOrderedDimensions().keySet();
 
-            Dataset<Row> layoutDataset = StorageFactory
-                    .createEngineAdapter(cuboid.getCuboidLayout(), NSparkCubingEngine.NSparkCubingStorage.class)
-                    .getCuboidData(cuboid, ss);
-            layoutDataset = layoutDataset.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid)))
-                    .sort(NSparkCubingUtil.getColumns(rowKeys));
+            Dataset<Row> layoutDataset = StorageFactory.createEngineAdapter(cuboid.getCuboidLayout(), NSparkCubingEngine.NSparkCubingStorage.class).getCuboidData(cuboid, ss);
+            layoutDataset = layoutDataset.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid))).sort(NSparkCubingUtil.getColumns(rowKeys));
             System.out.println("Query cuboid ------------ " + cuboid.getCuboidLayoutId());
             layoutDataset = dsConvertToOriginal(layoutDataset, cuboid.getCuboidLayout());
             layoutDataset.show(10);
 
             NDataSegment segment = cuboid.getSegDetails().getDataSegment();
-            Dataset<Row> ds = initFlatTable(dfName, new SegmentRange.TimePartitionedSegmentRange(
-                    segment.getTSRange().getStart(), segment.getTSRange().getEnd()));
+            Dataset<Row> ds = initFlatTable(dfName, new SegmentRange.TimePartitionedSegmentRange(segment.getTSRange().getStart(), segment.getTSRange().getEnd()));
 
             if (cuboid.getCuboidLayout().getCuboidDesc().getId() < NCuboidDesc.TABLE_INDEX_START_ID) {
                 ds = queryCuboidLayout(cuboid.getCuboidLayout(), ds);
             }
 
-            Dataset<Row> exceptDs = ds.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid)))
-                    .sort(NSparkCubingUtil.getColumns(rowKeys));
+            Dataset<Row> exceptDs = ds.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid))).sort(NSparkCubingUtil.getColumns(rowKeys));
 
             System.out.println("Spark sql ------------ ");
             exceptDs.show(10);
@@ -172,8 +161,7 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
     private Dataset<Row> queryCuboidLayout(NCuboidLayout layout, Dataset<Row> ds) {
         NCubeJoinedFlatTableDesc flatTableDesc = new NCubeJoinedFlatTableDesc(layout.getCuboidDesc().getCubePlan());
-        return CuboidAggregator.agg(ss, ds, layout.getCuboidDesc().getEffectiveDimCols().keySet(),
-                layout.getCuboidDesc().getCubePlan().getEffectiveMeasures(), flatTableDesc, true);
+        return CuboidAggregator.agg(ss, ds, layout.getCuboidDesc().getEffectiveDimCols().keySet(), layout.getCuboidDesc().getCubePlan().getEffectiveMeasures(), flatTableDesc, true);
     }
 
     private Dataset<Row> dsConvertToOriginal(Dataset<Row> layoutDs, NCuboidLayout layout) {
@@ -208,8 +196,7 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         return layoutDs;
     }
 
-    private Integer convertOutSchema(Dataset<Row> layoutDs, String fieldName,
-            org.apache.spark.sql.types.DataType dataType) {
+    private Integer convertOutSchema(Dataset<Row> layoutDs, String fieldName, org.apache.spark.sql.types.DataType dataType) {
         StructField[] structFieldList = layoutDs.schema().fields();
         String[] columns = layoutDs.columns();
 

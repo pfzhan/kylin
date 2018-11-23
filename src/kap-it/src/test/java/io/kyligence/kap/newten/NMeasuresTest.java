@@ -88,8 +88,6 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
         //validate Cube Data by decode
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         NDataSegDetails segCuboids = NDataflowManager.getInstance(config, getProject()).getDataflow(cubeName)
@@ -140,8 +138,6 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
     private void buildCuboid(String cubeName) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.distributed-lock-impl",
-                "org.apache.kylin.job.lock.MockedDistributedLock$MockedFactory");
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
