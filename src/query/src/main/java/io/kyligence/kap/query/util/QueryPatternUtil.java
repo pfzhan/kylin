@@ -58,6 +58,7 @@ import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
 import org.apache.calcite.sql.SqlSelectKeyword;
+import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
@@ -71,8 +72,28 @@ import com.google.common.collect.Sets;
 
 public class QueryPatternUtil {
 
+    /** See ref: RedshiftSqlDialect. */
+    private static class KySqlDialect extends SqlDialect {
+        static final SqlDialect DEFAULT =
+                new KySqlDialect(EMPTY_CONTEXT
+                        .withIdentifierQuoteString("\""));
+
+        private KySqlDialect(Context context) {
+            super(context);
+        }
+
+        @Override protected boolean allowsAs() {
+            return false;
+        }
+
+        @Override public void unparseOffsetFetch(SqlWriter writer, SqlNode offset,
+                                                 SqlNode fetch) {
+            unparseFetchUsingLimit(writer, offset, fetch);
+        }
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(QueryPatternUtil.class);
-    private static final SqlDialect HIVE_DIALECT = SqlDialect.DatabaseProduct.HIVE.getDialect();
+    private static final SqlDialect DEFAULT_DIALECT = KySqlDialect.DEFAULT;
     private static final String DEFAULT_DATE = "2010-01-01";
     private static final String DEFAULT_DATE_GT = "2010-01-02";
     // Value of default date string is "2010-01-01"
@@ -93,21 +114,20 @@ public class QueryPatternUtil {
 
     /**
      * Normalize the SQL pattern
-     * e.g. A > 10 -> A > 1
-     *      A <= 6 -> A <= 2
-     *      18 > A -> 2 > A
-     *      A < "Job" -> A < "Z"
-     *      A in (10, 20, 30) -> A in (1)
-     *      A not in ('Bob', 'Sam') -> A NOT IN ('A')
-     *      A like "%10" -> A LIKE ''
-     *      A between 10 and 20 -> A BETWEEN ASYMMETRIC 1 AND 1
-     *      A <= "1998-10-10" -> A <= "2010-01-02"
-     *      A > date "1950-03-29" -> A > DATE "2010-01-01"
-     *      interval '10' year -> interval '1' day
+     * e.g. A > 10 -> "A" > 1
+     *      A <= 6 -> "A" <= 2
+     *      18 > A -> 2 > "A"
+     *      A < 'Job' -> "A" < 'Z'
+     *      A in (10, 20, 30) -> "A" in (1)
+     *      A not in ('Bob', 'Sam') -> "A" NOT IN ('A')
+     *      A like "%10" -> "A" LIKE ''
+     *      A between 10 and 20 -> "A" BETWEEN ASYMMETRIC 1 AND 1
+     *      A <= '1998-10-10' -> "A" <= '2010-01-02'
+     *      A > date '1950-03-29' -> A > DATE '2010-01-01'
+     *      interval '10' year -> INTERVAL '1' DAY
      *
      * @param sqlToNormalize input SQL statement which needs to normalize
-     * @return               normalized SQL statement in uppercase
-     * @throws SqlParseException if there is a parsing error
+     * @return normalized SQL statement in uppercase, if there is a parsing error, return original SQL statement
      */
     static String normalizeSQLPatternImpl(String sqlToNormalize) {
         SqlNode sqlNode;
@@ -119,9 +139,7 @@ public class QueryPatternUtil {
         }
         PatternGenerator patternGenerator = new PatternGenerator();
         patternGenerator.visit((SqlCall) sqlNode);
-        String sql = sqlNode.toSqlString(HIVE_DIALECT).toString();
-        sql = sql.replaceAll("(?i)default\\.", "\"DEFAULT\".");
-        return sql;
+        return sqlNode.toSqlString(DEFAULT_DIALECT).toString();
     }
 
     private static class PatternGenerator extends SqlBasicVisitor {

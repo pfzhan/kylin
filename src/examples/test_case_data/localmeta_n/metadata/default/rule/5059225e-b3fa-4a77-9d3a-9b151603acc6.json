@@ -6,11 +6,11 @@
   "conds" : [ {
     "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$SQLCondition",
     "sql" : "select * from test_account",
-    "sqlPatternHash" : 722730360
+    "sqlPatternHash" : -495694472
   }, {
     "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$SQLCondition",
     "sql" : "select count(*) from test_account",
-    "sqlPatternHash" : 1532988718
+    "sqlPatternHash" : 773506990
   }  ],
   "name" : "whitelist"
 }

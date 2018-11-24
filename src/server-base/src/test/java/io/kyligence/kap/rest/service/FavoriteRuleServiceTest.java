@@ -180,7 +180,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
     public void testAppendSqlToWhitelist() throws IOException {
         // case of having conflict with blacklist
         String conflictSql = "select * from test_country";
-        int sqlPatternHash = -410461279;
+        int sqlPatternHash = -1264896913;
         try {
             favoriteRuleService.appendSqlToWhitelist(conflictSql, sqlPatternHash, PROJECT);
         } catch (Exception ex) {
@@ -266,15 +266,15 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(11, sqls.size());
 
         // two capable sqls in sqls.sql file
-        String capableSqlPattern1 = "SELECT CAL_DT, LSTG_FORMAT_NAME, SUM(PRICE)\n" +
-                "FROM TEST_KYLIN_FACT\n" +
-                "WHERE CAL_DT = '2010-01-01'\n" +
-                "GROUP BY CAL_DT, LSTG_FORMAT_NAME\n" +
+        String capableSqlPattern1 = "SELECT \"CAL_DT\", \"LSTG_FORMAT_NAME\", SUM(\"PRICE\")\n" +
+                "FROM \"TEST_KYLIN_FACT\"\n" +
+                "WHERE \"CAL_DT\" = '2010-01-01'\n" +
+                "GROUP BY \"CAL_DT\", \"LSTG_FORMAT_NAME\"\n" +
                 "LIMIT 500";
-        String capableSqlPattern2 = "SELECT CAL_DT, SUM(PRICE)\n" +
-                "FROM TEST_KYLIN_FACT\n" +
-                "WHERE CAL_DT = '2010-01-01'\n" +
-                "GROUP BY CAL_DT\n" +
+        String capableSqlPattern2 = "SELECT \"CAL_DT\", SUM(\"PRICE\")\n" +
+                "FROM \"TEST_KYLIN_FACT\"\n" +
+                "WHERE \"CAL_DT\" = '2010-01-01'\n" +
+                "GROUP BY \"CAL_DT\"\n" +
                 "LIMIT 500";
         Set<String> capableSqlPatterns = new HashSet<>();
         capableSqlPatterns.add(capableSqlPattern1);
