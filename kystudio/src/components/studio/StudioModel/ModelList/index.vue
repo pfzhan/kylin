@@ -16,9 +16,9 @@
         <el-table-column type="expand" min-width="30">
           <template slot-scope="props">
             <transition name="full-model-slide-fade">
-              <div class="cell-content" v-if="showModelDetail" :class="{'hidden-cell': props.$index !== activeIndex}">
-                <i class="el-icon-ksd-full_screen_1 ksd-fright full-model-box" v-if="!showFull" @click="toggleShowFull(props.$index)"></i>
-                <i class="el-icon-ksd-collapse_1 ksd-fright full-model-box" v-else @click="toggleShowFull(props.$index)"></i>
+              <div class="cell-content" v-if="props.row.showModelDetail" :class="{'hidden-cell': props.$index !== activeIndex}">
+                <i class="el-icon-ksd-full_screen_1 ksd-fright full-model-box" v-if="!showFull" @click="toggleShowFull(props.$index, props.row)"></i>
+                <i class="el-icon-ksd-collapse_1 ksd-fright full-model-box" v-else @click="toggleShowFull(props.$index, props.row)"></i>
                 <el-tabs activeName="first" class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" />
@@ -219,7 +219,6 @@ export default class ModelList extends Vue {
   createModelVisible = false
   cloneFormVisible = false
   modelCheckModeVisible = false
-  showModelDetail = true
   dataRangeVal = []
   createModelFormRule = {
     modelName: [
@@ -338,6 +337,7 @@ export default class ModelList extends Vue {
   onModelChange (modelsPagerRenderData) {
     this.modelArray = []
     modelsPagerRenderData.list.forEach(item => {
+      this.$set(item, 'showModelDetail', true)
       this.modelArray.push({
         ...item,
         tabTypes: 'first'
@@ -352,16 +352,26 @@ export default class ModelList extends Vue {
     this.loadModelsList()
   }
   // 全屏查看模型附属信息
-  toggleShowFull (index) {
-    this.showModelDetail = false
+  toggleShowFull (index, row) {
+    var scrollBoxDom = document.getElementById('scrollContent')
+    this.$set(row, 'showModelDetail', false)
+    if (!this.showFull && scrollBoxDom) {
+      // 展开时记录下展开时候的scrollbar 的top距离，搜索的时候复原该位置
+      row.hisScrollTop = scrollBoxDom.scrollTop
+    }
     this.$nextTick(() => {
-      this.showModelDetail = true
+      this.$set(row, 'showModelDetail', true)
       this.showFull = !this.showFull
       this.activeIndex = index
-      var scrollBoxDom = document.getElementById('scrollBox')
-      if (scrollBoxDom) {
-        scrollBoxDom.scrollTop = 0
-      }
+      this.$nextTick(() => {
+        if (scrollBoxDom) {
+          if (this.showFull) {
+            scrollBoxDom.scrollTop = 0
+          } else {
+            scrollBoxDom.scrollTop = row.hisScrollTop
+          }
+        }
+      })
     })
   }
   // 加载模型列表
