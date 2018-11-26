@@ -33,7 +33,7 @@
                 <el-col :span="12" class="analysis-before">
                   <el-row>
                      <el-col :span="12">
-                        <div class="percent"><span>{{statisticObj['RDBMS'].ratio * 100}}</span><span>%</span></div>
+                        <div class="percent"><span>{{Math.round(statisticObj['RDBMS'].ratio * 100)}}</span><span>%</span></div>
                         <div><img src="../../assets/img/RDBMs.png" height="118" width="136"></div>
                         <div class="type">RDBMS</div>
                         <div class="cost-time">
@@ -42,7 +42,7 @@
                         </div>
                      </el-col>
                      <el-col :span="12">
-                       <div class="percent"><span>{{statisticObj['HIVE'].ratio * 100}}</span><span>%</span></div>
+                       <div class="percent"><span>{{Math.round(statisticObj['HIVE'].ratio * 100)}}</span><span>%</span></div>
                         <div><img src="../../assets/img/Hive.png" height="118" width="136"></div>
                         <div class="type">Hive</div>
                         <div class="cost-time">
@@ -56,7 +56,7 @@
                 <el-col :span="11" class="analysis-after">
                   <el-row>
                      <el-col :span="12">
-                       <div class="percent"><span>{{statisticObj['Agg Index'].ratio * 100}}</span><span>%</span></div>
+                       <div class="percent"><span>{{Math.round(statisticObj['Agg Index'].ratio * 100)}}</span><span>%</span></div>
                         <div><img src="../../assets/img/cube.png" height="118" width="136"></div>
                         <div class="type">Aggregate Index</div>
                         <div class="cost-time">
@@ -65,7 +65,7 @@
                         </div>
                      </el-col>
                      <el-col :span="12">
-                       <div class="percent"><span>{{statisticObj['Table Index'].ratio * 100}}</span><span>%</span></div>
+                       <div class="percent"><span>{{Math.round(statisticObj['Table Index'].ratio * 100)}}</span><span>%</span></div>
                         <div><img src="../../assets/img/table_index.png" height="118" width="136"></div>
                         <div class="type">Tabel Index</div>
                         <div class="cost-time">
