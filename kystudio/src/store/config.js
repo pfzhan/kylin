@@ -75,14 +75,10 @@ export default {
       return state.layoutConfig.fullScreen
     },
     availableMenus (state, getters, rootState, rootGetters) {
-      if (rootGetters.currentProjectData && rootState.user.currentUser) {
-        const projectType = rootGetters.currentProjectData.maintain_model_type
-        const role = rootState.user.currentUser.authorities.map(authority => authority.authority)
+      const projectType = rootGetters.currentProjectData.maintain_model_type
+      const role = rootState.user.currentUser.authorities.map(authority => authority.authority)
 
-        return getAvailableOptions('menu', { projectType, role })
-      } else {
-        return []
-      }
+      return getAvailableOptions('menu', { projectType, role })
     }
   }
 }

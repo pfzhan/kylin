@@ -33,6 +33,10 @@
         <div class="body">
           <!-- Include聚合组 -->
           <div class="row">
+            <el-button plain size="mini" type="primary" @click="handleAddAllIncludes(aggregateIdx)">{{$t('selectAll')}}</el-button>
+            <el-button size="mini" @click="handleRemoveAllIncludes(aggregateIdx)">{{$t('cancelAll')}}</el-button>
+          </div>
+          <div class="row">
             <h2 class="title font-medium">{{$t('include')}}</h2>
             <el-select
               multiple
@@ -51,7 +55,7 @@
             </el-select>
           </div>
           <!-- Mandatory聚合组 -->
-          <div class="row">
+          <div class="row mandatory">
             <h2 class="title font-medium">{{$t('mandatory')}}</h2>
             <el-select
               multiple
@@ -68,7 +72,7 @@
             </el-select>
           </div>
           <!-- Hierarchy聚合组 -->
-          <div class="row">
+          <div class="row hierarchy">
             <h2 class="title font-medium">{{$t('hierarchy')}}</h2>
             <div class="list"
               v-for="(hierarchy, hierarchyRowIdx) in aggregate.hierarchyArray"
@@ -87,10 +91,10 @@
                 </el-option>
               </el-select>
               <div class="list-actions clearfix">
-                <el-button plain circle type="primary" size="medium" icon="el-icon-ksd-add_2"
+                <el-button plain text type="primary" size="medium" icon="el-icon-ksd-table_add"
                   @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`)">
                 </el-button>
-                <el-button plain circle class="delete" size="medium" icon="el-icon-minus"
+                <el-button plain text class="delete" size="medium" icon="el-icon-ksd-symbol_type"
                   :disabled="aggregate.hierarchyArray.length === 1"
                   @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregateIdx, hierarchyRowIdx)">
                 </el-button>
@@ -98,7 +102,7 @@
             </div>
           </div>
           <!-- Joint聚合组 -->
-          <div class="row">
+          <div class="row joint">
             <h2 class="title font-medium">{{$t('joint')}}</h2>
             <div class="list"
               v-for="(joint, jointRowIdx) in aggregate.jointArray"
@@ -117,10 +121,10 @@
                 </el-option>
               </el-select>
               <div class="list-actions clearfix">
-                <el-button plain circle type="primary" size="medium" icon="el-icon-ksd-add_2"
+                <el-button plain text type="primary" size="medium" icon="el-icon-ksd-table_add"
                   @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`)">
                 </el-button>
-                <el-button plain circle class="delete" size="medium" icon="el-icon-minus"
+                <el-button plain text class="delete" size="medium" icon="el-icon-ksd-symbol_type"
                   :disabled="aggregate.jointArray.length === 1"
                   @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregateIdx, jointRowIdx)">
                 </el-button>
@@ -311,6 +315,20 @@ export default class AggregateModal extends Vue {
       }
     })
   }
+  handleAddAllIncludes (aggregateIdx) {
+    const allDimensions = this.dimensions.map(dimension => dimension.label)
+    this.handleInput(`aggregateArray.${aggregateIdx}.includes`, allDimensions)
+  }
+  handleRemoveAllIncludes (aggregateIdx) {
+    const { aggregateArray = [] } = this.form
+    const currentAggregate = aggregateArray[aggregateIdx] || {}
+    const currentIncludes = currentAggregate.includes || []
+
+    for (const include of currentIncludes) {
+      this.handleRemoveIncludeRules(include, aggregateIdx)
+    }
+    this.handleInput(`aggregateArray.${aggregateIdx}.includes`, [])
+  }
   async handleSubmit () {
     try {
       if (this.checkFormVaild()) {
@@ -452,22 +470,13 @@ export default class AggregateModal extends Vue {
   .el-select {
     width: 100%;
   }
-  [data-tag='used'] {
-    background: @grey-4;
-    border: 1px solid @text-secondary-color;
-    border-radius: 2px;
-    color: @text-normal-color;
-    .el-icon-close {
-      color: @text-normal-color;
-    }
-  }
   .el-button {
     i[class^=el-icon-] {
       cursor: inherit;
     }
   }
   .list {
-    padding-right: 85px;
+    padding-right: 68px;
     position: relative;
     &:not(:last-child) {
       margin-bottom: 10px;
@@ -478,24 +487,65 @@ export default class AggregateModal extends Vue {
     right: 0;
     top: 0;
     transform: translateY(2px);
+    .is-text {
+      font-size: 24px;
+      border: 0;
+      padding: 4px 0px;
+    }
     .el-button--medium {
-      padding: 8px;
       float: left;
     }
-    .delete {
+    .delete i {
       background: @fff;
-      border: 1px solid @text-secondary-color;
       color: @text-disabled-color;
       &:hover {
         background: @fff;
-        border: 1px solid @text-secondary-color;
         color: @text-disabled-color;
       }
-      &.is-disabled {
+    }
+    .delete.is-disabled i {
+      background: @grey-4;
+      border-radius: 50%;
+      overflow: hidden;
+      &:hover {
         background: @grey-4;
-        &:hover {
-          background: @grey-4;
-        }
+        border-radius: 50%;
+        overflow: hidden;
+      }
+    }
+  }
+  .mandatory,
+  .hierarchy,
+  .joint {
+    .el-tag {
+      background: @base-color;
+      border: 1px solid @base-color;
+      border-radius: 2px;
+      color: @fff;
+      .el-icon-close {
+        color: @fff;
+      }
+      .el-icon-close:hover {
+        background: @fff;
+        color: @base-color;
+      }
+    }
+  }
+  .el-tag {
+    background: @base-color-10;
+    color: @base-color;
+    border: 1px solid @base-color;
+    &[data-tag='used'] {
+      background: @base-color;
+      border: 1px solid @base-color;
+      border-radius: 2px;
+      color: @fff;
+      .el-icon-close {
+        color: @fff;
+      }
+      .el-icon-close:hover {
+        background: @fff;
+        color: @base-color;
       }
     }
   }

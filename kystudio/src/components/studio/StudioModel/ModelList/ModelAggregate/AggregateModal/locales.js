@@ -8,7 +8,9 @@ export default {
     'mandatory': 'Mandatory',
     'hierarchy': 'Hierarchy',
     'joint': 'Joint',
-    'includesEmpty': 'Each aggregation group can\'t be empty.'
+    'includesEmpty': 'Each aggregation group can\'t be empty.',
+    'selectAll': 'Select all columns',
+    'cancelAll': 'Clear all'
   },
   'zh-cn': {
     'addAggregateGroup': '添加聚合组',
@@ -19,6 +21,8 @@ export default {
     'mandatory': '必需维度',
     'hierarchy': '层级维度',
     'joint': '联合维度',
-    'includesEmpty': '任意聚合组不能为空。'
+    'includesEmpty': '任意聚合组不能为空。',
+    'selectAll': '选择所有列',
+    'cancelAll': '清除所有'
   }
 }

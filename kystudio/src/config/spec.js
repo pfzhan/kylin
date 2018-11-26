@@ -57,9 +57,9 @@ export default {
     "menu": {
       "keyPattern": "projectType-role",
       "entries": [
-        { "key": "manualMaintain-[admin,management]", "value": "favoriteQuery" },
-        { "key": "manualMaintain-operation", "value": "favoriteQuery,user,group" },
-        { "key": "manualMaintain-read", "value": "favoriteQuery,job,user,group" },
+        { "key": "manualMaintain-[admin,management]", "value": "none" },
+        { "key": "manualMaintain-operation", "value": "user,group" },
+        { "key": "manualMaintain-read", "value": "job,user,group" },
         { "key": "autoMaintain-[admin,management]", "value": "none" },
         { "key": "autoMaintain-operation", "value": "user,group" },
         { "key": "autoMaintain-read", "value": "job,user,group" }
