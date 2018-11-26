@@ -540,7 +540,14 @@ class NModel {
     return indexOfObjWithSomeKey(this.dimensions, 'table_guid', guid) >= 0
   }
   _checkTableUseInMeasure (guid) {
-    return indexOfObjWithSomeKey(this._mount.all_measures.parameter_value, 'table_guid', guid) >= 0
+    let isUseInMeasure = false
+    for (let i = 0; i < this._mount.all_measures.length; i++) {
+      if (indexOfObjWithSomeKey(this._mount.all_measures[i].parameter_value, 'table_guid', guid) >= 0) {
+        isUseInMeasure = true
+        break
+      }
+    }
+    return isUseInMeasure
   }
   _checkTableUseInCC (guid) {
     return indexOfObjWithSomeKey(this._mount.computed_columns, 'table_guid', guid) >= 0
@@ -907,14 +914,16 @@ class NModel {
   // measure parameterValue 临时结构
   _delMeasureByAlias (alias) {
     let measures = this._mount.all_measures.filter((item) => {
+      let isUseAlias = false
       if (item.parameter_value && item.parameter_value.length > 0) {
-        const finalColumns = item.parameter_value.filter((column) => {
-          return column.type === 'constant' || column.type === 'column' && column.value.split('.')[0] !== alias
-        })
-        item.parameter_value.splice(0, item.parameter_value.length)
-        item.parameter_value.push(...finalColumns)
+        for (let i = 0; i < item.parameter_value.length; i++) {
+          if (item.parameter_value[i].value.split('.')[0] === alias) {
+            isUseAlias = true
+            break
+          }
+        }
       }
-      return item
+      return !isUseAlias
     })
     this._mount.all_measures.splice(0, this._mount.all_measures.length)
     this._mount.all_measures.push(...measures)
