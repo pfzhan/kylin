@@ -7,7 +7,7 @@
       <el-button type="primary" icon="el-icon-ksd-table_delete">
         {{$t('kylinLang.common.delete')}}
       </el-button> -->
-      <el-button type="primary" icon="el-icon-ksd-backup" @click="handleAggregateGroup" v-if="!isSpeedProject">
+      <el-button type="primary" icon="el-icon-ksd-backup" @click="handleAggregateGroup" v-if="availableAggregateActions.includes('viewAggGroup')">
         {{$t('aggregateGroup')}}
       </el-button>
     </div>
@@ -119,7 +119,8 @@ import AggregateModal from './AggregateModal/index.vue'
   },
   computed: {
     ...mapGetters([
-      'currentProjectData'
+      'currentProjectData',
+      'availableAggregateActions'
     ])
   },
   methods: {

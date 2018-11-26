@@ -1,5 +1,5 @@
 <template>
-  <div class="tree-list" :style="{ width: `${treeStyle.width}px` }">
+  <div class="tree-list" :style="{ width: isResizable ? `${treeStyle.width}px` : null }">
     <div class="filter-box" v-if="isShowFilter">
       <el-input
         size="medium"
@@ -81,6 +81,10 @@ const filterDefaultWhiteList = ['isMore', 'isLoading']
       default: true
     },
     isExpandAll: {
+      type: Boolean,
+      default: false
+    },
+    isResizable: {
       type: Boolean,
       default: false
     },

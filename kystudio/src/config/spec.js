@@ -47,7 +47,7 @@ export default {
       { "id": "deleteTable" },
       { "id": "addJoin" }
     ],
-    "aggIndexActions": [
+    "aggregateActions": [
       { "id": "viewAggGroup" },
       { "id": "editAggGroup" },
       { "id": "addAggGroup" }
@@ -74,7 +74,7 @@ export default {
         { "key": "modelBased", "value": "factSwitcher,deleteTable,addJoin" }
       ]
     },
-    "aggIndexActions": {
+    "aggregateActions": {
       "keyPattern": "projectType",
       "entries": [
         { "key": "manualMaintain", "value": "viewAggGroup,editAggGroup,addAggGroup" },

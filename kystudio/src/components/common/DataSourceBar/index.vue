@@ -23,6 +23,7 @@
         :is-expand-all="isExpandAll"
         :is-show-filter="isShowFilter"
         :is-expand-on-click-node="isExpandOnClickNode"
+        :is-resizable="isResizable"
         :on-filter="handleFilter"
         :empty-text="$t('emptyText')"
         @click="handleClick"
@@ -94,6 +95,10 @@ import { handleSuccessAsync } from '../../../util'
       default: true
     },
     isExpandAll: {
+      type: Boolean,
+      default: false
+    },
+    isResizable: {
       type: Boolean,
       default: false
     }
