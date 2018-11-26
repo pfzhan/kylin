@@ -22,31 +22,31 @@
 
 package org.apache.spark.sql.execution.datasources
 
-import scala.util.{Try, Success, Failure}
-
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, Path}
-
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.{Column, SaveMode, SparkSession}
 import org.apache.spark.sql.catalyst.catalog.BucketSpec
 import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap
 import org.apache.spark.sql.execution.datasources.parquet.ParquetMetastoreSupport
+import org.apache.spark.sql.execution.datasources.parquet.shard.ShardMetastoreSupport
 import org.apache.spark.sql.sources.BaseRelation
 import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.{Column, SaveMode}
 import org.apache.spark.util.Utils
+
+import scala.util.{Failure, Success, Try}
 
 /** DataSource to resolve relations that support indexing */
 case class IndexedDataSource(
-    metastore: Metastore,
-    className: String,
-    mode: SaveMode = SaveMode.ErrorIfExists,
-    options: Map[String, String] = Map.empty,
-    bucketSpec: Option[BucketSpec] = None,
-    catalogTable: Option[CatalogTableInfo] = None)
+                              metastore: Metastore,
+                              className: String,
+                              mode: SaveMode = SaveMode.ErrorIfExists,
+                              options: Map[String, String] = Map.empty,
+                              bucketSpec: Option[BucketSpec] = None,
+                              catalogTable: Option[CatalogTableInfo] = None)
   extends Logging {
 
-  lazy val providingClass: Class[_] = IndexedDataSource.lookupDataSource(className)
+  lazy val providingClass: Class[_] = IndexedDataSource.lookupDataSource(className, options.getOrElse("support", "default"))
   lazy val tablePath: FileStatus = {
     val path = options.getOrElse("path", sys.error("path option is required"))
     IndexedDataSource.resolveTablePath(new Path(path),
@@ -55,9 +55,9 @@ case class IndexedDataSource(
 
   /** Resolve location spec based on provided catalog table */
   private def locationSpec(
-      identifier: String,
-      tablePath: Path,
-      catalogTable: Option[CatalogTableInfo]): IndexLocationSpec = {
+                            identifier: String,
+                            tablePath: Path,
+                            catalogTable: Option[CatalogTableInfo]): IndexLocationSpec = {
     if (catalogTable.isDefined) {
       CatalogLocationSpec(identifier, tablePath)
     } else {
@@ -68,6 +68,16 @@ case class IndexedDataSource(
   def resolveRelation(): BaseRelation = {
     val caseInsensitiveOptions = CaseInsensitiveMap(options)
     providingClass.newInstance() match {
+      case support: ShardMetastoreSupport =>
+        val indexCatalog = support.loadIndex(metastore, tablePath, options)
+        HadoopFsRelation(
+          indexCatalog,
+          partitionSchema = indexCatalog.partitionSchema,
+          dataSchema = indexCatalog.dataSchema.asNullable,
+          bucketSpec = bucketSpec,
+          support.fileFormat,
+          caseInsensitiveOptions)(metastore.session)
+
       case support: MetastoreSupport =>
         // if index does not exist in metastore and option is selected, we will create it before
         // loading index catalog. Note that empty list of columns indicates all available columns
@@ -96,9 +106,9 @@ case class IndexedDataSource(
   }
 
   /**
-   * Create index based on provided format, if no exception is thrown during creation, considered
-   * as process succeeded.
-   */
+    * Create index based on provided format, if no exception is thrown during creation, considered
+    * as process succeeded.
+    */
   def createIndex(columns: Seq[Column]): Unit = providingClass.newInstance() match {
     case s: MetastoreSupport =>
       logInfo(s"Create index for $s, table=${tablePath.getPath}, columns=$columns, mode=$mode")
@@ -141,7 +151,8 @@ case class IndexedDataSource(
       logInfo(s"Delete index for $s, table=${tablePath.getPath}")
       val spec = locationSpec(s.identifier, tablePath.getPath, catalogTable)
       metastore.delete(spec) { case status =>
-        s.deleteIndex(metastore, status) }
+        s.deleteIndex(metastore, status)
+      }
     case other =>
       throw new UnsupportedOperationException(s"Deletion of index is not supported by $other")
   }
@@ -149,23 +160,24 @@ case class IndexedDataSource(
 
 object IndexedDataSource {
   val parquet = classOf[ParquetMetastoreSupport].getCanonicalName
+  val shardBySupportClass = classOf[ShardMetastoreSupport].getCanonicalName
 
   /**
-   * Resolve class name into fully-qualified class path if available. If no match found, return
-   * itself. [[IndexedDataSource]] checks whether or not class is a valid indexed source.
-   */
-  def resolveClassName(provider: String): String = provider match {
-    case "parquet" => parquet
-    case "org.apache.spark.sql.execution.datasources.parquet" => parquet
-    case "Parquet" => parquet
-    case "ParquetFormat" => parquet
-    case other => other
+    * Resolve class name into fully-qualified class path if available. If no match found, return
+    * itself. [[IndexedDataSource]] checks whether or not class is a valid indexed source.
+    */
+  def resolveClassName(provider: String, support: String = "default"): String = (provider, support) match {
+    case ("parquet", "shard") => shardBySupportClass
+    case ("parquet", "default") => parquet
+    case ("org.apache.spark.sql.execution.datasources.parquet", "default") => parquet
+    case ("Parquet", "default") => parquet
+    case ("ParquetFormat", "default") => parquet
+    case (other, _) => other
   }
 
   /** Simplified version of looking up datasource class */
-  def lookupDataSource(provider: String): Class[_] = {
-    val provider1 = IndexedDataSource.resolveClassName(provider)
-    val provider2 = s"$provider.DefaultSource"
+  def lookupDataSource(provider: String, support: String = "default"): Class[_] = {
+    val provider1 = IndexedDataSource.resolveClassName(provider, support)
     val loader = Utils.getContextOrSparkClassLoader
     Try(loader.loadClass(provider1)).orElse(Try(loader.loadClass(provider1))) match {
       case Success(dataSource) =>

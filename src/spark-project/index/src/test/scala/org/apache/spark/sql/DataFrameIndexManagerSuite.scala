@@ -101,6 +101,12 @@ class DataFrameIndexManagerSuite extends UnitTestSuite with SparkLocal {
     manager.getOptions should be (Map("key1" -> "value1", "key2" -> "value2"))
   }
 
+  test("set shard by column") {
+    val manager = new DataFrameIndexManager(spark)
+    manager.shardBy(Array("name"))
+    manager.getOptions should be (Map("shardByColumn" -> "name", "support" -> "shard"))
+  }
+
   test("create command - init") {
     val manager = new DataFrameIndexManager(spark)
     val ddl = manager.create

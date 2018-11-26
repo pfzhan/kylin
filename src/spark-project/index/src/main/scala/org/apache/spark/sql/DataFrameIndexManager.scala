@@ -22,16 +22,16 @@
 
 package org.apache.spark.sql
 
-import scala.collection.mutable.{HashMap => MutableHashMap}
-
 import org.apache.spark.sql.execution.datasources.{CatalogTableSource, IndexedDataSource, Metastore}
 import org.apache.spark.sql.functions.col
-import org.apache.spark.sql.types.StructType
+
+import scala.collection.mutable.{HashMap => MutableHashMap}
+
 
 /**
- * Entrypoint for working with index functionality, e.g. reading indexed table, creating index
- * for provided file path, or deleting index for table.
- */
+  * Entrypoint for working with index functionality, e.g. reading indexed table, creating index
+  * for provided file path, or deleting index for table.
+  */
 class DataFrameIndexManager(sparkSession: SparkSession) {
   private var source: String = IndexedDataSource.parquet
   private var extraOptions = new MutableHashMap[String, String]()
@@ -70,9 +70,10 @@ class DataFrameIndexManager(sparkSession: SparkSession) {
   }
 
   /**
-   * Load indexed table as DataFrame.
-   * @param path filepath to the table (directory)
-   */
+    * Load indexed table as DataFrame.
+    *
+    * @param path filepath to the table (directory)
+    */
   def load(path: String): DataFrame = {
     option("path", path)
     sparkSession.baseRelationToDataFrame(
@@ -83,9 +84,20 @@ class DataFrameIndexManager(sparkSession: SparkSession) {
   }
 
   /**
-   * Load indexed DataFrame from persistent table.
-   * @param tableName table name in catalog
-   */
+    * Set ShardMetastoreSuport
+    */
+
+  def shardBy(columns: Array[String]): DataFrameIndexManager = {
+    require(columns.length == 1)
+    option("shardByColumn", columns.head)
+    option("support", "shard")
+  }
+
+  /**
+    * Load indexed DataFrame from persistent table.
+    *
+    * @param tableName table name in catalog
+    */
   def table(tableName: String): DataFrame = {
     sparkSession.baseRelationToDataFrame(
       CatalogTableSource(
@@ -95,11 +107,12 @@ class DataFrameIndexManager(sparkSession: SparkSession) {
   }
 
   /**
-   * Load indexed DataFrame from Parquet table.
-   * @param path filepath to the Parquet table (directory)
-   */
+    * Load indexed DataFrame from Parquet table.
+    *
+    * @param path filepath to the Parquet table (directory)
+    */
   def parquet(path: String): DataFrame = {
-    format(IndexedDataSource.parquet).load(path)
+    format("parquet").load(path)
   }
 
   /** DDL command to create index for provided source with options */
@@ -134,30 +147,32 @@ class DataFrameIndexManager(sparkSession: SparkSession) {
 }
 
 /**
- * [[CreateIndexCommand]] provides functionality to create index for a table. Requires index
- * columns and valid table path. Also allows to specify different mode for creating index, similar
- * to writing DataFrame.
- */
+  * [[CreateIndexCommand]] provides functionality to create index for a table. Requires index
+  * columns and valid table path. Also allows to specify different mode for creating index, similar
+  * to writing DataFrame.
+  */
 private[sql] case class CreateIndexCommand(
-    @transient val sparkSession: SparkSession,
-    private var source: String,
-    private var options: MutableHashMap[String, String]) {
+                                            @transient val sparkSession: SparkSession,
+                                            private var source: String,
+                                            private var options: MutableHashMap[String, String]) {
   private var mode: SaveMode = SaveMode.ErrorIfExists
   private var columns: Seq[Column] = Nil
 
   /**
-   * Provide mode for creating index.
-   * @param mode save mode
-   */
+    * Provide mode for creating index.
+    *
+    * @param mode save mode
+    */
   def mode(mode: SaveMode): CreateIndexCommand = {
     this.mode = mode
     this
   }
 
   /**
-   * Provide string-like mode to create index.
-   * @param mode string value for save mode
-   */
+    * Provide string-like mode to create index.
+    *
+    * @param mode string value for save mode
+    */
   def mode(mode: String): CreateIndexCommand = {
     val typedMode = mode.toLowerCase match {
       case "append" => SaveMode.Append
@@ -166,7 +181,7 @@ private[sql] case class CreateIndexCommand(
       case "ignore" => SaveMode.Ignore
       case other => throw new UnsupportedOperationException(
         s"Unsupported mode $mode, must be one of ${SaveMode.Append}, ${SaveMode.Overwrite}, " +
-        s"${SaveMode.ErrorIfExists}, ${SaveMode.Ignore}")
+          s"${SaveMode.ErrorIfExists}, ${SaveMode.Ignore}")
     }
     this.mode = typedMode
     this
@@ -184,9 +199,9 @@ private[sql] case class CreateIndexCommand(
   }
 
   /**
-   * Java-friendly API to index by columns.
-   * For Scala it is recommended to use other more convenient API methods.
-   */
+    * Java-friendly API to index by columns.
+    * For Scala it is recommended to use other more convenient API methods.
+    */
   def indexBy(columns: Array[Column]): CreateIndexCommand = {
     require(columns.nonEmpty, "At least one column is required, " +
       "use 'indexByAll()' method to infer all columns that can be indexed")
@@ -195,17 +210,17 @@ private[sql] case class CreateIndexCommand(
   }
 
   /**
-   * Java-friendly API to index by column names.
-   * For Scala it is recommended to use other more convenient API methods.
-   */
+    * Java-friendly API to index by column names.
+    * For Scala it is recommended to use other more convenient API methods.
+    */
   def indexBy(columnNames: Array[String]): CreateIndexCommand = {
     indexBy(columnNames.map(col))
   }
 
   /**
-   * Java-friendly API to index by column names. Also used in Python API.
-   * For Scala it is recommended to use other more convenient API methods.
-   */
+    * Java-friendly API to index by column names. Also used in Python API.
+    * For Scala it is recommended to use other more convenient API methods.
+    */
   def indexBy(columnNames: java.util.List[String]): CreateIndexCommand = {
     val cols = new Array[String](columnNames.size())
     for (i <- 0 until cols.length) {
@@ -260,12 +275,12 @@ private[sql] case class CreateIndexCommand(
 }
 
 /**
- * [[ExistsIndexCommand]] reports whether or not given table path is indexed.
- */
+  * [[ExistsIndexCommand]] reports whether or not given table path is indexed.
+  */
 private[sql] case class ExistsIndexCommand(
-    @transient val sparkSession: SparkSession,
-    private var source: String,
-    private val options: MutableHashMap[String, String]) {
+                                            @transient val sparkSession: SparkSession,
+                                            private var source: String,
+                                            private val options: MutableHashMap[String, String]) {
 
   /** Public for Python API */
   def existsIndex(path: String): Boolean = {
@@ -298,13 +313,13 @@ private[sql] case class ExistsIndexCommand(
 }
 
 /**
- * [[DeleteIndexCommand]] provides functionality to delete existing index. Current behaviour is
- * no-op when deleting non-existent index.
- */
+  * [[DeleteIndexCommand]] provides functionality to delete existing index. Current behaviour is
+  * no-op when deleting non-existent index.
+  */
 private[sql] case class DeleteIndexCommand(
-    @transient val sparkSession: SparkSession,
-    private var source: String,
-    private val options: MutableHashMap[String, String]) {
+                                            @transient val sparkSession: SparkSession,
+                                            private var source: String,
+                                            private val options: MutableHashMap[String, String]) {
 
   /** Public for Python API */
   def deleteIndex(path: String): Unit = {

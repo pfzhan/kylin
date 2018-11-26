@@ -23,6 +23,7 @@ package io.kyligence.kap.query.runtime.plan
 
 import java.util
 
+import com.github.lightcopy.implicits._
 import com.google.common.collect.Sets
 import io.kyligence.kap.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.cube.gridtable.NCuboidToGridTableMapping
@@ -35,11 +36,7 @@ import io.kyligence.kap.query.util.SparderDerivedUtil
 import org.apache.calcite.DataContext
 import org.apache.kylin.common.KapConfig
 import org.apache.kylin.cube.gridtable.GridTables
-import org.apache.kylin.metadata.model.{
-  FunctionDesc,
-  SegmentStatusEnum,
-  TblColRef
-}
+import org.apache.kylin.metadata.model.{FunctionDesc, SegmentStatusEnum, TblColRef}
 import org.apache.kylin.metadata.realization.IRealization
 import org.apache.kylin.metadata.tuple.TupleInfo
 import org.apache.spark.internal.Logging
@@ -96,7 +93,7 @@ object TableScanPlan extends Logging {
           val mapping = new NCuboidToGridTableMapping(cuboidLayout)
           val info =
             GridTables.newGTInfo(mapping,
-                                 new NCubeDimEncMap(dataflow.getFirstSegment))
+              new NCubeDimEncMap(dataflow.getFirstSegment))
           val relation =
             CubeRelation(tableName, dataflow, info, cuboidLayout)(session)
           /////////////////////////////////////////////
@@ -108,9 +105,18 @@ object TableScanPlan extends Logging {
               s"$basePath${dataflow.getUuid}/${seg.getId}/${relation.cuboid.getId}"
           )
 
-          var df = session.read
-            .parquet(fileList: _*)
-            .toDF(relation.schema.fieldNames: _*)
+          var df = if (cuboidLayout.getShardByColumns == null || cuboidLayout.getShardByColumns.isEmpty) {
+            session.read.parquet(fileList: _*).toDF(relation.schema.fieldNames: _*)
+          } else {
+            session.index
+              .shardBy(
+                cuboidLayout.getShardByColumns.asScala
+                  .map(column => column.toString)
+                  .toArray)
+              .parquet(fileList.mkString(","))
+              .toDF(relation.schema.fieldNames: _*)
+          }
+
           /////////////////////////////////////////////
           val groups: util.Collection[TblColRef] =
             olapContext.getSQLDigest.groupbyColumns
@@ -131,17 +137,17 @@ object TableScanPlan extends Logging {
             .getMetricsIndices(context.getMetrics)
 
           val derived = SparderDerivedUtil(tableName,
-                                           dataflow.getFirstSegment,
-                                           gtColIdx,
-                                           olapContext.returnTupleInfo,
-                                           context.getCandidate)
+            dataflow.getFirstSegment,
+            gtColIdx,
+            olapContext.returnTupleInfo,
+            context.getCandidate)
           if (derived.hasDerived) {
             df = derived.joinDerived(df)
           }
 
           val tupleIdx = getTupleIdx(dimensionsD,
-                                     context.getMetrics,
-                                     olapContext.returnTupleInfo)
+            context.getMetrics,
+            olapContext.returnTupleInfo)
           val schema = RuntimeHelper.gtSchemaToCalciteSchema(
             mapping.getPrimaryKey,
             derived,
@@ -207,15 +213,15 @@ object TableScanPlan extends Logging {
     val config = instance.getConfig
     val dataFrameTableName = instance.getProject + "@" + lookupTableName
     val lookupDf = SparderLookupManager.getOrCreate(dataFrameTableName,
-                                                    snapshotResPath,
-                                                    config)
+      snapshotResPath,
+      config)
     val olapTable = olapContext.firstTableScan.getOlapTable
     val alisTableName = olapContext.firstTableScan.getBackupAlias
     val newNames = lookupDf.schema.fieldNames.map { name =>
       val gTInfoSchema = SchemaProcessor.parseDeriveTableSchemaName(name)
       SchemaProcessor.generateDeriveTableSchemaName(alisTableName,
-                                                    gTInfoSchema.columnId,
-                                                    gTInfoSchema.columnName)
+        gTInfoSchema.columnId,
+        gTInfoSchema.columnName)
     }.array
     val newNameLookupDf = lookupDf.toDF(newNames: _*)
     val colIndex = olapTable.getSourceColumns.asScala.map(
@@ -223,15 +229,15 @@ object TableScanPlan extends Logging {
         col(
           SchemaProcessor
             .generateDeriveTableSchemaName(alisTableName,
-                                           column.getZeroBasedIndex,
-                                           column.getName)
+              column.getZeroBasedIndex,
+              column.getName)
             .toString))
     newNameLookupDf.select(colIndex: _*)
   }
 
   private def expandDerived(
-      layoutCandidate: NLayoutCandidate,
-      cols: util.Collection[TblColRef]): util.Set[TblColRef] = {
+                             layoutCandidate: NLayoutCandidate,
+                             cols: util.Collection[TblColRef]): util.Set[TblColRef] = {
     val expanded = new util.HashSet[TblColRef]
     cols.asScala.foreach(
       col => {

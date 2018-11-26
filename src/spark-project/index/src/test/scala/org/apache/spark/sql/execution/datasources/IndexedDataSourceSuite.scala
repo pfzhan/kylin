@@ -24,18 +24,14 @@ package org.apache.spark.sql.execution.datasources
 
 import java.io.{FileNotFoundException, IOException}
 
+import com.github.lightcopy.testutil.implicits._
+import com.github.lightcopy.testutil.{SparkLocal, UnitTestSuite}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, Path}
-
 import org.apache.spark.sql.Column
-import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Expression
-import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.types.StructType
-
-import com.github.lightcopy.testutil.{SparkLocal, UnitTestSuite}
-import com.github.lightcopy.testutil.implicits._
 
 // Test class for lookup
 private[datasources] class TestDefaultSource
@@ -47,32 +43,40 @@ private[datasources] class TestMetastoreSupport extends MetastoreSupport {
   override def fileFormat: FileFormat = null
 
   override def createIndex(
-      metastore: Metastore,
-      indexDirectory: FileStatus,
-      tablePath: FileStatus,
-      isAppend: Boolean,
-      partitionSpec: PartitionSpec,
-      partitions: Seq[PartitionDirectory],
-      columns: Seq[Column]): Unit = {
+                            metastore: Metastore,
+                            indexDirectory: FileStatus,
+                            tablePath: FileStatus,
+                            isAppend: Boolean,
+                            partitionSpec: PartitionSpec,
+                            partitions: Seq[PartitionDirectory],
+                            columns: Seq[Column]): Unit = {
     throw new RuntimeException(
       s"Test for tablePath=${tablePath.getPath}, isAppend=$isAppend, columns=$columns")
   }
 
   override def loadIndex(
-      metastore: Metastore,
-      indexDirectory: FileStatus): MetastoreIndex = {
+                          metastore: Metastore,
+                          indexDirectory: FileStatus): MetastoreIndex = {
     new MetastoreIndex() {
       override def tablePath: Path = new Path(".")
+
       override def partitionSchema: StructType = StructType(Seq.empty)
+
       override def indexSchema: StructType = StructType(Seq.empty)
+
       override def dataSchema: StructType = StructType(Seq.empty)
-      override def setIndexFilters(filters: Seq[Filter]) = { }
+
+      override def setIndexFilters(filters: Seq[Filter]) = {}
+
       override def indexFilters: Seq[Filter] = ???
+
       override def listFilesWithIndexSupport(
-          partitionFilters: Seq[Expression],
-          dataFilters: Seq[Expression],
-          indexFilters: Seq[Filter]): Seq[PartitionDirectory] = Seq.empty
+                                              partitionFilters: Seq[Expression],
+                                              dataFilters: Seq[Expression],
+                                              indexFilters: Seq[Filter]): Seq[PartitionDirectory] = Seq.empty
+
       override def inputFiles: Array[String] = Array.empty
+
       override def sizeInBytes: Long = 0L
     }
   }
@@ -119,8 +123,8 @@ class IndexedDataSourceSuite extends UnitTestSuite with SparkLocal with TestMeta
         metastore,
         IndexedDataSource.parquet,
         options = Map("path" -> dir.toString))
-      source.tablePath.getPath.toString should be (s"file:$dir")
-      source.providingClass.getCanonicalName should be (IndexedDataSource.parquet)
+      source.tablePath.getPath.toString should be(s"file:$dir")
+      source.providingClass.getCanonicalName should be(IndexedDataSource.parquet)
     }
   }
 
@@ -203,7 +207,7 @@ class IndexedDataSourceSuite extends UnitTestSuite with SparkLocal with TestMeta
       val err = intercept[RuntimeException] {
         source.createIndex(Seq.empty)
       }
-      err.getMessage should be (
+      err.getMessage should be(
         s"Test for tablePath=file:${dir / "table"}, isAppend=false, columns=List()")
     }
   }
@@ -232,7 +236,7 @@ class IndexedDataSourceSuite extends UnitTestSuite with SparkLocal with TestMeta
         metastore,
         classOf[TestMetastoreSupport].getCanonicalName,
         options = Map("path" -> dir.toString))
-      source.existsIndex() should be (false)
+      source.existsIndex() should be(false)
     }
   }
 
@@ -245,7 +249,7 @@ class IndexedDataSourceSuite extends UnitTestSuite with SparkLocal with TestMeta
         metastore,
         classOf[TestMetastoreSupport].getCanonicalName,
         options = Map("path" -> dir.toString))
-      source.existsIndex() should be (false)
+      source.existsIndex() should be(false)
     }
   }
 
@@ -260,7 +264,7 @@ class IndexedDataSourceSuite extends UnitTestSuite with SparkLocal with TestMeta
         metastore,
         classOf[TestMetastoreSupport].getCanonicalName,
         options = Map("path" -> dir.toString))
-      source.existsIndex() should be (true)
+      source.existsIndex() should be(true)
     }
   }
 
@@ -292,7 +296,7 @@ class IndexedDataSourceSuite extends UnitTestSuite with SparkLocal with TestMeta
       val err = intercept[RuntimeException] {
         source.deleteIndex()
       }
-      err.getMessage should be (s"Test for indexDirectory=$path")
+      err.getMessage should be(s"Test for indexDirectory=$path")
     }
   }
 
@@ -303,25 +307,30 @@ class IndexedDataSourceSuite extends UnitTestSuite with SparkLocal with TestMeta
       "ParquetFormat",
       IndexedDataSource.parquet)
     for (source <- datasources) {
-      IndexedDataSource.resolveClassName(source) should be (IndexedDataSource.parquet)
+      IndexedDataSource.resolveClassName(source) should be(IndexedDataSource.parquet)
     }
   }
 
   test("resolveClassName - other datasource") {
-    IndexedDataSource.resolveClassName("json") should be ("json")
-    IndexedDataSource.resolveClassName("csv") should be ("csv")
-    IndexedDataSource.resolveClassName("orc") should be ("orc")
-    IndexedDataSource.resolveClassName("avro") should be ("avro")
+    IndexedDataSource.resolveClassName("json") should be("json")
+    IndexedDataSource.resolveClassName("csv") should be("csv")
+    IndexedDataSource.resolveClassName("orc") should be("orc")
+    IndexedDataSource.resolveClassName("avro") should be("avro")
   }
 
   test("lookupDataSource - parquet provider") {
     val clazz = IndexedDataSource.lookupDataSource("parquet")
-    clazz.getCanonicalName should be (IndexedDataSource.parquet)
+    clazz.getCanonicalName should be(IndexedDataSource.parquet)
+  }
+
+  test("lookupDataSource - parquet provider with shard support") {
+    val clazz = IndexedDataSource.lookupDataSource("parquet", "shard")
+    clazz.getCanonicalName should be(IndexedDataSource.shardBySupportClass)
   }
 
   test("lookupDataSource - existing provider") {
     val clazz = IndexedDataSource.lookupDataSource(classOf[TestDefaultSource].getCanonicalName)
-    clazz should be (classOf[TestDefaultSource])
+    clazz should be(classOf[TestDefaultSource])
   }
 
   test("lookupDataSource - non-existent provider") {
@@ -334,14 +343,14 @@ class IndexedDataSourceSuite extends UnitTestSuite with SparkLocal with TestMeta
   test("resolveTablePath - resolve correct path") {
     withTempDir { dir =>
       val status = IndexedDataSource.resolveTablePath(dir, new Configuration(false))
-      status.isDirectory should be (true)
-      status.getPath.toString should be (s"file:$dir")
+      status.isDirectory should be(true)
+      status.getPath.toString should be(s"file:$dir")
     }
   }
 
   test("resolveTablePath - resolve relative path") {
     val status = IndexedDataSource.resolveTablePath(new Path("."), new Configuration(false))
-    status.isDirectory should be (true)
+    status.isDirectory should be(true)
     assert(status.getPath != null)
   }
 

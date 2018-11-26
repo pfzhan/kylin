@@ -22,3 +22,7 @@ package org.apache.spark.sql.sources
 case class Trivial(value: Boolean) extends Filter {
   override def references: Array[String] = findReferences(value)
 }
+
+case class Invalid() extends Filter {
+  override def references: Array[String] = findReferences()
+}

@@ -57,9 +57,11 @@ class ParquetIndex(
 
   override lazy val indexSchema = indexMetadata.indexSchema
 
+  //scalastyle:off
   override def setIndexFilters(filters: Seq[Filter]) = {
     internalIndexFilters = filters
   }
+  //scalastyle on:
 
   override def indexFilters: Seq[Filter] = internalIndexFilters
 
