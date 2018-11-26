@@ -70,6 +70,7 @@ class NProjectLoader {
     }
 
     public void clear() {
+        /// no cache any more
     }
 
     public Map<String, ExternalFilterDesc> listExternalFilterDesc(String project) {
@@ -121,10 +122,8 @@ class NProjectLoader {
 
             for (MeasureDesc m : r.getMeasures()) {
                 FunctionDesc func = m.getFunction();
-                if (belongToTable(table, r.getModel())) {
-                    if (!onlyRewriteMeasure || func.needRewrite()) {
-                        result.add(m);
-                    }
+                if (belongToTable(table, r.getModel()) && (!onlyRewriteMeasure || func.needRewrite())) {
+                    result.add(m);
                 }
             }
         }
@@ -154,7 +153,6 @@ class NProjectLoader {
     // ----------------------------------------------------------------------------
 
     private ProjectBundle load(String project) {
-        //        logger.debug("Loading L2 project cache for " + project);
         ProjectBundle projectBundle = new ProjectBundle(project);
 
         ProjectInstance pi = mgr.getProject(project);
@@ -169,7 +167,7 @@ class NProjectLoader {
             if (tableDesc != null) {
                 projectBundle.tables.put(tableDesc.getIdentity(), new TableBundle(tableDesc));
             } else {
-                logger.warn("Table '" + tableName + "' defined under project '" + project + "' is not found");
+                logger.warn("Table '{}' defined under project '{}' is not found", tableName, project);
             }
         }
 
@@ -178,8 +176,7 @@ class NProjectLoader {
             if (filterDesc != null) {
                 projectBundle.extFilters.put(extFilterName, filterDesc);
             } else {
-                logger.warn(
-                        "External Filter '" + extFilterName + "' defined under project '" + project + "' is not found");
+                logger.warn("External Filter '{}' defined under project '{}' is not found", extFilterName, project);
             }
         }
 
@@ -189,7 +186,7 @@ class NProjectLoader {
             if (realization != null) {
                 projectBundle.realizations.add(realization);
             } else {
-                logger.warn("Realization '" + entry + "' defined under project '" + project + "' is not found");
+                logger.warn("Realization '{}' defined under project '{}' is not found", entry, project);
             }
 
         }
@@ -213,24 +210,24 @@ class NProjectLoader {
 
         Set<TblColRef> allColumns = realization.getAllColumns();
         if (allColumns == null || allColumns.isEmpty()) {
-            logger.error("Realization '" + realization.getCanonicalName() + "' does not report any columns");
+            logger.error("Realization '{}' does not report any columns", realization.getCanonicalName());
             return false;
         }
 
         for (TblColRef col : allColumns) {
             TableDesc table = metaMgr.getTableDesc(col.getTable());
             if (table == null) {
-                logger.error("Realization '" + realization.getCanonicalName() + "' reports column '"
-                        + col.getCanonicalName() + "', but its table is not found by MetadataManager");
+                logger.error("Realization '{}' reports column '{}', but its table is not found by MetadataManager",
+                        realization.getCanonicalName(), col.getCanonicalName());
                 return false;
             }
 
             if (!col.getColumnDesc().isComputedColumn()) {
                 ColumnDesc foundCol = table.findColumnByName(col.getName());
                 if (col.getColumnDesc().equals(foundCol) == false) {
-                    logger.error("Realization '" + realization.getCanonicalName() + "' reports column '"
-                            + col.getCanonicalName() + "', but it is not equal to '" + foundCol
-                            + "' according to MetadataManager");
+                    logger.error(
+                            "Realization '{}' reports column '{}', but it is not equal to '{}' according to MetadataManager",
+                            realization.getCanonicalName(), col.getCanonicalName(), foundCol);
                     return false;
                 }
             } else {
@@ -240,9 +237,8 @@ class NProjectLoader {
             // auto-define table required by realization for some legacy test case
             if (prjCache.tables.get(table.getIdentity()) == null) {
                 prjCache.tables.put(table.getIdentity(), new TableBundle(table));
-                logger.warn(
-                        "Realization '" + realization.getCanonicalName() + "' reports column '" + col.getCanonicalName()
-                                + "' whose table is not defined in project '" + prjCache.project + "'");
+                logger.warn("Realization '{}' reports column '{}' whose table is not defined in project '{}'",
+                        realization.getCanonicalName(), col.getCanonicalName(), prjCache.project);
             }
         }
 
@@ -264,7 +260,6 @@ class NProjectLoader {
         for (TblColRef col : realization.getAllColumns()) {
             TableBundle tableBundle = prjCache.tables.get(col.getTable());
             prjCache.exposedTables.add(tableBundle.tableDesc);
-            tableBundle.exposed = true;
             tableBundle.exposedColumns.add(col.getColumnDesc());
         }
     }
@@ -282,7 +277,6 @@ class NProjectLoader {
     }
 
     private static class TableBundle {
-        private boolean exposed = false;
         private TableDesc tableDesc;
         private Set<ColumnDesc> exposedColumns = Sets.newLinkedHashSet();
         private Set<IRealization> realizations = Sets.newLinkedHashSet();
