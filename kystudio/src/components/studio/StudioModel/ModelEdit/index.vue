@@ -389,8 +389,8 @@ export default class ModelEdit extends Vue {
   measureObj = {
     name: '',
     expression: 'SUM(column)',
-    parameter_value: [{type: 'column', value: '', table_guid: null}],
-    converted_columns: [],
+    parameterValue: {type: 'column', value: '', table_guid: null},
+    convertedColumns: [],
     return_type: ''
   }
   panelAppear = modelRenderConfig.pannelsLayout()
@@ -547,8 +547,8 @@ export default class ModelEdit extends Vue {
     this.measureObj = {
       name: '',
       expression: 'SUM(column)',
-      parameter_value: [{type: 'column', value: '', table_guid: null}],
-      converted_columns: [],
+      parameterValue: {type: 'column', value: '', table_guid: null},
+      convertedColumns: [],
       return_type: ''
     }
   }
@@ -753,8 +753,8 @@ export default class ModelEdit extends Vue {
       this.measureObj = {
         name: '',
         expression: 'SUM(column)',
-        parameter_value: [{type: 'column', value: fullName, table_guid: null}],
-        converted_columns: [],
+        parameterValue: {type: 'column', value: fullName, table_guid: null},
+        convertedColumns: [],
         return_type: ''
       }
       this.measureVisible = true
@@ -880,8 +880,8 @@ export default class ModelEdit extends Vue {
       this.measureObj = {
         name: '',
         expression: 'SUM(column)',
-        parameter_value: [{type: 'column', value: moreInfo.full_colname, table_guid: null}],
-        converted_columns: [],
+        parameterValue: {type: 'column', value: moreInfo.full_colname, table_guid: null},
+        convertedColumns: [],
         return_type: ''
       }
       this.measureVisible = true

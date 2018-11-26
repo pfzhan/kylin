@@ -27,14 +27,14 @@
         </el-select>
       </el-form-item>
       <div class="ksd-fs-16 ksd-mb-6 value-label" v-if="measure.expression === 'TOP_N'">{{$t('paramValue')}}</div>
-      <el-form-item :label="isOrderBy" class="ksd-mb-10">
+      <el-form-item :label="isOrderBy" class="ksd-mb-10" prop="parameterValue.value" key="parameterItem">
         <el-tag type="info" class="measures-width" v-if="measure.expression === 'SUM(constant)' || measure.expression === 'COUNT(constant)'">1</el-tag>
         <div class="measure-flex-row" v-else>
           <div class="flex-item">
             <el-select :class="{
             'measures-addCC': measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N',
             'measures-width': measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'}"
-            size="medium" v-model="measure.parameter_value[0].value" :placeholder="$t('kylinLang.common.pleaseSelect')"
+            size="medium" v-model="measure.parameterValue.value" :placeholder="$t('kylinLang.common.pleaseSelect')"
             filterable @change="changeParamValue" :disabled="isEdit">
               <el-option-group key="column" :label="$t('columns')">
                 <el-option
@@ -63,10 +63,10 @@
         </div>
         <CCEditForm v-if="ccVisible" @saveSuccess="saveCC" @delSuccess="delCC" :ccDesc="ccObject" :modelInstance="modelInstance"></CCEditForm>
       </el-form-item>
-      <el-form-item :label="isGroupBy">
-        <div class="measure-flex-row" v-if="measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'" v-for="(column, index) in measure.converted_columns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
+      <el-form-item :label="isGroupBy" v-if="(measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N')&&measure.convertedColumns.length>0" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="topNItem">
+        <div class="measure-flex-row" v-for="(column, index) in measure.convertedColumns" :key="index" :class="{'ksd-mt-10': !isGroupBy || (isGroupBy && index > 0)}">
           <div class="flex-item">
-            <el-select class="measures-width" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable>
+            <el-select class="measures-width" size="medium" v-model="column.value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable @change="changeConColParamValue(column.value, index)">
               <el-option
                 v-for="(item, index) in getParameterValue"
                 :key="index"
@@ -78,10 +78,12 @@
             </el-select>
           </div>
           <el-button type="primary" size="medium" v-if="measure.expression === 'TOP_N' && index == 0" icon="el-icon-plus" plain circle @click="addNewProperty" class="ksd-ml-10"></el-button>
-          <el-button size="medium" icon="el-icon-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.converted_columns.length == 1"></el-button>
+          <el-button size="medium" icon="el-icon-minus" circle @click="deleteProperty(index)" class="del-pro ksd-ml-10" :class="{'del-margin-more': measure.expression === 'TOP_N' && index > 0}" :disabled="measure.expression === 'TOP_N' && measure.convertedColumns.length == 1"></el-button>
         </div>
-        <div v-if="measure.expression ==='CORR'" class="ksd-mt-10">
-          <el-select class="measures-addCC" size="medium" v-model="measure.converted_columns[0].value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable @change="changeCORRParamValue" :disabled="isCorrCCEdit">
+      </el-form-item>
+      <el-form-item v-if="measure.expression ==='CORR'" class="ksd-mt-10" prop="convertedColumns[0].value" :rules="rules.convertedColValidate" key="corrItem">
+        <div>
+          <el-select class="measures-addCC" size="medium" v-model="measure.convertedColumns[0].value" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable @change="changeCORRParamValue" :disabled="isCorrCCEdit">
             <el-option-group key="column" :label="$t('columns')">
               <el-option
                 v-for="(item, index) in getParameterValue"
@@ -138,8 +140,8 @@ export default class AddMeasure extends Vue {
   measure = {
     name: '',
     expression: 'SUM(column)',
-    parameter_value: [{type: 'column', value: '', table_guid: null}],
-    converted_columns: [],
+    parameterValue: {type: 'column', value: '', table_guid: null},
+    convertedColumns: [],
     return_type: ''
   }
   rules = {
@@ -148,7 +150,8 @@ export default class AddMeasure extends Vue {
       { validator: this.validateName, trigger: 'blur' }
     ],
     expression: [{ required: true, message: this.$t('requiredExpress'), trigger: 'change' }],
-    parameterValue: [{ required: true, message: this.$t('requiredParamValue'), trigger: 'change' }]
+    'parameterValue.value': [{ required: true, message: this.$t('requiredParamValue'), trigger: 'change' }],
+    convertedColValidate: [{ required: true, message: this.$t('requiredParamValue'), trigger: 'blur, change' }]
   }
   ccRules = {
     name: [{ required: true, message: this.$t('requiredCCName'), trigger: 'blur' }],
@@ -221,22 +224,23 @@ export default class AddMeasure extends Vue {
 
   changeExpression () {
     this.measure.return_type = ''
+    this.measure.parameterValue.value = ''
     if (this.measure.expression === 'SUM(constant)' || this.measure.expression === 'COUNT(constant)') {
-      this.measure.parameter_value[0].type = 'constant'
-      this.measure.parameter_value[0].value = 1
+      this.measure.parameterValue.type = 'constant'
+      this.measure.parameterValue.value = 1
     } else {
-      this.measure.parameter_value[0].type = 'column'
-      this.measure.parameter_value[0].value = ''
+      this.measure.parameterValue.type = 'column'
+      this.measure.parameterValue.value = ''
     }
     if (this.measure.expression === 'TOP_N') {
-      this.measure.converted_columns = [{type: 'column', value: '', table_guid: null}]
+      this.measure.convertedColumns = [{type: 'column', value: '', table_guid: null}]
       this.measure.return_type = 'topn(100)'
     }
     if (this.measure.expression === 'CORR') {
-      this.measure.converted_columns = [{type: 'column', value: '', table_guid: null}]
+      this.measure.convertedColumns = [{type: 'column', value: '', table_guid: null}]
     }
     if (this.measure.expression === 'COUNT_DISTINCT') {
-      this.measure.converted_columns = []
+      this.measure.convertedColumns = []
       this.measure.return_type = 'hllc(10)'
     }
     if (this.measure.expression === 'PERCENTILE_APPROX') {
@@ -246,11 +250,11 @@ export default class AddMeasure extends Vue {
 
   addNewProperty () {
     const GroupBy = {type: 'column', value: '', table_guid: null}
-    this.measure.converted_columns.push(GroupBy)
+    this.measure.convertedColumns.push(GroupBy)
   }
 
   deleteProperty (index) {
-    this.measure.converted_columns.splice(index, 1)
+    this.measure.convertedColumns.splice(index, 1)
   }
 
   getCCObj (value) {
@@ -264,7 +268,7 @@ export default class AddMeasure extends Vue {
   changeParamValue (value) {
     const alias = value.split('.')[0]
     const nTable = this.modelInstance.getTableByAlias(alias)
-    this.measure.parameter_value[0].table_guid = nTable.guid
+    this.measure.parameterValue.table_guid = nTable && nTable.guid
     const ccObj = this.getCCObj(value)
     if (ccObj) {
       this.ccObject = ccObj
@@ -276,10 +280,16 @@ export default class AddMeasure extends Vue {
     }
   }
 
+  changeConColParamValue (value, index) {
+    const alias = value.split('.')[0]
+    const nTable = this.modelInstance.getTableByAlias(alias)
+    this.measure.convertedColumns[index].table_guid = nTable && nTable.guid
+  }
+
   changeCORRParamValue (value) {
     const alias = value.split('.')[0]
     const nTable = this.modelInstance.getTableByAlias(alias)
-    this.measure.converted_columns[0].table_guid = nTable.guid
+    this.measure.convertedColumns[0].table_guid = nTable && nTable.guid
     const ccObj = this.getCCObj(value)
     if (ccObj) {
       this.corrCCObject = ccObj
@@ -302,31 +312,31 @@ export default class AddMeasure extends Vue {
 
   newCC () {
     this.resetCCVisble()
-    this.measure.parameter_value[0].value = ''
+    this.measure.parameterValue.value = ''
     this.isEdit = true
     this.ccVisible = true
   }
   newCorrCC () {
     this.resetCCVisble()
-    this.measure.converted_columns[0].value = ''
+    this.measure.convertedColumns[0].value = ''
     this.isCorrCCEdit = true
     this.corrCCVisible = true
   }
   saveCC (cc) {
-    this.measure.parameter_value[0].value = cc.tableAlias + '.' + cc.columnName
+    this.measure.parameterValue.value = cc.tableAlias + '.' + cc.columnName
     this.isEdit = false
   }
   saveCorrCC (cc) {
-    this.measure.converted_columns[0].value = cc.tableAlias + '.' + cc.columnName
+    this.measure.convertedColumns[0].value = cc.tableAlias + '.' + cc.columnName
     this.isCorrCCEdit = false
   }
   delCC (cc) {
-    this.measure.parameter_value[0].value = ''
+    this.measure.parameterValue.value = ''
     this.ccVisible = false
     this.isEdit = false
   }
   delCorrCC (cc) {
-    this.measure.converted_columns[0].value = ''
+    this.measure.convertedColumns[0].value = ''
     this.corrCCVisible = false
     this.isCorrCCEdit = false
   }
@@ -387,6 +397,10 @@ export default class AddMeasure extends Vue {
         if (measureClone.expression.indexOf('COUNT') !== -1) {
           measureClone.expression = 'COUNT'
         }
+        measureClone.convertedColumns.unshift(measureClone.parameterValue)
+        measureClone.parameter_value = measureClone.convertedColumns
+        delete measureClone.parameterValue
+        delete measureClone.convertedColumns
         if (this.isEditMeasure) {
           this.modelInstance.editMeasure(measureClone).then(() => {
             this.resetMeasure()
@@ -406,8 +420,8 @@ export default class AddMeasure extends Vue {
     this.measure = {
       name: '',
       expression: 'SUM(column)',
-      parameter_value: [{type: 'column', value: '', table_guid: null}],
-      converted_columns: [],
+      parameterValue: {type: 'column', value: '', table_guid: null},
+      convertedColumns: [],
       return_type: ''
     }
     this.ccVisible = false
@@ -415,9 +429,17 @@ export default class AddMeasure extends Vue {
   }
 
   initExpression () {
-    if (this.measure.expression === 'SUM' || this.measure.expression === 'COUNT') {
-      this.measure.expression = `${this.measure.expression}(${this.measure.parameter_value[0].type})`
+    let measureObj = objectClone(this.measureObj)
+    if (measureObj.parameter_value && measureObj.parameter_value.length) {
+      measureObj.parameterValue = measureObj.parameter_value[0]
+      measureObj.convertedColumns = measureObj.parameter_value.length > 1 ? measureObj.parameter_value.splice(1, measureObj.parameter_value.length - 1) : []
+      delete measureObj.parameter_value
+      this.changeParamValue(measureObj.parameterValue.value)
     }
+    if (measureObj.expression === 'SUM' || measureObj.expression === 'COUNT') {
+      measureObj.expression = `${measureObj.expression}(${measureObj.parameterValue.type})`
+    }
+    this.measure = measureObj
   }
 
   @Watch('isShow')
@@ -425,13 +447,9 @@ export default class AddMeasure extends Vue {
     this.measureVisible = val
     if (this.measureVisible) {
       this.resetMeasure()
-      this.measure = objectClone(this.measureObj)
       this.allTableColumns = this.modelInstance && this.modelInstance.getTableColumns()
       this.ccGroups = this.modelInstance.computed_columns
       this.initExpression()
-      if (this.measure.parameter_value[0].value) {
-        this.changeParamValue(this.measure.parameter_value[0].value)
-      }
     }
   }
 }

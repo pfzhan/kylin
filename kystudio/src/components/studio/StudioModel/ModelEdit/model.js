@@ -118,12 +118,8 @@ class NModel {
     })
     // renderMeasure
     this.all_measures.forEach((x) => {
-      const alias = x.parameter_value[0].value.split('.')[0]
-      const nTable = this.getTableByAlias(alias)
-      const guid = nTable && nTable.guid
-      x.parameter_value[0].table_guid = guid
-      if (x.converted_columns.length > 0) {
-        x.converted_columns.forEach((y) => {
+      if (x.parameter_value.length > 0) {
+        x.parameter_value.forEach((y) => {
           const convertedAlias = y.value.split('.')[0]
           const convertenTable = this.getTableByAlias(convertedAlias)
           const convertedGuid = convertenTable && convertenTable.guid
@@ -309,9 +305,8 @@ class NModel {
     let allMeasures = objectClone(this._mount.all_measures)
     // 移除前端业务字断
     allMeasures.forEach((col) => {
-      delete col.parameter_value[0].table_guid
-      if (col.converted_columns && col.converted_columns.length) {
-        col.converted_columns.forEach((k) => {
+      if (col.parameter_value && col.parameter_value.length) {
+        col.parameter_value.forEach((k) => {
           delete k.table_guid
         })
       }
@@ -347,19 +342,13 @@ class NModel {
   // private 更新所有measure里的alias
   _updateAllMeasuresAlias () {
     this.all_measures.forEach((x) => {
-      const guid = x.parameter_value[0].table_guid
-      const nTable = guid && this.getTableByGuid(guid)
-      if (nTable) {
-        const finalAlias = nTable.alias
-        x.parameter_value[0].value = finalAlias + '.' + x.parameter_value[0].value.split('.')[1]
-      }
-      if (x.converted_columns.length > 0) {
-        x.converted_columns.forEach((y) => {
-          const convertedGuid = y.table_guid
-          const convertedNTable = convertedGuid && this.getTableByGuid(convertedGuid)
-          if (convertedNTable) {
-            const convertedAlias = convertedNTable.alias
-            y.value = convertedAlias + '.' + y.value.split('.')[1]
+      if (x.parameter_value.length > 0) {
+        x.parameter_value.forEach((y) => {
+          const guid = y.table_guid
+          const nTable = guid && this.getTableByGuid(guid)
+          if (nTable) {
+            const alias = nTable.alias
+            y.value = alias + '.' + y.value.split('.')[1]
           }
         })
       }
@@ -551,19 +540,7 @@ class NModel {
     return indexOfObjWithSomeKey(this.dimensions, 'table_guid', guid) >= 0
   }
   _checkTableUseInMeasure (guid) {
-    let checkUsed = false
-    this._mount.all_measures.forEach((measure) => {
-      if (!checkUsed) {
-        if (indexOfObjWithSomeKey(measure.parameter_value, 'table_guid', guid) >= 0) {
-          checkUsed = true
-        } else if (measure.converted_columns && measure.converted_columns.length) {
-          checkUsed = indexOfObjWithSomeKey(measure.converted_columns, 'table_guid', guid) >= 0
-        } else {
-          checkUsed = false
-        }
-      }
-    })
-    return checkUsed
+    return indexOfObjWithSomeKey(this._mount.all_measures.parameter_value, 'table_guid', guid) >= 0
   }
   _checkTableUseInCC (guid) {
     return indexOfObjWithSomeKey(this._mount.computed_columns, 'table_guid', guid) >= 0
@@ -652,13 +629,8 @@ class NModel {
   _updateAllMeasuresCCToNewFactTable () {
     let factTable = this.getFactTable()
     this.all_measures.forEach((x) => {
-      let cc = this.getCCObj(x.parameter_value[0].value)
-      if (cc && factTable) {
-        x.parameter_value[0].value = factTable.alias + '.' + x.parameter_value[0].value.split('.')[1]
-        x.parameter_value[0].table_guid = factTable.guid
-      }
-      if (x.converted_columns.length > 0) {
-        x.converted_columns.forEach((y) => {
+      if (x.parameter_value.length > 0) {
+        x.parameter_value.forEach((y) => {
           let cc = this.getCCObj(y.value)
           if (cc && factTable) {
             y.table_guid = factTable.guid
@@ -935,16 +907,14 @@ class NModel {
   // measure parameterValue 临时结构
   _delMeasureByAlias (alias) {
     let measures = this._mount.all_measures.filter((item) => {
-      if (item.parameter_value[0].type === 'constant' || item.parameter_value[0] && item.parameter_value[0].type === 'column' && item.parameter_value[0].value.split('.')[0] !== alias) {
-        if (item.converted_columns && item.converted_columns.length > 0) {
-          const finalConvertedColumns = item.converted_columns.filter((column) => {
-            return column.type === 'constant' || column.type === 'column' && column.value.split('.')[0] !== alias
-          })
-          item.converted_columns.splice(0, item.converted_columns.length)
-          item.converted_columns.push(...finalConvertedColumns)
-        }
-        return item
+      if (item.parameter_value && item.parameter_value.length > 0) {
+        const finalColumns = item.parameter_value.filter((column) => {
+          return column.type === 'constant' || column.type === 'column' && column.value.split('.')[0] !== alias
+        })
+        item.parameter_value.splice(0, item.parameter_value.length)
+        item.parameter_value.push(...finalColumns)
       }
+      return item
     })
     this._mount.all_measures.splice(0, this._mount.all_measures.length)
     this._mount.all_measures.push(...measures)
