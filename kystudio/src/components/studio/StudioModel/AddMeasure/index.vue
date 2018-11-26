@@ -383,9 +383,9 @@ export default class AddMeasure extends Vue {
     return targetColumns
   }
 
-  handleHide () {
+  handleHide (isSubmit) {
     this.measureVisible = false
-    this.$emit('closeAddMeasureDia')
+    this.$emit('closeAddMeasureDia', isSubmit)
   }
   checkMeasure () {
     this.$refs.measureForm.validate((valid) => {
@@ -404,12 +404,12 @@ export default class AddMeasure extends Vue {
         if (this.isEditMeasure) {
           this.modelInstance.editMeasure(measureClone).then(() => {
             this.resetMeasure()
-            this.handleHide()
+            this.handleHide(true)
           })
         } else {
           this.modelInstance.addMeasure(measureClone).then(() => {
             this.resetMeasure()
-            this.handleHide()
+            this.handleHide(true)
           })
         }
       }

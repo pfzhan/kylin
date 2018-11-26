@@ -65,6 +65,18 @@ Vue.directive('clickoutside', {
     delete el[ctx]
   }
 })
+Vue.directive('timerHide', {
+  inserted: function (el, binding) {
+    let arg = binding.arg || 1
+    let expression = binding.expression
+    setTimeout(() => {
+      el.style.display = 'none'
+      if (typeof expression === 'function') {
+        expression()
+      }
+    }, arg * 1000)
+  }
+})
 Vue.directive('visible', {
   // 当绑定元素插入到 DOM 中。
   inserted: function (el, binding) {

@@ -31,7 +31,7 @@
             </template>
           </ul>
         </div>
-        <div class="drag-bar" v-drag:change.height="t.drawSize" :data-zoom="modelRender.zoom"><i class="el-icon-ksd-bottom_bar"></i></div>
+        <div class="drag-bar" v-drag:change.height.width="t.drawSize" :data-zoom="modelRender.zoom"><i class="el-icon-ksd-bottom_bar"></i></div>
       </div>
       <!-- table box end -->
     </div>
@@ -85,7 +85,7 @@
           <div class="panel-box panel-dimension" @mousedown.stop="activePanel('dimension')" :style="panelStyle('dimension')" v-if="panelAppear.dimension.display">
             <div class="panel-title" @mousedown="activePanel('dimension')" v-drag:change.right.top="panelAppear.dimension">
               <span><i class="el-icon-ksd-dimension"></i></span>
-              <span class="title">{{$t('kylinLang.common.dimension')}}</span>
+              <span class="title">{{$t('kylinLang.common.dimension')}} ({{allDimension.length}})</span>
               <span class="close" @click="toggleMenu('dimension')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
@@ -120,7 +120,7 @@
           <div class="panel-box panel-measure" @mousedown.stop="activePanel('measure')" :style="panelStyle('measure')"  v-if="panelAppear.measure.display">
             <div class="panel-title" @mousedown="activePanel('measure')" v-drag:change.right.top="panelAppear.measure">
               <span><i class="el-icon-ksd-measure"></i></span>
-              <span class="title">{{$t('kylinLang.common.measure')}}</span>
+              <span class="title">{{$t('kylinLang.common.measure')}} ({{modelRender.all_measures.length}})</span>
               <span class="close" @click="toggleMenu('measure')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
@@ -154,7 +154,7 @@
           <div class="panel-box panel-cc" @mousedown.stop="activePanel('cc')" :style="panelStyle('cc')"  v-if="panelAppear.cc.display">
             <div class="panel-title" @mousedown="activePanel('cc')" v-drag:change.right.top="panelAppear.cc">
               <span><i class="el-icon-ksd-auto_computed_column"></i></span>
-              <span class="title">{{$t('kylinLang.model.computedColumn')}}</span>
+              <span class="title">{{$t('kylinLang.model.computedColumn')}} ({{modelRender.computed_columns.length}})</span>
               <span class="close" @click="toggleMenu('cc')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
@@ -188,6 +188,12 @@
     <transition name="bouncecenter">
       <div class="panel-search-box panel-box" :class="{'full-screen': isFullScreen}"  v-event-stop :style="panelStyle('search')" v-if="panelAppear.search.display">
         <span class="close" @click="toggleMenu('search')"><i class="el-icon-ksd-close"></i></span>
+         <el-alert class="search-action-result" v-if="modelSearchActionSuccessTip" v-timer-hide:2
+          :title="modelSearchActionSuccessTip"
+          type="success"
+          :closable="false"
+          show-icon>
+        </el-alert>
         <el-input @input="searchModelEverything"  clearable class="search-input" placeholder="search table, dimension, measure, column name" v-model="modelGlobalSearch" prefix-icon="el-icon-search"></el-input>
         <transition name="bounceleft">
           <div v-scroll class="search-result-box" v-keyborad-select="{scope:'.search-content', searchKey: modelGlobalSearch}" v-show="modelGlobalSearch && showSearchResult" v-search-highlight="{scope:'.search-name', hightlight: modelGlobalSearch}">
@@ -198,7 +204,7 @@
               </ul>
               <div class="ky-line"></div>
             </div>
-            <div v-show="Object.keys(searchResultData).length === 0" class="search-noresult">No Result!</div>
+            <div v-show="Object.keys(searchResultData).length === 0" class="search-noresult">{{$t('kylinLang.common.noData')}}</div>
           </div>
         </div>
         </transition>
@@ -379,6 +385,7 @@ export default class ModelEdit extends Vue {
   showSearchResult = true
   modelGlobalSearchResult = []
   modelData = {}
+  modelSearchActionSuccessTip = ''
   globalLoading = loadingBox()
   renderBox = modelRenderConfig.drawBox
   measureVisible = false
@@ -463,6 +470,7 @@ export default class ModelEdit extends Vue {
     if (this.panelAppear[i].display) {
       this.activePanel(i)
     }
+    this.modelSearchActionSuccessTip = ''
   }
   activePanel (i) {
     var curPanel = this.panelAppear[i]
@@ -471,7 +479,10 @@ export default class ModelEdit extends Vue {
   activeTablePanel (t) {
     this.modelInstance.setIndexTop(Object.values(this.modelRender.tables), t, 'drawSize')
   }
-  closeAddMeasureDia () {
+  closeAddMeasureDia (isSubmit) {
+    if (isSubmit) {
+      this.modelSearchActionSuccessTip = 'measure 保存成功'
+    }
     this.measureVisible = false
   }
   changeTableType (t) {
@@ -551,16 +562,6 @@ export default class ModelEdit extends Vue {
       convertedColumns: [],
       return_type: ''
     }
-  }
-  saveMeasure (measureObj, ccObj, isEdit) {
-    if (isEdit) {
-      this.modelInstance.editMeasure(measureObj)
-      this.modelInstance.addCC(ccObj)
-    } else {
-      this.modelInstance.addMeasure(measureObj)
-      this.modelInstance.addCC(ccObj)
-    }
-    this.measureVisible = false
   }
   editDimension (dimension, i) {
     dimension._id = i
@@ -762,12 +763,15 @@ export default class ModelEdit extends Vue {
     }
   }
   callJoinDialog (data) {
-    // 弹出框弹出
-    this.showJoinDialog(data).then(({isSubmit, data}) => {
-      // 保存的回调
-      if (isSubmit) {
-        this.saveLinkData(data)
-      }
+    return new Promise((resolve, reject) => {
+      // 弹出框弹出
+      this.showJoinDialog(data).then(({isSubmit, data}) => {
+        // 保存的回调
+        if (isSubmit) {
+          resolve(data)
+          this.saveLinkData(data)
+        }
+      })
     })
   }
   saveLinkData (data) {
@@ -823,9 +827,8 @@ export default class ModelEdit extends Vue {
   }
   searchHandleStart = false // 标识业务弹窗是不是通过搜索弹出的
   selectResult (e, select) {
+    this.modelSearchActionSuccessTip = ''
     this.searchHandleStart = true
-    // this.showSearchResult = false
-    // this.modelGlobalSearch = ''
     var moreInfo = select.more
     if (select.action === 'showtable') {
       if (select.more) {
@@ -842,6 +845,8 @@ export default class ModelEdit extends Vue {
         pid: pguid,
         fid: fguid,
         tables: this.modelRender.tables
+      }).then(() => {
+        this.modelSearchActionSuccessTip = 'table join 条件编辑成功'
       })
     }
     if (select.action === 'tableaddjoin') {
@@ -850,6 +855,8 @@ export default class ModelEdit extends Vue {
         fid: '',
         pid: pguid,
         tables: this.modelRender.tables
+      }).then(() => {
+        this.modelSearchActionSuccessTip = 'table join 条件添加成功'
       })
     }
     if (select.action === 'adddimension') {
@@ -858,12 +865,20 @@ export default class ModelEdit extends Vue {
           column: moreInfo.full_colname
         },
         modelInstance: this.modelInstance
+      }).then((res) => {
+        if (res && res.isSubmit) {
+          this.modelSearchActionSuccessTip = 'dimension添加成功'
+        }
       })
     }
     if (select.action === 'editdimension') {
       this.showSingleDimensionDialog({
         dimension: moreInfo,
         modelInstance: this.modelInstance
+      }).then((res) => {
+        if (res && res.isSubmit) {
+          this.modelSearchActionSuccessTip = 'dimension修改成功'
+        }
       })
     }
     if (select.action === 'editjoin') {
@@ -874,6 +889,8 @@ export default class ModelEdit extends Vue {
         pid: pguid,
         fid: fguid,
         tables: this.modelRender.tables
+      }).then((res) => {
+        this.modelSearchActionSuccessTip = '连接条件编辑成功'
       })
     }
     if (select.action === 'addmeasure') {
@@ -899,6 +916,8 @@ export default class ModelEdit extends Vue {
         primaryTable: {},
         tables: this.modelRender.tables,
         ftableName: moreInfo.name
+      }).then((res) => {
+        this.modelSearchActionSuccessTip = '连接条件添加成功'
       })
     }
     this.panelAppear.search.display = false
@@ -1386,6 +1405,14 @@ export default class ModelEdit extends Vue {
             color:@text-title-color;
           }
         }
+      }
+      .search-action-result {
+        width:783px;
+        // margin: 0 auto;
+        top: 90px;
+        position: absolute;
+        left: 50%;
+        margin-left: -392px;
       }
       .search-input {
         .search-position();

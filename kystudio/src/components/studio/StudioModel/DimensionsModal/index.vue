@@ -8,15 +8,15 @@
     @close="isShow && handleClose(false)">
     <template v-if="isFormShow">
         <div class="add_dimensions">
-          <div v-for="(table, index) in factTable" :key="index">
+          <div v-for="(table, index) in factTable" class="ksd-mb-10" :key="index">
             <div @click="toggleTableShow(table)" class="table-header">
               <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
               <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
               <span class="ksd-ml-2"><i class="el-icon-ksd-fact_table"></i></span><span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span> </span>
             </div>
-            <el-table
-              v-if="table.show"
+            <el-table style="width:98%;margin: 0 auto"
               class="ksd-mt-10"
+              v-if="table.show"
               border
               :data="table.columns"
               @row-click="(row) => {dimensionRowClick(row, table.guid)}"
@@ -60,7 +60,7 @@
             </el-table>
           </div>
 
-          <div v-for="(table, index) in lookupTable" :key="index">
+          <div v-for="(table, index) in lookupTable" class="ksd-mb-10" :key="index">
             <div @click="toggleTableShow(table)" class="table-header">
               <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
               <i class="el-icon-arrow-down  ksd-fright ksd-mt-14 right-icon" v-else></i>
@@ -69,6 +69,7 @@
             <el-table
               v-if="table.show"
               class="ksd-mt-10"
+              style="width:98%;margin: 0 auto"
               border
               :data="table.columns" :ref="table.guid"
               @row-click="(row) => {dimensionRowClick(row, table.guid)}"
@@ -326,13 +327,16 @@ export default class DimensionsModal extends Vue {
     font-weight:@font-medium;
   }
   .table-header {
+    padding-left:10px;
+    background-color: @grey-4;
     &:hover {
+      color: @base-color;
       .right-icon {
         color:@base-color-2!important;
         cursor: pointer;
       }
     }
-    border-bottom:solid 1px @line-border-color;
+    // border-bottom:solid 1px @line-border-color;
     height:40px;
     line-height:40px;
     cursor:pointer;
