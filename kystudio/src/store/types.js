@@ -263,6 +263,7 @@ export const SAVE_SERVICE_STATE = 'SAVE_SERVICE_STATE'
 export const GET_SERVICE_STATE = 'GET_SERVICE_STATE'
 export const GET_CANARY_REPORT = 'GET_CANARY_REPORT'
 export const SAVE_CANARY_REPORT = 'SAVE_CANARY_REPORT'
+export const INIT_SPEC = 'INIT_SPEC'
 // kybot account and upload
 export const GET_KYACCOUNT = 'GET_KYACCOUNT'
 export const GET_KYSTATUS = 'GET_KYSTATUS'

@@ -1,6 +1,8 @@
 import api from './../service/api'
 import * as types from './types'
 import { cacheLocalStorage } from 'util'
+import { getAvailableOptions } from '../util/specParser'
+import spec from '../config/spec'
 export default {
   state: {
     encodingTip: {
@@ -33,7 +35,10 @@ export default {
       currentPathName: ''
     },
     overLock: localStorage.getItem('buyit'),
-    loginKyaccountDialog: false
+    loginKyaccountDialog: false,
+    allOptionMaps: [],
+    enableOptionMaps: {},
+    disableOptionMaps: {}
   },
   mutations: {
     [types.SAVE_DEFAULT_CONFIG]: function (state, { list, type }) {
@@ -45,6 +50,11 @@ export default {
     [types.TOGGLE_MENU]: function (state, isBrief) {
       state.layoutConfig.briefMenu = isBrief
       cacheLocalStorage('isBrief', isBrief)
+    },
+    [types.INIT_SPEC]: function (state) {
+      state.allOptionMaps = spec.allOptionMaps
+      state.enableOptionMaps = spec.enableOptionMaps
+      state.disableOptionMaps = spec.disableOptionMaps
     }
   },
   actions: {
@@ -63,7 +73,12 @@ export default {
     },
     isFullScreen (state) {
       return state.layoutConfig.fullScreen
+    },
+    availableMenus (state, getters, rootState, rootGetters) {
+      const projectType = rootGetters.currentProjectData.maintain_model_type
+      const role = rootState.user.currentUser.authorities.map(authority => authority.authority)
+
+      return getAvailableOptions('menu', { projectType, role })
     }
   }
 }
-

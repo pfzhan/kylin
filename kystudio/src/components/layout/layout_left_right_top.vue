@@ -12,13 +12,13 @@
                 <i :class="item.icon" class="ksd-fs-16"></i>
                 <span slot="title">{{$t('kylinLang.menu.' + item.name)}}</span>
               </el-menu-item>
-              <el-submenu :index="item.path" v-if="item.children" :id="item.name" :key="index">
+              <el-submenu :index="item.path" v-if="item.children && showMenuByRole(item.name)" :id="item.name" :key="index">
                 <template slot="title">
                   <i :class="item.icon" class="ksd-fs-16 menu-icon" ></i>
                   <span>{{$t('kylinLang.menu.' + item.name)}}</span><div v-if="item.name === 'studio' && reachThreshold" class="dot-icon"></div>
                 </template>
                 <el-menu-item-group>
-                  <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path">
+                  <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
                     <span style="position:relative;">
                       {{$t('kylinLang.menu.' + child.name)}}
                       <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'favorite_query'"></span>
@@ -182,7 +182,8 @@ import $ from 'jquery'
       'isFullScreen',
       'currentSelectedProject',
       'briefMenuGet',
-      'currentProjectData'
+      'currentProjectData',
+      'availableMenus'
     ]),
     modelSpeedEvents () {
       return this.$store.state.model.modelSpeedEvents
@@ -336,10 +337,7 @@ export default class LayoutLeftRightTop extends Vue {
     // })
   }
   showMenuByRole (menuName) {
-    if ((menuName === 'system' && this.isAdmin === false) || (menuName === 'monitor' && !this.hasPermissionWithoutQuery && !this.isAdmin) || (menuName === 'auto' && this.isAdmin === false && !this.hasAdminPermissionOfProject)) {
-      return false
-    }
-    return true
+    return this.availableMenus.includes(menuName)
   }
   changePath (path) {
     this.defaultActive = path

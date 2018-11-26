@@ -73,6 +73,7 @@ export default {
       return new Promise((resolve, reject) => {
         api.system.getAuthentication().then((response) => {
           commit(types.SAVE_AUTHENTICATION, { authentication: response.data })
+          commit(types.INIT_SPEC)
           resolve(response.data)
         }, () => {
           reject()
