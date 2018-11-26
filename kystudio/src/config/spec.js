@@ -75,12 +75,10 @@ export default {
       ]
     },
     "aggIndexActions": {
-      "keyPattern": "projectType-role",
+      "keyPattern": "projectType",
       "entries": [
-        { "key": "manualMaintain-*", "value": "none" },
-        { "key": "autoMaintain-[admin,management,operation]", "value": "viewAggGroup,editAggGroup,addAggGroup" },
-        { "key": "autoMaintain-operation", "value": "viewAggGroup,editAggGroup" },
-        { "key": "autoMaintain-read", "value": "viewAggGroup" }
+        { "key": "manualMaintain", "value": "viewAggGroup,editAggGroup,addAggGroup" },
+        { "key": "autoMaintain", "value": "none" }
       ]
     }
   }
