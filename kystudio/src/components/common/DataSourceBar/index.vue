@@ -25,6 +25,7 @@
         :is-expand-on-click-node="isExpandOnClickNode"
         :is-resizable="isResizable"
         :on-filter="handleFilter"
+        :filter-white-list-types="['column']"
         :empty-text="$t('emptyText')"
         @click="handleClick"
         @drag="handleDrag"
