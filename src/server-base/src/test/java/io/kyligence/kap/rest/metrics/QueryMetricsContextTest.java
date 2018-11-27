@@ -24,17 +24,15 @@
 
 package io.kyligence.kap.rest.metrics;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kylin.common.QueryContext;
-import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -134,6 +132,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals("Other error", influxdbTags.get("error_type"));
             Assert.assertEquals("localhost", influxdbTags.get("hostname"));
             Assert.assertEquals("suite_1", influxdbTags.get("suite"));
+            Assert.assertEquals(QueryMetricsContext.UNKNOWN, influxdbTags.get("answered_by"));
 
         } finally {
             QueryContext.reset();
@@ -184,7 +183,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             QueryMetricsContext.start(queryContext.getQueryId());
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
 
-            queryContext.setPushdownEngine("MOCKUP");
             queryContext.setErrorCause(new SqlValidatorException("Syntax error", new RuntimeException()));
 
             final SQLRequest request = new SQLRequest();
@@ -193,6 +191,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             request.setUsername("ADMIN");
 
             final SQLResponse response = new SQLResponse(null, null, null, 0, false, null, true, true);
+            response.setEngineType("MOCKUP");
+            response.setAnsweredBy(Lists.newArrayList("MOCKUP"));
             response.setDuration(100L);
             response.setTotalScanBytes(999);
             response.setTotalScanCount(111);
@@ -206,6 +206,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals("Unknown", influxdbTags.get("suite"));
             Assert.assertEquals("MOCKUP", influxdbTags.get("engine_type"));
             Assert.assertEquals("Syntax error", influxdbTags.get("error_type"));
+            Assert.assertEquals("MOCKUP", influxdbTags.get("answered_by"));
 
             // assert fields
             final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
@@ -246,8 +247,11 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             request.setUsername("ADMIN");
 
             final SQLResponse response = new SQLResponse();
-
-            mockOLAPContext();
+            response.setAnsweredBy(Lists.newArrayList("mocked_model"));
+            QueryMetricsContext.RealizationMetrics aggIndex = QueryMetricsContext.createRealizationMetrics("1", QueryMetricsContext.AGG_INDEX, "mocked_model");
+            QueryMetricsContext.RealizationMetrics tableIndex = QueryMetricsContext.createRealizationMetrics(NCuboidDesc.TABLE_INDEX_START_ID + "2", QueryMetricsContext.TABLE_INDEX, "mocked_model");
+            response.setRealizationMetrics(Lists.newArrayList(aggIndex, tableIndex));
+            response.setEngineType(Joiner.on(",").join((Lists.newArrayList(QueryMetricsContext.AGG_INDEX, QueryMetricsContext.TABLE_INDEX))));
 
             QueryMetricsContext.log("query logs");
 
@@ -255,12 +259,12 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
             // assert query metric tags
             final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
-            Assert.assertEquals("Agg Index", influxdbTags.get("engine_type"));
+            Assert.assertEquals("Agg Index,Table Index", influxdbTags.get("engine_type"));
             Assert.assertEquals("No realization found", influxdbTags.get("error_type"));
 
             // assert query metric fields
             final Map<String, Object> influxdbFields = metricsContext.getInfluxdbFields();
-            Assert.assertEquals("1,2", influxdbFields.get("realizations"));
+            Assert.assertEquals("1,200000000002", influxdbFields.get("realizations"));
             Assert.assertEquals("query logs", influxdbFields.get("log"));
 
             // assert realizations
@@ -276,9 +280,9 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             final Map<String, String> actualTags = actual.getInfluxdbTags();
             Assert.assertEquals("default", actualTags.get("project"));
             Assert.assertEquals("Unknown", actualTags.get("suite"));
-            Assert.assertEquals("mock_model", actualTags.get("model"));
-            Assert.assertEquals("1", actualTags.get("realization_name"));
-            Assert.assertEquals("Agg Index", actualTags.get("realization_type"));
+            Assert.assertEquals("mocked_model", actualTags.get("model"));
+            Assert.assertEquals("1", actualTags.get("cuboid_layout_id"));
+            Assert.assertEquals(QueryMetricsContext.AGG_INDEX, actualTags.get("realization_type"));
         } finally {
             QueryContext.reset();
             QueryMetricsContext.reset();
@@ -306,6 +310,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             request.setUsername("ADMIN");
 
             final SQLResponse response = new SQLResponse();
+            response.setAnsweredBy(Lists.newArrayList("mocked_model"));
             response.setHitExceptionCache(true);
             response.setServer("localhost");
             response.setSuite("suite_1");
@@ -340,6 +345,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             request.setUsername("ADMIN");
 
             final SQLResponse response = new SQLResponse();
+            response.setAnsweredBy(Lists.newArrayList("mocked_model"));
             response.setHitExceptionCache(true);
             response.setServer("localhost");
             response.setSuite("suite_1");
@@ -355,34 +361,5 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             QueryMetricsContext.kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type",
                     "BLACK_HOLE");
         }
-    }
-
-    private void mockOLAPContext() {
-        for (long i = 1; i <= 2; i++) {
-            final OLAPContext mock = new OLAPContext((int) i);
-
-            final NDataModel mockModel = Mockito.spy(new NDataModel());
-            Mockito.when(mockModel.getName()).thenReturn("mock_model");
-            Mockito.when(mockModel.getAlias()).thenReturn("mock_model_alias");
-            final IRealization mockRealization = Mockito.mock(IRealization.class);
-            Mockito.when(mockRealization.getModel()).thenReturn(mockModel);
-            mock.realization = mockRealization;
-
-            final NCuboidDesc mockCuboidDesc = new NCuboidDesc();
-            if (i == 1) {
-                // agg index
-                mockCuboidDesc.setId(i);
-            } else {
-                // table index
-                mockCuboidDesc.setId(NCuboidDesc.TABLE_INDEX_START_ID + i);
-            }
-            final NCuboidLayout mockLayout = new NCuboidLayout();
-            mockLayout.setCuboidDesc(mockCuboidDesc);
-            mock.storageContext.setCandidate(new NLayoutCandidate(mockLayout));
-            mock.storageContext.setCuboidId(i);
-
-            OLAPContext.registerContext(mock);
-        }
-
     }
 }

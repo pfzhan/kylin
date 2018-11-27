@@ -27,6 +27,7 @@ package io.kyligence.kap.server;
 
 import com.jayway.jsonpath.JsonPath;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.query.KylinTestBase;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
@@ -73,6 +74,8 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         System.setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         System.setProperty("kylin.query.pushdown.runner-class-name", "org.apache.kylin.query.adhoc.PushDownRunnerJdbcImpl");
         System.setProperty("kylin.query.pushdown.converter-class-names", "org.apache.kylin.source.adhocquery.HivePushDownConverter");
+        System.setProperty("kylin.query.pushdown.cache-enabled", "true");
+        System.setProperty("kylin.query.cache-threshold-duration", "0");
 
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa",
@@ -109,6 +112,21 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
                 .andDo(MockMvcResultHandlers.print())
                 .andReturn();
 
+        // push down with cache
+        mockMvc.perform(MockMvcRequestBuilders
+                .post("/api/query")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(sqlRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.results[0].length()")
+                        .value(resultSet.getMetaData().getColumnCount()))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.pushDown").value(true))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.engineType").value(QueryContext.PUSHDOWN_RDBMS))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.answeredBy").value("CACHE"))
+                .andDo(MockMvcResultHandlers.print())
+                .andReturn();
+
         h2Connection.close();
         System.clearProperty("kylin.query.pushdown.runner-class-name");
         System.clearProperty("kylin.query.pushdown.converter-class-names");
@@ -116,6 +134,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
         System.clearProperty("kylin.query.pushdown.jdbc.driver");
         System.clearProperty("kylin.query.pushdown.jdbc.username");
         System.clearProperty("kylin.query.pushdown.jdbc.password");
+        System.clearProperty("kylin.query.pushdown.cache-enabled");
     }
 
     @Test

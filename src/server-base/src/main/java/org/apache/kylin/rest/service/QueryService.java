@@ -71,6 +71,8 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Collections2;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -268,27 +270,17 @@ public class QueryService extends BasicService {
         return queries;
     }
 
-    public void logQuery(final SQLRequest request, final SQLResponse response) {
+    public String logQuery(final SQLRequest request, final SQLResponse response) {
         final String user = aclEvaluate.getCurrentUserName();
-        final List<String> realizationNames = new LinkedList<>();
-        final Set<Long> cuboidIds = new HashSet<Long>();
+        Collection<String> modelNames = Lists.newArrayList();
+        Collection<String> cuboidLayoutIds = Lists.newArrayList();
         float duration = response.getDuration() / (float) 1000;
         boolean storageCacheUsed = response.isStorageCacheUsed();
         boolean isPushDown = response.isPushDown();
 
-        if (!response.isHitExceptionCache() && null != OLAPContext.getThreadLocalContexts()) {
-            for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
-                Long cuboid = ctx.storageContext.getCuboidId();
-                if (cuboid != null) {
-                    //Some queries do not involve cuboid, e.g. lookup table query
-                    cuboidIds.add(cuboid);
-                }
-
-                if (ctx.realization != null) {
-                    realizationNames.add(ctx.realization.getCanonicalName());
-                }
-
-            }
+        if (response.getRealizationMetrics() != null) {
+            modelNames = Collections2.transform(response.getRealizationMetrics(), input -> input.getModelName());
+            cuboidLayoutIds = Collections2.transform(response.getRealizationMetrics(), input -> input.getCuboidLayoutId());
         }
 
         int resultRowCount = 0;
@@ -306,26 +298,29 @@ public class QueryService extends BasicService {
         stringBuilder.append("Success: ").append((null == response.getExceptionMessage())).append(newLine);
         stringBuilder.append("Duration: ").append(duration).append(newLine);
         stringBuilder.append("Project: ").append(request.getProject()).append(newLine);
-        stringBuilder.append("Realization Names: ").append(realizationNames).append(newLine);
-        stringBuilder.append("Cuboid Ids: ").append(cuboidIds).append(newLine);
-        stringBuilder.append("Total scan count: ").append(response.getTotalScanCount()).append(newLine);
-        stringBuilder.append("Total scan bytes: ").append(response.getTotalScanBytes()).append(newLine);
-        stringBuilder.append("Result row count: ").append(resultRowCount).append(newLine);
+        stringBuilder.append("Realization Names: ").append(modelNames).append(newLine);
+        stringBuilder.append("Cuboid Layout Ids: ").append(cuboidLayoutIds).append(newLine);
+        stringBuilder.append("Total Scan Count: ").append(response.getTotalScanCount()).append(newLine);
+        stringBuilder.append("Total Scan Bytes: ").append(response.getTotalScanBytes()).append(newLine);
+        stringBuilder.append("Result Row Count: ").append(resultRowCount).append(newLine);
         stringBuilder.append("Accept Partial: ").append(request.isAcceptPartial()).append(newLine);
         stringBuilder.append("Is Partial Result: ").append(response.isPartial()).append(newLine);
         stringBuilder.append("Hit Exception Cache: ").append(response.isHitExceptionCache()).append(newLine);
-        stringBuilder.append("Storage cache used: ").append(storageCacheUsed).append(newLine);
+        stringBuilder.append("Storage Cache Used: ").append(storageCacheUsed).append(newLine);
         stringBuilder.append("Is Query Push-Down: ").append(isPushDown).append(newLine);
         stringBuilder.append("Is Prepare: ").append(BackdoorToggles.getPrepareOnly()).append(newLine);
         stringBuilder.append("Trace URL: ").append(response.getTraceUrl()).append(newLine);
         stringBuilder.append("Message: ").append(response.getExceptionMessage()).append(newLine);
         stringBuilder.append("==========================[QUERY]===============================").append(newLine);
 
+        String log = stringBuilder.toString();
+
         if (QueryMetricsContext.isStarted()) {
-            QueryMetricsContext.log(stringBuilder.toString());
+            QueryMetricsContext.log(log);
         }
 
-        logger.info(stringBuilder.toString());
+        logger.info(log);
+        return log;
     }
 
     public SQLResponse doQueryWithCache(SQLRequest sqlRequest, boolean isQueryInspect) throws IOException {
@@ -537,6 +532,7 @@ public class QueryService extends BasicService {
         } else if ((element = successCache.get(sqlRequest.getCacheKey())) != null) {
             logger.info("The sqlResponse is found in SUCCESS_QUERY_CACHE");
             response = (SQLResponse) element.getObjectValue();
+            response.setAnsweredBy(Lists.newArrayList("CACHE"));
             response.setStorageCacheUsed(true);
         }
 
@@ -585,7 +581,7 @@ public class QueryService extends BasicService {
             parameters.put(OLAPContext.PRM_ACCEPT_PARTIAL_RESULT, String.valueOf(sqlRequest.isAcceptPartial()));
             OLAPContext.setParameters(parameters);
             // force clear the query context before a new query
-            OLAPContext.clearThreadLocalContexts();
+            clearThreadLocalContexts();
 
             return execute(correctedSql, sqlRequest, conn);
 
@@ -594,7 +590,11 @@ public class QueryService extends BasicService {
         }
     }
 
-    Connection getConnection(String project) throws SQLException {
+    public void clearThreadLocalContexts() {
+        OLAPContext.clearThreadLocalContexts();
+    }
+
+    public Connection getConnection(String project) throws SQLException {
         return QueryConnection.getConnection(project);
     }
 
@@ -949,22 +949,27 @@ public class QueryService extends BasicService {
     }
 
     private SQLResponse buildSqlResponse(Boolean isPushDown, List<List<String>> results,
-            List<SelectedColumnMeta> columnMetas) {
-
+                                                List<SelectedColumnMeta> columnMetas) {
         boolean isPartialResult = false;
         List<String> models = Lists.newArrayList();
         StringBuilder cubeSb = new StringBuilder();
         StringBuilder logSb = new StringBuilder("Processed rows for each storageContext: ");
+        List<QueryMetricsContext.RealizationMetrics> realizationMetrics = Lists.newArrayList();
+        Set<String> engineTypes = new HashSet<>();
         if (OLAPContext.getThreadLocalContexts() != null) { // contexts can be null in case of 'explain plan for'
             for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
                 if (ctx.realization != null) {
-                    models.add(ctx.realization.getModel().getName());
+                    models.add(ctx.realization.getModel().getAlias());
                     isPartialResult |= ctx.storageContext.isPartialResultReturned();
                     if (cubeSb.length() > 0) {
                         cubeSb.append(",");
                     }
                     cubeSb.append(ctx.realization.getCanonicalName());
                     logSb.append(ctx.storageContext.getProcessedRowCount()).append(" ");
+                    final String realizationType = ctx.storageContext.getCandidate().getCuboidLayout().getCuboidDesc()
+                            .isTableIndex() ? QueryMetricsContext.TABLE_INDEX : QueryMetricsContext.AGG_INDEX;
+                    realizationMetrics.add(QueryMetricsContext.createRealizationMetrics(ctx.storageContext.getCuboidId().toString(), realizationType, ctx.realization.getModel().getName()));
+                    engineTypes.add(realizationType);
                 }
             }
         }
@@ -975,9 +980,13 @@ public class QueryService extends BasicService {
         response.setQueryId(QueryContext.current().getQueryId());
         response.setTotalScanCount(QueryContext.current().getScannedRows());
         response.setTotalScanBytes(QueryContext.current().getScannedBytes());
+        response.setRealizationMetrics(realizationMetrics);
+        
         if (isPushDown) {
+            response.setEngineType(QueryContext.current().getPushdownEngine());
             response.setAnsweredBy(Lists.newArrayList(QueryContext.current().getPushdownEngine()));
         } else {
+            response.setEngineType(Joiner.on(",").join(engineTypes));
             response.setAnsweredBy(models);
         }
         return response;

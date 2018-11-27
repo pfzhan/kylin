@@ -45,6 +45,7 @@ package org.apache.kylin.rest.response;
 import java.io.Serializable;
 import java.util.List;
 
+import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import io.swagger.annotations.ApiModel;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.slf4j.Logger;
@@ -108,6 +109,10 @@ public class SQLResponse implements Serializable {
     private String suite;
 
     private List<String> answeredBy;
+
+    private List<QueryMetricsContext.RealizationMetrics> realizationMetrics;
+
+    private String engineType;
 
     public SQLResponse() {
     }
@@ -283,5 +288,21 @@ public class SQLResponse implements Serializable {
 
     public void setSuite(String suite) {
         this.suite = suite;
+    }
+
+    public List<QueryMetricsContext.RealizationMetrics> getRealizationMetrics() {
+        return realizationMetrics;
+    }
+
+    public void setRealizationMetrics(List<QueryMetricsContext.RealizationMetrics> realizationMetrics) {
+        this.realizationMetrics = realizationMetrics;
+    }
+
+    public String getEngineType() {
+        return engineType;
+    }
+
+    public void setEngineType(String engineType) {
+        this.engineType = engineType;
     }
 }

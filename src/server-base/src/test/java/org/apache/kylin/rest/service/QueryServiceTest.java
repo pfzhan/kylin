@@ -60,6 +60,11 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.exceptions.ResourceLimitExceededException;
@@ -71,7 +76,9 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.querymeta.ColumnMeta;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
+import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -201,24 +208,73 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testQueryWithCache() throws Exception {
+        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
+
         final String sql = "select * from success_table";
         final String project = "default";
         stubQueryConnection(sql, project);
+        mockOLAPContext();
 
         final SQLRequest request = new SQLRequest();
         request.setProject(project);
         request.setSql(sql);
 
+        // case of not hitting cache
         String expectedQueryID = QueryContext.current().getQueryId();
         final SQLResponse firstSuccess = queryService.doQueryWithCache(request, false);
         Assert.assertEquals(expectedQueryID, firstSuccess.getQueryId());
+        Assert.assertEquals(2, firstSuccess.getRealizationMetrics().size());
+        Assert.assertEquals(QueryMetricsContext.AGG_INDEX, firstSuccess.getRealizationMetrics().get(0).getRealizationType());
+        Assert.assertEquals(QueryMetricsContext.TABLE_INDEX, firstSuccess.getRealizationMetrics().get(1).getRealizationType());
+        Assert.assertEquals(Lists.newArrayList("mock_model_alias1", "mock_model_alias2"), firstSuccess.getAnsweredBy());
+        // assert log info
+        String log = queryService.logQuery(request, firstSuccess);
+        Assert.assertTrue(log.contains("mock_model1"));
+        Assert.assertTrue(log.contains("mock_model2"));
 
+        // case of hitting cache
         expectedQueryID = QueryContext.current().getQueryId();
         final SQLResponse secondSuccess = queryService.doQueryWithCache(request, false);
         Assert.assertEquals(true, secondSuccess.isStorageCacheUsed());
         Assert.assertEquals(expectedQueryID, secondSuccess.getQueryId());
+        Assert.assertEquals(2, secondSuccess.getRealizationMetrics().size());
+        Assert.assertEquals(QueryMetricsContext.AGG_INDEX, secondSuccess.getRealizationMetrics().get(0).getRealizationType());
+        Assert.assertEquals(QueryMetricsContext.TABLE_INDEX, secondSuccess.getRealizationMetrics().get(1).getRealizationType());
+        Assert.assertEquals("CACHE", secondSuccess.getAnsweredBy().get(0));
+        // assert log info
+        log = queryService.logQuery(request, secondSuccess);
+        Assert.assertTrue(log.contains("mock_model1"));
+        Assert.assertTrue(log.contains("mock_model2"));
+    }
 
+    private void mockOLAPContext() {
+        for (long i = 1; i <= 2; i++) {
+            final OLAPContext mock = new OLAPContext((int) i);
 
+            final NDataModel mockModel = Mockito.spy(new NDataModel());
+            Mockito.when(mockModel.getName()).thenReturn("mock_model" + i);
+            Mockito.when(mockModel.getAlias()).thenReturn("mock_model_alias" + i);
+            final IRealization mockRealization = Mockito.mock(IRealization.class);
+            Mockito.when(mockRealization.getModel()).thenReturn(mockModel);
+            mock.realization = mockRealization;
+
+            final NCuboidDesc mockCuboidDesc = new NCuboidDesc();
+            if (i == 1) {
+                // agg index
+                mockCuboidDesc.setId(i);
+            } else {
+                // table index
+                mockCuboidDesc.setId(NCuboidDesc.TABLE_INDEX_START_ID + i);
+            }
+            final NCuboidLayout mockLayout = new NCuboidLayout();
+            mockLayout.setCuboidDesc(mockCuboidDesc);
+            mock.storageContext.setCandidate(new NLayoutCandidate(mockLayout));
+            mock.storageContext.setCuboidId(i);
+
+            OLAPContext.registerContext(mock);
+        }
+
+        Mockito.doNothing().when(queryService).clearThreadLocalContexts();
     }
 
     @Test

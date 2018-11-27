@@ -35,16 +35,16 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.query.util.QueryPatternUtil;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
-import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
@@ -60,6 +60,9 @@ public class QueryMetricsContext {
     protected static final KapConfig kapConfig = KapConfig.getInstanceFromEnv().getInstanceFromEnv();
     private static final String LOG_METRIC = "log";
     public static final String UNKNOWN = "Unknown";
+
+    public static final String AGG_INDEX = "Agg Index";
+    public static final String TABLE_INDEX = "Table Index";
 
     private static final InheritableThreadLocal<QueryMetricsContext> contexts = new InheritableThreadLocal<>();
 
@@ -160,11 +163,13 @@ public class QueryMetricsContext {
         this.project = request.getProject();
 
         this.hostname = response.getServer();
-        this.suite = response.getSuite();
+        this.suite = response.getSuite() == null ? UNKNOWN : response.getSuite();
 
         this.queryDuration = response.getDuration();
         this.totalScanBytes = response.getTotalScanBytes();
         this.totalScanCount = response.getTotalScanCount();
+        this.answeredBy = response.getAnsweredBy() == null ? UNKNOWN : Joiner.on(",").join(response.getAnsweredBy());
+        this.engineType = response.getEngineType() == null ? UNKNOWN : response.getEngineType();
 
         if (response.getIsException())
             this.queryStatus = QueryHistory.QUERY_HISTORY_FAILED;
@@ -189,8 +194,7 @@ public class QueryMetricsContext {
             this.accelerateStatus = QueryHistory.QUERY_HISTORY_ACCELERATED;
 
         collectErrorType(context);
-        collectRealizationMetrics(response, context);
-        collectEngineTypeAndAnsweredBy(response, context);
+        collectRealizationMetrics(response);
 
         logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter, project,
                 hostname, suite, queryDuration, totalScanBytes, errorType, engineType);
@@ -221,45 +225,15 @@ public class QueryMetricsContext {
         return ImmutableList.copyOf(realizationMetrics);
     }
 
-    private void collectRealizationMetrics(final SQLResponse response, final QueryContext context) {
-        if (response.isHitExceptionCache() || null == OLAPContext.getThreadLocalContexts()) {
-            logger.debug("Query[{}] hit cache or can't find OLAPContext.", context.getQueryId());
+    private void collectRealizationMetrics(final SQLResponse response) {
+        if (response.getRealizationMetrics() == null)
             return;
-        }
 
-        for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
-            if (ctx.realization != null) {
-                final String realizationType = ctx.storageContext.getCandidate().getCuboidLayout().getCuboidDesc()
-                        .isTableIndex() ? "Table Index" : "Agg Index";
-                addRealizationMetrics(ctx.storageContext.getCuboidId().toString(), realizationType,
-                        ctx.realization.getModel().getName());
-            }
-        }
-    }
-
-    private void addRealizationMetrics(String realizationName, String realizationType, String modelName) {
-        realizationMetrics
-                .add(new RealizationMetrics(queryId, suite, project, realizationName, realizationType, modelName));
-        logger.debug("Query[{}] hit project [{}], model [{}], realization name [{}], realization type [{}]", queryId,
-                project, modelName, realizationName, realizationType);
-    }
-
-    private void collectEngineTypeAndAnsweredBy(final SQLResponse response, final QueryContext context) {
-        if (response.isPushDown()) {
-            this.engineType = context.getPushdownEngine();
-            this.answeredBy = context.getPushdownEngine();
-        } else if (!realizationMetrics.isEmpty()) {
-            this.engineType = realizationMetrics.iterator().next().realizationType;
-            List<String> modelAlias = Lists.newArrayList();
-            for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
-                if (ctx.realization != null) {
-                     modelAlias.add(ctx.realization.getModel().getAlias());
-                }
-            }
-            this.answeredBy = Joiner.on(",").join(modelAlias);
-        } else {
-            this.engineType = UNKNOWN;
-            this.answeredBy = UNKNOWN;
+        for (RealizationMetrics singleMetric : response.getRealizationMetrics()) {
+            singleMetric.setQueryId(queryId);
+            singleMetric.setSuite(suite);
+            singleMetric.setProject(project);
+            this.realizationMetrics.add(singleMetric);
         }
     }
 
@@ -267,7 +241,7 @@ public class QueryMetricsContext {
         final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder() //
                 .put(QueryHistory.SUBMITTER, submitter) //
                 .put(QueryHistory.PROJECT, project) //
-                .put(QueryHistory.SUITE, suite == null ? UNKNOWN : suite) //
+                .put(QueryHistory.SUITE, suite) //
                 .put(QueryHistory.ENGINE_TYPE, engineType)
                 .put(QueryHistory.ANSWERED_BY, answeredBy)
                 .put(QueryHistory.IS_CUBE_HIT, String.valueOf(isCubeHit))
@@ -301,13 +275,13 @@ public class QueryMetricsContext {
                 .put(QueryHistory.QUERY_STATUS, queryStatus)
                 .put(QueryHistory.QUERY_TIME, queryTime)
                 .put(QueryHistory.SQL_PATTERN, sqlPattern);
-        
+
         if (!realizationMetrics.isEmpty()) {
             final Collection<String> realizations = Collections2.transform(realizationMetrics,
                     new Function<RealizationMetrics, String>() {
                         @Override
                         public String apply(RealizationMetrics input) {
-                            return input.realizationName;
+                            return input.cuboidLayoutId;
                         }
                     });
 
@@ -321,6 +295,12 @@ public class QueryMetricsContext {
         return builder.build();
     }
 
+    public static RealizationMetrics createRealizationMetrics(String cuboidLayoutId, String realizationType, String modelName) {
+        return new RealizationMetrics(cuboidLayoutId, realizationType, modelName);
+    }
+
+    @Getter
+    @Setter
     public static class RealizationMetrics {
 
         private String queryId;
@@ -329,18 +309,14 @@ public class QueryMetricsContext {
 
         private String project;
 
-        private String realizationName;
+        private String cuboidLayoutId;
 
         private String realizationType;
 
         private String modelName;
 
-        public RealizationMetrics(String queryId, String suite, String project, String realizationName,
-                String realizationType, String modelName) {
-            this.queryId = queryId;
-            this.suite = suite == null ? UNKNOWN : suite;
-            this.project = project;
-            this.realizationName = realizationName;
+        public RealizationMetrics(String cuboidLayoutId, String realizationType, String modelName) {
+            this.cuboidLayoutId = cuboidLayoutId;
             this.realizationType = realizationType;
             this.modelName = modelName;
         }
@@ -350,7 +326,7 @@ public class QueryMetricsContext {
                     .put(QueryHistory.SUITE, suite) //
                     .put(QueryHistory.PROJECT, project) //
                     .put(QueryHistory.MODEL, modelName) //
-                    .put(QueryHistory.REALIZATION_NAME, realizationName) //
+                    .put(QueryHistory.CUBOID_LAYOUT_ID, cuboidLayoutId) //
                     .put(QueryHistory.REALIZATION_TYPE, realizationType) //
                     .build();
         }
