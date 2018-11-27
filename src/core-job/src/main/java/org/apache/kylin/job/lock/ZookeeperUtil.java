@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -41,14 +40,11 @@
  * limitations under the License.
  */
 
-
 package org.apache.kylin.job.lock;
 
 import org.apache.kylin.common.KylinConfig;
 
 public class ZookeeperUtil {
-
-    public static String ZOOKEEPER_UTIL_HBASE_CLASSNAME = "org.apache.kylin.storage.hbase.util.ZooKeeperUtilHbase";
 
     /**
      * Get zookeeper connection string from HBase Configuration or from kylin.properties

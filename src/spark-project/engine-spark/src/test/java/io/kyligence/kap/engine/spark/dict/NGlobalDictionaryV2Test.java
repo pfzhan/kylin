@@ -23,18 +23,15 @@
  */
 package io.kyligence.kap.engine.spark.dict;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.builder.NBucketDictionary;
-import io.kyligence.kap.engine.spark.builder.NGlobalDictHDFSStore;
-import io.kyligence.kap.engine.spark.builder.NGlobalDictMetadata;
-import io.kyligence.kap.engine.spark.builder.NGlobalDictStore;
-import io.kyligence.kap.engine.spark.builder.NGlobalDictionaryV2;
-import io.kyligence.kap.engine.spark.builder.NHashPartitioner;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.spark.api.java.function.Function2;
@@ -48,22 +45,24 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Assert;
 import org.junit.Test;
-import scala.Tuple2;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.builder.NBucketDictionary;
+import io.kyligence.kap.engine.spark.builder.NGlobalDictHDFSStore;
+import io.kyligence.kap.engine.spark.builder.NGlobalDictMetadata;
+import io.kyligence.kap.engine.spark.builder.NGlobalDictStore;
+import io.kyligence.kap.engine.spark.builder.NGlobalDictionaryV2;
+import io.kyligence.kap.engine.spark.builder.NHashPartitioner;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import scala.Tuple2;
 
 public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
 
     private final static int BUCKET_SIZE = 10;
 
     private final static int RANDOM_DATA_SIZE = 1000;
-
-    private static DebugFilesystem filesystem;
 
     @Override
     public void setUp() throws Exception {
@@ -118,19 +117,22 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
         for (String str : stringSet) {
             rowList.add(RowFactory.create(str));
         }
-        Dataset<Row> ds = ss.createDataFrame(rowList, new StructType(new StructField[]{DataTypes.createStructField("col1", DataTypes.StringType, true)}));
+        Dataset<Row> ds = ss.createDataFrame(rowList,
+                new StructType(new StructField[] { DataTypes.createStructField("col1", DataTypes.StringType, true) }));
         ds.toJavaRDD().mapToPair((PairFunction<Row, String, String>) row -> {
-            if (row.get(0) == null) return new Tuple2<>(null, null);
+            if (row.get(0) == null)
+                return new Tuple2<>(null, null);
             return new Tuple2<>(row.get(0).toString(), null);
-        }).sortByKey().partitionBy(new NHashPartitioner(BUCKET_SIZE)).mapPartitionsWithIndex((Function2<Integer, Iterator<Tuple2<String, String>>, Iterator<Object>>) (bucketId, tuple2Iterator) -> {
-            NBucketDictionary bucketDict = dict.createBucketDictionary(bucketId);
-            while (tuple2Iterator.hasNext()) {
-                Tuple2<String, String> tuple2 = tuple2Iterator.next();
-                bucketDict.addValue(tuple2._1);
-            }
-            bucketDict.saveBucketDict(bucketId);
-            return Lists.newArrayList().iterator();
-        }, true).count();
+        }).sortByKey().partitionBy(new NHashPartitioner(BUCKET_SIZE)).mapPartitionsWithIndex(
+                (Function2<Integer, Iterator<Tuple2<String, String>>, Iterator<Object>>) (bucketId, tuple2Iterator) -> {
+                    NBucketDictionary bucketDict = dict.createBucketDictionary(bucketId);
+                    while (tuple2Iterator.hasNext()) {
+                        Tuple2<String, String> tuple2 = tuple2Iterator.next();
+                        bucketDict.addValue(tuple2._1);
+                    }
+                    bucketDict.saveBucketDict(bucketId);
+                    return Lists.newArrayList().iterator();
+                }, true).count();
 
         dict.writeMetaDict(config.getGlobalDictV2MaxVersions(), config.getGlobalDictV2VersionTTL());
     }
@@ -153,9 +155,8 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
 
         for (Map.Entry<Integer, List<String>> entry : vmap.entrySet()) {
             NBucketDictionary bucketDict = dict.createBucketDictionary(entry.getKey());
-            Iterator<String> it = entry.getValue().iterator();
-            while (it.hasNext()) {
-                bucketDict.addValue(it.next());
+            for (String s : entry.getValue()) {
+                bucketDict.addValue(s);
             }
             bucketDict.saveBucketDict(entry.getKey());
         }
@@ -164,25 +165,21 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
     }
 
     private void compareTwoModeVersionNum(NGlobalDictionaryV2 dict1, NGlobalDictionaryV2 dict2) throws IOException {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
         NGlobalDictStore store1 = new NGlobalDictHDFSStore(dict1.getResourceDir());
         NGlobalDictStore store2 = new NGlobalDictHDFSStore(dict2.getResourceDir());
         Assert.assertEquals(store1.listAllVersions().length, store2.listAllVersions().length);
     }
 
     private void compareTwoVersionDict(NGlobalDictionaryV2 dict1, NGlobalDictionaryV2 dict2) throws IOException {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        FileSystem fs = HadoopUtil.getFileSystem(config.getHdfsWorkingDirectory());
-
         NGlobalDictMetadata metadata1 = dict1.getMetaDict();
         NGlobalDictMetadata metadata2 = dict2.getMetaDict();
 
         // compare dict meta info
-        Assert.assertEquals(metadata1.dictCount, metadata2.dictCount);
-        Assert.assertEquals(metadata1.bucketSize, metadata2.bucketSize);
-        Assert.assertArrayEquals(metadata1.offset, metadata2.offset);
+        Assert.assertEquals(metadata1.getDictCount(), metadata2.getDictCount());
+        Assert.assertEquals(metadata1.getBucketSize(), metadata2.getBucketSize());
+        Assert.assertArrayEquals(metadata1.getOffset(), metadata2.getOffset());
 
-        for (int i = 0; i < metadata1.bucketSize; i++) {
+        for (int i = 0; i < metadata1.getBucketSize(); i++) {
             NBucketDictionary bucket1 = dict1.createBucketDictionary(i);
             NBucketDictionary bucket2 = dict2.createBucketDictionary(i);
 
@@ -194,7 +191,7 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
         }
     }
 
-    private void initFs() throws IOException {
+    private void initFs() {
         DebugFilesystem.clearOpenStreams();
         Configuration conf = new Configuration();
         conf.set("fs.file.impl", DebugFilesystem.class.getCanonicalName());

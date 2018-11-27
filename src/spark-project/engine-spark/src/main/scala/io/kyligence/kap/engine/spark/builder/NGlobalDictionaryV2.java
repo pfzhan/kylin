@@ -93,7 +93,7 @@ public class NGlobalDictionaryV2 implements Serializable {
         if (metadata == null) {
             bucketPartitionSize = defaultSize;
         } else {
-            bucketPartitionSize = metadata.bucketSize;
+            bucketPartitionSize = metadata.getBucketSize();
         }
 
         return bucketPartitionSize;

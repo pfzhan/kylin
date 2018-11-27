@@ -25,11 +25,16 @@ package io.kyligence.kap.engine.spark.builder;
 
 import java.io.Serializable;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class NGlobalDictMetadata implements Serializable {
 
-    public int bucketSize;
-    public int[] offset;
-    public int dictCount;
+    private int bucketSize;
+    private int[] offset;
+    private int dictCount;
 
     NGlobalDictMetadata(int bucketSize, int[] offset, int dictCount) {
         this.bucketSize = bucketSize;

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,10 +42,14 @@
 package org.apache.kylin.common.util;
 
 import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  */
 public final class SparkEntry {
+
+    private static final Logger logger = LoggerFactory.getLogger(SparkEntry.class);
 
     public static void main(String[] args) throws Exception {
         try {
@@ -58,7 +61,7 @@ public final class SparkEntry {
                 throw new IllegalArgumentException(String.valueOf("-className is required"));
             }
             final String className = args[1];
-            final Object o = Class.<AbstractApplication>forName(className).newInstance();
+            final Object o = Class.<AbstractApplication> forName(className).newInstance();
             if (!(o instanceof AbstractApplication)) {
                 System.out.println(String.valueOf(className + " is not a subClass of AbstractApplication"));
                 System.exit(1);
@@ -70,8 +73,8 @@ public final class SparkEntry {
             AbstractApplication abstractApplication = (AbstractApplication) o;
             abstractApplication.execute(appArgs);
             System.exit(0);
-        } catch (Throwable th){
-            th.printStackTrace();
+        } catch (Throwable th) {
+            logger.error("SparkEntry exec error", th);
             System.exit(1);
         }
     }
