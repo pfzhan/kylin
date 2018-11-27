@@ -223,6 +223,9 @@ Vue.directive('drag', {
     var boxW = 0
     var boxH = 0
     var callback = binding.value && binding.value.sizeChangeCb
+    let reverse = changeOption.hasOwnProperty('reverse')
+    let reverseW = changeOption.hasOwnProperty('reverseW')
+    let reverseH = changeOption.hasOwnProperty('reverseH')
     if (changeOption.hasOwnProperty('height') || changeOption.hasOwnProperty('width')) {
       el.className += ' ky-resize'
     } else {
@@ -230,9 +233,10 @@ Vue.directive('drag', {
     }
     regainBox()
     // 盒子碰撞检测
-    function checkBoxCollision (changeType, size) {
+    function checkBoxCollision (changeType, size, rectifyVal) {
+      rectifyVal = rectifyVal || 0
       // 无自定义盒子和限制
-      if (!dragInfo.box && !limitObj || dragInfo.ignoreEdgeCheck) {
+      if (!dragInfo.box && !limitObj && dragInfo.ignoreEdgeCheck) {
         return true
       }
       if (limitObj) {
@@ -249,7 +253,7 @@ Vue.directive('drag', {
           }
         }
       }
-      if (dragInfo.box) {
+      if (dragInfo.box && !dragInfo.ignoreEdgeCheck) {
         if (changeType === 'top') {
           if (size + dragInfo.height > boxH) {
             dragInfo.top = boxH - dragInfo.height > 0 ? boxH - dragInfo.height : 0
@@ -261,9 +265,32 @@ Vue.directive('drag', {
           }
         }
         if (changeType === 'height') {
-          if (size + dragInfo.top > boxH) {
-            dragInfo.top = boxH - dragInfo.height
+          if (dragInfo.top + rectifyVal < 0) {
             return false
+          }
+          if (rectifyVal + size + dragInfo.top > boxH) {
+            dragInfo.height = boxH - dragInfo.top
+            return false
+          }
+        }
+        if (changeType === 'width') {
+          if (!isNaN(dragInfo.left)) {
+            if (dragInfo.left + rectifyVal < 0) {
+              return false
+            }
+            if (rectifyVal + size + dragInfo.left > boxW) {
+              dragInfo.left = boxW - dragInfo.width
+              return false
+            }
+          }
+          if (!isNaN(dragInfo.right)) {
+            if (dragInfo.right + rectifyVal < 0) {
+              return false
+            }
+            if (size + dragInfo.right - rectifyVal > boxW) {
+              dragInfo.width = boxW - dragInfo.right
+              return false
+            }
           }
         }
         if (changeType === 'right' || changeType === 'left') {
@@ -292,7 +319,7 @@ Vue.directive('drag', {
         if (checkBoxCollision()) {
           return
         }
-        if (dragInfo['right'] || dragInfo['right'] < 0) {
+        if (!isNaN(dragInfo['right']) || dragInfo['right'] < 0) {
           if (dragInfo['right'] + dragInfo.width > boxW) {
             dragInfo['right'] = 0
           }
@@ -300,7 +327,7 @@ Vue.directive('drag', {
             dragInfo['right'] = boxW - dragInfo.width
           }
         }
-        if (dragInfo['left'] && dragInfo['left'] + dragInfo.width > boxW) {
+        if (!isNaN(dragInfo['left']) && dragInfo['left'] + dragInfo.width > boxW) {
           if (dragInfo['left'] + dragInfo.width > boxW) {
             dragInfo['left'] = boxW - dragInfo.width
           }
@@ -308,7 +335,7 @@ Vue.directive('drag', {
             dragInfo['left'] = 0
           }
         }
-        if (dragInfo['top'] && dragInfo['top'] + dragInfo.height > boxH) {
+        if (!isNaN(dragInfo['top']) && dragInfo['top'] + dragInfo.height > boxH) {
           if (dragInfo['top'] + dragInfo.height > boxH) {
             dragInfo['top'] = boxH - dragInfo.height
           }
@@ -355,13 +382,40 @@ Vue.directive('drag', {
               }
             }
             if (i === 'height') {
-              if (checkBoxCollision(i, dragInfo['height'] + y)) {
-                dragInfo['height'] += y
+              if (reverse || reverseH) {
+                if (checkBoxCollision(i, dragInfo['height'] - y, y)) {
+                  dragInfo['height'] -= y
+                  dragInfo['top'] += y
+                }
+              } else {
+                if (checkBoxCollision(i, dragInfo['height'] + y)) {
+                  dragInfo['height'] += y
+                }
               }
             }
             if (i === 'width') {
-              if (checkBoxCollision(i, dragInfo['wdith'] + x)) {
-                dragInfo['wdith'] += x
+              if (reverse || reverseW) {
+                let rectify = 0
+                if (!isNaN(dragInfo['left'])) {
+                  rectify = x
+                }
+                if (checkBoxCollision(i, dragInfo['width'] - x, rectify)) {
+                  dragInfo['width'] -= x
+                  if (!isNaN(dragInfo['left'])) {
+                    dragInfo['left'] += x
+                  }
+                }
+              } else {
+                let rectify = 0
+                if (dragInfo['right']) {
+                  rectify = x
+                }
+                if (checkBoxCollision(i, dragInfo['width'] + x, rectify)) {
+                  dragInfo['width'] += x
+                  if (!isNaN(dragInfo['right'])) {
+                    dragInfo['right'] -= x
+                  }
+                }
               }
             }
           }

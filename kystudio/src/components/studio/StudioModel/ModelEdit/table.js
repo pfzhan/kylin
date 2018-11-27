@@ -22,7 +22,8 @@ class NTable {
       width: modelRenderConfig.tableBoxWidth,
       height: modelRenderConfig.tableBoxHeight,
       limit: {
-        height: [44]
+        height: [144],
+        width: [modelRenderConfig.tableBoxWidth]
       },
       box: modelRenderConfig.rootBox,
       ignoreEdgeCheck: true,

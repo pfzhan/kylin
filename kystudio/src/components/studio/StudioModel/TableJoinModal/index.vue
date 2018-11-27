@@ -112,11 +112,18 @@ export default class TableJoinModal extends Vue {
         this.$set(this.joinColumns, 'foreign_key', [''])
         this.$set(this.joinColumns, 'primary_key', [''])
       }
-      if (this.form.fColumnName && !this.joinColumns.foreign_key.includes(this.form.fColumnName)) {
+      if (this.form.pColumnName) {
         if (this.joinColumns.foreign_key[0]) {
           this.joinColumns.foreign_key.push(this.form.fColumnName)
         } else {
           this.joinColumns.foreign_key[0] = this.form.fColumnName
+        }
+      }
+      if (this.form.pColumnName) {
+        if (this.joinColumns.primary_key[0]) {
+          this.joinColumns.primary_key.push(this.form.pColumnName)
+        } else {
+          this.joinColumns.primary_key[0] = this.form.pColumnName
         }
       }
     }

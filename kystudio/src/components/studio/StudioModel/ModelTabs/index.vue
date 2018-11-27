@@ -5,9 +5,9 @@
     <component :is="p.content" v-for="p in modelEditPanels" :key="p.name" v-on:saveRequestEnd="requestEnd" v-on:addtabs="addTab" v-on:reload="reloadTab" v-on:removetabs="delTab" :extraoption="p.extraoption" :ref="p.content" v-if="p.name === activeName"></component>
     <div class="footer">
       <div class="btn-group">
-        <el-button @click="goModelList">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button type="primary" @click="saveModel" :loading="saveBtnLoading">{{$t('kylinLang.common.save')}}</el-button>
-        </div>
+        <el-button @click="goModelList" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <el-button size="medium" type="primary" icon="el-icon-ksd-table_save" @click="saveModel" :loading="saveBtnLoading">{{$t('kylinLang.common.save')}}</el-button>
+      </div>
     </div>
   </div>
 </template>
@@ -123,9 +123,10 @@ export default class ModelTabs extends Vue {
   height: 100%;
   .footer {
     height:60px;
-    background:#fff;
+    background:transparent;
     position: absolute;
     bottom: 0;
+    right:0;
     width:100%;
     .btn-group {
       float: right;
