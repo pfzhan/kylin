@@ -118,7 +118,7 @@ public class NSparkExecutable extends AbstractExecutable {
         try {
             attachMetadataAndKylinProps(config);
         } catch (IOException e) {
-            throw new ExecuteException("meta dump fialed", e);
+            throw new ExecuteException("meta dump failed", e);
         }
 
         try {
@@ -148,7 +148,7 @@ public class NSparkExecutable extends AbstractExecutable {
         sb.append("--jars %s %s %s");
         String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), jars, kylinJobJar,
                 StringUtil.join(Arrays.asList(appArgs), " "));
-        logger.debug("spark submit cmd: " + cmd);
+        logger.debug("spark submit cmd: {}", cmd);
 
         CliCommandExecutor exec = new CliCommandExecutor();
         PatternedLogger patternedLogger = new PatternedLogger(logger);
@@ -224,10 +224,9 @@ public class NSparkExecutable extends AbstractExecutable {
         if (StringUtils.isEmpty(metaDumpUrl))
             throw new RuntimeException("Missing metaUrl");
 
-        File tmp = File.createTempFile("kylin_job_meta", "");
-        FileUtils.forceDelete(tmp); // we need a directory, so delete the file first
+        File tmpDir = File.createTempFile("kylin_job_meta", "");
+        FileUtils.forceDelete(tmpDir); // we need a directory, so delete the file first
 
-        File tmpDir = new File(tmp, "meta");
         tmpDir.mkdirs();
 
         // dump metadata
@@ -246,6 +245,7 @@ public class NSparkExecutable extends AbstractExecutable {
         ResourceTool.copy(KylinConfig.createInstanceFromUri(tmpDir.getAbsolutePath()), dstConfig);
 
         // clean up
-        FileUtils.forceDelete(tmp);
+        logger.debug("Copied metadata to the target metaUrl, delete the temp dir: {}", tmpDir);
+        FileUtils.forceDelete(tmpDir);
     }
 }

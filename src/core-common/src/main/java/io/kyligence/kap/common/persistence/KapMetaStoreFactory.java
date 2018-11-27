@@ -34,19 +34,28 @@ import org.apache.kylin.common.persistence.FederatedResourceStore;
 import org.apache.kylin.common.persistence.HDFSResourceStore;
 import org.apache.kylin.common.persistence.ResourceStore;
 
-import com.google.common.collect.ImmutableMap;;
+import com.google.common.collect.ImmutableMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Keep dictionary and snapshot in separated HDFSResourceStore
  */
 public class KapMetaStoreFactory implements ResourceStore.IKylinMetaStoreFactory {
 
+    private static final Logger logger = LoggerFactory.getLogger(KapMetaStoreFactory.class);
+
     @Override
     public ResourceStore createMetaStore(KylinConfig config) {
         try {
             ResourceStore base = ResourceStore.createResourceStore(config, config.getMetadataUrl());
-
             KapConfig kapConf = KapConfig.wrap(config);
+
+            if (kapConf.shouldMockMetadataWithoutDictStore()) {
+                logger.debug("Skipped creating dict store on HDFS.");
+                return base;
+            }
+
             StorageURL hdfsUrl = new StorageURL(config.getMetadataUrl().getIdentifier() + "-dict", //
                     HDFSResourceStore.HDFS_SCHEME, //
                     ImmutableMap.of("path", kapConf.getReadHdfsWorkingDirectory() + "dict-store"));
@@ -64,4 +73,5 @@ public class KapMetaStoreFactory implements ResourceStore.IKylinMetaStoreFactory
             throw new RuntimeException(e);
         }
     }
+
 }

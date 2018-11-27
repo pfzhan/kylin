@@ -108,10 +108,9 @@ public class MetaStoreUtil {
     }
     
     public static String dumpResources(KylinConfig kylinConfig, Collection<String> dumpList) throws IOException {
-        File tmp = File.createTempFile("kylin_job_meta", "");
-        FileUtils.forceDelete(tmp); // we need a directory, so delete the file first
+        File metaDir = File.createTempFile("kylin_job_meta", "");
+        FileUtils.forceDelete(metaDir); // we need a directory, so delete the file first
 
-        File metaDir = new File(tmp, "meta");
         metaDir.mkdirs();
 
         // write kylin.properties
@@ -135,7 +134,7 @@ public class MetaStoreUtil {
             metaDirURI = "file://" + metaDirURI;
         else
             metaDirURI = "file:///" + metaDirURI;
-        logger.info("meta dir is: " + metaDirURI);
+        logger.info("meta dir is: {}", metaDirURI);
         
         return metaDirURI;
     }

@@ -568,4 +568,8 @@ public class KapConfig {
     public boolean enableQueryPattern() {
         return Boolean.valueOf(config.getOptional("kap.query.favorite.collect-as-pattern", "true"));
     }
+
+    public boolean shouldMockMetadataWithoutDictStore() {
+        return Boolean.valueOf(config.getOptional("kap.metadata.mock.no-dict-store", "false"));
+    }
 }

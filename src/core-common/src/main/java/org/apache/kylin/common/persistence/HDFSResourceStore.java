@@ -82,7 +82,7 @@ public class HDFSResourceStore extends ResourceStore {
 
         // normalize path
         String path = localDir.getCanonicalPath().replace('\\', '/');
-        if (path.startsWith("/") == false)
+        if (!path.startsWith("/"))
             path = "/" + path;
 
         StorageURL url = new StorageURL(localDir.getName(), HDFS_SCHEME, ImmutableMap.of("path", "file:" + path));
@@ -114,7 +114,7 @@ public class HDFSResourceStore extends ResourceStore {
         }
 
         hdfsMetaPath = metadataPath;
-        logger.info("hdfs meta path : {}", hdfsMetaPath.toString());
+        logger.info("hdfs meta path : {}", hdfsMetaPath);
 
     }
 

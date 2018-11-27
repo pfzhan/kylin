@@ -39,9 +39,12 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.JsonUtil;
 
 import io.kyligence.kap.smart.util.MetaStoreUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class NLocalQueryRunner extends AbstractQueryRunner {
 
+    private static final Logger logger = LoggerFactory.getLogger(NLocalQueryRunner.class);
     private final Set<String> dumpResources;
     private final Map<String, RootPersistentEntity> mockupResources;
 
@@ -98,7 +101,9 @@ class NLocalQueryRunner extends AbstractQueryRunner {
         File metaDir = new File(config.getMetadataUrl().toString());
         if (metaDir.exists() && metaDir.isDirectory()) {
             FileUtils.forceDelete(metaDir);
+            logger.debug("Deleted the meta dir: {}", metaDir);
         }
+
         ResourceStore.clearCache(config);
     }
 }
