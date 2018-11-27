@@ -201,7 +201,9 @@ export default class DataSourceModal extends Vue {
     try {
       const { currentSelectedProject: project } = this
       const data = getSubmitData(this, kafkaData)
-      if (!this.validateForm()) { return }
+      if (!this.validateForm()) {
+        return (this.isLoading = false)
+      }
 
       // 后台保存：选择数据源
       if (this.isNewSource) {
