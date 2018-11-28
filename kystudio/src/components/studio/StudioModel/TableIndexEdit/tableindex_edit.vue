@@ -17,7 +17,7 @@
             <el-col :span="4">Sort</el-col>
             <el-col :span="4">Shard</el-col>
           </el-row>
-          <div class="table-content" v-scroll>
+          <div class="table-content"  v-scroll.observe @scroll-bottom="scrollLoad">
             <transition-group name="flip-list" tag="div">
                 <el-row v-for="col in searchAllColumns" :key="col.fullName" class="table-row" :class="tableRowClassName(col)">
                   <el-col :span="12" :title="col.fullName">{{col.fullName}}</el-col>
@@ -184,13 +184,26 @@
       changeObjectArrProperty(this.allColumns, '*', 'isShared', false)
       t.isShared = !shardStatus
     }
-    get searchAllColumns () {
+    currentPager = 1
+    pagerSize = 50
+    scrollLoad () {
+      if (this.searchAllColumns.length !== this.filterResult.length) {
+        this.currentPager += 1
+      }
+    }
+    get filterResult () {
       if (!this.isShow) {
         return
       }
       return this.allColumns.filter((col) => {
         return !this.searchColumn || col.fullName.toUpperCase().indexOf(this.searchColumn.toUpperCase()) >= 0
       })
+    }
+    get searchAllColumns () {
+      if (!this.isShow) {
+        return
+      }
+      return this.filterResult.slice(0, this.pagerSize * this.currentPager)
     }
     allColumns = []
     getAllColumns () {

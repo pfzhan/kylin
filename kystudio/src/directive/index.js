@@ -119,9 +119,18 @@ Vue.directive('focus', {
   }
 })
 Vue.directive('scroll', {
-  inserted: function (el, binding) {
+  inserted: function (el, binding, vnode) {
     if (el) {
-      Scrollbar.init(el)
+      let scrollbar = Scrollbar.init(el)
+      let needObserve = binding.modifiers.observe
+      if (needObserve) {
+        scrollbar.addListener((status) => {
+          if (status.offset.y > status.limit.y - 10) {
+            let scrollBottomFunc = vnode.data.on['scroll-bottom']
+            scrollBottomFunc && scrollBottomFunc()
+          }
+        })
+      }
     }
   },
   update: function (el, binding) {
