@@ -93,26 +93,42 @@
               <span class="close" @click="toggleMenu('dimension')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
-              <span @click="toggleCheckbox" :class="{'active': isShowCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
-              <span @click="batchSetDimension"><i class="el-icon-ksd-backup"></i></span>
-              <span @click="addCCDimension"><i class="el-icon-ksd-project_add"></i></span>
-              <span class="ksd-fright batch-del" v-if="isShowCheckbox" @click="deleteDimenisons">
-                <el-tooltip :content="$t('kylinLang.common.delete')" placement="bottom" v-if="dimensionSelectedList.length>0">
-                  <i class="el-icon-ksd-table_delete delable"></i>
-                </el-tooltip>
-                <el-tooltip :content="$t('noSelectJobs')" placement="bottom-end" v-else>
-                  <i class="el-icon-ksd-table_delete"></i>
-                </el-tooltip>
-              </span>
+              <div class="action_group" :class="{'is_active': !isShowCheckbox}"
+              :style="{
+                msTransform: `translateX(${ translate }px)`,
+                webkitTransform: `translateX(${ translate }px)`,
+                transform: `translateX(${ translate }px)`
+              }">
+                <span class="action_btn" @click="addCCDimension"><i class="el-icon-ksd-project_add"></i></span>
+                <span class="action_btn" @click="batchSetDimension"><i class="el-icon-ksd-backup"></i></span>
+                <span class="action_btn" :class="{'disabled': allDimension.length==0}" @click="toggleCheckbox"><i class="el-icon-ksd-batch_delete"></i></span>
+              </div>
+              <div
+              class="batch_group"
+              :class="{'is_active': isShowCheckbox}"
+              :style="{
+                msTransform: `translateX(${ translate+250 }px)`,
+                webkitTransform: `translateX(${ translate+250 }px)`,
+                transform: `translateX(${ translate+250 }px)`
+              }">
+                <span class="action_btn" @click="toggleCheckAllDimension">
+                  <i class="el-icon-ksd-batch_uncheck" v-if="dimensionSelectedList.length==allDimension.length"></i>
+                  <i class="el-icon-ksd-batch" v-else></i>
+                </span>
+                <span class="action_btn" :class="{'disabled': dimensionSelectedList.length==0}" @click="deleteDimenisons"><i class="el-icon-ksd-table_delete"></i></span>
+                <span class="action_btn" @click="toggleCheckbox"><i class="el-icon-ksd-back"></i></span>
+              </div>
             </div>
             <div class="panel-main-content" @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "dimension")}' v-scroll>
               <ul class="dimension-list">
                 <li v-for="(d, i) in allDimension" :key="d.name">
                   <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="i">{{d.name|omit(18,'...')}}</el-checkbox>
                   <span v-else>{{d.name|omit(18,'...')}}</span>
-                  <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteDimenison(i)"></i></span>
-                  <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i></span>
-                  <span class="li-type ky-option-sub-info">{{d.datatype}}</span>
+                  <span class="icon-group">
+                    <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteDimenison(i)"></i></span>
+                    <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i></span>
+                    <span class="li-type ky-option-sub-info">{{d.datatype}}</span>
+                  </span>
                 </li>
               </ul>
             </div>
@@ -130,25 +146,41 @@
               <span class="close" @click="toggleMenu('measure')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
-              <span @click="toggleMeaCheckbox" :class="{'active': isShowMeaCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
-              <span @click="addNewMeasure"><i class="el-icon-ksd-project_add"></i></span>
-              <span class="ksd-fright batch-del" v-if="isShowMeaCheckbox" @click="deleteMeasures">
-                <el-tooltip :content="$t('kylinLang.common.delete')" placement="bottom" v-if="measureSelectedList.length>0">
-                  <i class="el-icon-ksd-table_delete delable"></i>
-                </el-tooltip>
-                <el-tooltip :content="$t('noSelectJobs')" placement="bottom-end" v-else>
-                  <i class="el-icon-ksd-table_delete"></i>
-                </el-tooltip>
-              </span>
+              <div class="action_group" :class="{'is_active': !isShowMeaCheckbox}"
+              :style="{
+                msTransform: `translateX(${ translateMea }px)`,
+                webkitTransform: `translateX(${ translateMea }px)`,
+                transform: `translateX(${ translateMea }px)`
+              }">
+                <span class="action_btn" @click="addNewMeasure"><i class="el-icon-ksd-project_add"></i></span>
+                <span class="action_btn" @click="toggleMeaCheckbox" :class="{'disabled': modelRender.all_measures.length==1}"><i class="el-icon-ksd-batch_delete"></i></span>
+              </div>
+              <div
+                class="batch_group"
+                :class="{'is_active': isShowMeaCheckbox}"
+                :style="{
+                  msTransform: `translateX(${ translateMea+250 }px)`,
+                  webkitTransform: `translateX(${ translateMea+250 }px)`,
+                  transform: `translateX(${ translateMea+250 }px)`
+                }">
+                <span class="action_btn" @click="toggleCheckAllMeasure">
+                  <i class="el-icon-ksd-batch_uncheck" v-if="measureSelectedList.length==modelRender.all_measures.length-1"></i>
+                  <i class="el-icon-ksd-batch" v-else></i>
+                </span>
+                <span class="action_btn" :class="{'disabled': measureSelectedList.length==0}" @click="deleteMeasures"><i class="el-icon-ksd-table_delete"></i></span>
+                <span class="action_btn" @click="toggleMeaCheckbox"><i class="el-icon-ksd-back"></i></span>
+              </div>
             </div>
             <div class="panel-main-content"  @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "measure")}' v-scroll>
               <ul class="measure-list">
                 <li v-for="(m, i) in modelRender.all_measures" :key="m.name">
                   <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="i">{{m.name|omit(18,'...')}}</el-checkbox>
                   <span v-else>{{m.name|omit(18,'...')}}</span>
-                  <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(i)"></i></span>
-                  <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
-                  <span class="li-type ky-option-sub-info">{{m.return_type}}</span>
+                  <span class="icon-group">
+                    <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(i)"></i></span>
+                    <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
+                    <span class="li-type ky-option-sub-info">{{m.return_type}}</span>
+                  </span>
                 </li>
               </ul>
             </div>
@@ -166,25 +198,41 @@
               <span class="close" @click="toggleMenu('cc')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
-              <span @click="toggleCCCheckbox" :class="{'active': isShowCCCheckbox}"><i class="el-icon-ksd-check-box"></i></span>
-              <span @click="addCC"><i class="el-icon-ksd-project_add"></i></span>
-              <span class="ksd-fright batch-del" v-if="isShowCCCheckbox" @click="delCCs">
-                <el-tooltip :content="$t('kylinLang.common.delete')" placement="bottom" v-if="ccSelectedList.length>0">
-                  <i class="el-icon-ksd-table_delete delable"></i>
-                </el-tooltip>
-                <el-tooltip :content="$t('noSelectJobs')" placement="bottom-end" v-else>
-                  <i class="el-icon-ksd-table_delete"></i>
-                </el-tooltip>
-              </span>
+              <div class="action_group" :class="{'is_active': !isShowCCCheckbox}"
+              :style="{
+                msTransform: `translateX(${ translateCC }px)`,
+                webkitTransform: `translateX(${ translateCC }px)`,
+                transform: `translateX(${ translateCC }px)`
+              }">
+                <span class="action_btn" @click="addCC"><i class="el-icon-ksd-project_add"></i></span>
+                <span class="action_btn" @click="toggleCCCheckbox" :class="{'active': isShowCCCheckbox}"><i class="el-icon-ksd-batch_delete"></i></span>
+              </div>
+              <div
+                class="batch_group"
+                :class="{'is_active': isShowCCCheckbox}"
+                :style="{
+                  msTransform: `translateX(${ translateCC+250 }px)`,
+                  webkitTransform: `translateX(${ translateCC+250 }px)`,
+                  transform: `translateX(${ translateCC+250 }px)`
+                }">
+                <span class="action_btn" @click="toggleCheckAllCC">
+                  <i class="el-icon-ksd-batch_uncheck" v-if="ccSelectedList.length==modelRender.computed_columns.length"></i>
+                  <i class="el-icon-ksd-batch" v-else></i>
+                </span>
+                <span class="action_btn" :class="{'disabled': ccSelectedList.length==0}" @click="delCCs"><i class="el-icon-ksd-table_delete"></i></span>
+                <span class="action_btn" @click="toggleCCCheckbox"><i class="el-icon-ksd-back"></i></span>
+              </div>
             </div>
             <div class="panel-main-content" v-scroll>
               <ul class="cc-list">
                 <li v-for="(m, i) in modelRender.computed_columns" :key="m.name">
                   <el-checkbox v-model="ccSelectedList" v-if="isShowCCCheckbox" :label="i">{{m.columnName|omit(18,'...')}}</el-checkbox>
                   <span v-else>{{m.columnName|omit(18,'...')}}</span>
-                  <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="delCC(i)"></i></span>
-                  <span class="icon-span"><i class="el-icon-ksd-details" @click="showCCDetail(m)"></i></span>
-                  <span class="li-type ky-option-sub-info">{{m.datatype}}</span>
+                  <span class="icon-group">
+                    <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="delCC(i)"></i></span>
+                    <span class="icon-span"><i class="el-icon-ksd-details" @click="showCCDetail(m)"></i></span>
+                    <span class="li-type ky-option-sub-info">{{m.datatype}}</span>
+                  </span>
                 </li>
               </ul>
             </div>
@@ -422,6 +470,9 @@ export default class ModelEdit extends Vue {
   isShowCheckbox = false
   isShowMeaCheckbox = false
   isShowCCCheckbox = false
+  translate = 0
+  translateMea = 0
+  translateCC = 0
   get allDimension () {
     return this.modelRender.dimensions
   }
@@ -446,13 +497,25 @@ export default class ModelEdit extends Vue {
     this.delTipVisible = true
   }
   toggleCheckbox () {
+    if (this.allDimension.length === 0 && !this.isShowCheckbox) {
+      return
+    }
     this.isShowCheckbox = !this.isShowCheckbox
+    this.translate = this.translate === 0 ? -250 : 0
   }
   toggleMeaCheckbox () {
+    if (this.modelRender.all_measures.length === 1 && !this.isShowMeaCheckbox) {
+      return
+    }
     this.isShowMeaCheckbox = !this.isShowMeaCheckbox
+    this.translateMea = this.translateMea === 0 ? -250 : 0
   }
   toggleCCCheckbox () {
+    if (this.modelRender.computed_columns.length === 0 && !this.isShowCCCheckbox) {
+      return
+    }
     this.isShowCCCheckbox = !this.isShowCCCheckbox
+    this.translateCC = this.translateCC === 0 ? -250 : 0
   }
   delTable () {
     this.modelInstance.delTable(this.currentEditTable.guid).then(() => {
@@ -588,6 +651,7 @@ export default class ModelEdit extends Vue {
     })
   }
   deleteDimenison (i) {
+    console.log(i)
     let indexInSelected = this.dimensionSelectedList.indexOf(i)
     if (indexInSelected >= 0) {
       this.dimensionSelectedList.splice(indexInSelected, 1)
@@ -600,6 +664,15 @@ export default class ModelEdit extends Vue {
     })
     this.modelInstance.delDimension(i)
   }
+  toggleCheckAllDimension () {
+    if (this.dimensionSelectedList.length === this.allDimension.length) {
+      this.dimensionSelectedList = []
+    } else {
+      this.dimensionSelectedList = this.allDimension.map((item, i) => {
+        return i
+      })
+    }
+  }
   // 批量删除
   deleteDimenisons () {
     this.dimensionSelectedList.sort((a, b) => b - a)
@@ -607,6 +680,7 @@ export default class ModelEdit extends Vue {
       this.deleteDimenison(i)
     })
     this.dimensionSelectedList = []
+    this.toggleCheckbox()
   }
   deleteMeasure (i) {
     let indexInSelected = this.measureSelectedList.indexOf(i)
@@ -621,12 +695,24 @@ export default class ModelEdit extends Vue {
     })
     this.modelInstance.delMeasure(i)
   }
+  toggleCheckAllMeasure () {
+    if (this.measureSelectedList.length === this.modelRender.all_measures.length - 1) {
+      this.measureSelectedList = []
+    } else {
+      this.measureSelectedList = this.modelRender.all_measures.map((item, i) => {
+        if (i > 0) {
+          return i
+        }
+      })
+    }
+  }
   deleteMeasures () {
     this.measureSelectedList.sort((a, b) => b - a)
     this.measureSelectedList && this.measureSelectedList.forEach((i) => {
       this.deleteMeasure(i)
     })
     this.measureSelectedList = []
+    this.toggleMeaCheckbox()
   }
   addCC () {
     this.showAddCCDialog({
@@ -652,6 +738,15 @@ export default class ModelEdit extends Vue {
       ccDetail: cc
     })
   }
+  toggleCheckAllCC () {
+    if (this.ccSelectedList.length === this.modelRender.computed_columns.length) {
+      this.ccSelectedList = []
+    } else {
+      this.ccSelectedList = this.modelRender.computed_columns.map((item, i) => {
+        return i
+      })
+    }
+  }
   // 批量删除CC
   delCCs () {
     this.ccSelectedList.sort((a, b) => b - a)
@@ -659,6 +754,7 @@ export default class ModelEdit extends Vue {
       this.delCC(i)
     })
     this.ccSelectedList = []
+    this.toggleCCCheckbox()
   }
   editMeasure (m) {
     this.$nextTick(() => {
@@ -1109,6 +1205,7 @@ export default class ModelEdit extends Vue {
 @fact-hover-shadow: 0 0 8px 0 @base-color;
 @lookup-shadow:0 0 4px 0 @base-color-12;
 @lookup-hover-shadow: 0 0 8px 0 @base-color-12;
+@--index-normal: 1;
 .drag-in {
   box-shadow: inset 0 0 14px 0 @base-color;
 }
@@ -1208,12 +1305,6 @@ export default class ModelEdit extends Vue {
       cursor:pointer;
       margin-left:0;
       transform: margin-left ease;
-      // &.del {
-      //   max-width:125px;
-      // }
-      // &.switch {
-      //   max-width:142px;
-      // }
       &:hover {
         margin-left: 4px;
       }
@@ -1253,7 +1344,7 @@ export default class ModelEdit extends Vue {
         overflow:hidden;
         position:absolute;
         bottom: 16px;
-        top:56px;
+        top:62px;
         right:0;
         left:0;
         ul {
@@ -1278,6 +1369,10 @@ export default class ModelEdit extends Vue {
             }
             .col-name {
               color:@text-title-color;
+            }
+            .icon-group {
+              position: absolute;
+              right: 7px;
             }
             .icon-span {
               display:none;
@@ -1313,34 +1408,61 @@ export default class ModelEdit extends Vue {
         }
       }
       .panel-sub-title {
-        height:28px;
-        background:@grey-3;
-        line-height:28px;
+        height:35px;
+        background:@fff;
+        line-height:34px;
         border-bottom: 1px solid @text-placeholder-color;
-        padding: 0 7px 0px 3px;
-        span{
-          .ky-square-box(22px,22px);
-          display: inline-block;
-          margin-left: 4px;
-          border-radius: 2px;
-          &:hover {
-            background-color: @text-placeholder-color;
-            color: @base-color;
+        padding: 1px;
+        box-sizing: border-box;
+        position: relative;
+        overflow-x: hidden;
+        .action_group,
+        .batch_group {
+          font-size: 0;
+          display: flex;
+          position: absolute;
+          width: 248px;
+          top: 1px;
+          z-index: @--index-normal - 1;
+          transition: transform .4s ease-in-out;
+          &.is_active {
+            transition: transform .4s ease-in-out;
+            z-index: @--index-normal + 1;
           }
-          &.batch-del {
-            margin-top: 3px;
-            .el-icon-ksd-table_delete {
+          .action_btn {
+            height: 32px;
+            flex-grow: 1;
+            font-size: 14px;
+            display: inline-block;
+            border-right: 1px solid @fff;
+            background-color: @grey-3;
+            color:  @base-color;
+            text-align: center;
+            cursor: pointer;
+            &:last-child {
+              border-right: 0;
+            }
+            &:hover {
+              background-color: @base-color;
+              color: @fff;
+            }
+            &.disabled {
+              background-color: @line-border-color;
+              color: @text-disabled-color;
               cursor: not-allowed;
-              color: @text-normal-color;
-              &.delable {
-                cursor: pointer;
-                color: @base-color;
+              i {
+                cursor: not-allowed;
               }
             }
           }
-          &.active {
-            background-color: @text-placeholder-color;
+        }
+        .batch_group .action_btn {
+          background-color: @base-color;
+          color: @fff;
+          &:hover {
+            background-color: @base-color-11;
           }
+
         }
       }
       background:#fff;
