@@ -18,7 +18,7 @@
 
   })
   export default class DragBar extends Vue {
-    dragZoomVal = this.dragZoom
+    dragZoomVal = this.dragZoom || null
     @Watch('dragZoom')
     changeDragZoom () {
       this.dragZoomVal = this.dragZoom

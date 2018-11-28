@@ -740,6 +740,10 @@ class NModel {
     })
     pathObj(t).zIndex = maxZindex
   }
+  setZoom (zoom) {
+    this.plumbTool.setZoom(zoom / 10)
+    this.getZoomSpace()
+  }
   // 放大视图
   addZoom () {
     var nextZoom = this._mount.zoom + 1 > 10 ? 10 : this._mount.zoom += 1
@@ -894,8 +898,9 @@ class NModel {
       resolve()
     })
   }
-  delDimension (i) {
-    this._mount.dimensions.splice(i, 1)
+  delDimension (name) {
+    let dimensionIndex = indexOfObjWithSomeKey(this._mount.dimensions, 'name', name)
+    this._mount.dimensions.splice(dimensionIndex, 1)
   }
   _delDimensionByAlias (alias) {
     let dimensions = this._mount.dimensions.filter((item) => {
@@ -928,8 +933,9 @@ class NModel {
     this._mount.all_measures.splice(0, this._mount.all_measures.length)
     this._mount.all_measures.push(...measures)
   }
-  delMeasure (i) {
-    this._mount.all_measures.splice(i, 1)
+  delMeasure (name) {
+    let measureIndex = indexOfObjWithSomeKey(this._mount.all_measures, 'name', name)
+    this._mount.all_measures.splice(measureIndex, 1)
   }
   // 添加度量
   addMeasure (measureObj) {
@@ -996,21 +1002,13 @@ class NModel {
     })
   }
   // 删除可计算列
-  delCC (ccObj) {
+  delCC (cc) {
+    let ccColumnName = typeof cc === 'object' ? cc.columnName : cc
     return new Promise((resolve) => {
-      for (let i = 0; i < this._mount.computed_columns.length; i++) {
-        const c = this._mount.computed_columns[i]
-        if (c.guid === ccObj.guid) {
-          this.delCCByIndex(i)
-          resolve(c)
-          break
-        }
-      }
+      let ccIndex = indexOfObjWithSomeKey(this._mount.computed_columns, 'columnName', ccColumnName)
+      let delCC = this._mount.computed_columns.splice(ccIndex, 1)
+      resolve(delCC)
     })
-  }
-  // 按照索引删除可计算列
-  delCCByIndex (i) {
-    this._mount.computed_columns.splice(i, 1)
   }
   // 自动布局
   autoCalcLayer (root, result, deep) {

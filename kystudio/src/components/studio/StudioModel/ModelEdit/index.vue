@@ -122,10 +122,10 @@
             <div class="panel-main-content" @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "dimension")}' v-scroll>
               <ul class="dimension-list">
                 <li v-for="(d, i) in allDimension" :key="d.name">
-                  <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="i">{{d.name|omit(18,'...')}}</el-checkbox>
+                  <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="d.name">{{d.name|omit(18,'...')}}</el-checkbox>
                   <span v-else>{{d.name|omit(18,'...')}}</span>
                   <span class="icon-group">
-                    <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteDimenison(i)"></i></span>
+                    <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteDimenison(d.name)"></i></span>
                     <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i></span>
                     <span class="li-type ky-option-sub-info">{{d.datatype}}</span>
                   </span>
@@ -174,10 +174,10 @@
             <div class="panel-main-content"  @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "measure")}' v-scroll>
               <ul class="measure-list">
                 <li v-for="(m, i) in modelRender.all_measures" :key="m.name">
-                  <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="i">{{m.name|omit(18,'...')}}</el-checkbox>
+                  <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="m.name">{{m.name|omit(18,'...')}}</el-checkbox>
                   <span v-else>{{m.name|omit(18,'...')}}</span>
                   <span class="icon-group">
-                    <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(i)"></i></span>
+                    <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(m.name)"></i></span>
                     <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
                     <span class="li-type ky-option-sub-info">{{m.return_type}}</span>
                   </span>
@@ -226,10 +226,10 @@
             <div class="panel-main-content" v-scroll>
               <ul class="cc-list">
                 <li v-for="(m, i) in modelRender.computed_columns" :key="m.name">
-                  <el-checkbox v-model="ccSelectedList" v-if="isShowCCCheckbox" :label="i">{{m.columnName|omit(18,'...')}}</el-checkbox>
+                  <el-checkbox v-model="ccSelectedList" v-if="isShowCCCheckbox" :label="m.columnName">{{m.columnName|omit(18,'...')}}</el-checkbox>
                   <span v-else>{{m.columnName|omit(18,'...')}}</span>
                   <span class="icon-group">
-                    <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="delCC(i)"></i></span>
+                    <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="delCC(m.columnName)"></i></span>
                     <span class="icon-span"><i class="el-icon-ksd-details" @click="showCCDetail(m)"></i></span>
                     <span class="li-type ky-option-sub-info">{{m.datatype}}</span>
                   </span>
@@ -350,7 +350,7 @@
         </ul>
       </div>
       <!-- 拖动操纵 -->
-      <DragBar :dragData="currentEditTable.drawSize" :dragZoom="modelRender.zoom"/>
+      <DragBar :dragData="currentEditTable.drawSize"/>
       <!-- 拖动操纵 -->
     </div>
     
@@ -527,6 +527,7 @@ export default class ModelEdit extends Vue {
   }
   // 编辑table
   editTable (guid) {
+    this._hisZoom = this.modelRender.zoom
     this.currentEditTable = this.modelInstance.getTableByGuid(guid)
     this.currentEditAlias = this.currentEditTable.alias
     this.showTableCoverDiv = true
@@ -650,50 +651,28 @@ export default class ModelEdit extends Vue {
       modelInstance: this.modelInstance
     })
   }
-  deleteDimenison (i) {
-    console.log(i)
-    let indexInSelected = this.dimensionSelectedList.indexOf(i)
-    if (indexInSelected >= 0) {
-      this.dimensionSelectedList.splice(indexInSelected, 1)
-    }
-    this.dimensionSelectedList = this.dimensionSelectedList.map((k) => {
-      if (k > i) {
-        return k - 1
-      }
-      return k
-    })
-    this.modelInstance.delDimension(i)
+  deleteDimenison (name) {
+    this.modelInstance.delDimension(name)
   }
   toggleCheckAllDimension () {
     if (this.dimensionSelectedList.length === this.allDimension.length) {
       this.dimensionSelectedList = []
     } else {
       this.dimensionSelectedList = this.allDimension.map((item, i) => {
-        return i
+        return item.name
       })
     }
   }
   // 批量删除
   deleteDimenisons () {
-    this.dimensionSelectedList.sort((a, b) => b - a)
-    this.dimensionSelectedList && this.dimensionSelectedList.forEach((i) => {
-      this.deleteDimenison(i)
+    this.dimensionSelectedList && this.dimensionSelectedList.forEach((name) => {
+      this.modelInstance.delDimension(name)
     })
     this.dimensionSelectedList = []
     this.toggleCheckbox()
   }
-  deleteMeasure (i) {
-    let indexInSelected = this.measureSelectedList.indexOf(i)
-    if (indexInSelected >= 0) {
-      this.measureSelectedList.splice(indexInSelected, 1)
-    }
-    this.measureSelectedList = this.measureSelectedList.map((k) => {
-      if (k > i) {
-        return k - 1
-      }
-      return k
-    })
-    this.modelInstance.delMeasure(i)
+  deleteMeasure (name) {
+    this.modelInstance.delMeasure(name)
   }
   toggleCheckAllMeasure () {
     if (this.measureSelectedList.length === this.modelRender.all_measures.length - 1) {
@@ -701,15 +680,14 @@ export default class ModelEdit extends Vue {
     } else {
       this.measureSelectedList = this.modelRender.all_measures.map((item, i) => {
         if (i > 0) {
-          return i
+          return item.name
         }
       })
     }
   }
   deleteMeasures () {
-    this.measureSelectedList.sort((a, b) => b - a)
-    this.measureSelectedList && this.measureSelectedList.forEach((i) => {
-      this.deleteMeasure(i)
+    this.measureSelectedList && this.measureSelectedList.forEach((name) => {
+      this.modelInstance.delMeasure(name)
     })
     this.measureSelectedList = []
     this.toggleMeaCheckbox()
@@ -720,18 +698,8 @@ export default class ModelEdit extends Vue {
     })
   }
   // 单个删除CC
-  delCC (i) {
-    let indexInSelected = this.ccSelectedList.indexOf(i)
-    if (indexInSelected >= 0) {
-      this.ccSelectedList.splice(indexInSelected, 1)
-    }
-    this.ccSelectedList = this.ccSelectedList.map((k) => {
-      if (k > i) {
-        return k - 1
-      }
-      return k
-    })
-    this.modelInstance.delCCByIndex(i)
+  delCC (name) {
+    this.modelInstance.delCC(name)
   }
   showCCDetail (cc) {
     this.showCCDetailDialog({
@@ -742,14 +710,13 @@ export default class ModelEdit extends Vue {
     if (this.ccSelectedList.length === this.modelRender.computed_columns.length) {
       this.ccSelectedList = []
     } else {
-      this.ccSelectedList = this.modelRender.computed_columns.map((item, i) => {
-        return i
+      this.ccSelectedList = this.modelRender.computed_columns.map((item) => {
+        return item.columnName
       })
     }
   }
   // 批量删除CC
   delCCs () {
-    this.ccSelectedList.sort((a, b) => b - a)
     this.ccSelectedList && this.ccSelectedList.forEach((i) => {
       this.delCC(i)
     })
