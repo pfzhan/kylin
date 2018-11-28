@@ -75,7 +75,8 @@ export default {
       return state.layoutConfig.fullScreen
     },
     availableMenus (state, getters, rootState, rootGetters) {
-      const projectType = rootGetters.currentProjectData.maintain_model_type
+      const currentProject = rootGetters.currentProjectData || {}
+      const projectType = currentProject.maintain_model_type || 'autoMaintain'
       const role = rootState.user.currentUser.authorities.map(authority => authority.authority)
 
       return getAvailableOptions('menu', { projectType, role })
