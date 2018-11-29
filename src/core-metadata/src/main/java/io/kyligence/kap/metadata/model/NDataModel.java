@@ -107,7 +107,6 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.ToString;
 import lombok.val;
 
@@ -153,8 +152,6 @@ public class NDataModel extends RootPersistentEntity {
     @JsonProperty("fact_table")
     private String rootFactTableName;
 
-    @Getter
-    @Setter
     @EqualsAndHashCode.Include
     @JsonProperty("fact_table_alias")
     private String rootFactTableAlias;
@@ -194,8 +191,6 @@ public class NDataModel extends RootPersistentEntity {
     @JsonProperty("data_check_desc")
     private DataCheckDesc dataCheckDesc;
 
-    @Setter
-    @Getter
     @JsonProperty("semantic_version")
     private int semanticVersion;
 
@@ -225,8 +220,6 @@ public class NDataModel extends RootPersistentEntity {
     @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
     private List<ComputedColumnDesc> computedColumnDescs = Lists.newArrayList();
 
-    @Setter
-    @Getter
     @JsonProperty("canvas")
     @JsonInclude(JsonInclude.Include.NON_NULL) // output to frontend
     private Canvas canvas;
@@ -950,12 +943,16 @@ public class NDataModel extends RootPersistentEntity {
     private void initAllMeasures() {
         ImmutableBiMap.Builder<Integer, Measure> mapBuilder = ImmutableBiMap.builder();
         for (Measure m : allMeasures) {
-            m.setName(m.getName().toUpperCase());
+            try {
+                m.setName(m.getName().toUpperCase());
 
-            if (!m.tomb) {
-                mapBuilder.put(m.id, m);
-                FunctionDesc func = m.getFunction();
-                func.init(this);
+                if (!m.tomb) {
+                    mapBuilder.put(m.id, m);
+                    FunctionDesc func = m.getFunction();
+                    func.init(this);
+                }
+            } catch (Exception e) {
+                throw new IllegalStateException("Cannot init measure " + m.getName() + ": " + e.getMessage(), e);
             }
         }
 
@@ -1351,12 +1348,11 @@ public class NDataModel extends RootPersistentEntity {
         }).findFirst().orElse(null);
     }
 
-    public List<ComputedColumnDesc> getComputedColumnDescs() {
-        return computedColumnDescs;
-    }
-
-    public void setComputedColumnDescs(List<ComputedColumnDesc> computedColumnDescs) {
-        this.computedColumnDescs = computedColumnDescs;
+    public String getAlias() {
+        if (StringUtils.isEmpty(this.alias)) {
+            return this.name;
+        }
+        return this.alias;
     }
 
     public Set<String> getComputedColumnNames() {

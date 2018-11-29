@@ -34,6 +34,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -46,10 +47,11 @@ import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.Measure;
+import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
@@ -131,6 +133,27 @@ public class ModelSemanticHelper {
         originModel.setRootFactTableAlias(expectedModel.getRootFactTableAlias());
         originModel.setPartitionDesc(expectedModel.getPartitionDesc());
 
+        // handle computed column updates
+        List<ComputedColumnDesc> currentComputedColumns = originModel.getComputedColumnDescs();
+        List<ComputedColumnDesc> newComputedColumns = expectedModel.getComputedColumnDescs();
+        Set<String> removedOrUpdatedComputedColumns = currentComputedColumns.stream()
+                .filter(cc -> !newComputedColumns.contains(cc)).map(ComputedColumnDesc::getFullName)
+                .collect(Collectors.toSet());
+        // move deleted CC's named column to TOMB
+        originModel.getAllNamedColumns().stream()
+                .filter(column -> removedOrUpdatedComputedColumns.contains(column.getAliasDotColumn()))
+                .forEach(unusedColumn -> unusedColumn.setStatus(NDataModel.ColumnStatus.TOMB));
+        // move deleted CC's measure to TOMB
+        List<Measure> currentMeasures = originModel.getEffectiveMeasures().values().asList();
+        currentMeasures.stream().filter(measure -> {
+            List<TblColRef> params = measure.getFunction().getParameter().getColRefs();
+            if (CollectionUtils.isEmpty(params)) {
+                return false;
+            }
+            return params.stream().map(TblColRef::getIdentity).anyMatch(removedOrUpdatedComputedColumns::contains);
+        }).forEach(unusedMeasure -> unusedMeasure.tomb = true);
+        originModel.setComputedColumnDescs(expectedModel.getComputedColumnDescs());
+
         // compare measures
         Function<List<NDataModel.Measure>, Map<SimplifiedMeasure, NDataModel.Measure>> toMeasureMap = allCols -> allCols
                 .stream().filter(m -> !m.tomb)
@@ -141,7 +164,7 @@ public class ModelSemanticHelper {
 
         compareAndUpdateColumns(toMeasureMap.apply(originModel.getAllMeasures()),
                 toMeasureMap.apply(expectedModel.getAllMeasures()), newMeasures::add,
-                (oldMeasure) -> oldMeasure.tomb = true,
+                oldMeasure -> oldMeasure.tomb = true,
                 (oldMeasure, newMeasure) -> oldMeasure.setName(newMeasure.getName()));
         // one measure in expectedModel but not in originModel then add one
         for (NDataModel.Measure measure : newMeasures) {
@@ -150,38 +173,17 @@ public class ModelSemanticHelper {
             originModel.getAllMeasures().add(measure);
         }
 
-        // check CC and add new namedColumn
-        int maxColumnId = originModel.getAllNamedColumns().stream().mapToInt(NDataModel.NamedColumn::getId).max()
-                .orElse(-1) + 1;
-        Map<String, NDataModel.NamedColumn> currentNamedColumns = originModel.getAllNamedColumns().stream()
-                .filter(NDataModel.NamedColumn::isExist).collect(Collectors.toMap(c -> c.getAliasDotColumn(), c -> c));
-        Set<String> newComputedColumns = Sets.newHashSet();
-        for (ComputedColumnDesc computedColumnDesc : request.getComputedColumnDescs()) {
-            newComputedColumns.add(computedColumnDesc.getFullName());
-            if (currentNamedColumns.containsKey(computedColumnDesc.getFullName())) {
-                continue;
-            }
-            // create named column for new CC
-            newComputedColumns.add(computedColumnDesc.getFullName());
-            NDataModel.NamedColumn namedColumn = new NDataModel.NamedColumn();
-            namedColumn.setId(maxColumnId++);
-            namedColumn.setName(computedColumnDesc.getColumnName());
-            namedColumn.setAliasDotColumn(computedColumnDesc.getFullName());
-            namedColumn.setStatus(NDataModel.ColumnStatus.EXIST);
-            originModel.getAllNamedColumns().add(namedColumn);
-        }
-
         Function<List<NDataModel.NamedColumn>, Map<String, NDataModel.NamedColumn>> toExistMap = allCols -> allCols
                 .stream().filter(NDataModel.NamedColumn::isExist)
-                .collect(Collectors.toMap(k -> k.getAliasDotColumn(), Function.identity()));
+                .collect(Collectors.toMap(NDataModel.NamedColumn::getAliasDotColumn, Function.identity()));
 
         // compare originModel and expectedModel's existing allNamedColumn
         val originExistMap = toExistMap.apply(originModel.getAllNamedColumns());
-        val newCols = Lists.<NDataModel.NamedColumn> newArrayList();
+        val newCols = Lists.<NDataModel.NamedColumn>newArrayList();
         compareAndUpdateColumns(originExistMap, toExistMap.apply(expectedModel.getAllNamedColumns()), newCols::add,
                 oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.TOMB),
                 (olCol, newCol) -> olCol.setName(newCol.getName()));
-        int maxId = originModel.getAllNamedColumns().stream().map(c -> c.getId()).mapToInt(i -> i).max().orElse(-1);
+        int maxId = originModel.getAllNamedColumns().stream().map(NamedColumn::getId).mapToInt(i -> i).max().orElse(-1);
         for (NDataModel.NamedColumn newCol : newCols) {
             maxId++;
             newCol.setId(maxId);
@@ -191,21 +193,12 @@ public class ModelSemanticHelper {
         // compare originModel and expectedModel's dimensions
         Function<List<NDataModel.NamedColumn>, Map<String, NDataModel.NamedColumn>> toDimensionMap = allCols -> allCols
                 .stream().filter(NDataModel.NamedColumn::isDimension)
-                .collect(Collectors.toMap(k -> k.getAliasDotColumn(), Function.identity()));
+                .collect(Collectors.toMap(NDataModel.NamedColumn::getAliasDotColumn, Function.identity()));
         val originDimensionMap = toDimensionMap.apply(originModel.getAllNamedColumns());
         compareAndUpdateColumns(originDimensionMap, toDimensionMap.apply(expectedModel.getAllNamedColumns()),
                 newCol -> originExistMap.get(newCol.getAliasDotColumn()).setStatus(NDataModel.ColumnStatus.DIMENSION),
                 oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.EXIST),
                 (olCol, newCol) -> olCol.setName(newCol.getName()));
-
-        // Move deleted computed column to TOMB status
-        Set<String> currentComputedColumns = originModel.getComputedColumnDescs().stream()
-                .map(ComputedColumnDesc::getFullName).collect(Collectors.toSet());
-        originModel.getAllNamedColumns().stream()
-                .filter(column -> currentComputedColumns.contains(column.getAliasDotColumn()))
-                .filter(column -> !newComputedColumns.contains(column.getAliasDotColumn()))
-                .forEach(unusedColumn -> unusedColumn.setStatus(NDataModel.ColumnStatus.TOMB));
-        originModel.setComputedColumnDescs(request.getComputedColumnDescs());
 
         //Move unused named column to EXIST status
         originModel.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
@@ -223,7 +216,6 @@ public class ModelSemanticHelper {
                 onlyInTarget.accept(entry.getValue());
             } else {
                 inBoth.accept(matched, entry.getValue());
-                //                matched.name = entry.getValue().name;
             }
         }
         for (Map.Entry<K, T> entry : origin.entrySet()) {
@@ -237,23 +229,22 @@ public class ModelSemanticHelper {
 
     private List<NDataModel.Measure> convertMeasure(List<SimplifiedMeasure> simplifiedMeasures) {
         List<NDataModel.Measure> measures = new ArrayList<>();
-        boolean hasCount = false;
+        boolean hasCountAll = false;
         int id = NDataModel.MEASURE_ID_BASE;
         if (simplifiedMeasures == null) {
             simplifiedMeasures = Lists.newArrayList();
         }
         for (SimplifiedMeasure simplifiedMeasure : simplifiedMeasures) {
-            // TODO just check count(*), update this logic when count(col) is implemented
             val measure = simplifiedMeasure.toMeasure();
             measure.id = id;
             measures.add(measure);
             val functionDesc = measure.getFunction();
-            if (functionDesc.isCount()) {
-                hasCount = true;
+            if (functionDesc.isCount() && !functionDesc.isCountOnColumn()) {
+                hasCountAll = true;
             }
             id++;
         }
-        if (!hasCount) {
+        if (!hasCountAll) {
             FunctionDesc functionDesc = new FunctionDesc();
             ParameterDesc parameterDesc = new ParameterDesc();
             parameterDesc.setType("constant");

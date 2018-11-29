@@ -57,6 +57,7 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.ColumnStatus;
+import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -98,6 +99,144 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     @After
     public void tearDown() {
         cleanupTestMetadata();
+    }
+    
+    @Test
+    public void testModelUpdateComputedColumn() throws Exception {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        
+        // Add new computed column
+        final int colIdOfCC;
+        {
+            ModelRequest request = newSemanticRequest();
+            Assert.assertFalse(request.getComputedColumnNames().contains("TEST_CC_1"));
+            ComputedColumnDesc newCC = new ComputedColumnDesc();
+            newCC.setColumnName("TEST_CC_1");
+            newCC.setExpression("1 + 1");
+            newCC.setDatatype("integer");
+            newCC.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
+            newCC.setTableAlias("TEST_KYLIN_FACT");
+            request.getComputedColumnDescs().add(newCC);
+            modelService.updateDataModelSemantic(request);
+            dfMgr.updateDataflow(dfMgr.getDataflowByModelName(request.getName()).getName(),
+                    copyForWrite -> copyForWrite.setReconstructing(false));
+
+            NDataModel model = getTestModel();
+            Assert.assertTrue(model.getComputedColumnNames().contains("TEST_CC_1"));
+            colIdOfCC = model.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1");
+            Assert.assertNotEquals(-1, colIdOfCC);
+        }
+        
+        // Add dimension which uses TEST_CC_1, column will be renamed
+        {
+            ModelRequest request = newSemanticRequest();
+            Assert.assertEquals(-1, request.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1"));
+            NamedColumn newDimension = new NamedColumn();
+            newDimension.setName("TEST_DIM_WITH_CC");
+            newDimension.setAliasDotColumn("TEST_KYLIN_FACT.TEST_CC_1");
+            newDimension.setStatus(ColumnStatus.DIMENSION);
+            request.getAllNamedColumns().add(newDimension);
+            modelService.updateDataModelSemantic(request);
+            dfMgr.updateDataflow(dfMgr.getDataflowByModelName(request.getName()).getName(),
+                    copyForWrite -> copyForWrite.setReconstructing(false));
+
+            ModelRequest requestToVerify = newSemanticRequest();
+            Assert.assertEquals(colIdOfCC, requestToVerify.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1"));
+            NamedColumn dimensionToVerify = requestToVerify.getAllNamedColumns().stream()
+                    .filter(col -> col.getId() == colIdOfCC).findFirst().get();
+            Assert.assertNotNull(dimensionToVerify);
+            Assert.assertEquals("TEST_DIM_WITH_CC", dimensionToVerify.getName());
+            Assert.assertEquals(ColumnStatus.DIMENSION, dimensionToVerify.getStatus());
+        }
+        
+        // Add measure which uses TEST_CC_1
+        final int measureIdOfCC;
+        {
+            ModelRequest request = newSemanticRequest();
+            SimplifiedMeasure newMeasure = new SimplifiedMeasure();
+            newMeasure.setName("TEST_MEASURE_WITH_CC");
+            newMeasure.setExpression("SUM");
+            newMeasure.setReturnType("integer");
+            ParameterResponse param = new ParameterResponse();
+            param.setType("column");
+            param.setValue("TEST_KYLIN_FACT.TEST_CC_1");
+            newMeasure.setParameterValue(Lists.newArrayList(param));
+            request.getSimplifiedMeasures().add(newMeasure);
+            modelService.updateDataModelSemantic(request);
+            dfMgr.updateDataflow(dfMgr.getDataflowByModelName(request.getName()).getName(),
+                    copyForWrite -> copyForWrite.setReconstructing(false));
+
+            NDataModel model = getTestModel();
+            Measure measure = model.getAllMeasures().stream().filter(m -> m.getName().equals("TEST_MEASURE_WITH_CC"))
+                    .findFirst().get();
+            Assert.assertNotNull(measure);
+            measureIdOfCC = measure.getId();
+            Assert.assertTrue(measure.getFunction().isSum());
+            Assert.assertEquals("TEST_KYLIN_FACT.TEST_CC_1", measure.getFunction().getParameter().getValue());
+        }
+
+        // Update TEST_CC_1's definition, named column and measure will be recreated
+        int newColIdOfCC;
+        int newMeasureIdOfCC;
+        {
+            ModelRequest request = newSemanticRequest();
+            ComputedColumnDesc ccDesc = request.getComputedColumnDescs().stream()
+                    .filter(cc -> cc.getColumnName().equals("TEST_CC_1")).findFirst().get();
+            Assert.assertNotNull(ccDesc);
+            ccDesc.setExpression("1 + 2");
+            modelService.updateDataModelSemantic(request);
+            dfMgr.updateDataflow(dfMgr.getDataflowByModelName(request.getName()).getName(),
+                    copyForWrite -> copyForWrite.setReconstructing(false));
+
+            NDataModel model = getTestModel();
+            NamedColumn originalColumn = model.getAllNamedColumns().stream().filter(col -> col.getId() == colIdOfCC)
+                    .findFirst().get();
+            Assert.assertNotNull(originalColumn);
+            Assert.assertEquals("TEST_DIM_WITH_CC", originalColumn.getName());
+            Assert.assertEquals(ColumnStatus.TOMB, originalColumn.getStatus());
+            NamedColumn newColumn = model.getAllNamedColumns().stream().filter(NamedColumn::isExist)
+                    .filter(col -> col.getAliasDotColumn().equals("TEST_KYLIN_FACT.TEST_CC_1")).findFirst().get();
+            Assert.assertNotNull(newColumn);
+            Assert.assertEquals("TEST_DIM_WITH_CC", newColumn.getName());
+            Assert.assertEquals(ColumnStatus.DIMENSION, newColumn.getStatus());
+            newColIdOfCC = newColumn.getId();
+
+            Measure originalMeasure = model.getAllMeasures().stream().filter(m -> m.getId() == measureIdOfCC)
+                    .findFirst().get();
+            Assert.assertNotNull(originalMeasure);
+            Assert.assertEquals("TEST_MEASURE_WITH_CC", originalMeasure.getName());
+            Assert.assertTrue(originalMeasure.tomb);
+            Measure newMeasure = model.getEffectiveMeasures().values().stream()
+                    .filter(m -> m.getName().equals("TEST_MEASURE_WITH_CC")).findFirst().get();
+            Assert.assertNotNull(newMeasure);
+            Assert.assertFalse(newMeasure.tomb);
+            newMeasureIdOfCC = newMeasure.getId();
+        }
+
+        // Remove TEST_CC_1, all related should be moved to tomb
+        {
+            ModelRequest request = newSemanticRequest();
+            Assert.assertTrue(request.getComputedColumnDescs().removeIf(cc -> cc.getColumnName().equals("TEST_CC_1")));
+            try {
+                modelService.updateDataModelSemantic(request);
+                Assert.fail();
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof IllegalStateException);
+                Assert.assertEquals(
+                        "Cannot init measure TEST_MEASURE_WITH_CC: Column not found by TEST_KYLIN_FACT.TEST_CC_1",
+                        e.getMessage());
+            }
+
+            // remove broken measure
+            request.getSimplifiedMeasures().removeIf(m -> m.getName().equals("TEST_MEASURE_WITH_CC"));
+            modelService.updateDataModelSemantic(request);
+
+            NDataModel model = getTestModel();
+            Assert.assertFalse(model.getAllNamedColumns().stream().filter(c -> c.getId() == newColIdOfCC).findFirst()
+                    .get().isExist());
+            Assert.assertTrue(
+                    model.getAllMeasures().stream().filter(m -> m.getId() == newMeasureIdOfCC).findFirst().get().tomb);
+        }
     }
 
     @Test

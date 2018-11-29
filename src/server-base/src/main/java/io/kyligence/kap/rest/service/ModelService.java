@@ -611,7 +611,7 @@ public class ModelService extends BasicService {
             throw new BadRequestException(msg.getINVALID_MODEL_DEFINITION());
         }
 
-        String modelName = modelDesc.getName();
+        String modelName = modelDesc.getAlias();
 
         if (StringUtils.isEmpty(modelName)) {
             logger.info("Model name should not be empty.");
