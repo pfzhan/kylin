@@ -110,7 +110,7 @@ public class SQLResponse implements Serializable {
 
     private List<String> answeredBy;
 
-    private List<QueryMetricsContext.RealizationMetrics> realizationMetrics;
+    private transient List<QueryMetricsContext.RealizationMetrics> realizationMetrics;
 
     private String engineType;
 
