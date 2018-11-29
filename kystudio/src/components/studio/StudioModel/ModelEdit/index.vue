@@ -98,7 +98,7 @@
                 msTransform: `translateX(${ translate }px)`,
                 webkitTransform: `translateX(${ translate }px)`,
                 transform: `translateX(${ translate }px)`,
-                width: panelStyle('dimension').width.split('px')[0]-2+'px'
+                width: panelAppear.dimension.width-2+'px'
               }">
                 <span class="action_btn" @click="addCCDimension">
                   <i class="el-icon-ksd-project_add"></i>
@@ -117,10 +117,10 @@
               class="batch_group"
               :class="{'is_active': isShowCheckbox}"
               :style="{
-                msTransform: `translateX(${ translate+parseInt(panelStyle('dimension').width.split('px')[0]) }px)`,
-                webkitTransform: `translateX(${ translate+parseInt(panelStyle('dimension').width.split('px')[0]) }px)`,
-                transform: `translateX(${ translate+parseInt(panelStyle('dimension').width.split('px')[0]) }px)`,
-                width: panelStyle('dimension').width.split('px')[0]-2+'px'
+                msTransform: `translateX(${ translate+parseInt(panelAppear.dimension.width) }px)`,
+                webkitTransform: `translateX(${ translate+parseInt(panelAppear.dimension.width) }px)`,
+                transform: `translateX(${ translate+parseInt(panelAppear.dimension.width) }px)`,
+                width: panelAppear.dimension.width-2+'px'
               }">
                 <span class="action_btn" @click="toggleCheckAllDimension">
                   <i class="el-icon-ksd-batch_uncheck" v-if="dimensionSelectedList.length==allDimension.length"></i>
@@ -170,7 +170,7 @@
                 msTransform: `translateX(${ translateMea }px)`,
                 webkitTransform: `translateX(${ translateMea }px)`,
                 transform: `translateX(${ translateMea }px)`,
-                width: panelStyle('measure').width.split('px')[0]-2+'px'
+                width: panelAppear.measure.width-2+'px'
               }">
                 <span class="action_btn" @click="addNewMeasure">
                   <i class="el-icon-ksd-project_add"></i>
@@ -185,10 +185,10 @@
                 class="batch_group"
                 :class="{'is_active': isShowMeaCheckbox}"
                 :style="{
-                  msTransform: `translateX(${ translateMea+parseInt(panelStyle('measure').width.split('px')[0]) }px)`,
-                  webkitTransform: `translateX(${ translateMea+parseInt(panelStyle('measure').width.split('px')[0]) }px)`,
-                  transform: `translateX(${ translateMea+parseInt(panelStyle('measure').width.split('px')[0]) }px)`,
-                  width: panelStyle('measure').width.split('px')[0]-2+'px'
+                  msTransform: `translateX(${ translateMea+parseInt(panelAppear.measure.width) }px)`,
+                  webkitTransform: `translateX(${ translateMea+parseInt(panelAppear.measure.width) }px)`,
+                  transform: `translateX(${ translateMea+parseInt(panelAppear.measure.width) }px)`,
+                  width: panelAppear.measure.width-2+'px'
                 }">
                 <span class="action_btn" @click="toggleCheckAllMeasure">
                   <i class="el-icon-ksd-batch_uncheck" v-if="measureSelectedList.length==modelRender.all_measures.length-1"></i>
@@ -238,7 +238,7 @@
                 msTransform: `translateX(${ translateCC }px)`,
                 webkitTransform: `translateX(${ translateCC }px)`,
                 transform: `translateX(${ translateCC }px)`,
-                width: panelStyle('cc').width.split('px')[0]-2+'px'
+                width: panelAppear.cc.width-2+'px'
               }">
                 <span class="action_btn" @click="addCC">
                   <i class="el-icon-ksd-project_add"></i>
@@ -253,10 +253,10 @@
                 class="batch_group"
                 :class="{'is_active': isShowCCCheckbox}"
                 :style="{
-                  msTransform: `translateX(${ translateCC+parseInt(panelStyle('cc').width.split('px')[0]) }px)`,
-                  webkitTransform: `translateX(${ translateCC+parseInt(panelStyle('cc').width.split('px')[0]) }px)`,
-                  transform: `translateX(${ translateCC+parseInt(panelStyle('cc').width.split('px')[0]) }px)`,
-                  width: panelStyle('cc').width.split('px')[0]-2+'px'
+                  msTransform: `translateX(${ translateCC+parseInt(panelAppear.cc.width) }px)`,
+                  webkitTransform: `translateX(${ translateCC+parseInt(panelAppear.cc.width) }px)`,
+                  transform: `translateX(${ translateCC+parseInt(panelAppear.cc.width) }px)`,
+                  width: panelAppear.cc.width-2+'px'
                 }">
                 <span class="action_btn" @click="toggleCheckAllCC">
                   <i class="el-icon-ksd-batch_uncheck" v-if="ccSelectedList.length==modelRender.computed_columns.length"></i>
@@ -521,9 +521,6 @@ export default class ModelEdit extends Vue {
   isShowCheckbox = false
   isShowMeaCheckbox = false
   isShowCCCheckbox = false
-  translate = 0
-  translateMea = 0
-  translateCC = 0
   get allDimension () {
     return this.modelRender.dimensions
   }
@@ -554,7 +551,13 @@ export default class ModelEdit extends Vue {
       this.dimensionSelectedList = []
     }
     this.isShowCheckbox = !this.isShowCheckbox
-    this.translate = this.translate === 0 ? 0 - this.panelStyle('dimension').width.split('px')[0] : 0
+  }
+  get translate () {
+    if (this.isShowCheckbox) {
+      return 0 - this.panelAppear.dimension.width
+    } else {
+      return 0
+    }
   }
   toggleMeaCheckbox () {
     if (this.modelRender.all_measures.length === 1 && !this.isShowMeaCheckbox) {
@@ -563,7 +566,13 @@ export default class ModelEdit extends Vue {
       this.measureSelectedList = []
     }
     this.isShowMeaCheckbox = !this.isShowMeaCheckbox
-    this.translateMea = this.translateMea === 0 ? 0 - this.panelStyle('measure').width.split('px')[0] : 0
+  }
+  get translateMea () {
+    if (this.isShowMeaCheckbox) {
+      return 0 - this.panelAppear.measure.width
+    } else {
+      return 0
+    }
   }
   toggleCCCheckbox () {
     if (this.modelRender.computed_columns.length === 0 && !this.isShowCCCheckbox) {
@@ -572,7 +581,13 @@ export default class ModelEdit extends Vue {
       this.ccSelectedList = []
     }
     this.isShowCCCheckbox = !this.isShowCCCheckbox
-    this.translateCC = this.translateCC === 0 ? 0 - this.panelStyle('cc').width.split('px')[0] : 0
+  }
+  get translateCC () {
+    if (this.isShowCCCheckbox) {
+      return 0 - this.panelAppear.cc.width
+    } else {
+      return 0
+    }
   }
   delTable () {
     this.modelInstance.delTable(this.currentEditTable.guid).then(() => {
@@ -726,7 +741,9 @@ export default class ModelEdit extends Vue {
       this.modelInstance.delDimension(name)
     })
     this.dimensionSelectedList = []
-    this.toggleCheckbox()
+    if (this.allDimension.length === 0) {
+      this.toggleCheckbox()
+    }
   }
   deleteMeasure (name) {
     this.modelInstance.delMeasure(name)
@@ -746,7 +763,9 @@ export default class ModelEdit extends Vue {
       this.modelInstance.delMeasure(name)
     })
     this.measureSelectedList = []
-    this.toggleMeaCheckbox()
+    if (this.modelRender.all_measures.length === 1) {
+      this.toggleMeaCheckbox()
+    }
   }
   addCC () {
     this.showAddCCDialog({
@@ -777,7 +796,9 @@ export default class ModelEdit extends Vue {
       this.delCC(i)
     })
     this.ccSelectedList = []
-    this.toggleCCCheckbox()
+    if (this.modelRender.computed_columns.length === 0) {
+      this.toggleCCCheckbox()
+    }
   }
   editMeasure (m) {
     this.$nextTick(() => {
