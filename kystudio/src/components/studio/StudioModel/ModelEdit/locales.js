@@ -25,7 +25,14 @@ export default {
     switchFact: 'Switch to Fact Table',
     editTableAlias: 'Edit table alias',
     deleteTable: 'Delete the table',
-    noSelectJobs: 'Please check at least one item'
+    noSelectJobs: 'Please check at least one item',
+    add: 'Add',
+    batchAdd: 'Batch Add',
+    batchDel: 'Batch Delete',
+    checkAll: 'Check All',
+    unCheckAll: 'Uncheck All',
+    delete: 'Delete',
+    back: 'Back'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -53,6 +60,13 @@ export default {
     switchFact: '设置为事实表',
     editTableAlias: '编辑别名',
     deleteTable: '删除本表',
-    noSelectJobs: '请勾选至少一条'
+    noSelectJobs: '请勾选至少一条',
+    add: '增加',
+    batchAdd: '批量增加',
+    batchDel: '批量删除',
+    checkAll: '全选',
+    unCheckAll: '取消全选',
+    delete: '删除',
+    back: '返回'
   }
 }
