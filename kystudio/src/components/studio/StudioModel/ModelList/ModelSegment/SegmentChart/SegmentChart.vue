@@ -31,9 +31,11 @@
 </template>
 
 <script>
+import * as d3 from 'd3'
 import Vue from 'vue'
 import dayjs from 'dayjs'
 import { Component, Watch } from 'vue-property-decorator'
+import locales from './locales'
 import { scaleTypes, formatTypes, isFilteredSegmentsContinue } from './handler'
 const { MINUTE, HOUR, DAY, MONTH, YEAR } = scaleTypes
 
@@ -52,7 +54,8 @@ const { MINUTE, HOUR, DAY, MONTH, YEAR } = scaleTypes
       type: Number,
       default: 152
     }
-  }
+  },
+  locales
 })
 export default class SegmentChart extends Vue {
   scrollLeft = 0
@@ -63,6 +66,7 @@ export default class SegmentChart extends Vue {
   timer = null
   isFullInitilized = true
   containerWidth = 0
+  colorGenerator = d3.interpolate(d3.rgb('#ffcd58'), d3.rgb('#ff0000'))
   get selectedSegments () {
     return this.segments.filter(segment => this.selectedSegmentIds.includes(segment.id))
   }
@@ -183,7 +187,7 @@ export default class SegmentChart extends Vue {
     return {
       left: `${(startTime - startTimestamp) / totalTime * 100}%`,
       width: `${(endTime - startTime) / totalTime * 100}%`,
-      background: hitCount === 0 ? 'white' : `rgb(255, ${(1 - hitCount / 100) * 255}, 0)`,
+      background: this.colorGenerator(hitCount / 100),
       zIndex: hoveredSegmentId === id ? 3 : (this.selectedSegmentIds.includes(segment.id) ? 2 : 1)
     }
   }
@@ -225,8 +229,8 @@ export default class SegmentChart extends Vue {
   }
   handleMouseMove (event, segment) {
     const { id, startTime, endTime, storage } = segment
-    const startDate = dayjs(startTime).format('YYYY-MM-DD HH:mm:ss')
-    const endDate = dayjs(endTime).format('YYYY-MM-DD HH:mm:ss')
+    const startDate = startTime !== 0 ? dayjs(startTime).format('YYYY-MM-DD HH:mm:ss') : this.$t('fullLoad')
+    const endDate = endTime !== 7258089600000 ? dayjs(endTime).format('YYYY-MM-DD HH:mm:ss') : this.$t('fullLoad')
     const style = {
       left: `${event.offsetX + event.target.offsetLeft - this.scrollLeft}px`
     }
