@@ -14,7 +14,7 @@
         @node-expand="handleNodeExpand"
         @load-more="handleLoadMore"
       />
-      <div class="split">
+      <div class="split" v-if="false">
         <i class="el-icon-ksd-more_03"></i>
       </div>
     </div>
@@ -23,7 +23,7 @@
         <template v-if="selectedItems.databases.length || selectedItems.tables.length">
           <div class="category databases" v-if="selectedItems.databases.length">
             <div class="header font-medium">
-              <span>Database</span>
+              <span>{{$t('database')}}</span>
               <span>({{selectedItems.databases.length}})</span>
             </div>
             <div class="names">
@@ -39,7 +39,7 @@
           </div>
           <div class="category tables" v-if="selectedItems.tables.length">
             <div class="header font-medium">
-              <span>Table Name</span>
+              <span>{{$t('tableName')}}</span>
               <span>({{selectedItems.tables.length}})</span>
             </div>
             <div class="names">
@@ -189,6 +189,7 @@ export default class SourceHive extends Vue {
   constructor () {
     super()
     this.getDatabaseTree = getDatabaseTree.bind(this)
+    this.getTableTree = getTableTree.bind(this)
   }
   async mounted () {
     await this.loadDatabase()
@@ -231,7 +232,7 @@ export default class SourceHive extends Vue {
     const pagination = database.pagination
     const response = await this.fetchTables({ projectName, sourceType, databaseName, tableName, ...pagination })
     const { size, tables } = await handleSuccessAsync(response)
-    getTableTree(database, { size, tables }, isTableReset)
+    this.getTableTree(database, { size, tables }, isTableReset)
     this.setNextPagination(pagination)
     this.$emit('input', { selectedTables: [...this.selectedTables] })
   }
@@ -484,16 +485,51 @@ export default class SourceHive extends Vue {
     .el-tree-node__content:hover .select-all {
       display: block;
     }
+    .label-synced {
+      position: absolute;
+      top: 0;
+      right: 14px;
+      color: @text-disabled-color;
+    }
     .tree-item {
       position: relative;
       user-select: none;
+      width: 100%;
     }
     .el-icon-ksd-good_health {
       color: @btn-success-normal;
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translate(-20px, -50%);
+    }
+    .database {
+      .el-icon-ksd-good_health {
+        margin-right: 5px;
+      }
+    }
+    .table {
+      .el-icon-ksd-good_health {
+        position: absolute;
+        left: 0;
+        top: 50%;
+        transform: translate(-20px, -50%);
+      }
+    }
+    .selected {
+      .database,
+      .table {
+        color: @base-color;
+        &.disabled {
+          color: @text-title-color;
+        }
+      }
+    }
+    .database,
+    .table {
+      color: @text-normal-color;
+    }
+    .table.parent-selected .el-icon-ksd-good_health {
+      transform: translate(-2px, -50%);
+    }
+    .table.parent-selected {
+      padding-left: 18px;
     }
   }
 }

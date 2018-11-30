@@ -10,7 +10,10 @@ export default {
     sampling: 'Table Sampling',
     selectedHiveValidateFailText: 'Please enter table name as \'database.table\'.',
     selectAll: 'Select All',
-    cleanAll: 'Clean All'
+    cleanAll: 'Clean All',
+    database: 'Database',
+    tableName: 'Table Name',
+    synced: 'Synced'
   },
   'zh-cn': {
     dialogHiveTreeLoading: '加载中',
@@ -23,6 +26,9 @@ export default {
     sampling: '表采样',
     selectedHiveValidateFailText: '请输入完整表名\'database.table\'。',
     selectAll: '选中所有',
-    cleanAll: '清除所有'
+    cleanAll: '清除所有',
+    database: '数据库',
+    tableName: '数据源表',
+    synced: '已同步'
   }
 }

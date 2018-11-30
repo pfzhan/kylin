@@ -17,7 +17,12 @@ export function getDatabaseTree (databases) {
       const { label } = data
       return (
         <div class="database">
-          <div class="label">{label}</div>
+          <div class="label">
+            {data.isSelected ? (
+              <span class="el-icon-ksd-good_health"></span>
+            ) : null}
+            {label}
+          </div>
           <div class="select-all" onClick={event => this.handleClickNode(data, null, event, true)}>
             {data.isSelected ? this.$t('cleanAll') : this.$t('selectAll')}
           </div>
@@ -38,12 +43,35 @@ export function getTableTree (database, res, isTableReset) {
     isLoaded: table.loaded,
     render: (h, { node, data, store }) => {
       const isChecked = data.isLoaded || data.isSelected
+      const isLoaded = data.isLoaded
+      const tableClassNames = [
+        'table',
+        ...(database.isSelected ? ['parent-selected'] : []),
+        ...(!data.clickable ? ['disabled'] : [])
+      ]
+      const currentId = `table-load-${data.id}`
+      setTimeout(() => {
+        const currentEl = document.getElementById(currentId)
+        const parentEl = currentEl && currentEl.parentNode.parentNode.parentNode
+        if (parentEl && !data.clickable) {
+          parentEl.style.backgroundColor = 'transparent'
+          parentEl.style.cursor = 'not-allowed'
+        } else {
+          parentEl.style.backgroundColor = null
+          parentEl.style.cursor = null
+        }
+      })
       return (
         <div>
-          { isChecked ? (
-            <span class="el-icon-ksd-good_health"></span>
-          ) : null}
-          <span>{data.label}</span>
+          <div class={tableClassNames} id={currentId}>
+            { isChecked ? (
+              <span class="el-icon-ksd-good_health"></span>
+            ) : null }
+            <span>{data.label}</span>
+          </div>
+          { isLoaded ? (
+            <span class="label-synced">{this.$t('synced')}</span>
+          ) : null }
         </div>
       )
     }
