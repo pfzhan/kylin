@@ -570,14 +570,10 @@ class NModel {
     return item
   }
   checkTableCanSwitchFact (guid) {
-    // let ntable = this.getTableByGuid(guid)
     let factTable = this.getFactTable()
     if (factTable) {
       return false
     }
-    // if (ntable && ntable.getJoinInfo()) {
-    //   return false
-    // }
     return true
   }
   checkTableCanDel (guid) {
@@ -942,7 +938,7 @@ class NModel {
   }
   getFactTable () {
     for (var i in this.tables) {
-      if (this.tables[i].kind === modelRenderConfig.tableKind.fact) {
+      if (this.tables[i].kind === modelRenderConfig.tableKind.fact && this.tables[i].name === this.fact_table) {
         return this.tables[i]
       }
     }
