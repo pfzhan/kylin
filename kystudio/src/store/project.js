@@ -1,6 +1,7 @@
 import api from './../service/api'
 import * as types from './types'
 import { cacheSessionStorage, cacheLocalStorage } from 'util/index'
+import { speedProjectTypes } from 'config/index'
 export default {
   state: {
     projectList: [],
@@ -143,18 +144,11 @@ export default {
       }
       return null
     },
-    isAutoProject: (state) => {
-      const _filterable = state.allProject.filter(p => {
-        return p.name === state.selected_project
-      })
-      let currentProjectData
-      if (Array.isArray(_filterable) && _filterable.length > 0) {
-        currentProjectData = _filterable[0]
+    isAutoProject: (state, getters) => {
+      if (getters.currentProjectData) {
+        const { maintain_model_type: maintainModelType } = getters.currentProjectData || {}
+        return speedProjectTypes.includes(maintainModelType)
       }
-      if (currentProjectData) {
-        return currentProjectData.maintain_model_type === 'AUTO_MAINTAIN'
-      }
-      return false
     },
     selectedProjectDatasource: (state, getters, rootState) => {
       let datasourceKey = null

@@ -130,7 +130,7 @@ import { Component, Watch } from 'vue-property-decorator'
 // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
 import { handleError, kapConfirm, hasRole, hasPermission } from '../../util/business'
 import { objectClone, getQueryString, cacheSessionStorage, cacheLocalStorage } from '../../util/index'
-import { permissions, menusData, speedInfoTimer, speedProjectTypes } from '../../config'
+import { permissions, menusData, speedInfoTimer } from '../../config'
 import { mapActions, mapMutations, mapGetters } from 'vuex'
 import projectSelect from '../project/project_select'
 import changeLang from '../common/change_lang'
@@ -183,6 +183,7 @@ import $ from 'jquery'
       'currentSelectedProject',
       'briefMenuGet',
       'currentProjectData',
+      'isAutoProject',
       'availableMenus'
     ]),
     modelSpeedEvents () {
@@ -486,10 +487,6 @@ export default class LayoutLeftRightTop extends Vue {
   hasAdminProjectPermission () {
     return hasPermission(this, permissions.ADMINISTRATION.mask)
   }
-  get isSpeedProject () {
-    const { maintain_model_type: maintainModelType } = this.currentProjectData || {}
-    return speedProjectTypes.includes(maintainModelType)
-  }
   get isAdmin () {
     return hasRole(this, 'ROLE_ADMIN')
   }
@@ -574,7 +571,7 @@ export default class LayoutLeftRightTop extends Vue {
   ST = null
   loadCircleSpeedInfo () {
     if (this.currentSelectedProject) {
-      // 如果apply活着ignore接口还在进行中，先暂停轮训的请求发送
+      // 如果apply或者ignore接口还在进行中，先暂停轮训的请求发送
       if (this.applyBtnLoading || this.btnLoadingCancel) {
         return new Promise((resolve) => {
           resolve()
@@ -586,7 +583,7 @@ export default class LayoutLeftRightTop extends Vue {
   }
   circleLoadSpeedInfo () {
     clearTimeout(this.ST)
-    if (this.isSpeedProject) {
+    if (this.isAutoProject) {
       this.ST = setTimeout(() => {
         this.loadCircleSpeedInfo().then(() => {
           if (this._isDestroyed) {
@@ -606,8 +603,6 @@ export default class LayoutLeftRightTop extends Vue {
         this.$refs.changeLangCom.$emit('changeLang', lang)
       }
       $('#fullBox').addClass('cloud-frame-page')
-    } else {
-      this.circleLoadSpeedInfo()
     }
     // cloud
     // 刷新浏览器时的路由锁定
@@ -617,9 +612,10 @@ export default class LayoutLeftRightTop extends Vue {
         this.defaultActive = menu.path
       }
     })
-    if (this.isSpeedProject) {
+    if (this.isAutoProject) {
       // 获取加速信息
       this.loadSpeedInfo()
+      this.circleLoadSpeedInfo()
     }
   }
   destroyed () {

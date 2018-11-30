@@ -884,7 +884,7 @@ export default class ModelEdit extends Vue {
       this.modelInstance.changeLinkDirect(this.currentDragColumnData.guid, null, table.guid)
     }
     if (this.modelInstance.checkLinkCircle(this.currentDragColumnData.guid, table.guid)) {
-      kapMessage(this.$t('拖成环了！'), {type: 'warning'})
+      kapMessage(this.$t('cycleLinkTip'), {type: 'warning'})
       return
     }
     if (this.currentDragColumnData.guid) {

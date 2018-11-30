@@ -32,7 +32,8 @@ export default {
     checkAll: 'Check All',
     unCheckAll: 'Uncheck All',
     delete: 'Delete',
-    back: 'Back'
+    back: 'Back',
+    cycleLinkTip: ' The join may lead some tables joining in a circle.'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -67,6 +68,7 @@ export default {
     checkAll: '全选',
     unCheckAll: '取消全选',
     delete: '删除',
-    back: '返回'
+    back: '返回',
+    cycleLinkTip: '当前Join连接后，会导致表与表形成闭环。'
   }
 }
