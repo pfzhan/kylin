@@ -119,7 +119,7 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { mapActions } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 import Scrollbar from 'smooth-scrollbar'
 import { handleSuccess, handleError } from '../../util/business'
 @Component({
@@ -132,6 +132,11 @@ import { handleSuccess, handleError } from '../../util/business'
       // loadUsersList: 'LOAD_USERS_LIST',
       loadStatistics: 'LOAD_STATISTICS'
     })
+  },
+  computed: {
+    ...mapGetters([
+      'currentSelectedProject'
+    ])
   },
   locales: {
     'en': {'kapManual': 'Kyligence Enterprise Manual', 'kylinManual': 'Apache Kylin Document', 'statistics': 'Total Query Statistics', 'messages': 'Messages', 'documentation': 'Documentation', 'viewAll': 'View All'},
@@ -196,7 +201,7 @@ export default class Overview extends Vue {
     //   this.$store.state.user.usersSize = 0
     // }
 
-    this.loadStatistics({start_time: new Date().setHours(0, 0, 0, 0), end_time: new Date().setHours(23, 59, 59, 999)}).then((res) => {
+    this.loadStatistics({project: this.currentSelectedProject, start_time: new Date().setHours(0, 0, 0, 0), end_time: new Date().setHours(23, 59, 59, 999)}).then((res) => {
       handleSuccess(res, (data) => {
         this.statisticObj = data
       })

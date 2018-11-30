@@ -188,16 +188,12 @@
             <div class="btn-group ksd-fleft">
               <el-button type="primary" size="medium" plain @click="newBlackSql">{{$t('inputSql')}}</el-button>
             </div>
-            <div class="ksd-fright ksd-inline searchInput">
+            <div class="ksd-fright ksd-inline searchInput" v-if="blackSqlList.size">
               <el-input v-model="blackSqlFilter" @input="onblackSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
             </div>
           </div>
           <div class="sqlLists">
-            <div class="ksd-null-pic-text" v-if="!blackSqlList.size">
-              <img  src="../../assets/img/no_data.png" />
-              <p>{{$t('kylinLang.common.noData')}}</p>
-            </div>
-            <div v-for="(sqlObj, index) in blackSqlList.sqls" :key="index" class="sqlBox" :class="{'active': index == activeIndex}" @click.stop="viewBlackSql(sqlObj.sql, index)" v-else>
+            <div v-for="(sqlObj, index) in blackSqlList.sqls" :key="index" class="sqlBox" :class="{'active': index == activeIndex}" @click.stop="viewBlackSql(sqlObj.sql, index)" v-if="blackSqlList.size">
               <span>{{transformSql(sqlObj.sql)}}</span>
               <div class="group-btn">
                 <el-button type="primary" size="small" text @click.stop="delBlack(sqlObj.id)">{{$t('kylinLang.common.delete')}}</el-button>
@@ -206,7 +202,7 @@
           </div>
         </el-col>
         <el-col :span="8">
-          <div class="query_panel_box ksd-mt-10">
+          <div class="query_panel_box ksd-mt-10" :class="{'new_sql_status': isEditSql}" v-if="blackSqlList.size || isEditSql">
             <kap-editor ref="blackInputBox" :height="inputHeight" lang="sql" theme="chrome" v-model="blackSql">
             </kap-editor>
             <div class="operatorBox" v-show="isEditSql">
@@ -226,7 +222,11 @@
           </div>
         </el-col>
       </el-row>
-      <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="blackSqlList.size"  v-on:handleCurrentChange='blackSqlListsPageChange' :perPageSize="5" v-if="blackSqlList.size > 0"></kap-pager>
+      <div class="ksd-null-pic-text" v-if="!blackSqlList.size && !isEditSql">
+        <img  src="../../assets/img/no_data.png" />
+        <p>{{$t('kylinLang.common.noData')}}</p>
+      </div>
+      <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="blackSqlList.size"  v-on:handleCurrentChange='blackSqlListsPageChange' :perPageSize="5" v-if="blackSqlList.size"></kap-pager>
     </el-dialog>
     <el-dialog
       :visible.sync="whiteListVisible"
@@ -259,16 +259,12 @@
                 </el-button>
               </el-upload>
             </div>
-            <div class="ksd-fright ksd-inline searchInput">
+            <div class="ksd-fright ksd-inline searchInput" v-if="whiteSqlList.size">
               <el-input v-model="whiteSqlFilter" @input="onWhiteSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
             </div>
           </div>
           <div class="sqlLists">
-            <div class="ksd-null-pic-text" v-if="!whiteSqlList.size">
-              <img  src="../../assets/img/no_data.png" />
-              <p>{{$t('kylinLang.common.noData')}}</p>
-            </div>
-            <div v-for="(sqlObj, index) in whiteSqlList.sqls" :key="index" class="sqlBox" :class="{'active': index == activeIndex}" @click="activeSql(sqlObj, index)" v-else>
+            <div v-for="(sqlObj, index) in whiteSqlList.sqls" :key="index" class="sqlBox" :class="{'active': index == activeIndex}" @click="activeSql(sqlObj, index)" v-if="whiteSqlList.size">
               <span>{{transformSql(sqlObj.sql)}}</span>
               <i class="el-icon-ksd-alert" v-if="!sqlObj.capable"></i>
               <div class="group-btn">
@@ -279,7 +275,7 @@
           </div>
         </el-col>
         <el-col :span="8">
-          <div class="query_panel_box ksd-mt-10">
+          <div class="query_panel_box ksd-mt-10" v-if="whiteSqlList.size">
             <kap-editor ref="whiteInputBox" :height="inputHeight" lang="sql" theme="chrome" v-model="whiteSql">
             </kap-editor>
             <div class="operatorBox" v-show="isEditSql">
@@ -298,6 +294,10 @@
           </div>
         </el-col>
       </el-row>
+      <div class="ksd-null-pic-text" v-if="!whiteSqlList.size">
+        <img  src="../../assets/img/no_data.png" />
+        <p>{{$t('kylinLang.common.noData')}}</p>
+      </div>
       <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="whiteSqlList.size"  v-on:handleCurrentChange='whiteSqlListsPageChange' :perPageSize="5" v-if="whiteSqlList.size > 0"></kap-pager>
     </el-dialog>
     <el-dialog
@@ -825,9 +825,6 @@ export default class FavoriteQuery extends Vue {
     this.whiteListVisible = true
     this.activeIndex = 0
     this.isEditSql = false
-    setTimeout(() => {
-      this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(true)
-    }, 0)
     this.getWhiteList()
   }
 
@@ -843,7 +840,9 @@ export default class FavoriteQuery extends Vue {
       this.inputHeight = 564 - 150
       this.whiteMessages = sqlObj.sqlAdvices
     }
-    this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(true)
+    setTimeout(() => {
+      this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(true)
+    }, 0)
   }
 
   editWhiteSql (sqlObj, index) {
@@ -917,7 +916,9 @@ export default class FavoriteQuery extends Vue {
     this.activeIndex = index
     this.isEditSql = false
     this.blackSql = this.formatterSql(sql)
-    this.$refs.blackInputBox.$refs.kapEditor.editor.setReadOnly(true)
+    setTimeout(() => {
+      this.$refs.blackInputBox.$refs.kapEditor.editor.setReadOnly(true)
+    }, 0)
   }
 
   viewBlackSql (sql, index) {
@@ -936,7 +937,9 @@ export default class FavoriteQuery extends Vue {
     this.isBlackErrorMessage = false
     this.blackSql = ''
     this.activeIndex = -1
-    this.$refs.blackInputBox.$refs.kapEditor.editor.setReadOnly(false)
+    setTimeout(() => {
+      this.$refs.blackInputBox.$refs.kapEditor.editor.setReadOnly(false)
+    }, 0)
   }
 
   submitBlackSql () {
@@ -1226,6 +1229,13 @@ export default class FavoriteQuery extends Vue {
     .whiteListDialog {
       .el-dialog {
         min-height: 500px;
+        .new_sql_status {
+          border-color: @base-color;
+          .ace-chrome {
+            border-color: @base-color;
+            border-bottom-color: @text-secondary-color;
+          }
+        }
         .operatorBox{
           margin-top: 0;
           padding: 10px;
