@@ -11,7 +11,7 @@ export function getAllSegmentsRange (table) {
     startTime < minTime ? (minTime = +startTime) : null
     endTime > maxTime ? (maxTime = +endTime) : null
   }
-  return [ minTime, maxTime ]
+  return segmentKeyValuePairs.length ? [ minTime, maxTime ] : []
 }
 
 export function getAllSegments (segmentData) {

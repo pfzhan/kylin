@@ -1,6 +1,6 @@
 import dayjs from 'dayjs'
 import { sourceTypes, sourceNameMapping, pageSizeMapping } from '../../../config'
-import { getUserRange } from '../../../util/UtilTable'
+import { getUserRange, getAllSegmentsRange } from '../../../util/UtilTable'
 
 export const render = {
   datasource: {
@@ -150,7 +150,9 @@ export function getTableObj (that, database, table) {
     ...(table.lookup ? ['L'] : []),
     ...(!table.root_fact && !table.lookup ? ['N'] : [])
   ]
-  const dateRange = getDateRangeStr(that, getUserRange(table))
+  const allRange = getAllSegmentsRange(table)
+  const dateRange = getUserRange(table)
+  const dateRangeStr = getDateRangeStr(that, dateRange.length ? dateRange : allRange)
   const tableObj = {
     id: table.uuid,
     label: table.name,
@@ -162,7 +164,7 @@ export function getTableObj (that, database, table) {
     datasource,
     isCentral: table.fact,
     isTopSet: table.top,
-    dateRange,
+    dateRange: dateRangeStr,
     isSelected: false,
     parent: database,
     __data: table
