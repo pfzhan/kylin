@@ -45,11 +45,16 @@ package org.apache.kylin.model.tool;
 
 import static org.junit.Assert.assertEquals;
 
+import org.apache.calcite.sql.SqlBasicCall;
+import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlNode;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
+import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -126,6 +131,25 @@ public class CalciteParserTest {
             Preconditions.checkArgument(substring.endsWith("b"));
         }
 
+    }
+
+    @Test
+    public void testLikeClausePos() throws SqlParseException {
+        String sql = "select gender from employee where name like '%berg'";
+
+        SqlNode parse = ((SqlSelect) CalciteParser.parse(sql)).getWhere();
+        Assert.assertTrue(parse instanceof SqlBasicCall);
+
+        SqlOperator operator = ((SqlBasicCall) parse).getOperator();
+        Assert.assertEquals(SqlKind.LIKE, operator.getKind());
+
+        SqlParserPos pos = parse.getParserPosition();
+        Assert.assertNotEquals(SqlParserPos.ZERO, pos);
+
+        Pair<Integer, Integer> replacePos = CalciteParser.getReplacePos(parse, sql);
+        String substring = sql.substring(replacePos.getFirst(), replacePos.getSecond());
+        Preconditions.checkArgument(substring.startsWith("name"));
+        Preconditions.checkArgument(substring.endsWith("'%berg'"));
     }
 
 

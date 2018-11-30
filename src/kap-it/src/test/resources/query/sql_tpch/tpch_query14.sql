@@ -1,5 +1,3 @@
--- KAP-8200
-
 select 100.00 * sum(case
 		when p_type like 'PROMO%'
 			then l_extendedprice
