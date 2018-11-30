@@ -53,7 +53,7 @@
                   </span>
                 </el-col>
               </el-row>
-              <div class="discard" v-if="relatedModel.management_type !== 'MODEL_BASED'" @click="handleDiscard(relatedModel)">{{$t('discard')}}</div>
+              <div class="discard" v-if="relatedModel.modelActions.includes('discard')" @click="handleDiscard(relatedModel)">{{$t('discard')}}</div>
             </div>
           </el-col>
         </el-row>
@@ -75,8 +75,8 @@ import { transToGmtTime, handleError } from '../../../../util'
 
 @Component({
   props: {
-    projectName: {
-      type: String
+    project: {
+      type: Object
     },
     table: {
       type: Object
@@ -101,6 +101,9 @@ export default class RelatedModels extends Vue {
   isShowRelatedModel = true
   windowWidth = 0
   scrollableAncestor = null
+  get projectName () {
+    return this.project.name
+  }
   get columnCount () {
     return this.windowWidth > 1500 ? 3 : 2
   }
@@ -115,7 +118,7 @@ export default class RelatedModels extends Vue {
     const modelCardGroups = []
 
     relatedModels
-      .filter(relatedModel => relatedModel.management_type !== 'MODEL_BASED')
+      .filter(relatedModel => relatedModel.modelActions.includes('viewInRelated'))
       .forEach((relatedModel, index) => {
         if (index % columnCount === 0) {
           modelCardGroups.push([relatedModel])

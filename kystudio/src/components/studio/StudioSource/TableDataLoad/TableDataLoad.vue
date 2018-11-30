@@ -106,7 +106,7 @@
 
     <template v-if="isFact">
       <RelatedModels
-        :project-name="projectName"
+        :project="project"
         :table="table"
         :related-models="relatedModels"
         @filter="handleFilterModels"
@@ -124,12 +124,13 @@ import { Component, Watch } from 'vue-property-decorator'
 import locales from './locales'
 import DataRangeBar from '../../../common/DataRangeBar/DataRangeBar'
 import RelatedModels from '../RelatedModels/RelatedModels'
+import { getAvailableOptions } from '../../../../util/specParser'
 import { handleSuccessAsync, handleError, isDatePartitionType } from '../../../../util'
 
 @Component({
   props: {
-    projectName: {
-      type: String
+    project: {
+      type: Object
     },
     table: {
       type: Object
@@ -178,6 +179,9 @@ export default class TableDataLoad extends Vue {
   }
   get partitionColumns () {
     return this.table.columns.filter(column => isDatePartitionType(column.datatype))
+  }
+  get projectName () {
+    return this.project.name
   }
   mounted () {
     if (this.isFact) {
@@ -323,7 +327,10 @@ export default class TableDataLoad extends Vue {
         segment.endTime > endTime && (endTime = +segment.endTime)
         segment.status === 'NEW' && (isOnline = false)
       })
-      return { ...model, segments, startTime, endTime, isOnline }
+      const projectType = this.project.maintain_model_type
+      const modelType = model.management_type
+      const modelActions = getAvailableOptions('modelActions', { projectType, modelType })
+      return { ...model, segments, startTime, endTime, isOnline, modelActions }
     })
   }
 }

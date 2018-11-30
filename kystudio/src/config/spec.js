@@ -38,11 +38,14 @@ export default {
       { "id": "admin", "value": "ROLE_ANALYST", "title": "Admin" },
       { "id": "admin", "value": "ROLE_MODELER", "title": "Admin" }
     ],
-    "model": [
+    "modelType": [
       { "id": "tableOriented", "value": "TABLE_ORIENTED", "title": "Table Oriented" },
       { "id": "modelBased", "value": "MODEL_BASED", "title": "Model Based" }
     ],
-    "modelEditActions": [
+    "modelActions": [
+      { "id": "viewInRelated" },
+      { "id": "discard" },
+      { "id": "build" },
       { "id": "factSwitcher" },
       { "id": "deleteTable" },
       { "id": "addJoin" }
@@ -64,16 +67,18 @@ export default {
         { "key": "autoMaintain-operation", "value": "user,group" },
         { "key": "autoMaintain-read", "value": "job,user,group" }
       ]
+    },
+    "modelActions": {
+      "keyPattern": "projectType-modelType",
+      "entries": [
+        { "key": "manualMaintain-tableOriented", "value": "build" },
+        { "key": "manualMaintain-modelBased", "value": "viewInRelated,discard" },
+        { "key": "autoMaintain-tableOriented", "value": "build" },
+        { "key": "autoMaintain-modelBased", "value": "viewInRelated,discard" }
+      ]
     }
   },
   "enableOptionMaps": {
-    "modelEditActions": {
-      "keyPattern": "model",
-      "entries": [
-        { "key": "tableOriented", "value": "factSwitcher,deleteTable,addJoin" },
-        { "key": "modelBased", "value": "factSwitcher,deleteTable,addJoin" }
-      ]
-    },
     "aggregateActions": {
       "keyPattern": "projectType",
       "entries": [

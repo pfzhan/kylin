@@ -32,7 +32,7 @@
           <div class="table-details">
             <el-tabs v-model="viewType">
               <el-tab-pane :label="$t('dataLoad')" :name="viewTypes.DATA_LOAD">
-                <TableDataLoad :project-name="currentSelectedProject" :table="selectedTable" @fresh-tables="handleFreshTable"></TableDataLoad>
+                <TableDataLoad :project="currentProjectData" :table="selectedTable" @fresh-tables="handleFreshTable"></TableDataLoad>
               </el-tab-pane>
               <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS">
                 <TableColumns :table="selectedTable"></TableColumns>
