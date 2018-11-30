@@ -42,12 +42,14 @@ export function getTableTree (database, res, isTableReset) {
     clickable: !table.loaded,
     isLoaded: table.loaded,
     render: (h, { node, data, store }) => {
-      const isChecked = data.isLoaded || data.isSelected
+      const isChecked = !data.isLoaded && data.isSelected
       const isLoaded = data.isLoaded
+      const isAllTableSelected = database.children.every(item => item.isLoaded)
       const tableClassNames = [
         'table',
-        ...(database.isSelected ? ['parent-selected'] : []),
-        ...(!data.clickable ? ['disabled'] : [])
+        ...(database.isSelected && !isAllTableSelected ? ['parent-selected'] : []),
+        ...(!data.clickable ? ['disabled'] : []),
+        ...(isLoaded ? ['synced'] : [])
       ]
       const currentId = `table-load-${data.id}`
       setTimeout(() => {

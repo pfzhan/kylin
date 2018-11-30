@@ -461,8 +461,9 @@ export default class SourceHive extends Vue {
     // }
     // 定制样式: database
     .el-tree > .el-tree-node > .el-tree-node__content {
-      height: 44px;
       position: relative;
+      padding-top: 10px;
+      padding-bottom: 10px;
     }
     .el-tree > .el-tree-node {
       border-bottom: 1px solid @line-border-color;
@@ -482,19 +483,32 @@ export default class SourceHive extends Vue {
         color: #0988de;
       }
     }
+    .el-tree-node__expand-icon {
+      padding-top: 0;
+      padding-bottom: 0;
+    }
+    .el-tree-node__content {
+      min-height: 16px;
+      height: auto;
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
     .el-tree-node__content:hover .select-all {
       display: block;
     }
     .label-synced {
       position: absolute;
-      top: 0;
+      top: 50%;
       right: 14px;
       color: @text-disabled-color;
+      transform: translateY(-50%);
     }
     .tree-item {
       position: relative;
       user-select: none;
       width: 100%;
+      white-space: normal;
+      word-break: break-all;
     }
     .el-icon-ksd-good_health {
       color: @btn-success-normal;
@@ -505,6 +519,10 @@ export default class SourceHive extends Vue {
       }
     }
     .table {
+      width: calc(~'100% - 24px');
+      &.synced {
+        width: calc(~'100% - 100px');
+      }
       .el-icon-ksd-good_health {
         position: absolute;
         left: 0;
