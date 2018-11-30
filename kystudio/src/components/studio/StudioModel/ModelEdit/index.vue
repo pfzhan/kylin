@@ -648,10 +648,10 @@ export default class ModelEdit extends Vue {
       // 提示 增量构建的不能改成lookup
       return false
     }
-    if (Object.keys(t.joinInfo).length && t.kind === modelRenderConfig.tableKind.lookup) {
-      // 提示，主键表不能作为fact
-      return false
-    }
+    // if (Object.keys(t.joinInfo).length && t.kind === modelRenderConfig.tableKind.lookup) {
+    //   // 提示，主键表不能作为fact
+    //   return false
+    // }
     return true
   }
   // 放大视图
@@ -874,17 +874,17 @@ export default class ModelEdit extends Vue {
   // 释放列
   dropColumn (event, col, table) {
     this.removeDragInClass()
+    let fromTable = this.modelInstance.getTableByGuid(this.currentDragColumnData.guid)
     // 判断是否是自己连自己
     if (this.currentDragColumnData.guid === table.guid) {
       return
     }
-    // 判断是否是把fact当主键表（连向fact）
-    if (table.kind === modelRenderConfig.tableKind.fact) {
-      return
+    // 判断两个表是否已经在一个方向上连接过
+    if (fromTable.getJoinInfoByFGuid(table.guid)) {
+      this.modelInstance.changeLinkDirect(this.currentDragColumnData.guid, null, table.guid)
     }
-    // 判断连接的表是不是已经已经做了别人的主键
-    var curTableLinkTable = table.getJoinInfo() && table.getJoinInfo().foreignTable || null
-    if (curTableLinkTable && curTableLinkTable.guid !== this.currentDragColumnData.guid) {
+    if (this.modelInstance.checkLinkCircle(this.currentDragColumnData.guid, table.guid)) {
+      kapMessage(this.$t('拖成环了！'), {type: 'warning'})
       return
     }
     if (this.currentDragColumnData.guid) {
@@ -898,7 +898,6 @@ export default class ModelEdit extends Vue {
       fid: this.currentDragColumnData.guid,
       pid: table.guid,
       fColumnName: fTable.alias + '.' + this.currentDragColumnData.columnName,
-      // pColumnName: table.alias + '.' + col.name,
       tables: this.modelRender.tables
     }
     if (col) {

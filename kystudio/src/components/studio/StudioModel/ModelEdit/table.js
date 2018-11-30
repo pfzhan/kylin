@@ -51,8 +51,10 @@ class NTable {
   }
   // 链接关系处理
   addLinkData (fTable, linkColumnF, linkColumnP, type) {
-    var pid = this.guid
-    this.joinInfo[pid] = {
+    // this.addFreeLinkData(fTable, linkColumnF, linkColumnP, type)
+    let fguid = fTable.guid
+    let key = fguid + '$' + this.guid
+    this.joinInfo[key] = {
       table: {
         guid: this.guid,
         columns: this.columns,
@@ -82,8 +84,13 @@ class NTable {
       }
     }
   }
+  getJoinInfoByFGuid (fguid) {
+    return this.joinInfo[fguid + '$' + this.guid]
+  }
   getJoinInfo () {
-    return this.joinInfo[this.guid]
+    for (let k in this.joinInfo) {
+      return this.joinInfo[k]
+    }
   }
   getTableInViewOffset () {
     return {
@@ -96,16 +103,18 @@ class NTable {
   }
   // 获取符合元数据格式的JoinInfo
   getMetaJoinInfo (modelInstance) {
-    let joinInfo = objectClone(this.joinInfo[this.guid])
     let obj = {}
-    if (joinInfo && joinInfo.table && joinInfo.join) {
-      obj.table = joinInfo.table.name
-      obj.alias = joinInfo.table.alias
-      obj.join = joinInfo.join
-    } else {
-      return null
+    for (let key in this.joinInfo) {
+      let joinInfo = objectClone(this.joinInfo[key])
+      if (joinInfo && joinInfo.table && joinInfo.join) {
+        obj.table = joinInfo.table.name
+        obj.alias = joinInfo.table.alias
+        obj.join = joinInfo.join
+      } else {
+        return null
+      }
+      return obj
     }
-    return obj
   }
   changeJoinAlias (modelInstance) {
     let joinInfo = this.joinInfo[this.guid]
@@ -146,6 +155,9 @@ class NTable {
     }
     return _links
   }
+  // getLinkByFriGuid (fguid) {
+  //   return this.freeJoinInfo[fguid + '$' + this.guid]
+  // }
   // 获取某个主键表相关的连接
   getLinks () {
     return this.joinInfo[this.guid] || {}

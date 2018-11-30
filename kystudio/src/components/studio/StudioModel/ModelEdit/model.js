@@ -162,12 +162,11 @@ class NModel {
   }
   // 连线
   renderLink (pid, fid) {
-    this.addPlumbPoints(pid, '', '', true)
-    this.addPlumbPoints(fid, '', '', true)
     var hasConn = this.allConnInfo[pid + '$' + fid]
     if (hasConn) {
-      let joinInfo = this.tables[pid].getLinks()
-      var primaryKeys = joinInfo && joinInfo.join && joinInfo.join.primary_key
+      let joinInfo = this.tables[pid].getJoinInfoByFGuid(fid)
+      var primaryKeys = joinInfo && joinInfo.join.primary_key
+      // var primaryKeys = joinInfo && joinInfo.join && joinInfo.join.primary_key
       // 如果渲染的时候发现连接关系都没有了，直接删除
       if (!primaryKeys || primaryKeys && primaryKeys.length === 1 && primaryKeys[0] === '') {
         this.removeRenderLink(hasConn)
@@ -177,6 +176,8 @@ class NModel {
       this.plumbTool.refreshPlumbInstance()
       return hasConn
     }
+    this.addPlumbPoints(pid, '', '', true)
+    this.addPlumbPoints(fid, '', '', true)
     var conn = this.plumbTool.connect(pid, fid, () => {
       this.connClick(pid, fid)
     }, {})
@@ -187,6 +188,7 @@ class NModel {
   }
   // 生成供后台使用的数据结构
   generateMetadata () {
+    this._arrangeLinks()
     return new Promise((resolve, reject) => {
       try {
         let metaData = {
@@ -263,6 +265,66 @@ class NModel {
       }
     })
   }
+  /*
+    按照传入的节点向下改变连线方向 eg: a -> b <- c <- d  改成  a -> b -> c -> d （递归执行）
+    @guid 起点节点的guid
+    @prevGuid 上次执行到的的guid
+    @tartgetGuid 制定要改变顺序的对方节点
+  */
+  changeLinkDirect (guid, prevGuid, targetGuid) {
+    let conns = this.getAllUsedAsPrimaryConn(guid)
+    let curTable = this.getTableByGuid(guid)
+    conns.forEach((conn) => {
+      if (conn.sourceId !== prevGuid || targetGuid && conn.sourceId === targetGuid) {
+        let hisConnInfo = curTable.getJoinInfoByFGuid(conn.sourceId)
+        let newPrimaryTable = this.getTableByGuid(conn.sourceId)
+        let newFrieignTable = this.getTableByGuid(conn.targetId)
+        // 删除
+        this.removeRenderLink(conn)
+        // 产生新的连接数据
+        newPrimaryTable.addLinkData(newFrieignTable, hisConnInfo.join.primary_key, hisConnInfo.join.foreign_key, hisConnInfo.join.type)
+        // 重新连接
+        this.renderLink(newPrimaryTable.guid, newFrieignTable.guid)
+        if (!targetGuid) {
+          this.changeLinkDirect(newPrimaryTable.guid, guid)
+        }
+      }
+    })
+  }
+  /*
+    提前检测连接是否形成闭环 递归执行
+    @startNode 连接的起始点
+    @endNode 连接的结束点
+    @sourceId 检测点
+    @prevSourceId 上一次的监测点
+  */
+  checkLinkCircle (startNode, endNode, sourceId, prevSourceId) {
+    sourceId = sourceId || startNode
+    prevSourceId = prevSourceId || startNode
+    let conns = this.getAllConnectsByGuid(sourceId)
+    for (let k = 0; k < conns.length; k++) {
+      let conn = conns[k]
+      let nextNode = conn.sourceId === sourceId ? conn.targetId : conn.sourceId
+      if (prevSourceId && prevSourceId === nextNode) {
+        continue
+      }
+      if (nextNode === endNode && startNode !== sourceId) { // 第一层检测跳过，直接连接的不算做闭环
+        return true
+      }
+      if (this.checkLinkCircle(startNode, endNode, nextNode, sourceId)) {
+        return true
+      }
+    }
+  }
+  // 整理用户随意连线的表
+  _arrangeLinks () {
+    if (!this.fact_table) {
+      return
+    }
+    let factTable = this.getTableByAlias(this.fact_table.split('.')[1])
+    let factGuid = factTable.guid
+    this.changeLinkDirect(factGuid)
+  }
   _guidCache = {}
   _cacheAliasAndGuid (alias) {
     let guid = ''
@@ -326,9 +388,19 @@ class NModel {
   }
   // end
   // 判断是否table有关联的链接
-  getAllConnectsByAlias (guid) {
+  getAllConnectsByGuid (guid) {
     let result = []
     var reg = new RegExp('^' + guid + '\\$|\\$' + guid + '$')
+    for (let i in this.allConnInfo) {
+      if (reg.test(i)) {
+        result.push(this.allConnInfo[i])
+      }
+    }
+    return result
+  }
+  getAllUsedAsPrimaryConn (guid) {
+    let result = []
+    var reg = new RegExp('^' + guid + '\\$')
     for (let i in this.allConnInfo) {
       if (reg.test(i)) {
         result.push(this.allConnInfo[i])
@@ -383,17 +455,13 @@ class NModel {
   changeAlias () {
     this._changeAliasRelation()
   }
-  // 用户修改fact的时候，将所有的fact上的cc转移到另外一个fact上去
-  moveCCToOtherFact () {
-
-  }
   // 删除conn相关的主键的连接信息
   removeRenderLink (conn) {
     var fid = conn.sourceId
     var pid = conn.targetId
     delete this.allConnInfo[pid + '$' + fid]
     this.plumbTool.deleteConnect(conn)
-    this.tables[pid].joinInfo = {}
+    delete this.tables[pid].joinInfo[fid + '$' + [pid]]
   }
   _renderLabels () {
     for (var i in this.allConnInfo) {
@@ -492,7 +560,7 @@ class NModel {
   renderSearchResult (t, key, kind, a) {
     let item = {name: t[key], kind: kind, action: a.action, i18n: a.i18n, more: t}
     if (kind === 'table' && a.action === 'tableeditjoin' || kind === 'join' && a.action === 'editjoin') {
-      let joinInfo = t.joinInfo[t.guid]
+      let joinInfo = t.getJoinInfo()
       if (joinInfo) {
         item.extraInfo = ' <span class="jtk-overlay">' + joinInfo.join.type + '</span> ' + joinInfo.foreignTable.name
       } else {
@@ -502,14 +570,14 @@ class NModel {
     return item
   }
   checkTableCanSwitchFact (guid) {
-    let ntable = this.getTableByGuid(guid)
+    // let ntable = this.getTableByGuid(guid)
     let factTable = this.getFactTable()
     if (factTable) {
       return false
     }
-    if (ntable && ntable.getJoinInfo()) {
-      return false
-    }
+    // if (ntable && ntable.getJoinInfo()) {
+    //   return false
+    // }
     return true
   }
   checkTableCanDel (guid) {
@@ -531,7 +599,7 @@ class NModel {
     return true
   }
   _checkTableUseInConn (guid) {
-    let conns = this.getAllConnectsByAlias(guid)
+    let conns = this.getAllConnectsByGuid(guid)
     if (conns.length) {
       return true
     }
@@ -557,7 +625,7 @@ class NModel {
   }
   delTable (guid) {
     return new Promise((resolve, reject) => {
-      let conns = this.getAllConnectsByAlias(guid)
+      let conns = this.getAllConnectsByGuid(guid)
       conns && conns.forEach((conn) => {
         this.removeRenderLink(conn)
       })
@@ -680,6 +748,7 @@ class NModel {
       this._updateAllNamedColumnsCCToNewFactTable()
       this._updateCCToNewFactTable()
       this.fact_table = t.name
+      this._arrangeLinks()
     }
     // 改变别名且替换掉所有关联的别名信息
     this.changeAlias()
@@ -1044,7 +1113,7 @@ class NModel {
     var fid = conn.sourceId
     var pid = conn.targetId
     var labelObj = conn.getOverlay(pid + (fid + 'label'))
-    var joinInfo = this.tables[pid].getJoinInfo()
+    var joinInfo = this.tables[pid].getJoinInfoByFGuid(fid)
     if (!joinInfo) {
       return
     }

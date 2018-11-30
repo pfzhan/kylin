@@ -101,7 +101,7 @@ export default class TableJoinModal extends Vue {
       this.selectF = this.form.fid || ''
       let ptable = this.form.tables[this.selectP]
       // let ftable = this.form.tables[this.selectF]
-      let joinData = ptable && ptable.getJoinInfo() || null
+      let joinData = ptable && ptable.getJoinInfoByFGuid(this.selectF) || null
       if (joinData) { // 有join数据的情况
         var joinInfo = joinData.join
         this.joinColumns.foreign_key = joinInfo.foreign_key
