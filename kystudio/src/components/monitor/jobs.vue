@@ -189,7 +189,7 @@
               <p class="stepname single-line">{{step.name}}</p>
             </div>
             <div class="timeline-body">
-              <span class="steptime jobActivityLabel">
+              <span class="steptime jobActivityLabel" v-if="step.exec_start_time && step.exec_end_time">
                 <i class="el-icon-time"></i>
                 {{transToGmtTime(step.exec_start_time!=0? step.exec_start_time: '')}}
               </span>
@@ -200,7 +200,11 @@
               </div>
               <div>
                 <span class="jobActivityLabel">{{$t('duration')}}: </span>
-                <span>{{timerlineDuration(step)}}</span><br />
+                <span v-if="step.exec_start_time && step.exec_end_time">{{timerlineDuration(step)}}</span>
+                <span v-if="!step.exec_start_time || !step.exec_end_time">
+                  <img src="../../assets/img/dot.gif" height="12px" width="10px"/>
+                </span>
+                <br />
               </div>
             </div>
             <div class="timeline-footer">
