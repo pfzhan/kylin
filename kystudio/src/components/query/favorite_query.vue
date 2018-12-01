@@ -150,7 +150,7 @@
         <el-switch class="ksd-switch" v-model="preSettingObj.batch_enabled" active-text="ON" inactive-text="OFF"></el-switch>
         <div class="setting">
           <span>{{$t('notifyLeftTips')}}</span>
-          <el-input size="small" class="acce-input" v-model="preSettingObj.threshold"></el-input>
+          <el-input size="small" @input="handleInputChange" class="acce-input" v-model="preSettingObj.threshold"></el-input>
           <span>{{$t('notifyRightTips')}}</span>
         </div>
       </div>
@@ -640,6 +640,17 @@ export default class FavoriteQuery extends Vue {
       this.getDurationObj()
     })
   }
+  handleInputChange (value) {
+    // const newVal = (isNaN(newVal) || value === '' || value < 0) ? 0 : Number(value)
+    this.$nextTick(() => {
+      this.preSettingObj.threshold = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
+    })
+    // if (!isNaN(newVal) || value === '' || value < 0) {
+    //   this.$nextTick(() => {
+    //     this.preSettingObj.threshold = newVal
+    //   })
+    // }
+  }
 
   loadRuleImpactRatio () {
     this.getRulesImpact({project: this.currentSelectedProject}).then((res) => {
@@ -965,6 +976,7 @@ export default class FavoriteQuery extends Vue {
   clearSql () {
     this.blackSql = ''
     this.isBlackErrorMessage = false
+    this.inputHeight = 512
   }
 
   delBlack (id) {

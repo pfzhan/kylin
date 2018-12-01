@@ -1,16 +1,12 @@
 <template>
   <div id="queryPanelBox">
     <div class="resultTipsLine" v-show="errinfo">
-      <el-row :gutter="20" class="resultTips">
-        <el-col :span="7" class="resultText">
-          <p><span class="label">{{$t('kylinLang.query.queryId')}}</span>
-          <span class="text">988384845</span></p>
-        </el-col>
-        <el-col :span="7" class="resultText">
-          <p><i class="el-icon-ksd-error_01"></i> {{$t('kylinLang.query.status')}}
-          <span>error</span></p>
-        </el-col>
-      </el-row>
+      <div class="resultTips">
+        <p class="resultText"><span class="label">{{$t('kylinLang.query.queryId')}}</span>
+        <span class="text">{{queryId}}</span></p>
+        <p class="resultText"><span class="label">{{$t('kylinLang.query.status')}}</span>
+        <span>error</span></p>
+      </div>
       <div class="error-block">{{errinfo}}</div>
     </div>
     <div v-show="!errinfo" class="ksd-center ksd-mt-10">

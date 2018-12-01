@@ -15,11 +15,12 @@
         <div class="ksd_right_box">
           <div class="ksd-title-label ksd-mb-10">{{$t('queryBox')}}</div>
           <div class="query_panel_box ksd-mb-20">
-            <kap-editor ref="insightBox" height="170" lang="sql" theme="chrome" v-model="sourceSchema">
+            <kap-editor ref="insightBox" height="170" lang="sql" theme="chrome" @keydown.meta.enter.native="submitQuery" @keydown.ctrl.enter.native="submitQuery" v-model="sourceSchema">
             </kap-editor>
             <div class="clearfix operatorBox">
               <p class="tips_box">
                 <el-button size="small" plain="plain" icon="el-icon-ksd-sql" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}</el-button>
+                <el-button size="small" plain="plain" @click.native="resetQuery" style="display:inline-block">{{$t('kylinLang.query.clear')}}</el-button>
               </p>
               <p class="operator">
                 <el-form :inline="true" class="demo-form-inline">
@@ -38,6 +39,10 @@
                 </el-form>
               </p>
             </div>
+            <div class="submit-tips">
+              <span>{{$t('kylinLang.common.notice')}}: </span>
+              <i class="el-icon-ksd-keyboard ksd-fs-16" ></i>
+              control / command + Enter = <span>{{$t('kylinLang.common.submit')}}</span></div>
           </div>
           <!-- <div class="line" style="margin: 20px 0;" v-show='editableTabs&&editableTabs.length'></div> -->
           <div class="query_result_box ksd-border-tab" v-show='editableTabs&&editableTabs.length'>
@@ -52,6 +57,7 @@
             :title="$t('savedQueries')"
             width="660px"
             class="saved_query_dialog"
+            top="10vh"
             :visible.sync="savedQueryListVisible">
             <div class="list_block" v-scroll>
               <div v-if="!savedSize" class="nodata">
@@ -158,6 +164,9 @@ export default class NewQuery extends Vue {
   }
   toggleDetail (index) {
     this.savedList[index].isShow = !this.savedList[index].isShow
+  }
+  resetQuery () {
+    this.sourceSchema = ''
   }
   loadSavedQuery (pageIndex) {
     this.getSavedQueries({
@@ -343,7 +352,7 @@ export default class NewQuery extends Vue {
         padding: 0;
         .list_block {
           width: 100%;
-          height: 620px;
+          height: 480px;
           .saved_query_content {
             margin: 20px;
           }
@@ -424,6 +433,18 @@ export default class NewQuery extends Vue {
         .el-form-item__content{
           line-height: 30px;
         }
+      }
+    }
+    .submit-tips {
+      float: right;
+      font-size: 12px;
+      line-height: 18px;
+      vertical-align: middle;
+      margin-top: 5px;
+      color: @text-disabled-color;
+      i {
+        position: relative;
+        top: 2px;
       }
     }
     .insight_tab{
