@@ -104,9 +104,21 @@ object TableScanPlan extends Logging {
             seg =>
               s"$basePath${dataflow.getUuid}/${seg.getId}/${relation.cuboid.getId}"
           )
+          val dimFields = cuboidLayout.getOrderedDimensions.asScala.map {
+            entity =>
+              val dataType = SparderTypeUtil.kylinRawTableSQLTypeToSparkType(entity._2.getColumnDesc.getType)
+              StructField(entity._1.toString, dataType)
+          }.toArray
+          val meaFields = cuboidLayout.getOrderedMeasures.asScala.map {
+            entity =>
+              val dataType = SparderTypeUtil.kylinRawTableSQLTypeToSparkType(entity._2.getFunction.getReturnDataType)
+              StructField(entity._1.toString, dataType)
+          }.toArray
 
+          val parquetSchema = new StructType(dimFields ++ meaFields)
+          cuboidLayout.getOrderedMeasures.asScala.map(entity => entity._2.getId)
           var df = if (cuboidLayout.getShardByColumns == null || cuboidLayout.getShardByColumns.isEmpty) {
-            session.read.parquet(fileList: _*).toDF(relation.schema.fieldNames: _*)
+            session.read.schema(parquetSchema).parquet(fileList: _*).toDF(relation.schema.fieldNames: _*)
           } else {
             session.index
               .shardBy(
@@ -116,7 +128,6 @@ object TableScanPlan extends Logging {
               .parquet(fileList.mkString(","))
               .toDF(relation.schema.fieldNames: _*)
           }
-
           /////////////////////////////////////////////
           val groups: util.Collection[TblColRef] =
             olapContext.getSQLDigest.groupbyColumns

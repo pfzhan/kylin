@@ -1,0 +1,14 @@
+{
+      "uuid": "Q4-2",
+      "last_modified": 0,
+      "version": "3.0.0.0",
+      "query_id": "Q4-2",
+      "sql": "SELECT d_year, s_nation, p_category , SUM(lo_revenue) - SUM(lo_supplycost) AS profit FROM ssb.p_lineorder LEFT JOIN ssb.dates ON lo_orderdate = d_datekey LEFT JOIN ssb.customer ON lo_custkey = c_custkey LEFT JOIN ssb.supplier ON lo_suppkey = s_suppkey LEFT JOIN part ON lo_partkey = p_partkey WHERE c_region = 'AMERICA' AND s_region = 'AMERICA' AND (d_year = 1997 OR d_year = 1998) AND (p_mfgr = 'MFGR#1' OR p_mfgr = 'MFGR#2') GROUP BY d_year, s_nation, p_category ORDER BY d_year, s_nation, p_category",
+      "start_time": 1459362230010,
+      "latency": 1000,
+      "realization": ["Pushdown"],
+      "query_node": "sandbox.hortonworks.com",
+      "thread": "t-0",
+      "user": "ADMIN",
+      "query_status": "SUCCEEDED"
+}

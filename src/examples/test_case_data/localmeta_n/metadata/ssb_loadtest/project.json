@@ -1,0 +1,14 @@
+{
+  "uuid" : "dd14518d-c983-4d95-925c-caf38e05a10c",
+  "last_modified" : 1543462779443,
+  "version" : "2.0.0",
+  "name" : "ssb",
+  "owner" : null,
+  "status" : null,
+  "create_time_utc" : 0,
+  "last_update_time" : null,
+  "description" : null,
+  "ext_filters" : [ ],
+  "maintain_model_type" : "AUTO_MAINTAIN",
+  "override_kylin_properties" : { }
+}

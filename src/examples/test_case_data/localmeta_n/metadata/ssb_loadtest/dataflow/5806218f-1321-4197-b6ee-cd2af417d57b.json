@@ -1,0 +1,32 @@
+{
+  "uuid" : "f3825885-2b16-4c0a-a384-e2d26ae6d277",
+  "last_modified" : 1543541364721,
+  "version" : "3.0.0.0",
+  "name" : "5806218f-1321-4197-b6ee-cd2af417d57b",
+  "description" : null,
+  "owner" : null,
+  "mp_values" : [ ],
+  "cube_plan" : "5806218f-1321-4197-b6ee-cd2af417d57b",
+  "create_time_utc" : 1543462779423,
+  "status" : "ONLINE",
+  "reconstructing" : false,
+  "cost" : 50,
+  "segments" : [ {
+    "id" : 0,
+    "name" : "FULL_BUILD",
+    "create_time_utc" : 1543541353131,
+    "status" : "READY",
+    "segRange" : {
+      "@class" : "org.apache.kylin.metadata.model.SegmentRange$TimePartitionedSegmentRange",
+      "date_range_start" : 0,
+      "date_range_end" : 9223372036854775807
+    },
+    "timeRange" : null,
+    "dictionaries" : null,
+    "snapshots" : { },
+    "last_build_time" : 0,
+    "source_count" : 6005,
+    "additionalInfo" : { }
+  } ],
+  "storage_location_identifier" : null
+}

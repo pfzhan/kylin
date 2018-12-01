@@ -142,7 +142,6 @@ object SparderEnv extends Logging {
     override protected def initialValue = false
   }
 
-
   //cleaned
   val _numScanFiles =
     new ThreadLocal[java.lang.Long] {
