@@ -288,6 +288,9 @@ export default class LayoutLeftRightTop extends Vue {
     var targetArea = $('#monitor')
     var targetDom = targetArea.find('.menu-icon')
     var offset = targetDom.offset()
+    if (this.flyer) {
+      this.flyer.remove()
+    }
     this.flyer = $('<span class="fly-box"></span>')
     let leftOffset = 64
     if (this.$lang === 'en') {
