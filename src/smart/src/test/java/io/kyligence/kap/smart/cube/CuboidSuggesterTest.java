@@ -88,6 +88,54 @@ public class CuboidSuggesterTest extends NTestBase {
     }
 
     @Test
+    public void testMinMaxForAllTypes() throws IOException {
+        String[] sqls = new String[] { "select min(lstg_format_name), max(lstg_format_name) from kylin_sales",
+                "select min(part_dt), max(part_dt) from kylin_sales",
+                "select lstg_format_name, min(price), max(price) from kylin_sales group by lstg_format_name",
+                "select min(seller_id), max(seller_id) from kylin_sales" };
+
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        smartMaster.runAll();
+
+        NSmartContext ctx = smartMaster.getContext();
+        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        final List<NDataModel.Measure> allMeasures = mdCtx.getTargetModel().getAllMeasures();
+        Assert.assertEquals(9, allMeasures.size());
+        Assert.assertEquals("COUNT_ALL", allMeasures.get(0).getName());
+        Assert.assertEquals("MIN_LSTG_FORMAT_NAME", allMeasures.get(1).getName());
+        Assert.assertEquals("MAX_LSTG_FORMAT_NAME", allMeasures.get(2).getName());
+        Assert.assertEquals("MIN_PART_DT", allMeasures.get(3).getName());
+        Assert.assertEquals("MAX_PART_DT", allMeasures.get(4).getName());
+        Assert.assertEquals("MIN_PRICE", allMeasures.get(5).getName());
+        Assert.assertEquals("MAX_PRICE", allMeasures.get(6).getName());
+        Assert.assertEquals("MIN_SELLER_ID", allMeasures.get(7).getName());
+        Assert.assertEquals("MAX_SELLER_ID", allMeasures.get(8).getName());
+
+        NCubePlan cubePlan = mdCtx.getTargetCubePlan();
+        List<NCuboidDesc> allCuboids = cubePlan.getCuboids();
+        final NCuboidDesc cuboidDesc0 = allCuboids.get(0);
+
+        Assert.assertEquals("{1000, 1001, 1002}", cuboidDesc0.getMeasureBitset().toString());
+        Assert.assertEquals(1, cuboidDesc0.getLayouts().size());
+        Assert.assertEquals(1L, cuboidDesc0.getLayouts().get(0).getId());
+
+        final NCuboidDesc cuboidDesc1 = allCuboids.get(1);
+        Assert.assertEquals("{1000, 1003, 1004}", cuboidDesc1.getMeasureBitset().toString());
+        Assert.assertEquals(1, cuboidDesc1.getLayouts().size());
+        Assert.assertEquals(1001L, cuboidDesc1.getLayouts().get(0).getId());
+
+        final NCuboidDesc cuboidDesc2 = allCuboids.get(2);
+        Assert.assertEquals("{1000, 1005, 1006}", cuboidDesc2.getMeasureBitset().toString());
+        Assert.assertEquals(1, cuboidDesc2.getLayouts().size());
+        Assert.assertEquals(2001L, cuboidDesc2.getLayouts().get(0).getId());
+
+        final NCuboidDesc cuboidDesc3 = allCuboids.get(3);
+        Assert.assertEquals("{1000, 1007, 1008}", cuboidDesc3.getMeasureBitset().toString());
+        Assert.assertEquals(1, cuboidDesc3.getLayouts().size());
+        Assert.assertEquals(3001L, cuboidDesc3.getLayouts().get(0).getId());
+    }
+
+    @Test
     public void testSuggestShardBy() throws IOException {
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };

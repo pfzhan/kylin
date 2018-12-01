@@ -1,0 +1,1 @@
+select min(lstg_format_name), max(lstg_format_name) from test_kylin_fact

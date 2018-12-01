@@ -69,17 +69,8 @@ public class CubeUtils {
         if (colRefs == null || colRefs.isEmpty())
             return true;
 
-        boolean isMaxMin = functionDesc.isMax() || functionDesc.isMin();
         for (TblColRef colRef : colRefs) {
             if (!colRef.isQualified()) {
-                return false;
-            }
-
-            if (isMaxMin && colRef.getType().isStringFamily()) {
-                return false;
-            }
-
-            if (isMaxMin && colRef.getType().isDateTimeFamily()) {
                 return false;
             }
         }
