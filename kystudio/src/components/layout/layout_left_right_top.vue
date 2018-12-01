@@ -310,7 +310,7 @@ export default class LayoutLeftRightTop extends Vue {
         width: 4,
         height: 4
       },
-      onEnd: function () {
+      onEnd: () => {
         targetDom.addClass('rotateY')
         setTimeout(() => {
           targetDom.fadeTo('slow', 0.5, function () {
