@@ -118,8 +118,14 @@ object CuboidAggregator {
         lit("")
       }
     }.toSeq
-    dataSet
-      .groupBy(NSparkCubingUtil.getColumns(dimensions): _*)
-      .agg(agg.head, agg.drop(1): _*)
+
+    if (!dimensions.isEmpty) {
+      dataSet
+        .groupBy(NSparkCubingUtil.getColumns(dimensions): _*)
+        .agg(agg.head, agg.drop(1): _*)
+    } else {
+      dataSet.agg(agg.head, agg.drop(1): _*)
+    }
+
   }
 }

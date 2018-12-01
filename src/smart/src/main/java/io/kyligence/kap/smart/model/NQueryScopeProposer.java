@@ -52,7 +52,6 @@ import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.util.CubeUtils;
-import lombok.val;
 
 /**
  * Define Dimensions and Measures from SQLs
@@ -185,34 +184,14 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
 
         private void build() {
 
-            // 1. ensure a dimension exist, otherwise throw exception
-            Map<String, NDataModel.NamedColumn> candidateDimensions = Maps.newHashMap();
-            for (val entry : candidateNamedColumns.entrySet()) {
-                if (entry.getValue().isDimension()) {
-                    candidateDimensions.put(entry.getKey(), entry.getValue());
-                    break;
-                }
-            }
-
-            // FIXME work around empty dimension case
-            if (candidateDimensions.isEmpty()) {
-                final TblColRef tblColRef = allTableColumns.iterator().next();
-                NamedColumn column = transferToNamedColumn(tblColRef, ColumnStatus.DIMENSION);
-                candidateDimensions.put(tblColRef.getIdentity(), column);
-                candidateNamedColumns.put(tblColRef.getIdentity(), column);
-            }
-
-            Preconditions.checkState(!candidateDimensions.isEmpty(),
-                    "Auto-modeling cannot suggest any available dimension.");
-
-            // 2. publish all measures
+            // 1. publish all measures
             List<Measure> measures = Lists.newArrayList(candidateMeasures.values());
             Preconditions.checkState(
                     Ordering.natural().isOrdered(measures.stream().map(Measure::getId).collect(Collectors.toList())),
                     "Unsorted measures exception in process of proposing model.");
             dataModel.setAllMeasures(measures);
 
-            // 3. publish all named columns
+            // 2. publish all named columns
             List<NamedColumn> namedColumns = Lists.newArrayList(candidateNamedColumns.values());
             Preconditions.checkState(
                     Ordering.natural().isOrdered(measures.stream().map(Measure::getId).collect(Collectors.toList())),

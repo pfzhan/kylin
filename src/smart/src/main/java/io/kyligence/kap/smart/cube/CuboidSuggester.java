@@ -26,7 +26,6 @@ package io.kyligence.kap.smart.cube;
 
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -260,10 +259,6 @@ class CuboidSuggester {
 
         final Map<Integer, Double> dimScores = getDimScores(ctx, colIdMap);
 
-        // FIXME this line work-around empty dimension case (to be fixed by KAP#7224)
-        // Example: 'select count(*) from kylin_sales' or 'select 123 from kylin_sales'
-        fixDimScoresIfEmpty(model, dimScores);
-
         SortedSet<Integer> measureIds = Sets.newTreeSet();
         NCuboidDesc cuboidDesc = isTableIndex ? createTableIndex(ctx, dimScores)
                 : createAggregatedIndex(ctx, dimScores, measureIds, colIdMap);
@@ -308,6 +303,14 @@ class CuboidSuggester {
     }
 
     private NCuboidDesc createTableIndex(OLAPContext ctx, Map<Integer, Double> dimScores) {
+        // no column selected in raw query (i.e. select 1 from kylin_sales)
+        if (dimScores.isEmpty()) {
+            Preconditions.checkState(CollectionUtils.isNotEmpty(model.getAllNamedColumns()),
+                    "Cannot suggest any columns in table index.");
+            final NDataModel.NamedColumn namedColumn = model.getAllNamedColumns().iterator().next();
+            dimScores.put(namedColumn.getId(), -1D);
+        }
+
         final Set<TblColRef> allColumns = ctx.allColumns;
         for (TblColRef col : allColumns) {
             dimScores.put(model.getColumnIdByColumnName(col.getIdentity()), -1D);
@@ -347,26 +350,6 @@ class CuboidSuggester {
         return model.getProjectInstance().getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN
                 ? rst + messagePattern
                 : messagePattern;
-    }
-
-    private void fixDimScoresIfEmpty(NDataModel model, Map<Integer, Double> dimScores) {
-        if (dimScores.isEmpty()) {
-            Map<String, NDataModel.NamedColumn> dimensionCandidate = new HashMap<>();
-            model.getAllNamedColumns().stream() //
-                    .filter(NDataModel.NamedColumn::isDimension) //
-                    .forEach(namedColumn -> dimensionCandidate.put(namedColumn.getName(), namedColumn));
-            for (NDataModel.Measure measure : model.getAllMeasures()) {
-                FunctionDesc agg = measure.getFunction();
-                if (agg == null || agg.getParameter() == null || !agg.getParameter().isColumnType()) {
-                    continue;
-                }
-                dimensionCandidate.remove(agg.getParameter().getValue());
-            }
-            if (dimensionCandidate.isEmpty()) {
-                throw new IllegalStateException("Suggest no dimension");
-            }
-            dimScores.put(dimensionCandidate.values().iterator().next().getId(), -1D);
-        }
     }
 
     private NCuboidDesc createCuboidDesc(Set<Integer> dimIds, Set<Integer> measureIds, boolean isTableIndex) {
@@ -424,16 +407,9 @@ class CuboidSuggester {
             return result;
         }
 
-        Collections.sort(cuboidIds);
-        for (Long cuboidId : cuboidIds) {
-            // exist cuboid gap
-            if (cuboidId - result > NCuboidDesc.CUBOID_DESC_ID_STEP) {
-                break;
-            } else {
-                result = cuboidId;
-            }
-        }
-
+        // use the largest cuboid id + step
+        cuboidIds.sort(Long::compareTo);
+        result = cuboidIds.get(cuboidIds.size() - 1);
         return result + NCuboidDesc.CUBOID_DESC_ID_STEP;
     }
 

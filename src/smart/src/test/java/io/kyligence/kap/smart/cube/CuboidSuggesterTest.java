@@ -36,12 +36,56 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.NTestBase;
 
 public class CuboidSuggesterTest extends NTestBase {
+
+    @Test
+    public void testSuggestWithoutDimension() throws IOException {
+        String[] sqls = new String[] { "select count(*) from kylin_sales", // count star
+                "select count(price) from kylin_sales", // measure with column
+                "select sum(price) from kylin_sales", //
+                "select 1 as ttt from kylin_sales" // no dimension and no measure
+        };
+
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        smartMaster.runAll();
+
+        NSmartContext ctx = smartMaster.getContext();
+        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        final NDataModel targetModel = mdCtx.getTargetModel();
+        Assert.assertEquals(0, targetModel.getEffectiveDimenionsMap().size());
+        Assert.assertEquals(3, targetModel.getEffectiveMeasureMap().size());
+        Assert.assertEquals(12, targetModel.getEffectiveCols().size());
+
+        final NCubePlan targetCubePlan = mdCtx.getTargetCubePlan();
+        final List<NCuboidDesc> allCuboids = targetCubePlan.getAllCuboids();
+        Assert.assertEquals(4, allCuboids.size());
+
+        final NCuboidDesc cuboidDesc0 = allCuboids.get(0);
+        Assert.assertEquals(1, cuboidDesc0.getLayouts().size());
+        Assert.assertEquals(1L, cuboidDesc0.getLayouts().get(0).getId());
+        Assert.assertEquals("[1000]", cuboidDesc0.getLayouts().get(0).getColOrder().toString());
+
+        final NCuboidDesc cuboidDesc1 = allCuboids.get(1);
+        Assert.assertEquals(1, cuboidDesc1.getLayouts().size());
+        Assert.assertEquals(1001L, cuboidDesc1.getLayouts().get(0).getId());
+        Assert.assertEquals("[1000, 1001]", cuboidDesc1.getLayouts().get(0).getColOrder().toString());
+
+        final NCuboidDesc cuboidDesc2 = allCuboids.get(2);
+        Assert.assertEquals(1, cuboidDesc2.getLayouts().size());
+        Assert.assertEquals(2001L, cuboidDesc2.getLayouts().get(0).getId());
+        Assert.assertEquals("[1000, 1002]", cuboidDesc2.getLayouts().get(0).getColOrder().toString());
+
+        final NCuboidDesc cuboidDesc3 = allCuboids.get(3);
+        Assert.assertEquals(1, cuboidDesc3.getLayouts().size());
+        Assert.assertEquals(20000000001L, cuboidDesc3.getLayouts().get(0).getId());
+        Assert.assertEquals("[0]", cuboidDesc3.getLayouts().get(0).getColOrder().toString());
+    }
 
     @Test
     public void testSuggestShardBy() throws IOException {

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -192,7 +191,7 @@ public class GTInfo {
         if (codeSystem == null)
             throw new IllegalStateException();
 
-        if (primaryKey == null || primaryKey.cardinality() == 0)
+        if (primaryKey == null)
             throw new IllegalStateException();
 
         codeSystem.init(this);
@@ -327,7 +326,8 @@ public class GTInfo {
                 BytesUtil.writeAsciiString(value.codeSystem.getClass().getCanonicalName(), out);
                 BytesSerializer<IGTCodeSystem> serializer = null;
                 try {
-                    serializer = (BytesSerializer<IGTCodeSystem>) value.codeSystem.getClass().getField("serializer").get(null);
+                    serializer = (BytesSerializer<IGTCodeSystem>) value.codeSystem.getClass().getField("serializer")
+                            .get(null);
                 } catch (IllegalAccessException | NoSuchFieldException e) {
                     throw new RuntimeException("failed to get serializer for " + value.codeSystem.getClass(), e);
                 }
@@ -359,7 +359,8 @@ public class GTInfo {
             } else {
                 try {
                     Class clazz = Class.forName(codeSystemType);
-                    BytesSerializer<IGTCodeSystem> serializer = (BytesSerializer<IGTCodeSystem>) clazz.getField("serializer").get(null);
+                    BytesSerializer<IGTCodeSystem> serializer = (BytesSerializer<IGTCodeSystem>) clazz
+                            .getField("serializer").get(null);
                     codeSystem = serializer.deserialize(in);
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to deserialize IGTCodeSystem " + codeSystemType, e);

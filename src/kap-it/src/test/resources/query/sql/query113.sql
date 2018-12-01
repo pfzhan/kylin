@@ -16,7 +16,5 @@
 -- limitations under the License.
 --
 
--- to be fixed by KAP-7387
-
-select sum(price) as GMV 
- from test_kylin_fact 
+select 1 as const_column
+ from test_kylin_fact

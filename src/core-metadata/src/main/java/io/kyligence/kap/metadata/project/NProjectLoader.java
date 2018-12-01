@@ -35,14 +35,15 @@ import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TableDesc;
+import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.metadata.project.RealizationEntry;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.NRealizationRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -158,45 +159,44 @@ class NProjectLoader {
         ProjectInstance pi = mgr.getProject(project);
 
         if (pi == null)
-            throw new IllegalArgumentException("Project '" + project + "' does not exist;");
+            throw new IllegalArgumentException("Project '" + project + "' does not exist.");
 
         NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(mgr.getConfig(), project);
 
-        for (String tableName : pi.getTables()) {
+        pi.getTables().forEach(tableName -> {
             TableDesc tableDesc = metaMgr.getTableDesc(tableName);
             if (tableDesc != null) {
                 projectBundle.tables.put(tableDesc.getIdentity(), new TableBundle(tableDesc));
             } else {
-                logger.warn("Table '{}' defined under project '{}' is not found", tableName, project);
+                logger.warn("Table '{}' defined under project '{}' is not found.", tableName, project);
             }
-        }
+        });
 
-        for (String extFilterName : pi.getExtFilters()) {
+        pi.getExtFilters().forEach(extFilterName -> {
             ExternalFilterDesc filterDesc = metaMgr.getExtFilterDesc(extFilterName);
             if (filterDesc != null) {
                 projectBundle.extFilters.put(extFilterName, filterDesc);
             } else {
-                logger.warn("External Filter '{}' defined under project '{}' is not found", extFilterName, project);
+                logger.warn("External Filter '{}' defined under project '{}' is not found.", extFilterName, project);
             }
-        }
+        });
 
         NRealizationRegistry registry = NRealizationRegistry.getInstance(mgr.getConfig(), project);
-        for (RealizationEntry entry : pi.getRealizationEntries()) {
+        pi.getRealizationEntries().forEach(entry -> {
             IRealization realization = registry.getRealization(entry.getType(), entry.getRealization());
             if (realization != null) {
                 projectBundle.realizations.add(realization);
             } else {
-                logger.warn("Realization '{}' defined under project '{}' is not found", entry, project);
+                logger.warn("Realization '{}' defined under project '{}' is not found.", entry, project);
             }
+        });
 
-        }
-
-        for (IRealization realization : projectBundle.realizations) {
+        projectBundle.realizations.forEach(realization -> {
             if (sanityCheck(projectBundle, realization, project)) {
                 mapTableToRealization(projectBundle, realization);
                 markExposedTablesAndColumns(projectBundle, realization);
             }
-        }
+        });
 
         return projectBundle;
     }
@@ -206,38 +206,37 @@ class NProjectLoader {
         if (realization == null)
             return false;
 
-        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(mgr.getConfig(), project);
-
         Set<TblColRef> allColumns = realization.getAllColumns();
-        if (allColumns == null || allColumns.isEmpty()) {
-            logger.error("Realization '{}' does not report any columns", realization.getCanonicalName());
+
+        if (allColumns.isEmpty() && realization.getMeasures().isEmpty()) {
+            logger.error("Realization '{}' does not report any columns or measures.", realization.getCanonicalName());
             return false;
+            // cuboid which only contains measure on (*) should return true
         }
 
+        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(mgr.getConfig(), project);
         for (TblColRef col : allColumns) {
             TableDesc table = metaMgr.getTableDesc(col.getTable());
             if (table == null) {
-                logger.error("Realization '{}' reports column '{}', but its table is not found by MetadataManager",
+                logger.error("Realization '{}' reports column '{}', but its table is not found by MetadataManager.",
                         realization.getCanonicalName(), col.getCanonicalName());
                 return false;
             }
 
             if (!col.getColumnDesc().isComputedColumn()) {
                 ColumnDesc foundCol = table.findColumnByName(col.getName());
-                if (col.getColumnDesc().equals(foundCol) == false) {
+                if (!col.getColumnDesc().equals(foundCol)) {
                     logger.error(
-                            "Realization '{}' reports column '{}', but it is not equal to '{}' according to MetadataManager",
+                            "Realization '{}' reports column '{}', but it is not equal to '{}' according to MetadataManager.",
                             realization.getCanonicalName(), col.getCanonicalName(), foundCol);
                     return false;
                 }
-            } else {
-                //computed column may not exit here
             }
 
             // auto-define table required by realization for some legacy test case
             if (prjCache.tables.get(table.getIdentity()) == null) {
                 prjCache.tables.put(table.getIdentity(), new TableBundle(table));
-                logger.warn("Realization '{}' reports column '{}' whose table is not defined in project '{}'",
+                logger.warn("Realization '{}' reports column '{}' whose table is not defined in project '{}'.",
                         realization.getCanonicalName(), col.getCanonicalName(), prjCache.project);
             }
         }
@@ -246,8 +245,9 @@ class NProjectLoader {
     }
 
     private void mapTableToRealization(ProjectBundle prjCache, IRealization realization) {
-        for (TblColRef col : realization.getAllColumns()) {
-            TableBundle tableBundle = prjCache.tables.get(col.getTable());
+        final Set<TableRef> allTables = realization.getModel().getAllTables();
+        for (TableRef tbl : allTables) {
+            TableBundle tableBundle = prjCache.tables.get(tbl.getTableDesc().getIdentity());
             tableBundle.realizations.add(realization);
         }
     }
@@ -257,9 +257,15 @@ class NProjectLoader {
             return;
         }
 
+        final Set<TableRef> allTables = realization.getModel().getAllTables();
+        for (TableRef tbl : allTables) {
+            TableBundle tableBundle = prjCache.tables.get(tbl.getTableDesc().getIdentity());
+            prjCache.exposedTables.add(tableBundle.tableDesc);
+        }
+
         for (TblColRef col : realization.getAllColumns()) {
             TableBundle tableBundle = prjCache.tables.get(col.getTable());
-            prjCache.exposedTables.add(tableBundle.tableDesc);
+            Preconditions.checkNotNull(tableBundle);
             tableBundle.exposedColumns.add(col.getColumnDesc());
         }
     }
