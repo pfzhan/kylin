@@ -77,6 +77,9 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         System.setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         // enable CC check
         System.setProperty("needCheckCC", "true");
+        // set log4j logging system
+        System.setProperty("org.springframework.boot.logging.LoggingSystem",
+                "io.kyligence.kap.rest.logging.Log4JLoggingSystem");
     }
 
     private static void setProdEnvs() {

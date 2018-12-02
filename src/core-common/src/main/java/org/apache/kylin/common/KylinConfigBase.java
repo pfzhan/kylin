@@ -249,6 +249,10 @@ abstract public class KylinConfigBase implements Serializable {
     // ENV
     // ============================================================================
 
+    public boolean isDevOrUT() {
+        return isUTEnv() || isDevEnv();
+    }
+
     public boolean isUTEnv() {
         return "UT".equals(getDeployEnv());
     }
