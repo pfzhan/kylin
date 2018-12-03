@@ -82,7 +82,7 @@
         <div class="manage-status">
           <i :class="renderReportData['Zookeeper availability'] && renderReportData['Zookeeper availability'].good ? 'el-icon-success ky-success' : renderReportData['Zookeeper availability'] && renderReportData['Zookeeper availability'].crash ? 'el-icon-error ky-error' :'el-icon-warning ky-warning'"></i>
           <p class="ksd-mt-8">good health</p>
-          <img class="availability-manage" src="../../assets/img/canary_Hive.png"></img>
+          <img class="availability-manage" src="../../assets/img/canary_Hive.png"/>
         </div>
         <p class="manage-title">Hive 连通性检测</p>
         <p class="manage-checktime">上测检测时间 {{renderReportData['Zookeeper availability'] && renderReportData['Zookeeper availability'].checkTime}}</p>
@@ -93,7 +93,7 @@
         <div class="manage-status">
           <i :class="renderReportData['Zookeeper availability'] && renderReportData['Zookeeper availability'].good ? 'el-icon-success ky-success' : renderReportData['Zookeeper availability'] && renderReportData['Zookeeper availability'].crash ? 'el-icon-error ky-error' :'el-icon-warning ky-warning'"></i>
           <p class="ksd-mt-8">good health</p>
-          <img class="availability-manage" src="../../assets/img/zooKeeper.png"></img>
+          <img class="availability-manage" src="../../assets/img/zooKeeper.png"/>
         </div>
         <p class="manage-title">ZooKeeper 活性检测</p>
         <p class="manage-checktime">上测检测时间 {{renderReportData['Zookeeper availability'] && renderReportData['Zookeeper availability'].checkTime}}</p>

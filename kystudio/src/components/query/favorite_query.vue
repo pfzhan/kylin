@@ -641,15 +641,9 @@ export default class FavoriteQuery extends Vue {
     })
   }
   handleInputChange (value) {
-    // const newVal = (isNaN(newVal) || value === '' || value < 0) ? 0 : Number(value)
     this.$nextTick(() => {
       this.preSettingObj.threshold = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
     })
-    // if (!isNaN(newVal) || value === '' || value < 0) {
-    //   this.$nextTick(() => {
-    //     this.preSettingObj.threshold = newVal
-    //   })
-    // }
   }
 
   loadRuleImpactRatio () {
@@ -751,6 +745,7 @@ export default class FavoriteQuery extends Vue {
   }
 
   drawImpactChart () {
+    $(this.$el.querySelector('#fillgauge')).empty()
     loadLiquidFillGauge('fillgauge', this.impactRatio)
     const config1 = liquidFillGaugeDefaultSettings()
     config1.circleColor = '#FF7777'
