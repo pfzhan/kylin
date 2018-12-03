@@ -15,6 +15,7 @@
         v-if="isTableTree"
         :source-type="sourceType"
         :selected-tables="form.selectedTables"
+        :selected-databases="form.selectedDatabases"
         @input="handleInput">
       </SourceHive>
       <SourceKafka
@@ -187,7 +188,7 @@ export default class DataSourceModal extends Vue {
         return isVaild
       }
       case sourceTypes.HIVE: {
-        const isVaild = this.form.selectedTables.length
+        const isVaild = this.form.selectedTables.length || this.form.selectedDatabases.length
         !isVaild && this.$message(this.$t('pleaseSelectTableOrDatabase'))
         return isVaild
       }

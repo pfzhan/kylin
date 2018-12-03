@@ -18,6 +18,7 @@ const initialState = JSON.stringify({
     // sourceType: 0,
     // should remove
     selectedTables: [],
+    selectedDatabases: [],
     sourceType: null,
     isAutoUpdate: false
   }

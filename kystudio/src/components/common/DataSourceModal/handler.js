@@ -41,8 +41,8 @@ export function getSubmitData (that, kafkaData) {
     case sourceTypes.HIVE:
     case sourceTypes.RDBMS:
     case sourceTypes.RDBMS2:
-      const tableNames = form.selectedTables.filter(name => name.indexOf('.') !== -1)
-      const databaseNames = form.selectedTables.filter(name => name.indexOf('.') === -1)
+      const tableNames = form.selectedTables
+      const databaseNames = form.selectedDatabases
       return {
         projectName: currentSelectedProject,
         sourceType,

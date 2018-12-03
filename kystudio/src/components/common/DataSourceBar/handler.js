@@ -247,7 +247,7 @@ export function freshTreeOrder (that) {
         }
       })
       database.children.forEach(table => {
-        table.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
+        table.children && table.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
       })
     })
   })

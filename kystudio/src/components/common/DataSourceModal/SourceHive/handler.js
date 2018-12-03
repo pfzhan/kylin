@@ -23,7 +23,7 @@ export function getDatabaseTree (databases) {
             ) : null}
             {label}
           </div>
-          <div class="select-all" onClick={event => this.handleClickNode(data, null, event, true)}>
+          <div class="select-all" onClick={event => this.handleSelectDatabase(event, data)}>
             {data.isSelected ? this.$t('cleanAll') : this.$t('selectAll')}
           </div>
         </div>
@@ -44,7 +44,7 @@ export function getTableTree (database, res, isTableReset) {
     render: (h, { node, data, store }) => {
       const isChecked = !data.isLoaded && data.isSelected
       const isLoaded = data.isLoaded
-      const isAllTableSelected = database.children.every(item => item.isLoaded)
+      const isAllTableSelected = database.children.filter(item => item.type !== 'isMore').every(item => item.isLoaded)
       const tableClassNames = [
         'table',
         ...(database.isSelected && !isAllTableSelected ? ['parent-selected'] : []),

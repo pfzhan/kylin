@@ -20,14 +20,14 @@
     </div>
     <div class="content" :style="contentStyle">
       <div class="content-body" :class="{ 'has-tips': isShowTips }">
-        <template v-if="selectedItems.databases.length || selectedItems.tables.length">
-          <div class="category databases" v-if="selectedItems.databases.length">
+        <template v-if="selectedDatabases.length || selectedTables.length">
+          <div class="category databases" v-if="selectedDatabases.length">
             <div class="header font-medium">
               <span>{{$t('database')}}</span>
-              <span>({{selectedItems.databases.length}})</span>
+              <span>({{selectedDatabases.length}})</span>
             </div>
             <div class="names">
-              <el-select multiple filterable v-model="selectedItems.databases" @remove-tag="handleRemoveTable" @input="handleAddTable">
+              <el-select multiple filterable v-model="selectedDatabases" @remove-tag="handleRemoveTable" @input="handleAddTable">
                 <el-option
                   v-for="option in databaseOptions"
                   :key="option.value"
@@ -37,13 +37,13 @@
               </el-select>
             </div>
           </div>
-          <div class="category tables" v-if="selectedItems.tables.length">
+          <div class="category tables" v-if="selectedTables.length">
             <div class="header font-medium">
               <span>{{$t('tableName')}}</span>
-              <span>({{selectedItems.tables.length}})</span>
+              <span>({{selectedTables.length}})</span>
             </div>
             <div class="names">
-              <el-select multiple filterable v-model="selectedItems.tables" @remove-tag="handleRemoveTable" @input="handleAddTable">
+              <el-select multiple filterable v-model="selectedTables" @remove-tag="handleRemoveTable" @input="handleAddTable">
                 <el-option
                   v-for="option in tableOptions"
                   :key="option.value"
@@ -92,6 +92,9 @@ import arealabel from '../../area_label.vue'
     selectedTables: {
       default: () => []
     },
+    selectedDatabases: {
+      default: () => []
+    },
     sourceType: Number
   },
   components: {
@@ -123,6 +126,7 @@ export default class SourceHive extends Vue {
   isDatabaseError = false
   isShowTips = true
   selectorWidth = 0
+  filterText = ''
 
   get databaseOptions () {
     return this.treeData.map(database => ({
@@ -142,26 +146,12 @@ export default class SourceHive extends Vue {
     })
     return tableOptions
   }
-  get selectedItems () {
-    const databases = []
-    const tables = []
-    for (const selectedTable of this.selectedTables) {
-      if (!selectedTable.includes('.')) {
-        databases.push(selectedTable)
-      }
-    }
-    for (const selectedTable of this.selectedTables) {
-      if (selectedTable.includes('.') && !databases.includes(selectedTable.split('.')[0])) {
-        tables.push(selectedTable)
-      }
-    }
-    return { databases, tables }
-  }
   @Watch('selectedTables')
-  onSelectedTablesChange () {
+  @Watch('selectedDatabases')
+  onSelectedItemsChange () {
     // 刷新table或者db的选中状态
     for (const database of this.treeData) {
-      database.isSelected = this.selectedTables.includes(database.id)
+      database.isSelected = this.selectedDatabases.includes(database.id)
       if (database.isSelected) {
         for (const table of database.children) {
           table.isSelected = true
@@ -234,35 +224,40 @@ export default class SourceHive extends Vue {
     const { size, tables } = await handleSuccessAsync(response)
     this.getTableTree(database, { size, tables }, isTableReset)
     this.setNextPagination(pagination)
-    this.$emit('input', { selectedTables: [...this.selectedTables] })
+    // this.$emit('input', { selectedTables: [...this.selectedTables] })
   }
-  handleFilter (tableName) {
+  handleFilter (filterText) {
     clearInterval(this.timer)
 
     return new Promise(async resolve => {
       this.timer = setTimeout(async () => {
         const requests = this.treeData.map(async database => {
           const { pagination } = database
+          const tableName = filterText
           this.clearPagination(pagination)
 
           await this.loadTables({ database, tableName, isTableReset: true })
         })
         await Promise.all(requests)
         this.treeData = [...this.treeData]
-        this.onSelectedTablesChange()
+        this.filterText = filterText
+        this.onSelectedItemsChange()
         resolve()
       }, 1000)
     })
   }
-  async handleClickNode (data, node, event, isSelectDatabase = false) {
-    if ((data.type === 'table' && data.clickable || isSelectDatabase)) {
+  async handleSelectDatabase (event, data) {
+    event.preventDefault()
+    event.stopPropagation()
+    this.selectedDatabases.includes(data.id)
+      ? this.handleRemoveDatabase(data.id)
+      : this.handleAddDatabase(data.id)
+  }
+  async handleClickNode (data, node, event) {
+    if ((data.type === 'table' && data.clickable)) {
       this.selectedTables.includes(data.id)
         ? this.handleRemoveTable(data.id)
         : this.handleAddTable(data.id)
-      if (isSelectDatabase) {
-        event.preventDefault()
-        event.stopPropagation()
-      }
     }
     if (data.type === 'datasource' && this.isDatabaseError) {
       await this.loadDatabase()
@@ -283,7 +278,21 @@ export default class SourceHive extends Vue {
   }
   async handleLoadMore (data) {
     const database = this.treeData.find(database => database.id === data.parent.id)
-    this.loadTables({ database })
+    const tableName = this.filterText
+    this.loadTables({ database, tableName })
+  }
+  handleAddDatabase (addDatabaseId) {
+    let selectedTables = this.selectedTables
+    let selectedDatabases = addDatabaseId instanceof Array ? addDatabaseId : [...this.selectedDatabases, addDatabaseId]
+
+    selectedDatabases.forEach(database => {
+      selectedTables = selectedTables.filter(table => table.indexOf(`${database}.`) !== 0)
+    })
+    this.$emit('input', { selectedDatabases, selectedTables })
+  }
+  handleRemoveDatabase (removeDatabaseId) {
+    const selectedDatabases = this.selectedDatabases.filter(databaseId => databaseId !== removeDatabaseId)
+    this.$emit('input', { selectedDatabases })
   }
   handleAddTable (addTableId) {
     const selectedTables = addTableId instanceof Array ? addTableId : [...this.selectedTables, addTableId]
@@ -548,6 +557,9 @@ export default class SourceHive extends Vue {
     }
     .table.parent-selected {
       padding-left: 18px;
+    }
+    .load-more {
+      line-height: inherit;
     }
   }
 }
