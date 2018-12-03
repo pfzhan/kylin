@@ -108,7 +108,7 @@
       <RelatedModels
         :project="project"
         :table="table"
-        :related-models="relatedModels"
+        :models="relatedModels"
         @filter="handleFilterModels"
         @load-more="handleLoadMore"/>
     </template>
@@ -125,7 +125,7 @@ import locales from './locales'
 import DataRangeBar from '../../../common/DataRangeBar/DataRangeBar'
 import RelatedModels from '../RelatedModels/RelatedModels'
 import { getAvailableOptions } from '../../../../util/specParser'
-import { handleSuccessAsync, handleError, isDatePartitionType } from '../../../../util'
+import { handleSuccessAsync, handleError, isDatePartitionType, looseEqual } from '../../../../util'
 
 @Component({
   props: {
@@ -186,6 +186,18 @@ export default class TableDataLoad extends Vue {
   mounted () {
     if (this.isFact) {
       this.loadRelatedModel()
+    }
+  }
+  @Watch('relatedModels', { immediate: true, deep: true })
+  onRelatedModelsChange () {
+    for (const relatedModel of this.relatedModels) {
+      const projectType = this.project.maintain_model_type
+      const modelType = relatedModel.management_type
+      const newModelActions = getAvailableOptions('modelActions', { projectType, modelType })
+      const isActionSame = looseEqual(relatedModel.modelActions, newModelActions)
+      if (!isActionSame) {
+        relatedModel.modelActions = newModelActions
+      }
     }
   }
   @Watch('table')
@@ -327,10 +339,7 @@ export default class TableDataLoad extends Vue {
         segment.endTime > endTime && (endTime = +segment.endTime)
         segment.status === 'NEW' && (isOnline = false)
       })
-      const projectType = this.project.maintain_model_type
-      const modelType = model.management_type
-      const modelActions = getAvailableOptions('modelActions', { projectType, modelType })
-      return { ...model, segments, startTime, endTime, isOnline, modelActions }
+      return { ...model, segments, startTime, endTime, isOnline, modelActions: [] }
     })
   }
 }

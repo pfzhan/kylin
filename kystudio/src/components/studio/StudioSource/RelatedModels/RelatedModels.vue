@@ -81,7 +81,7 @@ import { transToGmtTime, handleError } from '../../../../util'
     table: {
       type: Object
     },
-    relatedModels: {
+    models: {
       type: Array,
       default: () => []
     }
@@ -113,12 +113,14 @@ export default class RelatedModels extends Vue {
   get isIncremental () {
     return this.table.fact
   }
+  get relatedModels () {
+    return this.models.filter(model => model.modelActions.includes('viewInRelated'))
+  }
   get modelCardGroups () {
     const { columnCount, relatedModels } = this
     const modelCardGroups = []
 
     relatedModels
-      .filter(relatedModel => relatedModel.modelActions.includes('viewInRelated'))
       .forEach((relatedModel, index) => {
         if (index % columnCount === 0) {
           modelCardGroups.push([relatedModel])
