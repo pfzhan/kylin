@@ -3,7 +3,7 @@
     <div class="resultTipsLine">
       <div class="resultTips">
         <p class="resultText">
-          <span class="label">{{$t('kylinLang.query.queryId')}}</span>
+          <span class="label">{{$t('kylinLang.query.query_id')}}</span>
           <span class="text">{{queryInfo.queryId}}</span>
         </p>
         <p class="resultText">
@@ -11,7 +11,7 @@
           <span>{{$t('kylinLang.common.success')}}</span>
         </p>
         <p class="resultText">
-          <span class="label">{{$t('kylinLang.query.realization')}}</span>
+          <span class="label">{{$t('kylinLang.query. answered_by')}}</span>
           <span class="text">{{queryInfo.answeredBy | arrayToStr}}</span>
         </p>
         <p class="resultText">
@@ -26,11 +26,11 @@
       </div>
       <div class="resultTips" v-show="showDetail" v-if="!extraoption.data.pushDown">
         <p class="resultText">
-          <span class="label">{{$t('kylinLang.query.scanCount')}}</span>
+          <span class="label">{{$t('kylinLang.query. total_scan_count')}}</span>
           <span class="text">{{queryInfo.totalScanCount}}</span>
         </p>
         <p class="resultText">
-          <span class="label">{{$t('kylinLang.query.resultRows')}}</span>
+          <span class="label">{{$t('kylinLang.query.result_row_count')}}</span>
           <span class="text">{{queryInfo.resultRowCount}}</span>
         </p>
       </div>

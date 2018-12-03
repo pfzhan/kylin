@@ -275,6 +275,10 @@ i[class^=el-icon-]{
     tr:nth-child(odd){
       background: @table-stripe-color;
     }
+
+    tr:hover {
+      background-color: @base-color-9;
+    }
     tr.ksd-tr:hover>td {
       background-color: inherit;
     }
@@ -292,11 +296,12 @@ i[class^=el-icon-]{
       // padding: 10px;
       text-align: right;
       width: 150px;
-      font-weight: normal;
-      border-bottom: none;
+      font-weight: 500;
+      border-right: none;
       background-color: inherit;
       line-height: 21px;
       border-bottom:solid 1px @line-border-color;
+      padding-right: 0px;
     }
     td{
       border-bottom:solid 1px @line-border-color;

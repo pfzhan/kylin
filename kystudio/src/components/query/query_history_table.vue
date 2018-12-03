@@ -5,7 +5,7 @@
         <div class="ksd-title-label ksd-mt-10">{{$t('kylinLang.menu.query_history')}}</div>
       </div>
       <div class="ksd-fright ksd-inline searchInput ksd-ml-10">
-        <el-input v-model="filterData.sql" @input="onSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
+        <el-input v-model="filterData.sql" @input="onSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')+$t('kylinLang.query.sqlContent_th')" size="medium"></el-input>
       </div>
     </div>
     <el-table
@@ -31,37 +31,39 @@
                 </div>
               </el-col>
               <el-col :span="10">
-                <div class="ksd-nobr-text">
-                  <span class="label">{{$t('kylinLang.query.queryId')}}</span>
-                  <span>{{props.row.query_id}}</span>
-                </div>
-                <div class="ksd-nobr-text">
-                  <span class="label">{{$t('kylinLang.query.duration')}}</span>
-                  <span>{{props.row.duration / 1000 | fixed(2)}}s</span>
-                </div>
-                <div class="realization-block">
-                  <span class="label">{{$t('kylinLang.query.realization')}}</span>
-                  <div class="tags-block">
-                    <el-tag v-if="!props.row.cube_hit" type="warning" size="small" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag>
-                    <el-tag v-else size="small" v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName" @click.native="openAgg(modelName)">{{modelName}}</el-tag>
-                  </div>
-                </div>
-                <div class="ksd-nobr-text">
-                  <span class="label">{{$t('kylinLang.query.scanCount')}}</span>
-                  <span>{{props.row.total_scan_count}}</span>
-                </div>
-                <div class="ksd-nobr-text">
-                  <span class="label">{{$t('kylinLang.query.scanBytes')}}</span>
-                  <span>{{props.row.total_scan_bytes}}</span>
-                </div>
-                <div class="ksd-nobr-text">
-                  <span class="label">{{$t('kylinLang.query.resultRows')}}</span>
-                  <span>{{props.row.result_row_count}}</span>
-                </div>
-                <div class="ksd-nobr-text">
-                  <span class="label">{{$t('kylinLang.query.isCubeHit')}}</span>
-                  <span>{{props.row.cache_hit}}</span>
-                </div>
+                <table class="ksd-table">
+                  <tr class="ksd-tr">
+                    <th class="label">{{$t('kylinLang.query.query_id')}}</th>
+                    <td>{{props.row.query_id}}</td>
+                  </tr>
+                  <tr class="ksd-tr">
+                    <th class="label">{{$t('kylinLang.query.duration')}}</th>
+                    <td>{{props.row.duration / 1000 | fixed(2)}}s</td>
+                  </tr>
+                  <tr class="ksd-tr">
+                    <th class="label">{{$t('kylinLang.query. answered_by')}}</th>
+                    <td>
+                      <el-tag v-if="!props.row.cube_hit" type="warning" size="small" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag>
+                      <el-tag v-else size="small" v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName" @click.native="openAgg(modelName)">{{modelName}}</el-tag>
+                    </td>
+                  </tr>
+                  <tr class="ksd-tr">
+                    <th class="label">{{$t('kylinLang.query. total_scan_count')}}</th>
+                    <td>{{props.row.total_scan_count}}</td>
+                  </tr>
+                  <tr class="ksd-tr">
+                    <th class="label">{{$t('kylinLang.query. total_scan_bytes')}}</th>
+                    <td>{{props.row.total_scan_bytes}}</td>
+                  </tr>
+                  <tr class="ksd-tr">
+                    <th class="label">{{$t('kylinLang.query.result_row_count')}}</th>
+                    <td>{{props.row.result_row_count}}</td>
+                  </tr>
+                  <tr class="ksd-tr">
+                    <th class="label">{{$t('kylinLang.query.cache_hit')}}</th>
+                    <td>{{props.row.cache_hit}}</td>
+                  </tr>
+                </table>
               </el-col>
             </el-row>
           </div>
@@ -148,7 +150,7 @@ export default class QueryHistoryTable extends Vue {
   startSec = 0
   endSec = 10
   latencyFilterPopoverVisible = false
-  statusFilteArr = [{name: 'el-icon-ksd-acclerate_all', value: 'FULLY_ACCELERATED'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED'}, {name: 'el-icon-ksd-negative', value: 'UNACCELERATED'}]
+  statusFilteArr = [{name: 'el-icon-ksd-acclerate_all', value: 'FULLY_ACCELERATED', status: 'fullyAcce'}, {name: 'el-icon-ksd-acclerate_portion', value: 'PARTLY_ACCELERATED', status: 'partlyAcce'}, {name: 'el-icon-ksd-negative', value: 'UNACCELERATED', status: 'unAcce1'}]
   realFilteArr = [{name: 'Pushdown', value: 'pushdown'}, {name: 'Model Name', value: 'modelName'}]
   filterData = {
     startTimeFrom: null,
@@ -237,6 +239,12 @@ export default class QueryHistoryTable extends Vue {
     this.timer = setTimeout(() => {
       this.filterList()
     }, 500)
+  }
+
+  getQueryDetailData (row) {
+    return Object.entries(row)
+    .filter(([key]) => ['query_id', 'duration', 'answered_by', 'total_scan_count', 'total_scan_bytes', 'result_row_count', 'cache_hit'].includes(key))
+    .map(([key, value]) => ({ key, value }))
   }
 
   filterList () {
@@ -388,7 +396,7 @@ export default class QueryHistoryTable extends Vue {
   renderColumn5 (h) {
     let items = []
     for (let i = 0; i < this.statusFilteArr.length; i++) {
-      items.push(<el-checkbox label={this.statusFilteArr[i].value} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i></el-checkbox>)
+      items.push(<el-checkbox label={this.statusFilteArr[i].value} key={this.statusFilteArr[i].value}><i class={this.statusFilteArr[i].name}></i> {this.$t('kylinLang.query.' + this.statusFilteArr[i].status)}</el-checkbox>)
     }
     return (<span>
       <span>{this.$t('kylinLang.query.acceleration_th')}</span>
@@ -440,20 +448,13 @@ export default class QueryHistoryTable extends Vue {
         .smyles_editor_wrap {
           margin-left: 12px;
         }
-        .label {
-          font-weight: bold;
-          display: inline-block;
-          width: 125px;
-          text-align: right;
-        }
-        .realization-block {
-          display: table;
-          .tags-block {
-            line-height: 2.8;
-            display: table-cell;
-            vertical-align: top;
-          }
-        }
+        // .ksd-table {
+        //   th {
+        //     border-right: 0px;
+        //     padding-right: 0px;
+        //     font-weight: 500;
+        //   }
+        // }
       }
     }
     .searchInput {
@@ -490,6 +491,10 @@ export default class QueryHistoryTable extends Vue {
         }
       }
     }
+  }
+  &.el-icon-ksd-acclerate_all,
+  &.el-icon-ksd-acclerate_portion {
+    color: @normal-color-1;
   }
   .to_acce {
     font-size: 12px;

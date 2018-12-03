@@ -2,7 +2,7 @@
   <div id="queryPanelBox">
     <div class="resultTipsLine" v-show="errinfo">
       <div class="resultTips">
-        <p class="resultText"><span class="label">{{$t('kylinLang.query.queryId')}}</span>
+        <p class="resultText"><span class="label">{{$t('kylinLang.query.query_id')}}</span>
         <span class="text">{{queryId}}</span></p>
         <p class="resultText"><span class="label">{{$t('kylinLang.query.status')}}</span>
         <span class="ky-error">{{$t('kylinLang.common.error')}}</span></p>
