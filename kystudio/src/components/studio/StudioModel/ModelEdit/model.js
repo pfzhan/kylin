@@ -118,6 +118,7 @@ class NModel {
     })
     // renderMeasure
     this.all_measures.forEach((x) => {
+      x.guid = sampleGuid()
       if (x.parameter_value.length > 0) {
         x.parameter_value.forEach((y) => {
           const convertedAlias = y.value.split('.')[0]
@@ -367,6 +368,7 @@ class NModel {
     let allMeasures = objectClone(this._mount.all_measures)
     // 移除前端业务字断
     allMeasures.forEach((col) => {
+      delete col.guid
       if (col.parameter_value && col.parameter_value.length) {
         col.parameter_value.forEach((k) => {
           delete k.table_guid
