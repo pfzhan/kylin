@@ -7,6 +7,10 @@
           <span class="text">{{queryInfo.queryId}}</span>
         </p>
         <p class="resultText">
+          <span class="label">{{$t('kylinLang.query.status')}}</span>
+          <span>{{$t('kylinLang.common.success')}}</span>
+        </p>
+        <p class="resultText">
           <span class="label">{{$t('kylinLang.query.realization')}}</span>
           <span class="text">{{queryInfo.answeredBy | arrayToStr}}</span>
         </p>

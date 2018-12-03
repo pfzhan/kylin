@@ -5,7 +5,7 @@
         <p class="resultText"><span class="label">{{$t('kylinLang.query.queryId')}}</span>
         <span class="text">{{queryId}}</span></p>
         <p class="resultText"><span class="label">{{$t('kylinLang.query.status')}}</span>
-        <span>error</span></p>
+        <span class="ky-error">{{$t('kylinLang.common.error')}}</span></p>
       </div>
       <div class="error-block">{{errinfo}}</div>
     </div>
