@@ -96,6 +96,12 @@
             <groupId>org.apache.hive.hcatalog</groupId>
             <artifactId>hive-hcatalog-core</artifactId>
             <scope>provided</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.twitter</groupId>
+                    <artifactId>parquet-hadoop-bundle</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.kafka</groupId>
@@ -142,6 +148,7 @@
                                     <exclude>org.apache.commons:commons-email:*</exclude>
                                     <exclude>com.sun.mail:javax.mail:*</exclude>
                                     <exclude>javax.activation:activation:*</exclude>
+                                    <exclude>org.apache.parquet:*</exclude>
                                 </excludes>
                             </artifactSet>
                             <relocations>

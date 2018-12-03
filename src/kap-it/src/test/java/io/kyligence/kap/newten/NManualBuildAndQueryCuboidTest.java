@@ -146,7 +146,7 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
             exceptDs.show(10);
 
             Assert.assertEquals(layoutDataset.count(), exceptDs.count());
-            String msg = SparderQueryTest.checkAnswer(layoutDataset, exceptDs.collectAsList());
+            String msg = SparderQueryTest.checkAnswer(layoutDataset, exceptDs);
             Assert.assertNull(msg);
         }
     }

@@ -25,6 +25,7 @@ package io.kyligence.kap.spark;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
 import java.util.Map;
@@ -39,6 +40,7 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.IRealization;
+import org.apache.kylin.query.QueryConnection;
 import org.apache.kylin.query.schema.OLAPSchemaFactory;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.SparkContext;
@@ -59,7 +61,6 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 @SuppressWarnings("serial")
@@ -173,7 +174,11 @@ public class KapSparkSession extends SparkSession {
     */
 
     public Dataset<Row> queryCube(String sql) throws Exception {
-        return read().jdbc("jdbc:calcite:", NSparkCubingUtil.formatSQL(sql), prop);
+        SparderEnv.skipCompute();
+        Connection connection = QueryConnection.getConnection(project);
+        connection.createStatement().execute(sql);
+        SparderEnv.cleanCompute();
+        return SparderEnv.getDF();
     }
 
     public Dataset<Row> csv(String path) {

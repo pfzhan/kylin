@@ -132,22 +132,20 @@ object ResultPlan extends Logging {
 
   def getResult(df: DataFrame, rowType: RelDataType, resultType: ResultType)
     : Either[Enumerable[Array[Any]], Enumerable[Any]] = {
-    SparderEnv.fuseResistor.backoffIfNecessary()
     SparderEnv.setDF(df)
     val result: Either[Enumerable[Array[Any]], Enumerable[Any]] =
       resultType match {
         case ResultType.NORMAL =>
-          if ("true".equals(System.getProperty("skipCompute"))) {
-            Left(Linq4j.asEnumerable(Array.empty[Array[Any]]))
-          } else {
+          if (SparderEnv.needCompute()) {
             Left(ResultPlan.collectEnumerable(df, rowType))
+          } else {
+            Left(Linq4j.asEnumerable(Array.empty[Array[Any]]))
           }
         case ResultType.SCALA =>
-          if ("true".equals(System.getProperty("skipCompute"))) {
-            Right(Linq4j.asEnumerable(Lists.newArrayList[Any]()))
-          } else {
+          if (SparderEnv.needCompute()) {
             Right(ResultPlan.collectScalarEnumerable(df, rowType))
-
+          } else {
+            Right(Linq4j.asEnumerable(Lists.newArrayList[Any]()))
           }
         //        case ResultType.ASYNC =>
         //          Left(ResultPlan.asyncResult(df, rowType))

@@ -109,7 +109,6 @@ object KylinSession extends Logging {
           override def onApplicationEnd(
               applicationEnd: SparkListenerApplicationEnd): Unit = {
             SparkSession.setDefaultSession(null)
-            SparkSession.sqlListener.set(null)
           }
         })
         UdfManager.create(session)

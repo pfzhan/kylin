@@ -32,10 +32,11 @@ import org.apache.spark.sql.execution.{FileSourceScanExec, SparkPlan}
 
 object IndexSourceStrategy extends Strategy with Logging {
   def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
-    case PhysicalOperation(projects, filters,
-      l @ LogicalRelation(fsRelation: HadoopFsRelation, _, table))
-      if fsRelation.location.isInstanceOf[MetastoreIndex] =>
-
+    case PhysicalOperation(
+        projects,
+        filters,
+        l @ LogicalRelation(fsRelation: HadoopFsRelation, _, table, _))
+        if fsRelation.location.isInstanceOf[MetastoreIndex] =>
       val catalog = fsRelation.location.asInstanceOf[MetastoreIndex]
       val resolver = fsRelation.sparkSession.sessionState.analyzer.resolver
 
@@ -53,8 +54,10 @@ object IndexSourceStrategy extends Strategy with Logging {
       val partitionColumns = l.resolve(fsRelation.partitionSchema, resolver)
       val partitionSet = AttributeSet(partitionColumns)
       val partitionKeyFilters =
-        ExpressionSet(normalizedFilters.filter(_.references.subsetOf(partitionSet)))
-      logDebug(s"Pruning directories with: ${partitionKeyFilters.mkString(",")}")
+        ExpressionSet(
+          normalizedFilters.filter(_.references.subsetOf(partitionSet)))
+      logDebug(
+        s"Pruning directories with: ${partitionKeyFilters.mkString(",")}")
 
       // Resolve index schema and extract index filters
       // Filters will only be applied for indexed columns that allow predicate to be separately
@@ -65,31 +68,36 @@ object IndexSourceStrategy extends Strategy with Logging {
       // selected filters will be empty, otherwise Or evaluation would be incomplete.
       val indexColumns = l.resolve(catalog.indexSchema, resolver)
       val indexSet = AttributeSet(indexColumns)
-      val indexFilters = normalizedFilters.filter(_.references.subsetOf(indexSet)).
-        flatMap(DataSourceStrategy.translateFilter)
+      val indexFilters = normalizedFilters
+        .filter(_.references.subsetOf(indexSet))
+        .flatMap(DataSourceStrategy.translateFilter)
       // Hack to propagate filters into FileSourceScanExec instead of copying a lot of code to
       // add index filters, catalog will reset filters every time this method is called
       catalog.setIndexFilters(indexFilters)
       logInfo(s"Applying index filters: ${indexFilters.mkString(",")}")
       if (indexFilters.isEmpty) {
-        logWarning(s"Cannot extract predicate for indexed columns $indexColumns from normalized " +
-          s"filters $normalizedFilters, predicate will have to be evaluated as part of scan. " +
-          "Try to index all columns that appear in normalized filters and/or update predicate " +
-          "to use indexed columns in combination with other filters using 'And'; when using " +
-          "'Or' make sure that both branches contain indexed columns")
+        logWarning(
+          s"Cannot extract predicate for indexed columns $indexColumns from normalized " +
+            s"filters $normalizedFilters, predicate will have to be evaluated as part of scan. " +
+            "Try to index all columns that appear in normalized filters and/or update predicate " +
+            "to use indexed columns in combination with other filters using 'And'; when using " +
+            "'Or' make sure that both branches contain indexed columns")
       }
 
       val dataColumns = l.resolve(fsRelation.dataSchema, resolver)
 
       // Partition keys are not available in the statistics of the files.
-      val dataFilters = normalizedFilters.filter(_.references.intersect(partitionSet).isEmpty)
+      val dataFilters =
+        normalizedFilters.filter(_.references.intersect(partitionSet).isEmpty)
 
       // Predicates with both partition keys and attributes need to be evaluated after the scan.
-      val afterScanFilters = filterSet -- partitionKeyFilters.filter(_.references.nonEmpty)
+      val afterScanFilters = filterSet -- partitionKeyFilters.filter(
+        _.references.nonEmpty)
       logInfo(s"Post-Scan Filters: ${afterScanFilters.mkString(",")}")
 
       val filterAttributes = AttributeSet(afterScanFilters)
-      val requiredExpressions: Seq[NamedExpression] = filterAttributes.toSeq ++ projects
+      val requiredExpressions
+        : Seq[NamedExpression] = filterAttributes.toSeq ++ projects
       val requiredAttributes = AttributeSet(requiredExpressions)
 
       val readDataColumns =
@@ -102,16 +110,17 @@ object IndexSourceStrategy extends Strategy with Logging {
       val outputAttributes = readDataColumns ++ partitionColumns
 
       val scan =
-        FileSourceScanExec(
-          fsRelation,
-          outputAttributes,
-          outputSchema,
-          partitionKeyFilters.toSeq,
-          dataFilters,
-          table.map(_.identifier))
+        FileSourceScanExec(fsRelation,
+                           outputAttributes,
+                           outputSchema,
+                           partitionKeyFilters.toSeq,
+                           None,
+                           dataFilters,
+                           table.map(_.identifier))
 
       val afterScanFilter = afterScanFilters.toSeq.reduceOption(expressions.And)
-      val withFilter = afterScanFilter.map(execution.FilterExec(_, scan)).getOrElse(scan)
+      val withFilter =
+        afterScanFilter.map(execution.FilterExec(_, scan)).getOrElse(scan)
       val withProjections = if (projects == withFilter.output) {
         withFilter
       } else {

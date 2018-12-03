@@ -47,12 +47,16 @@ import org.apache.kylin.job.execution.{
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler
 import org.apache.kylin.job.lock.MockJobLock
 import org.apache.kylin.metadata.model.SegmentRange
+import org.apache.spark.internal.Logging
 import org.junit.Assert
 import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
 import scala.collection.JavaConverters._
 
-trait JobSupport extends BeforeAndAfterAll with BeforeAndAfterEach {
+trait JobSupport
+    extends BeforeAndAfterAll
+    with BeforeAndAfterEach
+    with Logging {
   self: Suite =>
   val DEFAULT_PROJECT = "default"
   val schedulerInterval = "1"
@@ -102,10 +106,10 @@ trait JobSupport extends BeforeAndAfterAll with BeforeAndAfterEach {
   @throws[Exception]
   protected def fullBuildCube(dfName: String,
                               prj: String = DEFAULT_PROJECT): Unit = {
+    logInfo("Build cube :" + dfName)
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
     config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128")
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
-    Assert.assertTrue(config.getHdfsWorkingDirectory.startsWith("file:"))
     // ready dataflow, segment, cuboid layout
     var df: NDataflow = dsMgr.getDataflow(dfName)
     // cleanup all segments first
@@ -310,5 +314,12 @@ trait JobSupport extends BeforeAndAfterAll with BeforeAndAfterEach {
                         firstSegment.getSegRange)
     //    Assert.assertEquals(21, firstSegment.getDictionaries.size)
     Assert.assertEquals(7, firstSegment.getSnapshots.size)
+  }
+
+  def buildAll(): Unit = {
+    val config: KylinConfig = KylinConfig.getInstanceFromEnv
+    val manager = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
+    val allModel = manager.listAllDataflows().asScala.map(_.getName).toList
+    buildCubes(allModel)
   }
 }

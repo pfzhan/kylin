@@ -60,6 +60,15 @@
             <version>${scala.version}</version>
             <scope>compile</scope>
         </dependency>
+        <!--for spark2.4-->
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>janino</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.codehaus.janino</groupId>
+            <artifactId>commons-compiler</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_2.11</artifactId>
@@ -126,6 +135,14 @@
             <version>${spark.version}</version>
             <scope>provided</scope>
         </dependency>
+
+        <!--for parquet-->
+        <dependency>
+            <groupId>it.unimi.dsi</groupId>
+            <artifactId>fastutil</artifactId>
+            <version>7.0.13</version>
+        </dependency>
+        
         <!--Env & Test-->
         <dependency>
             <groupId>org.scalatest</groupId>

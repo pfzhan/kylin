@@ -21,6 +21,7 @@
  */
 package org.apache.spark.sql.common
 
+import org.apache.kylin.source.adhocquery.HivePushDownConverter
 import org.scalatest.Suite
 
 trait ParquetTPCHSource extends SharedSparkSession {
@@ -217,6 +218,19 @@ trait ParquetTPCHSource extends SharedSparkSession {
       OPTIONS (path "${tpchDataFolder("partsupp")}",
       header "false", delimiter "$delimiter")""".stripMargin)
 
+  }
+
+  lazy val converter = new HivePushDownConverter
+
+  def cleanSql(originSql: String): String = {
+    val sqlForSpark = originSql
+      .replaceAll("tpch\\.", "")
+      .replaceAll("\"EDW\"\\.", "")
+      .replaceAll("EDW\\.", "")
+      .replaceAll("default\\.", "")
+      .replaceAll("DEFAULT\\.", "")
+      .replaceAll("\"DEFAULT\"\\.", "")
+    converter.convert(sqlForSpark, "default", "default", false)
   }
 
 }

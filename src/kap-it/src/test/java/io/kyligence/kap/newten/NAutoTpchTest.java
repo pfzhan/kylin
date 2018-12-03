@@ -51,7 +51,7 @@ public class NAutoTpchTest extends NAutoTestBase {
         * See #7257, #7268, #7269
         * Plus the precision difference between query cuboid and SparkSQL
         */
-        new TestScenario("sql_tpch", CompareLevel.SAME_AFTER_ROUNDING).execute();
+        new TestScenario("sql_tpch", CompareLevel.SAME).execute();
     }
 
     @Test

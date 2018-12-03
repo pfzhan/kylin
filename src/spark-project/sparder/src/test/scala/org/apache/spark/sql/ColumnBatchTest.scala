@@ -25,17 +25,13 @@
 package org.apache.spark.sql
 
 import java.sql.{Date, Timestamp}
-import java.util.TimeZone
 
 import com.google.common.collect.Lists
 import org.apache.calcite.avatica.util.DateTimeUtils.ymdToUnixDate
-import org.apache.spark.memory.MemoryMode
-import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.KapSubtractMonths
 import org.apache.spark.sql.catalyst.util.{DateTimeUtils, KapDateTimeUtils}
 import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
-import org.apache.spark.sql.execution.vectorized.ColumnarBatch
-import org.apache.spark.sql.functions.{col, lit}
+import org.apache.spark.sql.functions.lit
 import org.apache.spark.sql.types._
 
 // scalastyle:off
@@ -80,46 +76,6 @@ class ColumnBatchTest extends SparderBaseFunSuite with SharedSparkSession {
     print(Timestamp.valueOf("2016-09-30 03:03:00").getTime)
     print(
       DateTimeUtils.dateToString(DateTimeUtils.millisToDays(1356998400000L)))
-  }
-
-  test("ColumnBatch") {
-    val schema = StructType(
-      Array(
-        StructField("id", IntegerType, nullable = true),
-        StructField("birth", DateType, nullable = true),
-        StructField("time", TimestampType, nullable = true)
-      ))
-
-    val columnarBatch = ColumnarBatch.allocate(schema, MemoryMode.ON_HEAP, 1024)
-    val c0 = columnarBatch.column(0)
-    val c1 = columnarBatch.column(1)
-    val c2 = columnarBatch.column(2)
-
-    c0.putInt(0, 0)
-    // 1355241600, /3600/24 s to days
-    c1.putInt(0, 1355241600 / 3600 / 24)
-    // microsecond
-    c2.putLong(0, 1355285532000000L)
-
-    val internal0 = columnarBatch.getRow(0)
-
-    //a way converting internal row to unsafe row.
-    //val convert = UnsafeProjection.create(schema)
-    //val internal = convert.apply(internal0)
-
-    val enc = RowEncoder.apply(schema).resolveAndBind()
-    val row = enc.fromRow(internal0)
-    val df = spark.createDataFrame(Lists.newArrayList(row), schema)
-
-    TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
-    val tsStr0 = df.select(col("time")).head().getTimestamp(0).toString
-    val ts0 = df.select(col("time").cast(LongType)).head().getLong(0)
-    TimeZone.setDefault(TimeZone.getTimeZone("GMT+8"))
-    val tsStr1 = df.select(col("time")).head().getTimestamp(0).toString
-    val ts1 = df.select(col("time").cast(LongType)).head().getLong(0)
-    assert(true, "2012-12-12 04:12:12.0".equals(tsStr0))
-    assert(true, "2012-12-12 12:12:12.0".equals(tsStr1))
-    assert(true, ts0 == ts1)
   }
 
   test("addMonths") {

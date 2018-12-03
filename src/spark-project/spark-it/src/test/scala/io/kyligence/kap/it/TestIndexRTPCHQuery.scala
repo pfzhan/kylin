@@ -105,7 +105,7 @@ class TestIndexRTPCHQuery
         val df = sql(tp._2)
         df.show(10)
         val kylinDf = singleQuery(tp._2, "tpch")
-        var str = SparderQueryTest.checkAnswer(df, kylinDf.collectAsList())
+        var str = SparderQueryTest.checkAnswer(df, kylinDf)
         if (str != null) {
           str = tp._1 + "\n" + tp._2 + "\n" + str
           logInfo(tp._1 + "\n" + tp._2 + "\n" + str)

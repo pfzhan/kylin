@@ -36,9 +36,9 @@ trait CompareSupport extends QuerySupport {
     try {
       val maybeString = SparderQueryTest.checkAnswer(
         sql(sparkSql),
-        singleQuery(querySql, project).collect())
-      if (maybeString.isDefined) {
-        val queryErrorMsg = errorMsg + maybeString.get
+        singleQuery(querySql, project))
+      if (maybeString != null) {
+        val queryErrorMsg = errorMsg + maybeString
         if ("true".equals(System.getProperty("Failfast"))) {
           throw new RuntimeException(queryErrorMsg)
         }

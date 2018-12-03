@@ -28,8 +28,10 @@ import org.apache.kylin.metadata.datatype.DataType
 import org.apache.kylin.metadata.model.DeriveInfo.DeriveType
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.Column
+import org.apache.spark.sql.catalyst.expressions.Literal
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types.{DataTypes, StructType}
 import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.sql.udf.UdfManager
 
@@ -39,7 +41,7 @@ import scala.collection.mutable
 // scalastyle:off
 object RuntimeHelper {
 
-  final val literalOne = lit("1")
+  final val literalOne = new Column(Literal(1, DataTypes.IntegerType))
 
   def registerSingleByColName(funcName: String, dataType: DataType): String = {
     val name = dataType.toString

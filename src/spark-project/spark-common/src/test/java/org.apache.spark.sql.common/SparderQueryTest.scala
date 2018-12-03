@@ -25,11 +25,19 @@ import java.util.TimeZone
 
 import org.apache.kylin.common.{KapConfig, QueryContext}
 import org.apache.spark.sql.catalyst.util.sideBySide
+import org.apache.spark.sql.catalyst.util._
+import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 
-import scala.collection.JavaConverters._
-
 object SparderQueryTest {
+
+  def checkAnswer(sparkDF: DataFrame,
+                  kylinAnswer: DataFrame): String = {
+    checkAnswer(castDataType(sparkDF, kylinAnswer), kylinAnswer.collect()) match {
+      case Some(errorMessage) => errorMessage
+      case None => null
+    }
+  }
 
   /**
     * Runs the plan and makes sure the answer matches the expected result.
@@ -49,8 +57,7 @@ object SparderQueryTest {
       sparkDF.rdd.count() // Also attempt to deserialize as an RDD [SPARK-15791]
     }
 
-    val sparkAnswer = try sparkDF.collect().toSeq
-    catch {
+    val sparkAnswer = try sparkDF.collect().toSeq catch {
       case e: Exception =>
         val errorMessage =
           s"""
@@ -90,12 +97,12 @@ object SparderQueryTest {
   def prepareRow(row: Row): Row = {
     Row.fromSeq(row.toSeq.map {
       case null => null
-      case d: java.math.BigDecimal => d.longValue().toString
-      case db: Double => BigDecimal.apply(db).setScale(0, BigDecimal.RoundingMode.HALF_UP).longValue().toString
+      case d: java.math.BigDecimal => BigDecimal(d).setScale(2, BigDecimal.RoundingMode.HALF_UP)
+      case db: Double => BigDecimal.apply(db).setScale(2, BigDecimal.RoundingMode.HALF_UP).toString.toDouble
       // Convert array to Seq for easy equality check.
       case b: Array[_] => b.toSeq
       case r: Row => prepareRow(r)
-      case o => o.toString
+      case o => o
     })
   }
 
@@ -121,13 +128,6 @@ object SparderQueryTest {
     None
   }
 
-  def checkAnswer(df: DataFrame,
-                  expectedAnswer: java.util.List[Row]): String = {
-    checkAnswer(df, expectedAnswer.asScala) match {
-      case Some(errorMessage) => errorMessage
-      case None => null
-    }
-  }
 
   /**
     * Runs the plan and makes sure the answer is within absTol of the expected result.
@@ -165,5 +165,17 @@ object SparderQueryTest {
       .collect()
     val maybeString = checkAnswer(dataFrame, rows)
 
+  }
+
+  def castDataType(sparkResult: DataFrame, cubeResult: DataFrame): DataFrame = {
+    val columns = sparkResult.schema.zip(cubeResult.schema).map {
+      case (sparkFiled, kylinFiled) =>
+        if (!sparkFiled.dataType.sameType(kylinFiled.dataType)) {
+          col(sparkFiled.name).cast(kylinFiled.dataType)
+        } else {
+          col(sparkFiled.name)
+        }
+    }
+    sparkResult.select(columns: _*)
   }
 }

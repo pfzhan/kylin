@@ -24,6 +24,7 @@ package io.kyligence.kap.common
 
 import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.query.QueryConnection
+import org.apache.kylin.query.util.QueryUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.common.{SharedSparkSession, SparderQueryTest}
 import org.apache.spark.sql.udf.UdfManager
@@ -56,7 +57,9 @@ trait QuerySupport
 
   def singleQuery(sql: String, project: String): DataFrame = {
     val connection = QueryConnection.getConnection(project)
-    connection.createStatement().execute(sql)
+    val convertedSql =
+      QueryUtil.massageSql(sql, project, 0, 0, connection.getSchema)
+    connection.createStatement().execute(convertedSql)
     SparderEnv.getDF
   }
 
@@ -85,7 +88,6 @@ trait QuerySupport
   def checkWithSparkSql(sqlText: String, project: String): String = {
     val df = sql(sqlText)
     df.show(1000)
-    SparderQueryTest.checkAnswer(df,
-                                 singleQuery(sqlText, project).collectAsList())
+    SparderQueryTest.checkAnswer(df, singleQuery(sqlText, project))
   }
 }

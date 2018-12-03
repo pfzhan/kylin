@@ -20,30 +20,34 @@
  *
  */
 
-package io.kyligence.kap.engine.spark.storage
+package io.kyligence.kap.common
 
-import io.kyligence.kap.cube.model.NDataCuboid
-import io.kyligence.kap.engine.spark.NSparkCubingEngine
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
-import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
+import org.apache.kylin.common.KylinConfig
+import org.apache.kylin.common.util.ClassUtil
+import org.apache.spark.internal.Logging
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
-class ParquetStorage
-    extends NSparkCubingEngine.NSparkCubingStorage
-    with Serializable {
-  override def getCuboidData(cuboid: NDataCuboid,
-                             ss: SparkSession): DataFrame = {
-    val path = NSparkCubingUtil.getStoragePath(cuboid)
-    ss.read.parquet(path)
+trait YarnSupport
+    extends BeforeAndAfterAll
+    with BeforeAndAfterEach
+    with Logging with SystemPropertyHelper{
+  self: Suite =>
+
+  override def beforeAll(): Unit = {
+    ClassUtil.addClasspath(System.getenv("HADOOP_CONF_DIR"))
+    changeSystemProp("kylin.env", "DEV")
+    checkSystem("kylin.env.hdfs-working-dir")
+    super.beforeAll()
+    val env = KylinConfig.getInstanceFromEnv
+    env.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128")
+    env.setProperty("kylin.source.provider.11",
+                    "io.kyligence.kap.engine.spark.source.NSparkDataSource")
+    env.setProperty("kylin.source.provider.9",
+                    "io.kyligence.kap.engine.spark.source.NSparkDataSource")
   }
 
-  override def saveCuboidData(cuboid: NDataCuboid,
-                              data: DataFrame,
-                              ss: SparkSession): Unit = {
-    val path = NSparkCubingUtil.getStoragePath(cuboid)
-    data.write
-      .mode(SaveMode.Overwrite)
-      .parquet(path)
-
+  override def afterAll(): Unit = {
+    super.afterAll()
+    restoreSystemProperty()
   }
-
 }

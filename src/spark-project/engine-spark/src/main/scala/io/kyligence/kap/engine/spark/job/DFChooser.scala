@@ -39,7 +39,7 @@ class DFChooser(toBuildTree: NSpanningTree,
                 var seg: NDataSegment,
                 ss: SparkSession,
                 config: KylinConfig)
-  extends Logging {
+    extends Logging {
   var reuseSources: java.util.Map[java.lang.Long, NBuildSourceInfo] =
     Maps.newHashMap[java.lang.Long, NBuildSourceInfo]()
   var flatTableSource: NBuildSourceInfo = _
@@ -53,8 +53,8 @@ class DFChooser(toBuildTree: NSpanningTree,
       .foreach { desc =>
         val layout = NCuboidLayoutChooser
           .selectLayoutForBuild(seg,
-            desc.getEffectiveDimCols.keySet,
-            toBuildTree.retrieveAllMeasures(desc))
+                                desc.getEffectiveDimCols.keySet,
+                                toBuildTree.retrieveAllMeasures(desc))
         if (layout != null) {
           if (map.contains(layout.getId)) {
             map.apply(layout.getId).addCuboid(desc)
@@ -82,7 +82,7 @@ class DFChooser(toBuildTree: NSpanningTree,
     Preconditions.checkState(dataCuboid != null)
     val layoutDs = StorageFactory
       .createEngineAdapter(layout,
-        classOf[NSparkCubingEngine.NSparkCubingStorage])
+                           classOf[NSparkCubingEngine.NSparkCubingStorage])
       .getCuboidData(dataCuboid, ss)
     layoutDs.persist
     buildSource.setDataset(layoutDs)
@@ -150,8 +150,8 @@ object DFChooser {
             ss: SparkSession,
             config: KylinConfig): DFChooser =
     new DFChooser(toBuildTree: NSpanningTree,
-      seg: NDataSegment,
-      ss: SparkSession,
-      config: KylinConfig)
+                  seg: NDataSegment,
+                  ss: SparkSession,
+                  config: KylinConfig)
 
 }

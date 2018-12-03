@@ -32,7 +32,7 @@ object KylinReflectUtils {
   private val rm = universe.runtimeMirror(getClass.getClassLoader)
 
   def getSessionState(sparkContext: SparkContext, kylinSession: Object): Any = {
-    if (SPARK_VERSION.startsWith("2.2")) {
+    if (SPARK_VERSION.startsWith("2.4")) {
       var className: String =
         "org.apache.spark.sql.hive.KylinHiveSessionStateBuilder"
       if (!"hive".equals(sparkContext.getConf

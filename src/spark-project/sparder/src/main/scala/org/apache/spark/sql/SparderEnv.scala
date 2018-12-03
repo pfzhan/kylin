@@ -25,9 +25,14 @@
 package org.apache.spark.sql
 
 import java.util.concurrent.atomic.AtomicReference
+import java.lang.{
+  Boolean => JBoolean,
+  Integer => JInteger,
+  Long => JLong,
+  String => JString
+}
 
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.performance.{FuseResistor, SparkInfoCollector}
 import org.apache.spark.sql.KylinSession._
 import org.apache.spark.sql.udf.UdfManager
 
@@ -36,10 +41,6 @@ import org.apache.spark.sql.udf.UdfManager
 object SparderEnv extends Logging {
   @volatile
   private var spark: SparkSession = _
-
-  SparkInfoCollector.collectSparkInfo()
-
-  val fuseResistor = new FuseResistor
 
   def getSparkSession: SparkSession = withClassLoad {
     if (spark == null || spark.sparkContext.isStopped) {
@@ -75,14 +76,6 @@ object SparderEnv extends Logging {
 
   def getSparkConf(key: String): String = {
     getSparkSession.sparkContext.conf.get(key)
-  }
-
-  def getActiveJobs(): Int = {
-    SparderEnv.getSparkSession.sparkContext.jobProgressListener.activeJobs.size
-  }
-
-  def getFailedJobs(): Int = {
-    SparderEnv.getSparkSession.sparkContext.jobProgressListener.failedJobs.size
   }
 
   def getAsyncResultCore: Int = {
@@ -138,13 +131,17 @@ object SparderEnv extends Logging {
     // fixme aron
 //        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader)
     val t = body
-//    Thread.currentThread().setContextClassLoader、(originClassLoad)
+//    Thread.currentThread().setContextClassLoader(originClassLoad)
     t
   }
 
-  val _isAsyncQuery = new ThreadLocal[java.lang.Boolean]
-  val _separator = new ThreadLocal[java.lang.String]
+  val _isAsyncQuery = new ThreadLocal[JBoolean]
+  val _separator = new ThreadLocal[JString]
   val _df = new ThreadLocal[Dataset[Row]]
+  val _needCompute = new ThreadLocal[JBoolean] {
+    override protected def initialValue = false
+  }
+
 
   //cleaned
   val _numScanFiles =
@@ -196,11 +193,24 @@ object SparderEnv extends Logging {
     _isAsyncQuery.set(null)
     _separator.set(null)
     _df.set(null)
+    _needCompute.set(null)
   }
 
   // clean it after collect
   def cleanQueryInfo(): Unit = {
     _numScanFiles.set(0L)
+  }
+
+  def needCompute(): JBoolean = {
+    !_needCompute.get()
+  }
+
+  def skipCompute(): Unit = {
+    _needCompute.set(true)
+  }
+
+  def cleanCompute(): Unit = {
+    _needCompute.set(false)
   }
 
 }

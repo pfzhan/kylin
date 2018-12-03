@@ -20,30 +20,35 @@
  *
  */
 
-package io.kyligence.kap.engine.spark.storage
+package io.kyligence.kap.common
 
-import io.kyligence.kap.cube.model.NDataCuboid
-import io.kyligence.kap.engine.spark.NSparkCubingEngine
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
-import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
+import avro.shaded.com.google.common.collect.Maps
 
-class ParquetStorage
-    extends NSparkCubingEngine.NSparkCubingStorage
-    with Serializable {
-  override def getCuboidData(cuboid: NDataCuboid,
-                             ss: SparkSession): DataFrame = {
-    val path = NSparkCubingUtil.getStoragePath(cuboid)
-    ss.read.parquet(path)
+import scala.collection.JavaConverters._
+
+trait SystemPropertyHelper {
+  val propCache: java.util.HashMap[String, String] = Maps.newHashMap[String, String]()
+
+  def changeSystemProp(key: String, value: String): Unit = {
+    propCache.put(key, System.getProperty(key))
+    System.setProperty(key, value)
   }
 
-  override def saveCuboidData(cuboid: NDataCuboid,
-                              data: DataFrame,
-                              ss: SparkSession): Unit = {
-    val path = NSparkCubingUtil.getStoragePath(cuboid)
-    data.write
-      .mode(SaveMode.Overwrite)
-      .parquet(path)
+  def restoreSystemProperty(): Unit = {
+    propCache.asScala.filter(_._2 != null).foreach {
+      case (key, value) =>
+        System.setProperty(key, value)
+    }
+  }
 
+  def checkSystem(key: String, desc: String = ""): Unit = {
+    if (System.getProperty(key) == null) {
+      var errorMessage = s"Could not found system property : $key. "
+      if (desc.nonEmpty) {
+        errorMessage = errorMessage + desc
+      }
+      throw new IllegalArgumentException(errorMessage)
+    }
   }
 
 }

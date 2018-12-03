@@ -15,7 +15,7 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 --
-
+-- issue https://github.com/Kyligence/KAP/issues/8675
 select fact.lstg_format_name from 
  
  (select * from test_kylin_fact where cal_dt > date'2010-01-01' ) as fact

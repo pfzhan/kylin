@@ -41,7 +41,7 @@
         <kafka.version>0.11.0.1</kafka.version>
 
         <!-- Spark versions -->
-        <spark.version>2.2.1</spark.version>
+        <spark.version>2.4.0-kylin-r1</spark.version>
         <!--<spark.version>2.2.1-kylin-r5</spark.version>-->
         <kryo.version>4.0.0</kryo.version>
 
@@ -137,13 +137,14 @@
         <zkclient.version>0.8</zkclient.version>
         <grpc.version>1.0.2</grpc.version>
         <fastPFOR.version>0.0.13</fastPFOR.version>
-        <parquet.version>1.9.0</parquet.version>
+        <parquet.version>1.11.0-kylin-r1</parquet.version>
         <tomcat.version>7.0.82</tomcat.version>
         <jackson.version>2.6.5</jackson.version>
         <hadoop2.version>2.7.1</hadoop2.version>
         <curator.version>2.7.1</curator.version>
         <quartz.version>2.1.1</quartz.version>
         <mockito.version>2.7.14</mockito.version>
+        <janino.version>3.0.9</janino.version>
         <log4j.version>1.2.17</log4j.version>
         <slf4j.version>1.7.21</slf4j.version>
 
@@ -567,6 +568,12 @@
                 <groupId>org.apache.hive.hcatalog</groupId>
                 <artifactId>hive-hcatalog-core</artifactId>
                 <version>${hive-hcatalog.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.twitter</groupId>
+                        <artifactId>parquet-hadoop-bundle</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <!-- Yarn dependencies -->
             <dependency>
@@ -932,7 +939,17 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.parquet</groupId>
-                <artifactId>parquet-hadoop-bundle</artifactId>
+                <artifactId>parquet-hadoop</artifactId>
+                <version>${parquet.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.parquet</groupId>
+                <artifactId>parquet-common</artifactId>
+                <version>${parquet.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.parquet</groupId>
+                <artifactId>parquet-column</artifactId>
                 <version>${parquet.version}</version>
             </dependency>
             <dependency>
@@ -1055,6 +1072,27 @@
                 <groupId>io.github.swagger2markup</groupId>
                 <artifactId>swagger2markup</artifactId>
                 <version>${swagger2markup.version}</version>
+            </dependency>
+            <!--spark 2.4-->
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-all</artifactId>
+                <version>4.1.17.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty</artifactId>
+                <version>3.9.9.Final</version>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.janino</groupId>
+                <artifactId>janino</artifactId>
+                <version>${janino.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.codehaus.janino</groupId>
+                <artifactId>commons-compiler</artifactId>
+                <version>${janino.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

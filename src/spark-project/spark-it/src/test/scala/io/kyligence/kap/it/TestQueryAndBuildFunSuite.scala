@@ -29,6 +29,8 @@ import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import io.netty.util.internal.ThrowableUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
+import org.apache.spark.sql.SparderEnv
+import org.apache.spark.sql.common.SparderBaseFunSuite
 
 class TestQueryAndBuildFunSuite
     extends SparderBaseFunSuite
@@ -87,10 +89,13 @@ class TestQueryAndBuildFunSuite
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-    System.setProperty("skipCompute", "true")
+    SparderEnv.skipCompute()
     build()
   }
 
+  override def afterAll(): Unit = {
+    SparderEnv.cleanCompute()
+  }
   test("buildKylinFact") {
     var result = queryFolders
       .flatMap { folder =>

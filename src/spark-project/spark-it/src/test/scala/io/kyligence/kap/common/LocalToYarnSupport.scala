@@ -20,30 +20,20 @@
  *
  */
 
-package io.kyligence.kap.engine.spark.storage
+package io.kyligence.kap.common
 
-import io.kyligence.kap.cube.model.NDataCuboid
-import io.kyligence.kap.engine.spark.NSparkCubingEngine
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
-import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
-class ParquetStorage
-    extends NSparkCubingEngine.NSparkCubingStorage
-    with Serializable {
-  override def getCuboidData(cuboid: NDataCuboid,
-                             ss: SparkSession): DataFrame = {
-    val path = NSparkCubingUtil.getStoragePath(cuboid)
-    ss.read.parquet(path)
+trait LocalToYarnSupport
+    extends BeforeAndAfterAll
+    with BeforeAndAfterEach
+    with YarnSupport {
+  self: Suite =>
+
+  override def beforeAll(): Unit = {
+    checkSystem("kylin.engine.spark.job-jar")
+    checkSystem("kylin.hadoop.conf.dir",
+                       System.getenv("HADOOP_CONF_DIR"))
+    super.beforeAll()
   }
-
-  override def saveCuboidData(cuboid: NDataCuboid,
-                              data: DataFrame,
-                              ss: SparkSession): Unit = {
-    val path = NSparkCubingUtil.getStoragePath(cuboid)
-    data.write
-      .mode(SaveMode.Overwrite)
-      .parquet(path)
-
-  }
-
 }

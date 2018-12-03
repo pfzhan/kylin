@@ -21,6 +21,9 @@
  */
 package org.apache.spark.sql.common
 
+import java.io.File
+
+import org.apache.commons.io.FileUtils
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.{DataFrame, SQLContext, SQLImplicits, SparkSession}
@@ -35,6 +38,8 @@ trait SharedSparkSession
   @transient private var _sc: SparkContext = _
   @transient private var _spark: SparkSession = _
   @transient private var _jsc: JavaSparkContext = _
+  var _conf: SparkConf = new SparkConf()
+  val master: String = "local[4]"
 
   def sc: SparkContext = _sc
 
@@ -44,17 +49,22 @@ trait SharedSparkSession
 
   override def beforeAll() {
     super.beforeAll()
+    val file = new File("./spark-warehouse")
+    if (file.exists()) {
+      FileUtils.deleteDirectory(file)
+    }
     _spark = SparkSession.builder
-//      .enableHiveSupport()
-      .master("local[4]")
+    //      .enableHiveSupport()
+      .master(master)
       .appName(getClass.getSimpleName)
-      //      .config("spark.sql.session.timeZone", "UTC")
       .config("spark.sql.shuffle.partitions", "4")
       .config("spark.sql.columnVector.offheap.enabled", "true")
+      .config("fs.file.impl", classOf[DebugFilesystem].getCanonicalName)
+      //      .config("spark.sql.adaptive.enabled", "true")
+      .config(conf)
       .getOrCreate
     _jsc = new JavaSparkContext(_spark.sparkContext)
     _sc = _spark.sparkContext
-
   }
 
   protected object testImplicits extends SQLImplicits {
