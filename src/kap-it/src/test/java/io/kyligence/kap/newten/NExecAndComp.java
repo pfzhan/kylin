@@ -39,6 +39,10 @@ import org.apache.kylin.query.CompareQueryBySuffix;
 import org.apache.kylin.source.adhocquery.HivePushDownConverter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.common.SparderQueryTest;
+import org.apache.spark.sql.types.DataType;
+import org.apache.spark.sql.types.StructField;
+import org.junit.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -55,7 +59,7 @@ public class NExecAndComp {
     private static final String CSV_TABLE_DIR = "../examples/test_metadata/data/%s.csv";
 
     public enum CompareLevel {
-        SAME, // exec and compare
+        SAME, SAME_AFTER_ROUNDING, // exec and compare
         SAME_ROWCOUNT, SUBSET, NONE, // batch execute
         SAME_SQL_COMPARE
     }
@@ -135,19 +139,30 @@ public class NExecAndComp {
             long startTime = System.currentTimeMillis();
             Dataset<Row> cubeResult = queryWithKap(kapSparkSession, joinType, sql);
             List<Row> kapRows = cubeResult.toJavaRDD().collect();
-            if (compareLevel != CompareLevel.NONE) {
+            if (compareLevel == CompareLevel.NONE) {
+                cubeResult.persist();
+                System.out.println(
+                        "result comparision is not available, part of the cube results: " + cubeResult.count());
+                cubeResult.show();
+                cubeResult.unpersist();
+            } else if (compareLevel == CompareLevel.SAME_AFTER_ROUNDING) {
+                Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
+                StructField[] fields = cubeResult.toDF().schema().fields();
+                for (int i = 0; i < fields.length; i++) {
+                    DataType dataType = fields[i].dataType();
+                    String colName = sparkResult.columns()[i];
+                    // set columns in spark result the same data type with kap result
+                    sparkResult = sparkResult.withColumn(colName, sparkResult.col(colName).cast(dataType));
+                }
+                String msg = SparderQueryTest.checkAnswer(sparkResult.toDF(), kapRows);
+                Assert.assertNull(msg);
+            } else {
                 Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
                 List<Row> sparkRows = sparkResult.toJavaRDD().collect();
                 if (!compareResults(kapRows, sparkRows, compareLevel)) {
                     logger.error("Failed on compare query (" + joinType + ") :" + query);
                     throw new IllegalArgumentException("query (" + joinType + ") :" + query + " result not match");
                 }
-            } else {
-                cubeResult.persist();
-                System.out.println(
-                        "result comparision is not available, part of the cube results: " + cubeResult.count());
-                cubeResult.show();
-                cubeResult.unpersist();
             }
             logger.info("The query (" + joinType + ") : {} cost {} (ms)", query,
                     System.currentTimeMillis() - startTime);
@@ -311,7 +326,7 @@ public class NExecAndComp {
                             "please modify the sql to control the result size that less than 15000 and it has "
                                     + actualResult.size() + " rows");
                 }
-                for (Row eRow: expectedResult){
+                for (Row eRow: expectedResult) {
                     if (!actualResult.contains(eRow)) {
                         good = false;
                         break;
