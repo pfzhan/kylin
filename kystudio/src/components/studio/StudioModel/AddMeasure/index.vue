@@ -394,7 +394,7 @@ export default class AddMeasure extends Vue {
         if (measureClone.expression.indexOf('SUM') !== -1) {
           measureClone.expression = 'SUM'
         }
-        if (measureClone.expression.indexOf('COUNT') !== -1) {
+        if (measureClone.expression.indexOf('COUNT(constant)') !== -1 || measureClone.expression.indexOf('COUNT(column)') !== -1) {
           measureClone.expression = 'COUNT'
         }
         measureClone.convertedColumns.unshift(measureClone.parameterValue)
@@ -434,7 +434,9 @@ export default class AddMeasure extends Vue {
       measureObj.parameterValue = measureObj.parameter_value[0]
       measureObj.convertedColumns = measureObj.parameter_value.length > 1 ? measureObj.parameter_value.splice(1, measureObj.parameter_value.length - 1) : []
       delete measureObj.parameter_value
-      this.changeParamValue(measureObj.parameterValue.value)
+      if (measureObj.parameterValue.type === 'column') {
+        this.changeParamValue(measureObj.parameterValue.value)
+      }
     }
     if (measureObj.expression === 'SUM' || measureObj.expression === 'COUNT') {
       measureObj.expression = `${measureObj.expression}(${measureObj.parameterValue.type})`
