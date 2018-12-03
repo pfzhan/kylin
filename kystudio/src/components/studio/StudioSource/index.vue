@@ -83,7 +83,7 @@ import TableExtInfo from './TableExtInfo/index.vue'
 import ViewKafka from '../../kafka/view_kafka.vue'
 import Access from '../../datasource/access.vue'
 import { sourceTypes } from '../../../config'
-import { handleSuccessAsync, transToGmtTime } from '../../../util'
+import { handleSuccessAsync, transToGmtTime, handleError } from '../../../util'
 
 @Component({
   components: {
@@ -168,7 +168,9 @@ export default class StudioSource extends Vue {
         message: this.$t('reloadSuccess')
       })
       return this.fetchTableDetail({ label: tableName, database: databaseName, type: 'table' })
-    }).catch(() => {})
+    }).catch((e) => {
+      handleError(e)
+    })
   }
   handleSampling () {
     this.$refs['SampleModal'].showModal()
@@ -189,7 +191,9 @@ export default class StudioSource extends Vue {
         message: this.$t('unloadSuccess')
       })
       return this.handleFreshTable()
-    }).catch(() => {})
+    }).catch((e) => {
+      handleError(e)
+    })
   }
   async handlePushdownRange () {
     const projectName = this.currentSelectedProject
@@ -198,11 +202,15 @@ export default class StudioSource extends Vue {
     isSubmit && this.$emit('fresh-tables')
   }
   async handleFreshTable () {
-    await this.$refs['datasource-bar'].loadTables({ isReset: true })
-    this.$refs['datasource-bar'].selectFirstTable()
+    try {
+      await this.$refs['datasource-bar'].loadTables({ isReset: true })
+      this.$refs['datasource-bar'].selectFirstTable()
 
-    const { name, database } = this.selectedTable
-    await this.fetchTableDetail({ label: name, database, type: 'table' })
+      const { name, database } = this.selectedTable
+      await this.fetchTableDetail({ label: name, database, type: 'table' })
+    } catch (e) {
+      handleError(e)
+    }
   }
   async fetchTableDetail (data) {
     if (data.type === 'table') {
