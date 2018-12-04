@@ -855,6 +855,13 @@ class NModel {
       options.columns = tableInfo.columns
       options.plumbTool = this.plumbTool
       options.fact = tableInfo.fact
+      if (options.fact) {
+        if (this.fact_table) {
+          options.kind = modelRenderConfig.tableKind.lookup // 如果已经存在fact表了，那再拖入一个fact默认设置为lookup
+        } else {
+          this.fact_table = options.table
+        }
+      }
       options._parent = this._mount
       let table = new NTable(options)
       // this.tables[options.alias] = table
