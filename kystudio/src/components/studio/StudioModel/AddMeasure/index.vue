@@ -122,6 +122,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { measuresDataType } from '../../../../config'
 import { objectClone } from '../../../../util/index'
+import { NamedRegex } from 'config'
 import CCEditForm from '../ComputedColumnForm/ccform.vue'
 import $ from 'jquery'
 @Component({
@@ -204,6 +205,9 @@ export default class AddMeasure extends Vue {
     if (!value) {
       callback(new Error(this.$t('requiredName')))
     } else {
+      if (!NamedRegex.test(value)) {
+        callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+      }
       if (this.modelInstance.all_measures.length) {
         for (let i = 0; i < this.modelInstance.all_measures.length; i++) {
           if (this.modelInstance.all_measures[i].name.toLocaleUpperCase() === this.measure.name.toLocaleUpperCase() && this.measure.guid !== this.modelInstance.all_measures[i].guid) {

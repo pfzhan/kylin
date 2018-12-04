@@ -41,7 +41,7 @@
                     <td>{{props.row.duration / 1000 | fixed(2)}}s</td>
                   </tr>
                   <tr class="ksd-tr">
-                    <th class="label">{{$t('kylinLang.query. answered_by')}}</th>
+                    <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
                     <td>
                       <el-tag v-if="!props.row.cube_hit" type="warning" size="small" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag>
                       <el-tag v-else size="small" v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName" @click.native="openAgg(modelName)">{{modelName}}</el-tag>

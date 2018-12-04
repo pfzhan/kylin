@@ -25,6 +25,7 @@
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions } from 'vuex'
+import { NamedRegex } from 'config'
 import { handleError } from '../../util/business'
 @Component({
   props: ['show', 'extraoption'],
@@ -38,7 +39,7 @@ export default class saveQueryDialog extends Vue {
   saveQueryFormVisible = false
   rules = {
     name: [
-      { required: true, message: this.$t('kylinLang.common.pleaseInput'), trigger: 'blur' }
+      { required: true, validator: this.checkName, trigger: 'blur' }
     ]
   }
   saveQueryMeta = {
@@ -64,6 +65,15 @@ export default class saveQueryDialog extends Vue {
   closeSaveQueryDialog () {
     this.saveQueryFormVisible = false
     this.$emit('closeModal')
+  }
+  checkName (rule, value, callback) {
+    if (!value) {
+      callback(new Error(this.$t('kylinLang.common.pleaseInput')))
+    } else if (!NamedRegex.test(value)) {
+      callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+    } else {
+      callback()
+    }
   }
 
   @Watch('show')

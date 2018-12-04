@@ -85,7 +85,6 @@
                       </el-form-item>
                       <div class="btn-group">
                         <el-button size="small" type="info" class="remove_query_btn" text @click="removeQuery(savequery.id)">{{$t('kylinLang.common.delete')}}</el-button>
-                        <!-- <kap-icon-button type="primary" plain size="small" @click.native="resubmit(savequery.sql)">{{$t('kylinLang.common.submit')}}</kap-icon-button> -->
                       </div>
                     </el-form>
                   </el-checkbox>
@@ -95,7 +94,7 @@
             </div>
             <span slot="footer" class="dialog-footer">
               <el-button @click="cancelResubmit" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-              <el-button type="primary" plain @click="resubmit" size="medium">{{$t('kylinLang.common.submit')}}</el-button>
+              <el-button type="primary" plain @click="resubmit" size="medium" :disabled="!checkedQueryList.length">{{$t('kylinLang.common.submit')}}</el-button>
             </span>
           </el-dialog>
         </div>
