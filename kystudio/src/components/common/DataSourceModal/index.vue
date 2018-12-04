@@ -112,7 +112,11 @@ export default class DataSourceModal extends Vue {
     }
   }
   get cancelText () {
-    return this.$t(cancelMaps[this.sourceType])
+    if (this.sourceType === sourceTypes.HIVE) {
+      return this.form.project && this.$t(cancelMaps[this.sourceType])
+    } else {
+      return this.$t(cancelMaps[this.sourceType])
+    }
   }
   get confirmText () {
     return this.$t(confirmMaps[this.sourceType])
