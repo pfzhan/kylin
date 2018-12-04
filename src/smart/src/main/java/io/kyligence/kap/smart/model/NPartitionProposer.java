@@ -24,11 +24,8 @@
 
 package io.kyligence.kap.smart.model;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
@@ -36,26 +33,22 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 
 public class NPartitionProposer extends NAbstractModelProposer {
-    
-    private static final Logger LOGGER = LoggerFactory.getLogger(NPartitionProposer.class);
 
-    public NPartitionProposer(NSmartContext.NModelContext modelContext) {
+    NPartitionProposer(NSmartContext.NModelContext modelContext) {
         super(modelContext);
     }
 
     @Override
-    protected void doPropose(NDataModel modelDesc) {
-        KylinConfig config = modelContext.getSmartContext().getKylinConfig();
-        String project = modelContext.getSmartContext().getProject();
-        NDataLoadingRangeManager dataRangeManager = NDataLoadingRangeManager.getInstance(config, project);
+    protected void doPropose(NDataModel dataModel) {
+        NDataLoadingRangeManager dataRangeManager = NDataLoadingRangeManager.getInstance(kylinConfig, project);
 
-        String rootFactTable = modelDesc.getRootFactTableName();
+        String rootFactTable = dataModel.getRootFactTableName();
         NDataLoadingRange range = dataRangeManager.getDataLoadingRange(rootFactTable);
         if (range == null)
             return;
 
         String partitionColName = range.getColumnName();
-        TblColRef partitionCol = modelDesc.findColumn(partitionColName);
+        TblColRef partitionCol = dataModel.findColumn(partitionColName);
         if (partitionCol == null) {
             return;
         }
@@ -67,6 +60,6 @@ public class NPartitionProposer extends NAbstractModelProposer {
         PartitionDesc partition = new PartitionDesc();
         partition.setPartitionDateColumn(partitionCol.getIdentity());
         partition.setPartitionDateFormat(range.getPartitionDateFormat());
-        modelDesc.setPartitionDesc(partition);
+        dataModel.setPartitionDesc(partition);
     }
 }

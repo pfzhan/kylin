@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -39,23 +38,23 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NModelShrinkProposer extends NAbstractProposer {
 
-    public NModelShrinkProposer(NSmartContext modelCtx) {
-        super(modelCtx);
+    public NModelShrinkProposer(NSmartContext smartContext) {
+        super(smartContext);
     }
 
     @Override
     void propose() {
-        if (context.getModelContexts() == null)
+        if (smartContext.getModelContexts() == null)
             return;
 
-        for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
+        for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
             if (modelCtx.getOrigModel() == null || modelCtx.getOrigCubePlan() == null
                     || modelCtx.getTargetCubePlan() == null) {
                 continue;
@@ -68,8 +67,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
             truncateModel(model, namedColumnsById, namedColumnsByName, measures);
 
             Map<String, NCubePlan> modelCubePlans = Maps.newHashMap();
-            List<NCubePlan> allCubePlans = NCubePlanManager.getInstance(context.getKylinConfig(), context.getProject())
-                    .listAllCubePlans();
+            List<NCubePlan> allCubePlans = NCubePlanManager.getInstance(kylinConfig, project).listAllCubePlans();
             for (NCubePlan cubePlan : allCubePlans) {
                 if (model.getName().equals(cubePlan.getModelName())) {
                     modelCubePlans.put(cubePlan.getName(), cubePlan);
@@ -109,7 +107,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
             }
         }
     }
-    
+
     private void refillModel(Map<String, NCubePlan> modelCubePlans, Map<Integer, NamedColumn> colsById,
             Map<String, NamedColumn> colsByName, Map<Integer, Measure> measures) {
         Set<NamedColumn> usedCols = Sets.newHashSet();
@@ -124,7 +122,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
                 }
             }
         }
-        
+
         usedMeasures.remove(null);
         for (Measure used : usedMeasures) {
             used.tomb = false;
@@ -139,10 +137,7 @@ public class NModelShrinkProposer extends NAbstractProposer {
     }
 
     private void initModel(NDataModel modelDesc) {
-        KylinConfig kylinConfig = context.getKylinConfig();
-        String project = context.getProject();
-        modelDesc.init(kylinConfig, NTableMetadataManager.getInstance(kylinConfig, project).getAllTablesMap(),
-                Lists.<NDataModel>newArrayList(), false);
+        final NTableMetadataManager manager = NTableMetadataManager.getInstance(kylinConfig, project);
+        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), false);
     }
-
 }

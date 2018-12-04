@@ -25,45 +25,45 @@
 package io.kyligence.kap.smart;
 
 public class NProposerProvider {
-    private NSmartContext context;
+    private NSmartContext smartContext;
 
-    private NProposerProvider(NSmartContext context) {
-        this.context = context;
+    private NProposerProvider(NSmartContext smartContext) {
+        this.smartContext = smartContext;
     }
 
-    public static NProposerProvider create(NSmartContext context) {
-        return new NProposerProvider(context);
+    public static NProposerProvider create(NSmartContext smartContext) {
+        return new NProposerProvider(smartContext);
     }
 
     public NAbstractProposer getSQLAnalysisProposer() {
-        return new NSQLAnalysisProposer(context);
+        return new NSQLAnalysisProposer(smartContext);
     }
 
     public NAbstractProposer getModelSelectProposer() {
-        return new NModelSelectProposer(context);
+        return new NModelSelectProposer(smartContext);
     }
 
     public NAbstractProposer getModelOptProposer() {
-        return new NModelOptProposer(context);
+        return new NModelOptProposer(smartContext);
     }
 
     public NAbstractProposer getCubePlanSelectProposer() {
-        return new NCubePlanSelectProposer(context);
+        return new NCubePlanSelectProposer(smartContext);
     }
 
     public NAbstractProposer getCubePlanOptProposer() {
-        return new NCubePlanOptProposer(context);
+        return new NCubePlanOptProposer(smartContext);
     }
 
     public NAbstractProposer getCubePlanShrinkProposer() {
-        return new NCubePlanShrinkProposer(context);
+        return new NCubePlanShrinkProposer(smartContext);
     }
 
     public NAbstractProposer getModelShrinkProposer() {
-        return new NModelShrinkProposer(context);
+        return new NModelShrinkProposer(smartContext);
     }
 
     public NAbstractProposer getCubePlanRefreshProposer() {
-        return new NCubePlanRefreshProposer(context);
+        return new NCubePlanRefreshProposer(smartContext);
     }
 }

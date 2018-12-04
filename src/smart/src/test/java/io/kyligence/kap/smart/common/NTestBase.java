@@ -35,6 +35,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.junit.After;
 import org.junit.Before;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -49,6 +51,8 @@ import io.kyligence.kap.smart.query.Utils;
 import lombok.val;
 
 public abstract class NTestBase {
+
+    protected static final Logger logger = LoggerFactory.getLogger(NTestBase.class);
 
     protected String proj = "learn_kylin";
     protected File tmpMeta;

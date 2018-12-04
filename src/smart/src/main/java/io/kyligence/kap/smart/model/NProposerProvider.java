@@ -27,29 +27,29 @@ package io.kyligence.kap.smart.model;
 import io.kyligence.kap.smart.NSmartContext;
 
 public class NProposerProvider {
-    private NProposerProvider(NSmartContext.NModelContext context) {
-        this.context = context;
+    private NProposerProvider(NSmartContext.NModelContext modelContext) {
+        this.modelContext = modelContext;
     }
 
-    private NSmartContext.NModelContext context;
+    private NSmartContext.NModelContext modelContext;
 
-    public static NProposerProvider create(NSmartContext.NModelContext context) {
-        return new NProposerProvider(context);
+    public static NProposerProvider create(NSmartContext.NModelContext modelContext) {
+        return new NProposerProvider(modelContext);
     }
 
     public NAbstractModelProposer getJoinProposer() {
-        return new NJoinProposer(context);
+        return new NJoinProposer(modelContext);
     }
 
     public NAbstractModelProposer getScopeProposer() {
-        return new NQueryScopeProposer(context);
+        return new NQueryScopeProposer(modelContext);
     }
 
     public NAbstractModelProposer getPartitionProposer() {
-        return new NPartitionProposer(context);
+        return new NPartitionProposer(modelContext);
     }
 
     public NAbstractModelProposer getComputedColumnProposer() {
-        return new NComputedColumnProposer(context);
+        return new NComputedColumnProposer(modelContext);
     }
 }

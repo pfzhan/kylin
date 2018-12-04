@@ -67,8 +67,6 @@ public class NSmartContext {
     private List<NModelContext> modelContexts;
     @Setter
     private Map<String, AccelerateInfo> accelerateInfoMap;
-
-    @Getter
     private Map<String, ComputedColumnDesc> usedCC = Maps.newHashMap();
 
     private final NTableMetadataManager tableMetadataManager;

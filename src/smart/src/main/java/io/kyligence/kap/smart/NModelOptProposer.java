@@ -24,34 +24,30 @@
 
 package io.kyligence.kap.smart;
 
-import java.util.Map;
-
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.NModelMaster;
 
 class NModelOptProposer extends NAbstractProposer {
 
-    NModelOptProposer(NSmartContext modelCtx) {
-        super(modelCtx);
+    NModelOptProposer(NSmartContext smartContext) {
+        super(smartContext);
     }
 
     @Override
     void propose() {
-        if (context.getModelContexts() == null)
+        if (smartContext.getModelContexts() == null)
             return;
 
-        final ProjectInstance projectInstance = NProjectManager.getInstance(getContext().getKylinConfig())
-                .getProject(getContext().getProject());
+        final ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
         if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
             return;
         }
 
-        for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
+        for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
             NModelMaster modelMaster = new NModelMaster(modelCtx);
             NDataModel model = modelCtx.getTargetModel();
             if (model == null) {
@@ -63,22 +59,13 @@ class NModelOptProposer extends NAbstractProposer {
                 model = modelMaster.proposePartition(model);
                 model = modelMaster.proposeComputedColumn(model);
                 model = modelMaster.proposeScope(model);
+                modelCtx.setTargetModel(model);
             } catch (Exception e) {
-                final Map<String, AccelerateInfo> sql2AccelerateInfo = context.getAccelerateInfoMap();
-                logger.error("Unexpected exception occurs.", e);
-                modelCtx.getModelTree().getOlapContexts().forEach(olapCtx -> {
-                    String sql = olapCtx.sql;
-                    if (!sql2AccelerateInfo.containsKey(sql)) {
-                        AccelerateInfo info = new AccelerateInfo();
-                        info.setBlockingCause(e);
-                        sql2AccelerateInfo.put(sql, info);
-                    } else {
-                        sql2AccelerateInfo.get(sql).setBlockingCause(e);
-                    }
-                });
+                logger.error("Unexpected exception occurs in initialize target model.", e);
+                modelCtx.setTargetModel(null);
+                recordException(modelCtx, e);
             }
-
-            modelCtx.setTargetModel(model);
         }
     }
+
 }

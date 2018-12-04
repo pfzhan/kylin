@@ -29,16 +29,16 @@ import io.kyligence.kap.smart.cube.NCubeMaster;
 
 public class NCubePlanShrinkProposer extends NAbstractProposer {
 
-    public NCubePlanShrinkProposer(NSmartContext modelCtx) {
-        super(modelCtx);
+    public NCubePlanShrinkProposer(NSmartContext smartContext) {
+        super(smartContext);
     }
 
     @Override
     void propose() {
-        if (context.getModelContexts() == null)
+        if (smartContext.getModelContexts() == null)
             return;
 
-        for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
+        for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
             if (modelCtx.getOrigModel() == null || modelCtx.getOrigCubePlan() == null
                     || modelCtx.getTargetCubePlan() == null) {
                 continue;

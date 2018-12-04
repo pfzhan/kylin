@@ -39,6 +39,7 @@ import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
 import org.slf4j.Logger;
@@ -55,6 +56,7 @@ import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -105,20 +107,23 @@ class CuboidSuggester {
         }
     }
 
-    private NSmartContext context;
+    private NSmartContext smartContext;
     private NCubePlan cubePlan;
     private NDataModel model;
+    private final ProjectInstance projectInstance;
 
     private Map<FunctionDesc, Integer> aggFuncIdMap;
     private Map<NCuboidIdentifier, NCuboidDesc> collector;
     private SortedSet<Long> cuboidLayoutIds = Sets.newTreeSet();
 
-    CuboidSuggester(NModelContext context, NCubePlan cubePlan, Map<NCuboidIdentifier, NCuboidDesc> collector) {
+    CuboidSuggester(NModelContext modelContext, NCubePlan cubePlan, Map<NCuboidIdentifier, NCuboidDesc> collector) {
 
-        this.context = context.getSmartContext();
-        this.model = context.getTargetModel();
+        this.smartContext = modelContext.getSmartContext();
+        this.model = modelContext.getTargetModel();
         this.cubePlan = cubePlan;
         this.collector = collector;
+        this.projectInstance = NProjectManager.getInstance(this.smartContext.getKylinConfig())
+                .getProject(this.smartContext.getProject());
 
         aggFuncIdMap = Maps.newHashMap();
         model.getEffectiveMeasureMap()
@@ -129,7 +134,7 @@ class CuboidSuggester {
     }
 
     void suggestCuboids(ModelTree modelTree) {
-        final Map<String, AccelerateInfo> sql2AccelerateInfo = context.getAccelerateInfoMap();
+        final Map<String, AccelerateInfo> sql2AccelerateInfo = smartContext.getAccelerateInfoMap();
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
             String sql = ctx.sql;
             if (!sql2AccelerateInfo.containsKey(sql)) {
@@ -176,8 +181,9 @@ class CuboidSuggester {
         List<Integer> shardBy = Lists.newArrayList();
         for (int dimId : dimIds) {
             TblColRef colRef = model.getEffectiveColsMap().get(dimId);
-            TableExtDesc.ColumnStats colStats = context.getColumnStats(colRef);
-            if (colStats != null && colStats.getCardinality() > context.getSmartConfig().getRowkeyUHCCardinalityMin()) {
+            TableExtDesc.ColumnStats colStats = smartContext.getColumnStats(colRef);
+            if (colStats != null
+                    && colStats.getCardinality() > smartContext.getSmartConfig().getRowkeyUHCCardinalityMin()) {
                 shardBy.add(dimId);
             }
         }
@@ -237,7 +243,7 @@ class CuboidSuggester {
             Integer colId = colIdMap.get(colRef);
             Preconditions.checkState(colId != null, getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN),
                     colRef.getIdentity(), model.getId());
-            TableExtDesc.ColumnStats columnStats = context.getColumnStats(colRef);
+            TableExtDesc.ColumnStats columnStats = smartContext.getColumnStats(colRef);
             if (columnStats != null && columnStats.getCardinality() > 0) {
                 if (isFilterCols) {
                     dimScores.put(colId, (double) columnStats.getCardinality());
@@ -285,7 +291,7 @@ class CuboidSuggester {
         layout.setShardByColumns(shardBy);
         layout.setSortByColumns(sortBy);
         layout.setAuto(true);
-        layout.setDraftVersion(context.getDraftVersion());
+        layout.setDraftVersion(smartContext.getDraftVersion());
 
         String modelId = model.getId();
         String cubePlanId = cuboidDesc.getCubePlan().getId();
@@ -347,7 +353,7 @@ class CuboidSuggester {
         Preconditions.checkNotNull(model);
         String rst = "In the model designer project, the system is not allowed to modify the semantic layer "
                 + "(dimensions, measures, tables, and joins) of the model. ";
-        return model.getProjectInstance().getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN
+        return projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN //
                 ? rst + messagePattern
                 : messagePattern;
     }

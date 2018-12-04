@@ -27,9 +27,8 @@ package io.kyligence.kap.smart;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.common.KylinConfig;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.JoinDesc;
-import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -50,16 +49,16 @@ public class NModelSelectProposer extends NAbstractProposer {
 
     private final NDataModelManager modelManager;
 
-    public NModelSelectProposer(NSmartContext context) {
-        super(context);
+    NModelSelectProposer(NSmartContext smartContext) {
+        super(smartContext);
 
-        modelManager = NDataModelManager.getInstance(context.getKylinConfig(), context.getProject());
+        modelManager = NDataModelManager.getInstance(kylinConfig, project);
     }
 
     @Override
     void propose() {
-        List<NSmartContext.NModelContext> modelContexts = context.getModelContexts();
-        if (modelContexts == null || modelContexts.isEmpty())
+        List<NSmartContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        if (CollectionUtils.isEmpty(modelContexts))
             return;
 
         for (NSmartContext.NModelContext modelContext : modelContexts) {
@@ -70,22 +69,20 @@ public class NModelSelectProposer extends NAbstractProposer {
                 modelContext.setOrigModel(model);
                 NDataModel targetModel = NDataModel.getCopyOf(model);
                 initModel(targetModel);
-                targetModel.getComputedColumnDescs().stream()
-                        .forEach(cc -> context.getUsedCC().put(cc.getExpression(), cc));
+                targetModel.getComputedColumnDescs()
+                        .forEach(cc -> smartContext.getUsedCC().put(cc.getExpression(), cc));
                 modelContext.setTargetModel(targetModel);
             }
         }
 
         // if manual maintain type and selected model is null, record error message
-        final ProjectInstance projectInstance = NProjectManager.getInstance(getContext().getKylinConfig())
-                .getProject(getContext().getProject());
-        final Map<String, AccelerateInfo> sql2AccelerateInfo = context.getAccelerateInfoMap();
+        final ProjectInstance projectInstance = NProjectManager.getInstance(kylinConfig).getProject(project);
 
         if (projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN) {
-            context.getModelContexts().forEach(modelCtx -> {
+            smartContext.getModelContexts().forEach(modelCtx -> {
                 if (modelCtx.withoutTargetModel()) {
                     modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {
-                        AccelerateInfo accelerateInfo = sql2AccelerateInfo.get(olapContext.sql);
+                        AccelerateInfo accelerateInfo = accelerateInfoMap.get(olapContext.sql);
                         accelerateInfo.setBlockingCause(
                                 new IllegalStateException("No model matches this query. In the model designer project, "
                                         + "the system is not allowed to suggest a new model accelerate this query."));
@@ -96,10 +93,8 @@ public class NModelSelectProposer extends NAbstractProposer {
     }
 
     private void initModel(NDataModel modelDesc) {
-        KylinConfig kylinConfig = context.getKylinConfig();
-        String project = context.getProject();
-        modelDesc.init(kylinConfig, NTableMetadataManager.getInstance(kylinConfig, project).getAllTablesMap(),
-                Lists.<NDataModel> newArrayList(), false);
+        final NTableMetadataManager manager = NTableMetadataManager.getInstance(kylinConfig, project);
+        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), false);
     }
 
     private NDataModel compareWithFactTable(ModelTree modelTree) {
@@ -119,10 +114,11 @@ public class NModelSelectProposer extends NAbstractProposer {
                 factTblRef = model.getRootFactTable();
             } else {
                 Map<TableRef, TableRef> joinMap = Maps.newHashMap();
-                for (JoinTableDesc joinTableDesc : modelTree.getJoins().values()) {
+                modelTree.getJoins().values().forEach(joinTableDesc -> {
                     modelTreeJoins.add(joinTableDesc.getJoin());
                     joinMap.put(joinTableDesc.getJoin().getPKSide(), joinTableDesc.getJoin().getFKSide());
-                }
+                });
+
                 for (Map.Entry<TableRef, TableRef> joinEntry : joinMap.entrySet()) {
                     if (!joinMap.containsKey(joinEntry.getValue())) {
                         factTblRef = joinEntry.getValue();
@@ -131,10 +127,7 @@ public class NModelSelectProposer extends NAbstractProposer {
                 }
             }
             JoinsTree joinsTree = new JoinsTree(factTblRef, modelTreeJoins);
-            //Map<String, String> matching = joinsTree.matches(model.getJoinsTree());
-            //if (matching != null)
-            if (GreedyModelTreesBuilder.matchJoinTree(model.getJoinsTree(), joinsTree))
-                return true;
+            return GreedyModelTreesBuilder.matchJoinTree(model.getJoinsTree(), joinsTree);
         }
         return false;
     }

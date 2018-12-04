@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart.model;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,88 +55,86 @@ public class NModelMaster {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(NModelMaster.class);
 
-    private NSmartContext.NModelContext context;
-    private NProposerProvider proposerProvider;
+    private final NSmartContext.NModelContext modelContext;
+    private final NProposerProvider proposerProvider;
+    private final KylinConfig kylinConfig;
+    private final String project;
 
-    public NModelMaster(NSmartContext.NModelContext ctx) {
-        this.context = ctx;
-        this.proposerProvider = NProposerProvider.create(this.context);
-    }
-
-    public NSmartContext.NModelContext getContext() {
-        return context;
+    public NModelMaster(NSmartContext.NModelContext modelContext) {
+        this.modelContext = modelContext;
+        this.proposerProvider = NProposerProvider.create(modelContext);
+        this.kylinConfig = modelContext.getSmartContext().getKylinConfig();
+        this.project = modelContext.getSmartContext().getProject();
     }
 
     public NDataModel proposeInitialModel() {
-        NDataModel modelDesc = new NDataModel();
-        modelDesc.updateRandomUuid();
-        modelDesc.setName(modelDesc.getUuid());
-        modelDesc.setRootFactTableName(context.getModelTree().getRootFactTable().getIdentity());
-        modelDesc.setDescription(StringUtils.EMPTY);
-        modelDesc.setFilterCondition(StringUtils.EMPTY);
-        modelDesc.setPartitionDesc(new PartitionDesc());
-        modelDesc.setComputedColumnDescs(new ArrayList<>());
+        NDataModel dataModel = new NDataModel();
+        dataModel.updateRandomUuid();
+        dataModel.setName(dataModel.getUuid());
+        dataModel.setRootFactTableName(modelContext.getModelTree().getRootFactTable().getIdentity());
+        dataModel.setDescription(StringUtils.EMPTY);
+        dataModel.setFilterCondition(StringUtils.EMPTY);
+        dataModel.setPartitionDesc(new PartitionDesc());
+        dataModel.setComputedColumnDescs(Lists.newArrayList());
 
-        FunctionDesc countStar = CubeUtils.newCountStarFuncDesc(modelDesc);
+        FunctionDesc countStar = CubeUtils.newCountStarFuncDesc(dataModel);
         NDataModel.Measure countStarMeasure = CubeUtils.newMeasure(countStar, "COUNT_ALL", NDataModel.MEASURE_ID_BASE);
-        modelDesc.setAllMeasures(Lists.newArrayList(countStarMeasure));
-        return modelDesc;
+        dataModel.setAllMeasures(Lists.newArrayList(countStarMeasure));
+        return dataModel;
     }
 
-    public NDataModel proposeJoins(NDataModel model) {
-        return proposerProvider.getJoinProposer().propose(model);
+    public NDataModel proposeJoins(NDataModel dataModel) {
+        return proposerProvider.getJoinProposer().propose(dataModel);
     }
 
-    public NDataModel proposeScope(NDataModel model) {
-        return proposerProvider.getScopeProposer().propose(model);
+    public NDataModel proposeScope(NDataModel dataModel) {
+        return proposerProvider.getScopeProposer().propose(dataModel);
     }
 
-    public NDataModel proposePartition(NDataModel model) {
-        return proposerProvider.getPartitionProposer().propose(model);
+    public NDataModel proposePartition(NDataModel dataModel) {
+        return proposerProvider.getPartitionProposer().propose(dataModel);
     }
 
-    public NDataModel proposeComputedColumn(NDataModel model) {
-        KapConfig kapConfig = KapConfig.wrap(context.getSmartContext().getKylinConfig());
-        Set<String> transformers = Sets.newHashSet(kapConfig.getKylinConfig().getQueryTransformers());
+    public NDataModel proposeComputedColumn(NDataModel dataModel) {
+        KapConfig kapConfig = KapConfig.wrap(kylinConfig);
+        Set<String> transformers = Sets.newHashSet(kylinConfig.getQueryTransformers());
         boolean isComputedColumnEnabled = transformers.contains(ConvertToComputedColumn.class.getCanonicalName())
                 && kapConfig.isImplicitComputedColumnConvertEnabled();
         if (!isComputedColumnEnabled) {
-            return model;
+            return dataModel;
         }
-        
-        List<ComputedColumnDesc> originalCCs = Lists.newArrayList(model.getComputedColumnDescs());
+
+        List<ComputedColumnDesc> originalCCs = Lists.newArrayList(dataModel.getComputedColumnDescs());
         try {
-            model = proposerProvider.getComputedColumnProposer().propose(model);
-            if (model.getComputedColumnDescs().size() != originalCCs.size()) {
+            dataModel = proposerProvider.getComputedColumnProposer().propose(dataModel);
+            if (dataModel.getComputedColumnDescs().size() != originalCCs.size()) {
                 // New CC detected, need to rebuild ModelContext regarding new coming CC
-                updateContextWithCC(model);
+                updateContextWithCC(dataModel);
             }
         } catch (Exception e) {
             LOGGER.error("Propose failed, will discard new computed columns.", e);
-            model.setComputedColumnDescs(originalCCs);
+            dataModel.setComputedColumnDescs(originalCCs);
         }
-        return model;
+        return dataModel;
     }
 
-    private void updateContextWithCC(NDataModel modelDesc) {
-        String project = context.getSmartContext().getProject();
-        KylinConfig config = context.getSmartContext().getKylinConfig();
+    private void updateContextWithCC(NDataModel dataModel) {
         Map<String, String> mapNewAndOldQueries = Maps.newHashMap();
-        for (OLAPContext olapContext : getContext().getModelTree().getOlapContexts()) {
+        for (OLAPContext olapContext : modelContext.getModelTree().getOlapContexts()) {
             String oldQuery = olapContext.sql;
             if (StringUtils.isEmpty(oldQuery)) {
                 continue;
             }
             String newQuery = oldQuery;
             try {
-                newQuery = new ConvertToComputedColumn().transformImpl(oldQuery, project, modelDesc,
-                        modelDesc.getRootFactTable().getTableDesc().getDatabase());
+                newQuery = new ConvertToComputedColumn().transformImpl(oldQuery, project, dataModel,
+                        dataModel.getRootFactTable().getTableDesc().getDatabase());
             } catch (Exception e) {
                 LOGGER.warn("NModelMaster.updateContextWithCC failed to transform query: {}", oldQuery, e);
             }
             mapNewAndOldQueries.put(newQuery, oldQuery);
         }
-        
+
         if (mapNewAndOldQueries.isEmpty()) {
             return;
         }
@@ -146,16 +143,15 @@ public class NModelMaster {
         List<String> oldQueries = newQueries.stream().map(mapNewAndOldQueries::get).collect(Collectors.toList());
 
         // Rebuild modelTrees and find match one to replace original
-        try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(config,
-                newQueries.toArray(new String[0]), 1, project, Lists.newArrayList(modelDesc))) {
+        try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig,
+                newQueries.toArray(new String[0]), 1, project, Lists.newArrayList(dataModel))) {
             extractor.execute();
-            NSmartContext smartContext = context.getSmartContext();
-            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(smartContext.getKylinConfig(),
-                    smartContext.getProject()).build(oldQueries, extractor.getAllOLAPContexts(), null);
+            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project) //
+                    .build(oldQueries, extractor.getAllOLAPContexts(), null);
             ModelTree updatedModelTree = null;
-            for (ModelTree modelContext : modelTrees) {
-                if (NModelSelectProposer.matchModelTree(modelDesc, modelContext)) {
-                    updatedModelTree = modelContext;
+            for (ModelTree modelTree : modelTrees) {
+                if (NModelSelectProposer.matchModelTree(dataModel, modelTree)) {
+                    updatedModelTree = modelTree;
                     break;
                 }
             }
@@ -164,7 +160,7 @@ public class NModelMaster {
             }
 
             // Update context info
-            this.context.setModelTree(updatedModelTree);
+            this.modelContext.setModelTree(updatedModelTree);
         } catch (Exception e) {
             LOGGER.warn("NModelMaster.updateContextWithCC failed to update model tree", e);
         }

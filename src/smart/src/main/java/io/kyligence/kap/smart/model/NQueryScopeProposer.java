@@ -37,8 +37,6 @@ import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -58,10 +56,8 @@ import io.kyligence.kap.smart.util.CubeUtils;
  */
 public class NQueryScopeProposer extends NAbstractModelProposer {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(NQueryScopeProposer.class);
-
-    NQueryScopeProposer(NSmartContext.NModelContext modelCtx) {
-        super(modelCtx);
+    NQueryScopeProposer(NSmartContext.NModelContext modelContext) {
+        super(modelContext);
     }
 
     @Override

@@ -31,29 +31,37 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
+import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
-import io.kyligence.kap.smart.model.ModelTree;
 import io.kyligence.kap.smart.query.AbstractQueryRunner;
 import io.kyligence.kap.smart.query.NQueryRunnerFactory;
 import io.kyligence.kap.smart.query.SQLResult;
 
 class NSQLAnalysisProposer extends NAbstractProposer {
 
-    NSQLAnalysisProposer(NSmartContext context) {
-        super(context);
+    private static final int DEFAULT_THREAD_NUM = 1;
+
+    private final String[] sqls;
+
+    NSQLAnalysisProposer(NSmartContext smartContext) {
+        super(smartContext);
+
+        this.sqls = smartContext.getSqls();
     }
 
     @Override
     void propose() {
-        try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(context.getKylinConfig(),
-                context.getProject(), context.getSqls(), 1)) {
+        try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project, sqls,
+                DEFAULT_THREAD_NUM)) {
             extractor.execute();
             logFailedQuery(extractor);
-            List<ModelTree> modelTrees = new GreedyModelTreesBuilder(context.getKylinConfig(), context.getProject())
-                    .build(Arrays.asList(context.getSqls()), extractor.getAllOLAPContexts(), null);
-            context.setModelContexts(
-                    modelTrees.stream().map(tree -> context.createModelContext(tree)).collect(Collectors.toList()));
+
+            final List<NModelContext> modelContexts = new GreedyModelTreesBuilder(kylinConfig, project)
+                    .build(Arrays.asList(sqls), extractor.getAllOLAPContexts(), null).stream()
+                    .map(smartContext::createModelContext).collect(Collectors.toList());
+
+            smartContext.setModelContexts(modelContexts);
         } catch (Exception e) {
             logger.error("Failed to get query stats. ", e);
         }
@@ -70,8 +78,9 @@ class NSQLAnalysisProposer extends NAbstractProposer {
                         || throwable.getCause() instanceof NoRealizationFoundException)) {
                     accelerateInfo.setBlockingCause(sqlResult.getException());
                 }
-                if (!context.getAccelerateInfoMap().containsKey(context.getSqls()[index])) {
-                    context.getAccelerateInfoMap().put(context.getSqls()[index], accelerateInfo);
+
+                if (!this.accelerateInfoMap.containsKey(sqls[index])) {
+                    this.accelerateInfoMap.put(sqls[index], accelerateInfo);
                 }
             }
         });

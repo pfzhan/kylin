@@ -28,30 +28,36 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.smart.cube.NCubeMaster;
 
 public class NCubePlanOptProposer extends NAbstractProposer {
-    public NCubePlanOptProposer(NSmartContext modelCtx) {
-        super(modelCtx);
+
+    public NCubePlanOptProposer(NSmartContext smartContext) {
+        super(smartContext);
     }
 
     @Override
     void propose() {
-        if (context.getModelContexts() == null)
+        if (smartContext.getModelContexts() == null)
             return;
 
-        for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
+        for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
             NCubeMaster cubeMaster = new NCubeMaster(modelCtx);
             if (modelCtx.withoutTargetModel()) {
                 continue;
             }
 
-            NCubePlan cubePlan = modelCtx.getTargetCubePlan();
-            if (cubePlan == null) {
-                cubePlan = cubeMaster.proposeInitialCube();
+            try {
+                NCubePlan cubePlan = modelCtx.getTargetCubePlan();
+                if (cubePlan == null) {
+                    cubePlan = cubeMaster.proposeInitialCube();
+                }
+
+                cubePlan = cubeMaster.proposeDimensions(cubePlan);
+                cubePlan = cubeMaster.proposeCuboids(cubePlan);
+                modelCtx.setTargetCubePlan(cubePlan);
+            } catch (Exception e) {
+                logger.error("Unexpected exception occurs in initialize target cubePlan.", e);
+                modelCtx.setTargetCubePlan(null);
+                recordException(modelCtx, e);
             }
-
-            cubePlan = cubeMaster.proposeDimensions(cubePlan);
-            cubePlan = cubeMaster.proposeCuboids(cubePlan);
-
-            modelCtx.setTargetCubePlan(cubePlan);
         }
     }
 }

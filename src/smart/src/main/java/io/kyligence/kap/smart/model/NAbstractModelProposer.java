@@ -25,6 +25,8 @@
 package io.kyligence.kap.smart.model;
 
 import org.apache.kylin.common.KylinConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
@@ -34,10 +36,17 @@ import io.kyligence.kap.smart.NSmartContext;
 
 public abstract class NAbstractModelProposer {
 
-    protected NSmartContext.NModelContext modelContext;
+    static final Logger LOGGER = LoggerFactory.getLogger(NAbstractModelProposer.class);
 
-    public NAbstractModelProposer(NSmartContext.NModelContext modelCtx) {
+    protected NSmartContext.NModelContext modelContext;
+    final KylinConfig kylinConfig;
+    final String project;
+
+    NAbstractModelProposer(NSmartContext.NModelContext modelCtx) {
         this.modelContext = modelCtx;
+
+        kylinConfig = modelCtx.getSmartContext().getKylinConfig();
+        project = modelCtx.getSmartContext().getProject();
     }
 
     public NSmartContext.NModelContext getModelContext() {
@@ -52,11 +61,9 @@ public abstract class NAbstractModelProposer {
         return modelDesc;
     }
 
-    protected void initModel(NDataModel modelDesc) {
-        KylinConfig kylinConfig = modelContext.getSmartContext().getKylinConfig();
-        String project = modelContext.getSmartContext().getProject();
-        modelDesc.init(kylinConfig, NTableMetadataManager.getInstance(kylinConfig, project).getAllTablesMap(),
-                Lists.<NDataModel> newArrayList(), false);
+    void initModel(NDataModel modelDesc) {
+        final NTableMetadataManager manager = NTableMetadataManager.getInstance(kylinConfig, project);
+        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), false);
     }
 
     protected abstract void doPropose(NDataModel modelDesc);

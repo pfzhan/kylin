@@ -44,8 +44,6 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.util.SparderTypeUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
@@ -61,8 +59,6 @@ import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.model.cc.ComputedColumnAdvisor;
 
 public class NComputedColumnProposer extends NAbstractModelProposer {
-    
-    private static final Logger LOGGER = LoggerFactory.getLogger(NComputedColumnProposer.class);
 
     private static final String CC_NAME_PRIFIX = "CC_AUTO_";
     private static final String DEFAULT_CC_NAME = CC_NAME_PRIFIX + "1";
@@ -75,9 +71,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
     protected void doPropose(NDataModel nDataModel) {
         LOGGER.trace("Propose computed column for model [{}]", nDataModel.getId());
 
-        KylinConfig config = getModelContext().getSmartContext().getKylinConfig();
-        String project = getModelContext().getSmartContext().getProject();
-        List<NDataModel> otherModels = NDataModelManager.getInstance(config, project).getDataModels().stream()
+        List<NDataModel> otherModels = NDataModelManager.getInstance(kylinConfig, project).getDataModels().stream()
                 .filter(m -> !m.getName().equals(nDataModel.getName())).collect(Collectors.toList());
         otherModels.addAll(
                 getModelContext().getSmartContext().getModelContexts().stream().filter(ctx -> ctx != getModelContext())
@@ -157,7 +151,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         Set<TblColRef> usedCols = Sets.newHashSet();
         Set<String> candidate = Sets.newHashSet();
         usedCols.addAll(context.allColumns);
-        
+
         context.aggregations.stream().filter(agg -> agg.getParameter() != null)
                 .forEach(agg -> usedCols.addAll(agg.getParameter().getColRefs()));
         for (TblColRef col : usedCols) {
@@ -172,15 +166,14 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         }
         return candidate;
     }
-    
+
     private List<String> collectSqlAdvisorCandidate(String project, OLAPContext context, NDataModel nDataModel) {
         String sql = context.sql;
         ComputedColumnAdvisor advisor = new ComputedColumnAdvisor();
         return advisor.suggestCandidate(project, nDataModel, sql);
     }
-    
-    private boolean resolveCCName(ComputedColumnDesc ccDesc, NDataModel nDataModel, 
-            List<NDataModel> otherModels) {
+
+    private boolean resolveCCName(ComputedColumnDesc ccDesc, NDataModel nDataModel, List<NDataModel> otherModels) {
         KylinConfig config = getModelContext().getSmartContext().getKylinConfig();
         String project = getModelContext().getSmartContext().getProject();
 

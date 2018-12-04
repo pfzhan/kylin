@@ -132,7 +132,7 @@ public class NJoinProposer extends NAbstractModelProposer {
     /**
      * get new alias by original table name, for table 'foo' foo -> foo_1 foo_1 ->
      * foo_2
-     * 
+     *
      * @param orginalName
      * @param oldAlias
      * @return

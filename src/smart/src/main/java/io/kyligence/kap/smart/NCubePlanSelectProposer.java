@@ -40,15 +40,15 @@ public class NCubePlanSelectProposer extends NAbstractProposer {
 
     private final NProjectManager projectManager;
 
-    public NCubePlanSelectProposer(NSmartContext context) {
-        super(context);
+    public NCubePlanSelectProposer(NSmartContext smartContext) {
+        super(smartContext);
 
-        projectManager = NProjectManager.getInstance(context.getKylinConfig());
+        projectManager = NProjectManager.getInstance(kylinConfig);
     }
 
     @Override
     void propose() {
-        List<NSmartContext.NModelContext> modelContexts = context.getModelContexts();
+        List<NSmartContext.NModelContext> modelContexts = smartContext.getModelContexts();
         if (modelContexts == null || modelContexts.isEmpty())
             return;
 
@@ -62,7 +62,7 @@ public class NCubePlanSelectProposer extends NAbstractProposer {
     }
 
     private NCubePlan findExisting(NDataModel model) {
-        final Set<IRealization> iRealizations = projectManager.listAllRealizations(context.getProject());
+        final Set<IRealization> iRealizations = projectManager.listAllRealizations(project);
         if (iRealizations.isEmpty()) {
             return null;
         }
