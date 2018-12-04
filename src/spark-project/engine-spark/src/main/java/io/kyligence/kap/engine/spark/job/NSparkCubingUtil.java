@@ -134,7 +134,7 @@ public class NSparkCubingUtil {
         NDataSegDetails segDetails = dataCuboid.getSegDetails();
         KapConfig config = KapConfig.wrap(dataCuboid.getConfig());
         String hdfsWorkingDir = config.getReadHdfsWorkingDirectory();
-        String path = hdfsWorkingDir + "parquet/" + segDetails.getDataSegment().getDataflow().getUuid() + "/"
+        String path = hdfsWorkingDir + segDetails.getProject() + "/parquet/" + segDetails.getDataSegment().getDataflow().getUuid() + "/"
                 + segDetails.getSegmentId() + "/" + dataCuboid.getCuboidLayoutId();
         return path;
     }

@@ -65,8 +65,6 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         super.init();
         kylinConfig = getTestConfig();
-        overwriteSystemProp("kylin.storage.provider.0", "io.kyligence.kap.storage.NDataStorage");
-        overwriteSystemProp("kap.storage.columnar.hdfs-dir", kylinConfig.getHdfsWorkingDirectory() + "/parquet/");
         overwriteSystemProp("kap.smart.conf.model.inner-join.exactly-match", "true");
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
     }

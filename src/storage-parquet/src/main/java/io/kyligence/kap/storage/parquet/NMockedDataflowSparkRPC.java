@@ -88,7 +88,7 @@ public class NMockedDataflowSparkRPC extends NDataflowSparkRPC {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         KapConfig kapConfig = KapConfig.wrap(kylinConfig);
 
-        String dataFolder = new StringBuilder(kapConfig.getReadParquetStoragePath()).//
+        String dataFolder = new StringBuilder(kapConfig.getReadParquetStoragePath(dataSegment.getProject())).//
                 append(dataSegment.getDataflow().getUuid()).append("/").//
                 append(dataSegment.getId()).append("/").//
                 append(cuboid.getId()).//

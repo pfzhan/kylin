@@ -53,8 +53,6 @@ public class NCubePlanSelectProposerTest extends NLocalFileMetadataTestCase {
         }
 
         kylinConfig = getTestConfig();
-        kylinConfig.setProperty("kylin.storage.provider.0", "io.kyligence.kap.storage.NDataStorage");
-        kylinConfig.setProperty("kap.storage.columnar.hdfs-dir", kylinConfig.getHdfsWorkingDirectory() + "/parquet/");
         kylinConfig.setProperty("kap.smart.conf.model.inner-join.exactly-match", "true");
         kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
     }

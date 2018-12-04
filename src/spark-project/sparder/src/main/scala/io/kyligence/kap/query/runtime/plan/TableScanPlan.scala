@@ -98,8 +98,8 @@ object TableScanPlan extends Logging {
             CubeRelation(tableName, dataflow, info, cuboidLayout)(session)
           /////////////////////////////////////////////
           val kapConfig = KapConfig.wrap(dataflow.getConfig)
-          val basePath = kapConfig.getReadParquetStoragePath
           val segments = listSegmentsForQuery(dataflow)
+          val basePath = kapConfig.getReadParquetStoragePath(dataflow.getProject)
           val fileList = segments.asScala.map(
             seg =>
               s"$basePath${dataflow.getUuid}/${seg.getId}/${relation.cuboid.getId}"

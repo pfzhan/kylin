@@ -204,19 +204,19 @@ public class KapConfig {
     /**
      * where is parquet fles stored in hdfs , end with /
      */
-    public String getWriteParquetStoragePath() {
-        String defaultPath = config.getHdfsWorkingDirectory() + "parquet/";
+    public String getWriteParquetStoragePath(String project) {
+        String defaultPath = config.getHdfsWorkingDirectory() + project + "/parquet/";
         return config.getOptional("kap.storage.columnar.hdfs-dir", defaultPath);
     }
 
-    public String getReadParquetStoragePath() {
+    public String getReadParquetStoragePath(String project) {
         if (StringUtils.isNotEmpty(getParquetReadFileSystem())) {
-            Path parquetPath = new Path(getWriteParquetStoragePath());
+            Path parquetPath = new Path(getWriteParquetStoragePath(project));
             return new Path(getParquetReadFileSystem(), Path.getPathWithoutSchemeAndAuthority(parquetPath)).toString()
                     + "/";
         }
 
-        return getWriteParquetStoragePath();
+        return getWriteParquetStoragePath(project);
     }
 
     /**
