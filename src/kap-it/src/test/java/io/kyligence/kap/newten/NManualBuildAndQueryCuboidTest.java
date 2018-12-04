@@ -37,6 +37,7 @@ import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.CuboidAggregator;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.measure.bitmap.BitmapCounter;
@@ -104,7 +105,9 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         buildCubes();
-
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
+        val dataflow = dataflowManager.getDataflow("ncube_basic");
+        Assert.assertEquals(dataflow.getFirstSegment().getCuboidsMap().get(1L).getSourceByteSize(), 1278200L);
         compareCuboidParquetWithSparkSql("ncube_basic");
         compareCuboidParquetWithSparkSql("ncube_basic_inner");
     }

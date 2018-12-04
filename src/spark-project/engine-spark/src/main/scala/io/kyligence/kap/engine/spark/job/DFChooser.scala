@@ -137,7 +137,7 @@ class DFChooser(toBuildTree: NSpanningTree,
       // TODO: Update all ready cuboids by using last data.
     }
     val sourceInfo = new NBuildSourceInfo
-    sourceInfo.setByteSize(sourceSize / 1024)
+    sourceInfo.setByteSize(sourceSize)
     sourceInfo.setCount(rowcount)
     sourceInfo.setDataset(afterJoin)
 

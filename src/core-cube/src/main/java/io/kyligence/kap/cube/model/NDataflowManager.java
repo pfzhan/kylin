@@ -32,6 +32,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import lombok.val;
+import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -455,6 +457,15 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             size += nDataCuboid.getByteSize();
         }
         return size;
+    }
+
+    public long getDataflowByteSize(String model) {
+        var byteSize = 0L;
+        val dataflow = getDataflowByModelName(model);
+        for (val segment : dataflow.getSegments(SegmentStatusEnum.READY)) {
+            byteSize += getSegmentSize(segment);
+        }
+        return byteSize;
     }
 
     private NDataflow updateDataflowWithRetry(String dfName, NDataflowUpdater updater, int retry) throws IOException {

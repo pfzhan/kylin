@@ -59,6 +59,8 @@ public class QueryHistoryDAO {
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryDAO.class);
     static volatile InfluxDB influxDB;
 
+    private final String QUERY_TIMES_SQL_FORMAT = "select count(query_id) as query_times from realization_metric where suite=~ /^%s$/ and project=~ /^%s$/ and model=~ /^%s$/ and time>=%dms and time<=%dms group by model";
+
     public static QueryHistoryDAO getInstance(KylinConfig config) {
         return config.getManager(QueryHistoryDAO.class);
     }
@@ -96,5 +98,12 @@ public class QueryHistoryDAO {
         final InfluxDBResultMapper mapper = new InfluxDBResultMapper();
 
         return mapper.toPOJO(result, clazz);
+    }
+
+    public <T> List<T> getQueryTimesResponseBySql(String suite, String project, String model, long start, long end,
+            Class clazz) {
+        String sql = String.format(QUERY_TIMES_SQL_FORMAT, suite, project, model, start,
+                end == 0 ? System.currentTimeMillis() : end);
+        return getQueryHistoriesBySql(sql, clazz);
     }
 }

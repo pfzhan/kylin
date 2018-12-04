@@ -61,6 +61,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.rest.response.QueryTimesResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -1772,5 +1774,72 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         thrown.expectMessage(
                 "Can not set table 'DEFAULT.TEST_KYLIN_FACT' incrementing loading, due to another incrementing loading table existed in model 'nmodel_basic'!");
         modelService.checkSingleIncrementingLoadingTable("default", "DEFAULT.TEST_KYLIN_FACT");
+    }
+    
+    @Test
+    public void testGetModelInfoByModel() throws IOException {
+        val result1 = new QueryTimesResponse();
+        result1.setModel("nmodel_basic");
+        result1.setQueryTimes(10);
+        val result2 = new QueryTimesResponse();
+        result2.setModel("nmodel_full_measure_test");
+        result2.setQueryTimes(10);
+        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(result1, result2)).when(queryHistoryDAO).getQueryTimesResponseBySql(
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(),
+                Mockito.any());
+        Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryManager();
+        val modelInfo = modelService.getModelInfo("*", "nmodel_basic", "default", 0, 0);
+        Assert.assertEquals(1, modelInfo.size());
+        Assert.assertEquals(10, modelInfo.get(0).getQueryTimes());
+        Assert.assertEquals(3380224, modelInfo.get(0).getModelStorageSize());
+        val modelInfo2 = modelService.getModelInfo("*", "nmodel_full_measure_test", "default", 0, 0);
+        Assert.assertEquals(1, modelInfo2.size());
+        Assert.assertEquals(10, modelInfo2.get(0).getQueryTimes());
+        Assert.assertEquals(0, modelInfo2.get(0).getModelStorageSize());
+    }
+
+    @Test
+    public void testGetModelInfoByProject() throws IOException {
+        val result1 = new QueryTimesResponse();
+        result1.setModel("nmodel_basic");
+        result1.setQueryTimes(10);
+        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesResponseBySql(
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(),
+                Mockito.any());
+        Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryManager();
+        val modelInfo = modelService.getModelInfo("*", "*", "default", 0, 0);
+        Assert.assertEquals(6, modelInfo.size());
+        Assert.assertEquals(10, modelInfo.get(1).getQueryTimes());
+        Assert.assertEquals(3380224, modelInfo.get(1).getModelStorageSize());
+    }
+
+    @Test
+    public void testGetAllModelInfo() throws IOException {
+        val result1 = new QueryTimesResponse();
+        result1.setModel("nmodel_basic");
+        result1.setQueryTimes(10);
+        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesResponseBySql(
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(),
+                Mockito.any());
+        Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryManager();
+        val modelInfo = modelService.getModelInfo("*", "*", "*", 0, 0);
+        Assert.assertEquals(15, modelInfo.size());
+    }
+
+    @Test
+    public void testGetModelInfo_ProjectEmpty_exception() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Project name can not be empty when model is selected!");
+        modelService.getModelInfo("*", "nmodel_basic", "*", 0, 0);
+    }
+
+    @Test
+    public void testGetModelInfo_ModelNotExist_exception() throws IOException {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Model 'nmodel_basic2222' does not exist!");
+        modelService.getModelInfo("*", "nmodel_basic2222", "default", 0, 0);
     }
 }

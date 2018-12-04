@@ -35,6 +35,9 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
+import io.kyligence.kap.rest.response.ModelInfoResponse;
+import io.kyligence.kap.rest.response.QueryTimesResponse;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -45,6 +48,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -123,6 +127,9 @@ public class ModelService extends BasicService {
     public static final char[] VALID_MODELNAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
             .toCharArray();
 
+    @Autowired
+    private QueryHistoryService queryHistoryService;
+    
     @Setter
     @Autowired
     private ModelSemanticHelper semanticUpdater;
@@ -857,6 +864,7 @@ public class ModelService extends BasicService {
 
     public AffectedModelsResponse getAffectedModelsByToggleTableType(String tableName, String project, boolean fact)
             throws IOException {
+        val dataflowManager = getDataflowManager(project);
         val modelManager = getDataModelManager(project);
         val table = getTableManager(project).getTableDesc(tableName);
         if (fact) {
@@ -867,10 +875,7 @@ public class ModelService extends BasicService {
         var size = 0;
         response.setModels(models);
         for (val model : models) {
-            val segments = getSegments(model, project, "0", Long.MAX_VALUE + "");
-            for (val segment : segments) {
-                size += ((NDataSegmentResponse) segment).getBytesSize();
-            }
+            size += dataflowManager.getDataflowByteSize(model);
         }
         response.setByteSize(size);
         return response;
@@ -889,5 +894,84 @@ public class ModelService extends BasicService {
                         + modelUsingTable + "'!");
             }
         }
+    }
+
+    private void checkProjectWhenModelSelected(String model, String project) {
+        if (!isSelectAll(model) && isSelectAll(project)) {
+            throw new BadRequestException("Project name can not be empty when model is selected!");
+        }
+    }
+
+    public List<ModelInfoResponse> getModelInfo(String suite, String model, String project, long start, long end) {
+        List<ModelInfoResponse> modelInfoList = Lists.newArrayList();
+        checkProjectWhenModelSelected(model, project);
+        if (isSelectAll(project)) {
+            modelInfoList.addAll(getAllModelInfo());
+        } else if (isSelectAll(model)) {
+            modelInfoList.addAll(getModelInfoByProject(project));
+        } else {
+            modelInfoList.add(getModelInfoByModel(model, project));
+        }
+
+        List<QueryTimesResponse> result = getQueryHistoryManager().getQueryTimesResponseBySql(suite, project, model,
+                start, end, QueryTimesResponse.class);
+        Map<String, QueryTimesResponse> resultMap = result.stream()
+                .collect(Collectors.toMap(QueryTimesResponse::getModel, queryTimesResponse -> queryTimesResponse));
+        for (val modelInfoResponse : modelInfoList) {
+            if (resultMap.containsKey(modelInfoResponse.getModel())) {
+                modelInfoResponse.setQueryTimes(resultMap.get(modelInfoResponse.getModel()).getQueryTimes());
+            }
+        }
+
+        return modelInfoList;
+    }
+
+    private List<ModelInfoResponse> getAllModelInfo() {
+        List<ModelInfoResponse> modelInfoLists = Lists.newArrayList();
+        val projectManager = getProjectManager();
+        List<ProjectInstance> projects = Lists.newArrayList();
+        projects.addAll(projectManager.listAllProjects());
+        for (val projectInstance : projects) {
+            modelInfoLists.addAll(getModelInfoByProject(projectInstance.getName()));
+        }
+        return modelInfoLists;
+    }
+    
+    private List<ModelInfoResponse> getModelInfoByProject(String project) {
+        List<ModelInfoResponse> modelInfoLists = Lists.newArrayList();
+        val projectManager = getProjectManager();
+        List<ProjectInstance> projects = Lists.newArrayList();
+        if (isSelectAll(project)) {
+            projects.addAll(projectManager.listAllProjects());
+        } else {
+            projects.add(projectManager.getProject(project));
+        }
+        for (val projectInstance : projects) {
+            val models = projectInstance.getModels();
+            for (val model : models) {
+                modelInfoLists.add(getModelInfoByModel(model, projectInstance.getName()));
+            }
+        }
+        return modelInfoLists;
+    }
+
+    private ModelInfoResponse getModelInfoByModel(String model, String project) {
+        val dataflowManager = getDataflowManager(project);
+        val modelManager = getDataModelManager(project);
+        val modelDesc = modelManager.getDataModelDesc(model);
+        if (modelDesc == null) {
+            throw new BadRequestException("Model '" + model + "' does not exist!");
+        }
+        val modelInfoResponse = new ModelInfoResponse();
+        modelInfoResponse.setProject(project);
+        modelInfoResponse.setAlias(modelDesc.getAlias());
+        modelInfoResponse.setModel(model);
+        val modelSize = dataflowManager.getDataflowByteSize(model);
+        modelInfoResponse.setModelStorageSize(modelSize);
+        return modelInfoResponse;
+    }
+
+    private boolean isSelectAll(String field) {
+        return "*".equals(field);
     }
 }

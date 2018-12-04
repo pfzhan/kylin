@@ -138,6 +138,18 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
     }
 
+    @RequestMapping(value = "/model_info", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getModelInfo(@RequestParam(value = "model", required = false, defaultValue = "*") String model,
+            @RequestParam(value = "project", required = false, defaultValue = "*") String project,
+            @RequestParam(value = "suite", required = false, defaultValue = "*") String suite,
+            @RequestParam(value = "start", required = false, defaultValue = "0") long start,
+            @RequestParam(value = "end", required = false, defaultValue = "0") long end) {
+        val result = modelService.getModelInfo(suite, model, project, start, end);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
+    }
+
     @RequestMapping(value = "/agg_indices", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody

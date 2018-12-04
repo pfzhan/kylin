@@ -34,6 +34,7 @@ import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -94,8 +95,8 @@ public class RefreshSegmentHandler extends AbstractEventWithJobHandler {
             return null;
         }
 
-        job = NSparkCubingJob.create(segments,
-                Sets.<NCuboidLayout> newLinkedHashSet(layouts), "ADMIN");
+        job = NSparkCubingJob.create(segments, Sets.<NCuboidLayout> newLinkedHashSet(layouts), "ADMIN",
+                JobTypeEnum.INDEX_REFRESH);
 
         return job;
     }

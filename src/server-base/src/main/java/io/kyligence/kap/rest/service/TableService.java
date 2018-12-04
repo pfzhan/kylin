@@ -664,10 +664,10 @@ public class TableService extends BasicService {
             throw new IllegalStateException("Model " + modelName + "does not exist in project " + project);
         }
         if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            model.setVolatileRange(volatileRange);
-            model.setAutoMergeTimeRanges(autoMergeRanges);
-            model.setAutoMergeEnabled(autoMergeRequest.isAutoMergeEnabled());
             NDataModel modelUpdate = dataModelManager.copyForWrite(model);
+            modelUpdate.setVolatileRange(volatileRange);
+            modelUpdate.setAutoMergeTimeRanges(autoMergeRanges);
+            modelUpdate.setAutoMergeEnabled(autoMergeRequest.isAutoMergeEnabled());
             dataModelManager.updateDataModelDesc(modelUpdate);
 
         } else {
@@ -696,10 +696,10 @@ public class TableService extends BasicService {
         volatileRange.setVolatileRangeNumber(autoMergeRequest.getVolatileRangeNumber());
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, tableName);
-        dataLoadingRange.setAutoMergeEnabled(autoMergeRequest.isAutoMergeEnabled());
-        dataLoadingRange.setAutoMergeTimeRanges(autoMergeRanges);
-        dataLoadingRange.setVolatileRange(volatileRange);
         NDataLoadingRange dataLoadingRangeUpdate = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
+        dataLoadingRangeUpdate.setAutoMergeEnabled(autoMergeRequest.isAutoMergeEnabled());
+        dataLoadingRangeUpdate.setAutoMergeTimeRanges(autoMergeRanges);
+        dataLoadingRangeUpdate.setVolatileRange(volatileRange);
         dataLoadingRangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
     }
 

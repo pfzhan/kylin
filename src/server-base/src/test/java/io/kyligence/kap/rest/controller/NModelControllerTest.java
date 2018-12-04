@@ -428,6 +428,16 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         Mockito.verify(nModelController).unlinkModel(Mockito.any(UnlinkModelRequest.class));
     }
 
+    @Test
+    public void testGetModelInfo() throws Exception {
+        Mockito.doReturn(null).when(modelService).getModelInfo("*", "*", "*", 0, 0);
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/models/model_info").param("suite", "*").param("model", "*")
+                .param("project", "*").param("start", "0").param("end", "0")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).getModelInfo("*", "*", "*", 0, 0);
+    }
+
 
     private List<NSpanningTreeResponse> mockRelations() {
         final List<NSpanningTreeResponse> nSpanningTrees = new ArrayList<>();
