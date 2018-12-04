@@ -218,7 +218,7 @@ export default class QueryHistoryTable extends Vue {
   }
 
   getAnsweredByList (answeredBy) {
-    return answeredBy.split(',')
+    return answeredBy ? answeredBy.split(',') : []
   }
 
   toAcce (event, row) {
