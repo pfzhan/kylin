@@ -5,7 +5,7 @@ export default {
     reload: 'Update Metadata',
     sampling: 'Sampling',
     pushdownRange: 'Query Range',
-    unload: 'Unload',
+    unload: 'Drop',
     dataLoad: 'Data Load',
     columns: 'Columns',
     sample: 'Sample',
@@ -14,8 +14,8 @@ export default {
     access: 'Access',
     reloadTable: 'Are you sure to update metadata?',
     reloadSuccess: 'Update metadata successfully.',
-    unloadTable: 'Are you sure to unload table?',
-    unloadSuccess: 'Unload Table successfully.',
+    unloadTable: 'Are you sure to drop table?',
+    unloadSuccess: 'Drop Table successfully.',
     emptyTable: 'No Data'
   },
   'zh-cn': {
