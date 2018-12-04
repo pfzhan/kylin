@@ -29,6 +29,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import org.apache.catalina.Context;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -42,8 +43,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.context.embedded.EmbeddedServletContainerFactory;
+import org.springframework.boot.context.embedded.tomcat.TomcatEmbeddedServletContainerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportResource;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
@@ -171,6 +175,17 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         }
     }
 
+    @Bean
+    public EmbeddedServletContainerFactory servletContainer() {
+        TomcatEmbeddedServletContainerFactory tomcatFactory = new TomcatEmbeddedServletContainerFactory(){
+            @Override
+            protected void postProcessContext(Context context) {
+                context.addWelcomeFile("index.html");
+            }
+        };
+
+        return tomcatFactory;
+    }
     @Override
     public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
         initBackend();

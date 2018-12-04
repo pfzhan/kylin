@@ -10,7 +10,12 @@ function quit {
         if [[ -n "${QUIT_MESSAGE_LOG}" ]]; then
             echo `setColor 31 "$@"` >> ${QUIT_MESSAGE_LOG}
         fi
-        exit 1
+        if [ $# == 2 ]
+        then
+            exit $2
+        else
+            exit 1
+        fi
     }
 
 # start command
@@ -72,11 +77,11 @@ then
            rm ../pid
            exit 0
         else
-           quit "Kylin is not running"
+           quit "Kylin is not running" 0
         fi
 
     else
-        quit "Kylin is not running"
+        quit "Kylin is not running" 0
     fi
 
 else
