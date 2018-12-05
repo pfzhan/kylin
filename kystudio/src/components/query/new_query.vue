@@ -344,7 +344,6 @@ export default class NewQuery extends Vue {
   @import '../../assets/styles/variables.less';
   #newQuery {
     position: relative;
-    border-top: 1px solid @line-border-color;
     height: 100%;
     .saved_query_dialog {
       .el-dialog__body {
