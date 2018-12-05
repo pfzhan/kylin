@@ -44,6 +44,7 @@ import org.apache.calcite.rel.rules.AggregateExpandDistinctAggregatesRule;
 import org.apache.calcite.rel.rules.AggregateProjectMergeRule;
 import org.apache.calcite.rel.rules.AggregateUnionTransposeRule;
 import org.apache.calcite.rel.rules.DateRangeRules;
+import org.apache.calcite.rel.rules.FilterJoinRule;
 import org.apache.calcite.rel.rules.FilterProjectTransposeRule;
 import org.apache.calcite.rel.rules.JoinCommuteRule;
 import org.apache.calcite.rel.rules.JoinPushExpressionsRule;
@@ -73,6 +74,7 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.optrule.KAPValuesRule;
 import io.kyligence.kap.query.optrule.KapAggregateRule;
+import io.kyligence.kap.query.optrule.KapFilterJoinRule;
 import io.kyligence.kap.query.optrule.KapFilterRule;
 import io.kyligence.kap.query.optrule.KapJoinRule;
 import io.kyligence.kap.query.optrule.KapLimitRule;
@@ -152,9 +154,10 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
             }
         }
         // since join is the entry point, we can't push filter past join
-        //                planner.removeRule(FilterJoinRule.FILTER_ON_JOIN);
-        //                planner.removeRule(FilterJoinRule.JOIN);
-
+        planner.removeRule(FilterJoinRule.FILTER_ON_JOIN);
+        planner.removeRule(FilterJoinRule.JOIN);
+        planner.addRule(KapFilterJoinRule.KAP_FILTER_ON_JOIN_JOIN);
+        planner.addRule(KapFilterJoinRule.KAP_FILTER_ON_JOIN_SCAN);
         // since we don't have statistic of table, the optimization of join is too cost
         planner.removeRule(JoinCommuteRule.INSTANCE);
         planner.removeRule(JoinPushThroughJoinRule.LEFT);
