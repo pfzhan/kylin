@@ -55,7 +55,7 @@ public class GarbageCleanService {
         }
     }
 
-    private void cleanupProject(ProjectInstance project) throws Exception {
+    public void cleanupProject(ProjectInstance project) throws Exception {
         val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName());
         val favoriteQueryCleaner = new FavoriteQueryCleaner(project);
         val dataflowCleaner = new DataflowCleaner();

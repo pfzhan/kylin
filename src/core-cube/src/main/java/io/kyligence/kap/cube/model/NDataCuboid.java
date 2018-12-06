@@ -34,6 +34,8 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.primitives.Longs;
 
+import lombok.Getter;
+
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NDataCuboid implements Serializable {
 
@@ -69,8 +71,12 @@ public class NDataCuboid implements Serializable {
     private long sourceRows;
     @JsonProperty("source_byte_size")
     private long sourceByteSize;
+    @Getter
+    @JsonProperty("create_time")
+    private long createTime;
 
     public NDataCuboid() {
+        this.createTime = System.currentTimeMillis();
     }
 
     public KylinConfigExt getConfig() {
@@ -147,7 +153,6 @@ public class NDataCuboid implements Serializable {
         checkIsNotCachedAndShared();
         this.sourceRows = sourceRows;
     }
-
 
     public long getSourceByteSize() {
         return sourceByteSize;

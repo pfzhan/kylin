@@ -45,9 +45,13 @@ package io.kyligence.kap.rest.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
+import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
+import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.rest.service.GarbageCleanService;
 import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -76,6 +80,9 @@ public class NProjectControllerTest {
 
     @Mock
     private ProjectService projectService;
+
+    @Mock
+    private GarbageCleanService garbageCleanService;
 
     @InjectMocks
     private NProjectController nProjectController = Mockito.spy(new NProjectController());
@@ -168,5 +175,48 @@ public class NProjectControllerTest {
 
         Mockito.verify(nProjectController).getQueryAccelerateThresholdConfig("default");
     }
+
+    @Test
+    public void testGetStorageVolumeInfoResponse() throws Exception {
+        StorageVolumeInfoResponse storageVolumeInfoResponse = new StorageVolumeInfoResponse();
+        Mockito.doReturn(storageVolumeInfoResponse).when(projectService).getStorageVolumeInfoResponse("default");
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/storage_volume_info")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nProjectController).getStorageVolumeInfo("default");
+    }
+
+    @Test
+    public void testUpdateStorageQuotaConfig() throws Exception {
+        StorageQuotaRequest storageQuotaRequest = new StorageQuotaRequest();
+        storageQuotaRequest.setProject("default");
+        storageQuotaRequest.setStorageQuotaSize(2147483648L);
+        Mockito.doNothing().when(projectService).updateStorageQuotaConfig("default", 2147483648L);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/storage_quota")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(storageQuotaRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nProjectController).updateStorageQuotaConfig(Mockito.any(StorageQuotaRequest.class));
+    }
+
+    @Test
+    public void testStorageCleanup() throws Exception {
+        ProjectInstance projectInstance = new ProjectInstance();
+        NProjectManager projectManager = Mockito.mock(NProjectManager.class);
+        Mockito.doNothing().when(garbageCleanService).cleanupProject(Mockito.any());
+        Mockito.doReturn(projectInstance).when(projectManager).getProject("default");
+        Mockito.doReturn(projectManager).when(projectService).getProjectManager();
+        Mockito.doNothing().when(projectService).cleanupProjectGarbageIndex("default");
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/storage")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nProjectController).cleanupProjectStorage("default");
+    }
+
 
 }

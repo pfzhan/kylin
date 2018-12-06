@@ -27,6 +27,8 @@ package io.kyligence.kap.rest.controller;
 import io.kyligence.kap.rest.request.MaintainModelTypeRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
+import io.kyligence.kap.rest.request.StorageQuotaRequest;
+import io.kyligence.kap.rest.service.GarbageCleanService;
 import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.exception.PersistentException;
@@ -63,6 +65,10 @@ public class NProjectController extends NBasicController {
     @Autowired
     @Qualifier("projectService")
     private ProjectService projectService;
+
+    @Autowired
+    @Qualifier("garbageCleanService")
+    GarbageCleanService garbageCleanService;
 
     @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -146,6 +152,41 @@ public class NProjectController extends NBasicController {
         projectService.updateMantainModelType(request.getProject(), request.getMaintainModelType());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
 
+    }
+
+    @RequestMapping(value = "/storage_volume_info", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getStorageVolumeInfo(
+            @RequestParam(value = "project", required = true) String project) throws Exception {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getStorageVolumeInfoResponse(project), "");
+    }
+
+    @RequestMapping(value = "/storage", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse cleanupProjectStorage(
+            @RequestParam(value = "project", required = true) String project) throws Exception {
+        ProjectInstance projectInstance = projectService.getProjectManager().getProject(project);
+        if (projectInstance == null) {
+            throw new BadRequestException(String.format(msg.getPROJECT_NOT_FOUND(), project));
+        }
+        projectService.cleanupProjectGarbageIndex(project);
+        garbageCleanService.cleanupProject(projectInstance);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
+    }
+
+    @RequestMapping(value = "/storage_quota", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateStorageQuotaConfig(
+            @RequestBody StorageQuotaRequest storageQuotaRequest) throws Exception {
+        String project = storageQuotaRequest.getProject();
+        checkProjectName(project);
+
+        long storageQuotaSize = storageQuotaRequest.getStorageQuotaSize();
+        projectService.updateStorageQuotaConfig(project, storageQuotaSize);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
     }
 
 }

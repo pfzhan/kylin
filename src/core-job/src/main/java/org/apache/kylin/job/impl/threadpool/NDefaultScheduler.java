@@ -52,7 +52,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
+import io.kyligence.kap.cube.storage.ProjectStorageInfoCollector;
+import io.kyligence.kap.cube.storage.StorageInfoEnum;
+import lombok.val;
 
 /**
  */
@@ -71,6 +76,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     private volatile boolean hasStarted = false;
     volatile boolean fetchFailed = false;
     private JobEngineConfig jobEngineConfig;
+    private ProjectStorageInfoCollector collector;
 
     private static final Map<String, NDefaultScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
@@ -103,7 +109,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         public synchronized void run() {
             try {
                 Map<String, Executable> runningJobs = context.getRunningJobs();
-                if (isJobPoolFull()) {
+                if (isJobPoolFull() || reachStorageQuota()) {
                     return;
                 }
 
@@ -159,6 +165,23 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 fetchFailed = true;
                 logger.warn("Job Fetcher caught a exception ", e);
             }
+        }
+
+        private boolean reachStorageQuota() {
+            val storageVolumeInfo = collector.getStorageVolumeInfo(jobEngineConfig.getConfig(), project);
+            val totalSize = storageVolumeInfo.getTotalStorageSize();
+            val storageQuotaSize = storageVolumeInfo.getStorageQuotaSize();
+            if (totalSize < 0) {
+                logger.error(String.format(
+                        "Project '%s' : an exception occurs when getting storage volume info, no job will be scheduled!!! The error info : %s",
+                        project, storageVolumeInfo.getThrowableMap().get(StorageInfoEnum.TOTAL_STORAGE)));
+                return true;
+            }
+            if (totalSize >= storageQuotaSize) {
+                logger.info(String.format("Project '%s' reach storage quota, no job will be scheduled!!!", project));
+                return true;
+            }
+            return false;
         }
 
         private boolean isJobPoolFull() {
@@ -272,6 +295,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         if (!jobLock.lockJobEngine()) {
             throw new IllegalStateException("Cannot start job scheduler due to lack of job lock");
         }
+        val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.STORAGE_QUOTA, StorageInfoEnum.TOTAL_STORAGE);
+        collector = new ProjectStorageInfoCollector(storageInfoEnumList);
 
         executableManager = NExecutableManager.getInstance(jobEngineConfig.getConfig(), project);
         //load all executable, set them to a consistent status

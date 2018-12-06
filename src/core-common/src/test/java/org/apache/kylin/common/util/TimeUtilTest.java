@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,6 +46,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.Assert;
 import org.junit.Test;
@@ -66,9 +66,11 @@ public class TimeUtilTest {
 
         a.setTimeInMillis(timeMillis);
         if (unit == NormalizedTimeUnit.MINUTE) {
-            b.set(a.get(Calendar.YEAR), a.get(Calendar.MONTH), a.get(Calendar.DAY_OF_MONTH), a.get(Calendar.HOUR_OF_DAY), a.get(Calendar.MINUTE));
+            b.set(a.get(Calendar.YEAR), a.get(Calendar.MONTH), a.get(Calendar.DAY_OF_MONTH),
+                    a.get(Calendar.HOUR_OF_DAY), a.get(Calendar.MINUTE));
         } else if (unit == NormalizedTimeUnit.HOUR) {
-            b.set(a.get(Calendar.YEAR), a.get(Calendar.MONTH), a.get(Calendar.DAY_OF_MONTH), a.get(Calendar.HOUR_OF_DAY), 0);
+            b.set(a.get(Calendar.YEAR), a.get(Calendar.MONTH), a.get(Calendar.DAY_OF_MONTH),
+                    a.get(Calendar.HOUR_OF_DAY), 0);
         }
         return b.getTimeInMillis();
     }
@@ -98,6 +100,7 @@ public class TimeUtilTest {
         Assert.assertEquals(dateFormat.parse("2015/1/1 00:00:00").getTime(), TimeUtil.getYearStart(t4));
         Assert.assertEquals(dateFormat.parse("2014/12/28 00:00:00").getTime(), TimeUtil.getWeekStart(t4));
 
+        Assert.assertEquals(24 * 60 * 60 * 1000, TimeUtil.timeStringAs("1d", TimeUnit.MILLISECONDS));
     }
 
 }

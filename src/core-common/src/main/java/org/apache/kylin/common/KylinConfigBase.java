@@ -52,6 +52,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.SortedSet;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -64,6 +65,7 @@ import org.apache.kylin.common.persistence.HDFSResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.TimeUtil;
 import org.apache.kylin.common.util.ZooKeeperUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1098,13 +1100,11 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public String getSparkBuildClassName() {
-        return getOptional("kylin.engine.spark.build-class-name",
-                "io.kyligence.kap.engine.spark.job.DFBuildJob");
+        return getOptional("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.DFBuildJob");
     }
 
     public String getSparkMergeClassName() {
-        return getOptional("kylin.engine.spark.merge-class-name",
-                "io.kyligence.kap.engine.spark.job.DFMergeJob");
+        return getOptional("kylin.engine.spark.merge-class-name", "io.kyligence.kap.engine.spark.job.DFMergeJob");
     }
 
     public void overrideSparkJobJarPath(String path) {
@@ -1631,4 +1631,18 @@ abstract public class KylinConfigBase implements Serializable {
     public int getEventPollIntervalSecond() {
         return Integer.parseInt(getOptional("kylin.job.event.poll-interval-second", "3"));
     }
+
+    public int getQueryTimesThresholdOfGarbageStorage() {
+        return Integer.parseInt(getOptional("kylin.storage.garbage.query-times-threshold", "5"));
+    }
+
+    public long getStorageQuotaSize() {
+        return Long.parseLong(getOptional("kylin.storage.quota-in-giga-bytes", "1")) * 1024 * 1024 * 1024;
+    }
+
+    public long getCuboidLayoutSurvivalTimeThreshold() {
+        return TimeUtil.timeStringAs(getOptional("kylin.storage.garbage.cuboid-layout-survival-time-threshold", "7d"),
+                TimeUnit.MILLISECONDS);
+    }
+
 }

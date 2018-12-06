@@ -24,14 +24,13 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.request.ProjectRequest;
-import io.kyligence.kap.event.model.AddProjectEvent;
-import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
-import lombok.val;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.exception.PersistentException;
@@ -42,15 +41,22 @@ import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.util.ArrayList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
-import java.util.LinkedHashMap;
-import java.util.List;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.storage.ProjectStorageInfoCollector;
+import io.kyligence.kap.cube.storage.StorageInfoEnum;
+import io.kyligence.kap.event.model.AddProjectEvent;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.rest.request.ProjectRequest;
+import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
+import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import lombok.val;
 
 @Component("projectService")
 public class ProjectService extends BasicService {
@@ -92,13 +98,15 @@ public class ProjectService extends BasicService {
         // submitter rule
         FavoriteRule.Condition submitterCond = new FavoriteRule.Condition();
         submitterCond.setRightThreshold("ADMIN");
-        FavoriteRule submitterRule = new FavoriteRule(Lists.newArrayList(submitterCond), FavoriteRule.SUBMITTER_RULE_NAME, true);
+        FavoriteRule submitterRule = new FavoriteRule(Lists.newArrayList(submitterCond),
+                FavoriteRule.SUBMITTER_RULE_NAME, true);
         getFavoriteRuleManager(projectName).createRule(submitterRule);
         // duration rule
         FavoriteRule.Condition durationCond = new FavoriteRule.Condition();
         durationCond.setLeftThreshold("0");
         durationCond.setRightThreshold("180");
-        FavoriteRule durationRule = new FavoriteRule(Lists.newArrayList(durationCond), FavoriteRule.DURATION_RULE_NAME, false);
+        FavoriteRule durationRule = new FavoriteRule(Lists.newArrayList(durationCond), FavoriteRule.DURATION_RULE_NAME,
+                false);
         getFavoriteRuleManager(projectName).createRule(durationRule);
 
         // create blacklist and whitelist
@@ -138,18 +146,11 @@ public class ProjectService extends BasicService {
 
     public void updateQueryAccelerateThresholdConfig(String project, Integer threshold, boolean autoApply,
             boolean batchEnabled) throws IOException {
-        NProjectManager projectManager = getProjectManager();
-        ProjectInstance projectInstance = projectManager.getProject(project);
-        if (projectInstance == null) {
-            throw new BadRequestException("Project '" + project + "' does not exist!");
-        }
-        ProjectInstance updateProject = projectManager.copyForWrite(projectInstance);
-        updateProject.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold", threshold.toString());
-        updateProject.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold-batch-enable",
-                batchEnabled + "");
-        updateProject.getOverrideKylinProps().put("kylin.favorite.query-accelerate-threshold-auto-apply",
-                autoApply + "");
-        projectManager.updateProject(updateProject);
+        Map<String, String> overrideKylinProps = Maps.newHashMap();
+        overrideKylinProps.put("kylin.favorite.query-accelerate-threshold", threshold.toString());
+        overrideKylinProps.put("kylin.favorite.query-accelerate-threshold-batch-enable", batchEnabled + "");
+        overrideKylinProps.put("kylin.favorite.query-accelerate-threshold-auto-apply", autoApply + "");
+        updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
     public FavoriteQueryThresholdResponse getQueryAccelerateThresholdConfig(String project) {
@@ -167,5 +168,58 @@ public class ProjectService extends BasicService {
         val projectUpdate = projectManager.copyForWrite(projectManager.getProject(project));
         projectUpdate.setMaintainModelType(MaintainModelType.valueOf(maintainModelType));
         projectManager.updateProject(projectUpdate);
+    }
+
+    public StorageVolumeInfoResponse getStorageVolumeInfoResponse(String project) {
+        val response = new StorageVolumeInfoResponse();
+        val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE, StorageInfoEnum.STORAGE_QUOTA,
+                StorageInfoEnum.TOTAL_STORAGE);
+        val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
+        val storageVolumeInfo = collector.getStorageVolumeInfo(getConfig(), project);
+        response.setGarbageStorageSize(storageVolumeInfo.getGarbageStorageSize());
+        response.setStorageQuotaSize(storageVolumeInfo.getStorageQuotaSize());
+        response.setTotalStorageSize(storageVolumeInfo.getTotalStorageSize());
+        return response;
+    }
+
+    public void cleanupProjectGarbageIndex(String project) throws IOException {
+        val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE);
+        val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
+        val storageVolumeInfo = collector.getStorageVolumeInfo(getConfig(), project);
+        Map<String, Set<Long>> garbageIndexMap = storageVolumeInfo.getGarbageModelIndexMap();
+        if (garbageIndexMap.size() > 0 && storageVolumeInfo.getThrowableMap().size() == 0) {
+            cleanupGarbageIndex(project, garbageIndexMap);
+        }
+    }
+
+    private void cleanupGarbageIndex(String project, Map<String, Set<Long>> garbageIndexMap) throws IOException {
+        val cubePlanManager = getCubePlanManager(project);
+        for (Map.Entry<String, Set<Long>> entry : garbageIndexMap.entrySet()) {
+            val modelId = entry.getKey();
+            val cuboidLayoutIds = entry.getValue();
+            val cubePlan = cubePlanManager.findMatchingCubePlan(modelId, project, getConfig());
+            cubePlanManager.updateCubePlan(cubePlan.getName(), copyForWrite -> {
+                copyForWrite.removeLayouts(cuboidLayoutIds, NCuboidLayout::equals, true, false);
+            });
+        }
+    }
+
+    public void updateStorageQuotaConfig(String project, long storageQuotaSize) throws IOException {
+        Map<String, String> overrideKylinProps = Maps.newHashMap();
+        long storageQuotaSizeGB = storageQuotaSize / (1024 * 1024 * 1024);
+        overrideKylinProps.put("kylin.storage.quota-in-giga-bytes", String.valueOf(storageQuotaSizeGB));
+        updateProjectOverrideKylinProps(project, overrideKylinProps);
+    }
+
+    private void updateProjectOverrideKylinProps(String project, Map<String, String> overrideKylinProps)
+            throws IOException {
+        val projectManager = getProjectManager();
+        val projectInstance = projectManager.getProject(project);
+        if (projectInstance == null) {
+            throw new BadRequestException(String.format("Project '%s' does not exist!", project));
+        }
+        val updateProject = projectManager.copyForWrite(projectInstance);
+        updateProject.getOverrideKylinProps().putAll(overrideKylinProps);
+        projectManager.updateProject(updateProject);
     }
 }

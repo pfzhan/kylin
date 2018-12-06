@@ -42,18 +42,20 @@
 
 package io.kyligence.kap.metadata.query;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.impl.InfluxDBResultMapper;
+import java.util.List;
+
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
+import io.kyligence.kap.shaded.influxdb.org.influxdb.impl.InfluxDBResultMapper;
 
 public class QueryHistoryDAO {
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryDAO.class);
@@ -105,5 +107,17 @@ public class QueryHistoryDAO {
         String sql = String.format(QUERY_TIMES_SQL_FORMAT, suite, project, model, start,
                 end == 0 ? System.currentTimeMillis() : end);
         return getQueryHistoriesBySql(sql, clazz);
+    }
+
+    public <T> List<T> getCuboidLayoutQueryTimes(String project, int queryTimesThreshold, Class clazz) {
+        String query = getCuboidLayoutQueryTimesSql(project, queryTimesThreshold);
+        return getQueryHistoriesBySql(query, clazz);
+    }
+
+    private String getCuboidLayoutQueryTimesSql(String project, int queryTimesThreshold) {
+        return String.format(
+                "SELECT * FROM (SELECT count(query_id) as query_times FROM %s "
+                        + "WHERE project = '%s' group by model, cuboid_layout_id) WHERE query_times > %d ",
+                QueryHistory.REALIZATION_MEASUREMENT, project, queryTimesThreshold);
     }
 }

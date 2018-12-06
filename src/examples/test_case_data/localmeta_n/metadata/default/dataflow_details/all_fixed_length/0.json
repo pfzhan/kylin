@@ -12,7 +12,8 @@
       "rows": 1,
       "byte_size": 0,
       "source_rows": 1,
-      "source_byte_size": 1
+      "source_byte_size": 1,
+      "create_time" : 1538323200000
     },
     {
       "cuboid_layout_id": 2,
@@ -21,7 +22,8 @@
       "rows": 1,
       "byte_size": 0,
       "source_rows": 1,
-      "source_byte_size": 1
+      "source_byte_size": 1,
+      "create_time" : 1538323200000
     },
     {
       "cuboid_layout_id": 1001,
@@ -30,7 +32,8 @@
       "rows": 1,
       "byte_size": 0,
       "source_rows": 1,
-      "source_byte_size": 1
+      "source_byte_size": 1,
+      "create_time" : 1538323200000
     },
     {
       "cuboid_layout_id": 1002,
@@ -39,7 +42,8 @@
       "rows": 1,
       "byte_size": 0,
       "source_rows": 1,
-      "source_byte_size": 1
+      "source_byte_size": 1,
+      "create_time" : 1538323200000
     }
   ]
 }

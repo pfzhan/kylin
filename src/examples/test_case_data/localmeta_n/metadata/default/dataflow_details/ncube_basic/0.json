@@ -12,7 +12,8 @@
     "byte_size" : 1201152,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_byte_size" : 1655
+    "source_byte_size" : 1655,
+    "create_time" : 1538323200000
   }, {
     "cuboid_layout_id" : 1,
     "status" : "READY",
@@ -21,7 +22,8 @@
     "byte_size" : 252928,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_byte_size" : 1655
+    "source_byte_size" : 1655,
+    "create_time" : 1538323200000
   }, {
     "cuboid_layout_id" : 1001,
     "status" : "READY",
@@ -30,7 +32,8 @@
     "byte_size" : 260096,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_byte_size" : 1655
+    "source_byte_size" : 1655,
+    "create_time" : 1538323200000
   }, {
     "cuboid_layout_id" : 1002,
     "status" : "READY",
@@ -39,7 +42,8 @@
     "byte_size" : 260096,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_byte_size" : 1655
+    "source_byte_size" : 1655,
+    "create_time" : 1538323200000
   }, {
     "cuboid_layout_id" : 2001,
     "status" : "READY",
@@ -48,7 +52,8 @@
     "byte_size" : 299008,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_byte_size" : 1655
+    "source_byte_size" : 1655,
+    "create_time" : 1538323200000
   }, {
     "cuboid_layout_id" : 3001,
     "status" : "READY",
@@ -57,7 +62,8 @@
     "byte_size" : 340992,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_byte_size" : 1655
+    "source_byte_size" : 1655,
+    "create_time" : 1538323200000
   }, {
     "cuboid_layout_id" : 20000000001,
     "status" : "READY",
@@ -66,7 +72,8 @@
     "byte_size" : 504832,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_byte_size" : 1655
+    "source_byte_size" : 1655,
+    "create_time" : 1538323200000
   }, {
     "cuboid_layout_id" : 20000001001,
     "status" : "READY",
@@ -75,6 +82,7 @@
     "byte_size" : 261120,
     "file_count" : 2,
     "source_rows" : 10000,
-    "source_byte_size" : 1655
+    "source_byte_size" : 1655,
+    "create_time" : 1538323200000
   } ]
 }

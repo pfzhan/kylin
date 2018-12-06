@@ -43,11 +43,10 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -64,7 +63,16 @@ import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.CuboidLayoutQueryTimes;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import lombok.val;
 
 public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
@@ -151,6 +159,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         projectService.updateQueryAccelerateThresholdConfig("default", 20, false, true);
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("default");
     }
+
     @Test
     public void testGetThreshold() throws Exception {
         val response = projectService.getQueryAccelerateThresholdConfig("default");
@@ -159,11 +168,53 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(response.isAutoApply());
     }
 
-
     @Test
     public void testUpdateProjectMaintainType() throws Exception {
         projectService.updateMantainModelType("default", MaintainModelType.MANUAL_MAINTAIN.name());
         Assert.assertEquals(MaintainModelType.MANUAL_MAINTAIN,
                 NProjectManager.getInstance(getTestConfig()).getProject("default").getMaintainModelType());
     }
+
+    @Test
+    public void testUpdateStorageQuotaConfig() throws Exception {
+        projectService.updateStorageQuotaConfig("default", 2147483648L);
+        Assert.assertEquals(2147483648L,
+                NProjectManager.getInstance(getTestConfig()).getProject("default").getConfig().getStorageQuotaSize());
+    }
+
+    @Test
+    public void testGetStorageVolumeInfoResponse() throws Exception {
+        mockHotModelLayouts();
+        StorageVolumeInfoResponse storageVolumeInfoResponse = projectService.getStorageVolumeInfoResponse("default");
+
+        Assert.assertEquals(1024 * 1024 * 1024L, storageVolumeInfoResponse.getStorageQuotaSize());
+        Assert.assertEquals(5633024L, storageVolumeInfoResponse.getGarbageStorageSize());
+    }
+
+    @Test
+    public void testCleanupProjectGarbageIndex() throws Exception {
+        val project = "default";
+        mockHotModelLayouts();
+        projectService.cleanupProjectGarbageIndex(project);
+        val cubePlan = NCubePlanManager.getInstance(getTestConfig(), project).getCubePlan("ncube_basic");
+        Assert.assertEquals(1L, cubePlan.getAllCuboidLayouts().size());
+    }
+
+    private void mockHotModelLayouts() throws NoSuchFieldException, IllegalAccessException {
+
+        List<CuboidLayoutQueryTimes> hotCuboidLayoutQueryTimesList = Lists.newArrayList();
+        KylinConfig config = getTestConfig();
+        QueryHistoryDAO.getInstance(config);
+
+        Field field = config.getClass().getDeclaredField("managersCache");
+        field.setAccessible(true);
+
+        ConcurrentHashMap<Class, Object> cache = (ConcurrentHashMap<Class, Object>) field.get(config);
+        QueryHistoryDAO dao = Mockito.spy(QueryHistoryDAO.getInstance(config));
+        cache.put(QueryHistoryDAO.class, dao);
+        Mockito.doReturn(hotCuboidLayoutQueryTimesList).when(dao).getCuboidLayoutQueryTimes("default", 5,
+                CuboidLayoutQueryTimes.class);
+
+    }
+
 }
