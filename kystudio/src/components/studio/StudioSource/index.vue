@@ -190,7 +190,7 @@ export default class StudioSource extends Vue {
         type: 'success',
         message: this.$t('unloadSuccess')
       })
-      return this.handleFreshTable()
+      return this.handleFreshTable({ isSetToDefault: true })
     }).catch((e) => {
       handleError(e)
     })
@@ -201,13 +201,17 @@ export default class StudioSource extends Vue {
     const isSubmit = await this.callSourceTableModal({ editType: 'pushdownConfig', table, projectName })
     isSubmit && this.$emit('fresh-tables')
   }
-  async handleFreshTable () {
+  async handleFreshTable (options) {
     try {
+      const { isSetToDefault } = options || {}
       await this.$refs['datasource-bar'].loadTables({ isReset: true })
-      this.$refs['datasource-bar'].selectFirstTable()
 
-      const { name, database } = this.selectedTable
-      await this.fetchTableDetail({ label: name, database, type: 'table' })
+      if (isSetToDefault) {
+        this.$refs['datasource-bar'].selectFirstTable()
+      } else {
+        const { name, database } = this.selectedTable
+        await this.fetchTableDetail({ label: name, database, type: 'table' })
+      }
     } catch (e) {
       handleError(e)
     }
