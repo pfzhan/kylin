@@ -124,12 +124,14 @@ public class ModelService extends BasicService {
 
     private static final String LAST_MODIFY = "last_modify";
 
+    private static final String MODEL = "Model '";
+
     public static final char[] VALID_MODELNAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
             .toCharArray();
 
     @Autowired
     private QueryHistoryService queryHistoryService;
-    
+
     @Setter
     @Autowired
     private ModelSemanticHelper semanticUpdater;
@@ -367,7 +369,7 @@ public class ModelService extends BasicService {
     public void purgeModelManually(String model, String project) throws IOException {
         NDataModel dataModelDesc = getNDataModelByModelName(model, project);
         if (dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new BadRequestException("Model '" + model + "' is table oriented, can not pruge the model!!");
+            throw new BadRequestException(MODEL + model + "' is table oriented, can not pruge the model!!");
         }
         purgeModel(model, project);
     }
@@ -721,7 +723,7 @@ public class ModelService extends BasicService {
     public void deleteSegmentById(String model, String project, int[] ids) throws PersistentException {
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
         if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new BadRequestException("Model '" + model + "' is table oriented, can not remove segments manually!");
+            throw new BadRequestException(MODEL + model + "' is table oriented, can not remove segments manually!");
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);
@@ -936,7 +938,7 @@ public class ModelService extends BasicService {
         }
         return modelInfoLists;
     }
-    
+
     private List<ModelInfoResponse> getModelInfoByProject(String project) {
         List<ModelInfoResponse> modelInfoLists = Lists.newArrayList();
         val projectManager = getProjectManager();
@@ -960,7 +962,7 @@ public class ModelService extends BasicService {
         val modelManager = getDataModelManager(project);
         val modelDesc = modelManager.getDataModelDesc(model);
         if (modelDesc == null) {
-            throw new BadRequestException("Model '" + model + "' does not exist!");
+            throw new BadRequestException(MODEL + model + "' does not exist!");
         }
         val modelInfoResponse = new ModelInfoResponse();
         modelInfoResponse.setProject(project);
