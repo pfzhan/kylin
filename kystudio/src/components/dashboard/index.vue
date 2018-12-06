@@ -26,13 +26,15 @@
               </el-popover>
               <div class="quota-chart" v-popover:popover>
                 <div class="unUseage-block" :style="{'height': (1-useageRatio-trashRatio)*170+'px'}">
-                  <div class="text" v-if="trashRatio*170<14 || useageRatio*170<14">{{Math.round((1-useageRatio-trashRatio)*100)}}%</div>
+                  <div class="text" v-if="(trashRatio*170<14 || useageRatio*170<14)">{{Math.round((1-useageRatio-trashRatio)*100)}}%</div>
                 </div>
-                <div class="useage-block" :style="{'height': useageRatio*170+'px', 'bottom': trashRatio*170+'px'}">
-                  <div class="text" v-if="useageRatio*170>=14">{{useageRatio*100}}%</div>
-                </div>
-                <div class="trash-block" :style="{'height': trashRatio*170+'px'}">
-                  <div class="text" v-if="trashRatio*170>=14">{{trashRatio*100}}%</div>
+                <div class="total-use-block" :style="{'height': usedBlockHeight+'px'}">
+                  <div class="useage-block" :style="{'height': (useageRatio*170/usedBlockHeight)*100+'%'}">
+                    <div class="text" v-if="useageRatio*170>=14">{{Math.round(useageRatio*100)}}%</div>
+                  </div>
+                  <div class="trash-block" :style="{'height': (trashRatio*170/usedBlockHeight)*100+'%'}">
+                    <div class="text" v-if="trashRatio*170>=14">{{Math.round(trashRatio*100)}}%</div>
+                  </div>
                 </div>
               </div>
             </el-col>
@@ -47,7 +49,7 @@
                 <div class="info-title ksd-mt-16">Trash</div>
                 <div class="trash">
                   <span>{{quotaInfo.garbage_storage_size}}</span>G
-                  <el-button type="primary" size="mini" class="ksd-fright">Clear</el-button>
+                  <el-button type="primary" size="mini" class="ksd-ml-10">Clear</el-button>
                 </div>
               </div>
             </el-col>
@@ -159,6 +161,7 @@ export default class Dashboard extends Vue {
   }
   useageRatio = 0.4
   trashRatio = 0.2
+  usedBlockHeight = 0
   popoverVisible = false
   drawImpactChart () {
     $(this.$el.querySelector('#ruleImpact')).empty()
@@ -184,6 +187,9 @@ export default class Dashboard extends Vue {
   }
   created () {
     this.loadRuleImpactRatio()
+    setTimeout(() => {
+      this.usedBlockHeight = (this.useageRatio + this.trashRatio) * 170
+    }, 0)
   }
   loadRuleImpactRatio () {
     this.getRulesImpact({project: this.currentSelectedProject}).then((res) => {
@@ -244,24 +250,33 @@ export default class Dashboard extends Vue {
             transform: translate(-50%, -50%);
           }
           .unUseage-block {
-            background-image: @fff;
+            background-color: @fff;
             position: absolute;
+            top: 0;
             width: 100%;
-            top: 0px;
             .text {
               color: @text-secondary-color;
             }
           }
-          .useage-block {
-            background-image: linear-gradient(-202deg, #6EDAAF 0%, #3BB477 100%);
+          .total-use-block {
+            height: 0px;
+            -moz-transition: height .5s ease;
+            -webkit-transition: height .5s ease;
+            -o-transition: height .5s ease;
+            transition: height .5s ease;
             position: absolute;
-            width: 100%;
-          }
-          .trash-block {
-            background-image: linear-gradient(-194deg, #FCDE54 0%, #F7BA2A 100%);
-            position: absolute;
-            width: 100%;
             bottom: 0;
+            width: 100%;
+            .useage-block {
+              background-image: linear-gradient(-202deg, #6EDAAF 0%, #3BB477 100%);
+              position: relative;
+              width: 100%;
+            }
+            .trash-block {
+              background-image: linear-gradient(-194deg, #FCDE54 0%, #F7BA2A 100%);
+              position: relative;
+              width: 100%;
+            }
           }
 
         }
