@@ -746,15 +746,11 @@ export default class FavoriteQuery extends Vue {
 
   drawImpactChart () {
     $(this.$el.querySelector('#fillgauge')).empty()
-    loadLiquidFillGauge('fillgauge', this.impactRatio)
     const config1 = liquidFillGaugeDefaultSettings()
-    config1.circleColor = '#FF7777'
-    config1.textColor = '#FF4444'
-    config1.waveTextColor = '#FFAAAA'
-    config1.waveColor = '#FFDDDD'
-    config1.circleThickness = 0.2
-    config1.textVertPosition = 0.2
+    config1.circleColor = '#15BDF1'
+    config1.textColor = '#263238'
     config1.waveAnimateTime = 1000
+    loadLiquidFillGauge('fillgauge', this.impactRatio, config1)
   }
 
   mounted () {
@@ -1174,7 +1170,7 @@ export default class FavoriteQuery extends Vue {
           position: relative;
           .conds-title {
             position: absolute;
-            top: 65px;
+            top: 58px;
             width: 95%;
           }
         }

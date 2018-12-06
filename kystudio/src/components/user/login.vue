@@ -195,7 +195,7 @@ export default {
                 // } else {
                 //   this.$router.push('/overview')
                 // }
-                this.$router.push('/overview')
+                this.$router.push('/dashboard')
               }
               localStorage.setItem('username', this.user.username)
               this.$store.state.config.overLock = false

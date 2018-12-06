@@ -2,7 +2,7 @@
 export default {
   "allOptionMaps": {
     "menu": [
-      { "id": "overview", "value": "overview", "title": "Overview" },
+      { "id": "dashboard", "value": "dashboard", "title": "Dashboard" },
       { "id": "query", "value": "query", "title": "Query" },
       { "id": "insight", "value": "insight", "title": "Insight" },
       { "id": "queryHistory", "value": "query_history", "title": "Query History" },

@@ -8,7 +8,7 @@ import setting from 'components/security/reset_password'
 import newQuery from 'components/query/new_query'
 import queryHistory from 'components/query/query_history'
 import favoriteQuery from 'components/query/favorite_query'
-import overview from 'components/overview'
+import dashboard from 'components/dashboard'
 import messages from 'components/messages'
 import jobs from 'components/monitor/jobs'
 import { bindRouterGuard } from './routerGuard.js'
@@ -39,7 +39,7 @@ let routerOptions = {
       children: [{
         name: 'Dashboard',
         path: 'dashboard',
-        component: overview
+        component: dashboard
       }, {
         name: 'SProject',
         path: 'studio/project',
@@ -106,11 +106,11 @@ let routerOptions = {
         path: 'query/favorite_query',
         component: favoriteQuery
       },
-      {
-        name: 'Overview',
-        path: 'overview',
-        component: overview
-      },
+      // {
+      //   name: 'Dashboard',
+      //   path: 'dashboard',
+      //   component: dashboard
+      // },
       {
         name: 'Messages',
         path: 'messages',

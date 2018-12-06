@@ -3,8 +3,8 @@ export function liquidFillGaugeDefaultSettings () {
   return {
     minValue: 0, // The gauge minimum value.
     maxValue: 100, // The gauge maximum value.
-    circleThickness: 0.05, // The outer circle thickness as a percentage of it's radius.
-    circleFillGap: 0.05, // The size of the gap between the outer circle and wave circle as a percentage of the outer circles radius.
+    circleThickness: 0.02, // The outer circle thickness as a percentage of it's radius.
+    circleFillGap: -0.005, // The size of the gap between the outer circle and wave circle as a percentage of the outer circles radius.
     circleColor: '#178BCA', // The color of the outer circle.
     waveHeight: 0.05, // The wave height as a percentage of the radius of the wave circle.
     waveCount: 1, // The number of full waves per width of the wave circle.
@@ -15,7 +15,7 @@ export function liquidFillGaugeDefaultSettings () {
     waveAnimate: true, // Controls if the wave scrolls or is static.
     waveColor: '#178BCA', // The color of the fill wave.
     waveOffset: 0, // The amount to initially offset the wave. 0 = no offset. 1 = offset of one full wave.
-    textVertPosition: 0.4, // The height at which to display the percentage text withing the wave circle. 0 = bottom, 1 = top.
+    textVertPosition: 0.5, // The height at which to display the percentage text withing the wave circle. 0 = bottom, 1 = top.
     textSize: 0.64, // The relative height of the text to display in the wave circle. 1 = 50%
     valueCountUp: true, // If true, the displayed value counts up from 0 to it's final value upon loading. If false, the final value is displayed.
     displayPercent: true, // If true, a % symbol is displayed after the value.
@@ -28,9 +28,10 @@ export function loadLiquidFillGauge (elementId, value, config) {
   if (config == null) config = liquidFillGaugeDefaultSettings()
 
   var gauge = d3.select('#' + elementId)
-  var radius = Math.min(parseInt(gauge.style('width')), parseInt(gauge.style('height'))) / 2
+  var gHigth = parseInt(gauge.style('height')) - 2
+  var radius = Math.min(parseInt(gauge.style('width')), gHigth) / 2
   var locationX = parseInt(gauge.style('width')) / 2 - radius
-  var locationY = parseInt(gauge.style('height')) / 2 - radius
+  var locationY = gHigth / 2 - radius
   var fillPercent = Math.max(config.minValue, Math.min(config.maxValue, value)) / config.maxValue
 
   var waveHeightScale
@@ -100,6 +101,24 @@ export function loadLiquidFillGauge (elementId, value, config) {
   // Center the gauge within the parent SVG.
   var gaugeGroup = gauge.append('g')
     .attr('transform', 'translate(' + locationX + ',' + locationY + ')')
+  var shadowPath = gaugeGroup.append('defs')
+    .append('filter')
+    .attr('id', 'f1')
+    .attr('x', 0)
+    .attr('y', 0)
+    .attr('width', '200%')
+    .attr('height', '200%')
+  shadowPath.append('feOffset')
+    .attr('result', 'offOut')
+    .attr('in', 'SourceGraphic')
+  shadowPath.append('feGaussianBlur')
+    .attr('result', 'blurOut')
+    .attr('in', 'offOut')
+    .attr('stdDeviation', 2)
+  shadowPath.append('feBlend')
+    .attr('in', 'SourceGraphic')
+    .attr('in2', 'blurOut')
+    .attr('mode', 'normal')
 
   // Draw the outer circle.
   var gaugeCircleArc = d3.svg.arc()
@@ -110,17 +129,8 @@ export function loadLiquidFillGauge (elementId, value, config) {
   gaugeGroup.append('path')
     .attr('d', gaugeCircleArc)
     .style('fill', config.circleColor)
+    .attr('filter', 'url(#f1)')
     .attr('transform', 'translate(' + radius + ',' + radius + ')')
-
-  // Text where the wave does not overlap.
-  var text1 = gaugeGroup.append('text')
-    .text(textRounder(textStartValue) + percentText)
-    .attr('class', 'liquidFillGaugeText')
-    .attr('text-anchor', 'middle')
-    .attr('font-size', textPixels + 'px')
-    .attr('font-weight', 500)
-    .style('fill', config.textColor)
-    .attr('transform', 'translate(' + radius + ',' + textRiseScaleY(config.textVertPosition) + ')')
 
   // The clipping wave area.
   var clipArea = d3.svg.area()
@@ -135,14 +145,46 @@ export function loadLiquidFillGauge (elementId, value, config) {
     .attr('d', clipArea)
     .attr('T', 0)
 
+  var linearColor = gaugeGroup.append('defs')
+    .append('linearGradient')
+    .attr('id', 'grad1')
+    .attr('x1', '65%')
+    .attr('y1', '0%')
+    .attr('x2', '35%')
+    .attr('y2', '100%')
+  linearColor.append('stop')
+    .attr('offset', '0%')
+    .style('stop-color', '#019EE5')
+    .style('stop-opacity', 1)
+  linearColor.append('stop')
+    .attr('offset', '100%')
+    .style('stop-color', '#62E5FF')
+    .style('stop-opacity', 1)
+
   // The inner circle with the clipping wave attached.
+  var fillCircle1 = gaugeGroup.append('g')
+  fillCircle1.append('circle')
+  .attr('cx', radius)
+  .attr('cy', radius)
+  .attr('r', fillCircleRadius)
+  .attr('fill', '#fff')
+  // Text where the wave does not overlap.
+  var text1 = fillCircle1.append('text')
+    .text(textRounder(textStartValue) + percentText)
+    .attr('class', 'liquidFillGaugeText')
+    .attr('text-anchor', 'middle')
+    .attr('font-size', textPixels + 'px')
+    .attr('font-weight', 500)
+    .style('fill', config.textColor)
+    .attr('transform', 'translate(' + radius + ',' + textRiseScaleY(config.textVertPosition) + ')')
   var fillCircleGroup = gaugeGroup.append('g')
     .attr('clip-path', 'url(#clipWave' + elementId + ')')
   fillCircleGroup.append('circle')
     .attr('cx', radius)
     .attr('cy', radius)
     .attr('r', fillCircleRadius)
-    .style('fill', config.waveColor)
+    .attr('fill', 'url(#grad1)')
+    // .style('fill', config.waveColor)
 
   // Text where the wave does overlap.
   var text2 = fillCircleGroup.append('text')

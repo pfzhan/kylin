@@ -35,7 +35,7 @@ export const menusData = [
   // {name: 'studio', path: '/studio/model', icon: 'el-icon-ksd-studio'},
   // {name: 'auto', path: '/auto', icon: 'el-icon-ksd-auto_modeling'},
   // {name: 'insight', path: '/insight', icon: 'el-icon-ksd-insight'},
-  {name: 'overview', path: '/overview', icon: 'el-icon-ksd-overview'},
+  {name: 'dashboard', path: '/dashboard', icon: 'el-icon-ksd-overview'},
   {
     name: 'query',
     path: '/query',

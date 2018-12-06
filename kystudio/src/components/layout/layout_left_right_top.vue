@@ -61,7 +61,7 @@
         </div>
         <div class="panel-content" id="scrollBox" >
           <div class="grid-content bg-purple-light" id="scrollContent">
-            <el-col :span="24" v-show="gloalProjectSelectShow" class="bread-box">
+            <el-col :span="24" v-show="gloalProjectSelectShow" class="bread-box" v-if="currentRouterNameArr[0]!=='dashboard'">
               <!-- 面包屑在dashboard页面不显示 -->
               <el-breadcrumb separator="/" class="ksd-ml-30">
                 <el-breadcrumb-item>
@@ -329,7 +329,7 @@ export default class LayoutLeftRightTop extends Vue {
   }
   created () {
     // this.reloadRouter()
-    this.defaultActive = this.$route.path || '/overview'
+    this.defaultActive = this.$route.path || '/dashboard'
 
     // for newten
     // this.getEncoding().then(() => {}, (res) => {
