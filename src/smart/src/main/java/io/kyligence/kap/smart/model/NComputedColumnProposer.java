@@ -56,7 +56,6 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
-import io.kyligence.kap.smart.model.cc.ComputedColumnAdvisor;
 
 public class NComputedColumnProposer extends NAbstractModelProposer {
 
@@ -132,7 +131,6 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         Set<String> ccSuggestions = Sets.newHashSet();
 
         ModelTree modelTree = modelContext.getModelTree();
-        String project = modelContext.getSmartContext().getProject();
 
         // Load from context
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
@@ -140,7 +138,6 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             Map<String, String> matchingAlias = RealizationChooser.matches(nDataModel, ctx);
             ctx.fixModel(nDataModel, matchingAlias);
             ccSuggestions.addAll(collectInnerColumnCandidate(ctx, matchingAlias));
-            ccSuggestions.addAll(collectSqlAdvisorCandidate(project, ctx, nDataModel));
             ctx.unfixModel();
         }
 
@@ -165,12 +162,6 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             }
         }
         return candidate;
-    }
-
-    private List<String> collectSqlAdvisorCandidate(String project, OLAPContext context, NDataModel nDataModel) {
-        String sql = context.sql;
-        ComputedColumnAdvisor advisor = new ComputedColumnAdvisor();
-        return advisor.suggestCandidate(project, nDataModel, sql);
     }
 
     private boolean resolveCCName(ComputedColumnDesc ccDesc, NDataModel nDataModel, List<NDataModel> otherModels) {
