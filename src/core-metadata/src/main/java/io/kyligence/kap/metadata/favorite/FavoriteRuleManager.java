@@ -166,7 +166,7 @@ public class FavoriteRuleManager {
             for (int i = 0; i < conditions.size(); i++) {
                 FavoriteRule.SQLCondition sqlCondition = (FavoriteRule.SQLCondition) conditions.get(i);
                 // when updated sql already exists in white list
-                if (updatedCondition.getSql().equals(sqlCondition.getSql()))
+                if (updatedCondition.equals(sqlCondition))
                     return null;
 
                 if (updatedCondition.getId().equals(sqlCondition.getId())) {

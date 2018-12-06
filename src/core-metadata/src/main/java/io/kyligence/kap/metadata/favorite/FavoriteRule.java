@@ -101,7 +101,7 @@ public class FavoriteRule extends RootPersistentEntity {
 
         public SQLCondition(String sql, int sqlPatternHash, boolean capable) {
             this.id = UUID.randomUUID().toString();
-            this.sql = sql;
+            this.sql = formatSql(sql);
             this.sqlPatternHash = sqlPatternHash;
             this.capable = capable;
         }
@@ -115,12 +115,23 @@ public class FavoriteRule extends RootPersistentEntity {
                 return false;
 
             SQLCondition that = (SQLCondition) obj;
-            return this.sql.equals(that.getSql());
+            return this.sql.toUpperCase().equals(that.getSql().toUpperCase());
         }
 
         @Override
         public int hashCode() {
             return this.sql.hashCode();
+        }
+
+        // basic format, ignore whitespace and semicolons
+        private String formatSql(String sql) {
+            // replace all Java recognized whitespaces
+            String formattedSql = sql.trim().replaceAll("[\t|\n|\f|\r|\u001C|\u001D|\u001E|\u001F\" \"]+", " ");
+
+            while (formattedSql.endsWith(";"))
+                formattedSql = formattedSql.substring(0, formattedSql.length() - 1);
+
+            return formattedSql.trim();
         }
     }
 

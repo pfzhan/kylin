@@ -186,4 +186,34 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(FavoriteRuleManager.RuleConditionExistException.class, ex.getClass());
         }
     }
+
+    @Test
+    public void testAppendSimilarSqlConditions() throws IOException, FavoriteRuleManager.RuleConditionExistException {
+        int originWhitelistSqlSize = manager.getByName(FavoriteRule.WHITELIST_NAME).getConds().size();
+        String similarSql1 = "   select   \u001C\u001D\n  sum(price)\nfrom\n  KYLIN_SALES\nLIMIT\n\t\f  500\n ;";
+        String similarSql2 = "\n select sum(price)\u001E\u001F from KYLIN_SALES limit 500;";
+        FavoriteRule.SQLCondition sqlCondition1 = new FavoriteRule.SQLCondition(similarSql1, similarSql1.hashCode(), true);
+        FavoriteRule.SQLCondition sqlCondition2 = new FavoriteRule.SQLCondition(similarSql2, similarSql2.hashCode(), true);
+
+        manager.appendSqlConditions(Lists.newArrayList(sqlCondition1, sqlCondition2), FavoriteRule.WHITELIST_NAME);
+
+        // not loaded to whitelist
+        Assert.assertEquals(originWhitelistSqlSize + 1, manager.getByName(FavoriteRule.WHITELIST_NAME).getConds().size());
+    }
+
+    @Test
+    public void testUpdateSimilarSqlToWhitelist() throws IOException, FavoriteRuleManager.RuleConditionExistException {
+        FavoriteRule whitelist = manager.getByName(FavoriteRule.WHITELIST_NAME);
+        String originSql = ((FavoriteRule.SQLCondition) whitelist.getConds().get(0)).getSql();
+
+        // the sql already in whitelist is "select * from test_account"
+        String similarSqlInWhitelist = "  select  \n *\n from\n TEST_ACCOUNT\n\t\f ;\n\u001C\u001D\u001E\u001F";
+
+        FavoriteRule.SQLCondition sqlCondition = manager.updateWhitelistSql(new FavoriteRule.SQLCondition(similarSqlInWhitelist, similarSqlInWhitelist.hashCode(), true));
+        Assert.assertNull(sqlCondition);
+
+        // update failed
+        whitelist = manager.getByName(FavoriteRule.WHITELIST_NAME);
+        Assert.assertEquals(originSql, ((FavoriteRule.SQLCondition) whitelist.getConds().get(0)).getSql());
+    }
 }
