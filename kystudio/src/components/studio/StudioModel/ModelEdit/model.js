@@ -273,19 +273,24 @@ class NModel {
     @tartgetGuid 制定要改变顺序的对方节点
   */
   changeLinkDirect (guid, prevGuid, targetGuid) {
-    let conns = this.getAllUsedAsPrimaryConn(guid)
+    let conns = this.getAllConnectsByGuid(guid)
     let curTable = this.getTableByGuid(guid)
     conns.forEach((conn) => {
       if (conn.sourceId !== prevGuid || targetGuid && conn.sourceId === targetGuid) {
-        let hisConnInfo = curTable.getJoinInfoByFGuid(conn.sourceId)
-        let newPrimaryTable = this.getTableByGuid(conn.sourceId)
-        let newFrieignTable = this.getTableByGuid(conn.targetId)
-        // 删除
-        this.removeRenderLink(conn)
-        // 产生新的连接数据
-        newPrimaryTable.addLinkData(newFrieignTable, hisConnInfo.join.primary_key, hisConnInfo.join.foreign_key, hisConnInfo.join.type)
-        // 重新连接
-        this.renderLink(newPrimaryTable.guid, newFrieignTable.guid)
+        let newPrimaryTable = null
+        if (conn.sourceId !== guid) { // 连线方向不正确
+          let hisConnInfo = curTable.getJoinInfoByFGuid(conn.sourceId)
+          newPrimaryTable = this.getTableByGuid(conn.sourceId)
+          let newFrieignTable = this.getTableByGuid(conn.targetId)
+          // 删除
+          this.removeRenderLink(conn)
+          // 产生新的连接数据
+          newPrimaryTable.addLinkData(newFrieignTable, hisConnInfo.join.primary_key, hisConnInfo.join.foreign_key, hisConnInfo.join.type)
+          // 重新连接
+          this.renderLink(newPrimaryTable.guid, newFrieignTable.guid)
+        } else { // 连线方向正确
+          newPrimaryTable = this.getTableByGuid(conn.targetId)
+        }
         if (!targetGuid) {
           this.changeLinkDirect(newPrimaryTable.guid, guid)
         }
