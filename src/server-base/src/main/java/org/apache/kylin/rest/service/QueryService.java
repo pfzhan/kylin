@@ -956,9 +956,11 @@ public class QueryService extends BasicService {
         StringBuilder logSb = new StringBuilder("Processed rows for each storageContext: ");
         List<QueryMetricsContext.RealizationMetrics> realizationMetrics = Lists.newArrayList();
         Set<String> engineTypes = new HashSet<>();
+        boolean hasAtLeastOneRealization = false;
         if (OLAPContext.getThreadLocalContexts() != null) { // contexts can be null in case of 'explain plan for'
             for (OLAPContext ctx : OLAPContext.getThreadLocalContexts()) {
                 if (ctx.realization != null) {
+                    hasAtLeastOneRealization = true;
                     models.add(ctx.realization.getModel().getAlias());
                     isPartialResult |= ctx.storageContext.isPartialResultReturned();
                     if (cubeSb.length() > 0) {
@@ -985,10 +987,19 @@ public class QueryService extends BasicService {
         if (isPushDown) {
             response.setEngineType(QueryContext.current().getPushdownEngine());
             response.setAnsweredBy(Lists.newArrayList(QueryContext.current().getPushdownEngine()));
-        } else {
-            response.setEngineType(Joiner.on(",").join(engineTypes));
-            response.setAnsweredBy(models);
+            return response;
         }
+
+        // case of query like select * from table where 1 <> 1
+        if (!hasAtLeastOneRealization) {
+            response.setEngineType("CONSTANTS");
+            response.setAnsweredBy(Lists.newArrayList("CONSTANTS"));
+            return response;
+        }
+
+        response.setEngineType(Joiner.on(",").join(engineTypes));
+        response.setAnsweredBy(models);
+
         return response;
     }
 

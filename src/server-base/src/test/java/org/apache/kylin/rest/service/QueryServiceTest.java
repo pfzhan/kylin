@@ -574,4 +574,17 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         }).toSet();
     }
 
+    @Test
+    public void testQueryWithConstants() throws IOException, SQLException {
+        String sql = "select price from test_kylin_fact where 1 <> 1";
+        stubQueryConnection(sql, "default");
+
+        final SQLRequest request = new SQLRequest();
+        request.setProject("default");
+        request.setSql(sql);
+        SQLResponse response = queryService.doQueryWithCache(request, false);
+        Assert.assertEquals("CONSTANTS", response.getAnsweredBy().get(0));
+        Assert.assertEquals("CONSTANTS", response.getEngineType());
+    }
+
 }
