@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.newten;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
@@ -35,12 +36,16 @@ public class NAutoTpchTest extends NAutoTestBase {
         return "tpch";
     }
 
+    @Override
+    @Before
+    public void setup() throws Exception {
+        super.setup();
+        overwriteSystemProp("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
+    }
+
     //KAP#7892 fix this
     @Test
     public void testTpch() throws Exception {
-        overwriteSystemProp("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
-        overwriteSystemProp("kylin.query.transformers", "io.kyligence.kap.query.util.ConvertToComputedColumn");
-        overwriteSystemProp("kap.query.favorite.collect-as-pattern", "false");
         /*
         * Reason for not using CompareLevel.SAME:
         * See #7257, #7268, #7269
@@ -52,7 +57,6 @@ public class NAutoTpchTest extends NAutoTestBase {
     @Test
     public void testReProposeCase() throws Exception {
         // verify issue https://github.com/Kyligence/KAP/issues/7515
-        overwriteSystemProp("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
         for (int i = 0; i < 2; ++i) {
             new TestScenario("sql_tpch", CompareLevel.SAME, 1, 2).execute();
         }

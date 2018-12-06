@@ -27,7 +27,6 @@ package io.kyligence.kap.newten.auto;
 import java.io.IOException;
 
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.cube.model.NCubePlan;
@@ -40,13 +39,6 @@ import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
 public class NAutoComputedColumnTest extends NAutoTestBase {
-
-    @Override
-    @Before
-    public void setup() throws Exception {
-        super.setup();
-        overwriteSystemProp("kylin.query.transformers", "io.kyligence.kap.query.util.ConvertToComputedColumn");
-    }
 
     @Test
     public void testComputedColumnsWontImpactFavoriteQuery() throws IOException {

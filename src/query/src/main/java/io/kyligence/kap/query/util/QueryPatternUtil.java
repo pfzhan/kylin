@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.calcite.avatica.util.TimeUnit;
+import org.apache.calcite.sql.SqlAggFunction;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlCharStringLiteral;
@@ -57,12 +58,16 @@ import org.apache.calcite.sql.SqlLiteral;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlNodeList;
 import org.apache.calcite.sql.SqlNumericLiteral;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.SqlOrderBy;
+import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.SqlSelectKeyword;
 import org.apache.calcite.sql.SqlWriter;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.util.SqlBasicVisitor;
 import org.apache.calcite.util.DateString;
+import org.apache.calcite.util.ImmutableNullableList;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.slf4j.Logger;
@@ -92,6 +97,32 @@ public class QueryPatternUtil {
         }
     }
 
+    private static class SqlSelectForPattern extends SqlSelect {
+        private SqlSelectForPattern(SqlSelect select) {
+            super(select.getParserPosition(), null,
+                    select.getSelectList(), select.getFrom(), select.getWhere(), select.getGroup(),
+                    select.getHaving(), select.getWindowList(), select.getOrderList(), select.getOffset(), select.getFetch());
+        }
+
+        @Override
+        public List<SqlNode> getOperandList() {
+            // skip adding selectList, group, orderList into operand list
+            return ImmutableNullableList.of(getFrom(), getWhere(), getHaving(), getWindowList(), getOffset(), getFetch());
+        }
+    }
+
+    private static class SqlOrderByForPattern extends SqlOrderBy {
+        private SqlOrderByForPattern(SqlOrderBy orderBy) {
+            super(orderBy.getParserPosition(), orderBy.query, orderBy.orderList, orderBy.offset, orderBy.fetch);
+        }
+
+        @Override
+        public List<SqlNode> getOperandList() {
+            // skip adding orderList into operandList
+            return ImmutableNullableList.of(query, offset, fetch);
+        }
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(QueryPatternUtil.class);
     private static final SqlDialect DEFAULT_DIALECT = KySqlDialect.DEFAULT;
     private static final String DEFAULT_DATE = "2010-01-01";
@@ -104,7 +135,7 @@ public class QueryPatternUtil {
     private QueryPatternUtil() {
         throw new IllegalStateException("Wrong usage for utility class.");
     }
-    
+
     public static String normalizeSQLPattern(String sqlToNormalize) {
         if (!KapConfig.getInstanceFromEnv().enableQueryPattern()) {
             return sqlToNormalize;
@@ -138,6 +169,14 @@ public class QueryPatternUtil {
             return sqlToNormalize;
         }
         PatternGenerator patternGenerator = new PatternGenerator();
+        // normalize offset and limit clause
+        if (sqlNode instanceof SqlOrderBy) {
+            SqlOrderBy sqlOrderBy = (SqlOrderBy) sqlNode;
+            SqlParserPos pos = sqlOrderBy.getParserPosition();
+            SqlNode offset = sqlOrderBy.offset == null ? null : SqlLiteral.createExactNumeric("1", sqlOrderBy.offset.getParserPosition());
+            SqlNode fetch = sqlOrderBy.fetch == null ?  null : SqlLiteral.createExactNumeric("1", sqlOrderBy.fetch.getParserPosition());
+            sqlNode = new SqlOrderBy(pos, sqlOrderBy.query, sqlOrderBy.orderList, offset, fetch);
+        }
         patternGenerator.visit((SqlCall) sqlNode);
         return sqlNode.toSqlString(DEFAULT_DIALECT).toString();
     }
@@ -146,13 +185,25 @@ public class QueryPatternUtil {
 
         @Override
         public Object visit(SqlCall call) {
+            if (call instanceof SqlSelect) {
+                call = new SqlSelectForPattern((SqlSelect) call);
+            }
+
+            if (call instanceof SqlOrderBy) {
+                call = new SqlOrderByForPattern((SqlOrderBy) call);
+            }
+
             if (call instanceof SqlBasicCall) {
 
                 SqlBasicCall basicCall = (SqlBasicCall) call;
-                SqlKind operator = basicCall.getOperator().getKind();
+                SqlOperator operator = basicCall.getOperator();
+                if (operator instanceof SqlAggFunction) {
+                    return null;
+                }
+                SqlKind operatorKind = basicCall.getOperator().getKind();
                 List<SqlNode> operandList = basicCall.getOperandList();
 
-                switch (operator) {
+                switch (operatorKind) {
                     case IN:
                     case NOT_IN:
                         normalizeInClause(basicCall);

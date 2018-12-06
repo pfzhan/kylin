@@ -6,7 +6,7 @@
   "conds" : [ {
     "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$SQLCondition",
     "sql" : "select * from test_country",
-    "sqlPatternHash" : -1264896913
+    "sqlPatternHash" : 1965162027
   } ],
   "name" : "blacklist"
 }

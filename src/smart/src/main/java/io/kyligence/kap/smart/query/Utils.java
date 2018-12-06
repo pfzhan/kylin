@@ -25,22 +25,14 @@
 package io.kyligence.kap.smart.query;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
-import org.apache.kylin.query.util.DefaultQueryTransformer;
-import org.apache.kylin.query.util.KeywordDefaultDirtyHack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.query.util.CognosParenthesesEscape;
-import io.kyligence.kap.query.util.EscapeTransformer;
 import io.kyligence.kap.smart.query.mockup.MockupPushDownRunner;
 import io.kyligence.kap.smart.query.mockup.MockupStorage;
 
@@ -69,13 +61,6 @@ public class Utils {
         props.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.KapModel");
         props.setProperty("kap.metadata.mock.no-dict-store", "true");
 
-        List<String> queryTransformers = Lists.newArrayList();
-        queryTransformers.add(EscapeTransformer.class.getName());
-        queryTransformers.add(DefaultQueryTransformer.class.getName());
-        queryTransformers.add(KeywordDefaultDirtyHack.class.getName());
-        queryTransformers.add(CognosParenthesesEscape.class.getName());
-        props.setProperty("kylin.query.transformers", StringUtils.join(queryTransformers, ","));
-
         return KylinConfig.createKylinConfig(props);
     }
 
@@ -97,13 +82,6 @@ public class Utils {
         props.setProperty("kylin.metadata.project-manager-impl", "io.kyligence.kap.metadata.project.NProjectManager");
         props.setProperty("kylin.metadata.realization-providers", "io.kyligence.kap.cube.model.NDataflowManager");
         props.setProperty("kylin.query.schema-factory", "io.kyligence.kap.query.schema.KapSchemaFactory");
-
-        List<String> queryTransformers = Lists.newArrayList();
-        queryTransformers.add(EscapeTransformer.class.getName());
-        queryTransformers.add(DefaultQueryTransformer.class.getName());
-        queryTransformers.add(KeywordDefaultDirtyHack.class.getName());
-        queryTransformers.add(CognosParenthesesEscape.class.getName());
-        props.setProperty("kylin.query.transformers", StringUtils.join(queryTransformers, ","));
 
         return KylinConfig.createKylinConfig(props);
     }

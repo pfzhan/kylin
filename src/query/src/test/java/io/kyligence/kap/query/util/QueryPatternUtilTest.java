@@ -41,10 +41,15 @@
  */
 package io.kyligence.kap.query.util;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.IOException;
+
 public class QueryPatternUtilTest {
+    private static final String SQL_DIR = "../query/src/test/resources/query_pattern";
 
     @Test
     public void testJdbcFn() {
@@ -74,12 +79,35 @@ public class QueryPatternUtilTest {
                 + "FROM \"TDVT\".\"CALCS\" \"CALCS\"\n"
                 + "GROUP BY \"Calcs\".\"KEY\"\n"
                 + "ORDER BY SUM(\"Calcs\".\"NUM2\") DESC\n"
-                + "LIMIT 10\n"
-                + "OFFSET 2";
+                + "LIMIT 1\n"
+                + "OFFSET 1";
         Assert.assertEquals(expected, pattern1);
 
         String pattern2 = QueryPatternUtil.normalizeSQLPatternImpl(pattern1);
         Assert.assertEquals(pattern1, pattern2);
+    }
+
+    @Test
+    public void testComputedColumnCompatibility() throws IOException {
+        String sql = retrieveSql("query01.sql");
+        String expected = retrieveSql("query01.sql.expected");
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
+        Assert.assertEquals(expected, actual);
+
+        String sql2 = retrieveSql("query02.sql");
+        String expected2 = retrieveSql("query02.sql.expected");
+        String actual2 = QueryPatternUtil.normalizeSQLPatternImpl(sql2);
+        Assert.assertEquals(expected2, actual2);
+
+        String sql3 = retrieveSql("query03.sql");
+        String expected3 = retrieveSql("query03.sql.expected");
+        String actual3 = QueryPatternUtil.normalizeSQLPatternImpl(sql3);
+        Assert.assertEquals(expected3, actual3);
+
+        String sql4 = retrieveSql("query04.sql");
+        String expected4 = retrieveSql("query04.sql.expected");
+        String actual4 = QueryPatternUtil.normalizeSQLPatternImpl(sql4);
+        Assert.assertEquals(expected4, actual4);
     }
 
     @Test
@@ -94,7 +122,7 @@ public class QueryPatternUtilTest {
                 + " ON test_kylin_fact.cal_dt = test_cal_dt.cal_dt \n"
                 + " where test_cal_dt.week_beg_dt between DATE '2013-05-01' and DATE '2013-08-01' \n"
                 + " group by test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt \n"
-                + " having sum(price)>500 \n"
+                + " having sum(price+2*4) * 2>500 \n"
                 + " ) TableauSQL \n"
                 + " GROUP BY 2 \n"
                 + " HAVING COUNT(1)>0 ";
@@ -105,9 +133,17 @@ public class QueryPatternUtilTest {
                 + "INNER JOIN \"EDW\".\"TEST_CAL_DT\" \"TEST_CAL_DT\" ON \"TEST_KYLIN_FACT\".\"CAL_DT\" = \"TEST_CAL_DT\".\"CAL_DT\"\n"
                 + "WHERE \"TEST_CAL_DT\".\"WEEK_BEG_DT\" BETWEEN ASYMMETRIC DATE '2010-01-01' AND DATE '2010-01-01'\n"
                 + "GROUP BY \"TEST_KYLIN_FACT\".\"LSTG_FORMAT_NAME\", \"TEST_CAL_DT\".\"WEEK_BEG_DT\"\n"
-                + "HAVING SUM(\"PRICE\") > 1) \"TABLEAUSQL\"\n"
+                + "HAVING SUM(\"PRICE\" + 2 * 4) * 1 > 1) \"TABLEAUSQL\"\n"
                 + "GROUP BY 2\n"
                 + "HAVING COUNT(1) > 1";
+        String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
+        Assert.assertEquals(expected, actual);
+    }
+
+    @Test
+    public void testHaving() throws IOException {
+        String sql = retrieveSql("query05.sql");
+        String expected = retrieveSql("query05.sql.expected");
         String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
         Assert.assertEquals(expected, actual);
     }
@@ -144,8 +180,8 @@ public class QueryPatternUtilTest {
         String sql2 = "select ks.price > 50, ks.part_dt <= '2008-04-23' "
                 + "from kylin_sales as ks";
         String actual2 = QueryPatternUtil.normalizeSQLPatternImpl(sql2);
-        String expected2 = "SELECT \"KS\".\"PRICE\" > 1, \"KS\".\"PART_DT\" <= '2010-01-02'\n"
-                + "FROM \"KYLIN_SALES\" \"KS\"";
+        String expected2 = "SELECT \"KS\".\"PRICE\" > 50, \"KS\".\"PART_DT\" <= '2008-04-23'\n" +
+                "FROM \"KYLIN_SALES\" \"KS\"";
         Assert.assertEquals(expected2, actual2);
     }
 
@@ -382,19 +418,19 @@ public class QueryPatternUtilTest {
                 + "group by cal_dt, lstg_format_name)t\n"
                 + "where cal_dt between '2013-01-06' and '2013-01-15'";
         String actual = QueryPatternUtil.normalizeSQLPatternImpl(sql);
-        String expected = "SELECT *\n"
-                + "FROM (SELECT \"CAL_DT\", \"LSTG_FORMAT_NAME\", "
-                + "SUM(\"PRICE\") \"GMV\", 1 * SUM(\"PRICE\") / (FIRST_VALUE(SUM(\"PRICE\")) "
-                + "OVER (PARTITION BY \"LSTG_FORMAT_NAME\" "
-                + "ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) RANGE INTERVAL '1' DAY PRECEDING)) \"last_day\", "
-                + "FIRST_VALUE(SUM(\"PRICE\")) OVER (PARTITION BY \"LSTG_FORMAT_NAME\" "
-                + "ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) RANGE CAST(1 AS INTERVAL DAY) PRECEDING)\n"
-                + "FROM \"TEST_KYLIN_FACT\" \"last_year\"\n"
-                + "WHERE \"CAL_DT\" BETWEEN ASYMMETRIC '2010-01-01' "
-                + "AND '2010-01-01' OR \"CAL_DT\" BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01' "
-                + "OR \"CAL_DT\" BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01'\n"
-                + "GROUP BY \"CAL_DT\", \"LSTG_FORMAT_NAME\") \"T\"\n"
-                + "WHERE \"CAL_DT\" BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01'";
+        String expected = "SELECT *\n" +
+                "FROM (SELECT \"CAL_DT\", \"LSTG_FORMAT_NAME\", " +
+                "SUM(\"PRICE\") \"GMV\", 100 * SUM(\"PRICE\") / (FIRST_VALUE(SUM(\"PRICE\")) " +
+                "OVER (PARTITION BY \"LSTG_FORMAT_NAME\" ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) " +
+                "RANGE INTERVAL '2' DAY PRECEDING)) \"last_day\", FIRST_VALUE(SUM(\"PRICE\")) " +
+                "OVER (PARTITION BY \"LSTG_FORMAT_NAME\" ORDER BY CAST(\"CAL_DT\" AS TIMESTAMP) " +
+                "RANGE CAST(366 AS INTERVAL DAY) PRECEDING)\n" +
+                "FROM \"TEST_KYLIN_FACT\" \"last_year\"\n" +
+                "WHERE \"CAL_DT\" BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01' OR \"CAL_DT\" " +
+                "BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01' OR \"CAL_DT\" " +
+                "BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01'\n" +
+                "GROUP BY \"CAL_DT\", \"LSTG_FORMAT_NAME\") \"T\"\n" +
+                "WHERE \"CAL_DT\" BETWEEN ASYMMETRIC '2010-01-01' AND '2010-01-01'";
         Assert.assertEquals(expected, actual);
     }
 
@@ -505,6 +541,11 @@ public class QueryPatternUtilTest {
                 + "ON \"T1\".\"WEEK_BEG_DT\" = \"T2\".\"WEEK_BEG_DT\"\n"
                 + "WHERE \"T1\".\"WEEK_BEG_DT\" > '2010-01-01'";
         Assert.assertEquals(expected, actual);
+    }
+
+    private static String retrieveSql(String fileName) throws IOException {
+        File file = new File(SQL_DIR + File.separator + fileName);
+        return FileUtils.readFileToString(file);
     }
 
 }
