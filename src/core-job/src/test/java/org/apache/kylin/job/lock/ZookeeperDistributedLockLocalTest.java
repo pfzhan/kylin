@@ -44,7 +44,9 @@
 package org.apache.kylin.job.lock;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.io.Closeable;
@@ -53,10 +55,10 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.lock.DistributedLock.Watcher;
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -65,7 +67,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.shaded.curator.org.apache.curator.test.TestingServer;
 
-public class ZookeeperDistributedLockLocalTest extends LocalFileMetadataTestCase {
+public class ZookeeperDistributedLockLocalTest extends NLocalFileMetadataTestCase {
     private static final Logger logger = LoggerFactory.getLogger(ZookeeperDistributedLockLocalTest.class);
     private static final String ZK_PFX = "/test/ZookeeperDistributedLockLocalTest/" + new Random().nextInt(10000000);
 
@@ -96,7 +98,7 @@ public class ZookeeperDistributedLockLocalTest extends LocalFileMetadataTestCase
         DistributedLock l = factory.lockForCurrentThread();
         String path = ZK_PFX + "/testBasic";
 
-        assertTrue(l.isLocked(path) == false);
+        assertFalse(l.isLocked(path));
         assertTrue(l.lock(path));
         assertTrue(l.lock(path));
         assertTrue(l.lock(path));
@@ -104,7 +106,7 @@ public class ZookeeperDistributedLockLocalTest extends LocalFileMetadataTestCase
         assertTrue(l.isLocked(path));
         assertTrue(l.isLockedByMe(path));
         l.unlock(path);
-        assertTrue(l.isLocked(path) == false);
+        assertFalse(l.isLocked(path));
     }
 
     @Test
@@ -113,12 +115,12 @@ public class ZookeeperDistributedLockLocalTest extends LocalFileMetadataTestCase
         DistributedLock d = factory.lockForClient("client2");
         String path = ZK_PFX + "/testErrorCases";
 
-        assertTrue(c.isLocked(path) == false);
-        assertTrue(d.peekLock(path) == null);
+        assertFalse(c.isLocked(path));
+        assertNull(d.peekLock(path));
 
         assertTrue(c.lock(path));
-        assertTrue(d.lock(path) == false);
-        assertTrue(d.isLocked(path) == true);
+        assertFalse(d.lock(path));
+        assertTrue(d.isLocked(path));
         assertEquals(c.getClient(), d.peekLock(path));
 
         try {
@@ -129,7 +131,7 @@ public class ZookeeperDistributedLockLocalTest extends LocalFileMetadataTestCase
         }
 
         c.unlock(path);
-        assertTrue(d.isLocked(path) == false);
+        assertFalse(d.isLocked(path));
 
         d.lock(path);
         d.unlock(path);
@@ -141,8 +143,8 @@ public class ZookeeperDistributedLockLocalTest extends LocalFileMetadataTestCase
         final DistributedLock d = factory.lockForClient("client2");
         final String path = ZK_PFX + "/testLockTimeout";
 
-        assertTrue(c.isLocked(path) == false);
-        assertTrue(d.peekLock(path) == null);
+        assertFalse(c.isLocked(path));
+        assertNull(d.peekLock(path));
 
         assertTrue(c.lock(path));
         new Thread() {
@@ -231,7 +233,7 @@ public class ZookeeperDistributedLockLocalTest extends LocalFileMetadataTestCase
 
         // assert all locks were released
         for (int i = 0; i < nLocks; i++) {
-            assertTrue(lock.isLocked(lockPaths[i]) == false);
+            assertFalse(lock.isLocked(lockPaths[i]));
         }
     }
 
@@ -262,7 +264,7 @@ public class ZookeeperDistributedLockLocalTest extends LocalFileMetadataTestCase
 
                 // random lock
                 int lockIdx = rand.nextInt(nLocks);
-                if (client.isLockedByMe(lockPaths[lockIdx]) == false) {
+                if (!client.isLockedByMe(lockPaths[lockIdx])) {
                     boolean locked = client.lock(lockPaths[lockIdx]);
                     if (locked) {
                         lockCounter++;

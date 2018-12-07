@@ -51,6 +51,7 @@ import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.Map;
 
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -61,7 +62,7 @@ public class HiveCmdBuilderTest {
 
     @Before
     public void setup() {
-        System.setProperty("KYLIN_CONF", LocalFileMetadataTestCase.LOCALMETA_TEST_DATA);
+        System.setProperty("KYLIN_CONF", TempMetadataBuilder.N_KAP_META_TEST_DATA);
     }
 
     @After

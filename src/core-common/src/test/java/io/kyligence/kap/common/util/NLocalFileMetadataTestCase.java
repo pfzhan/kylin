@@ -25,12 +25,21 @@
 package io.kyligence.kap.common.util;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.Collection;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.AbstractKylinTestCase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
-    public static File tempMetadataDirectory = null;
+public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
+
+    private static final Logger logger = LoggerFactory.getLogger(NLocalFileMetadataTestCase.class);
+    private static final String LOCALMETA_TEMP_DATA = "../examples/test_metadata/";
+    protected static File tempMetadataDirectory = null;
 
     static {
         if (new File("../../build/conf/kylin-tools-log4j.properties").exists()) {
@@ -58,8 +67,7 @@ public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
         } catch (Exception e) {
             // ignore
         }
-
-        super.cleanupTestMetadata();
+        staticCleanupTestMetadata();
     }
 
     public static void staticCreateTestMetadata(String... overlay) {
@@ -79,4 +87,64 @@ public class NLocalFileMetadataTestCase extends LocalFileMetadataTestCase {
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(config);
         return config;
     }
+
+    public static void staticCleanupTestMetadata() {
+        File directory = new File(LOCALMETA_TEMP_DATA);
+        deleteDirectoryWithErrMsg(directory);
+
+        clearTestConfig();
+    }
+
+    public static void deleteDirectoryWithErrMsg(File dir) {
+        int retry = 3;
+        String msg = null;
+        IOException ioe = null;
+
+        while (retry > 0) {
+            msg = null;
+            ioe = null;
+            boolean done = true;
+            try {
+                FileUtils.deleteDirectory(dir);
+            } catch (IOException e) {
+                Collection<File> remaining = FileUtils.listFiles(dir, null, true);
+                if (!remaining.isEmpty()) {
+                    done = false;
+                    ioe = e;
+                    msg = "Cannot delete directory " + dir + ", remaining: " + remaining;
+                    logger.error(msg, e);
+                }
+            }
+            if (done) {
+                break;
+            }
+
+            try {
+                Thread.sleep(300);
+            } catch (InterruptedException e) {
+                logger.warn("Interrupted!", e);
+                Thread.currentThread().interrupt();
+            }
+            retry--;
+        }
+
+        if (ioe != null)
+            throw new IllegalStateException(msg, ioe);
+    }
+
+    protected String getLocalWorkingDirectory() {
+        String dir = KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory();
+        if (dir.startsWith("file://"))
+            dir = dir.substring("file://".length());
+        try {
+            return new File(dir).getCanonicalPath();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    protected ResourceStore getStore() {
+        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+    }
+
 }

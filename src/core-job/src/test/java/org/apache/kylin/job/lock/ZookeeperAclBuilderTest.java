@@ -47,11 +47,11 @@ import static junit.framework.TestCase.fail;
 
 import java.util.List;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.framework.CuratorFrameworkFactory.Builder;
 import org.apache.hadoop.util.ZKUtil;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.zookeeper.ZooDefs;
 import org.apache.zookeeper.data.ACL;
 import org.junit.AfterClass;
@@ -61,7 +61,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-public class ZookeeperAclBuilderTest extends LocalFileMetadataTestCase {
+public class ZookeeperAclBuilderTest extends NLocalFileMetadataTestCase {
 
     @BeforeClass
     public static void setupResource() throws Exception {

@@ -200,7 +200,7 @@ public class QueryPatternUtil {
                 if (operator instanceof SqlAggFunction) {
                     return null;
                 }
-                SqlKind operatorKind = basicCall.getOperator().getKind();
+                SqlKind operatorKind = operator.getKind();
                 List<SqlNode> operandList = basicCall.getOperandList();
 
                 switch (operatorKind) {

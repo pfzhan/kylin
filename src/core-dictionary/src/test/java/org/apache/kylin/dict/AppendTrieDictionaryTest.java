@@ -25,11 +25,11 @@
 package org.apache.kylin.dict;
 
 import com.google.common.collect.Lists;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.LocalFileMetadataTestCase;
 import org.apache.kylin.dict.global.AppendDictSliceKey;
 import org.apache.kylin.dict.global.AppendTrieDictionaryBuilder;
 import org.apache.kylin.dict.global.GlobalDictHDFSStore;
@@ -66,7 +66,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
-public class AppendTrieDictionaryTest extends LocalFileMetadataTestCase {
+public class AppendTrieDictionaryTest extends NLocalFileMetadataTestCase {
 
     private static final String RESOURCE_DIR = "/dict/append_dict_test/" + UUID.randomUUID();
     private static String BASE_DIR;
