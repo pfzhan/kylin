@@ -1077,6 +1077,10 @@ public class NDataModel extends RootPersistentEntity {
             newCC.init(this, getRootFactTable().getAlias());
         }
 
+        if (!"true".equals(System.getProperty("needCheckCC"))) {
+            return;
+        }
+
         for (ComputedColumnDesc newCC : this.computedColumnDescs) {
             Set<String> usedAliasSet = getUsedAliasSet(newCC.getExpression());
 

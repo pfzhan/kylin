@@ -80,6 +80,8 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         }
         // set influx config
         System.setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
+        // enable CC check
+        System.setProperty("needCheckCC", "true");
     }
 
     private static void setProdEnvs() {
