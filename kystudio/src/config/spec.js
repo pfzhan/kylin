@@ -97,8 +97,8 @@ export default {
     "menu": {
       "keyPattern": "groupRole-projectRole",
       "entries": [
-        { "key": "systemAdmin-*", "value": "overview,query,insight,queryHistory,favoriteQuery,studio,project,source,model,modelEdit,monitor,job,security,user,group" },
-        { "key": "systemUser-*", "value": "overview,query,insight,queryHistory,favoriteQuery,studio,project,source,model,modelEdit,monitor,job,security,user" }
+        { "key": "systemAdmin-*", "value": "dashboard,query,insight,queryHistory,favoriteQuery,studio,project,source,model,index,modelEdit,monitor,job,setting,security,user,group" },
+        { "key": "systemUser-*", "value": "dashboard,query,insight,queryHistory,favoriteQuery,studio,project,source,model,index,modelEdit,monitor,job,setting,security,user" }
       ]
     },
     // 用户操作权限
