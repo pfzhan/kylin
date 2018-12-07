@@ -329,6 +329,11 @@ export default class LayoutLeftRightTop extends Vue {
   created () {
     // this.reloadRouter()
     this.defaultActive = this.$route.path || '/dashboard'
+    if (this.isAutoProject) {
+      this.menus[2].children[2].name = 'index'
+    } else {
+      this.menus[2].children[2].name = 'model'
+    }
 
     // for newten
     // this.getEncoding().then(() => {}, (res) => {
@@ -365,12 +370,6 @@ export default class LayoutLeftRightTop extends Vue {
       }
     })
   }
-  // _isAjaxProjectAcess (allProject, curProjectName, currentPath) {
-  //   let curProjectUserAccess = this.getUserAccess({project: curProjectName})
-  //   Promise.all([curProjectUserAccess]).then(() => {
-  //     this._replaceRouter(currentPath)
-  //   })
-  // }
   changeProject (val) {
     var currentPath = this.$router.currentRoute.path
     this._replaceRouter(currentPath)

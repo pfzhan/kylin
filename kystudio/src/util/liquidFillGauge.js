@@ -4,7 +4,7 @@ export function liquidFillGaugeDefaultSettings () {
     minValue: 0, // The gauge minimum value.
     maxValue: 100, // The gauge maximum value.
     circleThickness: 0.02, // The outer circle thickness as a percentage of it's radius.
-    circleFillGap: -0.005, // The size of the gap between the outer circle and wave circle as a percentage of the outer circles radius.
+    circleFillGap: 0, // The size of the gap between the outer circle and wave circle as a percentage of the outer circles radius.
     circleColor: '#178BCA', // The color of the outer circle.
     waveHeight: 0.05, // The wave height as a percentage of the radius of the wave circle.
     waveCount: 1, // The number of full waves per width of the wave circle.
@@ -75,8 +75,8 @@ export function loadLiquidFillGauge (elementId, value, config) {
   }
 
   // Scales for drawing the outer circle.
-  var gaugeCircleX = d3.scale.linear().range([0, 2 * Math.PI]).domain([0, 1])
-  var gaugeCircleY = d3.scale.linear().range([0, radius]).domain([0, radius])
+  // var gaugeCircleX = d3.scale.linear().range([0, 2 * Math.PI]).domain([0, 1])
+  // var gaugeCircleY = d3.scale.linear().range([0, radius]).domain([0, radius])
 
   // Scales for controlling the size of the clipping path.
   var waveScaleX = d3.scale.linear().range([0, waveClipWidth]).domain([0, 1])
@@ -101,36 +101,41 @@ export function loadLiquidFillGauge (elementId, value, config) {
   // Center the gauge within the parent SVG.
   var gaugeGroup = gauge.append('g')
     .attr('transform', 'translate(' + locationX + ',' + locationY + ')')
-  var shadowPath = gaugeGroup.append('defs')
+  var shadowPath = gauge.append('defs')
     .append('filter')
     .attr('id', 'f1')
-    .attr('x', 0)
-    .attr('y', 0)
-    .attr('width', '200%')
-    .attr('height', '200%')
+    .attr('rx', radius)
+    .attr('ry', radius + 1)
+    .attr('r', radius)
   shadowPath.append('feOffset')
     .attr('result', 'offOut')
     .attr('in', 'SourceGraphic')
   shadowPath.append('feGaussianBlur')
     .attr('result', 'blurOut')
     .attr('in', 'offOut')
-    .attr('stdDeviation', 2)
+    .attr('stdDeviation', 1)
   shadowPath.append('feBlend')
     .attr('in', 'SourceGraphic')
     .attr('in2', 'blurOut')
     .attr('mode', 'normal')
 
   // Draw the outer circle.
-  var gaugeCircleArc = d3.svg.arc()
-    .startAngle(gaugeCircleX(0))
-    .endAngle(gaugeCircleX(1))
-    .outerRadius(gaugeCircleY(radius))
-    .innerRadius(gaugeCircleY(radius - circleThickness))
-  gaugeGroup.append('path')
-    .attr('d', gaugeCircleArc)
-    .style('fill', config.circleColor)
+  // var gaugeCircleArc = d3.svg.arc()
+  //   .startAngle(gaugeCircleX(0))
+  //   .endAngle(gaugeCircleX(1))
+  //   .outerRadius(gaugeCircleY(radius))
+  //   .innerRadius(gaugeCircleY(radius - circleThickness))
+  gaugeGroup.append('circle')
+    .attr('cx', radius)
+    .attr('cy', radius + 1)
+    .attr('r', radius)
+    .attr('fill', config.circleColor)
     .attr('filter', 'url(#f1)')
-    .attr('transform', 'translate(' + radius + ',' + radius + ')')
+  // gaugeGroup.append('path')
+  //   .attr('d', gaugeCircleArc)
+  //   .style('fill', config.circleColor)
+  //   .attr('filter', 'url(#f1)')
+  //   .attr('transform', 'translate(' + radius + ',' + radius + ')')
 
   // The clipping wave area.
   var clipArea = d3.svg.area()
@@ -165,7 +170,7 @@ export function loadLiquidFillGauge (elementId, value, config) {
   var fillCircle1 = gaugeGroup.append('g')
   fillCircle1.append('circle')
   .attr('cx', radius)
-  .attr('cy', radius)
+  .attr('cy', radius + 1)
   .attr('r', fillCircleRadius)
   .attr('fill', '#fff')
   // Text where the wave does not overlap.
@@ -181,7 +186,7 @@ export function loadLiquidFillGauge (elementId, value, config) {
     .attr('clip-path', 'url(#clipWave' + elementId + ')')
   fillCircleGroup.append('circle')
     .attr('cx', radius)
-    .attr('cy', radius)
+    .attr('cy', radius + 1)
     .attr('r', fillCircleRadius)
     .attr('fill', 'url(#grad1)')
     // .style('fill', config.waveColor)

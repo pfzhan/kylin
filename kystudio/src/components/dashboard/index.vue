@@ -29,14 +29,14 @@
               </el-popover>
               <div class="quota-chart" v-popover:popover>
                 <div class="unUseage-block" :style="{'height': (1-useageRatio-trashRatio)*170+'px'}">
-                  <div class="text" v-if="(trashRatio*170<14 || useageRatio*170<14)">{{Math.round((1-useageRatio-trashRatio)*100)}}%</div>
+                  <div class="text" v-if="(trashRatio*170<14 || useageRatio*170<14)">{{unUseageRatio*100}}%</div>
                 </div>
                 <div class="total-use-block" :style="{'height': usedBlockHeight+'px'}">
                   <div class="useage-block" :style="{'height': (useageRatio*170/usedBlockHeight)*100+'%'}">
-                    <div class="text" v-if="useageRatio*170>=14">{{Math.round(useageRatio*100)}}%</div>
+                    <div class="text" v-if="useageRatio*170>=14">{{useageRatio*100}}%</div>
                   </div>
                   <div class="trash-block" :style="{'height': (trashRatio*170/usedBlockHeight)*100+'%'}">
-                    <div class="text" v-if="trashRatio*170>=14">{{Math.round(trashRatio*100)}}%</div>
+                    <div class="text" v-if="trashRatio*170>=14">{{trashRatio*100}}%</div>
                   </div>
                 </div>
               </div>
@@ -128,7 +128,8 @@
     <el-row :gutter="10" class="ksd-mt-10 chart-row">
       <el-col :span="12">
         <div class="dash-card">
-          <div class="cart-title">{{$t('queryByCube')}}</div>
+          <div class="cart-title" v-if="isAutoProject">{{$t('queryByIndex')}}</div>
+          <div class="cart-title" v-else>{{$t('queryByModel')}}</div>
           <img src="../../assets/img/chart01.png" width="100%" height="100%"/>
         </div>
       </el-col>
@@ -160,12 +161,13 @@ import $ from 'jquery'
   },
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'isAutoProject'
     ])
   },
   locales: {
-    'en': {storageQuota: 'Storage Quota', acceImpact: 'Acceleration Impact', ruleSetting: 'Rules Setting', totalStorage: 'Total Storage', useageMana: 'Useage Manage', trash: 'Trash', clear: 'Clear', queryCount: 'Query Count', viewDetail: 'View Detail', avgQueryLatency: 'Avg. Query Latency', jobCount: 'Job Count', avgBulidTime: 'Avg Build Time Per MB', queryByCube: 'Query Count by Cube', queryByDay: 'Query Count by Day'},
-    'zh-cn': {storageQuota: '储存配额', acceImpact: '加速规则影响力', ruleSetting: '规则设置', totalStorage: '总储存容量', useageMana: '占用资源管理', trash: '系统垃圾', clear: '清除垃圾', queryCount: '查询次数', viewDetail: '查看详情', avgQueryLatency: '平均查询延迟', jobCount: '任务次数', avgBulidTime: '每兆平均构建时间', queryByCube: '以Cube查询次数', queryByDay: '以天查询次数'}
+    'en': {storageQuota: 'Storage Quota', acceImpact: 'Acceleration Impact', ruleSetting: 'Rules Setting', totalStorage: 'Total Storage', useageMana: 'Useage Manage', trash: 'Trash', clear: 'Clear', queryCount: 'Query Count', viewDetail: 'View Detail', avgQueryLatency: 'Avg. Query Latency', jobCount: 'Job Count', avgBulidTime: 'Avg Build Time Per MB', queryByModel: 'Query Count by Model', queryByDay: 'Query Count by Day', queryByIndex: 'Query Count by Index'},
+    'zh-cn': {storageQuota: '储存配额', acceImpact: '加速规则影响力', ruleSetting: '规则设置', totalStorage: '总储存容量', useageMana: '占用资源管理', trash: '系统垃圾', clear: '清除垃圾', queryCount: '查询次数', viewDetail: '查看详情', avgQueryLatency: '平均查询延迟', jobCount: '任务次数', avgBulidTime: '每兆平均构建时间', queryByModel: '以模型查询次数', queryByDay: '以天查询次数', queryByIndex: '以索引查询次数'}
   }
 })
 export default class Dashboard extends Vue {
@@ -179,6 +181,7 @@ export default class Dashboard extends Vue {
   }
   useageRatio = 0
   trashRatio = 0
+  unUseageRatio = 0
   usedBlockHeight = 0
   popoverVisible = false
   drawImpactChart () {
@@ -223,8 +226,9 @@ export default class Dashboard extends Vue {
       const res = await this.getQuotaInfo({project: this.currentSelectedProject})
       const resData = await handleSuccessAsync(res)
       this.quotaInfo = resData
-      this.useageRatio = (resData.total_storage_size / resData.storage_quota_size).toFixed(2)
-      this.trashRatio = (resData.garbage_storage_size / resData.storage_quota_size).toFixed(2)
+      this.useageRatio = (resData.total_storage_size / resData.storage_quota_size).toFixed(4)
+      this.trashRatio = (resData.garbage_storage_size / resData.storage_quota_size).toFixed(4)
+      this.unUseageRatio = (1 - this.useageRatio - this.trashRatio).toFixed(4)
       setTimeout(() => {
         this.usedBlockHeight = (this.useageRatio + this.trashRatio) * 170
       }, 0)

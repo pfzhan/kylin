@@ -11,6 +11,7 @@ export default {
       { "id": "setting", "value": "project_setting", "title": "setting" },
       { "id": "source", "value": "source", "title": "Source" },
       { "id": "model", "value": "model", "title": "Model" },
+      { "id": "index", "value": "index", "title": "Index" },
       { "id": "modelEdit", "value": "modelEdit", "title": "Model Edit" },
       { "id": "monitor", "value": "monitor", "title": "Monitor" },
       { "id": "job", "value": "job", "title": "Job" },

@@ -379,6 +379,7 @@ exports.default = {
     datasource: 'Data Source',
     source: 'Source',
     model: 'Model',
+    index: 'Index',
     modeledit: 'Model Edit'
   },
   user: {

@@ -375,6 +375,7 @@ exports.default = {
     datasource: '数据源',
     source: '数据源',
     model: '模型',
+    index: '索引',
     modeledit: '编辑模型'
   },
   user: {
