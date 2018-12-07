@@ -17,16 +17,52 @@ import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations } from 'vuex'
 // import { sampleGuid } from '../../../../config'
 import locales from './locales'
-import { sampleGuid } from 'util/index'
+import { sampleGuid, cacheSessionStorage } from 'util/index'
 import ModelEdit from '../ModelEdit/index.vue'
-
+import ElementUI from 'kyligence-ui'
+// import { cacheSessionStorage, cacheLocalStorage } from 'util/index'
+let MessageBox = ElementUI.MessageBox
 @Component({
-  // props: {
-  //   modelName: {
-  //     type: String,
-  //     default: ''
-  //   }
-  // },
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      // 在添加模型页面刷新，跳转到列表页面
+      if (to.name === 'ModelEdit' && to.params.action === 'add' && from.name === null) {
+        vm.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
+      }
+    })
+    next()
+  },
+  beforeRouteLeave (to, from, next) {
+    if (!to.params.ignoreIntercept || to.name === 'Login') {
+      next(false)
+      setTimeout(() => {
+        MessageBox.confirm(window.kapVm.$t('kylinLang.common.willGo'), window.kapVm.$t('kylinLang.common.tip'), {
+          confirmButtonText: window.kapVm.$t('kylinLang.common.go'),
+          cancelButtonText: window.kapVm.$t('kylinLang.common.cancel'),
+          type: 'warning',
+          closeOnHashChange: false,
+          closeOnClickModal: false
+        }).then(() => {
+          if (to.name === 'refresh') { // 刷新逻辑下要手动重定向
+            next()
+            this.$nextTick(() => {
+              this.$router.replace('studio/model')
+            })
+            return
+          }
+          next()
+        }).catch(() => {
+          if (to.name === 'refresh') { // 取消刷新逻辑，所有上一个project相关的要撤回
+            let preProject = cacheSessionStorage('preProjectName') // 恢复上一次的project
+            this.setProject(preProject)
+            this.getUserAccess({project: preProject})
+          }
+        })
+      })
+    } else {
+      next()
+    }
+  },
   computed: {
     ...mapGetters([
       'currentSelectedProject',
@@ -38,10 +74,12 @@ import ModelEdit from '../ModelEdit/index.vue'
       loadModels: 'LOAD_MODEL_LIST',
       cloneModel: 'CLONE_MODEL',
       delModel: 'DELETE_MODEL',
-      checkModelName: 'CHECK_MODELNAME'
+      checkModelName: 'CHECK_MODELNAME',
+      getUserAccess: 'USER_ACCESS'
     }),
     ...mapMutations({
-      toggleFullScreen: 'TOGGLE_SCREEN'
+      toggleFullScreen: 'TOGGLE_SCREEN',
+      setProject: 'SET_PROJECT'
     })
   },
   components: {

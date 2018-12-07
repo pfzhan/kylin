@@ -703,8 +703,10 @@ export default class ModelEdit extends Vue {
             this.modelData = data.models[0]
             this.modelData.project = this.currentSelectedProject
             cb(this.modelData)
-            this.globalLoading.hide()
+          } else {
+            kapMessage(this.$t('modelDataNullTip'), {type: 'warning'})
           }
+          this.globalLoading.hide()
         })
       }, () => {
         this.globalLoading.hide()

@@ -1,36 +1,11 @@
-import Vue from 'vue'
 import * as types from '../store/types'
 import { menusData } from '../config'
 import store from '../store'
 import ElementUI from 'kyligence-ui'
-let MessageBox = ElementUI.MessageBox
 var selectedProject = store.state.project.selected_project
 export function bindRouterGuard (router) {
   router.beforeEach((to, from, next) => {
     // 处理在模型添加的业务窗口刷新浏览器
-    if (to.name === 'ModelEdit' && to.params.action === 'add' && from.name === null) {
-      router.push({name: 'ModelList'})
-      return
-    }
-    if (from.name === 'ModelEdit' && to.name !== '' && !to.params.ignoreIntercept) {
-      MessageBox.confirm(window.kapVm.$t('kylinLang.common.willGo'), window.kapVm.$t('kylinLang.common.tip'), {
-        confirmButtonText: window.kapVm.$t('kylinLang.common.go'),
-        cancelButtonText: window.kapVm.$t('kylinLang.common.cancel'),
-        type: 'warning'
-      }).then(() => {
-        if (to.name === 'refresh') {
-          next()
-          Vue.nextTick(() => {
-            router.replace('studio/model')
-          })
-          return
-        }
-        next()
-      }).catch(() => {
-        next(false)
-      })
-      return
-    }
     ElementUI.Message.closeAll() // 切换路由的时候关闭message
     store.state.config.showLoadingBox = false // 切换路由的时候关闭全局loading
     if (to.matched && to.matched.length) {

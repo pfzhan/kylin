@@ -20,6 +20,7 @@ export const RESET_PROJECT_STATE = 'RESET_PROJECT_STATE'
 export const ACCESS_AVAILABLE_USER_OR_GROUP = 'ACCESS_AVAILABLE_USER_OR_GROUP'
 export const GET_QUOTA_INFO = 'GET_QUOTA_INFO'
 export const CLEAR_TRASH = 'CLEAR_TRASH'
+export const SET_PROJECT = 'SET_PROJECT'
 // datasource actions mutations
 export const FETCH_DATABASES = 'FETCH_DATABASES'
 export const FETCH_TABLES = 'FETCH_TABLES'

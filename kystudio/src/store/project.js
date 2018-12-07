@@ -14,6 +14,12 @@ export default {
       state.projectList = list
       state.projectTotalSize = size
     },
+    [types.SET_PROJECT]: function (state, project) {
+      cacheSessionStorage('preProjectName', state.selected_project) // 储存上一次选中的project
+      cacheSessionStorage('projectName', project)
+      cacheLocalStorage('projectName', project)
+      state.selected_project = project
+    },
     [types.CACHE_ALL_PROJECTS]: function (state, { list, size }) {
       state.allProject.splice(0, state.allProject.length)
       state.allProject = Object.assign(state.allProject, list)

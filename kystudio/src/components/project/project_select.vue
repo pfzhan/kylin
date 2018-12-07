@@ -9,8 +9,8 @@
     </el-select>
 </template>
 <script>
-import { mapActions } from 'vuex'
-import { cacheSessionStorage, cacheLocalStorage } from 'util/index'
+import { mapActions, mapMutations } from 'vuex'
+import { handleError } from '../../util'
 export default {
   name: 'projectselect',
   data () {
@@ -20,13 +20,19 @@ export default {
   },
   methods: {
     ...mapActions({
-      loadAllProjects: 'LOAD_ALL_PROJECT'
+      loadAllProjects: 'LOAD_ALL_PROJECT',
+      getUserAccess: 'USER_ACCESS'
+    }),
+    ...mapMutations({
+      setProject: 'SET_PROJECT'
     }),
     changeProject (val) {
-      cacheSessionStorage('projectName', val)
-      cacheLocalStorage('projectName', val)
-      this.$store.state.project.selected_project = val
-      this.$emit('changePro', val)
+      this.getUserAccess({project: val}).then(() => {
+        this.setProject(val)
+        this.$emit('changePro', val)
+      }, (res) => {
+        handleError(res)
+      })
     }
   },
   watch: {

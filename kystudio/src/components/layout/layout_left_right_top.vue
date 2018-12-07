@@ -154,7 +154,6 @@ import $ from 'jquery'
       loadAllProjects: 'LOAD_ALL_PROJECT',
       resetPassword: 'RESET_PASSWORD',
       getAboutKap: 'GET_ABOUTKAP',
-      getUserAccess: 'USER_ACCESS',
       applySpeedInfo: 'APPLY_SPEED_INFO',
       ignoreSpeedInfo: 'IGNORE_SPEED_INFO',
       getSpeedInfo: 'GET_SPEED_INFO'
@@ -273,7 +272,6 @@ export default class LayoutLeftRightTop extends Vue {
       handleError(res)
     })
   }
-
   ignoreSpeed () {
     this.btnLoadingCancel = true
     this.ignoreSpeedInfo(this.currentSelectedProject).then(() => {
@@ -360,22 +358,22 @@ export default class LayoutLeftRightTop extends Vue {
   _replaceRouter (currentPath) {
     this.$router.push('/refresh')
     this.$nextTick(() => {
-      if ((currentPath === '/monitor' && !this.hasPermissionWithoutQuery && !this.isAdmin) || (currentPath === '/auto' && this.isAdmin === false && !this.hasAdminPermissionOfProject)) {
+      if (currentPath === '/monitor' && !this.hasPermissionWithoutQuery && !this.isAdmin) {
         this.$router.replace('/dashboard')
       } else {
         this.$router.replace(currentPath)
       }
     })
   }
-  _isAjaxProjectAcess (allProject, curProjectName, currentPath) {
-    let curProjectUserAccess = this.getUserAccess({project: curProjectName})
-    Promise.all([curProjectUserAccess]).then(() => {
-      this._replaceRouter(currentPath)
-    })
-  }
+  // _isAjaxProjectAcess (allProject, curProjectName, currentPath) {
+  //   let curProjectUserAccess = this.getUserAccess({project: curProjectName})
+  //   Promise.all([curProjectUserAccess]).then(() => {
+  //     this._replaceRouter(currentPath)
+  //   })
+  // }
   changeProject (val) {
     var currentPath = this.$router.currentRoute.path
-    this._isAjaxProjectAcess(this.$store.state.project.allProject, val, currentPath)
+    this._replaceRouter(currentPath)
   }
   async addProject () {
     try {
@@ -437,19 +435,21 @@ export default class LayoutLeftRightTop extends Vue {
   changePassword (userDetail) {
     this.callUserEditModal({ editType: 'password', userDetail })
   }
+  loginOutFunc () {
+    this.logoutConfirm().then(() => {
+      this.loginOut().then(() => {
+        localStorage.setItem('buyit', false)
+        // reset 所有的project信息
+        this.resetProjectState()
+        this.resetMonitorState()
+        this.$router.push({name: 'Login'})
+      })
+    })
+  }
   handleCommand (command) {
     if (command === 'loginout') {
-      this.logoutConfirm().then(() => {
-        this.loginOut().then(() => {
-          localStorage.setItem('buyit', false)
-          // reset 所有的project信息
-          this.resetProjectState()
-          this.resetMonitorState()
-          this.$router.push({name: 'Login'})
-        })
-      })
+      this.loginOutFunc()
     } else if (command === 'setting') {
-      // this.resetPasswordFormVisible = true
       this.changePassword(this.currentUser)
     }
   }
