@@ -35,6 +35,21 @@
         <version>4.0.0-SNAPSHOT</version>
     </parent>
 
+    <dependencies>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-common</artifactId>
+            <type>test-jar</type>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-common</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-job</artifactId>
+        </dependency>
+    </dependencies>
     
 
 </project>

@@ -19,16 +19,36 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
+package org.apache.spark.sql.common;
 
-package org.apache.spark.sql.common
+import java.io.File
 
-import org.scalatest.Suite
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase
+import org.scalatest.{BeforeAndAfterAll, BeforeAndAfterEach, Suite}
 
-trait IndexRTPCHSource extends SharedSparkSession {
+trait LocalMetadata extends BeforeAndAfterAll with BeforeAndAfterEach {
   self: Suite =>
+  val metadata = "../examples/test_case_data/localmeta_n"
+  var metaStore: NLocalFileMetadataTestCase = _
 
-  val TPCH_BASE_DIR = "../spark-project/data"
-  val FORMAT = "org.apache.spark.sql.execution.datasources.indexr.IndexRFileFormat"
-  def tpchDataFolder(tableName: String): String = s"$TPCH_BASE_DIR/${tableName}_indexr/"
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    metaStore = new NLocalFileMetadataTestCase
+    if (new File(metadata).exists()) {
+      metaStore.createTestMetadata(metadata)
+    } else {
+      metaStore.createTestMetadata("../" + metadata)
 
+    }
+  }
+
+
+  override def afterAll() {
+    super.afterAll()
+    try {
+      metaStore.cleanupTestMetadata()
+    } catch {
+      case ignore: Exception =>
+    }
+  }
 }

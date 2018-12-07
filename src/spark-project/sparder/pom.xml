@@ -64,7 +64,7 @@
 
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>spark-test</artifactId>
+            <artifactId>spark-common</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
         </dependency>

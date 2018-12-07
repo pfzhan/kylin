@@ -26,7 +26,7 @@ import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.types.{IntegerType, StructField, StructType}
+import org.apache.spark.sql.types.IntegerType
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 
 import scala.collection.JavaConverters._
@@ -34,12 +34,14 @@ import scala.collection.mutable._
 
 object DFFlatTableEncoder extends Logging {
 
+  val ENCODE_SUFFIX = "_encode"
+
   def encode(df: DataFrame, seg: NDataSegment, config: KylinConfig): Dataset[Row] = {
     var dataFrame = df
     val globalDictCols = DictionaryBuilder.extractGlobalDictColumns(seg)
     var globalDictRdd = df.rdd
 
-    val fields: Array[StructField] = df.schema.fields
+    var structType = df.schema
 
     // process global dictionary
     if (globalDictCols.size > 0) {
@@ -48,7 +50,7 @@ object DFFlatTableEncoder extends Logging {
       for (ref: TblColRef <- globalDictCols.asScala) {
         val columnIndex: Int = flatTableDesc.getColumnIndex(ref)
 
-        fields(columnIndex) = StructField(fields(columnIndex).name, IntegerType)
+        structType = structType.add(structType.apply(columnIndex).name + ENCODE_SUFFIX, IntegerType)
         val globalDict = new NGlobalDictionaryV2(ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
 
         val bucketPartitionSize = globalDict.getBucketSize(seg.getConfig.getGlobalDictV2HashPartitions)
@@ -65,22 +67,23 @@ object DFFlatTableEncoder extends Logging {
             case (bucketId, iterator) =>
               val globalDict = broadDict.value
               val bucketDict = globalDict.createBucketDictionary(bucketId)
-              logInfo(s"encode source: ${globalDict.getResourceDir} bucketId: ${bucketId}")
+              logInfo(s"encode source: ${globalDict.getResourceDir} bucketId: $bucketId")
               var list = new ListBuffer[Row]
               while (iterator.hasNext) {
                 val rowFields = iterator.next()._2.toSeq
-                val objects = new Array[Any](rowFields.size)
+                val objects = new Array[Any](rowFields.size + 1)
                 for (i <- rowFields.indices) {
+                  objects(i) = rowFields.apply(i)
                   if (i == columnIndex) {
-                    objects(i) = bucketDict.encode(rowFields.apply(i))
-                  } else objects(i) = rowFields.apply(i)
+                    objects(rowFields.size) = bucketDict.encode(rowFields.apply(i))
+                  }
                 }
                 list.+=(Row.fromSeq(objects.toSeq))
               }
               list.iterator
           }
       }
-      dataFrame = df.sparkSession.createDataFrame(globalDictRdd, new StructType(fields))
+      dataFrame = df.sparkSession.createDataFrame(globalDictRdd, structType)
     }
     dataFrame
   }

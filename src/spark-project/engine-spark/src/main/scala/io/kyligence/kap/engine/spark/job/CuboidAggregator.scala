@@ -27,7 +27,10 @@ package io.kyligence.kap.engine.spark.job
 import java.util
 
 import io.kyligence.kap.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
+import io.kyligence.kap.engine.spark.builder.DFFlatTableEncoder
 import io.kyligence.kap.metadata.model.NDataModel
+import org.apache.kylin.measure.bitmap.BitmapMeasureType
+import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.{Column, DataFrame, SparkSession}
@@ -101,6 +104,9 @@ object CuboidAggregator {
                 function.getExpression,
                 !afterAgg)
               if (!afterAgg) {
+                if (function.getReturnDataType.getName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
+                  column = wrapEncodeColumn(parameter.getColRef, column)
+                }
                 callUDF(udfName, column.cast(StringType))
                   .as(measureEntry._1.toString)
               } else {
@@ -127,5 +133,14 @@ object CuboidAggregator {
       dataSet.agg(agg.head, agg.drop(1): _*)
     }
 
+  }
+
+  def wrapEncodeColumn(ref: TblColRef, column: Column): Column = {
+    val dataType = ref.getType
+    var col = column
+    if (false == dataType.isIntegerFamily) {
+      col = new Column(column.toString() + DFFlatTableEncoder.ENCODE_SUFFIX)
+    }
+    col
   }
 }

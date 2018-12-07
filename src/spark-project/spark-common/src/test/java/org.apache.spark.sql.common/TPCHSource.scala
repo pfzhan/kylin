@@ -19,25 +19,21 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-
 package org.apache.spark.sql.common
 
 import org.scalatest.Suite
 
-trait ParquetTPCHSource extends SharedSparkSession {
+trait TPCHSource extends SharedSparkSession {
   self: Suite =>
 
-  lazy val TPCH_BASE_DIR = "../spark-project/data"
-  val FORMAT =
-    "org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat"
-  val delimiter = "|"
-
+  val TPCH_BASE_DIR = "../spark-project/data"
+  val FORMAT = "com.databricks.spark.csv"
   def tpchDataFolder(tableName: String): String = s"$TPCH_BASE_DIR/$tableName/"
 
   override def beforeAll() {
     super.beforeAll()
-    sql("drop table if exists lineitem")
-    sql(s"""CREATE TABLE if not exists lineitem(l_orderkey integer,
+    sql(
+      s"""CREATE TABLE if not exists lineitem(l_orderkey integer,
         l_partkey integer, l_suppkey integer,
       l_linenumber integer,
       l_quantity double, l_extendedprice double, l_discount double, l_tax double,
@@ -45,11 +41,12 @@ trait ParquetTPCHSource extends SharedSparkSession {
       l_linestatus string, l_shipdate string, l_commitdate string, l_receiptdate string,
       l_shipinstruct string,
       l_shipmode string, l_comment string)
-      USING $FORMAT
+      USING com.databricks.spark.csv
       OPTIONS (path "${tpchDataFolder("lineitem")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
-    sql("drop table if exists orders_csv")
-    sql(s"""CREATE TABLE if not exists orders_csv(
+      header "false", delimiter "|")""".stripMargin)
+
+    sql(
+      s"""CREATE TABLE if not exists orders_csv(
          |o_orderkey integer, o_custkey integer,
          |    o_orderstatus VARCHAR(1),
          |    o_totalprice double,
@@ -59,46 +56,47 @@ trait ParquetTPCHSource extends SharedSparkSession {
          |    o_shippriority integer,
          |    o_comment VARCHAR(79)
     )
-      USING $FORMAT
+      USING com.databricks.spark.csv
       OPTIONS (path "${tpchDataFolder("orders")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
-    sql("drop table if exists orders")
-    sql(s"""create table if not exists orders
-         |USING $FORMAT as
-         |select * from orders_csv""".stripMargin)
-    sql("drop table if exists partsupp")
+      header "false", delimiter "|")""".stripMargin)
 
-    sql(s"""CREATE TABLE if not exists partsupp(
+    sql(
+      s"""create table if not exists orders
+         |USING org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat as
+         |select * from orders_csv""".stripMargin)
+
+    sql(
+      s"""CREATE TABLE if not exists partsupp(
          | ps_partkey integer, ps_suppkey integer,
          |    ps_availqty integer, ps_supplycost double,
          |    ps_comment VARCHAR(199)
     )
-      USING $FORMAT
+      USING com.databricks.spark.csv
       OPTIONS (path "${tpchDataFolder("partsupp")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
+      header "false", delimiter "|")""".stripMargin)
 
-    sql("drop table if exists supplier")
 
-    sql(s"""CREATE TABLE if not exists supplier(
+    sql(
+      s"""CREATE TABLE if not exists supplier(
              s_suppkey integer, s_name string, s_address string,
              s_nationkey integer,
          |      s_phone string, s_acctbal double, s_comment string)
-      USING $FORMAT
+      USING com.databricks.spark.csv
       OPTIONS (path "${tpchDataFolder("supplier")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
+      header "false", delimiter "|")""".stripMargin)
 
-    sql("drop table if exists part")
 
-    sql(s"""CREATE TABLE if not exists part(p_partkey integer, p_name string,
+    sql(
+      s"""CREATE TABLE if not exists part(p_partkey integer, p_name string,
          |      p_mfgr string, p_brand string, p_type string, p_size integer, p_container string,
          |      p_retailprice double,
          |      p_comment string)
-      USING $FORMAT
+      USING com.databricks.spark.csv
       OPTIONS (path "${tpchDataFolder("part")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
-    sql("drop table if exists customer")
+      header "false", delimiter "|")""".stripMargin)
 
-    sql(s"""CREATE TABLE if not exists customer(
+    sql(
+      s"""CREATE TABLE if not exists customer(
          | c_custkey INTEGER,
          |    c_name VARCHAR(25),
          |    c_address VARCHAR(40),
@@ -108,66 +106,52 @@ trait ParquetTPCHSource extends SharedSparkSession {
          |    c_mktsegment VARCHAR(10),
          |    c_comment VARCHAR(117)
          |)
-      USING $FORMAT
+      USING com.databricks.spark.csv
       OPTIONS (path "${tpchDataFolder("customer")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
-    sql("drop table if exists custnation")
-    sql(s"""CREATE TABLE if not exists custnation(
+      header "false", delimiter "|")""".stripMargin)
+
+
+    sql(
+      s"""CREATE TABLE if not exists custnation(
          | cn_nationkey integer, cn_name VARCHAR(25),
          |    cn_regionkey integer, cn_comment VARCHAR(152)
          |)
-      USING $FORMAT
+      USING com.databricks.spark.csv
       OPTIONS (path "${tpchDataFolder("nation")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
-    sql("drop table if exists nation")
+      header "false", delimiter "|")""".stripMargin)
 
-    sql(s"""CREATE TABLE if not exists nation(
-         | n_nationkey integer, n_name VARCHAR(25),
-         |    n_regionkey integer, n_comment VARCHAR(152)
-         |)
-      USING $FORMAT
-      OPTIONS (path "${tpchDataFolder("nation")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
 
-    sql("drop table if exists custregion")
-
-    sql(s"""CREATE TABLE if not exists custregion(
+    sql(
+      s"""CREATE TABLE if not exists custregion(
          | cr_regionkey integer, cr_name VARCHAR(25),
          |    cr_comment VARCHAR(152)
          |)
-      USING $FORMAT
+      USING com.databricks.spark.csv
       OPTIONS (path "${tpchDataFolder("region")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
-    sql("drop table if exists region")
+      header "false", delimiter "|")""".stripMargin)
 
-    sql(s"""CREATE TABLE if not exists region(
-         | r_regionkey integer, r_name VARCHAR(25),
-         |    r_comment VARCHAR(152)
-         |)
-      USING $FORMAT
-      OPTIONS (path "${tpchDataFolder("region")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
-    sql("drop table if exists suppnation")
 
-    sql(s"""CREATE TABLE if not exists suppnation(
+    sql(
+      s"""CREATE TABLE if not exists suppnation(
          | sn_nationkey integer, sn_name VARCHAR(25),
          |    sn_regionkey integer, sn_comment VARCHAR(152)
          |)
-      USING $FORMAT
+      USING com.databricks.spark.csv
       OPTIONS (path "${tpchDataFolder("nation")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
-    sql("drop table if exists suppregion")
+      header "false", delimiter "|")""".stripMargin)
 
-    sql(s"""CREATE TABLE if not exists suppregion(
+
+    sql(
+      s"""CREATE TABLE if not exists suppregion(
          | sr_regionkey integer, sr_name VARCHAR(25),
          |    sr_comment VARCHAR(152)
          |)
-      USING $FORMAT
+      USING com.databricks.spark.csv
       OPTIONS (path "${tpchDataFolder("region")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
-    sql("drop VIEW if exists v_lineitem")
+      header "false", delimiter "|")""".stripMargin)
 
-    sql(s"""create view if not exists v_lineitem as
+    sql(
+      s"""create view if not exists v_lineitem as
          |select
          |    lineitem.*,
          |
@@ -181,24 +165,25 @@ trait ParquetTPCHSource extends SharedSparkSession {
          |from
          |    lineitem
          |    inner join partsupp on l_partkey=ps_partkey and l_suppkey=ps_suppkey""".stripMargin)
-    sql("drop VIEW if exists v_orders")
 
-    sql(s"""create view if not exists v_orders as
+    sql(
+      s"""create view if not exists v_orders as
          |select
          |    orders.*,
          |    year(o_orderdate) as o_orderyear
          |from
          |    orders
          |""".stripMargin)
-    sql("drop VIEW if exists v_partsupp")
 
-    sql(s"""
+    sql(
+      s"""
          |create view if not exists v_partsupp as
          |select
          |    partsupp.*,
          |    ps_supplycost * ps_availqty as ps_partvalue
          |from
          |    partsupp""".stripMargin)
+
 
     //    TestHive.setConf(DruidPlanner.SPARKLINEDATA_CACHE_TABLES_TOCHECK.key,
     //      "orderLineItemPartSupplierBase,suppregion,suppnation," +
@@ -207,17 +192,17 @@ trait ParquetTPCHSource extends SharedSparkSession {
     /*
      * for -ve testing only
      */
-    sql("drop table if exists partsupp2")
-
-    sql(s"""CREATE TABLE if not exists partsupp2(
+    sql(
+      s"""CREATE TABLE if not exists partsupp2(
          | ps_partkey integer, ps_suppkey integer,
          |    ps_availqty integer, ps_supplycost double,
          |    ps_comment VARCHAR(199)
     )
-      USING $FORMAT
+      USING com.databricks.spark.csv
       OPTIONS (path "${tpchDataFolder("partsupp")}",
-      header "false", delimiter "$delimiter")""".stripMargin)
+      header "false", delimiter "|")""".stripMargin)
 
   }
+
 
 }

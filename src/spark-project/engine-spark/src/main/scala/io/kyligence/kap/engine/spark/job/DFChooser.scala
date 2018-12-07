@@ -43,7 +43,6 @@ class DFChooser(toBuildTree: NSpanningTree,
   var reuseSources: java.util.Map[java.lang.Long, NBuildSourceInfo] =
     Maps.newHashMap[java.lang.Long, NBuildSourceInfo]()
   var flatTableSource: NBuildSourceInfo = _
-  var flatTableEncodeSource: NBuildSourceInfo = _
   val flatTableDesc =
     new NCubeJoinedFlatTableDesc(seg.getCubePlan, seg.getSegRange)
 
@@ -64,13 +63,12 @@ class DFChooser(toBuildTree: NSpanningTree,
             map += (layout.getId -> nBuildSourceInfo)
           }
         } else {
-          if (flatTableEncodeSource == null) {
+          if (flatTableSource == null) {
             val snapshotBuilder = new NSnapshotBuilder(seg, ss)
             seg = snapshotBuilder.buildSnapshot
-            flatTableSource = getFlatTable()._1
-            flatTableEncodeSource = getFlatTable()._2
+            flatTableSource = getFlatTable()
           }
-          flatTableEncodeSource.getToBuildCuboids.add(desc)
+          flatTableSource.getToBuildCuboids.add(desc)
         }
       }
     map.foreach(entry => reuseSources.put(entry._1, entry._2))
@@ -98,7 +96,7 @@ class DFChooser(toBuildTree: NSpanningTree,
   }
 
   @throws[Exception]
-  private def getFlatTable(): (NBuildSourceInfo, NBuildSourceInfo) = {
+  private def getFlatTable(): NBuildSourceInfo = {
 
     val flatTable =
       new NCubeJoinedFlatTableDesc(seg.getCubePlan, seg.getSegRange)
@@ -139,15 +137,10 @@ class DFChooser(toBuildTree: NSpanningTree,
     val sourceInfo = new NBuildSourceInfo
     sourceInfo.setByteSize(sourceSize)
     sourceInfo.setCount(rowcount)
-    sourceInfo.setDataset(afterJoin)
-
-    val encodeSourceInfo = new NBuildSourceInfo
-    encodeSourceInfo.setByteSize(sourceInfo.getByteSize)
-    encodeSourceInfo.setCount(sourceInfo.getCount)
-    encodeSourceInfo.setDataset(afterEncode)
+    sourceInfo.setDataset(afterEncode)
     logInfo(
       "No suitable ready layouts could be reused, generate dataset from flat table.")
-    (sourceInfo, encodeSourceInfo)
+    sourceInfo
   }
 }
 

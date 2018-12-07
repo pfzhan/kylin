@@ -22,10 +22,9 @@
 
 package io.kyligence.kap.it
 
-import io.kyligence.kap.common.LocalMetadata
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.spark.sql.common.{ParquetTPCHSource, SparderBaseFunSuite}
+import org.apache.spark.sql.common.{LocalMetadata, ParquetTPCHSource, SparderBaseFunSuite}
 
 class TestTPCHSource
     extends SparderBaseFunSuite

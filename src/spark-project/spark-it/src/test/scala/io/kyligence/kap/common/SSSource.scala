@@ -26,7 +26,7 @@ import com.google.common.base.Preconditions
 import io.kyligence.kap.metadata.model.NTableMetadataManager
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.source.adhocquery.HivePushDownConverter
-import org.apache.spark.sql.common.SharedSparkSession
+import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession}
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.scalatest.Suite
 

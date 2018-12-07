@@ -24,17 +24,11 @@ package io.kyligence.kap.it
 
 import java.io.File
 
-import io.kyligence.kap.common.{
-  CompareSupport,
-  JobSupport,
-  LocalMetadata,
-  QuerySupport,
-  SSSource
-}
+import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSource}
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import io.netty.util.internal.ThrowableUtil
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.common.SparderBaseFunSuite
+import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 
 class TestQueryAndBuildFunSuite
     extends SparderBaseFunSuite
