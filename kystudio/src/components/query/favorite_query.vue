@@ -43,8 +43,9 @@
                 <el-button type="primary" size="medium" text class="ksd-fright edit-conds" @click="editFrequency">{{$t('kylinLang.common.edit')}}</el-button>
               </div>
               <div class="conds-content clearfix">
-                <el-slider class="show-only" v-model="frequencyObj.freqValue" :step="0.1" button-type="sharp" :min="0" :max="1" show-dynamic-values disabled :format-tooltip="formatTooltip"></el-slider>
-                <div class="ksd-fright ksd-mt-10 ksd-fs-12">TopX% {{$t('queryFrequency')}}</div>
+                <div class="ksd-mt-20 ksd-fs-14">TopX% {{$t('queryFrequency')}}
+                  <span class="ksd-fs-24">{{frequencyObj.freqValue}}</span>%
+                </div>
               </div>
             </div>
             <div class="conds" :class="{'disabled': !submitterObj.enable}">
@@ -67,8 +68,9 @@
                 <el-button type="primary" size="medium" text class="ksd-fright edit-conds" @click="editDuration">{{$t('kylinLang.common.edit')}}</el-button>
               </div>
               <div class="conds-content clearfix">
-                <el-slider class="show-only" v-model="durationObj.durationValue" :step="1" range button-type="sharp" :min="0" :max="180" show-dynamic-values disabled></el-slider>
-                <div class="ksd-fright ksd-mt-10 ksd-fs-12">{{$t('unit')}}</div>
+                <div class="ksd-mt-20 ksd-fs-14">
+                  {{$t('from')}} <span class="ksd-fs-24">{{durationObj.durationValue[0]}}</span> {{$t('to')}} <span class="ksd-fs-24">{{durationObj.durationValue[1]}}</span> {{$t('secondes')}}
+                </div>
               </div>
             </div>
           </el-col>
@@ -80,7 +82,7 @@
                 <i class="el-icon-ksd-what"></i>
               </el-tooltip>
             </div>
-            <svg id="fillgauge" width="100%" height="150"></svg>
+            <svg id="fillgauge" width="100%" height="120"></svg>
           </el-col>
         </el-row>
       </el-collapse-item>
@@ -308,8 +310,10 @@
       <div class="conds">
         <div class="conds-content clearfix">
           <div class="desc">{{$t('frequencyDesc')}}</div>
-          <el-slider v-model="oldFrequencyValue" :step="0.1" button-type="sharp" :min="0" :max="1" show-dynamic-values :format-tooltip="formatTooltip"></el-slider>
-          <div class="ksd-fright ksd-mt-10 ksd-fs-12">TopX% {{$t('queryFrequency')}}</div>
+          <div class="ksd-mt-16 ksd-fs-14">
+            <span>TopX% {{$t('queryFrequency')}}</span>
+            <el-input v-model.trim="oldFrequencyValue" @input="handleInputChangeFre" size="small" class="rule-setting-input"></el-input> %
+          </div>
         </div>
       </div>
       <span slot="footer" class="dialog-footer">
@@ -361,8 +365,13 @@
       <div class="conds">
         <div class="conds-content clearfix">
           <div class="desc">{{$t('durationDesc')}}</div>
-          <el-slider v-model="oldDurationValue" :step="1" range button-type="sharp" :min="0" :max="180" show-dynamic-values></el-slider>
-          <div class="ksd-fright ksd-mt-10 ksd-fs-12">{{$t('unit')}}</div>
+          <div class="ksd-mt-16 ksd-fs-12">
+            {{$t('from')}}
+            <el-input v-model.trim="oldDurationValue1" @input="handleInputChangeDur1" size="small" class="rule-setting-input"></el-input>
+            {{$t('to')}}
+            <el-input v-model.trim="oldDurationValue2" @input="handleInputChangeDur2" size="small" class="rule-setting-input"></el-input>
+            {{$t('secondes')}}
+          </div>
         </div>
       </div>
       <span slot="footer" class="dialog-footer">
@@ -413,8 +422,8 @@ import sqlFormatter from 'sql-formatter'
     ])
   },
   locales: {
-    'en': {preferrence: 'Preference', whiteList: 'White List', blackList: 'Black List', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query.<br/> Favorite query represent your main business analysis scenarios and critical decision point.<br/> System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', submitterDesc: 'Optimize queries from critical users and groups', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the edit?', acceThreshold: 'Accelerating Threshold', notifyLeftTips: 'Notify me every time when there are ', notifyRightTips: ' favorite queries.', acceResource: 'Accelerating Resource', reasourceDsec: 'The system should ask me for permission for using storage and computing resource to accelerate favorite queries.', ressourceYse: 'Yes', ressourceNo: 'No, I don\'t need to know', whiteListDesc: 'White list helps to manage user manually defined favorite SQLs, especially for SQLs from query history list and imported SQL files.', blackListDesc: 'Black list helps to manage SQLs which are undesired for accelerating, especially for those SQLs will require unreasonable large storage or computing resource to accelerate.', ruleImpact: 'Rules Impact', ruleImpactDesc: 'Percentage of SQL queries selected by the favorite rule.', thereAre: 'There are {modelSpeedEvents} SQLs waiting for acceleration on the threshold of <span class="highlight">{threshold}</span>.', accelerateNow: 'Accelerate now', openTips: 'Expand this block to set the "Acceleration Rule"', messages: 'Error Messages:', suggestion: 'Suggestion:'},
-    'zh-cn': {preferrence: '加速偏好', whiteList: '白名单', blackList: '黑名单', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。<br/>这类查询可以代表最主要的业务分析和重要的业务决策点。<br/>系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', submitterDesc: '优化重要⽤用户或⽤用户组发出的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？', acceThreshold: '加速阈值', notifyLeftTips: '每积累', notifyRightTips: ' 条加速查询时，提醒我。', acceResource: '加速资源', reasourceDsec: '系统需要获取存储资源和计算资源来加速查询时，请征询我的许可。', ressourceYse: '征询许可', ressourceNo: '不需要征询', whiteListDesc: '本列表管理用户人为指定加速的SQL查询。一般指用户从查询历史指定或导入的查询文件。', blackListDesc: '本列表管理用户不希望被加速的SQL查询。一般是指加速时对存储空间、计算力需求过大的查询。', ruleImpact: '加速规则影响⼒', ruleImpactDesc: '被加速规则选出的SQL查询的百分⽐。', thereAre: '已有{modelSpeedEvents}条SQL查询等待加速(阈值为<span class="highlight">{threshold}</span>条SQL)', accelerateNow: '立即加速', openTips: '展开此区块可设定"加速规则"', messages: '错误信息：', suggestion: '修改建议：'}
+    'en': {preferrence: 'Preference', whiteList: 'White List', blackList: 'Black List', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query.<br/> Favorite query represent your main business analysis scenarios and critical decision point.<br/> System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', submitterDesc: 'Optimize queries from critical users and groups', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the edit?', acceThreshold: 'Accelerating Threshold', notifyLeftTips: 'Notify me every time when there are ', notifyRightTips: ' favorite queries.', acceResource: 'Accelerating Resource', reasourceDsec: 'The system should ask me for permission for using storage and computing resource to accelerate favorite queries.', ressourceYse: 'Yes', ressourceNo: 'No, I don\'t need to know', whiteListDesc: 'White list helps to manage user manually defined favorite SQLs, especially for SQLs from query history list and imported SQL files.', blackListDesc: 'Black list helps to manage SQLs which are undesired for accelerating, especially for those SQLs will require unreasonable large storage or computing resource to accelerate.', ruleImpact: 'Rules Impact', ruleImpactDesc: 'Percentage of SQL queries selected by the favorite rule.', thereAre: 'There are {modelSpeedEvents} SQLs waiting for acceleration on the threshold of <span class="highlight">{threshold}</span>.', accelerateNow: 'Accelerate now', openTips: 'Expand this block to set the "Acceleration Rule"', messages: 'Error Messages:', suggestion: 'Suggestion:', from: 'From', to: 'to', secondes: 'secondes'},
+    'zh-cn': {preferrence: '加速偏好', whiteList: '白名单', blackList: '黑名单', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。<br/>这类查询可以代表最主要的业务分析和重要的业务决策点。<br/>系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', submitterDesc: '优化重要⽤用户或⽤用户组发出的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？', acceThreshold: '加速阈值', notifyLeftTips: '每积累', notifyRightTips: ' 条加速查询时，提醒我。', acceResource: '加速资源', reasourceDsec: '系统需要获取存储资源和计算资源来加速查询时，请征询我的许可。', ressourceYse: '征询许可', ressourceNo: '不需要征询', whiteListDesc: '本列表管理用户人为指定加速的SQL查询。一般指用户从查询历史指定或导入的查询文件。', blackListDesc: '本列表管理用户不希望被加速的SQL查询。一般是指加速时对存储空间、计算力需求过大的查询。', ruleImpact: '加速规则影响⼒', ruleImpactDesc: '被加速规则选出的SQL查询的百分⽐。', thereAre: '已有{modelSpeedEvents}条SQL查询等待加速(阈值为<span class="highlight">{threshold}</span>条SQL)', accelerateNow: '立即加速', openTips: '展开此区块可设定"加速规则"', messages: '错误信息：', suggestion: '修改建议：', from: '从', to: '至', secondes: '秒'}
   }
 })
 export default class FavoriteQuery extends Vue {
@@ -466,7 +475,7 @@ export default class FavoriteQuery extends Vue {
   }
   frequencyObj = {
     enable: true,
-    freqValue: 0.2
+    freqValue: 0
   }
   submitterObj = {
     enable: true,
@@ -475,16 +484,17 @@ export default class FavoriteQuery extends Vue {
   }
   durationObj = {
     enable: true,
-    durationValue: [50, 80]
+    durationValue: [0, 0]
   }
   selectedUser = ''
   options = [{
     label: this.$t('kylinLang.menu.user'),
     options: ['ADMIN']
   }]
-  oldFrequencyValue = 0.2
+  oldFrequencyValue = 0
   oldSubmitterUsers = ['ADMIN']
-  oldDurationValue = [50, 80]
+  oldDurationValue1 = 0
+  oldDurationValue2 = 0
   impactRatio = 0
 
   applySpeed (event) {
@@ -556,7 +566,7 @@ export default class FavoriteQuery extends Vue {
     this.updateFrequency({
       project: this.currentSelectedProject,
       enable: this.frequencyObj.enable,
-      freqValue: this.frequencyObj.freqValue
+      freqValue: this.frequencyObj.freqValue / 100
     }).then((res) => {
       handleSuccess(res, () => {
         this.loadRuleImpactRatio()
@@ -613,7 +623,8 @@ export default class FavoriteQuery extends Vue {
 
   editDuration () {
     this.durationVisible = true
-    this.oldDurationValue = this.durationObj.durationValue
+    this.oldDurationValue1 = this.durationObj.durationValue[0]
+    this.oldDurationValue2 = this.durationObj.durationValue[1]
   }
 
   cancelDuration () {
@@ -622,7 +633,7 @@ export default class FavoriteQuery extends Vue {
 
   saveDuration () {
     this.durationVisible = false
-    this.durationObj.durationValue = this.oldDurationValue
+    this.durationObj.durationValue = [this.oldDurationValue1, this.oldDurationValue2]
     this.updateDura()
   }
 
@@ -643,6 +654,21 @@ export default class FavoriteQuery extends Vue {
   handleInputChange (value) {
     this.$nextTick(() => {
       this.preSettingObj.threshold = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
+    })
+  }
+  handleInputChangeFre (value) {
+    this.$nextTick(() => {
+      this.oldFrequencyValue = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
+    })
+  }
+  handleInputChangeDur1 (value) {
+    this.$nextTick(() => {
+      this.oldDurationValue1 = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
+    })
+  }
+  handleInputChangeDur2 (value) {
+    this.$nextTick(() => {
+      this.oldDurationValue2 = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
     })
   }
 
@@ -704,6 +730,7 @@ export default class FavoriteQuery extends Vue {
       this.getFrequency({project: this.currentSelectedProject}).then((res) => {
         handleSuccess(res, (data) => {
           this.frequencyObj = data
+          this.frequencyObj.freqValue = data.freqValue * 100
         })
       }, (res) => {
         handleError(res)
@@ -716,7 +743,7 @@ export default class FavoriteQuery extends Vue {
       this.getSubmitter({project: this.currentSelectedProject}).then((res) => {
         handleSuccess(res, (data) => {
           this.submitterObj = data
-          this.oldSubmitterUsers = data.users
+          // this.oldSubmitterUsers = data.users
         })
       }, (res) => {
         handleError(res)
@@ -729,7 +756,7 @@ export default class FavoriteQuery extends Vue {
       this.getDuration({project: this.currentSelectedProject}).then((res) => {
         handleSuccess(res, (data) => {
           this.durationObj = data
-          this.oldDurationValue = data.durationValue
+          // this.oldDurationValue = data.durationValue
         })
       }, (res) => {
         handleError(res)
@@ -760,6 +787,7 @@ export default class FavoriteQuery extends Vue {
     config1.circleColor = '#15BDF1'
     config1.textColor = '#263238'
     config1.waveAnimateTime = 1000
+    config1.textVertPosition = 0.35
     loadLiquidFillGauge('fillgauge', this.impactRatio, config1)
   }
 
@@ -1094,7 +1122,7 @@ export default class FavoriteQuery extends Vue {
       .el-collapse-item__content {
         padding-bottom: 0;
         background-color: @table-stripe-color;
-        height: 170px;
+        height: 140px;
         line-height: 1;
         .rules-conds {
           border-radius: 2px;
@@ -1103,7 +1131,7 @@ export default class FavoriteQuery extends Vue {
           .conds {
             width: 33.34%;
             padding: 0 10px;
-            height: 150px;
+            height: 120px;
             .conds-title {
               font-size: 14px;
               font-weight: 500;
@@ -1140,7 +1168,7 @@ export default class FavoriteQuery extends Vue {
                 }
               }
               .users {
-                margin: 15px 0;
+                margin: 20px 0;
                 .el-icon-ksd-table_admin {
                   font-size: 16px;
                 }
@@ -1180,8 +1208,9 @@ export default class FavoriteQuery extends Vue {
           position: relative;
           .conds-title {
             position: absolute;
-            top: 58px;
+            top: 55px;
             width: 95%;
+            font-size: 12px;
           }
         }
       }
@@ -1237,6 +1266,10 @@ export default class FavoriteQuery extends Vue {
           margin-top: 5px;
         }
       }
+    }
+    .rule-setting-input {
+      display: inline-block;
+      width: 56px;
     }
     .blackListDialog,
     .whiteListDialog {

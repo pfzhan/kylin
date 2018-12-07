@@ -251,10 +251,14 @@ export default class Dashboard extends Vue {
     margin: 20px;
     .dash-card {
       box-shadow: 0px 0px 4px 0px @line-border-color;
+      border: 1px solid @table-stripe-color;
       background-color: @fff;
       padding: 15px;
       text-align: center;
       box-sizing: border-box;
+      &:hover {
+        box-shadow: 0px 0px 8px 0px @line-border-color;
+      }
       .cart-title {
         color: @text-title-color;
         font-size: 14px;
@@ -357,7 +361,7 @@ export default class Dashboard extends Vue {
     }
     .divider {
       margin: 25px 0;
-      border-top: 1px solid @line-border-color;
+      border-top: 1px solid @table-stripe-color;
     }
   }
   .quota-popover {
