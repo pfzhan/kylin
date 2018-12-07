@@ -76,6 +76,7 @@ import org.apache.kylin.util.JoinsGraph;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
@@ -214,10 +215,23 @@ public class OLAPContext {
                     Sets.newHashSet(involvedMeasure));
         return sqlDigest;
     }
+    
+    public String getFirstTableIdentity() {
+        return firstTableScan.getTableRef().getTableIdentity();
+    }
 
+    public boolean isFirstTableLookupTableInModel(NDataModel model) {
+        return joins.isEmpty() && model.isLookupTable(getFirstTableIdentity());
+    }
+     
     public boolean hasPrecalculatedFields() {
-        // return realization instanceof DataFlow
-        return true;
+        NLayoutCandidate candidate = storageContext.getCandidate();
+        if (candidate == null) {
+            return false;
+        }
+        boolean isTableIndex = candidate.getCuboidLayout().getCuboidDesc().isTableIndex();
+        boolean isLookupTable = isFirstTableLookupTableInModel(realization.getModel());
+        return !isTableIndex && !isLookupTable;
     }
 
     public void resetSQLDigest() {

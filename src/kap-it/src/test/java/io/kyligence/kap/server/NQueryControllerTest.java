@@ -52,7 +52,7 @@ public class NQueryControllerTest extends AbstractMVCIntegrationTestCase {
     public void testQuery() throws Exception {
         final PrepareSqlRequest sqlRequest = new PrepareSqlRequest();
         sqlRequest.setProject("default");
-        sqlRequest.setSql("SELECT * FROM test_country");
+        sqlRequest.setSql("SELECT * FROM TEST_KYLIN_FACT");
 
         final MvcResult result = mockMvc.perform(MockMvcRequestBuilders
                 .post("/api/query")

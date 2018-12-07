@@ -224,14 +224,13 @@ object TableScanPlan extends Logging {
         gTInfoSchema.columnName)
     }.array
     val newNameLookupDf = lookupDf.toDF(newNames: _*)
-    val colIndex = olapTable.getSourceColumns.asScala.map(
-      column =>
-        col(
-          SchemaProcessor
-            .generateDeriveTableSchemaName(alisTableName,
-              column.getZeroBasedIndex,
-              column.getName)
-            .toString))
+    val colIndex = olapTable.getSourceColumns.asScala
+      .filter(_.getZeroBasedIndex >= 0)
+      .filter(!_.isComputedColumn)
+      .map(
+        column =>
+          col(SchemaProcessor.generateDeriveTableSchemaName(alisTableName,
+            column.getZeroBasedIndex, column.getName).toString))
     newNameLookupDf.select(colIndex: _*)
   }
 

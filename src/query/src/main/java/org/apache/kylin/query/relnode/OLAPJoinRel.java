@@ -43,7 +43,6 @@
 
 package org.apache.kylin.query.relnode;
 
-import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -51,7 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
@@ -217,8 +215,7 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
             this.context.joins.add(join);
         } else {
             //When join contains subquery, the join-condition fields of fact_table will add into context.
-            Map<TblColRef, TblColRef> joinCol = new HashMap<TblColRef, TblColRef>();
-            translateJoinColumn(this.getCondition(), joinCol);
+            Map<TblColRef, TblColRef> joinCol = translateJoinColumn(this.getCondition());
 
             for (Map.Entry<TblColRef, TblColRef> columnPair : joinCol.entrySet()) {
                 TblColRef fromCol = (rightHasSubquery ? columnPair.getKey() : columnPair.getValue());
@@ -249,8 +246,7 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
     }
 
     protected JoinDesc buildJoin(RexCall condition) {
-        Map<TblColRef, TblColRef> joinColumns = new HashMap<TblColRef, TblColRef>();
-        translateJoinColumn(condition, joinColumns);
+        Map<TblColRef, TblColRef> joinColumns = translateJoinColumn(condition);
 
         List<String> pks = new ArrayList<String>();
         List<TblColRef> pkCols = new ArrayList<TblColRef>();
@@ -274,10 +270,12 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
         return join;
     }
 
-    protected void translateJoinColumn(RexNode condition, Map<TblColRef, TblColRef> joinCol) {
+    protected Map<TblColRef, TblColRef> translateJoinColumn(RexNode condition) {
+        Map<TblColRef, TblColRef> joinColumns = new HashMap<>();
         if (condition instanceof RexCall) {
-            translateJoinColumn((RexCall) condition, joinCol);
+            translateJoinColumn((RexCall) condition, joinColumns);
         }
+        return joinColumns;
     }
 
     void translateJoinColumn(RexCall condition, Map<TblColRef, TblColRef> joinColumns) {
@@ -301,30 +299,11 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
         }
     }
 
-    // workaround that EnumerableJoin constructor is protected
-    protected static Constructor<EnumerableJoin> constr;
-    static {
-        try {
-            constr = EnumerableJoin.class.getDeclaredConstructor(RelOptCluster.class, //
-                    RelTraitSet.class, //
-                    RelNode.class, //
-                    RelNode.class, //
-                    RexNode.class, //
-                    ImmutableIntList.class, //
-                    ImmutableIntList.class, //
-                    Set.class, //
-                    JoinRelType.class);
-            constr.setAccessible(true);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
     @Override
     public EnumerableRel implementEnumerable(List<EnumerableRel> inputs) {
         if (this.hasSubQuery) {
             try {
-                return constr.newInstance(getCluster(), getCluster().traitSetOf(EnumerableConvention.INSTANCE), //
+                return EnumerableJoin.create(
                         inputs.get(0), inputs.get(1), condition, leftKeys, rightKeys, variablesSet, joinType);
             } catch (Exception e) {
                 throw new IllegalStateException("Can't create EnumerableJoin!", e);
@@ -341,7 +320,7 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
         context.setReturnTupleInfo(rowType, columnRowType);
 
-        PhysType physType = PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray(), false);
+        PhysType physType = PhysTypeImpl.of(implementor.getTypeFactory(), getRowType(), pref.preferArray());
         RelOptTable factTable = context.firstTableScan.getTable();
         MethodCallExpression exprCall = Expressions.call(factTable.getExpression(OLAPTable.class), "executeOLAPQuery",
                 implementor.getRootExpression(), Expressions.constant(context.id));
@@ -385,8 +364,6 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
                 this.columnRowType = this.buildColumnRowType();
             }
         }
-        context.setReturnTupleInfo(rowType, columnRowType);
-
     }
 
     @Override

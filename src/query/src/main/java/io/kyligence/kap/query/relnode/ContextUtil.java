@@ -155,7 +155,9 @@ public class ContextUtil {
 
     private static boolean isJoinFromSameContext(Collection<Integer> indexOfInputCols, KapJoinRel joinRel,
             OLAPContext subContext) {
-        //now support Cartesian Join if children are from different contexts
+        // now support Cartesian Join if children are from different contexts
+        if (indexOfInputCols.isEmpty())
+            return true;
         int maxIndex = Collections.max(indexOfInputCols);
         int leftLength = joinRel.getLeft().getRowType().getFieldList().size();
         if (maxIndex < leftLength) {

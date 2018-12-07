@@ -60,6 +60,7 @@ import com.google.common.collect.Range;
 
 import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import lombok.Getter;
+import lombok.Setter;
 
 /**
  * @author xjiang
@@ -95,6 +96,8 @@ public class StorageContext {
     private TupleFilter filter;
     private Set<TblColRef> dimensions;
     private Set<FunctionDesc> metrics;
+    @Getter @Setter
+    private boolean useSnapshot = false;
 
     public StorageContext() {
     }

@@ -62,7 +62,6 @@ import org.apache.kylin.query.optrule.AggregateMultipleExpandRule;
 import org.apache.kylin.query.optrule.AggregateProjectReduceRule;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPProjectRel;
-import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPTableScan;
 import org.apache.kylin.query.relnode.OLAPToEnumerableConverter;
 import org.apache.kylin.query.relnode.OLAPUnionRel;
@@ -274,12 +273,6 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
 
             if (parent instanceof OLAPToEnumerableConverter || parent instanceof OLAPUnionRel) {
                 return true;
-            }
-
-            OLAPRel olapParent = (OLAPRel) allParents.get(index);
-            if (olapParent.getContext() != null && olapParent.getContext() != this.context) {
-                // if the whole context has not projection, let table scan take care of itself
-                break;
             }
             index--;
         }

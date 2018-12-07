@@ -77,7 +77,7 @@ public class KapUnionRel extends OLAPUnionRel implements KapRel {
 
     @Override
     public boolean pushRelInfoToContext(OLAPContext context) {
-        return true;
+        return context == this.context;
     }
 
     @Override

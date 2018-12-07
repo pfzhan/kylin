@@ -968,9 +968,17 @@ public class QueryService extends BasicService {
                     }
                     cubeSb.append(ctx.realization.getCanonicalName());
                     logSb.append(ctx.storageContext.getProcessedRowCount()).append(" ");
-                    final String realizationType = ctx.storageContext.getCandidate().getCuboidLayout().getCuboidDesc()
-                            .isTableIndex() ? QueryMetricsContext.TABLE_INDEX : QueryMetricsContext.AGG_INDEX;
-                    realizationMetrics.add(QueryMetricsContext.createRealizationMetrics(ctx.storageContext.getCuboidId().toString(), realizationType, ctx.realization.getModel().getName()));
+                    final String realizationType;
+                    if (ctx.storageContext.isUseSnapshot()) {
+                        realizationType = QueryMetricsContext.TABLE_SNAPSHOT;
+                    } else if (ctx.storageContext.getCandidate().getCuboidLayout().getCuboidDesc().isTableIndex()) {
+                        realizationType = QueryMetricsContext.TABLE_INDEX;
+                    } else {
+                        realizationType = QueryMetricsContext.AGG_INDEX;
+                    }
+                    realizationMetrics.add(
+                            QueryMetricsContext.createRealizationMetrics(String.valueOf(ctx.storageContext.getCuboidId()),
+                                    realizationType, ctx.realization.getModel().getName()));
                     engineTypes.add(realizationType);
                 }
             }

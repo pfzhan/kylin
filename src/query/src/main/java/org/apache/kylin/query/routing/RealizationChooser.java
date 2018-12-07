@@ -66,7 +66,6 @@ import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.IRealization;
@@ -137,10 +136,12 @@ public class RealizationChooser {
                 }
 
                 context.realization = realization;
-                if (!chooseLayout(context)) {
+                context.storageContext.setUseSnapshot(context.isFirstTableLookupTableInModel(realization.getModel()));
+                if (!context.storageContext.isUseSnapshot() && !chooseLayout(context)) {
                     context.realization = null;
                     context.unfixModel();
-                    logger.info("Give up on realization {} because no suitable layout candidate is found.",
+                    logger.info(
+                            "Give up on realization {} because no suitable table snapshot or layout candidate is found.",
                             realization);
                     continue;
                 }
@@ -165,10 +166,10 @@ public class RealizationChooser {
         Set<TblColRef> filterColumns = Sets.newHashSet();
         TupleFilter.collectColumns(sqlDigest.filter, filterColumns);
 
-        Segments<NDataSegment> dataSegments = dataflow.getSegments(SegmentStatusEnum.READY);
+        NDataSegment firstDataSegment = dataflow.getSegments(SegmentStatusEnum.READY).get(0);
         // TODO: in future, segment's cuboid may differ
         NLayoutCandidate layoutCandidate = NCuboidLayoutChooser.selectLayoutForQuery(//
-                dataSegments.get(0) //
+                firstDataSegment //
                 , ImmutableSet.copyOf(sqlDigest.allColumns) //
                 , ImmutableSet.copyOf(dimensions) //
                 , ImmutableSet.copyOf(filterColumns) //
@@ -266,7 +267,7 @@ public class RealizationChooser {
         TableRef firstTable = ctx.firstTableScan.getTableRef();
         boolean matched;
 
-        if (ctx.joins.isEmpty() && model.isLookupTable(firstTable.getTableIdentity())) {
+        if (ctx.isFirstTableLookupTableInModel(model)) {
             // one lookup table
             String modelAlias = model.findFirstTable(firstTable.getTableIdentity()).getAlias();
             matchUp = ImmutableMap.of(firstTable.getAlias(), modelAlias);

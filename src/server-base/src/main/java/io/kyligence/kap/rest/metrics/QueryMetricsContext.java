@@ -63,6 +63,7 @@ public class QueryMetricsContext {
 
     public static final String AGG_INDEX = "Agg Index";
     public static final String TABLE_INDEX = "Table Index";
+    public static final String TABLE_SNAPSHOT = "Table Snapshot";
 
     private static final InheritableThreadLocal<QueryMetricsContext> contexts = new InheritableThreadLocal<>();
 

@@ -25,13 +25,11 @@
 package io.kyligence.kap.query.relnode;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.calcite.adapter.enumerable.EnumerableConvention;
 import org.apache.calcite.adapter.enumerable.EnumerableJoin;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.plan.RelOptCluster;
@@ -59,7 +57,6 @@ import org.apache.kylin.query.relnode.OLAPJoinRel;
 import org.apache.kylin.query.relnode.OLAPRel;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.exception.NotSupportedSQLException;
@@ -196,7 +193,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
             if (this.isPreCalJoin && !(this.getCondition() instanceof RexCall))
                 throw new NotSupportedSQLException("Cartesian Join is not supported");
             this.context.allOlapJoins.add(this);
-            this.isTopPreCalcJoin = !this.isPreCalJoin || !this.context.isHasPreCalcJoin();
+            this.isTopPreCalcJoin = this.isPreCalJoin && !this.context.isHasPreCalcJoin();
             this.context.setHasJoin(true);
             this.context.setHasPreCalcJoin(this.context.isHasPreCalcJoin() || this.isPreCalJoin);
         }
@@ -211,7 +208,8 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
         if (context != null) {
             collectCtxOlapInfoIfExist();
         } else {
-            pushDownConditionCols();
+            Map<TblColRef, TblColRef> joinColumns = translateJoinColumn(this.getCondition());
+            pushDownJoinColsToSubContexts(joinColumns);
         }
     }
 
@@ -225,30 +223,16 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
             this.context.joins.add(join);
 
         } else {
-            Map<TblColRef, TblColRef> joinCol = new HashMap<TblColRef, TblColRef>();
-            translateJoinColumn(this.getCondition(), joinCol);
-            for (Map.Entry<TblColRef, TblColRef> columnPair : joinCol.entrySet()) {
+            Map<TblColRef, TblColRef> joinColumns = translateJoinColumn(this.getCondition());
+            for (Map.Entry<TblColRef, TblColRef> columnPair : joinColumns.entrySet()) {
                 TblColRef fromCol = context.belongToContextTables(columnPair.getKey()) ? columnPair.getKey()
                         : columnPair.getValue();
                 this.context.subqueryJoinParticipants.add(fromCol);
             }
-            joinCol.clear();
+            pushDownJoinColsToSubContexts(joinColumns);
         }
         if (this == context.getTopNode() && !context.isHasAgg())
             KapContext.amendAllColsIfNoAgg(this);
-    }
-
-    private void pushDownConditionCols() {
-        // push down the join condition info，except the cross Join\
-        if (!(this.getCondition() instanceof RexCall)) {
-            return;
-        }
-        for (OLAPContext context : subContexts) {
-            for (TblColRef colRef : collectJoinConditionCols((RexCall) this.getCondition())) {
-                if (context.belongToContextTables(colRef))
-                    context.allColumns.add(colRef);
-            }
-        }
     }
 
     @Override
@@ -289,7 +273,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
     public EnumerableRel implementEnumerable(List<EnumerableRel> inputs) {
         if (isRuntimeJoin()) {
             try {
-                return constr.newInstance(getCluster(), getCluster().traitSetOf(EnumerableConvention.INSTANCE), //
+                return EnumerableJoin.create(
                         inputs.get(0), inputs.get(1), condition, leftKeys, rightKeys, variablesSet, joinType);
             } catch (Exception e) {
                 throw new IllegalStateException("Can't create EnumerableJoin!", e);
@@ -299,18 +283,23 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
         }
     }
 
-    private List<TblColRef> collectJoinConditionCols(RexCall condition) {
-        Map<TblColRef, TblColRef> joinColumns = new HashMap<TblColRef, TblColRef>();
-        translateJoinColumn(condition, joinColumns);
-
-        Set<TblColRef> conditionCols = Sets.newHashSet();
-        for (Map.Entry<TblColRef, TblColRef> columnPair : joinColumns.entrySet()) {
-            TblColRef fromCol = columnPair.getKey();
-            TblColRef toCol = columnPair.getValue();
-            conditionCols.add(fromCol);
-            conditionCols.add(toCol);
+    private void pushDownJoinColsToSubContexts(Map<TblColRef, TblColRef> joinColumns) {
+        for (OLAPContext context : subContexts) {
+            collectJoinColsToContext(joinColumns, context);
         }
-        return Lists.newArrayList(conditionCols);
+    }
+
+    private void collectJoinColsToContext(Map<TblColRef, TblColRef> joinCols, OLAPContext context) {
+        for (Map.Entry<TblColRef, TblColRef> entry : joinCols.entrySet()) {
+            TblColRef colRef = entry.getKey();
+            if (context.belongToContextTables(colRef)) {
+                context.allColumns.add(colRef);
+            }
+            colRef = entry.getValue();
+            if (context.belongToContextTables(colRef)) {
+                context.allColumns.add(colRef);
+            }
+        }
     }
 
     @Override

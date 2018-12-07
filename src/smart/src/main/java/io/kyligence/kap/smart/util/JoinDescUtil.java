@@ -42,9 +42,6 @@ public class JoinDescUtil {
     
     private JoinDescUtil() {
         throw new IllegalStateException("Utility class");
-      }
-
-    private JoinDescUtil() {
     }
 
     public static JoinTableDesc convert(JoinDesc join, TableKind kind, String pkTblAlias, String fkTblAlias,
