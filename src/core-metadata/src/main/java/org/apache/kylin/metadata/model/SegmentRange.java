@@ -82,9 +82,11 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
 
     abstract public boolean apartBefore(SegmentRange o);
 
-    abstract public boolean shareStart(SegmentRange o);
+    abstract public boolean startStartMatch(SegmentRange o);
 
-    abstract public boolean shareEnd(SegmentRange o);
+    abstract public boolean endEndMatch(SegmentRange o);
+
+    abstract public boolean startEndMatch(SegmentRange o);
 
     abstract public SegmentRange getStartDeviation(SegmentRange o);
 
@@ -174,14 +176,21 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         }
 
         @Override
-        public boolean shareStart(SegmentRange o) {
+        public boolean startStartMatch(SegmentRange o) {
             checkSameType(o);
             BasicSegmentRange t = convert(o);
             return this.start.equals(t.start);
         }
 
         @Override
-        public boolean shareEnd(SegmentRange o) {
+        public boolean endEndMatch(SegmentRange o) {
+            checkSameType(o);
+            BasicSegmentRange t = convert(o);
+            return this.end.equals(t.end);
+        }
+
+        @Override
+        public boolean startEndMatch(SegmentRange o) {
             checkSameType(o);
             BasicSegmentRange t = convert(o);
             return this.start.equals(this.end);

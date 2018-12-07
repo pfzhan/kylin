@@ -34,9 +34,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.measure.MeasureType;
 import org.apache.kylin.measure.basic.BasicMeasureType;
-import org.apache.kylin.metadata.filter.UDF.MassInTupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -118,15 +116,6 @@ public class NDataflowCapabilityChecker {
             logger.info("Exclude NDataflow " + dataflow.getName() + " because unmatched aggregations: "
                     + unmatchedAggregations);
             result.incapableCause = CapabilityResult.IncapableCause.unmatchedAggregations(unmatchedAggregations);
-            return result;
-        }
-
-        if (dataflow.getStorageType() == IStorageAware.ID_HBASE
-                && MassInTupleFilter.containsMassInTupleFilter(digest.filter)) {
-            logger.info("Exclude NDataflow " + dataflow.getName()
-                    + " because only v2 storage + v2 query engine supports massin");
-            result.incapableCause = CapabilityResult.IncapableCause
-                    .create(CapabilityResult.IncapableType.UNSUPPORT_MASSIN);
             return result;
         }
 

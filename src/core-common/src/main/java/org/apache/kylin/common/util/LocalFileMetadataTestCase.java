@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 public class LocalFileMetadataTestCase extends AbstractKylinTestCase {
     private static final Logger logger = LoggerFactory.getLogger(LocalFileMetadataTestCase.class);
 
-    public static final String LOCALMETA_TEST_DATA = "../examples/test_case_data/localmeta";
+    public static final String LOCALMETA_TEST_DATA = "../examples/test_case_data/localmeta_n";
     public static final String LOCALMETA_TEMP_DATA = "../examples/test_metadata/";
 
     @Override

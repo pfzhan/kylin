@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -49,6 +48,6 @@ import java.io.Serializable;
  * @author xduo
  * 
  */
-public enum SegmentStatusEnum implements Serializable{
-    NEW, READY, READY_PENDING
+public enum SegmentStatusEnum implements Serializable {
+    NEW, READY
 }

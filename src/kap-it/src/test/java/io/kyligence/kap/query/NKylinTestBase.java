@@ -45,6 +45,7 @@ public class NKylinTestBase extends KylinTestBase {
         config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kylin.metadata.store-factory", "io.kyligence.kap.common.persistence.KapMetaStoreFactory");
 
+
         //setup cube conn
         String project = ProjectInstance.DEFAULT_PROJECT_NAME;
         cubeConnection = QueryConnection.getConnection(project);

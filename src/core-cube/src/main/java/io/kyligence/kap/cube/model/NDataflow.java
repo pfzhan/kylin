@@ -37,6 +37,7 @@ import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -56,14 +57,13 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class NDataflow extends RootPersistentEntity implements IRealization, IKeep, IKapStorageAware {
+public class NDataflow extends RootPersistentEntity implements IRealization, IKeep, IStorageAware {
     public static final String REALIZATION_TYPE = "NCUBE";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
 
@@ -318,7 +318,6 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         }
     }
 
-
     @Override
     public boolean supportsLimitPushDown() {
         return true; // TODO: storage_type defined on cuboid level, which will decide whether to support
@@ -341,7 +340,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
 
     @Override
     public int getStorageType() {
-        return IKapStorageAware.ID_NDATA_STORAGE;
+        return IStorageAware.ID_NDATA_STORAGE;
     }
 
     // ============================================================================

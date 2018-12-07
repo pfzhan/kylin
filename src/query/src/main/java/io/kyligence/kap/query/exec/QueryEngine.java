@@ -31,7 +31,7 @@ import org.apache.calcite.rel.type.RelDataType;
 
 public interface QueryEngine {
 
-    public Enumerable<Object> computSCALA(DataContext dataContext, RelNode relNode, RelDataType resultType);
+    public Enumerable<Object> computeSCALA(DataContext dataContext, RelNode relNode, RelDataType resultType);
 
-    public Enumerable<Object[]> comput(DataContext dataContext, RelNode relNode, RelDataType resultType);
+    public Enumerable<Object[]> compute(DataContext dataContext, RelNode relNode, RelDataType resultType);
 }

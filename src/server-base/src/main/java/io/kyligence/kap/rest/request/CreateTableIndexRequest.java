@@ -29,11 +29,11 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.model.IKapStorageAware;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.apache.kylin.metadata.model.IStorageAware;
 
 @Builder
 @AllArgsConstructor
@@ -64,7 +64,7 @@ public class CreateTableIndexRequest {
 
     @JsonProperty("storage_type")
     @Builder.Default
-    private int storageType = IKapStorageAware.ID_NDATA_STORAGE;
+    private int storageType = IStorageAware.ID_NDATA_STORAGE;
 
     @Builder.Default
     @JsonProperty("load_data")

@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.util.ImmutableBitSet;
+import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -50,7 +51,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.cube.cuboid.NCuboidScheduler;
-import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
@@ -301,7 +301,7 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
             List<Integer> colOrder = Lists.newArrayList(tailor(getDimensions(), cuboidId));
             colOrder.addAll(getMeasures());
             layout.setColOrder(colOrder);
-            layout.setStorageType(IKapStorageAware.ID_NDATA_STORAGE);
+            layout.setStorageType(IStorageAware.ID_NDATA_STORAGE);
 
             val dimensionsInLayout = tailor(getDimensions(), cuboidId);
 

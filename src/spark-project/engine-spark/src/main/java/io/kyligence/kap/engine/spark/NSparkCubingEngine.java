@@ -25,45 +25,20 @@
 package io.kyligence.kap.engine.spark;
 
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.kylin.common.util.ImplementationSwitch;
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
+import org.apache.kylin.job.engine.NCubingEngine;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.cube.model.NDataSegment;
-import org.apache.kylin.job.engine.NCubingEngine;
 
 public class NSparkCubingEngine implements NCubingEngine, IKeep {
 
     private static ThreadLocal<ImplementationSwitch<NSparkCubingStorage>> storages = new ThreadLocal<>();
-
-    @Override
-    public DefaultChainedExecutable createCubingJob(Set<NDataSegment> segments, Set<NCuboidLayout> cuboids,
-            String submitter) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    /**
-     * To merge the segments that are contained in the given mergedSegment
-     *
-     * @param mergedSegment, new segment that expect to merge, which should contains a couple of ready segments.
-     * @param layouts, user is allowed to specify the cuboids to merge. By default, it is null and merge all
-     *                 the ready cuboids in the segments.
-     */
-    @Override
-    public DefaultChainedExecutable createMergingJob(NDataSegment mergedSegment, Set<NCuboidLayout> layouts,
-            String submitter) {
-        // TODO Auto-generated method stub
-        return null;
-    }
 
     @Override
     public Class<?> getSourceInterface() {

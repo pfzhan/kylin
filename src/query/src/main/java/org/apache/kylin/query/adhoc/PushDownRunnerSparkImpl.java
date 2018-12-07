@@ -43,8 +43,6 @@
 
 package org.apache.kylin.query.adhoc;
 
-import io.kyligence.kap.storage.parquet.PushdownResponse;
-import io.kyligence.kap.storage.parquet.StructField;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;

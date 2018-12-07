@@ -424,9 +424,11 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
         return this;
     }
 
+    /**
+     * belongs to legacy "calcite query engine" (compared to current "sparder query engine"), pay less attention
+     */
     @Override
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
-
         context.setReturnTupleInfo(rowType, columnRowType);
         String execFunction = genExecFunc();
 
@@ -438,7 +440,8 @@ public class OLAPTableScan extends TableScan implements OLAPRel, EnumerableRel {
 
     public String genExecFunc() {
         context.setReturnTupleInfo(rowType, columnRowType);
-        // if the table to scan is not the fact table of cube, then it's a lookup table
+        // if the table to scan is not the fact table of cube, then it's a lookup table,
+        // TODO: this is not right!
         if (context.realization.getModel().isLookupTable(tableName)) {
             return "executeLookupTableQuery";
         } else {

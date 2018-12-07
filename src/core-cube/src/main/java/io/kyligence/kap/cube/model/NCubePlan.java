@@ -74,7 +74,6 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.metadata.model.IKapEngineAware;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -135,7 +134,7 @@ public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKe
     @JsonProperty("status_need_notify")
     private List<String> statusNeedNotify = Lists.newArrayList();
     @JsonProperty("engine_type")
-    private int engineType = IKapEngineAware.ID_KAP_NSPARK;
+    private int engineType = IEngineAware.ID_KAP_NSPARK;
     @JsonProperty("dictionaries")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<NDictionaryDesc> dictionaries;

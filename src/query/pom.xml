@@ -26,7 +26,7 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-storage-parquet</artifactId>
+            <artifactId>kap-core-storage</artifactId>
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
@@ -122,7 +122,7 @@
             <version>3.0.0</version>
             <scope>test</scope>
         </dependency>
-      
+
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

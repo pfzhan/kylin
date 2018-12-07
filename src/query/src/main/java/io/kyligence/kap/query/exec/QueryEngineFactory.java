@@ -34,27 +34,27 @@ import org.slf4j.LoggerFactory;
 public class QueryEngineFactory {
     private static final Logger log = LoggerFactory.getLogger(QueryEngineFactory.class);
 
-    public static Enumerable<Object> computSCALA(DataContext dataContext, RelNode relNode, RelDataType resultType)
+    public static Enumerable<Object> computeSCALA(DataContext dataContext, RelNode relNode, RelDataType resultType)
             throws IllegalAccessException, ClassNotFoundException, InstantiationException {
         try {
             QueryEngine o = (QueryEngine) Class.forName("io.kyligence.kap.query.runtime.SparkEngine").newInstance();
-            return o.computSCALA(dataContext, relNode, resultType);
+            return o.computeSCALA(dataContext, relNode, resultType);
         } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
             throw e;
         }
     }
 
-    public static Enumerable<Object[]> comput(DataContext dataContext, RelNode relNode, RelDataType resultType)
+    public static Enumerable<Object[]> compute(DataContext dataContext, RelNode relNode, RelDataType resultType)
             throws IllegalAccessException, ClassNotFoundException, InstantiationException {
         try {
             QueryEngine o = (QueryEngine) Class.forName("io.kyligence.kap.query.runtime.SparkEngine").newInstance();
-            return o.comput(dataContext, relNode, resultType);
+            return o.compute(dataContext, relNode, resultType);
         } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
             throw e;
         }
     }
 
-    public static Enumerable<Object[]> computAsync(DataContext dataContext, RelNode relNode, RelDataType resultType) {
+    public static Enumerable<Object[]> computeAsync(DataContext dataContext, RelNode relNode, RelDataType resultType) {
         throw new UnsupportedOperationException("");
     }
 }

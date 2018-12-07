@@ -30,7 +30,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.storage.IStorageQuery;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -39,10 +38,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
-import io.kyligence.kap.storage.NDataStorageQuery;
 import io.kyligence.kap.storage.ParquetDataStorage;
 
 /**
@@ -69,14 +66,14 @@ public class SparderCover extends NLocalFileMetadataTestCase {
                 .adaptToBuildEngine(NSparkCubingEngine.NSparkCubingStorage.class);
         Assert.assertTrue(nSparkCubingStorage instanceof ParquetStorage);
     }
-
-    @Test
-    public void testParquetDataStorage() {
-        ParquetDataStorage parquetDataStorage = new ParquetDataStorage();
-        NDataflow nDataflow = new NDataflow();
-        IStorageQuery query = parquetDataStorage.createQuery(nDataflow);
-        Assert.assertTrue(query instanceof NDataStorageQuery);
-    }
+    //
+    //    @Test
+    //    public void testParquetDataStorage() {
+    //        ParquetDataStorage parquetDataStorage = new ParquetDataStorage();
+    //        NDataflow nDataflow = new NDataflow();
+    //        IStorageQuery query = parquetDataStorage.createQuery(nDataflow);
+    //        Assert.assertTrue(query instanceof NDataStorageQuery);
+    //    }
 
     @Test
     public void testKapConf() {

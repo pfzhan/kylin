@@ -36,7 +36,6 @@ import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
 import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.measure.topn.TopNMeasureType;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
@@ -65,7 +64,7 @@ public class NDataModelManager {
     @SuppressWarnings("unused")
     static NDataModelManager newInstance(KylinConfig conf, String project) {
         try {
-            String cls = StringUtil.noBlank(conf.getDataModelManagerImpl(), NDataModelManager.class.getName());
+            String cls = NDataModelManager.class.getName();
             Class<? extends NDataModelManager> clz = ClassUtil.forName(cls, NDataModelManager.class);
             return clz.getConstructor(KylinConfig.class, String.class).newInstance(conf, project);
         } catch (Exception e) {

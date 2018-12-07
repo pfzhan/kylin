@@ -32,15 +32,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import lombok.val;
-import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.dict.lookup.NSnapshotManager;
 import org.apache.kylin.dict.lookup.NSnapshotTable;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
@@ -64,6 +61,8 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
+import lombok.var;
 
 public class NDataflowManager implements IRealizationProvider, IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NDataflowManager.class);
@@ -119,8 +118,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         Broadcaster.getInstance(config).registerListener(new NDataflowSyncListener(), project, "ncube");
     }
 
-    public NDataflow removeLayouts(NDataflow df, List<Long> tobeRemoveCuboidLayoutIds)
-            throws IOException {
+    public NDataflow removeLayouts(NDataflow df, List<Long> tobeRemoveCuboidLayoutIds) throws IOException {
         List<NDataCuboid> tobeRemoveCuboidLayout = Lists.newArrayList();
         Segments<NDataSegment> segments = df.getSegments();
         for (NDataSegment segment : segments) {
@@ -311,27 +309,19 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
             NDataSegment newSegment = newSegment(df, segRange);
 
-            Pair<Boolean, Boolean> pair = df.getSegments().fitInSegments(newSegment);
-            if (!pair.getFirst() || !pair.getSecond())
-                throw new IllegalArgumentException("The new refreshing segment " + newSegment
-                        + " does not match any existing segment in NDataflow " + df);
-
-            if (segRange != null) {
-                NDataSegment toRefreshSeg = null;
-                for (NDataSegment NDataSegment : df.getSegments()) {
-                    if (NDataSegment.getSegRange().equals(segRange)) {
-                        toRefreshSeg = NDataSegment;
-                        break;
-                    }
+            NDataSegment toRefreshSeg = null;
+            for (NDataSegment NDataSegment : df.getSegments()) {
+                if (NDataSegment.getSegRange().equals(segRange)) {
+                    toRefreshSeg = NDataSegment;
+                    break;
                 }
-
-                if (toRefreshSeg == null) {
-                    throw new IllegalArgumentException(
-                            "For streaming NDataflow, only one segment can be refreshed at one time");
-                }
-
-                newSegment.setSegmentRange(toRefreshSeg.getSegRange());
             }
+
+            if (toRefreshSeg == null) {
+                throw new IllegalArgumentException("No matching segment ");
+            }
+
+            newSegment.setSegmentRange(toRefreshSeg.getSegRange());
 
             NDataflowUpdate upd = new NDataflowUpdate(df.getName());
             upd.setToAddSegs(newSegment);

@@ -26,8 +26,6 @@ package io.kyligence.kap.common.util;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.io.Charsets;
@@ -38,33 +36,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TempMetadataBuilder {
-    private static final String KAP_META_TEST_DATA = "../examples/test_case_data/localmeta";
-    private static final String KAP_SPARDER_META_TEST_DATA = "../examples/test_case_data/sparder_localmeta";
 
     public static final String N_KAP_META_TEST_DATA = "../examples/test_case_data/localmeta_n";
     public static final String N_SPARK_PROJECT_KAP_META_TEST_DATA = "../../examples/test_case_data/localmeta_n";
     public static final String TEMP_TEST_METADATA = "../examples/test_metadata";
 
     private static final Logger logger = LoggerFactory.getLogger(TempMetadataBuilder.class);
-
-    public static String prepareLocalTempMetadata() {
-        return prepareLocalTempMetadata(true);
-    }
-
-    public static String prepareLocalTempMetadata(boolean debug, String... extraMetaOverlays) {
-        ArrayList<String> list = new ArrayList<>();
-        list.add(KAP_META_TEST_DATA);
-
-        if (Boolean.parseBoolean(System.getProperty("sparder.enabled"))) {
-            list.add(KAP_SPARDER_META_TEST_DATA);
-        }
-
-        if (extraMetaOverlays != null) {
-            list.addAll(Arrays.asList(extraMetaOverlays));
-        }
-
-        return new TempMetadataBuilder(debug, (String[]) list.toArray(new String[list.size()])).build();
-    }
 
     public static String prepareNLocalTempMetadata() {
         return prepareNLocalTempMetadata(false);
@@ -117,15 +94,7 @@ public class TempMetadataBuilder {
             }
 
             appendKylinProperties(TEMP_TEST_METADATA);
-            overrideEngineTypeAndStorageType(TEMP_TEST_METADATA, grabDefaultEngineTypes(TEMP_TEST_METADATA), null);
-
-            // It's a hack for engine 99
-            List<String> engine99File = new ArrayList<>();
-            engine99File.add("ci_left_join_cube.json");
-            overrideEngineTypeAndStorageType(TEMP_TEST_METADATA, new Pair<>(98, 99), engine99File);
-
-            // Let CI cube be faster
-            overrideDimCapOnCiCubes(TEMP_TEST_METADATA, 1);
+            //overrideEngineTypeAndStorageType(TEMP_TEST_METADATA, grabDefaultEngineTypes(TEMP_TEST_METADATA), null);
 
             if (debug) {
                 File copy = new File(TEMP_TEST_METADATA + ".debug");
@@ -190,35 +159,6 @@ public class TempMetadataBuilder {
                 }
             }
             FileUtils.writeLines(f, "UTF-8", lines);
-        }
-    }
-
-    private void overrideDimCapOnCiCubes(String tempMetadataDir, int dimCap) throws IOException {
-        if (debug) {
-            logger.info("Override dim cap to be {}", dimCap);
-        }
-
-        // re-write cube_desc/ci_*.json
-        File cubeDescDir = new File(tempMetadataDir, "cube_desc");
-        File[] cubeDescFiles = cubeDescDir.listFiles();
-        if (cubeDescFiles == null)
-            return;
-
-        for (File f : cubeDescFiles) {
-            if (!f.getName().startsWith("ci_")) {
-                continue;
-            }
-            if (debug) {
-                logger.info("Process override {}", f.getCanonicalPath());
-            }
-            List<String> lines = FileUtils.readLines(f, Charsets.UTF_8);
-            for (int i = 0, n = lines.size(); i < n; i++) {
-                String l = lines.get(i);
-                if (l.contains("\"dim_cap\"")) {
-                    lines.set(i, "        \"dim_cap\" : " + dimCap);
-                }
-            }
-            FileUtils.writeLines(f, Charsets.UTF_8.toString(), lines);
         }
     }
 

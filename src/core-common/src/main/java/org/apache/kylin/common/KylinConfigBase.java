@@ -401,21 +401,9 @@ abstract public class KylinConfigBase implements Serializable {
         return r;
     }
 
-    public String getDataModelImpl() {
-        return getOptional("kylin.metadata.data-model-impl", null);
-    }
-
-    public String getDataModelManagerImpl() {
-        return getOptional("kylin.metadata.data-model-manager-impl", null);
-    }
-
-    public String getProjectManagerImpl() {
-        return getOptional("kylin.metadata.project-manager-impl", null);
-    }
-
     public String[] getRealizationProviders() {
         return getOptionalStringArray("kylin.metadata.realization-providers", //
-                new String[] { "org.apache.kylin.cube.CubeManager", "org.apache.kylin.storage.hybrid.HybridManager" });
+                new String[] { "io.kyligence.kap.cube.model.NDataflowManager" });
     }
 
     public String[] getCubeDimensionCustomEncodingFactories() {
@@ -900,15 +888,13 @@ abstract public class KylinConfigBase implements Serializable {
     public Map<Integer, String> getStorageEngines() {
         Map<Integer, String> r = Maps.newLinkedHashMap();
         // ref constants in IStorageAware
-        r.put(0, "org.apache.kylin.storage.hbase.HBaseStorage");
-        r.put(1, "org.apache.kylin.storage.hybrid.HybridStorage");
-        r.put(2, "org.apache.kylin.storage.hbase.HBaseStorage");
+        r.put(20, "io.kyligence.kap.storage.ParquetDataStorage");
         r.putAll(convertKeyToInteger(getPropertiesByPrefix("kylin.storage.provider.")));
         return r;
     }
 
     public int getDefaultStorageEngine() {
-        return Integer.parseInt(getOptional("kylin.storage.default", "2"));
+        return Integer.parseInt(getOptional("kylin.storage.default", "20"));
     }
 
     public StorageURL getStorageUrl() {
@@ -1072,20 +1058,6 @@ abstract public class KylinConfigBase implements Serializable {
     // ============================================================================
     // ENGINE.MR
     // ============================================================================
-
-    public Map<Integer, String> getJobEngines() {
-        Map<Integer, String> r = Maps.newLinkedHashMap();
-        // ref constants in IEngineAware
-        r.put(0, "org.apache.kylin.engine.mr.MRBatchCubingEngine"); //IEngineAware.ID_MR_V1
-        r.put(2, "org.apache.kylin.engine.mr.MRBatchCubingEngine2"); //IEngineAware.ID_MR_V2
-        r.put(4, "org.apache.kylin.engine.spark.SparkBatchCubingEngine2"); //IEngineAware.ID_SPARK
-        r.putAll(convertKeyToInteger(getPropertiesByPrefix("kylin.engine.provider.")));
-        return r;
-    }
-
-    public int getDefaultCubeEngine() {
-        return Integer.parseInt(getOptional("kylin.engine.default", "2"));
-    }
 
     public String getKylinJobJarPath() {
         final String jobJar = getOptional("kylin.engine.spark.job-jar");
@@ -1341,7 +1313,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public String getSchemaFactory() {
-        return this.getOptional("kylin.query.schema-factory", "org.apache.kylin.query.schema.OLAPSchemaFactory");
+        return this.getOptional("kylin.query.schema-factory", "io.kyligence.kap.query.schema.KapSchemaFactory");
     }
 
     public String getPushDownRunnerClassName() {

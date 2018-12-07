@@ -34,11 +34,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.smart.query.mockup.MockupPushDownRunner;
-import io.kyligence.kap.smart.query.mockup.MockupStorage;
 
 public class Utils {
     private static final Logger logger = LoggerFactory.getLogger(Utils.class);
-    private Utils() { }
+
+    private Utils() {
+    }
 
     public static KylinConfig newKylinConfig(String metadataUrl) {
         Properties props;
@@ -49,16 +50,9 @@ public class Utils {
             props = new Properties();
         }
         setLargeCuboidCombinationConf(props);
-        props.setProperty("kylin.storage.provider.0", MockupStorage.class.getName());
-        props.setProperty("kylin.storage.provider.1", MockupStorage.class.getName());
-        props.setProperty("kylin.storage.provider.2", MockupStorage.class.getName());
-        props.setProperty("kylin.storage.provider.20", MockupStorage.class.getName());
-        props.setProperty("kylin.storage.provider.99", MockupStorage.class.getName());
-        props.setProperty("kylin.storage.provider.100", MockupStorage.class.getName());
         props.setProperty("kylin.env", "DEV");
         props.setProperty("kylin.metadata.url", metadataUrl);
         props.setProperty("kylin.cube.aggrgroup.is-mandatory-only-valid", "true");
-        props.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.KapModel");
         props.setProperty("kap.metadata.mock.no-dict-store", "true");
 
         return KylinConfig.createKylinConfig(props);
@@ -71,17 +65,10 @@ public class Utils {
         } catch (Exception e) {
             logger.warn("Pass KylinConfig export exception", e);
             props = new Properties();
-            props.put("kylin.query.schema-factory", "io.kyligence.kap.query.schema.KapSchemaFactory");
         }
         setLargeCuboidCombinationConf(props);
         props.setProperty("kylin.env", "DEV");
         props.setProperty("kylin.metadata.url", metadataUrl);
-        props.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.NDataModel");
-        props.setProperty("kylin.metadata.data-model-manager-impl",
-                "io.kyligence.kap.metadata.model.NDataModelManager");
-        props.setProperty("kylin.metadata.project-manager-impl", "io.kyligence.kap.metadata.project.NProjectManager");
-        props.setProperty("kylin.metadata.realization-providers", "io.kyligence.kap.cube.model.NDataflowManager");
-        props.setProperty("kylin.query.schema-factory", "io.kyligence.kap.query.schema.KapSchemaFactory");
 
         return KylinConfig.createKylinConfig(props);
     }

@@ -29,8 +29,8 @@ import java.util.Map;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.model.IKapStorageAware;
 import lombok.Data;
+import org.apache.kylin.metadata.model.IStorageAware;
 
 @Data
 public class TableIndexResponse {
@@ -66,7 +66,7 @@ public class TableIndexResponse {
     private List<String> sortByColumns;
 
     @JsonProperty("storage_type")
-    private int storageType = IKapStorageAware.ID_NDATA_STORAGE;
+    private int storageType = IStorageAware.ID_NDATA_STORAGE;
 
     @JsonProperty("update_time")
     private long updateTime;

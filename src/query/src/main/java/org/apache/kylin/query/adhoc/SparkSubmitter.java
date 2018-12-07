@@ -24,17 +24,16 @@
 
 package org.apache.kylin.query.adhoc;
 
-import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
-import io.kyligence.kap.storage.parquet.PushdownResponse;
-import io.kyligence.kap.storage.parquet.StructField;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Semaphore;
+
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Semaphore;
+import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
 
 public class SparkSubmitter {
     public static final Logger logger = LoggerFactory.getLogger(SparkSubmitter.class);

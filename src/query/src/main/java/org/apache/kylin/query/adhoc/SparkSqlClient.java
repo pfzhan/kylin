@@ -45,8 +45,6 @@ package org.apache.kylin.query.adhoc;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import io.kyligence.kap.storage.parquet.FlatMapFunctionImpl;
-import io.kyligence.kap.storage.parquet.StructField;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.exceptions.KylinTimeoutException;
 import org.apache.kylin.common.util.Pair;

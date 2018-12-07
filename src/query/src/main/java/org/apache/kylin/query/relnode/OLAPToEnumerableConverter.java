@@ -86,6 +86,9 @@ public class OLAPToEnumerableConverter extends ConverterImpl implements Enumerab
         return super.computeSelfCost(planner, mq).multiplyBy(0.05);
     }
 
+    /**
+     * belongs to legacy "calcite query engine" (compared to current "sparder query engine"), pay less attention
+     */
     @Override
     public Result implement(EnumerableRelImplementor enumImplementor, Prefer pref) {
         if (System.getProperty("calcite.debug") != null) {

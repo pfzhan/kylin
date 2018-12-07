@@ -10,8 +10,6 @@ echo "copy lib file"
 rm -rf build/lib build/tool
 mkdir build/lib build/tool
 cp extensions/assembly/target/kap-assembly-${kap_version}-job.jar build/lib/kylin-job-kap-${release_version}.jar
-#cp extensions/storage-hbase/target/kap-storage-hbase-${kap_version}-coprocessor.jar build/lib/kylin-coprocessor-kap-${release_version}.jar
-cp extensions/storage-parquet/target/kap-storage-parquet-${kap_version}-spark.jar build/lib/kylin-storage-parquet-kap-${release_version}.jar
 cp kylin/jdbc/target/kylin-jdbc-${kylin_version}.jar build/lib/kylin-jdbc-kap-${release_version}.jar
 cp extensions/tool-assembly/target/kap-tool-assembly-${kap_version}-assembly.jar build/tool/kylin-tool-kap-${release_version}.jar
 

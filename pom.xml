@@ -168,8 +168,6 @@
         <module>src/external</module>
         <module>src/core-job</module>
         <module>src/core-storage</module>
-        <module>src/storage-parquet</module>
-        <module>src/storage-parquet-format</module>
         <module>src/query</module>
         <module>src/kap-it</module>
         <module>src/smart</module>
@@ -216,11 +214,6 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>ke-assembly</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-storage-parquet</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -349,12 +342,6 @@
                 <artifactId>kap-core-common</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-storage-parquet</artifactId>
-                <type>test-jar</type>
-                <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>

@@ -29,17 +29,10 @@ import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.storage.IStorage;
 import org.apache.kylin.storage.IStorageQuery;
 
-import io.kyligence.kap.cube.model.NDataflow;
-
 public class ParquetDataStorage implements IStorage {
     @Override
     public IStorageQuery createQuery(IRealization realization) {
-        switch (realization.getType()) {
-        case NDataflow.REALIZATION_TYPE:
-            return new NDataStorageQuery((NDataflow) realization);
-        default:
-            throw new IllegalStateException("Unsupported realization type for NDataStorage: " + realization.getType());
-        }
+        throw new UnsupportedOperationException();
     }
 
     @Override

@@ -48,7 +48,7 @@ public class SparkExec implements IKeep {
         KapRel kapRel = KapContext.getKapRel();
         RelDataType rowType = KapContext.getRowType();
         try {
-            Enumerable<Object[]> computer = QueryEngineFactory.comput(dataContext, kapRel, rowType);
+            Enumerable<Object[]> computer = QueryEngineFactory.compute(dataContext, kapRel, rowType);
             return computer;
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -63,7 +63,7 @@ public class SparkExec implements IKeep {
         KapRel kapRel = KapContext.getKapRel();
         RelDataType rowType = KapContext.getRowType();
         try {
-            Enumerable<Object> objects = QueryEngineFactory.computSCALA(dataContext, kapRel, rowType);
+            Enumerable<Object> objects = QueryEngineFactory.computeSCALA(dataContext, kapRel, rowType);
             return objects;
 
         } catch (Exception e) {
@@ -77,7 +77,7 @@ public class SparkExec implements IKeep {
         }
         KapRel kapRel = KapContext.getKapRel();
         RelDataType rowType = KapContext.getRowType();
-        return QueryEngineFactory.computAsync(dataContext, kapRel, rowType);
+        return QueryEngineFactory.computeAsync(dataContext, kapRel, rowType);
     }
 
 }

@@ -24,20 +24,7 @@
 
 package org.apache.kylin.job.engine;
 
-import java.util.Set;
-
-import org.apache.kylin.job.execution.DefaultChainedExecutable;
-
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataSegment;
-
 public interface NCubingEngine {
-
-    public DefaultChainedExecutable createCubingJob(Set<NDataSegment> segments, Set<NCuboidLayout> cuboids,
-            String submitter);
-
-    public DefaultChainedExecutable createMergingJob(NDataSegment mergedSegment, Set<NCuboidLayout> layouts,
-            String submitter);
 
     public Class<?> getSourceInterface();
 

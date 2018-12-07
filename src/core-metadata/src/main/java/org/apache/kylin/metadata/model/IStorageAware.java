@@ -45,9 +45,7 @@ package org.apache.kylin.metadata.model;
 
 public interface IStorageAware {
 
-    public static final int ID_HBASE = 0;
-    public static final int ID_HYBRID = 1;
-    public static final int ID_SHARDED_HBASE = 2;
+    int ID_NDATA_STORAGE = 20;
 
     int getStorageType();
 }

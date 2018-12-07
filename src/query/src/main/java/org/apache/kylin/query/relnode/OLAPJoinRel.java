@@ -334,6 +334,9 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
         }
     }
 
+    /**
+     * belongs to legacy "calcite query engine" (compared to current "sparder query engine"), pay less attention
+     */
     @Override
     public Result implement(EnumerableRelImplementor implementor, Prefer pref) {
         context.setReturnTupleInfo(rowType, columnRowType);

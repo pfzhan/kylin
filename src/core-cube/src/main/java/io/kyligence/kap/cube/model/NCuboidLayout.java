@@ -46,7 +46,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.common.util.MapUtil;
-import io.kyligence.kap.metadata.model.IKapStorageAware;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import lombok.EqualsAndHashCode;
@@ -89,7 +88,7 @@ public class NCuboidLayout implements IStorageAware, Serializable, IKeep {
 
     @EqualsAndHashCode.Include
     @JsonProperty("storage_type")
-    private int storageType = IKapStorageAware.ID_NDATA_STORAGE;
+    private int storageType = IStorageAware.ID_NDATA_STORAGE;
 
     @JsonProperty("update_time")
     private long updateTime;

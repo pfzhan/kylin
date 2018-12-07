@@ -39,7 +39,7 @@ public class SparkEngine implements QueryEngine {
     private static final Logger log = LoggerFactory.getLogger(SparkEngine.class);
 
     @Override
-    public Enumerable<Object> computSCALA(DataContext dataContext, RelNode relNode, RelDataType resultType) {
+    public Enumerable<Object> computeSCALA(DataContext dataContext, RelNode relNode, RelDataType resultType) {
         CalciteToSparkPlaner calciteToSparkPlaner = new CalciteToSparkPlaner(dataContext);
         calciteToSparkPlaner.go(relNode);
         return ResultPlan.getResult(calciteToSparkPlaner.getResult(), resultType, ResultType.SCALA()).right().get();
@@ -47,7 +47,7 @@ public class SparkEngine implements QueryEngine {
     }
 
     @Override
-    public Enumerable<Object[]> comput(DataContext dataContext, RelNode relNode, RelDataType resultType) {
+    public Enumerable<Object[]> compute(DataContext dataContext, RelNode relNode, RelDataType resultType) {
         CalciteToSparkPlaner calciteToSparkPlaner = new CalciteToSparkPlaner(dataContext);
         calciteToSparkPlaner.go(relNode);
         return ResultPlan.getResult(calciteToSparkPlaner.getResult(), resultType, ResultType.NORMAL()).left().get();

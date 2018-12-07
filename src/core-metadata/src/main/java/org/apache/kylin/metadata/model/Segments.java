@@ -52,9 +52,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.TimeZone;
 
-import com.google.common.collect.FluentIterable;
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.VolatileRange;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
@@ -62,7 +59,12 @@ import org.apache.kylin.common.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.FluentIterable;
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.VolatileRange;
 
 public class Segments<T extends ISegment> extends ArrayList<T> implements Serializable {
 
@@ -170,8 +172,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         Segments<T> buildingSegments = new Segments();
         if (null != this) {
             for (T segment : this) {
-                if (SegmentStatusEnum.NEW == segment.getStatus()
-                        || SegmentStatusEnum.READY_PENDING == segment.getStatus()) {
+                if (SegmentStatusEnum.NEW == segment.getStatus()) {
                     buildingSegments.add(segment);
                 }
             }
@@ -201,7 +202,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             return result;
 
         for (T seg : this) {
-            if (seg.getStatus() != SegmentStatusEnum.READY && seg.getStatus() != SegmentStatusEnum.READY_PENDING)
+            if (seg.getStatus() != SegmentStatusEnum.READY)
                 continue;
 
             if (seg == mergedSegment)
@@ -493,7 +494,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     }
 
     private boolean isNew(ISegment seg) {
-        return seg.getStatus() == SegmentStatusEnum.NEW || seg.getStatus() == SegmentStatusEnum.READY_PENDING;
+        return seg.getStatus() == SegmentStatusEnum.NEW;
     }
 
     private T getLast() {
@@ -527,7 +528,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             return;
 
         // make a copy, don't modify existing list
-        Segments<T> all = new Segments<T>(this);
+        Segments<T> all = new Segments<>(this);
         Collections.sort(all);
 
         // check consistent isOffsetCube()
@@ -538,15 +539,14 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
                 throw new IllegalStateException("Inconsistent isOffsetsOn for segment " + seg);
         }
 
-        List<ISegment> ready = Lists.newArrayListWithCapacity(all.size());
-        List<ISegment> news = Lists.newArrayListWithCapacity(all.size());
-        for (ISegment seg : all) {
-            if (seg.getStatus() == SegmentStatusEnum.READY)
-                ready.add(seg);
-            else
-                news.add(seg);
-        }
+        Segments<T> ready = all.getSegments(SegmentStatusEnum.READY);
+        Segments<T> news = all.getSegments(SegmentStatusEnum.NEW);
+        validateReadySegs(ready);
+        validateNewSegs(ready, news);
+        validateOthers(all, news);
+    }
 
+    private void validateReadySegs(Segments<T> ready) {
         // for all ready segments, sourceOffset MUST have no overlaps, SHOULD have no holes
         ISegment pre = null;
         for (ISegment seg : ready) {
@@ -554,13 +554,15 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
                 if (pre.getSegRange().overlaps(seg.getSegRange()))
                     throw new IllegalStateException("Segments overlap: " + pre + " and " + seg);
                 if (pre.getSegRange().apartBefore(seg.getSegRange()))
-                    logger.warn("Hole between adjacent READY segments " + pre + " and " + seg);
+                    logger.info("Hole between adjacent READY segments " + pre + " and " + seg);
             }
             pre = seg;
         }
+    }
 
+    private void validateNewSegs(Segments<T> ready, Segments<T> news) {
         // for all other segments, sourceOffset MUST have no overlaps, MUST contain a ready segment if overlaps with it
-        pre = null;
+        ISegment pre = null;
         for (ISegment seg : news) {
             if (pre != null) {
                 if (pre.getSegRange().overlaps(seg.getSegRange()))
@@ -574,7 +576,9 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
                     throw new IllegalStateException("Segments overlap: " + aReady + " and " + seg);
             }
         }
+    }
 
+    private void validateOthers(Segments<T> all, Segments<T> news) {
         // for all other segments, sourceOffset SHOULD fit/connect other segments
         for (ISegment seg : news) {
             Pair<Boolean, Boolean> pair = all.fitInSegments(seg);
@@ -582,15 +586,14 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             boolean endFit = pair.getSecond();
 
             if (!startFit)
-                logger.warn("NEW segment start does not fit/connect with other segments: " + seg);
+                logger.info("NEW segment start does not fit/connect with other segments: {}", seg);
             if (!endFit)
-                logger.warn("NEW segment end does not fit/connect with other segments: " + seg);
+                logger.info("NEW segment end does not fit/connect with other segments: {}", seg);
         }
     }
 
-    public Pair<Boolean, Boolean> fitInSegments(ISegment newOne) {
-        if (this.isEmpty())
-            return null;
+    private Pair<Boolean, Boolean> fitInSegments(ISegment newOne) {
+        Preconditions.checkState(!this.isEmpty());
 
         ISegment first = this.get(0);
         ISegment last = this.get(this.size() - 1);
@@ -599,10 +602,10 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         for (ISegment sss : this) {
             if (sss == newOne)
                 continue;
-            startFit = startFit || (newOne.getSegRange().shareStart(sss.getSegRange())
-                    || newOne.getSegRange().shareEnd(sss.getSegRange()));
-            endFit = endFit || (newOne.getSegRange().shareStart(sss.getSegRange())
-                    || newOne.getSegRange().shareEnd((sss.getSegRange())));
+            startFit = startFit || (newOne.getSegRange().startStartMatch(sss.getSegRange())
+                    || newOne.getSegRange().startEndMatch(sss.getSegRange()));
+            endFit = endFit || (newOne.getSegRange().endEndMatch(sss.getSegRange())
+                    || sss.getSegRange().startEndMatch((newOne.getSegRange())));
         }
         if (!startFit && endFit && newOne == first)
             startFit = true;

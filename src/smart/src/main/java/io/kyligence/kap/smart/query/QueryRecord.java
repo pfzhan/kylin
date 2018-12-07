@@ -30,11 +30,9 @@ import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.storage.StorageContext;
 
 import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.storage.NDataStorageQueryRequest;
 
 public class QueryRecord {
     private NDataflow dataflow;
-    private NDataStorageQueryRequest gtRequest;
     private SQLResult sqlResult;
     private StorageContext storageContext;
     private Collection<OLAPContext> olapContexts;
@@ -53,14 +51,6 @@ public class QueryRecord {
 
     public void setCubeInstance(NDataflow cubeInstance) {
         this.dataflow = cubeInstance;
-    }
-
-    public NDataStorageQueryRequest getGtRequest() {
-        return gtRequest;
-    }
-
-    public void setGtRequest(NDataStorageQueryRequest gtRequest) {
-        this.gtRequest = gtRequest;
     }
 
     public SQLResult getSqlResult() {

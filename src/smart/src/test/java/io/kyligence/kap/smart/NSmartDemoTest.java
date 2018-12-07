@@ -114,12 +114,6 @@ public class NSmartDemoTest {
         File tmpMeta = Files.createTempDir();
         FileUtils.copyDirectory(new File(metaDir), tmpMeta);
         KylinConfig kylinConfig = Utils.newKylinConfig(tmpMeta.getAbsolutePath());
-        kylinConfig.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.NDataModel");
-        kylinConfig.setProperty("kylin.metadata.data-model-manager-impl",
-                "io.kyligence.kap.metadata.model.NDataModelManager");
-        kylinConfig.setProperty("kylin.metadata.project-manager-impl",
-                "io.kyligence.kap.metadata.project.NProjectManager");
-        kylinConfig.setProperty("kylin.metadata.realization-providers", "io.kyligence.kap.cube.model.NDataflowManager");
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqls);

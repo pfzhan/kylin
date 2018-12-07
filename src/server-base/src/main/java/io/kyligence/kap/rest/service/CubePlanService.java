@@ -249,7 +249,7 @@ public class CubePlanService extends BasicService {
                 continue;
             }
             val segmentStatus = dataCuboid.getStatus();
-            if (segmentStatus == SegmentStatusEnum.NEW || segmentStatus == SegmentStatusEnum.READY_PENDING) {
+            if (segmentStatus == SegmentStatusEnum.NEW) {
                 status = TableIndexResponse.Status.EMPTY;
                 break;
             }

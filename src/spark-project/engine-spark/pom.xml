@@ -34,10 +34,6 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-storage-parquet-format</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-sparder</artifactId>
         </dependency>
 

@@ -87,11 +87,6 @@ class NLocalQueryRunner extends AbstractQueryRunner {
         config.setProperty("kap.query.security.row-acl-enabled", "false");
         config.setProperty("kap.query.security.column-acl-enabled", "false");
 
-        config.setProperty("kylin.metadata.data-model-impl", "io.kyligence.kap.metadata.model.NDataModel");
-        config.setProperty("kylin.metadata.data-model-manager-impl",
-                "io.kyligence.kap.metadata.model.NDataModelManager");
-        config.setProperty("kylin.metadata.project-manager-impl", "io.kyligence.kap.metadata.project.NProjectManager");
-        config.setProperty("kylin.metadata.realization-providers", "io.kyligence.kap.cube.model.NDataflowManager");
         return config;
     }
 
