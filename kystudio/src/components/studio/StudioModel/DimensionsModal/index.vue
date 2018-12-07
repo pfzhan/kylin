@@ -113,7 +113,7 @@
     <div slot="footer" class="dialog-footer">
       <span class="ksd-fleft ksd-mt-10">{{$t('totalSelect')}}{{countAllTableSelectColumns()}}</span>
       <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" @click="submit"  :disabled="isLoading">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button size="medium" plain type="primary" :disabled="countAllTableSelectColumns() <= 0" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>

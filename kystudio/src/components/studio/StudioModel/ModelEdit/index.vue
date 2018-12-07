@@ -943,7 +943,8 @@ export default class ModelEdit extends Vue {
     if (type === 'dimension') {
       this.showSingleDimensionDialog({
         dimension: {
-          column: fullName
+          column: fullName,
+          name: this.currentDragColumnData.columnName
         },
         modelInstance: this.modelInstance
       })

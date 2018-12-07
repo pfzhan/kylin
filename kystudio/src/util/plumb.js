@@ -108,10 +108,10 @@ export function jsPlumbTool () {
       return plumbInstance.connect(defaultPata)
     },
     deleteConnect (conn) {
-      plumbInstance.deleteConnection(conn)
       if (conn.endpoints) {
-        this.deleteEndPoint(conn.sourceId)
-        this.deleteEndPoint(conn.targetId)
+        conn.endpoints.forEach((point) => {
+          this.deleteEndPoint(point) // 删除连接点，等同删除连线
+        })
       }
     }
   }

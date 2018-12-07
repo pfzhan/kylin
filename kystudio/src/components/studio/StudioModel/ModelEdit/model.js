@@ -640,6 +640,9 @@ class NModel {
   _delTableRelated (guid) {
     let ntable = this.getTableByGuid(guid)
     if (ntable) {
+      if (ntable.name === this.fact_table) {
+        this.fact_table = ''
+      }
       let alias = ntable.alias
       // 删除对应的 dimension
       this._delDimensionByAlias(alias)
@@ -752,6 +755,8 @@ class NModel {
       this._updateCCToNewFactTable()
       this.fact_table = t.name
       this._arrangeLinks()
+    } else if (t.name === this.fact_table) {
+      this.fact_table = '' // fact 改为 lookup 需要将它设置为空
     }
     // 改变别名且替换掉所有关联的别名信息
     this.changeAlias()
