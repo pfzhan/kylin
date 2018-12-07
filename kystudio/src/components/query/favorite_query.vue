@@ -647,14 +647,16 @@ export default class FavoriteQuery extends Vue {
   }
 
   loadRuleImpactRatio () {
-    this.getRulesImpact({project: this.currentSelectedProject}).then((res) => {
-      handleSuccess(res, (data) => {
-        this.impactRatio = data.toFixed(2) * 100
-        this.drawImpactChart()
+    if (this.currentSelectedProject) {
+      this.getRulesImpact({project: this.currentSelectedProject}).then((res) => {
+        handleSuccess(res, (data) => {
+          this.impactRatio = data.toFixed(2) * 100
+          this.drawImpactChart()
+        })
+      }, (res) => {
+        handleError(res)
       })
-    }, (res) => {
-      handleError(res)
-    })
+    }
   }
 
   async loadFavoriteList (pageIndex, pageSize) {
@@ -698,35 +700,41 @@ export default class FavoriteQuery extends Vue {
   }
 
   getFrequencyObj () {
-    this.getFrequency({project: this.currentSelectedProject}).then((res) => {
-      handleSuccess(res, (data) => {
-        this.frequencyObj = data
+    if (this.currentSelectedProject) {
+      this.getFrequency({project: this.currentSelectedProject}).then((res) => {
+        handleSuccess(res, (data) => {
+          this.frequencyObj = data
+        })
+      }, (res) => {
+        handleError(res)
       })
-    }, (res) => {
-      handleError(res)
-    })
+    }
   }
 
   getSubmitterObj () {
-    this.getSubmitter({project: this.currentSelectedProject}).then((res) => {
-      handleSuccess(res, (data) => {
-        this.submitterObj = data
-        this.oldSubmitterUsers = data.users
+    if (this.currentSelectedProject) {
+      this.getSubmitter({project: this.currentSelectedProject}).then((res) => {
+        handleSuccess(res, (data) => {
+          this.submitterObj = data
+          this.oldSubmitterUsers = data.users
+        })
+      }, (res) => {
+        handleError(res)
       })
-    }, (res) => {
-      handleError(res)
-    })
+    }
   }
 
   getDurationObj () {
-    this.getDuration({project: this.currentSelectedProject}).then((res) => {
-      handleSuccess(res, (data) => {
-        this.durationObj = data
-        this.oldDurationValue = data.durationValue
+    if (this.currentSelectedProject) {
+      this.getDuration({project: this.currentSelectedProject}).then((res) => {
+        handleSuccess(res, (data) => {
+          this.durationObj = data
+          this.oldDurationValue = data.durationValue
+        })
+      }, (res) => {
+        handleError(res)
       })
-    }, (res) => {
-      handleError(res)
-    })
+    }
   }
 
   created () {
@@ -735,13 +743,15 @@ export default class FavoriteQuery extends Vue {
     this.getSubmitterObj()
     this.getDurationObj()
     this.loadRuleImpactRatio()
-    this.getPreferrence({project: this.currentSelectedProject}).then((res) => {
-      handleSuccess(res, (data) => {
-        this.preSettingObj = data
+    if (this.currentSelectedProject) {
+      this.getPreferrence({project: this.currentSelectedProject}).then((res) => {
+        handleSuccess(res, (data) => {
+          this.preSettingObj = data
+        })
+      }, (res) => {
+        handleError(res)
       })
-    }, (res) => {
-      handleError(res)
-    })
+    }
   }
 
   drawImpactChart () {

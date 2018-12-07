@@ -124,19 +124,20 @@ Vue.filter('tofixedTimer', function (value, fix) {
   }
 })
 
-Vue.filter('dataSize', function (data) {
+Vue.filter('dataSize', function (data, unit, onlySize) {
   var size
-  if (data / 1024 / 1024 / 1024 / 1024 >= 1) {
+  if (data / 1024 / 1024 / 1024 / 1024 >= 1 || unit === 'TB') {
     size = (data / 1024 / 1024 / 1024 / 1024).toFixed(2) + ' TB'
-  } else if (data / 1024 / 1024 / 1024 >= 1) {
+  } else if (data / 1024 / 1024 / 1024 >= 1 || unit === 'GB') {
     size = (data / 1024 / 1024 / 1024).toFixed(2) + ' GB'
-  } else if (data / 1024 / 1024 >= 1) {
+  } else if (data / 1024 / 1024 >= 1 || unit === 'MB') {
     size = (data / 1024 / 1024).toFixed(2) + ' MB'
   } else {
     size = (data / 1024).toFixed(2) + ' KB'
   }
-  return size
+  return onlySize ? size.split(' ')[0] : size
 })
+
 Vue.filter('timeSize', function (data) {
   var size
   if (data / 1000 / 60 / 60 / 24 >= 1) {

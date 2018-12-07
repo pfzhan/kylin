@@ -129,6 +129,12 @@ export default {
     },
     [types.ACCESS_AVAILABLE_USER_OR_GROUP]: function ({ commit }, para) {
       return api.project.accessAvailableUserOrGroup(para.type, para.uuid, para.data)
+    },
+    [types.GET_QUOTA_INFO]: function ({ commit }, para) {
+      return api.project.getQuotaInfo(para)
+    },
+    [types.CLEAR_TRASH]: function ({ commit }, para) {
+      return api.project.clearTrash(para)
     }
   },
   getters: {

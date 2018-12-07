@@ -3,7 +3,7 @@
     <el-button class="ksd-mb-10" type="primary" plain size="small" @click="addAccess()" v-if="hasProjectAdminPermission||isAdmin" icon="el-icon-plus
 ">{{$t('grant')}}</el-button>
     <div style="width:200px;" class="ksd-mb-10 ksd-fright">
-      <el-input :placeholder="$t('kylinLang.common.userOrGroup')" suffix-icon="el-icon-search" @change="searchAccess" v-model="serarchChar" class="show-search-btn" :suffix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" size="medium">
+      <el-input :placeholder="$t('kylinLang.common.userOrGroup')" @change="searchAccess" v-model="serarchChar" class="show-search-btn" :suffix-icon="searchLoading?'el-icon-loading':'el-icon-search'" size="medium">
           </el-input>
     </div>
     <el-dialog

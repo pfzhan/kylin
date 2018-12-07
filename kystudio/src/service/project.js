@@ -54,5 +54,11 @@ export default {
   },
   accessAvailableUserOrGroup: (sidType, uuid, data) => {
     return Vue.resource(apiUrl + 'access/available/' + sidType + '/' + uuid).get(data)
+  },
+  getQuotaInfo: (para) => {
+    return Vue.resource(apiUrl + 'projects/storage_volume_info').get(para)
+  },
+  clearTrash: (para) => {
+    return Vue.resource(apiUrl + 'projects/storage?project=' + para.project).update()
   }
 }

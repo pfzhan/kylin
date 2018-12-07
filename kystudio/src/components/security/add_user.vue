@@ -85,6 +85,4 @@ export default {
 }
 </script>
 <style lang="less">
-.add_user {
-}
 </style>
