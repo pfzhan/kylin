@@ -83,7 +83,5 @@ interface ISmartStrategy {
 
     String getMeasureCountDistinctType();
 
-    boolean enableModelInnerJoinExactlyMatch();
-
     int getProposeRetryMax();
 }

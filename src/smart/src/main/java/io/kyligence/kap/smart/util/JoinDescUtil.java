@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -38,6 +39,10 @@ import org.apache.kylin.metadata.model.TblColRef;
 import io.kyligence.kap.metadata.model.NDataModel.TableKind;
 
 public class JoinDescUtil {
+    
+    private JoinDescUtil() {
+        throw new IllegalStateException("Utility class");
+      }
 
     private JoinDescUtil() {
     }
@@ -59,12 +64,9 @@ public class JoinDescUtil {
         joinDesc.setType(join.getType().toLowerCase());
         String[] pkCols = new String[join.getPrimaryKey().length];
         TblColRef[] pkColRefs = new TblColRef[pkCols.length];
-        TableRef pkTblRef = aliasTableRefMap.get(pkTblAlias);
-        if (pkTblRef == null) {
-            pkTblRef = TblColRef.tableForUnknownModel(pkTblAlias,
-                    join.getPrimaryKeyColumns()[0].getTableRef().getTableDesc());
-            aliasTableRefMap.put(pkTblAlias, pkTblRef);
-        }
+
+        TableRef pkTblRef = aliasTableRefMap.computeIfAbsent(pkTblAlias, alias -> TblColRef.tableForUnknownModel(alias,
+                join.getPrimaryKeyColumns()[0].getTableRef().getTableDesc()));
         for (int i = 0; i < pkCols.length; i++) {
             TblColRef colRef = join.getPrimaryKeyColumns()[i];
             pkCols[i] = pkTblAlias + "." + colRef.getName();
@@ -76,13 +78,8 @@ public class JoinDescUtil {
         String[] fkCols = new String[join.getForeignKey().length];
         TblColRef[] fkColRefs = new TblColRef[fkCols.length];
 
-        TableRef fkTblRef = aliasTableRefMap.get(fkTblAlias);
-        if (fkTblRef == null) {
-            fkTblRef = TblColRef.tableForUnknownModel(fkTblAlias,
-                    join.getForeignKeyColumns()[0].getTableRef().getTableDesc());
-            aliasTableRefMap.put(fkTblAlias, fkTblRef);
-        }
-
+        TableRef fkTblRef = aliasTableRefMap.computeIfAbsent(fkTblAlias, alias -> TblColRef.tableForUnknownModel(alias,
+                join.getForeignKeyColumns()[0].getTableRef().getTableDesc()));
         for (int i = 0; i < fkCols.length; i++) {
             TblColRef colRef = join.getForeignKeyColumns()[i];
             fkCols[i] = fkTblAlias + "." + colRef.getName();
@@ -95,8 +92,8 @@ public class JoinDescUtil {
         return joinTableDesc;
     }
 
-    public static List<TableKind> resolveTableType(List<JoinDesc> joins) {
-        List<TableKind> tableKindByJoins = new ArrayList<>();
+    public static List<Pair<JoinDesc, TableKind>> resolveTableType(List<JoinDesc> joins) {
+        List<Pair<JoinDesc, TableKind>> tableKindByJoins = new ArrayList<>();
         Map<String, JoinDesc> fkTables = new HashMap<>();
         for (JoinDesc joinDesc : joins) {
             TableRef table = joinDesc.getFKSide();
@@ -109,11 +106,11 @@ public class JoinDescUtil {
         for (JoinDesc joinDesc : joins) {
             TableRef table = joinDesc.getPKSide();
             String tableAlias = table.getAlias();
-            //            if (fkTables.containsKey(tableAlias)) {
-            //                tableKindByJoins.add(TableKind.FACT);
-            //            } else {
-            tableKindByJoins.add(TableKind.LOOKUP); // set to FACT if want to bypass dup-key on lookup table
-            //            }
+            if (fkTables.containsKey(tableAlias)) {
+                tableKindByJoins.add(new Pair<JoinDesc, TableKind>(joinDesc, TableKind.FACT));
+            } else {
+                tableKindByJoins.add(new Pair<JoinDesc, TableKind>(joinDesc, TableKind.LOOKUP));
+            }
         }
         return tableKindByJoins;
     }

@@ -31,11 +31,14 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.collections.MapUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsTree;
@@ -44,12 +47,13 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.NDataModel.TableKind;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.smart.common.SmartConfig;
 import io.kyligence.kap.smart.util.JoinDescUtil;
 import io.kyligence.kap.smart.util.OLAPContextUtil;
 import io.kyligence.kap.smart.util.TableAliasGenerator;
@@ -63,125 +67,75 @@ public class GreedyModelTreesBuilder {
         this.tableMap = NTableMetadataManager.getInstance(kylinConfig, project).getAllTablesMap();
     }
 
+    @SuppressWarnings("unchecked")
     public List<ModelTree> build(List<String> sqls, List<Collection<OLAPContext>> olapContexts,
             TableDesc expectTactTbl) {
         // 1. group OLAPContexts by fact_table
         Map<TableDesc, TreeBuilder> builders = Maps.newHashMap();
         for (int i = 0; i < sqls.size(); i++) {
             String sql = sqls.get(i);
-            for (OLAPContext ctx : olapContexts.get(i)) {
-                if (ctx.firstTableScan == null) { // no model required
-                    continue;
-                }
-
+            Collection<OLAPContext> sqlContexts = olapContexts.get(i);
+            sqlContexts.stream().filter(ctx -> ctx.firstTableScan != null)
+            .forEach(ctx -> {
                 TableDesc actualFactTbl = ctx.firstTableScan.getTableRef().getTableDesc();
                 if (expectTactTbl != null && !actualFactTbl.getIdentity().equals(expectTactTbl.getIdentity())) { // root fact not match
-                    continue;
+                    return;
                 }
 
-                TreeBuilder builder = builders.get(actualFactTbl);
-                if (builder == null) {
-                    builder = new TreeBuilder(actualFactTbl);
-                    builders.put(actualFactTbl, builder);
-                }
-
+                TreeBuilder builder = builders.computeIfAbsent(actualFactTbl, tbl -> new TreeBuilder(tbl, tableMap));
                 builder.addOLAPContext(sql, ctx);
-            }
+            });
         }
 
         // 2. each group generate multiple ModelTrees
-        List<ModelTree> results = Lists.newLinkedList();
-        for (Map.Entry<TableDesc, TreeBuilder> entry : builders.entrySet()) {
-            results.addAll(entry.getValue().build());
-        }
+        List<ModelTree> results = builders.values().stream().map(TreeBuilder::build).flatMap(List::stream)
+                .collect(Collectors.toList());
 
         // 3. enable current root_fact's model exists
-        if (expectTactTbl != null) {
-            boolean needAdd = true;
-            for (ModelTree tree : results) {
-                if (tree.getRootFactTable() == expectTactTbl) {
-                    needAdd = false;
-                }
-            }
-
-            if (needAdd) {
-                results.add(new ModelTree(expectTactTbl, CollectionUtils.EMPTY_COLLECTION, MapUtils.EMPTY_MAP,
-                        MapUtils.EMPTY_MAP));
-            }
+        if (expectTactTbl != null && results.stream().noneMatch(tree -> tree.getRootFactTable() == expectTactTbl)) {
+            results.add(new ModelTree(expectTactTbl, CollectionUtils.EMPTY_COLLECTION, MapUtils.EMPTY_MAP,
+                    MapUtils.EMPTY_MAP));
         }
         return results;
     }
-    
 
-
-    boolean matchContext(List<OLAPContext> ctxs, OLAPContext anotherCtx) {
-        for (OLAPContext olapContext : ctxs) {
-            if (!matchContext(olapContext, anotherCtx)) {
-                return false;
-            }
-        }
-        return true;
+    public static boolean matchContext(List<OLAPContext> ctxs, OLAPContext anotherCtx) {
+        return ctxs.stream().allMatch(thisCtx -> matchContext(thisCtx, anotherCtx));
     }
 
-    /**
-     * Strictly check contexts' consistency
-     * 
-     * @param ctx
-     * @param anotherCtx
-     * @return
-     */
-    boolean matchContext(OLAPContext ctx, OLAPContext anotherCtx) {
-        List<JoinDesc> joins = Lists.newArrayList();
-        if (ctx != null && ctx.joins != null) {
-            joins.addAll(ctx.joins);
+    public static boolean matchContext(OLAPContext ctxA, OLAPContext ctxB) {
+        if (ctxA == ctxB) {
+            return true;
         }
-
-        List<JoinDesc> anotherJoins = Lists.newArrayList();
-        if (anotherCtx != null && anotherCtx.joins != null) {
-            anotherJoins.addAll(anotherCtx.joins);
+        if (ctxA == null || ctxB == null) {
+            return false;
         }
-
-//        if (ctx.getSQLDigest().isRawQuery != anotherCtx.getSQLDigest().isRawQuery) {
-//            return false;
-//        }
-
-        JoinsTree tree = new JoinsTree(ctx.firstTableScan.getTableRef(), joins);
-        JoinsTree anotherTree = new JoinsTree(anotherCtx.firstTableScan.getTableRef(), anotherJoins);
-        return matchJoinTree(tree, anotherTree);
+        JoinsTree treeA = new JoinsTree(ctxA.firstTableScan.getTableRef(), Lists.newArrayList(ctxA.joins));
+        JoinsTree treeB = new JoinsTree(ctxB.firstTableScan.getTableRef(), Lists.newArrayList(ctxB.joins));
+        return matchJoinTree(treeA, treeB);
     }
     
-    public static boolean matchJoinTree(JoinsTree tree, JoinsTree anotherTree) {
-        List<Chain> chains = tree.unmatchedChain(anotherTree, Collections.<String, String>emptyMap());
-        for (Chain chain : chains) {
-            if (!chain.getJoin().isLeftJoin()) {
-                return false;
-            }
-        }
-
-        chains = anotherTree.unmatchedChain(tree, Collections.<String, String>emptyMap());
-        for (Chain chain : chains) {
-            if (!chain.getJoin().isLeftJoin()) {
-                return false;
-            }
-        }
-
-        return true;
+    public static boolean matchJoinTree(JoinsTree treeA, JoinsTree treeB) {
+        List<Chain> chainsUnmatchedA2B = treeA.unmatchedChain(treeB, Collections.<String, String>emptyMap());
+        List<Chain> chainsUnmatchedB2A = treeB.unmatchedChain(treeA, Collections.<String, String>emptyMap());
+        return chainsUnmatchedA2B.stream().map(Chain::getJoin).allMatch(JoinDesc::isLeftJoin) 
+                && chainsUnmatchedB2A.stream().map(Chain::getJoin).allMatch(JoinDesc::isLeftJoin);
     }
 
-    private class TreeBuilder {
-        TableDesc rootFact;
-        TableAliasGenerator.TableAliasDict dict;
+    public static class TreeBuilder {
+        private TableDesc rootFact;
+        private TableAliasGenerator.TableAliasDict dict;
 
-        Map<String, Collection<OLAPContext>> contexts = Maps.newLinkedHashMap();
-        Map<TableRef, String> innerTableRefAlias = Maps.newHashMap();
-        Map<TableRef, String> correctedTableAlias = Maps.newHashMap();
+        private Map<String, Collection<OLAPContext>> contexts = Maps.newLinkedHashMap();
+        private Map<TableRef, String> innerTableRefAlias = Maps.newHashMap();
+        private Map<TableRef, String> correctedTableAlias = Maps.newHashMap();
 
-        TreeBuilder(TableDesc rootFact) {
+        private TreeBuilder(TableDesc rootFact, Map<String, TableDesc> tableMap) {
             this.rootFact = rootFact;
             this.dict = TableAliasGenerator.generateNewDict(tableMap.keySet().toArray(new String[0]));
         }
 
-        void addOLAPContext(String sql, OLAPContext ctx) {
+        private void addOLAPContext(String sql, OLAPContext ctx) {
             if (!this.contexts.containsKey(sql)) {
                 this.contexts.put(sql, new ArrayList<OLAPContext>());
             }
@@ -191,104 +145,86 @@ public class GreedyModelTreesBuilder {
             correctTableAlias();
         }
 
-        ModelTree buildOne(List<OLAPContext> inputCtxs) {
-            SmartConfig smartConfig = SmartConfig.wrap(kylinConfig);
-
-            Map<String, JoinTableDesc> joinTables = new LinkedHashMap<>();
-            Map<TableRef, String> tableAliasMap = correctedTableAlias;
-            List<OLAPContext> usedCtxs = Lists.newArrayList();
-            Map<String, TableRef> aliasRefMap = Maps.newHashMap();
-            for (OLAPContext ctx : inputCtxs) {
-                if (ctx == null) {
-                    usedCtxs.add(ctx);
-                    continue;
-                }
-                
-                if (smartConfig.enableModelInnerJoinExactlyMatch() && !matchContext(usedCtxs, ctx)) {
-                    // ctx not fit current tree
-                    continue;
-                }
-                
-                if (ctx.joins == null || ctx.joins.size() == 0) {
-                    usedCtxs.add(ctx);
-                    continue;
-                }
-
-                // Save context updates and apply later
-                Map<String, JoinTableDesc> joinTablesUpdates = new LinkedHashMap<>(joinTables);
-                Map<TableRef, String> tableAliasUpdates = new LinkedHashMap<>(tableAliasMap);
-                boolean skipModification = false;
-
-                List<NDataModel.TableKind> tableKindByJoins = JoinDescUtil.resolveTableType(ctx.joins);
-
-                for (int i = 0; i < ctx.joins.size(); i++) {
-                    JoinDesc join = ctx.joins.get(i);
-                    NDataModel.TableKind kind = tableKindByJoins.get(i);
-                    String pkTblAlias = tableAliasUpdates.get(join.getPKSide());
-                    String fkTblAlias = tableAliasUpdates.get(join.getFKSide());
-
-                    String joinTableAlias = pkTblAlias;
-
-                    while (!skipModification) {
-                        JoinTableDesc joinTable = JoinDescUtil.convert(join, kind, joinTableAlias, fkTblAlias,
-                                aliasRefMap);
-                        JoinTableDesc oldJoinTable = joinTablesUpdates.get(joinTableAlias);
-
-                        // new join table
-                        if (oldJoinTable == null) {
-                            joinTablesUpdates.put(joinTableAlias, joinTable);
-                            tableAliasUpdates.put(join.getPKSide(), joinTableAlias);
-                            break;
-                        }
-
-                        // duplicated join table
-                        if (JoinDescUtil.isJoinTableEqual(oldJoinTable, joinTable)) {
-                            tableAliasUpdates.put(join.getPKSide(), joinTableAlias);
-                            break;
-                        }
-
-                        // twin join table with different join keys
-                        if (!JoinDescUtil.isJoinKeysEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
-                            // add and resolve alias
-                            joinTableAlias = getNewAlias(join.getPKSide().getTableName(), joinTable.getAlias());
-                            continue;
-                        }
-
-                        // same join keys but join type conflict: inner <-> left
-                        if (!JoinDescUtil.isJoinTypeEqual(oldJoinTable.getJoin(), joinTable.getJoin())) {
-                            skipModification = true;
-                            break;
-                        }
-
-                        // LOOKUP vs FACT, use FACT
-                        if (!oldJoinTable.getKind().equals(joinTable.getKind())) {
-                            kind = NDataModel.TableKind.FACT;
-                            joinTablesUpdates.remove(oldJoinTable.getAlias());
-                        }
-                    }
-                }
-                if (!skipModification) {
-                    joinTables.putAll(joinTablesUpdates);
-                    tableAliasMap.putAll(tableAliasUpdates);
-                    usedCtxs.add(ctx);
-                }
-            }
-
-            inputCtxs.removeAll(usedCtxs);
-            return new ModelTree(rootFact, usedCtxs, joinTables, correctedTableAlias);
-        }
-
-        List<ModelTree> build() {
-            List<OLAPContext> ctxs = Lists.newArrayList();
-            for (Map.Entry<String, Collection<OLAPContext>> entry : contexts.entrySet()) {
-                ctxs.addAll(entry.getValue());
-            }
+        private List<ModelTree> build() {
+            List<OLAPContext> ctxs = contexts.values().stream().flatMap(Collection::stream)
+                    .collect(Collectors.toList());
 
             List<ModelTree> result = Lists.newArrayList();
             while (!ctxs.isEmpty()) {
                 result.add(buildOne(ctxs));
             }
             return result;
+        }
+
+        private ModelTree buildOne(List<OLAPContext> inputCtxs) {
+
+            Map<String, JoinTableDesc> joinTables = new LinkedHashMap<>();
+            Map<TableRef, String> tableAliasMap = correctedTableAlias;
+            List<OLAPContext> usedCtxs = Lists.newArrayList();
+            Map<String, TableRef> aliasRefMap = Maps.newHashMap();
+            inputCtxs.removeIf(Objects::isNull);
+            inputCtxs.stream().filter(ctx -> matchContext(usedCtxs, ctx)).filter(ctx -> {
+                // Digest single table contexts(no joins)
+                if (ctx.joins.isEmpty()) {
+                    usedCtxs.add(ctx);
+                    return false;
+                }
+                return true;
+            }).forEach(ctx -> {
+                // Merge matching contexts' joins
+                mergeContext(ctx, joinTables, tableAliasMap, aliasRefMap);
+                usedCtxs.add(ctx);
+            });
+
+            inputCtxs.removeAll(usedCtxs);
+            return new ModelTree(rootFact, usedCtxs, joinTables, correctedTableAlias);
+        }
+        
+        public static void mergeContext(OLAPContext ctx, Map<String, JoinTableDesc> alias2JoinTables,
+                Map<TableRef, String> tableRef2Alias, Map<String, TableRef> aliasRefMap) {
+
+            // Collect context updates and apply later
+            Map<String, JoinTableDesc> alias2JoinTablesUpdates = new LinkedHashMap<>(alias2JoinTables);
+            Map<TableRef, String> tableRef2AliasUpdates = new LinkedHashMap<>(tableRef2Alias);
+
+            List<Pair<JoinDesc, TableKind>> tableKindByJoins = JoinDescUtil.resolveTableType(ctx.joins);
+            for (Pair<JoinDesc, TableKind> pair : tableKindByJoins) {
+                JoinDesc join = pair.getFirst();
+                TableKind kind = pair.getSecond();
+                String pkTblAlias = tableRef2AliasUpdates.get(join.getPKSide());
+                String fkTblAlias = tableRef2AliasUpdates.get(join.getFKSide());
+
+                String joinTableAlias = pkTblAlias;
+                boolean isValidJoin = false;
+                int loops = 0;
+                while (!isValidJoin) {
+                    JoinTableDesc newJoinTable = JoinDescUtil.convert(join, kind, joinTableAlias, fkTblAlias,
+                            aliasRefMap);
+                    JoinTableDesc oldJoinTable = alias2JoinTablesUpdates.computeIfAbsent(joinTableAlias,
+                            alias -> newJoinTable);
+
+                    if (JoinDescUtil.isJoinTableEqual(oldJoinTable, newJoinTable)) {
+                        isValidJoin = true;
+                    } else if (JoinDescUtil.isJoinKeysEqual(oldJoinTable.getJoin(), newJoinTable.getJoin())
+                            && JoinDescUtil.isJoinTypeEqual(oldJoinTable.getJoin(), newJoinTable.getJoin())
+                            && !oldJoinTable.getKind().equals(newJoinTable.getKind())) {
+                        // same join info but table kind differ: LOOKUP vs FACT, use FACT
+                        kind = NDataModel.TableKind.FACT;
+                    } else {
+                        // twin join table with different join info
+                        // resolve and assign new alias
+                        joinTableAlias = getNewAlias(join.getPKSide().getTableName(), newJoinTable.getAlias());
+                    }
+                    if (loops++ > 100) {
+                        // in case of infinite loop
+                        break;
+                    }
+                }
+                Preconditions.checkState(isValidJoin, "Failed to merge table join: %s.", join);
+                tableRef2AliasUpdates.put(join.getPKSide(), joinTableAlias);
+            }
+            alias2JoinTables.putAll(alias2JoinTablesUpdates);
+            tableRef2Alias.putAll(tableRef2AliasUpdates);
         }
 
         private void correctTableAlias() {
@@ -367,7 +303,7 @@ public class GreedyModelTreesBuilder {
          * @param oldAlias
          * @return
          */
-        private String getNewAlias(String orginalName, String oldAlias) {
+        private static String getNewAlias(String orginalName, String oldAlias) {
             if (oldAlias.equals(orginalName)) {
                 return orginalName + "_1";
             } else if (!oldAlias.startsWith(orginalName + "_")) {

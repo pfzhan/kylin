@@ -149,10 +149,6 @@ public class DefaultSmartStrategy implements ISmartStrategy {
         return "hllc(10)";
     }
 
-    public boolean enableModelInnerJoinExactlyMatch() {
-        return true;
-    }
-
     @Override
     public int getProposeRetryMax() {
         return 3;
