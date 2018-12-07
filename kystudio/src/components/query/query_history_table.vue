@@ -93,7 +93,7 @@
       </el-table-column>
       <el-table-column :label="$t('kylinLang.query.submitter')" prop="submitter" align="center" width="200">
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="120">
+      <!-- <el-table-column :renderHeader="renderColumn5" prop="accelerate_status" align="center" width="120">
         <template slot-scope="props">
           <el-popover
             ref="popover"
@@ -114,7 +114,7 @@
             <i class="status-icon el-icon-ksd-acclerate_portion"></i>
           </el-tooltip>
         </template>
-      </el-table-column>
+      </el-table-column> -->
     </el-table>
   </div>
 </template>
@@ -188,7 +188,7 @@ export default class QueryHistoryTable extends Vue {
   }
 
   flyEvent (event) {
-    const targetArea = $('#query')
+    const targetArea = $('#studio')
     const targetDom = this.briefMenuGet ? targetArea.find('.menu-icon') : targetArea.find('#favo-menu-item')
     const offset = targetDom.offset()
     const flyer = $('<span class="fly-box"></span>')

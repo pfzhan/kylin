@@ -8,7 +8,7 @@ export default {
       { "id": "queryHistory", "value": "query_history", "title": "Query History" },
       { "id": "favoriteQuery", "value": "favorite_query", "title": "Favorite Query" },
       { "id": "studio", "value": "studio", "title": "Studio" },
-      { "id": "project", "value": "project", "title": "Project" },
+      { "id": "setting", "value": "project_setting", "title": "setting" },
       { "id": "source", "value": "source", "title": "Source" },
       { "id": "model", "value": "model", "title": "Model" },
       { "id": "modelEdit", "value": "modelEdit", "title": "Model Edit" },

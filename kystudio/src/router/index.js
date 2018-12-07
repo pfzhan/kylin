@@ -41,13 +41,17 @@ let routerOptions = {
         path: 'dashboard',
         component: dashboard
       }, {
-        name: 'SProject',
-        path: 'studio/project',
+        name: 'projectSetting',
+        path: '/project_setting',
         component: () => import('../components/studio/StudioProject/StudioProject.vue')
       }, {
         name: 'Studio',
         path: 'studio/source',
         component: () => import('../components/studio/StudioSource/index.vue')
+      }, {
+        name: 'FavoriteQuery',
+        path: 'studio/favorite_query',
+        component: favoriteQuery
       }, {
         name: 'ModelList',
         path: 'studio/model',
@@ -100,11 +104,6 @@ let routerOptions = {
         name: 'QueryHistory',
         path: 'query/query_history',
         component: queryHistory
-      },
-      {
-        name: 'FavoriteQuery',
-        path: 'query/favorite_query',
-        component: favoriteQuery
       },
       // {
       //   name: 'Dashboard',

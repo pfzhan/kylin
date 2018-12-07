@@ -42,8 +42,7 @@ export const menusData = [
     icon: 'el-icon-ksd-insight',
     children: [
       {name: 'insight', path: '/query/new_query'},
-      {name: 'query_history', path: '/query/query_history'},
-      {name: 'favorite_query', path: '/query/favorite_query'}
+      {name: 'query_history', path: '/query/query_history'}
     ]
   },
   {
@@ -51,8 +50,9 @@ export const menusData = [
     path: '/studio',
     icon: 'el-icon-ksd-studio',
     children: [
-      { name: 'project', path: '/studio/project' },
+      // { name: 'project', path: '/studio/project' },
       { name: 'source', path: '/studio/source' },
+      {name: 'favorite_query', path: '/studio/favorite_query'},
       { name: 'model', path: '/studio/model' }
     ]
   },
@@ -67,15 +67,20 @@ export const menusData = [
     ]
   },
   {
-    name: 'security',
-    path: '/security',
-    icon: 'el-icon-ksd-system',
-    children: [
-      {name: 'project', path: '/security/project'},
-      {name: 'user', path: '/security/user'},
-      {name: 'group', path: '/security/group'}
-    ]
+    name: 'project_setting',
+    path: '/project_setting',
+    icon: 'el-icon-ksd-setting'
   }
+  // {
+  //   name: 'security',
+  //   path: '/security',
+  //   icon: 'el-icon-ksd-system',
+  //   children: [
+  //     {name: 'project', path: '/security/project'},
+  //     {name: 'user', path: '/security/user'},
+  //     {name: 'group', path: '/security/group'}
+  //   ]
+  // }
 ]
 export const modelHealthStatus = {
   'RUNNING': {

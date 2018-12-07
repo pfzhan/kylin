@@ -357,6 +357,7 @@ exports.default = {
     monitor: '监控',
     system: '系统',
     project: '项目',
+    project_setting: '设置',
     auto: '自动建模',
     overview: '概览',
     messages: '消息',

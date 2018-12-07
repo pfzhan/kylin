@@ -184,7 +184,8 @@ import $ from 'jquery'
       'briefMenuGet',
       'currentProjectData',
       'isAutoProject',
-      'availableMenus'
+      'availableMenus',
+      'isAutoProject'
     ]),
     modelSpeedEvents () {
       return this.$store.state.model.modelSpeedEvents
