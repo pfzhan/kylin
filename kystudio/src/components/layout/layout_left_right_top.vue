@@ -77,7 +77,7 @@
             </el-col>
             <el-col :span="24" class="main-content">
               <!--<transition name="fade">-->
-              <router-view v-on:addProject="addProject" v-on:changeCurrentPath="changePath"></router-view>
+              <router-view v-on:addProject="addProject"></router-view>
               <!--</transition>-->
             </el-col>
           </div>
@@ -334,21 +334,9 @@ export default class LayoutLeftRightTop extends Vue {
     } else {
       this.menus[2].children[2].name = 'model'
     }
-
-    // for newten
-    // this.getEncoding().then(() => {}, (res) => {
-    //   handleError(res)
-    // })
-    // for newten
-    // this.getAboutKap(() => {}, (res) => {
-    //   handleError(res)
-    // })
   }
   showMenuByRole (menuName) {
     return this.availableMenus.includes(menuName)
-  }
-  changePath (path) {
-    this.defaultActive = path
   }
   getLicense () {
     location.href = 'mailto:g-ent-lic@kyligence.io'
@@ -607,14 +595,6 @@ export default class LayoutLeftRightTop extends Vue {
       }
       $('#fullBox').addClass('cloud-frame-page')
     }
-    // cloud
-    // 刷新浏览器时的路由锁定
-    menusData.forEach((menu) => {
-      if (this.$router.history.current.name && menu.name.toLowerCase() === this.$router.history.current.name.toLowerCase()) {
-        this.$store.state.config.routerConfig.currentPathName = menu.path
-        this.defaultActive = menu.path
-      }
-    })
     if (this.isAutoProject) {
       // 获取加速信息
       this.loadSpeedInfo()

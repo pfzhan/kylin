@@ -45,7 +45,7 @@ let routerOptions = {
         path: '/project_setting',
         component: () => import('../components/studio/StudioProject/StudioProject.vue')
       }, {
-        name: 'Studio',
+        name: 'Source',
         path: 'studio/source',
         component: () => import('../components/studio/StudioSource/index.vue')
       }, {
