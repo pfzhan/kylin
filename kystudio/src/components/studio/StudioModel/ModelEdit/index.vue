@@ -348,8 +348,12 @@
         </div>
         <div v-show="showEditAliasForm">
           <div class="alias-form" v-event-stop:click>
+            <el-form :model="this" :rules="aliasRules" ref="aliasForm" v-on:submit.prevent>
+              <el-form-item prop="currentEditAlias">
               <el-input v-model="currentEditAlias" size="mini" @click.stop @keyup.enter.native="saveEditTableAlias"></el-input>
               <el-button type="primary" size="mini" icon="el-icon-check" @click.stop="saveEditTableAlias"></el-button><el-button size="mini" @click.stop="cancelEditAlias" icon="el-icon-close" plain></el-button>
+              </el-form-item>
+            </el-form>
           </div>
         </div>
         <div v-show="!showEditAliasForm && currentEditTable.kind!=='FACT'">
@@ -426,6 +430,7 @@ import AddCC from '../AddCCModal/addcc.vue'
 import ShowCC from '../ShowCC/showcc.vue'
 import NModel from './model.js'
 import { modelRenderConfig, modelErrorMsg, columnTypeIcon } from './config'
+import { NamedRegex } from '../../../../config'
 @Component({
   props: ['extraoption'],
   computed: {
@@ -515,6 +520,22 @@ export default class ModelEdit extends Vue {
     parameterValue: {type: 'column', value: '', table_guid: null},
     convertedColumns: [],
     return_type: ''
+  }
+  aliasRules = {
+    currentEditAlias: [
+      { validator: this.validateName, trigger: 'blur' }
+    ]
+  }
+  validateName (rule, value, callback) {
+    if (!value) {
+      callback(new Error(this.$t('requiredName')))
+    } else {
+      if (!NamedRegex.test(value)) {
+        callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+      } else {
+        callback()
+      }
+    }
   }
   panelAppear = modelRenderConfig.pannelsLayout()
   radio = 1
@@ -608,9 +629,13 @@ export default class ModelEdit extends Vue {
   }
   // 保存table的别名
   saveEditTableAlias () {
-    this.currentEditTable.alias = this.currentEditAlias
-    this.saveNewAlias(this.currentEditTable)
-    this.showEditAliasForm = false
+    this.$refs.aliasForm.validate((valid) => {
+      if (valid) {
+        this.currentEditTable.alias = this.currentEditAlias
+        this.saveNewAlias(this.currentEditTable)
+        this.showEditAliasForm = false
+      }
+    })
   }
   saveNewAlias (t) {
     this.modelInstance.setUniqueAlias(t)
