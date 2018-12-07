@@ -154,7 +154,8 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
     private Set<Integer> chooseMeas(NDataCuboid cuboid) {
         Set<Integer> meaSet = Sets.newHashSet();
         for (Map.Entry<Integer, NDataModel.Measure> entry : cuboid.getCuboidLayout().getOrderedMeasures().entrySet()) {
-            if (entry.getValue().getFunction().getReturnDataType().getName().equals("hllc")) {
+            String funName = entry.getValue().getFunction().getReturnDataType().getName();
+            if (funName.equals("hllc") || funName.equals("topn")) {
                 continue;
             }
             meaSet.add(entry.getKey());

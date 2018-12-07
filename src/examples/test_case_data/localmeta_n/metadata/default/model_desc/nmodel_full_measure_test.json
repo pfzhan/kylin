@@ -415,6 +415,32 @@
         },
         "returntype": "bigint"
       }
+    },
+    {
+      "id": 1028,
+      "name": "TOP_MULTI_DIMS",
+      "function": {
+        "expression": "TOP_N",
+        "parameter": {
+          "type": "column",
+          "value": "TEST_MEASURE.price2",
+          "next_parameter": {
+            "type": "column",
+            "value": "TEST_MEASURE.name1",
+            "next_parameter": {
+              "type": "column",
+              "value": "TEST_MEASURE.name2",
+              "next_parameter": {
+                "type": "column",
+                "value": "TEST_MEASURE.time"
+              }
+            }
+          }        },
+        "returntype": "topn(100, 4)",
+        "configuration": {
+          "topn.encoding.TEST_MEASURE.ID2": "int:4"
+        }
+      }
     }
   ],
   "column_correlations": [],

@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import com.google.common.collect.Maps;
 import org.apache.commons.collections.CollectionUtils;
@@ -76,7 +75,7 @@ public class SimplifiedMeasure implements Serializable {
         measureResponse.setExpression(measure.getFunction().getExpression());
         measureResponse.setReturnType(measure.getFunction().getReturnType());
         List<ParameterResponse> parameters = new ArrayList<>();
-        Set<ParameterDesc.PlainParameter> plainParameters = measure.getFunction().getParameter()
+        List<ParameterDesc.PlainParameter> plainParameters = measure.getFunction().getParameter()
                 .getPlainParameters();
         for (ParameterDesc.PlainParameter plainParameter : plainParameters) {
             ParameterResponse parameterResponse = new ParameterResponse();

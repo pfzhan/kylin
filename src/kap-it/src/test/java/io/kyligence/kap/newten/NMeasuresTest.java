@@ -41,7 +41,6 @@ import org.apache.spark.sql.Row;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
@@ -59,6 +58,7 @@ import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.spark.KapSparkSession;
+import scala.collection.mutable.WrappedArray;
 
 public class NMeasuresTest extends NLocalWithSparkSessionTest {
     @Before
@@ -80,8 +80,6 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    @Ignore
-    // TODO FIXME issue #8315
     public void testMeasures() throws Exception {
         final String cubeName = "ncube_full_measure_test";
         buildCuboid(cubeName);
@@ -101,7 +99,11 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 Assert.assertEquals("40000000632", row.apply(2).toString());// SUM(ID1)
                 Assert.assertEquals(Double.valueOf("2637.703"), Double.valueOf(row.apply(3).toString()), 0.000001);// SUM(PRICE2)
                 Assert.assertEquals("10000000158", row.apply(10).toString());// MIN(ID1)
-                //Assert.assertEquals(10000000158.0, ((TopNCounter) row.apply(11)).getCounters()[0], 0.000001);// TOPN(ID1)
+                WrappedArray topnArray = (WrappedArray) row.apply(26);
+                Assert.assertEquals("[2044.28,[Auction,bei,2013-06-14]]", topnArray.apply(0).toString());// TOPN
+                Assert.assertEquals("[354.7442,[Auction,jjc,2013-03-22]]", topnArray.apply(1).toString());// TOPN
+                Assert.assertEquals("[172.0344,[Others,hce,2013-11-12]]", topnArray.apply(2).toString());// TOPN
+                Assert.assertEquals("[66.6444,[Auction,jjc,2013-04-06]]", topnArray.apply(3).toString());// TOPN
                 //Assert.assertEquals("3", row.apply(15).toString());// HLL(NAME1)
                 //Assert.assertEquals("4", row.apply(16).toString());
                 //Assert.assertEquals(4, ((PercentileCounter) row.apply(21)).getRegisters().size());// percentile(PRICE1)
@@ -110,7 +112,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
             // verify the all null value aggregate
             if (row.apply(0).toString().equals("10000000162")) {
                 Assert.assertEquals("3", row.apply(1).toString());// COUNT(*)
-                Assert.assertEquals(Double.valueOf("0"), Double.valueOf(row.apply(3).toString()), 0.000001);// SUM(PRICE2)
+                Assert.assertNull(row.apply(3));
                 Assert.assertEquals(Double.valueOf("0"), Double.valueOf(row.apply(4).toString()), 0.000001);// SUM(PRICE3)
                 Assert.assertEquals("0", row.apply(5).toString());// MAX(PRICE3)
                 Assert.assertEquals("10000000162", row.apply(6).toString());// MIN(ID1)
@@ -119,21 +121,21 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 //Assert.assertEquals(0, ((PercentileCounter) row.apply(21)).getRegisters().size());// percentile(PRICE1)
                 //Assert.assertEquals("0.0", row.apply(25).toString());// HLL(NAME1, PRICE1)
             }
-
-            //build is done, start to test query
-            SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
-            existingCxt.stop();
-            // Validate results between sparksql and cube
-            KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-            kapSparkSession.use("default");
-            populateSSWithCSVData(config, "default", kapSparkSession);
-            List<Pair<String, String>> queries = NExecAndComp
-                    .fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql_measures");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, NExecAndComp.CompareLevel.SAME, "left");
-            queries = NExecAndComp.fetchQueries(
-                    KAP_SQL_BASE_DIR + File.separator + "sql_measures" + File.separator + "inaccurate_sql");
-            NExecAndComp.execAndCompare(queries, kapSparkSession, NExecAndComp.CompareLevel.NONE, "left");
         }
+
+        //build is done, start to test query
+        SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
+        existingCxt.stop();
+        // Validate results between sparksql and cube
+        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+        kapSparkSession.use("default");
+        populateSSWithCSVData(config, "default", kapSparkSession);
+        List<Pair<String, String>> queries = NExecAndComp
+                .fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql_measures");
+        NExecAndComp.execAndCompare(queries, kapSparkSession, NExecAndComp.CompareLevel.SAME, "left");
+        // queries = NExecAndComp.fetchQueries(
+        //         KAP_SQL_BASE_DIR + File.separator + "sql_measures" + File.separator + "inaccurate_sql");
+        // NExecAndComp.execAndCompare(queries, kapSparkSession, NExecAndComp.CompareLevel.NONE, "left");
     }
 
     private void buildCuboid(String cubeName) throws Exception {

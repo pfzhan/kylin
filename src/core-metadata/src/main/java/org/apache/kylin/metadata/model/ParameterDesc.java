@@ -48,13 +48,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Sets;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -99,10 +97,10 @@ public class ParameterDesc implements Serializable {
 
     private TblColRef colRef = null;
     private List<TblColRef> allColRefsIncludingNexts = null;
-    private Set<PlainParameter> plainParameters = null;
+    private List<PlainParameter> plainParameters = null;
 
     // Lazy evaluation
-    public Set<PlainParameter> getPlainParameters() {
+    public List<PlainParameter> getPlainParameters() {
         if (plainParameters == null) {
             plainParameters = PlainParameter.createFromParameterDesc(this);
         }
@@ -207,8 +205,8 @@ public class ParameterDesc implements Serializable {
 
         ParameterDesc that = (ParameterDesc) o;
 
-        Set<PlainParameter> thisPlainParams = this.getPlainParameters();
-        Set<PlainParameter> thatPlainParams = that.getPlainParameters();
+        List<PlainParameter> thisPlainParams = this.getPlainParameters();
+        List<PlainParameter> thatPlainParams = that.getPlainParameters();
 
         return thisPlainParams.containsAll(thatPlainParams) && thatPlainParams.containsAll(thisPlainParams);
     }
@@ -246,8 +244,8 @@ public class ParameterDesc implements Serializable {
             return FunctionDesc.PARAMETER_TYPE_COLUMN.equals(type);
         }
 
-        static Set<PlainParameter> createFromParameterDesc(ParameterDesc parameterDesc) {
-            Set<PlainParameter> result = Sets.newHashSet();
+        static List<PlainParameter> createFromParameterDesc(ParameterDesc parameterDesc) {
+            List<PlainParameter> result = new ArrayList<>();
             ParameterDesc local = parameterDesc;
             while (local != null) {
                 if (local.isColumnType()) {

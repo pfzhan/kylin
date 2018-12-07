@@ -140,6 +140,13 @@ public class TopNCounter<T> implements Iterable<Counter<T>>, java.io.Serializabl
         return topK;
     }
 
+    public void reset() {
+        counterList.clear();
+        counterMap.clear();
+        ordered = false;
+        descending = true;
+    }
+
     /**
      * @return number of items stored
      */

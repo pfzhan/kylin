@@ -33,9 +33,13 @@ import org.apache.kylin.measure.bitmap.BitmapMeasureType
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.StringType
+import org.apache.spark.sql.functions.{col, _}
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.util.SparderTypeUtil.toSparkType
 import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 object CuboidAggregator {
   def agg(ss: SparkSession,
@@ -68,16 +72,14 @@ object CuboidAggregator {
     val agg = measures.asScala.map { measureEntry =>
       val measure = measureEntry._2
       val function = measure.getFunction
-      val parameter = function.getParameter.getPlainParameters.asScala.head
-      if (parameter.isColumnType) {
-        var column: Column = null
+      val parameters = function.getParameter.getPlainParameters.asScala.toList
+      if (parameters.head.isColumnType) {
+        var columns = new mutable.ListBuffer[Column]
         try {
           if (afterAgg) {
-            column = col(measureEntry._1.toString)
+            columns.append(col(measureEntry._1.toString))
           } else {
-            column = col(
-              coulmnIndex.apply(
-                flatTableDesc.getColumnIndex(parameter.getColRef)))
+            columns.appendAll(parameters.map(p => col(coulmnIndex.apply(flatTableDesc.getColumnIndex(p.getColRef)))))
           }
         } catch {
           case e: Exception =>
@@ -85,34 +87,50 @@ object CuboidAggregator {
         }
         function.getExpression.toUpperCase match {
           case "MAX" =>
-            max(column).as(measureEntry._1.toString)
+            max(columns.head).as(measureEntry._1.toString)
           case "MIN" =>
-            min(column).as(measureEntry._1.toString)
+            min(columns.head).as(measureEntry._1.toString)
           case "SUM" =>
-            sum(column).as(measureEntry._1.toString)
+            sum(columns.head).as(measureEntry._1.toString)
           case "COUNT" =>
             if (afterAgg) {
-              sum(column).as(measureEntry._1.toString)
+              sum(columns.head).as(measureEntry._1.toString)
             } else {
-              count(column).as(measureEntry._1.toString)
+              count(columns.head).as(measureEntry._1.toString)
             }
           case "COUNT_DISTINCT" =>
             if (isSparkSql) {
-              countDistinct(column).as(measureEntry._1.toString)
+              countDistinct(columns.head).as(measureEntry._1.toString)
             } else {
               val udfName = UdfManager.register(function.getReturnDataType,
-                function.getExpression,
-                !afterAgg)
+                function.getExpression, null, !afterAgg)
               if (!afterAgg) {
+                var col = columns.head
                 if (function.getReturnDataType.getName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
-                  column = wrapEncodeColumn(parameter.getColRef, column)
+                  col = wrapEncodeColumn(parameters.head.getColRef, columns.head)
                 }
-                callUDF(udfName, column.cast(StringType))
+                callUDF(udfName, col.cast(StringType))
                   .as(measureEntry._1.toString)
               } else {
-                callUDF(udfName, column).as(measureEntry._1.toString)
+                callUDF(udfName, columns.head).as(measureEntry._1.toString)
               }
             }
+          case "TOP_N" =>
+
+            val measure = function.getParameter.getColRef.getColumnDesc
+
+            val schema = StructType(parameters.map(_.getColRef.getColumnDesc).map { col =>
+              val dateType = toSparkType(col.getType)
+              if (col == measure) {
+                StructField(s"MEASURE_${col.getName}", dateType)
+              } else {
+                StructField(s"DIMENSION_${col.getName}", dateType)
+              }
+            })
+
+            val udfName = UdfManager.register(function.getReturnDataType,
+              function.getExpression, schema, !afterAgg)
+            callUDF(udfName, columns: _*).as(measureEntry._1.toString)
         }
       } else if (function.isCount) {
         if (afterAgg) {

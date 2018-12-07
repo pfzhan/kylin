@@ -59,7 +59,7 @@ public class NSparkSourceTest extends NLocalWithSparkSessionTest {
         for (int i = 0; i < colDescs.length; i++) {
             StructField field = schema.fields()[i];
             Assert.assertEquals(field.name(), colDescs[i].getName());
-            Assert.assertEquals(field.dataType(), SparderTypeUtil.kylinCubeDataTypeToSparkType(colDescs[i].getType()));
+            Assert.assertEquals(field.dataType(), SparderTypeUtil.toSparkType(colDescs[i].getType()));
         }
     }
 

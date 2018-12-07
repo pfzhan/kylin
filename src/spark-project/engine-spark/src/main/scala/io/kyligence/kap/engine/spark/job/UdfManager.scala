@@ -30,6 +30,7 @@ import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.types.StructType
 
 class UdfManager(sparkSession: SparkSession) extends Logging {
   private var udfCache: Cache[String, String] = _
@@ -50,21 +51,30 @@ class UdfManager(sparkSession: SparkSession) extends Logging {
     udfCache.cleanUp()
   }
 
-  def doRegister(dataType: DataType, funcName: String, isFirst: Boolean): String = {
-    val name = genKey(dataType, funcName, isFirst)
+  def doRegister(dataType: DataType, funcName: String, schema: StructType, isFirst: Boolean): String = {
+    val name = genKey(dataType, funcName, isFirst, schema)
     val cacheFunc = udfCache.getIfPresent(name)
     if (cacheFunc == null) {
       udfCache.put(name, "")
-      sparkSession.udf.register(name, new FirstUDAF(funcName, dataType, isFirst))
+      if (funcName == "TOP_N") {
+        sparkSession.udf.register(name, new TopNUDAF(dataType, schema, isFirst))
+      } else {
+        sparkSession.udf.register(name, new FirstUDAF(funcName, dataType, isFirst))
+      }
     }
     name
   }
 
-  def genKey(dataType: DataType, funcName: String, isFirst: Boolean): String = {
-    dataType.toString
+  def genKey(dataType: DataType, funcName: String, isFirst: Boolean, schema: StructType): String = {
+    val key = dataType.toString
       .replace("(", "_")
       .replace(")", "_")
       .replace(",", "_") + funcName + "_" + isFirst
+    if (funcName == "TOP_N") {
+      s"${key}_${schema.mkString}"
+    } else {
+      key
+    }
   }
 
 }
@@ -94,7 +104,7 @@ object UdfManager {
 
   }
 
-  def register(dataType: DataType, func: String, isFirst: Boolean): String = {
-    defaultManager.get().doRegister(dataType, func, isFirst)
+  def register(dataType: DataType, func: String, schema: StructType, isFirst: Boolean): String = {
+    defaultManager.get().doRegister(dataType, func, schema, isFirst)
   }
 }
