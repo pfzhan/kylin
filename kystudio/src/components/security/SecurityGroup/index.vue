@@ -1,7 +1,7 @@
 <template>
   <div class="security-group">
     <el-row class="ksd-mb-14 ksd-mt-10 ksd-mrl-20">
-      <el-button type="primary" plain size="medium" v-if="mixAccess" icon="el-icon-plus" @click="editGroup('new')">{{$t('kylinLang.common.group')}}</el-button>
+      <el-button type="primary" plain size="medium" v-if="groupActions.includes('addGroup')" icon="el-icon-plus" @click="editGroup('new')">{{$t('kylinLang.common.group')}}</el-button>
     </el-row>
     <el-row class="ksd-mrl-20">
       <el-table
@@ -25,13 +25,13 @@
             {{scope.row.second && scope.row.second.length || 0}}
           </template>
         </el-table-column>
-        <el-table-column v-if="mixAccess"
+        <el-table-column v-if="groupActions.includes('editGroup') && groupActions.includes('deleteGroup')"
           :label="$t('kylinLang.common.action')" :width="100">
           <template slot-scope="scope">
-            <el-tooltip :content="$t('assignUsers')" effect="dark" placement="top" v-show="scope.row.first!=='ALL_USERS'">
+            <el-tooltip :content="$t('assignUsers')" effect="dark" placement="top" v-show="scope.row.first!=='ALL_USERS' && groupActions.includes('editGroup')">
               <i class="el-icon-ksd-table_assign" @click="editGroup('assign', scope.row)"></i>
             </el-tooltip>
-            <el-tooltip :content="$t('kylinLang.common.drop')" effect="dark" placement="top" v-show="(scope.row.first!=='ROLE_ADMIN' && scope.row.first!=='ALL_USERS')">
+            <el-tooltip :content="$t('kylinLang.common.drop')" effect="dark" placement="top" v-show="(scope.row.first!=='ROLE_ADMIN' && scope.row.first!=='ALL_USERS') && groupActions.includes('deleteGroup')">
               <i class="el-icon-delete ksd-ml-10" @click="dropGroup(scope.row.first)"></i>
             </el-tooltip>
           </template>
@@ -61,10 +61,8 @@ import { handleError, kapConfirm } from 'util/business'
   },
   computed: {
     ...mapGetters([
-      'isAdminRole',
-      'isProjectAdmin',
-      'currentSelectedProject',
-      'isTestingSecurityProfile'
+      'groupActions',
+      'currentSelectedProject'
     ]),
     ...mapState({
       groupUsersListSize: state => state.user.usersGroupSize,
@@ -90,13 +88,9 @@ export default class SecurityGroup extends Vue {
     pageOffset: 0
   }
 
-  get mixAccess () {
-    return this.isTestingSecurityProfile && (this.isProjectAdmin || this.isAdminRole)
-  }
-
   created () {
     this.loadGroupUsers()
-    if (this.mixAccess) {
+    if (this.groupActions.includes('viewGroup')) {
       this.loadUsers()
     }
   }

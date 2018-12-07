@@ -1,6 +1,9 @@
 /* eslint-disable */
 export default {
   "allOptionMaps": {
+    /**
+     * 参数值列表配置
+     */
     "menu": [
       { "id": "dashboard", "value": "dashboard", "title": "Dashboard" },
       { "id": "query", "value": "query", "title": "Query" },
@@ -29,19 +32,40 @@ export default {
       { "id": "manualMaintain", "value": "MANUAL_MAINTAIN", "title": "Manual Maintain" },
       { "id": "autoMaintain", "value": "AUTO_MAINTAIN", "title": "Auto Maintain" }
     ],
-    "role": [
-      { "id": "admin", "value": 16, "title": "Admin" },
-      { "id": "management", "value": 32, "title": "Management" },
-      { "id": "operation", "value": 64, "title": "Operation" },
-      { "id": "read", "value": 1, "title": "Read" },
-
-      { "id": "admin", "value": "ROLE_ADMIN", "title": "Admin" },
-      { "id": "admin", "value": "ROLE_ANALYST", "title": "Admin" },
-      { "id": "admin", "value": "ROLE_MODELER", "title": "Admin" }
+    // 项目内权限
+    "projectRole": [
+      { "id": "admin", "value": "ADMINISTRATION", "title": "Admin" },
+      { "id": "admin", "value": 16, "title": "Admin" }
+    ],
+    // 系统组权限
+    "groupRole": [
+      { "id": "systemAdmin", "value": "ROLE_ADMIN", "title": "Admin" },
+      { "id": "systemUser", "value": "ALL_USERS", "title": "User" }
     ],
     "modelType": [
       { "id": "tableOriented", "value": "TABLE_ORIENTED", "title": "Table Oriented" },
       { "id": "modelBased", "value": "MODEL_BASED", "title": "Model Based" }
+    ],
+    /**
+     * ACL权限配置
+     */
+    "userActions": [
+      { "id": "addUser" },
+      { "id": "editUser" },
+      { "id": "assignGroup" },
+      { "id": "changePassword" },
+      { "id": "deleteUser" },
+      { "id": "disableUser" }
+    ],
+    "projectActions": [
+      { "id": "addGrant" },
+      { "id": "editGrant" },
+      { "id": "deleteGrant" }
+    ],
+    "groupActions": [
+      { "id": "addGroup" },
+      { "id": "editGroup" },
+      { "id": "deleteGroup" }
     ],
     "modelActions": [
       { "id": "viewInRelated" },
@@ -58,17 +82,6 @@ export default {
     ]
   },
   "disableOptionMaps": {
-    "menu": {
-      "keyPattern": "projectType-role",
-      "entries": [
-        { "key": "manualMaintain-[admin,management]", "value": "none" },
-        { "key": "manualMaintain-operation", "value": "user,group" },
-        { "key": "manualMaintain-read", "value": "job,user,group" },
-        { "key": "autoMaintain-[admin,management]", "value": "none" },
-        { "key": "autoMaintain-operation", "value": "user,group" },
-        { "key": "autoMaintain-read", "value": "job,user,group" }
-      ]
-    },
     "modelActions": {
       "keyPattern": "projectType-modelType",
       "entries": [
@@ -80,6 +93,39 @@ export default {
     }
   },
   "enableOptionMaps": {
+    // 菜单权限
+    "menu": {
+      "keyPattern": "groupRole-projectRole",
+      "entries": [
+        { "key": "systemAdmin-*", "value": "overview,query,insight,queryHistory,favoriteQuery,studio,project,source,model,modelEdit,monitor,job,security,user,group" },
+        { "key": "systemUser-*", "value": "overview,query,insight,queryHistory,favoriteQuery,studio,project,source,model,modelEdit,monitor,job,security,user" }
+      ]
+    },
+    // 用户操作权限
+    "userActions": {
+      "keyPattern": "groupRole",
+      "entries": [
+        { "key": "systemAdmin", "value": "addUser,assignGroup,editUser,changePassword,deleteUser,disableUser" },
+        { "key": "systemUser", "value": "none" }
+      ]
+    },
+    // 用户组操作权限
+    "groupActions": {
+      "keyPattern": "groupRole",
+      "entries": [
+        { "key": "systemAdmin", "value": "addGroup,editGroup,deleteGroup,viewGroup" },
+        { "key": "systemUser", "value": "none" }
+      ]
+    },
+    // 项目操作权限
+    "projectActions": {
+      "keyPattern": "groupRole-projectRole",
+      "entries": [
+        { "key": "systemAdmin-*", "value": "addGrant,editGrant,deleteGrant" },
+        { "key": "systemUser-admin", "value": "addGrant,editGrant,deleteGrant" },
+        { "key": "systemUser-[management,operation,read]", "value": "none" }
+      ]
+    },
     "aggregateActions": {
       "keyPattern": "projectType",
       "entries": [

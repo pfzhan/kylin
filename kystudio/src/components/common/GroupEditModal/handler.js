@@ -18,8 +18,8 @@ export function getSubmitData (that) {
       }
     case 'assign':
       return {
-        groupName: form.groupName,
-        data: form.selectedUsers
+        group: form.groupName,
+        users: form.selectedUsers
       }
   }
 }

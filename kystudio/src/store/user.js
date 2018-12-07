@@ -1,6 +1,7 @@
 import api from './../service/api'
 import * as types from './types'
 import { permissions } from '../config'
+import { getAvailableOptions } from '../util/specParser'
 export default {
   state: {
     usersList: [],
@@ -106,6 +107,22 @@ export default {
     }
   },
   getters: {
+    userAuthorities (state) {
+      const { authorities = [] } = state.currentUser || {}
+      return authorities.map(authority => authority.authority)
+    },
+    userActions (state, getters, rootState, rootGetters) {
+      const groupRole = getters.userAuthorities
+      const projectRole = state.currentUserAccess
+
+      return getAvailableOptions('userActions', { groupRole, projectRole })
+    },
+    groupActions (state, getters, rootState, rootGetters) {
+      const groupRole = getters.userAuthorities
+      const projectRole = state.currentUserAccess
+
+      return getAvailableOptions('groupActions', { groupRole, projectRole })
+    },
     isAdminRole (state) {
       const { currentUser } = state
 

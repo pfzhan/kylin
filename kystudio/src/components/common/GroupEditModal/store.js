@@ -45,11 +45,10 @@ export default {
     [types.SET_MODAL]: (state, payload) => {
       for (const key of Object.keys(state)) {
         switch (key) {
-          // 有group则设置modal from数据
           case 'form':
-            payload.group && setModalForm(payload, state)
+            payload.group && (state.form.groupName = payload.group.first)
+            payload.group && (state.form.selectedUsers = payload.group.second)
             break
-          // 设置modal的数据
           default: {
             payload[key] && (state[key] = payload[key])
             break
@@ -67,13 +66,6 @@ export default {
     }
   },
   namespaced: true
-}
-
-function setModalForm (payload, state) {
-  const { key, value } = payload.group
-
-  key && (state.form.groupName = key)
-  value && (state.form.selectedUsers = value)
 }
 
 export { types }

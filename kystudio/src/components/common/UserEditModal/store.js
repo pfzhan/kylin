@@ -13,6 +13,7 @@ const initialState = JSON.stringify({
   callback: null,
   totalGroups: [],
   form: {
+    uuid: '',
     username: '',
     password: '',
     oldPassword: '',

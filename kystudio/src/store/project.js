@@ -2,6 +2,7 @@ import api from './../service/api'
 import * as types from './types'
 import { cacheSessionStorage, cacheLocalStorage } from 'util/index'
 import { speedProjectTypes } from 'config/index'
+import { getAvailableOptions } from '../util/specParser'
 export default {
   state: {
     projectList: [],
@@ -144,6 +145,12 @@ export default {
     }
   },
   getters: {
+    projectActions: (state, getters, rootState, rootGetters) => {
+      const groupRole = rootGetters.userAuthorities
+      const projectRole = rootState.user.currentUserAccess
+
+      return getAvailableOptions('projectActions', { groupRole, projectRole })
+    },
     currentSelectedProject: (state) => {
       return state.selected_project
     },

@@ -1,21 +1,26 @@
 <template>
 <div class="access_edit">
-    <el-button class="ksd-mb-10" type="primary" plain size="small" @click="addAccess()" v-if="hasProjectAdminPermission||isAdmin" icon="el-icon-plus
-">{{$t('grant')}}</el-button>
+    <el-button class="ksd-mb-10" type="primary" plain size="small" @click="addAccess()" v-if="projectActions.includes('addGrant')" icon="el-icon-plus">{{$t('grant')}}</el-button>
     <div style="width:200px;" class="ksd-mb-10 ksd-fright">
-      <el-input :placeholder="$t('kylinLang.common.userOrGroup')" @change="searchAccess" v-model="serarchChar" class="show-search-btn" :suffix-icon="searchLoading?'el-icon-loading':'el-icon-search'" size="medium">
-          </el-input>
+      <el-input
+        :placeholder="$t('kylinLang.common.userOrGroup')"
+        @change="searchAccess"
+        v-model="serarchChar"
+        class="show-search-btn"
+        :suffix-icon="searchLoading ? 'el-icon-loading':'el-icon-search'"
+        size="medium">
+      </el-input>
     </div>
     <el-dialog
       :title="$t('grant')"
       width="660px"
       :visible.sync="editAccessVisible">
       <div class="grantTips">
-         <h4>{{$t('grantTitle')}}</h4>
+        <h4>{{$t('grantTitle')}}</h4>
         <ul>
-          <li>{{$t('grantDetail1')}}</li>
+          <!-- <li>{{$t('grantDetail1')}}</li>
           <li>{{$t('grantDetail2')}}</li>
-          <li>{{$t('grantDetail3')}}</li>
+          <li>{{$t('grantDetail3')}}</li> -->
           <li>{{$t('grantDetail4')}}</li>
         </ul>
       </div>
@@ -73,11 +78,13 @@
 	      :label="$t('kylinLang.common.action')"
 	      width="160">
 	      <template slot-scope="scope">
-        <span v-if="!(hasProjectAdminPermission||isAdmin)">N/A</span>
-	        <i class="el-icon-edit" v-if="hasProjectAdminPermission||isAdmin"
-	          @click="beginEdit(scope.row)">
-	        </i>
-          <i class="el-icon-delete" v-if="isAdmin || hasProjectAdminPermission"
+          <span v-if="!projectActions.includes('editGrant') && !projectActions.includes('deleteGrant')">N/A</span>
+          <i class="el-icon-edit"
+            v-if="projectActions.includes('editGrant')"
+            @click="beginEdit(scope.row)">
+          </i>
+          <i class="el-icon-delete"
+            v-if="projectActions.includes('deleteGrant')"
             @click="removeAccess(scope.row.id, scope.row.roleOrName)">
           </i>
 	      </template>
@@ -96,7 +103,7 @@
 </template>
 
 <script>
-import { mapActions } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 import { permissions, pageCount } from '../../config/index'
 import { objectClone } from '../../util/index'
 import { handleSuccess, handleError, hasPermissionOfProjectAccess, hasRole, kapConfirm } from '../../util/business'
@@ -115,7 +122,7 @@ export default {
       accessSize: 0,
       hasActionAccess: false,
       accessMeta: {
-        permission: 1,
+        permission: 16,
         principal: true,
         sid: ''
       },
@@ -129,21 +136,21 @@ export default {
       },
       accessList: [],
       mask: {
-        1: 'READ',
-        32: 'MANAGEMENT',
-        64: 'OPERATION',
+        // 1: 'READ',
+        // 32: 'MANAGEMENT',
+        // 64: 'OPERATION',
         16: 'ADMINISTRATION'
       },
       showMask: {
-        1: 'Query',
-        32: 'Management',
-        64: 'Operation',
+        // 1: 'Query',
+        // 32: 'Management',
+        // 64: 'Operation',
         16: 'Admin'
       },
       showMaskByOrder: [
-        { key: 'Query', value: 1 },
-        { key: 'Operation', value: 64 },
-        { key: 'Management', value: 32 },
+        // { key: 'Query', value: 1 },
+        // { key: 'Operation', value: 64 },
+        // { key: 'Management', value: 32 },
         { key: 'Admin', value: 16 }
       ],
       groupList: [],
@@ -200,7 +207,7 @@ export default {
     },
     initMeta () {
       this.accessMeta = {
-        permission: 1,
+        permission: 16,
         principal: this.accessMeta.principal,
         sid: ''
       }
@@ -330,6 +337,9 @@ export default {
     }
   },
   computed: {
+    ...mapGetters([
+      'projectActions'
+    ]),
     hasProjectAdminPermission () {
       return hasPermissionOfProjectAccess(this, this.projectAccess, permissions.ADMINISTRATION.mask)
     },
@@ -382,8 +392,8 @@ export default {
     })
   },
   locales: {
-    'en': {grant: 'Grant', type: 'Type', user: 'User', role: 'Role', name: 'User Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'ADMIN', cubeEdit: 'Edit', cubeOpera: 'Operation', cubeQuery: 'cubeQuery', principal: 'Name', access: 'Access', grantTitle: 'What permissions does KAP provide?', grantDetail1: '*QUERY*: Permission to query tables/cubes in the project', grantDetail2: '*OPERATION*: Permission to rebuild, resume and cancel jobs. OPERATION permission includes QUERY.', grantDetail3: '*MANAGEMENT*: Permission to edit/delete cube. MANAGEMENT permission includes OPERATION and QUERY.', grantDetail4: '*ADMIN*: Full access to cube and jobs. ADMIN permission includes MANAGEMENT, OPERATION and QUERY.', deleteAccess: 'the action will delete this access, still continue?', pleaseInput: 'Please input user name.'},
-    'zh-cn': {grant: '授权', type: '类型', user: '用户', role: '群组', name: '用户名', nameAccount: '用户账号', permission: '许可', cubeAdmin: '管理', cubeEdit: '编辑', cubeOpera: '操作', cubeQuery: '查询', principal: '名称', access: '权限', grantTitle: 'KAP提供什么样的权限？', grantDetail1: '*QUERY*: 查询项目中的表或者cube的权限', grantDetail2: '*OPERATION*: 构建Cube的权限, 包括恢复和取消任务；OPERATION权限包含QUERY权限。', grantDetail3: '*MANAGEMENT*: 编辑和删除Cube的权限，MANAGEMENT权限包含了OPERATION权限和QUERY权限。', grantDetail4: '*ADMIN*: 对Cube拥有所有权限，ADMIN权限包含了MANAGEMENT权限，OPERATION权限和QUERY权限。', deleteAccess: '此操作将删除该授权，是否继续', pleaseInput: '请填写用户名。'}
+    'en': {grant: 'Grant', type: 'Type', user: 'User', role: 'Role', name: 'User Name', nameAccount: 'user account', permission: 'Permission', cubeAdmin: 'ADMIN', cubeEdit: 'Edit', cubeOpera: 'Operation', cubeQuery: 'cubeQuery', principal: 'Name', access: 'Access', grantTitle: 'What permissions does Kyligence Enterprise provide?', grantDetail1: '*QUERY*: Permission to query tables/cubes in the project', grantDetail2: '*OPERATION*: Permission to rebuild, resume and cancel jobs. OPERATION permission includes QUERY.', grantDetail3: '*MANAGEMENT*: Permission to edit/delete cube. MANAGEMENT permission includes OPERATION and QUERY.', grantDetail4: '*ADMIN*: Full access to project. ADMIN permission includes MANAGEMENT, OPERATION and QUERY.', deleteAccess: 'the action will delete this access, still continue?', pleaseInput: 'Please input user name.'},
+    'zh-cn': {grant: '授权', type: '类型', user: '用户', role: '群组', name: '用户名', nameAccount: '用户账号', permission: '许可', cubeAdmin: '管理', cubeEdit: '编辑', cubeOpera: '操作', cubeQuery: '查询', principal: '名称', access: '权限', grantTitle: 'Kyligence Enterprise提供什么样的权限？', grantDetail1: '*QUERY*: 查询项目中的表或者cube的权限', grantDetail2: '*OPERATION*: 构建Cube的权限, 包括恢复和取消任务；OPERATION权限包含QUERY权限。', grantDetail3: '*MANAGEMENT*: 编辑和删除Cube的权限，MANAGEMENT权限包含了OPERATION权限和QUERY权限。', grantDetail4: '*ADMIN*: 对项目拥有所有权限，ADMIN权限包含了MANAGEMENT权限，OPERATION权限和QUERY权限。', deleteAccess: '此操作将删除该授权，是否继续', pleaseInput: '请填写用户名。'}
   }
 }
 </script>

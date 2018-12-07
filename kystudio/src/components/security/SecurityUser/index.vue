@@ -12,7 +12,7 @@
         <el-button plain type="primary"
           size="medium"
           icon="el-icon-plus"
-          v-if="mixAccess"
+          v-if="userActions.includes('addUser')"
           @click="editUser('new')">
           {{$t('user')}}
         </el-button>
@@ -63,19 +63,19 @@
         </template>
       </el-table-column>
       <!-- 表：action列 -->
-      <el-table-column v-if="mixAccess" :label="$t('action')" :width="100">
+      <el-table-column v-if="isActionShow" :label="$t('action')" :width="100">
         <template slot-scope="scope">
           <el-tooltip :content="$t('resetPassword')" effect="dark" placement="top">
-            <i class="el-icon-ksd-table_reset-password ksd-mr-14" v-show="isAdminRole || isProjectManager" @click="editUser('password', scope.row)"></i>
+            <i class="el-icon-ksd-table_reset_password ksd-mr-14" v-show="userActions.includes('changePassword') || scope.row.uuid === currentUser.uuid" @click="editUser('password', scope.row)"></i>
           </el-tooltip>
-          <el-dropdown trigger="click" >
-            <i class="el-icon-ksd-table_others" v-show="scope.row.username!=='ADMIN'"></i>
+          <el-dropdown trigger="click">
+            <i class="el-icon-ksd-table_others" v-show="isMoreActionShow"></i>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item @click.native="editUser('group', scope.row)">{{$t('groupMembership')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="editUser('edit', scope.row)">{{$t('editRole')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="dropUser(scope.row)">{{$t('drop')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="changeStatus(scope.row)" v-if="scope.row.disabled">{{$t('enable')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="changeStatus(scope.row)" v-else>{{$t('disable')}}</el-dropdown-item>
+              <el-dropdown-item v-if="userActions.includes('assignGroup')" @click.native="editUser('group', scope.row)">{{$t('groupMembership')}}</el-dropdown-item>
+              <el-dropdown-item v-if="userActions.includes('editUser')" @click.native="editUser('edit', scope.row)">{{$t('editRole')}}</el-dropdown-item>
+              <el-dropdown-item v-if="userActions.includes('deleteUser')" @click.native="dropUser(scope.row)">{{$t('drop')}}</el-dropdown-item>
+              <el-dropdown-item v-if="userActions.includes('disableUser') && scope.row.disabled" @click.native="changeStatus(scope.row)">{{$t('enable')}}</el-dropdown-item>
+              <el-dropdown-item v-if="userActions.includes('disableUser') && !scope.row.disabled" @click.native="changeStatus(scope.row)">{{$t('disable')}}</el-dropdown-item>
             </el-dropdown-menu>
           </el-dropdown>
         </template>
@@ -91,7 +91,7 @@
 
 <script>
 import Vue from 'vue'
-import { mapGetters, mapActions } from 'vuex'
+import { mapState, mapGetters, mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
@@ -100,10 +100,11 @@ import { handleError, kapConfirm } from '../../../util'
 
 @Component({
   computed: {
+    ...mapState({
+      currentUser: (state) => state.user.currentUser
+    }),
     ...mapGetters([
-      'isAdminRole',
-      'isProjectAdmin',
-      'isProjectManager',
+      'userActions',
       'currentSelectedProject',
       'isTestingSecurityProfile'
     ])
@@ -129,15 +130,15 @@ export default class SecurityUser extends Vue {
     pageSize: pageCount,
     pageOffset: 0
   }
-
   get currentGroup () {
     return this.$route.params.groupName
   }
-
-  get mixAccess () {
-    return this.isTestingSecurityProfile && (this.isProjectAdmin || this.isAdminRole)
+  get isActionShow () {
+    return this.userActions.filter(action => ['addUser'].includes(action)).length
   }
-
+  get isMoreActionShow () {
+    return this.userActions.filter(action => ['resetPassword', 'addUser'].includes(action)).length
+  }
   get usersList () {
     return this.userData.map(user => ({
       username: user.username,
@@ -147,7 +148,8 @@ export default class SecurityUser extends Vue {
       analyst: user.authorities.some(role => role.authority === 'ROLE_ANALYST'),
       defaultPassword: user.defaultPassword,
       authorities: user.authorities,
-      groups: user.authorities.map(role => role.authority)
+      groups: user.authorities.map(role => role.authority),
+      uuid: user.uuid
     }))
   }
 
@@ -166,20 +168,19 @@ export default class SecurityUser extends Vue {
 
   async loadUsers (name) {
     try {
-      // for newten
-      // const parameter = {
-      //   ...this.pagination,
-      //   project: this.currentSelectedProject,
-      //   name,
-      //   groupName: this.currentGroup
-      // }
+      const parameter = {
+        ...this.pagination,
+        project: this.currentSelectedProject,
+        name,
+        groupName: this.currentGroup
+      }
 
-      // const { data: { data } } = !this.currentGroup
-      //   ? await this.loadUsersList(parameter)
-      //   : await this.loadUserListByGroupName(parameter)
+      const { data: { data } } = !this.currentGroup
+        ? await this.loadUsersList(parameter)
+        : await this.loadUserListByGroupName(parameter)
 
-      // this.userData = data.users || data.groupMembers || []
-      // this.totalSize = data.size
+      this.userData = data.users || data.groupMembers || []
+      this.totalSize = data.size
     } catch (e) {
       handleError(e)
     }
@@ -207,7 +208,8 @@ export default class SecurityUser extends Vue {
   async changeStatus (userDetail) {
     try {
       await this.updateStatus({
-        name: userDetail.username,
+        uuid: userDetail.uuid,
+        username: userDetail.username,
         disabled: !userDetail.disabled
       })
       this.loadUsers()

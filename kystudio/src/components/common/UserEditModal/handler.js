@@ -32,20 +32,19 @@ export function getSubmitData (that) {
       return {
         username: form.username,
         password: form.oldPassword,
-        newPassword: form.newPassword
+        new_password: form.newPassword
       }
     case 'edit':
       return {
-        name: form.username,
-        detail: {
-          defaultPassword: form.defaultPassword,
-          username: form.username,
-          disabled: form.disabled,
-          authorities: form.authorities
-        }
+        uuid: form.uuid,
+        username: form.username,
+        defaultPassword: form.defaultPassword,
+        disabled: form.disabled,
+        authorities: form.authorities
       }
     case 'group':
       return {
+        uuid: form.uuid,
         username: form.username,
         authorities: form.authorities
       }

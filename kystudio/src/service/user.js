@@ -6,22 +6,22 @@ Vue.use(VueResource)
 
 export default {
   getUsersList: (para) => {
-    return Vue.resource(apiUrl + 'kap/user/users').get(para)
+    return Vue.resource(apiUrl + 'user').get(para)
   },
   updateStatus: (user) => {
-    return Vue.resource(apiUrl + 'kap/user/' + user.name).update({disabled: user.disabled, defaultPassword: true})
+    return Vue.resource(apiUrl + 'user').update(user)
   },
   saveUser: (user) => {
-    return Vue.resource(apiUrl + 'kap/user/' + user.name).save(user.detail)
+    return Vue.resource(apiUrl + 'user').save(user.detail)
   },
   editRole: (user) => {
-    return Vue.resource(apiUrl + 'kap/user/' + user.name).update(user.detail)
+    return Vue.resource(apiUrl + 'user').update(user)
   },
   resetPassword: (user) => {
-    return Vue.resource(apiUrl + 'kap/user/password').update(user)
+    return Vue.resource(apiUrl + 'user/password').update(user)
   },
   removeUser: (userName) => {
-    return Vue.resource(apiUrl + 'kap/user/' + userName).remove()
+    return Vue.resource(apiUrl + 'user/' + userName).remove()
   },
   // access
   login: () => {
@@ -38,10 +38,10 @@ export default {
   },
   // user goup
   addGroupsToUser: (para) => {
-    return Vue.resource(apiUrl + 'kap/user/' + para.username).update(para)
+    return Vue.resource(apiUrl + 'user').update(para)
   },
   addUsersToGroup: (para) => {
-    return Vue.resource(apiUrl + 'user_group/users/' + para.groupName).save(para.data)
+    return Vue.resource(apiUrl + 'user_group/users').update(para)
   },
   getUserGroupList: (para) => {
     return Vue.resource(apiUrl + 'user_group/usersWithGroup').get(para)

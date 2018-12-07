@@ -15,16 +15,16 @@
     <el-table-column type="expand" :width="30">
       <template slot-scope="props">
          <el-tabs activeName="first" class="el-tabs--default">
-          <el-tab-pane label="Models" name="first">
+          <!-- <el-tab-pane label="Models" name="first">
             <model_list :modelList="props.row.models"></model_list>
           </el-tab-pane>
           <el-tab-pane label="Cubes" name="second">
             <cube_list :cubeList="props.row.realizations"></cube_list>
-          </el-tab-pane>
-          <el-tab-pane :label="$t('access')" name="third">
+          </el-tab-pane> -->
+          <el-tab-pane :label="$t('access')" name="first">
             <access_edit :accessId="props.row.uuid" :projectName="props.row.name" own='project'></access_edit>
           </el-tab-pane>
-          <el-tab-pane :label="$t('projectConfig')" name="fourth">
+          <el-tab-pane :label="$t('projectConfig')" name="second">
             <project_config :override="props.row.override_kylin_properties"></project_config>
           </el-tab-pane>
            <!-- <el-tab-pane :label="$t('externalFilters')" name="fourth">
