@@ -338,13 +338,11 @@
     <transition name="slide-fade">
       <!-- 编辑table 快捷按钮 -->
       <div class="fast-action-box" v-event-stop @click="cancelTableEdit" :class="{'edge-right': currentEditTable.drawSize.isInRightEdge}" :style="tableBoxToolStyleNoZoom(currentEditTable.drawSize)" v-if="currentEditTable && showTableCoverDiv">
-        <div>
-          <div class="action switch" v-if="currentEditTable.kind === 'FACT'" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
-            <span >{{$t('switchLookup')}}</span>
-          </div>
-          <div class="action switch" v-if="modelInstance.checkTableCanSwitchFact(currentEditTable.guid)" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
-            <span >{{$t('switchFact')}}</span>
-          </div>
+        <div class="action switch" v-if="currentEditTable.kind === 'FACT'" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
+          <span >{{$t('switchLookup')}}</span>
+        </div>
+        <div class="action switch" v-if="modelInstance.checkTableCanSwitchFact(currentEditTable.guid)" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
+          <span >{{$t('switchFact')}}</span>
         </div>
         <div v-show="showEditAliasForm">
           <div class="alias-form" v-event-stop:click>
@@ -1178,7 +1176,7 @@ export default class ModelEdit extends Vue {
       if (drawSize) {
         let zoom = this.modelRender.zoom / 10
         if (drawSize.isInRightEdge) {
-          return {left: drawSize.left * zoom + this.modelRender.zoomXSpace - 280 + 'px', top: drawSize.top * zoom + this.modelRender.zoomYSpace + 'px'}
+          return {left: drawSize.left * zoom + this.modelRender.zoomXSpace - 230 + 'px', top: drawSize.top * zoom + this.modelRender.zoomYSpace + 'px'}
         }
         return {left: this.currentEditTable.drawSize.width + drawSize.left * zoom + this.modelRender.zoomXSpace + 'px', top: drawSize.top * zoom + this.modelRender.zoomYSpace + 'px'}
       }
@@ -1344,8 +1342,14 @@ export default class ModelEdit extends Vue {
     background-color: rgba(24, 32, 36, 0.7);
   }
   .fast-action-box {
-    width:260px;
+    width:210px;
+    .el-form-item__content {
+      line-height: 0;
+    }
     &.edge-right {
+      .el-form-item__error {
+        text-align: left;
+      }
       text-align: right;
     }
     color:@fff;
