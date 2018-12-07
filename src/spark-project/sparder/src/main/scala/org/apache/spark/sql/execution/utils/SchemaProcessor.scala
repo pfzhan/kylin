@@ -40,16 +40,17 @@ object SchemaProcessor {
     val dimensionStructType = gTInfo.getPrimaryKey.asScala.map { i =>
       StructField(
         FactTableCulumnInfo(tableName, i, coolumnMapping.apply(i)).toString,
-        SparderTypeUtil.kylinCubeDataTypeToSparkType(gTInfo.getColumnType(i)),
+        SparderTypeUtil.toSparkType(gTInfo.getColumnType(i)),
         nullable = true
       )
     }.toSeq
+
     val measuresStructType = StructType(
       measures
         .map(i => {
           StructField(
             FactTableCulumnInfo(tableName, i, coolumnMapping.apply(i)).toString,
-            SparderTypeUtil.kylinCubeDataTypeToSparkType(
+            SparderTypeUtil.toSparkType(
               gTInfo.getColumnType(i)),
             nullable = true)
         })
@@ -92,6 +93,7 @@ object SchemaProcessor {
       .sortBy(_._1)
       .map(_._2)
   }
+
   def buildSchemaWithRawTable(columnDescs: Array[ColumnDesc]): StructType = {
 
     StructType(columnDescs.map { columnDesc =>
@@ -99,6 +101,12 @@ object SchemaProcessor {
         columnDesc.getName,
         SparderTypeUtil.kylinRawTableSQLTypeToSparkType(columnDesc.getType))
     })
+  }
+
+  def genTopNSchema(advanceTableName: String,
+                     colId: Int,
+                     columnName: String = "N"): String = {
+    TopNColumnInfo(advanceTableName, colId, columnName).toString
   }
 
   def createStructType(name: String,
@@ -136,4 +144,9 @@ case class AggColumnInfo(index: Int,
                          args: String*) {
   override def toString: String =
     s"$funcName(${args.mkString("_")})_${index}_$hash"
+}
+
+case class TopNColumnInfo(tableName: String, columnId: Int, columnName: String)
+  extends ColumnInfo(tableName, columnId, columnName) {
+  override val prefix: String = "A"
 }

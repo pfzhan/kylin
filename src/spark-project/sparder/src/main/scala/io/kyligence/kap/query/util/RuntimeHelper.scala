@@ -30,7 +30,7 @@ import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.sql.udf.UdfManager
 
 import scala.collection.JavaConverters._
@@ -57,12 +57,12 @@ object RuntimeHelper {
                                allColumns: List[TblColRef],
                                sourceSchema: StructType,
                                gtColIdx: Array[Int],
-                               tupleIdx: Array[Int]): Seq[Column] = {
+                               tupleIdx: Array[Int],
+                               topNMapping: Map[Int, Column]
+                             ): Seq[Column] = {
     val gTInfoNames = SchemaProcessor.buildFactTableSortNames(sourceSchema)
     val calciteToGTinfo = tupleIdx.zipWithIndex.toMap
     var deriveMap: Map[Int, Column] = Map.empty
-    // fixme aron adv
-    //    val advanceMapping = cubeTupleConverter.advanceMapping
     if (derivedUtil.hasDerived) {
       deriveMap = derivedUtil.hostToDeriveds.flatMap { hostToDerived =>
         val deriveNames = derivedUtil.derivedColumnNameMapping.get(hostToDerived)
@@ -95,6 +95,8 @@ object RuntimeHelper {
       }.toMap
     }
 
+    // may have multi TopN measures.
+    val topNIndexs = sourceSchema.fields.map(_.dataType).zipWithIndex.filter(_._1.isInstanceOf[ArrayType])
     allColumns.indices
       .zip(allColumns)
       .map {
@@ -104,17 +106,20 @@ object RuntimeHelper {
             alias = column.getTableRef.getAlias
           }
           val columnName = "dummy_" + alias + "_" + column.getName
-          //          if (advanceMapping.contains(index)) {
-          //            advanceMapping.apply(index)
-          //          } else
-          if (calciteToGTinfo.contains(index)) {
-            //  primarykey
-            if (primaryKey.get(gtColIdx.apply(calciteToGTinfo.apply(index)))) {
-              val gTInfoIndex = gtColIdx.apply(calciteToGTinfo.apply(index))
+
+          if (topNMapping.contains(index)) {
+            topNMapping.apply(index)
+          } else if (calciteToGTinfo.contains(index)) {
+            val gTInfoIndex = gtColIdx.apply(calciteToGTinfo.apply(index))
+            val hasTopN = topNMapping.nonEmpty && topNIndexs.nonEmpty
+            if (hasTopN && topNIndexs.map(_._2).contains(gTInfoIndex)) {
+              // topn measure will be erase when calling inline
+              literalOne.as(s"${factTableName}_${columnName}")
+            } else if (primaryKey.get(gTInfoIndex)) {
+              //  primary key
               col(gTInfoNames.apply(gTInfoIndex))
             } else {
               //  measure
-              val gTInfoIndex = gtColIdx.apply(calciteToGTinfo.apply(index))
               col(gTInfoNames.apply(gTInfoIndex))
             }
           } else if (deriveMap.contains(index)) {
@@ -124,141 +129,4 @@ object RuntimeHelper {
           }
       }
   }
-
-  /*  def prepareCubeScanRequest(cubeSegment: CubeSegment, request: GTCubeStorageQueryRequest): Option[GTScanRequest] = {
-
-      var filter = request.getFilter
-      val serialize =
-        TupleFilterSerializer.serialize(filter, StringCodeSystem.INSTANCE)
-      filter = TupleFilterSerializer.deserialize(serialize, StringCodeSystem.INSTANCE)
-      val translator: ITupleFilterTransformer = new BuiltInFunctionTransformer(
-        cubeSegment.getDimensionEncodingMap)
-      translator.transform(filter)
-      var scanRangePlanner: CubeScanRangePlanner = null
-      scanRangePlanner = new CubeScanRangePlanner(
-        cubeSegment,
-        request.getCuboid,
-        filter,
-        request.getDimensions,
-        request.getGroups,
-        request.getMetrics,
-        request.getHavingFilter,
-        request.getContext)
-
-      val scanRequest = scanRangePlanner.planScanRequest()
-      Some(scanRequest)
-    }
-
-    def gtSchemaToCalciteSchema(
-                                     rel: OLAPRel,
-                                     cubeTupleConverter: SparderTupleConverter,
-                                     gtinfo: GTInfo,
-                                     sourceSchema: StructType): Seq[Column] = {
-      val gTInfoNames = SchemaProcessor.buildFactTableSortNames(sourceSchema)
-      val factTableName = rel.getContext.firstTableScan.getBackupAlias
-      val calciteToGTinfo = cubeTupleConverter.tupleIdx.zipWithIndex.toMap
-      val gtColIdx = cubeTupleConverter.getGTIndex()
-      val allColumns = rel.getColumnRowType.getAllColumns.asScala
-      var deriveMap: Map[Int, Column] = Map.empty
-      val advanceMapping = cubeTupleConverter.advanceMapping
-      if (cubeTupleConverter.hasDerived) {
-        deriveMap = cubeTupleConverter.hostToDeriveds.flatMap { hostToDerived =>
-          val deriveNames = cubeTupleConverter.derivedColumnNameMapping.get(hostToDerived)
-          val columns = mutable.ListBuffer.empty[(Int, Column)]
-          val derivedTableName = hostToDerived.aliasTableName
-          if (hostToDerived.deriveType.equals(DeriveType.PK_FK)) {
-            // composite keys are split, so only copy [0] is enough,
-            // see CubeDesc.initDimensionColumns()
-            require(hostToDerived.calciteIdx.length == 1)
-            require(hostToDerived.hostIdx.length == 1)
-            val fkColumnRef = hostToDerived.join.getFKSide.getColumns.asScala.head
-            columns.append(
-              (
-                hostToDerived.calciteIdx.apply(0),
-                col(gTInfoNames.apply(hostToDerived.hostIdx.apply(0)))
-                  .alias(
-                    SchemaProcessor
-                      .generateDeriveTableSchemaName(
-                        derivedTableName,
-                        hostToDerived.derivedIndex.apply(0),
-                        fkColumnRef.getName)
-                      .toString)))
-          } else {
-            hostToDerived.calciteIdx.zip(hostToDerived.derivedIndex).foreach {
-              case (calciteIdx, derivedIndex) =>
-                columns.append((calciteIdx, col(deriveNames(derivedIndex))))
-            }
-          }
-          columns
-        }.toMap
-      }
-
-      allColumns.indices
-        .zip(allColumns)
-        .map {
-          case (index, column) =>
-            val columnName = "dummy_" + column.getTableRef.getAlias + "_" + column.getName
-            if (advanceMapping.contains(index)) {
-              advanceMapping.apply(index)
-            } else if (calciteToGTinfo.contains(index)) {
-              //  primarykey
-              if (gtinfo.getPrimaryKey.get(gtColIdx.apply(calciteToGTinfo.apply(index)))) {
-                val gTInfoIndex = gtColIdx.apply(calciteToGTinfo.apply(index))
-                col(gTInfoNames.apply(gTInfoIndex))
-              } else {
-                //  measure
-                val gTInfoIndex = gtColIdx.apply(calciteToGTinfo.apply(index))
-                col(gTInfoNames.apply(gTInfoIndex))
-              }
-            } else if (deriveMap.contains(index)) {
-              deriveMap.apply(index)
-            } else {
-              literalOne.as(s"${factTableName}_${columnName}")
-            }
-        }
-    }
-
-    // only for raw table
-    def gtInfoSchemaToCalciteSchema(
-                                     rel: OLAPRel,
-                                     tupleConverter: RawTableTupleConverter,
-                                     gtinfo: GTInfo,
-                                     sourceSchema: StructType): Seq[Column] = {
-      val gTInfoNames = SchemaProcessor.buildFactTableSortNames(sourceSchema)
-      val factTableName = rel.getContext.firstTableScan.getBackupAlias
-
-      val columnMapping =
-        tupleConverter.tupleIdx.zip(tupleConverter.gtColIdx).toMap
-      val allColumns = rel.getColumnRowType.getAllColumns.asScala
-      allColumns.indices
-        .zip(allColumns)
-        .map {
-          case (index, column) =>
-            if (columnMapping.contains(index)) {
-              col(gTInfoNames.apply(columnMapping.apply(index)))
-            } else {
-              val columnName = "dummy_" + column.getTableRef.getAlias + "_" + column.getName
-              literalOne.as(s"${factTableName}_${columnName}")
-            }
-        }
-    }
-
-    def buildDummyGTInfoSchema(
-                                gTScanRequest: GTScanRequest,
-                                columnMapping: Array[String],
-                                dataFrame: DataFrame,
-                                tableName: String): DataFrame = {
-      val allColumns = gTScanRequest.getInfo.getAllColumns.asScala.toList
-
-      val useColumns = gTScanRequest.getColumns.asScala.toList
-      val selectedFactTable = allColumns.map { columnIndex =>
-        if (useColumns.contains(columnIndex)) {
-          col(SchemaProcessor.generateFactTableSchemaName(tableName, columnIndex, columnMapping(columnIndex)).toString)
-        } else {
-          literalOne.as(SchemaProcessor.generateFactTableSchemaName(tableName, columnIndex, columnMapping(columnIndex)))
-        }
-      }
-      val selectedColumn = selectedFactTable ++ dataFrame.schema.fieldNames.filter(!_.startsWith("F")).map(col)
-      dataFrame.select(selectedColumn: _*)
-    }*/
 }

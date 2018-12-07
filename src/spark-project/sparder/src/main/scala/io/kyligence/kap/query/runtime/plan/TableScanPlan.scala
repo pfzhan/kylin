@@ -36,7 +36,7 @@ import io.kyligence.kap.query.util.SparderDerivedUtil
 import org.apache.calcite.DataContext
 import org.apache.kylin.common.KapConfig
 import org.apache.kylin.cube.gridtable.GridTables
-import org.apache.kylin.metadata.model.{FunctionDesc, SegmentStatusEnum, TblColRef}
+import org.apache.kylin.metadata.model.{FunctionDesc, ParameterDesc, SegmentStatusEnum, TblColRef}
 import org.apache.kylin.metadata.realization.IRealization
 import org.apache.kylin.metadata.tuple.TupleInfo
 import org.apache.spark.internal.Logging
@@ -44,6 +44,8 @@ import org.apache.spark.sql.execution.datasource.CubeRelation
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.manager.SparderLookupManager
+import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
+import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, _}
 
 import scala.collection.JavaConverters._
@@ -76,8 +78,6 @@ object TableScanPlan extends Logging {
 
       case instance: NDataflow => List(instance)
 
-      //          case instance: RawTableInstance => List(instance)
-
       case _ =>
         throw new UnsupportedQueryException("unsupported instance")
     }
@@ -95,7 +95,7 @@ object TableScanPlan extends Logging {
             GridTables.newGTInfo(mapping,
               new NCubeDimEncMap(dataflow.getFirstSegment))
           val relation =
-            CubeRelation(tableName, dataflow, info, cuboidLayout)(session)
+            CubeRelation(tableName, dataflow, info, cuboidLayout, context.getMetrics)(session)
           /////////////////////////////////////////////
           val kapConfig = KapConfig.wrap(dataflow.getConfig)
           val segments = listSegmentsForQuery(dataflow)
@@ -145,6 +145,15 @@ object TableScanPlan extends Logging {
             df = derived.joinDerived(df)
           }
 
+          var topNMapping: Map[Int, Column] = Map.empty
+          // query will only has one Top N measure.
+          val topNMetric = context.getMetrics.asScala.collectFirst { case x: FunctionDesc if x.getReturnType.startsWith("topn") => x }
+          if (topNMetric.isDefined) {
+            val topNFieldIndex = mapping.getMetricsIndices(List(topNMetric.get).asJava).head
+            val tp = processTopN(topNMetric.get, df, topNFieldIndex, olapContext.returnTupleInfo, tableName, relation)
+            df = tp._1
+            topNMapping = tp._2
+          }
           val tupleIdx = getTupleIdx(dimensionsD,
             context.getMetrics,
             olapContext.returnTupleInfo)
@@ -155,12 +164,93 @@ object TableScanPlan extends Logging {
             rel.getColumnRowType.getAllColumns.asScala.toList,
             relation.schema,
             gtColIdx,
-            tupleIdx)
+            tupleIdx,
+            topNMapping)
           df.select(schema: _*)
       }
       .reduce(_.union(_))
     logInfo(s"Gen table scan cost Time :${System.currentTimeMillis() - start} ")
     cuboidDF
+  }
+
+  private def processTopN(topNMetric: FunctionDesc, df: DataFrame, topNFieldIndex: Int, tupleInfo: TupleInfo, tableName: String, relation: CubeRelation): (DataFrame, Map[Int, Column]) = {
+    // support TopN measure
+    val topNField = df.schema.fields
+      .zipWithIndex
+      .filter(_._1.dataType.isInstanceOf[ArrayType])
+      .map(_.swap)
+      .toMap
+      .get(topNFieldIndex)
+    require(topNField.isDefined)
+    // data like this:
+    //   [2012-01-01,4972.2700,WrappedArray([623.45,[10000392,7,2012-01-01]],[47.49,[10000029,4,2012-01-01]])]
+
+    // inline array, one record may output multi records:
+    //   [2012-01-01, 4972.2700, 623.45,[10000392,7,2012-01-01]]
+    //   [2012-01-01, 4972.2700, 47.49,[10000029,4,2012-01-01]]
+
+    val inlinedSelectExpr = df.schema.fields.filter( _ != topNField.get).map(_.name) :+ s"inline(${topNField.get.name})"
+    val inlinedDF = df.selectExpr(inlinedSelectExpr: _*)
+
+    // flatten multi dims in TopN measure, will not increase record number, a total flattened struct:
+    //   [2012-01-01, 4972.2700, 623.45, 10000392, 7, 2012-01-01]
+    val flattenedSelectExpr = inlinedDF.schema.fields.dropRight(1).map(_.name) :+ s"${inlinedDF.schema.fields.last.name}.*"
+    val flattenedDF = inlinedDF.selectExpr(flattenedSelectExpr: _*)
+
+    val topNLiteralColumn = getTopNLiteralColumn(topNMetric)
+
+    val literalTupleIdx = topNLiteralColumn.filter(tupleInfo.hasColumn).map(tupleInfo.getColumnIndex)
+
+    val numericCol = getTopNNumericColumn(topNMetric)
+    val numericTupleIdx: Int =
+      if (numericCol != null) {
+        // for TopN, the aggr must be SUM
+        val sumFunc = FunctionDesc.newInstance(FunctionDesc.FUNC_SUM,
+          ParameterDesc.newInstance(numericCol), numericCol.getType.toString)
+        tupleInfo.getFieldIndex(sumFunc.getRewriteFieldName)
+      } else {
+        val countFunction = FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT,
+          ParameterDesc.newInstance("1"), "bigint")
+        tupleInfo.getFieldIndex(countFunction.getRewriteFieldName)
+      }
+
+    val dimCols = topNLiteralColumn.toArray
+    val dimWithType = literalTupleIdx.zipWithIndex.map(index => {
+      val column = dimCols(index._2)
+      (SchemaProcessor.genTopNSchema(tableName,
+        index._1, column.getIdentity.replaceAll("\\.", "_")),
+        SparderTypeUtil.toSparkType(column.getType))
+    })
+
+    val sumCol = tupleInfo.getAllColumns.get(numericTupleIdx)
+    val sumColName = s"A_SUM_${sumCol.getName}_$numericTupleIdx"
+    val measureSchema = StructField(sumColName, SparderTypeUtil.toSparkType(sumCol.getType))
+    // flatten schema.
+    val newSchema = StructType(relation.schema.filter(_.name != topNField.get.name)
+      ++ dimWithType.map(tp => StructField(tp._1, tp._2)).+:(measureSchema))
+
+    val topNMapping = literalTupleIdx.zipWithIndex.map(index => {
+      (index._1, col(SchemaProcessor.genTopNSchema(tableName,
+        index._1, dimCols(index._2).getIdentity.replaceAll("\\.", "_"))))
+    }).+:(numericTupleIdx, col(sumColName)).toMap
+
+
+    (flattenedDF.toDF(newSchema.fieldNames: _*), topNMapping)
+  }
+
+  private def getTopNLiteralColumn(functionDesc: FunctionDesc): List[TblColRef] = {
+    val allCols = functionDesc.getParameter.getColRefs
+    if (!functionDesc.getParameter.isColumnType) {
+      return allCols.asScala.toList
+    }
+    allCols.asScala.drop(1).toList
+  }
+
+  private def getTopNNumericColumn(functionDesc: FunctionDesc): TblColRef = {
+    if (functionDesc.getParameter.isColumnType) {
+      return functionDesc.getParameter.getColRefs.get(0)
+    }
+    null
   }
 
   // copy from NCubeTupleConverter
@@ -252,5 +342,4 @@ object TableScanPlan extends Logging {
     )
     expanded
   }
-
 }

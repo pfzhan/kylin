@@ -24,6 +24,7 @@ package org.apache.spark.sql.execution.datasource
 
 import io.kyligence.kap.cube.model.{NCuboidLayout, NDataflow}
 import org.apache.kylin.gridtable.GTInfo
+import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{SQLContext, SparderEnv, SparkSession}
@@ -31,30 +32,30 @@ import org.apache.spark.sql.{SQLContext, SparderEnv, SparkSession}
 import scala.collection.JavaConverters._
 
 // scalastyle:off
-// fixme aron
 case class CubeRelation(tableName: String
                         , dataflow: NDataflow
                         , info: GTInfo
                         , cuboid: NCuboidLayout
-                        //                        , converter: SparderTupleConverter
-                        //                        , tupleInfo: TupleInfo
+                        , metrics: java.util.Set[FunctionDesc]
                        )(val sparkSession: SparkSession) extends KylinRelation {
-  //  val fileFormat = new SparderBatchFileFormat
-  //  var hasAdvance: Boolean = false
 
   def initSchema(): StructType = {
     val columnMapping = initColumnNameMapping(cuboid)
-    var sourceSchema = SchemaProcessor.buildGTSchema(columnMapping, info, tableName)
-    //    if (converter.hasAdvance) {
-    //      hasAdvance = true
-    //      sourceSchema = converter.buildAdvanceSchema(sourceSchema)
-    //    }
+    val sourceSchema = SchemaProcessor.buildGTSchema(columnMapping.map(_._1), info, tableName)
     sourceSchema
   }
 
-  def initColumnNameMapping(cuboid: NCuboidLayout): Array[String] = {
-    cuboid.getColumns.asScala.map(_.getIdentity.replace(".", "_")).toArray ++
-      cuboid.getOrderedMeasures.asScala.map(e =>e._2.getName.replace(".", "_"))
+  def initColumnNameMapping(cuboid: NCuboidLayout): Array[(String, String)] = {
+    val cols = cuboid.getColumns.asScala.map(col =>
+      (col.getIdentity.replace(".", "_"), col.getType.getName)
+    ).toArray
+
+    // "getOrderedMeasures" returns a map, need toList
+    val measures = cuboid.getOrderedMeasures.asScala.toList.map(measure =>
+      (measure._2.getName.replace(".", "_"), measure._2.getFunction.getReturnType)
+    ).toArray
+
+    cols ++ measures
   }
 
   override def sqlContext: SQLContext = SparderEnv.getSparkSession.sqlContext

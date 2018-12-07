@@ -56,7 +56,7 @@ class TestQueryAndBuildFunSuite
     //    "sql_timestamp", no exist dir
     FloderInfo("sql_orderby"),
     FloderInfo("sql_snowflake"),
-    FloderInfo("sql_topn", List("query82.sql", "query83.sql")),
+    FloderInfo("sql_topn"),
     FloderInfo("sql_join"),
     FloderInfo("sql_union"),
     FloderInfo("sql_hive"),

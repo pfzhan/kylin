@@ -32,7 +32,6 @@ import org.apache.calcite.sql.`type`.SqlTypeName
 import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.Row
 import org.apache.spark.sql.types._
 
 object SparderTypeUtil extends Logging {
@@ -54,7 +53,6 @@ object SparderTypeUtil extends Logging {
   def kylinTypeToSparkResultType(dataTp: DataType): org.apache.spark.sql.types.DataType = {
     dataTp.getName match {
       case tp if tp.startsWith("hllc") => LongType
-      case tp if tp.startsWith("top") => ArrayType(ArrayType(ByteType))
       case tp if tp.startsWith("percentile") => DoubleType
       case tp if tp.startsWith("bitmap") => LongType
       case "decimal" => DecimalType(dataTp.getPrecision, dataTp.getScale)
@@ -99,7 +97,7 @@ object SparderTypeUtil extends Logging {
   }
 
   // scalastyle:off
-  def kylinCubeDataTypeToSparkType(dataTp: DataType): org.apache.spark.sql.types.DataType = {
+  def toSparkType(dataTp: DataType): org.apache.spark.sql.types.DataType = {
     dataTp.getName match {
       case "decimal" => DecimalType(dataTp.getPrecision, dataTp.getScale)
       case "date" => DateType
@@ -118,7 +116,13 @@ object SparderTypeUtil extends Logging {
       case "dim_dc" => LongType
       case "boolean" => BooleanType
       case tp if tp.startsWith("hllc") => BinaryType
-      case tp if tp.startsWith("topn") => BinaryType
+      case tp if tp.startsWith("topn") => ArrayType(
+        // will not use this schema, just for placeholder
+        StructType(Seq(
+          StructField("dim", StringType),
+          StructField("measure", DoubleType)
+        )))
+
       case tp if tp.startsWith("bitmap") => BinaryType
       case tp if tp.startsWith("extendedcolumn") => BinaryType
       case tp if tp.startsWith("percentile") => BinaryType
@@ -208,7 +212,7 @@ object SparderTypeUtil extends Logging {
           case SqlTypeName.TINYINT => s.toString.toByte
           case SqlTypeName.SMALLINT => s.toString.toShort
           case SqlTypeName.BIGINT => s.toString.toLong
-          case SqlTypeName.FLOAT => java.lang.Float.parseFloat(s.toString)
+          case SqlTypeName.FLOAT => java.lang.Double.parseDouble(s.toString)
           case SqlTypeName.DOUBLE => java.lang.Double.parseDouble(s.toString)
           case SqlTypeName.DATE => {
             // time over here is with timezone.

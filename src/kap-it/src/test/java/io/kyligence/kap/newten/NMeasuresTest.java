@@ -113,8 +113,8 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
             if (row.apply(0).toString().equals("10000000162")) {
                 Assert.assertEquals("3", row.apply(1).toString());// COUNT(*)
                 Assert.assertNull(row.apply(3));
-                Assert.assertEquals(Double.valueOf("0"), Double.valueOf(row.apply(4).toString()), 0.000001);// SUM(PRICE3)
-                Assert.assertEquals("0", row.apply(5).toString());// MAX(PRICE3)
+                Assert.assertNull(row.apply(4));
+                Assert.assertNull(row.apply(5));
                 Assert.assertEquals("10000000162", row.apply(6).toString());// MIN(ID1)
                 //Assert.assertEquals("0", row.apply(15).toString());// HLL(NAME1)
                 //Assert.assertEquals("0", row.apply(16).toString());// HLL(NAME2)
