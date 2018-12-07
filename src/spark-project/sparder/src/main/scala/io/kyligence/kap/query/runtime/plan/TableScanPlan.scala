@@ -315,12 +315,21 @@ object TableScanPlan extends Logging {
     }.array
     val newNameLookupDf = lookupDf.toDF(newNames: _*)
     val colIndex = olapTable.getSourceColumns.asScala
-      .filter(_.getZeroBasedIndex >= 0)
-      .filter(!_.isComputedColumn)
       .map(
-        column =>
-          col(SchemaProcessor.generateDeriveTableSchemaName(alisTableName,
-            column.getZeroBasedIndex, column.getName).toString))
+      column =>
+        if (column.isComputedColumn || column.getZeroBasedIndex < 0) {
+          RuntimeHelper.literalOne.as(column.toString)
+        } else  {
+          col(
+            SchemaProcessor
+              .generateDeriveTableSchemaName(
+                alisTableName,
+                column.getZeroBasedIndex,
+                column.getName
+              )
+              .toString
+          )
+        })
     newNameLookupDf.select(colIndex: _*)
   }
 

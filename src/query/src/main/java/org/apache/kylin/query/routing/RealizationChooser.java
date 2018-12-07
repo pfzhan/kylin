@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,19 +42,15 @@
 
 package org.apache.kylin.query.routing;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
-import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.measure.MeasureType;
@@ -78,14 +73,20 @@ import org.apache.kylin.util.JoinsGraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 public class RealizationChooser {
 
@@ -185,8 +186,7 @@ public class RealizationChooser {
             logger.info("Choose model name: {}", cuboidLayout.getCuboidDesc().getModel().getName());
             logger.info("Choose cubePlan name: {}", cuboidLayout.getCuboidDesc().getCubePlan().getName());
             logger.info("Choose cuboid layout ID: {} dimensions: {}, measures: {}", cuboidLayout.getId(),
-                    cuboidLayout.getOrderedDimensions(),
-                    cuboidLayout.getOrderedMeasures());
+                    cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures());
             return true;
         }
         return false;
@@ -211,7 +211,7 @@ public class RealizationChooser {
     }
 
     private static void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions,
-                                                  Collection<FunctionDesc> metrics, NDataflow dataflow) {
+            Collection<FunctionDesc> metrics, NDataflow dataflow) {
         Set<TblColRef> metricColumns = new HashSet<>();
         for (FunctionDesc func : sqlDigest.aggregations) {
             if (!func.isDimensionAsMetric() && !func.isGrouping()) {
@@ -237,6 +237,7 @@ public class RealizationChooser {
             dimensions.add(column);
         }
     }
+
     private static FunctionDesc findAggrFuncFromDataflowDesc(FunctionDesc aggrFunc, NDataflow dataflow) {
         for (MeasureDesc measure : dataflow.getMeasures()) {
             if (measure.getFunction().equals(aggrFunc))
@@ -248,9 +249,9 @@ public class RealizationChooser {
     private static String toErrorMsg(OLAPContext ctx) {
         StringBuilder buf = new StringBuilder("OLAPContext");
         RealizationCheck checkResult = ctx.realizationCheck;
-//        for (RealizationCheck.IncapableReason reason : checkResult.getCubeIncapableReasons().values()) {
-//            buf.append(", ").append(reason);
-//        }
+        //        for (RealizationCheck.IncapableReason reason : checkResult.getCubeIncapableReasons().values()) {
+        //            buf.append(", ").append(reason);
+        //        }
         for (List<RealizationCheck.IncapableReason> reasons : checkResult.getModelIncapableReasons().values()) {
             for (RealizationCheck.IncapableReason reason : reasons) {
                 buf.append(", ").append(reason);
@@ -387,13 +388,12 @@ public class RealizationChooser {
 
             // ref CubeInstance.getCost()
             int countedDimensionNum;
-//            if (CubeInstance.REALIZATION_TYPE.equals(real.getType())) {
-//                countedDimensionNum = ((CubeInstance) real).getRowKeyColumnCount();
-//            } else {
-                countedDimensionNum = real.getAllDimensions().size();
-//            }
-            int c = countedDimensionNum * COST_WEIGHT_DIMENSION
-                    + real.getMeasures().size() * COST_WEIGHT_MEASURE;
+            //            if (CubeInstance.REALIZATION_TYPE.equals(real.getType())) {
+            //                countedDimensionNum = ((CubeInstance) real).getRowKeyColumnCount();
+            //            } else {
+            countedDimensionNum = real.getAllDimensions().size();
+            //            }
+            int c = countedDimensionNum * COST_WEIGHT_DIMENSION + real.getMeasures().size() * COST_WEIGHT_MEASURE;
             for (JoinTableDesc join : real.getModel().getJoinTables()) {
                 if (join.getJoin().isInnerJoin())
                     c += COST_WEIGHT_INNER_JOIN;

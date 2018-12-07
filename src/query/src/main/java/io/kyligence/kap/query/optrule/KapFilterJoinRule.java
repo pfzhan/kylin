@@ -58,7 +58,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
- *  Planner rule that push filters above join node toto the join node,
+ *  Planner rule that push filters above join node into the join node,
  *  rewrite the cross join to the equal-semantic inner Join.
  *
  */
@@ -147,7 +147,7 @@ public class KapFilterJoinRule extends RelOptRule {
             return;
         }
 
-        // try transpose relNodes of joinRel to make as many relNodes be rewrite to inner join node as possible
+        // try transpose relNodes of joinRel to make as many relNodes be rewritten to inner join node as possible
         boolean isNeedProject = false;
         if (needTranspose && bottomJoin instanceof Join
                 && RelOptUtil.conjunctions(((Join) bottomJoin).getCondition()).isEmpty() && joinFilters.size() > 1) {

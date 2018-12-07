@@ -151,8 +151,12 @@ public class OLAPContext {
     // query info
     public OLAPSchema olapSchema = null;
     public OLAPTableScan firstTableScan = null; // to be fact table scan except "select * from lookupTable"
-    @Setter @Getter private OLAPRel topNode = null; // the context's toppest node
-    @Setter @Getter private OLAPRel parentOfTopNode = null; // record the JoinRel that cuts off its children into new context(s), in other case it should be null
+    @Setter
+    @Getter
+    private OLAPRel topNode = null; // the context's toppest node
+    @Setter
+    @Getter
+    private OLAPRel parentOfTopNode = null; // record the JoinRel that cuts off its children into new context(s), in other case it should be null
     public Set<OLAPTableScan> allTableScans = new HashSet<>();
     public Set<OLAPJoinRel> allOlapJoins = new HashSet<>();
     public Set<MeasureDesc> involvedMeasure = new HashSet<>();
@@ -162,18 +166,28 @@ public class OLAPContext {
     public boolean afterLimit = false;
     public boolean limitPrecedesAggr = false;
     boolean afterTopJoin = false;
-    @Setter @Getter private boolean hasJoin = false;
-    @Setter @Getter private boolean hasPreCalcJoin = false;
-    @Setter @Getter private boolean hasAgg = false;
+    @Setter
+    @Getter
+    private boolean hasJoin = false;
+    @Setter
+    @Getter
+    private boolean hasPreCalcJoin = false;
+    @Setter
+    @Getter
+    private boolean hasAgg = false;
     public boolean hasWindow = false;
-    @Getter @Setter private OLAPQuery.EnumeratorTypeEnum enumeratorType;
+    @Getter
+    @Setter
+    private OLAPQuery.EnumeratorTypeEnum enumeratorType;
 
     // cube metadata
     public IRealization realization;
     public RealizationCheck realizationCheck = new RealizationCheck();
     boolean fixedModel;
 
-    @Getter @Setter private boolean hasSelected = false;
+    @Getter
+    @Setter
+    private boolean hasSelected = false;
     public Set<TblColRef> allColumns = new HashSet<>();
     public List<TblColRef> groupByColumns = new ArrayList<>();
     public Set<TblColRef> subqueryJoinParticipants = new HashSet<TblColRef>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
@@ -186,8 +200,12 @@ public class OLAPContext {
     public TupleFilter havingFilter;
     public List<JoinDesc> joins = new LinkedList<>();
     public JoinsTree joinsTree;
-    @Getter @Setter private JoinsGraph joinsGraph;
-    @Getter @Setter private List<TblColRef> sortColumns;
+    @Getter
+    @Setter
+    private JoinsGraph joinsGraph;
+    @Getter
+    @Setter
+    private List<TblColRef> sortColumns;
     List<SQLDigest.OrderEnum> sortOrders;
 
     // rewrite info
