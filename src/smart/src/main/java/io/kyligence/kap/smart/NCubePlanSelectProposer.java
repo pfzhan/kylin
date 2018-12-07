@@ -62,6 +62,10 @@ public class NCubePlanSelectProposer extends NAbstractProposer {
     }
 
     private NCubePlan findExisting(NDataModel model) {
+        if (model == null) {
+            return null;
+        }
+
         final Set<IRealization> iRealizations = projectManager.listAllRealizations(project);
         if (iRealizations.isEmpty()) {
             return null;

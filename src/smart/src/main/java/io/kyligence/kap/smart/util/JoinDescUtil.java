@@ -103,11 +103,11 @@ public class JoinDescUtil {
         for (JoinDesc joinDesc : joins) {
             TableRef table = joinDesc.getPKSide();
             String tableAlias = table.getAlias();
-            if (fkTables.containsKey(tableAlias)) {
-                tableKindByJoins.add(new Pair<JoinDesc, TableKind>(joinDesc, TableKind.FACT));
-            } else {
-                tableKindByJoins.add(new Pair<JoinDesc, TableKind>(joinDesc, TableKind.LOOKUP));
-            }
+            //            if (fkTables.containsKey(tableAlias)) {
+            //                tableKindByJoins.add(new Pair<JoinDesc, TableKind>(joinDesc, TableKind.FACT));
+            //            } else {
+            tableKindByJoins.add(new Pair<JoinDesc, TableKind>(joinDesc, TableKind.LOOKUP));
+            //            }
         }
         return tableKindByJoins;
     }
