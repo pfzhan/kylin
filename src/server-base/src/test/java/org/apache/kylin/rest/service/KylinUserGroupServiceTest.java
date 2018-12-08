@@ -58,12 +58,12 @@ import com.google.common.collect.Lists;
 public class KylinUserGroupServiceTest extends ServiceTestBase {
 
     @Autowired
-    @Qualifier("userGroupService")
-    KylinUserGroupService userGroupService;
+    @Qualifier("kylinUserGroupService")
+    KylinUserGroupService KylinUserGroupService;
 
     @Test
     public void testGetAllUserAuthorities() throws IOException {
-        List<String> allUserAuthorities = userGroupService.getAllUserAuthorities();
+        List<String> allUserAuthorities = KylinUserGroupService.getAllUserAuthorities();
         Assert.assertEquals(Lists.newArrayList("ROLE_ADMIN", "ROLE_ANALYST", "ROLE_MODELER", GROUP_ALL_USERS), allUserAuthorities);
     }
 }

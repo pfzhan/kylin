@@ -51,6 +51,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -59,6 +60,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -66,6 +68,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import org.springframework.test.util.ReflectionTestUtils;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -78,6 +81,9 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
     private final ProjectService projectService = Mockito.spy(ProjectService.class);
+
+    @Mock
+    private AclEvaluate aclEvaluate = Mockito.spy(AclEvaluate.class);
 
     @Rule
     public ExpectedException thrown = ExpectedException.none();
@@ -95,6 +101,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     public void setup() throws IOException {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        ReflectionTestUtils.setField(projectService, "aclEvaluate", aclEvaluate);
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
     }
 
@@ -141,7 +148,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetReadableProjectsByName() throws Exception {
-
+        Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("default");
         Assert.assertTrue(projectInstances.size() == 1 && projectInstances.get(0).getName().equals("default"));
 
@@ -149,6 +156,23 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetReadableProjects() throws Exception {
+        Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects("");
+        Assert.assertEquals(9, projectInstances.size());
+
+    }
+
+    @Test
+    public void testGetReadableProjects_NoPermission() throws Exception {
+        Mockito.doReturn(false).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
+        List<ProjectInstance> projectInstances = projectService.getReadableProjects("");
+        Assert.assertEquals(0, projectInstances.size());
+
+    }
+
+    @Test
+    public void testGetReadableProjects_hasNoPermissionProject() throws Exception {
+        Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("");
         Assert.assertEquals(9, projectInstances.size());
 
@@ -156,8 +180,11 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateThreshold() throws Exception {
-        projectService.updateQueryAccelerateThresholdConfig("default", 20, false, true);
+        Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
+        projectService.updateQueryAccelerateThresholdConfig("default", 30, false, true);
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("default");
+        Assert.assertEquals("30",
+                projectInstances.get(0).getOverrideKylinProps().get("kylin.favorite.query-accelerate-threshold"));
     }
 
     @Test

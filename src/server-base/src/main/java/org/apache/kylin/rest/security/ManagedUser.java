@@ -50,6 +50,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.rest.service.UserGrantedAuthority;
 import org.springframework.security.core.GrantedAuthority;
@@ -72,6 +74,8 @@ import com.google.common.collect.Lists;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
+@Getter
+@Setter
 public class ManagedUser extends RootPersistentEntity implements UserDetails {
 
     @JsonProperty
@@ -92,11 +96,14 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails {
     private long lockedTime = 0L;
     @JsonProperty
     private int wrongTime = 0;
+    @JsonProperty
+    private long firstLoginFailedTime = 0L;
 
     //DISABLED_ROLE is a ancient way to represent disabled user
     //now we no longer support such way, however legacy metadata may still contain it
     private static final String DISABLED_ROLE = "--disabled--";
     private static final SimpleGrantedAuthority DEFAULT_GROUP = new SimpleGrantedAuthority(GROUP_ALL_USERS);
+    private static final int CHECK_TIME = 900000; //15 minutes
 
     public ManagedUser() {
     }
@@ -157,21 +164,6 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails {
         return username;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String userName) {
-        this.username = userName;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
 
     private void caterLegacy() {
         Iterator<SimpleGrantedAuthority> iterator = authorities.iterator();
@@ -206,38 +198,6 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails {
         authorities.remove(new SimpleGrantedAuthority(auth));
     }
 
-    public boolean isDisabled() {
-        return disabled;
-    }
-
-    public void setDisabled(boolean disabled) {
-        this.disabled = disabled;
-    }
-
-    public boolean isDefaultPassword() {
-        return defaultPassword;
-    }
-
-    public void setDefaultPassword(boolean defaultPassword) {
-        this.defaultPassword = defaultPassword;
-    }
-
-    public boolean isLocked() {
-        return locked;
-    }
-
-    public void setLocked(boolean locked) {
-        this.locked = locked;
-    }
-
-    public int getWrongTime() {
-        return wrongTime;
-    }
-
-    public long getLockedTime() {
-        return lockedTime;
-    }
-
     public void increaseWrongTime() {
         int wrongTime = this.getWrongTime();
         if (wrongTime == 2) {
@@ -247,6 +207,24 @@ public class ManagedUser extends RootPersistentEntity implements UserDetails {
         } else {
             this.wrongTime = wrongTime + 1;
         }
+    }
+
+    public void authenticateFail() {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - this.firstLoginFailedTime > CHECK_TIME) {
+            clearAuthenticateFailedRecord();
+        }
+        if (this.firstLoginFailedTime == 0) {
+            this.firstLoginFailedTime = currentTime;
+        }
+        increaseWrongTime();
+    }
+
+    public void clearAuthenticateFailedRecord() {
+        this.firstLoginFailedTime = 0;
+        this.wrongTime = 0;
+        this.locked = false;
+        this.lockedTime = 0;
     }
 
     @Override

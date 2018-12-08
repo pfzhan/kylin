@@ -443,6 +443,17 @@ public class KapConfig {
                 "(&(cn={0})(objectClass=groupOfNames))");
     }
 
+    public String getLDAPUserIDAttr() {
+        return config.getOptional("kylin.security.ldap.user-identifier-attr", "cn");
+    }
+
+    public String getLDAPGroupIDAttr() {
+        return config.getOptional("kylin.security.ldap.group-identifier-attr", "cn");
+    }
+
+    public String getLDAPGroupMemberAttr() {
+        return config.getOptional("kylin.security.ldap.group-member-attr", "member");
+    }
     /**
      * Metastore
      */

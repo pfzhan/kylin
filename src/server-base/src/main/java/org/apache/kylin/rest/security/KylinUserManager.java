@@ -55,7 +55,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
+import org.apache.kylin.metadata.cachesync.CaseSensitiveStringCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,14 +76,14 @@ public class KylinUserManager {
 
     private KylinConfig config;
     // user ==> ManagedUser
-    private CaseInsensitiveStringCache<ManagedUser> userMap;
+    private CaseSensitiveStringCache<ManagedUser> userMap;
     private CachedCrudAssist<ManagedUser> crud;
     private AutoReadWriteLock lock = new AutoReadWriteLock();
 
     public KylinUserManager(KylinConfig config) throws IOException {
         logger.info("Initializing KylinUserManager with config " + config);
         this.config = config;
-        this.userMap = new CaseInsensitiveStringCache<>(config, "", "user");
+        this.userMap = new CaseSensitiveStringCache<>(config, "", "user");
         this.crud = new CachedCrudAssist<ManagedUser>(getStore(), USER_ROOT, "", ManagedUser.class, userMap) {
             @Override
             protected ManagedUser initEntityAfterReload(ManagedUser user, String resourceName) {

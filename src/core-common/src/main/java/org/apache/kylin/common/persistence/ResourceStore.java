@@ -94,6 +94,7 @@ public abstract class ResourceStore {
     public static final String STREAMING_RESOURCE_ROOT = "/streaming";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
     public static final String USER_ROOT = "/user";
+    public static final String USER_GROUP_ROOT = "/user_group";
     public static final String EVENT_RESOURCE_ROOT = "/event";
     public static final String DATA_LOADING_RANGE_RESOURCE_ROOT = "/loading_range";
     public static final String QUERY_FILTER_RULE_RESOURCE_ROOT = "/rule";

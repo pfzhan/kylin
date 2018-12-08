@@ -30,38 +30,46 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
-package org.apache.kylin.rest.service;
+package org.apache.kylin.rest.security;
 
-import java.io.IOException;
-import java.util.List;
+import java.util.Set;
 
-import org.apache.kylin.rest.security.ManagedUser;
-import org.springframework.security.provisioning.UserDetailsManager;
+import org.apache.kylin.rest.constant.Constant;
+import org.springframework.ldap.core.ContextSource;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.ldap.userdetails.DefaultLdapAuthoritiesPopulator;
 
-public interface UserService extends UserDetailsManager {
+import com.google.common.collect.Sets;
 
-    boolean isEvictCacheFlag();
+public class LDAPAuthoritiesPopulator extends DefaultLdapAuthoritiesPopulator {
 
-    void setEvictCacheFlag(boolean evictCacheFlag);
+    private SimpleGrantedAuthority adminRoleAsAuthority;
 
-    List<ManagedUser> listUsers() throws IOException;
+    public LDAPAuthoritiesPopulator(ContextSource contextSource, String groupSearchBase, String adminRole) {
+        super(contextSource, groupSearchBase);
+        setConvertToUpperCase(false);
+        setRolePrefix("");
+        this.adminRoleAsAuthority = new SimpleGrantedAuthority(adminRole);
+    }
 
-    List<String> listAdminUsers() throws IOException;
-
-    //For performance consideration, list all users may be incomplete(eg. not load user's authorities until authorities has benn used).
-    //So it's an extension point that can complete user's information latter.
-    //loadUserByUsername() has guarantee that the return user is complete.
-    void completeUserInfo(ManagedUser user);
-
-    List<ManagedUser> getManagedUsersByFuzzMatching(String userName, boolean isCaseSensitive) throws IOException;
+    @Override
+    public Set<GrantedAuthority> getGroupMembershipRoles(String userDn, String username) {
+        Set<GrantedAuthority> authorities = super.getGroupMembershipRoles(userDn, username);
+        Set<GrantedAuthority> userAuthorities = Sets.newHashSet(authorities);
+        if (authorities.contains(adminRoleAsAuthority)) {
+            userAuthorities.add(new SimpleGrantedAuthority(Constant.ROLE_ADMIN));
+        }
+        return userAuthorities;
+    }
 }

@@ -418,6 +418,22 @@ public class CnMessage extends Message {
         return "找不到用户 '%s'";
     }
 
+    public String getUSER_BE_LOCKED() {
+        return "用户名或密码错误，请在30秒后再次重试";
+    }
+
+    public String getUSER_IN_LOCKED_STATUS() {
+        return "用户 %s 已被锁定, 请在 %s 秒后重试";
+    }
+
+    public String getUSER_AUTH_FAILED() {
+        return "用户名或密码错误。";
+    }
+
+    public String getUSER_LOGIN_AS_USER_NOT_ADMIN() {
+        return "仅 ADMIN 用户可切换为其他用户登录。";
+    }
+
     // Diagnosis
     public String getDIAG_NOT_FOUND() {
         return "在 %s 找不到 diag.sh";

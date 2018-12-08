@@ -33,6 +33,7 @@ import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -42,6 +43,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -59,7 +61,7 @@ public class NProjectController extends NBasicController {
 
     private static final Message msg = MsgPicker.getMsg();
 
-    private static final char[] VALID_PROJECTNAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
+    private static final char[] VALID_PROJECT_NAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
             .toCharArray();
 
     @Autowired
@@ -84,13 +86,14 @@ public class NProjectController extends NBasicController {
 
     @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
     public EnvelopeResponse saveProject(@RequestBody ProjectRequest projectRequest) throws IOException, PersistentException {
 
         ProjectInstance projectDesc = projectService.deserializeProjectDesc(projectRequest);
         if (StringUtils.isEmpty(projectDesc.getName())) {
             throw new BadRequestException(msg.getEMPTY_PROJECT_NAME());
         }
-        if (!StringUtils.containsOnly(projectDesc.getName(), VALID_PROJECTNAME)) {
+        if (!StringUtils.containsOnly(projectDesc.getName(), VALID_PROJECT_NAME)) {
             logger.info("Invalid Project name {}, only letters, numbers and underline supported.",
                     projectDesc.getName());
             throw new BadRequestException(String.format(msg.getINVALID_PROJECT_NAME(), projectDesc.getName()));
@@ -101,6 +104,7 @@ public class NProjectController extends NBasicController {
 
     @RequestMapping(value = "", method = { RequestMethod.PUT }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public EnvelopeResponse updateProject(@RequestBody ProjectRequest projectRequest) throws IOException {
 
         String formerProjectName = projectRequest.getFormerProjectName();
@@ -127,6 +131,7 @@ public class NProjectController extends NBasicController {
     @RequestMapping(value = "/query_accelerate_threshold", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public EnvelopeResponse updateQueryAccelerateThresholdConfig(@RequestBody FavoriteQueryThresholdRequest favoriteQueryThresholdRequest) throws IOException {
         checkProjectName(favoriteQueryThresholdRequest.getProject());
         checkRequiredArg("threshold", favoriteQueryThresholdRequest.getThreshold());
@@ -141,12 +146,15 @@ public class NProjectController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getQueryAccelerateThresholdConfig(
             @RequestParam(value = "project", required = true) String project) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, projectService.getQueryAccelerateThresholdConfig(project), "");
+        checkProjectName(project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                projectService.getQueryAccelerateThresholdConfig(project), "");
     }
 
     @RequestMapping(value = "/maintain_model_type", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public EnvelopeResponse updateMantainModelType(@RequestBody MaintainModelTypeRequest request) throws IOException {
         checkProjectName(request.getProject());
         projectService.updateMantainModelType(request.getProject(), request.getMaintainModelType());
@@ -165,6 +173,7 @@ public class NProjectController extends NBasicController {
     @RequestMapping(value = "/storage", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public EnvelopeResponse cleanupProjectStorage(
             @RequestParam(value = "project", required = true) String project) throws Exception {
         ProjectInstance projectInstance = projectService.getProjectManager().getProject(project);
@@ -179,6 +188,7 @@ public class NProjectController extends NBasicController {
     @RequestMapping(value = "/storage_quota", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
     public EnvelopeResponse updateStorageQuotaConfig(
             @RequestBody StorageQuotaRequest storageQuotaRequest) throws Exception {
         String project = storageQuotaRequest.getProject();

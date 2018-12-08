@@ -49,6 +49,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.exception.ForbiddenException;
@@ -57,6 +58,7 @@ import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.response.AccessEntryResponse;
 import org.apache.kylin.rest.security.AclEntityFactory;
 import org.apache.kylin.rest.security.AclEntityType;
+import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
@@ -79,8 +81,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -89,7 +91,7 @@ import java.util.List;
 import java.util.Map;
 
 @Component("accessService")
-public class AccessService {
+public class AccessService extends BasicService {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(AccessService.class);
 
@@ -99,7 +101,6 @@ public class AccessService {
 
     // ~ Methods to manage acl life circle of domain objects ~
 
-    @Transactional
     public MutableAclRecord init(AclEntity ae, Permission initPermission) {
         MutableAclRecord acl = null;
         ObjectIdentity objectIdentity = new ObjectIdentityImpl(ae);
@@ -120,7 +121,6 @@ public class AccessService {
         return acl;
     }
 
-    @Transactional
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public void batchGrant(AclEntity ae, Map<Sid, Permission> sidToPerm) {
         Message msg = MsgPicker.getMsg();
@@ -143,7 +143,6 @@ public class AccessService {
         aclService.batchUpsertAce(acl, sidToPerm);
     }
 
-    @Transactional
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public MutableAclRecord grant(AclEntity ae, Permission permission, Sid sid) {
         Message msg = MsgPicker.getMsg();
@@ -167,7 +166,12 @@ public class AccessService {
         return aclService.upsertAce(acl, sid, permission);
     }
 
-    @Transactional
+    public void grant(String type, String uuid, String identifier, Boolean isPrincipal, String permission) throws IOException {
+        AclEntity ae = getAclEntity(type, uuid);
+        Sid sid = getSid(identifier, isPrincipal);
+        grant(ae, AclPermissionFactory.getPermission(permission), sid);
+    }
+
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public MutableAclRecord update(AclEntity ae, int accessEntryIndex, Permission newPermission) {
         Message msg = MsgPicker.getMsg();
@@ -185,7 +189,6 @@ public class AccessService {
         return aclService.upsertAce(acl, sid, newPermission);
     }
 
-    @Transactional
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public MutableAclRecord revoke(AclEntity ae, int accessEntryIndex) {
         Message msg = MsgPicker.getMsg();
@@ -204,7 +207,6 @@ public class AccessService {
     /**
      * The method is not used at the moment
      */
-    @Transactional
     public void inherit(AclEntity ae, AclEntity parentAe) {
         Message msg = MsgPicker.getMsg();
 
@@ -234,7 +236,34 @@ public class AccessService {
         aclService.inherit(acl, parentAcl);
     }
 
-    @Transactional
+    public void revokeProjectPermission(String name, String type) {
+        Sid sid = null;
+        if (type.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
+            sid = new PrincipalSid(name);
+        } else if (type.equalsIgnoreCase(MetadataConstants.TYPE_GROUP)) {
+            sid = new GrantedAuthoritySid(name);
+        } else {
+            return;
+        }
+        // revoke user's project permission
+        List<ProjectInstance> projectInstances = getProjectManager().listAllProjects();
+        for (ProjectInstance pi : projectInstances) {
+            // after KYLIN-2760, only project ACL will work, so entity type is always ProjectInstance.
+            AclEntity ae = getAclEntity("ProjectInstance", pi.getUuid());
+
+            MutableAclRecord acl = getAcl(ae);
+            if (acl == null) {
+                return;
+            }
+
+            Permission perm = acl.getAclRecord().getPermission(sid);
+            if (perm != null) {
+                secureOwner(acl, sid);
+                aclService.upsertAce(acl, sid, null);
+            }
+        }
+    }
+
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
     public void clean(AclEntity ae, boolean deleteChildren) {
         Message msg = MsgPicker.getMsg();
@@ -362,7 +391,6 @@ public class AccessService {
             throw new ForbiddenException(msg.getREVOKE_ADMIN_PERMISSION());
     }
 
-    
     public String getUserPermissionInPrj(String project) {
         String grantedPermission = "";
         List<String> groups = getGroupsFromCurrentUser();

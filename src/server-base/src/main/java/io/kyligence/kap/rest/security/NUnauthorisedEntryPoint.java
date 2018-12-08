@@ -30,38 +30,57 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *     http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
-*/
+ */
 
-package org.apache.kylin.rest.service;
+package io.kyligence.kap.rest.security;
 
 import java.io.IOException;
-import java.util.List;
+import java.io.PrintWriter;
 
-import org.apache.kylin.rest.security.ManagedUser;
-import org.springframework.security.provisioning.UserDetailsManager;
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
-public interface UserService extends UserDetailsManager {
+import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.rest.response.ErrorResponse;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.LockedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.stereotype.Component;
 
-    boolean isEvictCacheFlag();
+@Component(value = "nUnauthorisedEntryPoint")
+public class NUnauthorisedEntryPoint implements AuthenticationEntryPoint {
 
-    void setEvictCacheFlag(boolean evictCacheFlag);
+    public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception)
+            throws IOException, ServletException {
+        if (exception instanceof LockedException) {
+            setErrorResponse(request, response, HttpServletResponse.SC_BAD_REQUEST, exception);
+            return;
+        }
 
-    List<ManagedUser> listUsers() throws IOException;
+        setErrorResponse(request, response, HttpServletResponse.SC_UNAUTHORIZED, exception);
+    }
 
-    List<String> listAdminUsers() throws IOException;
+    public void setErrorResponse(HttpServletRequest request, HttpServletResponse response, int statusCode, Exception ex)
+            throws IOException {
+        response.setStatus(statusCode);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        ErrorResponse errorResponse = new ErrorResponse(request.getRequestURL().toString(), ex);
+        String errorStr = JsonUtil.writeValueAsIndentString(errorResponse);
+        response.setCharacterEncoding("UTF-8");
+        PrintWriter writer = response.getWriter();
+        writer.print(errorStr);
+        writer.flush();
+        writer.close();
+    }
 
-    //For performance consideration, list all users may be incomplete(eg. not load user's authorities until authorities has benn used).
-    //So it's an extension point that can complete user's information latter.
-    //loadUserByUsername() has guarantee that the return user is complete.
-    void completeUserInfo(ManagedUser user);
-
-    List<ManagedUser> getManagedUsersByFuzzMatching(String userName, boolean isCaseSensitive) throws IOException;
 }

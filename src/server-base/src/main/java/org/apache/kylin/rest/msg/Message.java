@@ -252,6 +252,59 @@ public class Message {
     public String getUSER_NOT_EXIST() {
         return "User '%s' does not exist. Please make sure the user exists.";
     }
+    
+    //user
+    public String getEMPTY_USER_NAME() {
+        return "User name should not be empty.";
+    }
+
+    public String getSHORT_PASSWORD() {
+        return "The password should contain more than 8 characters!";
+    }
+
+    public String getINVALID_PASSWORD() {
+        return "The password should contain at least one numbers, letters and special characters (~!@#$%^&*(){}|:\"<>?[];\\'\\,./`).";
+    }
+
+    public String getPERMISSION_DENIED() {
+        return "Permission denied!";
+    }
+
+    public String getSELF_DELETE_FORBIDDEN() {
+        return "Cannot delete yourself!";
+    }
+
+    public String getSELF_DISABLE_FORBIDDEN() {
+        return "Cannot disable yourself!";
+    }
+
+    public String getUSER_EDIT_NOT_ALLOWED() {
+        return "User editing is not allowed unless in testing profile, please go to LDAP/SAML provider instead";
+    }
+
+    public String getGroup_EDIT_NOT_ALLOWED() {
+        return "Group editing is not allowed unless in testing profile, please go to LDAP/SAML provider instead";
+    }
+
+    public String getOLD_PASSWORD_WRONG() {
+        return "Old password is not correct!";
+    }
+
+    public String getUSER_AUTH_FAILED() {
+        return "Invalid username or password.";
+    }
+
+    public String getUSER_BE_LOCKED() {
+        return "Invalid username or password. Please try again after 30 seconds.";
+    }
+
+    public String getUSER_IN_LOCKED_STATUS() {
+        return "User %s is locked, please try again after %s seconds.";
+    }
+
+    public String getUSER_LOGIN_AS_USER_NOT_ADMIN() {
+        return "Only ADMIN user is allowed to login in as another user.";
+    }
 
     // Project
     public String getINVALID_PROJECT_NAME() {

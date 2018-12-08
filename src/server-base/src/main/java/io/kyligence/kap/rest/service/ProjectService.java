@@ -39,8 +39,11 @@ import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
@@ -57,11 +60,15 @@ import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import lombok.val;
+import java.util.stream.Collectors;
 
 @Component("projectService")
 public class ProjectService extends BasicService {
 
     private static final Logger logger = LoggerFactory.getLogger(ProjectService.class);
+
+    @Autowired
+    private AclEvaluate aclEvaluate;
 
     public ProjectInstance deserializeProjectDesc(ProjectRequest projectRequest) throws IOException {
         logger.debug("Saving project " + projectRequest.getProjectDescData());
@@ -127,12 +134,13 @@ public class ProjectService extends BasicService {
         } else {
             projectInstances.addAll(getProjectManager().listAllProjects());
         }
-        return projectInstances;
+        return projectInstances.stream()
+                .filter(projectInstance -> aclEvaluate.hasProjectAdminPermission(projectInstance))
+                .collect(Collectors.toList());
     }
 
     public ProjectInstance updateProject(ProjectInstance newProject, ProjectInstance currentProject)
             throws IOException {
-
         String newProjectName = newProject.getName();
         String newDescription = newProject.getDescription();
         LinkedHashMap<String, String> overrideProps = newProject.getOverrideKylinProps();
