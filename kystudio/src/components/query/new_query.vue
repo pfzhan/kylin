@@ -336,6 +336,7 @@ export default class NewQuery extends Vue {
     if (!this.currentSelectedProject) {
       return
     }
+    this.$refs.insightBox.$emit('focus')
   }
 }
 </script>
