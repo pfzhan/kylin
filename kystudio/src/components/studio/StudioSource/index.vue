@@ -20,7 +20,11 @@
         <template v-if="selectedTable">
           <!-- Source Table标题信息 -->
           <div class="table-header">
-            <h1 class="table-name">{{selectedTable.database}}.{{selectedTable.name}}</h1>
+            <h1
+              class="table-name"
+              :title="`${selectedTable.database}.${selectedTable.name}`">
+              {{selectedTable.database}}.{{selectedTable.name}}
+            </h1>
             <h2 class="table-update-at">{{$t('updateAt')}} {{updateAt}}</h2>
             <div class="table-actions">
               <el-button size="small" icon="el-icon-ksd-table_resure" @click="handleReload">{{$t('reload')}}</el-button>
@@ -247,6 +251,8 @@ export default class StudioSource extends Vue {
     font-size: 16px;
     color: #263238;
     margin-bottom: 15px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .table-details {
     padding-bottom: 20px;
