@@ -3,7 +3,7 @@
   <el-dialog :title="$t('editTableIndexTitle')" append-to-body class="table-edit-dialog" width="880px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <el-form :model="tableIndexMeta" :rules="rules" ref="tableIndexForm" label-position="top">
         <el-form-item :label="$t('tableIndexName')" prop="name">
-          <el-input v-model="tableIndexMeta.name" auto-complete="off" placeholder="" size="medium" style="width:500px"></el-input>
+          <el-input v-focus="isShow" v-model="tableIndexMeta.name" auto-complete="off" placeholder="" size="medium" style="width:500px"></el-input>
         </el-form-item>
       </el-form>
       <div class="ky-line"></div>

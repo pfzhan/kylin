@@ -3,7 +3,7 @@
   <el-dialog :title="$t('modelRename')" width="440px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <el-form :model="modelEdit" :rules="rules" ref="renameForm" label-width="100px">
         <el-form-item :label="$t('modelName')" prop="newName">
-          <el-input v-model="modelEdit.newName" auto-complete="off" size="medium"></el-input>
+          <el-input v-focus="isShow" v-model="modelEdit.newName" auto-complete="off" size="medium"></el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">

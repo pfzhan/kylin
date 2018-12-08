@@ -3,7 +3,7 @@
       <el-form :model="createModelMeta"  :rules="rules" ref="addModelForm" label-width="130px" label-position="top">
         <el-form-item prop="newName" :label="$t('kylinLang.model.modelName')">
           <span slot="label">{{$t('kylinLang.model.modelName')}}<common-tip :content="$t('kylinLang.model.modelNameTips')" ><i class="el-icon-question"></i></common-tip></span>
-          <el-input v-model="createModelMeta.newName" auto-complete="off" size="medium"></el-input>
+          <el-input v-focus="isShow"  v-model="createModelMeta.newName" auto-complete="off" size="medium"></el-input>
         </el-form-item>
         <el-form-item :label="$t('kylinLang.model.modelDesc')" prop="modelDesc" style="margin-top: 20px;">
          <el-input

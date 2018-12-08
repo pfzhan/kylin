@@ -101,23 +101,18 @@ Vue.directive('visible', {
     }
   }
 })
+// 只适用kyligence-ui里带focus method的组件和原生dom元素
 Vue.directive('focus', {
   inserted: function (el) {
-    $(document).keyup(function (event) {
-      if (event.keyCode === 13) {
-        el.__vue__ && el.__vue__.$emit('blur')
-      }
-    })
+    el.__vue__ ? el.__vue__.focus() : el.focus()
   },
   update: function (el, binding) {
-    if (binding.value) {
-      el.__vue__ && el.__vue__.focus()
+    if (binding.value && !binding.oldValue) {
+      el.__vue__ ? el.__vue__.focus() : el.focus()
     }
-  },
-  unbind: function () {
-    $(document).unbind('keyup')
   }
 })
+
 Vue.directive('scroll', {
   inserted: function (el, binding, vnode) {
     if (el) {
