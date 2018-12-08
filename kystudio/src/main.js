@@ -118,7 +118,7 @@ Vue.http.interceptors.push(function (request, next) {
       isProgressVisiable && nprogress.done()
     }
     if (response.status === 401 && router.history.current.name !== 'login') {
-      router.replace('/access/login')
+      router.replace({name: 'Login', params: { ignoreIntercept: true }})
     }
   })
 })

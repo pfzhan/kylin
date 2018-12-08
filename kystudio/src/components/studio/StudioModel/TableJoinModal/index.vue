@@ -2,17 +2,17 @@
   <el-dialog append-to-body :title="$t('addJoinCondition')" @close="isShow && handleClose(false)" width="660px" :visible="isShow" class="links-dialog" :close-on-press-escape="false" :close-on-click-modal="false">
     <el-row :gutter="10">
       <el-col :span="10">
-        <el-select  size="medium" style="width:100%" filterable v-model="selectF">
+        <el-select :placeholder="$t('kylinLang.common.pleaseSelect')" @change="changeFTable"  size="medium" style="width:100%" filterable v-model="selectF">
           <el-option  v-for="key in selectedFTables" :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
       <el-col :span="4">
-        <el-select  size="medium" style="width:100%" v-model="joinType">
+        <el-select :placeholder="$t('kylinLang.common.pleaseSelect')"  size="medium" style="width:100%" v-model="joinType">
           <el-option :value="key" v-for="(key, i) in linkKind" :key="i">{{key}}</el-option>
         </el-select>
       </el-col>
       <el-col :span="10">
-        <el-select size="medium" style="width:100%" filterable v-model="selectP">
+        <el-select :placeholder="$t('kylinLang.common.pleaseSelect')"  @change="changePTable" size="medium" style="width:100%" filterable v-model="selectP">
           <el-option v-for="key in selectedPTables"  :value="key.guid" :key="key.alias" :label="key.alias"></el-option>
         </el-select>
       </el-col>
@@ -51,6 +51,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import { modelRenderConfig } from '../ModelEdit/config'
 import vuex from '../../../../store'
+import { objectClone } from '../../../../util'
 import locales from './locales'
 import store, { types } from './store'
 import { kapMessage } from 'util/business'
@@ -104,8 +105,8 @@ export default class TableJoinModal extends Vue {
       let joinData = ptable && ptable.getJoinInfoByFGuid(this.selectF) || null
       if (joinData) { // 有join数据的情况
         var joinInfo = joinData.join
-        this.joinColumns.foreign_key = joinInfo.foreign_key
-        this.joinColumns.primary_key = joinInfo.primary_key
+        this.joinColumns.foreign_key = objectClone(joinInfo.foreign_key)
+        this.joinColumns.primary_key = objectClone(joinInfo.primary_key)
         this.joinType = joinInfo.type
       } else { // 无join数据的情况,设置默认值
         this.joinType = 'INNER'
@@ -127,6 +128,12 @@ export default class TableJoinModal extends Vue {
         }
       }
     }
+  }
+  changeFTable () {
+    this.joinColumns.foreign_key = ['']
+  }
+  changePTable () {
+    this.joinColumns.primary_key = ['']
   }
   get selectedFTables () {
     return this.form.tables && Object.values(this.form.tables).filter((t) => {
@@ -188,6 +195,11 @@ export default class TableJoinModal extends Vue {
     var selectF = this.selectF // 外键表名
     var selectP = this.selectP // 主键表名
     if (this.checkLinkCompelete()) {
+      // 校验是否链接层环状
+      if (this.form && this.form.modelInstance.checkLinkCircle(selectF, selectP)) {
+        kapMessage(this.$t('kylinLang.model.cycleLinkTip'), {type: 'warning'})
+        return
+      }
       // 传出处理后的结果
       this.handleClose(true, {
         selectF: selectF,

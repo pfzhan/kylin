@@ -15,6 +15,7 @@ class NModel {
     Object.assign(this, options)
     this.mode = options.uuid ? 'edit' : 'new' // 当前模式
     this.name = options.name
+    this.alias = options.alias || options.name
     this.fact_table = options.fact_table
     this.description = options.description
     this.project = options.project
@@ -197,7 +198,8 @@ class NModel {
           name: this.name,
           owner: this.owner,
           project: this.project,
-          description: this.description
+          description: this.description,
+          alias: this.alias
         }
         let factTable = this.getFactTable()
         if (factTable) {
@@ -270,7 +272,7 @@ class NModel {
     按照传入的节点向下改变连线方向 eg: a -> b <- c <- d  改成  a -> b -> c -> d （递归执行）
     @guid 起点节点的guid
     @prevGuid 上次执行到的的guid
-    @tartgetGuid 制定要改变顺序的对方节点
+    @tartgetGuid 指定要改变顺序的对方节点
   */
   changeLinkDirect (guid, prevGuid, targetGuid) {
     let conns = this.getAllConnectsByGuid(guid)
@@ -282,6 +284,12 @@ class NModel {
           let hisConnInfo = curTable.getJoinInfoByFGuid(conn.sourceId)
           newPrimaryTable = this.getTableByGuid(conn.sourceId)
           let newFrieignTable = this.getTableByGuid(conn.targetId)
+          let hisTargetConnInfo = newPrimaryTable.getJoinInfoByFGuid(conn.targetId)
+          // 将两个连接点上的相同关系连接信息归到一个节点
+          if (hisTargetConnInfo && hisTargetConnInfo.join) {
+            hisConnInfo.join.primary_key.push(...hisTargetConnInfo.join.foreign_key)
+            hisConnInfo.join.foreign_key.push(...hisTargetConnInfo.join.primary_key)
+          }
           // 删除
           this.removeRenderLink(conn)
           // 产生新的连接数据

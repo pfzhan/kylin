@@ -909,7 +909,7 @@ export default class ModelEdit extends Vue {
       this.modelInstance.changeLinkDirect(this.currentDragColumnData.guid, null, table.guid)
     }
     if (this.modelInstance.checkLinkCircle(this.currentDragColumnData.guid, table.guid)) {
-      kapMessage(this.$t('cycleLinkTip'), {type: 'warning'})
+      kapMessage(this.$t('kylinLang.model.cycleLinkTip'), {type: 'warning'})
       return
     }
     if (this.currentDragColumnData.guid) {
@@ -961,6 +961,7 @@ export default class ModelEdit extends Vue {
     }
   }
   callJoinDialog (data) {
+    data.modelInstance = this.modelInstance
     return new Promise((resolve, reject) => {
       // 弹出框弹出
       this.showJoinDialog(data).then(({isSubmit, data}) => {
@@ -986,8 +987,15 @@ export default class ModelEdit extends Vue {
     this.currentDragColumnData = {}
     this.currentDropColumnData = {}
     this.currentDragColumn = null
-    // 渲染下连线
-    this.modelInstance.renderLink(pGuid, fGuid)
+    // 渲染连线
+    // 当 a 要连 b  判断 b 有没有连过 a
+    // 有反向连接，合并连接数据，切换连线方向
+    if (fTable.getJoinInfoByFGuid(pTable.guid)) {
+      this.modelInstance.changeLinkDirect(fGuid, null, pGuid)
+    } else {
+    // 正常连线
+      this.modelInstance.renderLink(pGuid, fGuid)
+    }
   }
   removeDragInClass () {
     $(this.$el).find('.drag-column-in').removeClass('drag-column-in')
@@ -1109,12 +1117,12 @@ export default class ModelEdit extends Vue {
       this.isEditMeasure = true
     }
     if (select.action === 'addjoin') {
-      let pguid = moreInfo.guid
+      let pguid = moreInfo.table_guid
       this.callJoinDialog({
-        foreignTable: this.modelRender.tables[pguid],
-        primaryTable: {},
+        pid: pguid,
+        fid: '',
         tables: this.modelRender.tables,
-        ftableName: moreInfo.name
+        pColumnName: moreInfo.name
       }).then((res) => {
         this.modelSearchActionSuccessTip = '连接条件添加成功'
       })

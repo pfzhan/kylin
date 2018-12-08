@@ -138,6 +138,8 @@ import help from '../common/help'
 import canary from '../security/canary'
 import resetPassword from '../security/reset_password'
 import $ from 'jquery'
+import ElementUI from 'kyligence-ui'
+let MessageBox = ElementUI.MessageBox
 // import Scrollbar from 'smooth-scrollbar'
 @Component({
   methods: {
@@ -423,15 +425,33 @@ export default class LayoutLeftRightTop extends Vue {
     this.callUserEditModal({ editType: 'password', userDetail })
   }
   loginOutFunc () {
-    this.logoutConfirm().then(() => {
-      this.loginOut().then(() => {
-        localStorage.setItem('buyit', false)
-        // reset 所有的project信息
-        this.resetProjectState()
-        this.resetMonitorState()
-        this.$router.push({name: 'Login'})
+    if (this.$route.name === 'ModelEdit') {
+      MessageBox.confirm(window.kapVm.$t('kylinLang.common.willGo'), window.kapVm.$t('kylinLang.common.tip'), {
+        confirmButtonText: window.kapVm.$t('kylinLang.common.go'),
+        cancelButtonText: window.kapVm.$t('kylinLang.common.cancel'),
+        type: 'warning'
+      }).then(() => {
+        this.logoutConfirm().then(() => {
+          this.loginOut().then(() => {
+            localStorage.setItem('buyit', false)
+            // reset 所有的project信息
+            this.resetProjectState()
+            this.resetMonitorState()
+            this.$router.push({name: 'Login', params: { ignoreIntercept: true }})
+          })
+        })
       })
-    })
+    } else {
+      this.logoutConfirm().then(() => {
+        this.loginOut().then(() => {
+          localStorage.setItem('buyit', false)
+          // reset 所有的project信息
+          this.resetProjectState()
+          this.resetMonitorState()
+          this.$router.push({name: 'Login'})
+        })
+      })
+    }
   }
   handleCommand (command) {
     if (command === 'loginout') {

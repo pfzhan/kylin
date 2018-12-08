@@ -33,7 +33,6 @@ export default {
     unCheckAll: 'Uncheck All',
     delete: 'Delete',
     back: 'Back',
-    cycleLinkTip: ' The join may lead some tables joining in a circle.',
     requiredName: 'Please input alias',
     modelDataNullTip: 'Failed to find this model!'
   },
@@ -71,7 +70,6 @@ export default {
     unCheckAll: '取消全选',
     delete: '删除',
     back: '返回',
-    cycleLinkTip: '当前Join连接后，会导致表与表形成闭环。',
     requiredName: '请输入别名',
     modelDataNullTip: '没有找到当前模型!'
   }

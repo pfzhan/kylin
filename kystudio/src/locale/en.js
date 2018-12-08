@@ -214,7 +214,8 @@ exports.default = {
     sameCCExpression2: '" defined as expression.Please define another one.',
     ccWrongPosition: 'The computed column should be defined in table "',
     addModel: 'Add Model',
-    hasNoFact: 'Fact Table is mandatory for model'
+    hasNoFact: 'Fact Table is mandatory for model',
+    cycleLinkTip: 'The join may lead some tables joining in a circle.'
   },
   cube: {
     tableIndex: 'Table Index',

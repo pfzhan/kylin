@@ -15,7 +15,8 @@ const initialState = JSON.stringify({
     primaryTable: null,
     tables: null,
     fColumnName: '',
-    pColumnName: ''
+    pColumnName: '',
+    modelInstance: null
   },
   callback: null
 })

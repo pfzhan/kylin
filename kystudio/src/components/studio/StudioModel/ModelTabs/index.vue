@@ -20,7 +20,6 @@ import locales from './locales'
 import { sampleGuid, cacheSessionStorage } from 'util/index'
 import ModelEdit from '../ModelEdit/index.vue'
 import ElementUI from 'kyligence-ui'
-// import { cacheSessionStorage, cacheLocalStorage } from 'util/index'
 let MessageBox = ElementUI.MessageBox
 @Component({
   beforeRouteEnter (to, from, next) {
@@ -33,15 +32,13 @@ let MessageBox = ElementUI.MessageBox
     next()
   },
   beforeRouteLeave (to, from, next) {
-    if (!to.params.ignoreIntercept || to.name === 'Login') {
+    if (!to.params.ignoreIntercept) {
       next(false)
       setTimeout(() => {
         MessageBox.confirm(window.kapVm.$t('kylinLang.common.willGo'), window.kapVm.$t('kylinLang.common.tip'), {
           confirmButtonText: window.kapVm.$t('kylinLang.common.go'),
           cancelButtonText: window.kapVm.$t('kylinLang.common.cancel'),
-          type: 'warning',
-          closeOnHashChange: false,
-          closeOnClickModal: false
+          type: 'warning'
         }).then(() => {
           if (to.name === 'refresh') { // 刷新逻辑下要手动重定向
             next()
