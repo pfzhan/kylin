@@ -1255,9 +1255,9 @@ export default class ModelEdit extends Vue {
     this[action](para).then((res) => {
       handleSuccess(res, () => {
         kapMessage(this.$t('kylinLang.common.saveSuccess'))
-        this.$emit('saveRequestEnd')
         setTimeout(() => {
           this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
+          this.$emit('saveRequestEnd')
         }, 1000)
       })
     }).catch((res) => {
