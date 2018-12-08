@@ -23,6 +23,8 @@
  */
 package org.apache.kylin.query.adhoc;
 
+import lombok.NoArgsConstructor;
+
 public class StructField {
     private String name;
     private int dataType;
@@ -64,6 +66,7 @@ public class StructField {
         return nullable;
     }
 
+    @NoArgsConstructor
     static public class StructFieldBuilder {
         private String name;
         private int dataType;
@@ -71,9 +74,6 @@ public class StructField {
         private int precision;
         private int scale;
         private boolean nullable;
-
-        public StructFieldBuilder() {
-        }
 
         public StructFieldBuilder setName(String name) {
             this.name = name;
