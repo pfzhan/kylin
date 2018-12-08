@@ -14,13 +14,13 @@
         <el-button size="medium" icon="el-icon-ksd-white_list" plain @click="openWhiteList">{{$t('whiteList')}}
           <el-tooltip placement="left">
             <div slot="content">{{$t('whiteListDesc')}}</div>
-            <i class="el-icon-ksd-what el-icon--right"></i>
+            <i class="el-icon-ksd-what el-icon--right ksd-fs-12"></i>
           </el-tooltip>
         </el-button>
         <el-button size="medium" icon="el-icon-ksd-black_list" plain @click="openBlackList">{{$t('blackList')}}
           <el-tooltip placement="left">
             <div slot="content">{{$t('blackListDesc')}}</div>
-            <i class="el-icon-ksd-what el-icon--right"></i>
+            <i class="el-icon-ksd-what el-icon--right ksd-fs-12"></i>
           </el-tooltip>
         </el-button>
       </div>
@@ -31,7 +31,7 @@
           {{$t('favoriteRules')}}
           <el-tooltip placement="right">
             <div slot="content">{{$t('favRulesDesc')}}</div>
-            <i class="el-icon-ksd-what"></i>
+            <i class="el-icon-ksd-what ksd-fs-14"></i>
           </el-tooltip>
         </template>
         <el-row>
@@ -92,7 +92,7 @@
       <span>{{$t('kylinLang.menu.favorite_query')}}</span>
       <el-tooltip placement="right">
         <div slot="content" v-html="$t('favDesc')"></div>
-        <i class="el-icon-ksd-what"></i>
+        <i class="el-icon-ksd-what ksd-fs-14"></i>
       </el-tooltip>
     </div>
     <el-table
@@ -178,7 +178,7 @@
       <span slot="title" class="ky-list-title">{{$t('blackList')}}
         <el-tooltip placement="left">
           <div slot="content">{{$t('blackListDesc')}}</div>
-          <i class="el-icon-ksd-what"></i>
+          <i class="el-icon-ksd-what ksd-fs-12"></i>
         </el-tooltip>
       </span>
       <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}}
@@ -238,7 +238,7 @@
       <span slot="title" class="ky-list-title">{{$t('whiteList')}}
         <el-tooltip placement="left">
           <div slot="content">{{$t('whiteListDesc')}}</div>
-          <i class="el-icon-ksd-what"></i>
+          <i class="el-icon-ksd-what ksd-fs-12"></i>
         </el-tooltip>
       </span>
       <span class="ksd-title-label">{{$t('kylinLang.query.sqlContent_th')}}
