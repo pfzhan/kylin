@@ -57,7 +57,7 @@ public class PushDownRunnerSparkImpl implements IPushDownRunner {
 
     @Override
     public void init(KylinConfig config) {
-        // SparkSession has been inited
+        // SparkSession has been initialized
     }
 
     @Override
