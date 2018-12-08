@@ -219,6 +219,53 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testAutoMergeSegmentsByWeek_WithOneDaysVolatileRange_CornerCase() throws Exception {
+        removeAllSegments();
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataModel model = dataModelManager.getDataModelDesc("nmodel_basic");
+        List<NDataSegment> segments = new ArrayList<>();
+        long start;
+        long end;
+        //test 8 days ,2010/01/04 - 2010/01/11， volatileRange 1 days
+        for (int i = 0; i <= 7; i++) {
+            //01-01 friday
+            start = SegmentRange.dateToLong("2010-01-04") + i * 86400000;
+            end = SegmentRange.dateToLong("2010-01-05") + i * 86400000;
+            SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
+            df = dataflowManager.getDataflow("ncube_basic");
+            NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
+            dataSegment.setStatus(SegmentStatusEnum.READY);
+            dataSegment.setId(i);
+            segments.add(dataSegment);
+        }
+
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
+        dataflowManager.updateDataflow(update);
+
+        //set 1 days volatile ,and just merge the first week
+        NDataModel modelUpdate = dataModelManager.copyForWrite(model);
+        VolatileRange volatileRange = new VolatileRange();
+        volatileRange.setVolatileRangeNumber(1);
+        volatileRange.setVolatileRangeEnabled(true);
+        volatileRange.setVolatileRangeType(AutoMergeTimeEnum.DAY);
+        modelUpdate.setVolatileRange(volatileRange);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        dataModelManager.updateDataModelDesc(modelUpdate);
+
+        EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        eventDao.deleteAllEvents();
+        mockAddSegmentSuccess();
+        List<Event> events = eventDao.getEvents();
+        //merge 1/4/-1/10
+        Assert.assertEquals(1, events.size());
+        Assert.assertEquals(1262563200000L, events.get(0).getSegmentRange().getStart());
+        Assert.assertEquals(1263168000000L, events.get(0).getSegmentRange().getEnd());
+    }
+
+    @Test
     public void testAutoMergeSegmentsByWeek_SegmentsHasOneDayGap_MergeSecondWeek() throws Exception {
 
         removeAllSegments();

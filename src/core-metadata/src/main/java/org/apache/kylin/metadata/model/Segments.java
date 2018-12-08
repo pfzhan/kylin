@@ -350,7 +350,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         if (volatileTime > 0) {
             for (T seg : segs) {
                 if (Long.parseLong(seg.getSegRange().getEnd().toString())
-                        + volatileTime * volatileRange.getVolatileRangeNumber() >= latestSegEnd) {
+                        + volatileTime * volatileRange.getVolatileRangeNumber() > latestSegEnd) {
                     volatileSegs.add(seg);
                 }
             }
