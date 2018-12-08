@@ -338,15 +338,17 @@
     <transition name="slide-fade">
       <!-- 编辑table 快捷按钮 -->
       <div class="fast-action-box" v-event-stop @click="cancelTableEdit" :class="{'edge-right': currentEditTable.drawSize.isInRightEdge}" :style="tableBoxToolStyleNoZoom(currentEditTable.drawSize)" v-if="currentEditTable && showTableCoverDiv">
-        <div class="action switch" v-if="currentEditTable.kind === 'FACT'" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
-          <span >{{$t('switchLookup')}}</span>
-        </div>
-        <div class="action switch" v-if="modelInstance.checkTableCanSwitchFact(currentEditTable.guid)" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
-          <span >{{$t('switchFact')}}</span>
+        <div v-if="currentEditTable.kind === 'FACT' || modelInstance.checkTableCanSwitchFact(currentEditTable.guid)">
+          <div class="action switch" v-if="currentEditTable.kind === 'FACT'" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
+            <span >{{$t('switchLookup')}}</span>
+          </div>
+          <div class="action switch" v-if="modelInstance.checkTableCanSwitchFact(currentEditTable.guid)" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
+            <span >{{$t('switchFact')}}</span>
+          </div>
         </div>
         <div v-show="showEditAliasForm">
           <div class="alias-form" v-event-stop:click>
-            <el-form :model="this" :rules="aliasRules" ref="aliasForm" v-on:submit.prevent>
+            <el-form :model="this" :rules="aliasRules" ref="aliasForm" @submit.native="()=> {return false}">
               <el-form-item prop="currentEditAlias">
               <el-input v-model="currentEditAlias" size="mini" @click.stop @keyup.enter.native="saveEditTableAlias"></el-input>
               <el-button type="primary" size="mini" icon="el-icon-check" @click.stop="saveEditTableAlias"></el-button><el-button size="mini" @click.stop="cancelEditAlias" icon="el-icon-close" plain></el-button>

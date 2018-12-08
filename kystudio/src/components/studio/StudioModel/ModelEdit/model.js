@@ -441,6 +441,27 @@ class NModel {
       }
     })
   }
+  // 更新连接关系里的别名
+  _updateLinkColumnAliasInfo () {
+    for (let key in this.tables) {
+      let t = this.tables[key]
+      if (t.alias !== this.fact_table) {
+        var joinInfo = t.getJoinInfo()
+        if (joinInfo) {
+          let nptable = this.getTableByGuid(joinInfo.table.guid)
+          let nftable = this.getTableByGuid(joinInfo.foreignTable.guid)
+          joinInfo.table.alias = nptable.alias
+          joinInfo.foreignTable.alias = nftable.alias
+          joinInfo.join.primary_key = joinInfo.join.primary_key.map((x) => {
+            return x.replace(/^.*?\./, nptable.alias + '.')
+          })
+          joinInfo.join.foreign_key = joinInfo.join.foreign_key.map((x) => {
+            return x.replace(/^.*?\./, nftable.alias + '.')
+          })
+        }
+      }
+    }
+  }
   // 重新调整alias导致数据改变
   _changeAliasRelation () {
     // 更新join信息
@@ -465,6 +486,7 @@ class NModel {
       }
     })
     this._updateAllMeasuresAlias()
+    this._updateLinkColumnAliasInfo()
   }
   // 别名修改
   changeAlias () {
