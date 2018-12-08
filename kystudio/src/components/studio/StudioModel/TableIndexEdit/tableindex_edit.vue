@@ -17,7 +17,7 @@
             <el-col :span="4">Sort</el-col>
             <el-col :span="4">Shard</el-col>
           </el-row>
-          <div class="table-content"  v-scroll.observe @scroll-bottom="scrollLoad">
+          <div class="table-content"  v-scroll.observe.reactive @scroll-bottom="scrollLoad">
             <transition-group name="flip-list" tag="div">
                 <el-row v-for="col in searchAllColumns" :key="col.fullName" class="table-row" :class="tableRowClassName(col)">
                   <el-col :span="12" :title="col.fullName">{{col.fullName}}</el-col>

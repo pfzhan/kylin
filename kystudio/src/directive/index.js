@@ -136,7 +136,8 @@ Vue.directive('scroll', {
   update: function (el, binding) {
     var isReactive = binding.modifiers.reactive
     if (isReactive) {
-      Scrollbar.update(true)
+      let scrollBar = Scrollbar.get(el)
+      scrollBar.update(true)
     }
   }
 })
