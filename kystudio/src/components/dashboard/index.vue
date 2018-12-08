@@ -14,7 +14,7 @@
                 placement="left-end"
                 trigger="hover"
                 popper-class="quota-popover"
-                :disabled="!(trashRatio*170<14 || useageRatio*170<14)"
+                :disabled="!(trashRatio*quotaHeight<14 || useageRatio*quotaHeight<14)"
                 v-model="popoverVisible">
                 <p class="info-block">
                   <span class="info-title">{{$t('useageMana')}}</span>
@@ -28,15 +28,15 @@
                 </p>
               </el-popover>
               <div class="quota-chart" v-popover:popover>
-                <div class="unUseage-block" :style="{'height': (1-useageRatio-trashRatio)*170+'px'}">
-                  <div class="text" v-if="(trashRatio*170<14 || useageRatio*170<14)">{{unUseageRatio*100}}%</div>
+                <div class="unUseage-block" :style="{'height': (1-useageRatio-trashRatio)*quotaHeight+'px'}">
+                  <div class="text" v-if="(trashRatio*quotaHeight<14 || useageRatio*quotaHeight<14)">{{unUseageRatio*100}}%</div>
                 </div>
                 <div class="total-use-block" :style="{'height': usedBlockHeight+'px'}">
-                  <div class="useage-block" :style="{'height': (useageRatio*170/usedBlockHeight)*100+'%'}">
-                    <div class="text" v-if="useageRatio*170>=14">{{useageRatio*100}}%</div>
+                  <div class="useage-block" :style="{'height': (useageRatio*quotaHeight/usedBlockHeight)*100+'%'}">
+                    <div class="text" v-if="useageRatio*quotaHeight>=14">{{useageRatio*100}}%</div>
                   </div>
-                  <div class="trash-block" :style="{'height': (trashRatio*170/usedBlockHeight)*100+'%'}">
-                    <div class="text" v-if="trashRatio*170>=14">{{trashRatio*100}}%</div>
+                  <div class="trash-block" :style="{'height': (trashRatio*quotaHeight/usedBlockHeight)*100+'%'}">
+                    <div class="text" v-if="trashRatio*quotaHeight>=14">{{trashRatio*100}}%</div>
                   </div>
                 </div>
               </div>
@@ -184,6 +184,7 @@ export default class Dashboard extends Vue {
   unUseageRatio = 0
   usedBlockHeight = 0
   popoverVisible = false
+  quotaHeight = 170
   drawImpactChart () {
     $(this.$el.querySelector('#ruleImpact')).empty()
     const config1 = liquidFillGaugeDefaultSettings()
@@ -230,7 +231,7 @@ export default class Dashboard extends Vue {
       this.trashRatio = (resData.garbage_storage_size / resData.storage_quota_size).toFixed(4)
       this.unUseageRatio = (1 - this.useageRatio - this.trashRatio).toFixed(4)
       setTimeout(() => {
-        this.usedBlockHeight = (this.useageRatio + this.trashRatio) * 170
+        this.usedBlockHeight = (this.useageRatio + this.trashRatio) * this.quotaHeight
       }, 0)
     }
   }
