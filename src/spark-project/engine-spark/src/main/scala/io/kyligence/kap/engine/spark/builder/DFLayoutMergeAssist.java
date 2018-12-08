@@ -30,6 +30,7 @@ import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.measure.MeasureCodec;
@@ -96,7 +97,7 @@ public class DFLayoutMergeAssist implements Serializable {
         for (int i = 0; i < toMergeCuboids.size(); i++) {
             Dataset<Row> layoutDataset = StorageFactory
                     .createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
-                    .getCuboidData(toMergeCuboids.get(i), ss);
+                    .getFrom(NSparkCubingUtil.getStoragePath(toMergeCuboids.get(i)), ss);
 
             if (mergeDataset == null) {
                 mergeDataset = layoutDataset;

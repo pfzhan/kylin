@@ -22,13 +22,32 @@
 
 package io.kyligence.kap.engine.spark.job
 
+import java.io.File
+
 import com.google.common.collect.Lists
-import org.apache.spark.sql.common.{SharedSparkSession, SparderBaseFunSuite}
+import io.kyligence.kap.engine.spark.storage.ParquetStorage
+import io.kyligence.kap.engine.spark.utils.RepartitionHelper
+import org.apache.commons.io.FileUtils
+import org.apache.spark.sql.common.{LocalMetadata, SharedSparkSession}
 import org.apache.spark.sql.types.{StringType, StructType}
 import org.apache.spark.sql.{Dataset, Row}
-import org.apache.spark.unsafe.types.UTF8String
+import org.scalamock.scalatest.MockFactory
+import org.scalatest.WordSpec
 
-class TestDFBuildJob extends SparderBaseFunSuite with SharedSparkSession {
+class TestDFBuildJob extends WordSpec with MockFactory with SharedSparkSession with LocalMetadata {
+  private val path = "./test"
+  private val tempPath = path + DFBuildJob.tempDirSuffix
+  private val storage = new ParquetStorage()
+
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+  }
+
+  override def afterEach(): Unit = {
+    super.afterEach()
+    FileUtils.deleteQuietly(new File(path))
+    FileUtils.deleteQuietly(new File(tempPath))
+  }
 
   def generateOriginData(): Dataset[Row] = {
     var schema = new StructType
@@ -49,35 +68,63 @@ class TestDFBuildJob extends SparderBaseFunSuite with SharedSparkSession {
     spark.createDataFrame(spark.sparkContext.parallelize(data), schema)
   }
 
-  test("repartitionDataSet - repartition by partitionNum and ShardByColumns when both are effective") {
-    val partitionNum = 2
-    val origin = generateOriginData()
-    val actualDS = DFBuildJob.repartitionDataSet(origin, partitionNum, Lists.newArrayList(Integer.valueOf(2)))
-    val actual = actualDS.rdd.mapPartitionsWithIndex {
-      case (id, iterator) =>
-        iterator.map(row => Seq(id, row.getString(0), row.getString(1)).mkString(","))
-    }.collect()
+  "repartition" when {
+    "cuboid have shardByColumns" should {
+      "repartition for shardByColumns" in {
+        val origin = generateOriginData()
+        val repartitionNum = 2
+        storage.saveTo(tempPath, origin, spark)
+        val mockHelper = genMockHelper(needRepartition = true, needRepartitionForFileSize = false,
+          needRepartitionForShardByColumns = true, repartitionNum, Lists.newArrayList(Integer.valueOf(2)))
+        DFBuildJob.repartition(storage, path, spark, mockHelper)
+        val files = new File(path).listFiles().filter(_.getName.endsWith(".parquet")).sortBy(_.getName)
+        assert(files.length == repartitionNum)
+        storage.getFrom(files.apply(0).getPath, spark).collect().map(_.getString(1)).foreach {
+          value =>
+            assert(value == "a")
+        }
 
-    val expect = origin.collect().map {
-      row => Seq(mockSparkHashPartitionMethod(row.getString(1), partitionNum), row.getString(0), row.getString(1)).mkString(",")
+        storage.getFrom(files.apply(1).getPath, spark).collect().map(_.getString(1)).foreach {
+          value =>
+            assert(value == "b")
+        }
+      }
     }
 
-    assert(actualDS.rdd.partitions.length == partitionNum)
-    assert(actual.sorted sameElements expect.sorted)
+    "average file size is too small" should {
+      "repartition for file size" in {
+        val origin = generateOriginData()
+        val repartitionNum = 2
+        storage.saveTo(tempPath, origin, spark)
+        val mockHelper = genMockHelper(needRepartition = true, needRepartitionForFileSize = true,
+          needRepartitionForShardByColumns = false, repartitionNum, null)
+        DFBuildJob.repartition(storage, path, spark, mockHelper)
+        val files = new File(path).listFiles().filter(_.getName.endsWith(".parquet"))
+        assert(files.length == repartitionNum)
+      }
+    }
+
+    "neither have shardByColumns or average file size is too small" should {
+      "do not repartition" in {
+        val origin = generateOriginData()
+        storage.saveTo(tempPath, origin, spark)
+        val mockHelper = genMockHelper(needRepartition = false, needRepartitionForFileSize = false,
+          needRepartitionForShardByColumns = false, 1, null)
+        DFBuildJob.repartition(storage, path, spark, mockHelper)
+        val files = new File(path).listFiles().filter(_.getName.endsWith(".parquet"))
+        assert(files.length == spark.conf.get("spark.sql.shuffle.partitions").toInt)
+      }
+    }
   }
 
-  test("repartitionDataSet - repartition by partitionNum when ShardByColumns is null or empty") {
-    val partitionNum = 2
-    val origin = generateOriginData()
-    var actualDS = DFBuildJob.repartitionDataSet(origin, partitionNum, null)
-    assert(actualDS.rdd.partitions.length == partitionNum)
-
-    actualDS = DFBuildJob.repartitionDataSet(origin, partitionNum, Lists.newArrayList())
-    assert(actualDS.rdd.partitions.length == partitionNum)
+  def genMockHelper(needRepartition: Boolean, needRepartitionForFileSize: Boolean, needRepartitionForShardByColumns: Boolean,
+                    repartitionNum: Int, shardByColumns: java.util.List[Integer]): RepartitionHelper = {
+    val mockHelper = mock[RepartitionHelper]
+    (mockHelper.needRepartition _).expects().returning(needRepartition).anyNumberOfTimes()
+    (mockHelper.needRepartitionForFileSize _).expects().returning(needRepartitionForFileSize).anyNumberOfTimes()
+    (mockHelper.needRepartitionForShardByColumns _).expects().returning(needRepartitionForShardByColumns).anyNumberOfTimes()
+    (mockHelper.getRepartitionNum _).expects().returning(repartitionNum).anyNumberOfTimes()
+    (mockHelper.getShardByColumns _).expects().returning(shardByColumns).anyNumberOfTimes()
+    mockHelper
   }
-
-  def mockSparkHashPartitionMethod(key: String, partitionNum: Int): Int = {
-    UTF8String.fromString(key).hashCode() % partitionNum
-  }
-
 }

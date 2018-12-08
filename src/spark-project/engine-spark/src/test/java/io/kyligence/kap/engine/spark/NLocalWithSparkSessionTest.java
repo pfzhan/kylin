@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
@@ -196,7 +197,7 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(segCuboids, cuboidLayoutId);
         List<Object[]> resultFromLayout = new ArrayList<>();
         ParquetStorage storage = new ParquetStorage();
-        Dataset<Row> ret = storage.getCuboidData(dataCuboid, ss);
+        Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), ss);
         IDimensionEncodingMap dimEncoding = new NCubeDimEncMap(seg);
 
         for (TblColRef colRef : seg.getCubePlan().getEffectiveDimCols().values()) {

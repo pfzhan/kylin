@@ -31,7 +31,7 @@ import io.kyligence.kap.cube.model._
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder._
 import javax.annotation.Nullable
-import org.apache.kylin.common.{KapConfig, KylinConfig}
+import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.storage.StorageFactory
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
@@ -86,7 +86,7 @@ class DFChooser(toBuildTree: NSpanningTree,
     val layoutDs = StorageFactory
       .createEngineAdapter(layout,
         classOf[NSparkCubingEngine.NSparkCubingStorage])
-      .getCuboidData(dataCuboid, ss)
+      .getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), ss)
     layoutDs.persist
     buildSource.setDataset(layoutDs)
     buildSource.setCount(dataCuboid.getRows)
@@ -104,46 +104,24 @@ class DFChooser(toBuildTree: NSpanningTree,
     val flatTable =
       new NCubeJoinedFlatTableDesc(seg.getCubePlan, seg.getSegRange)
     val afterJoin = CreateFlatTable.generateDataset(flatTable, ss).persist
-    val sourceSize = NSizeEstimator.estimate(
-      afterJoin,
-      KapConfig.wrap(config).getSampleDatasetSizeRatio)
-
     val colSet = DictionaryBuilder.extractGlobalDictColumns(seg, toBuildTree)
     val dictionaryBuilder = new DictionaryBuilder(seg, afterJoin, colSet)
     seg = dictionaryBuilder.buildDictionary // note the segment instance is updated
     afterJoin.unpersist
     val encodeColSet = DictionaryBuilder.extractGlobalEncodeColumns(seg, toBuildTree)
-    val afterEncode = DFFlatTableEncoder.encode(afterJoin, seg, encodeColSet, config).persist
-    afterEncode.unpersist
-    val rowcount = afterJoin.count
+    val afterEncode = DFFlatTableEncoder.encode(afterJoin, seg, encodeColSet, config)
     // TODO: should use better method to detect the modifications.
-    if (0 == rowcount) {
-      throw new RuntimeException(
-        "There are no available records in the flat table, the relevant model: " +
-          seg.getModel.getName + ", please make sure there are available records in the \n" +
-          "source tables, and made the correct join on the model.")
-    }
-    if (-1 == seg.getSourceCount) { // first build of this segment, fill row count
-      val segCopy = seg.getDataflow.copy.getSegment(seg.getId)
-      segCopy.setSourceCount(rowcount)
-      val update = new NDataflowUpdate(seg.getDataflow.getName)
-      update.setToUpdateSegs(segCopy)
-      val updated = NDataflowManager
-        .getInstance(config, seg.getDataflow.getProject)
-        .updateDataflow(update)
-      seg = updated.getSegment(seg.getId)
-    } else if (seg.getSourceCount != rowcount) {
-      throw new RuntimeException(
-        "Error: Current flat table's records are inconsistent with before, \n" +
-          "please check if there are any modifications on the source tables, \n" +
-          "the relevant model: " + seg.getModel.getName + ", if the data in the source table has been changed \n" +
-          "in purpose, KAP would update all the impacted cuboids.")
-      // TODO: Update all ready cuboids by using last data.
-    }
+    val segCopy = seg.getDataflow.copy.getSegment(seg.getId)
+    val update = new NDataflowUpdate(seg.getDataflow.getName)
+    update.setToUpdateSegs(segCopy)
+    val updated = NDataflowManager
+      .getInstance(config, seg.getDataflow.getProject)
+      .updateDataflow(update)
+    seg = updated.getSegment(seg.getId)
+
     val sourceInfo = new NBuildSourceInfo
-    sourceInfo.setByteSize(sourceSize)
-    sourceInfo.setCount(rowcount)
     sourceInfo.setDataset(afterEncode)
+
     logInfo(
       "No suitable ready layouts could be reused, generate dataset from flat table.")
     sourceInfo

@@ -32,7 +32,7 @@ import org.apache.spark.sql.SparderEnv
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 
 class TestQueryAndBuildFunSuite
-    extends SparderBaseFunSuite
+  extends SparderBaseFunSuite
     with LocalMetadata
     with JobSupport
     with QuerySupport
@@ -96,6 +96,7 @@ class TestQueryAndBuildFunSuite
   override def afterAll(): Unit = {
     SparderEnv.cleanCompute()
   }
+
   test("buildKylinFact") {
     var result = queryFolders
       .flatMap { folder =>
@@ -160,12 +161,17 @@ class TestQueryAndBuildFunSuite
   def build(): Unit = {
     if ("true" == System.getProperty("noBuild", "false")) {
       logInfo("Direct query")
-    } else if ("true" == System.getProperty("isDeveloperMode", "false")) {
-      fullBuildCube("ncube_basic")
-      fullBuildCube("ncube_basic_inner")
     } else {
-      buildFourSegementAndMerge("ncube_basic")
-      buildFourSegementAndMerge("ncube_basic_inner")
+      if ("true" == System.getProperty("isDeveloperMode", "false")) {
+        fullBuildCube("ncube_basic")
+        fullBuildCube("ncube_basic_inner")
+      } else {
+        buildFourSegementAndMerge("ncube_basic")
+        buildFourSegementAndMerge("ncube_basic_inner")
+      }
+
+      // replace metadata with new one after build
+      dumpMetadata()
     }
 
   }

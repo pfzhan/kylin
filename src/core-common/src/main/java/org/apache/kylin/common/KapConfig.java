@@ -226,6 +226,10 @@ public class KapConfig {
         return Integer.valueOf(config.getOptional("kap.storage.columnar.shard-size-mb", "256"));
     }
 
+    public int getParquetStorageRepartitionThresholdSize() {
+        return Integer.valueOf(config.getOptional("kap.storage.columnar.repartition-threshold-size-mb", "128"));
+    }
+
     public int getParquetStorageShardMin() {
         return Integer.valueOf(config.getOptional("kap.storage.columnar.shard-min", "1"));
     }

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Options;
@@ -44,6 +45,7 @@ import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,11 +64,16 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
 import io.kyligence.kap.engine.spark.builder.NDataflowJob;
-import io.kyligence.kap.engine.spark.builder.NSizeEstimator;
+import io.kyligence.kap.engine.spark.utils.JobMetrics;
+import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
+import io.kyligence.kap.engine.spark.utils.Metrics;
+import io.kyligence.kap.engine.spark.utils.QueryExecutionCache;
+import io.kyligence.kap.engine.spark.utils.RepartitionHelper;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 public class DFBuildJob extends NDataflowJob {
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
+    protected static String tempDirSuffix = "_temp";
     protected volatile NSpanningTree nSpanningTree;
     protected volatile List<NBuildSourceInfo> sources = new ArrayList<>();
 
@@ -141,16 +148,12 @@ public class DFBuildJob extends NDataflowJob {
             Preconditions.checkArgument(cuboid.getMeasures().size() == 0);
             Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
             Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
-            long cuboidRowCnt = afterPrj.count();
             // TODO: shard number should respect the shard column defined in cuboid
-            int partition = estimatePartitions(afterPrj, config);
             for (NCuboidLayout layout : nSpanningTree.getLayouts(cuboid)) {
                 Set<Integer> orderedDims = layout.getOrderedDimensions().keySet();
-                Dataset<Row> intermediate = afterPrj.select(NSparkCubingUtil.getColumns(orderedDims));
-                intermediate = repartitionDataSet(intermediate, partition, layout.getShardByColumns());
-                Dataset<Row> afterSort = intermediate
+                Dataset<Row> afterSort = afterPrj.select(NSparkCubingUtil.getColumns(orderedDims))
                         .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
-                saveAndUpdateCuboid(afterSort, cuboidRowCnt, seg, layout);
+                saveAndUpdateCuboid(afterSort, seg, layout);
             }
             for (NCuboidDesc child : nSpanningTree.getSpanningCuboidDescs(cuboid)) {
                 recursiveBuildCuboid(seg, child, afterPrj, measures, nSpanningTree);
@@ -158,41 +161,55 @@ public class DFBuildJob extends NDataflowJob {
         } else {
             Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
             Dataset<Row> afterAgg = CuboidAggregator.agg(ss, parent, dimIndexes, measures, seg);
-            long cuboidRowCnt = afterAgg.count();
-
-            int partition = estimatePartitions(afterAgg, config);
             Set<Integer> meas = cuboid.getEffectiveMeasures().keySet();
             for (NCuboidLayout layout : nSpanningTree.getLayouts(cuboid)) {
                 Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
-                Dataset<Row> intermediate = afterAgg.select(NSparkCubingUtil.getColumns(rowKeys, meas));
-                intermediate = repartitionDataSet(intermediate, partition, layout.getShardByColumns());
-                Dataset<Row> afterSort = intermediate.sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
-                saveAndUpdateCuboid(afterSort, cuboidRowCnt, seg, layout);
+                Dataset<Row> afterSort = afterAgg.select(NSparkCubingUtil.getColumns(rowKeys, meas))
+                        .sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
+                saveAndUpdateCuboid(afterSort, seg, layout);
             }
             for (NCuboidDesc child : nSpanningTree.getSpanningCuboidDescs(cuboid)) {
                 recursiveBuildCuboid(seg, child, afterAgg, measures, nSpanningTree);
             }
-            //            afterAgg.unpersist();
         }
     }
 
-    private void saveAndUpdateCuboid(Dataset<Row> dataset, long cuboidRowCnt, NDataSegment seg, NCuboidLayout layout)
-            throws IOException {
+    private void saveAndUpdateCuboid(Dataset<Row> dataset, NDataSegment seg, NCuboidLayout layout) throws IOException {
         long layoutId = layout.getId();
-        NCuboidDesc root = nSpanningTree.getRootCuboidDesc(layout.getCuboidDesc());
-
-        NBuildSourceInfo sourceInfo = DFChooser.getDataSourceByCuboid(sources, root, seg);
-        long sourceByteSize = sourceInfo.getByteSize();
-        long sourceCount = sourceInfo.getCount();
 
         NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg.getDataflow(), seg.getId(), layoutId);
-        dataCuboid.setRows(cuboidRowCnt);
-        dataCuboid.setSourceByteSize(sourceByteSize);
-        dataCuboid.setSourceRows(sourceCount);
-        dataCuboid.setBuildJobId(jobId);
 
-        StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
-                .saveCuboidData(dataCuboid, dataset, ss);
+        // for spark metrics
+        String queryExecutionId = UUID.randomUUID().toString();
+        ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), queryExecutionId);
+
+        NSparkCubingEngine.NSparkCubingStorage storage = StorageFactory.createEngineAdapter(layout,
+                NSparkCubingEngine.NSparkCubingStorage.class);
+        String path = NSparkCubingUtil.getStoragePath(dataCuboid);
+        String tempPath = path + tempDirSuffix;
+        // save to temp path
+        storage.saveTo(tempPath, dataset, ss);
+
+        JobMetrics metrics = JobMetricsUtils.collectMetrics(queryExecutionId);
+        dataCuboid.setBuildJobId(jobId);
+        dataCuboid.setRows(metrics.getMetrics(Metrics.CUBOID_ROWS_CNT()));
+        dataCuboid.setSourceRows(metrics.getMetrics(Metrics.SOURCE_ROWS_CNT()));
+
+        FileSystem fs = HadoopUtil.getReadFileSystem();
+        if (fs.exists(new Path(tempPath))) {
+            ContentSummary summary = fs.getContentSummary(new Path(tempPath));
+            RepartitionHelper helper = new RepartitionHelper(KapConfig.wrap(config).getParquetStorageShardSize(),
+                    KapConfig.wrap(config).getParquetStorageRepartitionThresholdSize(), summary,
+                    layout.getShardByColumns());
+            repartition(storage, path, ss, helper);
+        } else {
+            throw new RuntimeException(
+                    String.format("Temp path does not exist before repartition. Temp path: %s.", tempPath));
+        }
+
+        ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), null);
+        QueryExecutionCache.removeQueryExecution(queryExecutionId);
+
         fillCuboid(dataCuboid);
 
         NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
@@ -200,17 +217,9 @@ public class DFBuildJob extends NDataflowJob {
         NDataflowManager.getInstance(config, project).updateDataflow(update);
     }
 
-    public static Dataset<Row> repartitionDataSet(Dataset<Row> ds, int repartitionNum, List<Integer> shardByColumnIds) {
-        if (shardByColumnIds == null || shardByColumnIds.size() == 0) {
-            return ds.repartition(repartitionNum);
-        } else {
-            return ds.repartition(repartitionNum, NSparkCubingUtil.getColumns(shardByColumnIds));
-        }
-    }
-
     public static void fillCuboid(NDataCuboid cuboid) throws IOException {
         String strPath = NSparkCubingUtil.getStoragePath(cuboid);
-        FileSystem fs = new Path(strPath).getFileSystem(HadoopUtil.getCurrentConfiguration());
+        FileSystem fs = HadoopUtil.getReadFileSystem();
         if (fs.exists(new Path(strPath))) {
             ContentSummary cs = fs.getContentSummary(new Path(strPath));
             cuboid.setFileCount(cs.getFileCount());
@@ -221,12 +230,40 @@ public class DFBuildJob extends NDataflowJob {
         }
     }
 
-    public static int estimatePartitions(Dataset<Row> ds, KylinConfig config) {
-        int sizeMB = (int) (NSizeEstimator.estimate(ds, 0.1f) / (1024 * 1024));
-        int partition = sizeMB / KapConfig.wrap(config).getParquetStorageShardSize();
-        if (partition == 0)
-            partition = 1;
-        return partition;
+    public static void repartition(NSparkCubingEngine.NSparkCubingStorage storage, String path, SparkSession ss,
+            RepartitionHelper helper) throws IOException {
+        String tempPath = path + tempDirSuffix;
+        Path tempResourcePath = new Path(tempPath);
+
+        if (helper.needRepartition()) {
+            // repartition and write to target path
+            logger.info("Start repartition and rewrite");
+            long start = System.currentTimeMillis();
+            Dataset<Row> data;
+            if (helper.needRepartitionForShardByColumns()) {
+                data = storage.getFrom(tempPath, ss).repartition(helper.getRepartitionNum(),
+                        NSparkCubingUtil.getColumns(helper.getShardByColumns()));
+            } else {
+                // repartition for single file size is too small
+                data = storage.getFrom(tempPath, ss).repartition(helper.getRepartitionNum());
+            }
+            storage.saveTo(path, data, ss);
+            if (HadoopUtil.getReadFileSystem().delete(tempResourcePath, true)) {
+                logger.info("Delete temp cuboid path successful. Temp path: {}.", tempPath);
+            } else {
+                logger.error("Delete temp cuboid path wrong, leave garbage. Temp path: {}.", tempPath);
+            }
+            long end = System.currentTimeMillis();
+            logger.info("Repartition and rewrite ends. Cost: {} ms.", end - start);
+        } else {
+            if (HadoopUtil.getReadFileSystem().rename(new Path(tempPath), new Path(path))) {
+                logger.info("Rename temp path to target path successfully. Temp path: {}, target path: {}.", tempPath,
+                        path);
+            } else {
+                throw new RuntimeException(String.format(
+                        "Rename temp path to target path wrong. Temp path: %s, target path: %s.", tempPath, path));
+            }
+        }
     }
 
     public static void main(String[] args) {

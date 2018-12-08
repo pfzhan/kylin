@@ -22,6 +22,7 @@
 
 package io.kyligence.kap.common
 
+import java.io.File
 import java.util.{Objects, UUID}
 
 import com.google.common.collect.{Lists, Maps, Sets}
@@ -29,6 +30,7 @@ import io.kyligence.kap.cube.model.{NCuboidLayout, NDataSegment, NDataflow, NDat
 import io.kyligence.kap.engine.spark.ExecutableUtils
 import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob}
 import io.kyligence.kap.engine.spark.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
+import org.apache.commons.io.FileUtils
 import org.apache.kylin.common.persistence.ResourceStore
 import org.apache.kylin.common.{KylinConfig, StorageURL}
 import org.apache.kylin.job.engine.JobEngineConfig
@@ -229,7 +231,7 @@ trait JobSupport
       df,
       new SegmentRange.TimePartitionedSegmentRange(
         SegmentRange.dateToLong("2013-01-01"),
-        SegmentRange.dateToLong("2015-06-01")),
+        SegmentRange.dateToLong("2015-01-01")),
       false)
     val secondMergeJob = NSparkMergingJob.merge(secondMergeSeg,
                                                 Sets.newLinkedHashSet(layouts),
@@ -326,5 +328,16 @@ trait JobSupport
     val manager = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
     val allModel = manager.listAllDataflows().asScala.map(_.getName).toList
     buildCubes(allModel)
+  }
+
+  def dumpMetadata(): Unit = {
+    val config = KylinConfig.getInstanceFromEnv
+    val metadataUrlPrefix = config.getMetadataUrlPrefix
+    val metadataUrl = metadataUrlPrefix + "/metadata"
+    FileUtils.deleteQuietly(new File(metadataUrl))
+    val resourceStore: ResourceStore = ResourceStore.getKylinMetaStore(config)
+    val outputConfig: KylinConfig = KylinConfig.createKylinConfig(config)
+    outputConfig.setMetadataUrl(metadataUrlPrefix)
+    ResourceStore.createImageStore(outputConfig).dump(resourceStore)
   }
 }

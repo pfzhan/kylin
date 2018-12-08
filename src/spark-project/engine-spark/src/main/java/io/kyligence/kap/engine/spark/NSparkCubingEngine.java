@@ -34,7 +34,6 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 
 import io.kyligence.kap.common.obf.IKeep;
-import io.kyligence.kap.cube.model.NDataCuboid;
 
 public class NSparkCubingEngine implements NCubingEngine, IKeep {
 
@@ -63,8 +62,8 @@ public class NSparkCubingEngine implements NCubingEngine, IKeep {
 
     public interface NSparkCubingStorage {
 
-        Dataset<Row> getCuboidData(NDataCuboid cuboid, SparkSession ss);
+        void saveTo(String path, Dataset<Row> data, SparkSession ss);
 
-        void saveCuboidData(NDataCuboid cuboid, Dataset<Row> data, SparkSession ss);
+        Dataset<Row> getFrom(String path, SparkSession ss);
     }
 }

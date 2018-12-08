@@ -23,7 +23,9 @@
  */
 package io.kyligence.kap.newten;
 
+import com.google.common.collect.Maps;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -59,6 +61,7 @@ import org.spark_project.guava.collect.Sets;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
@@ -327,6 +330,34 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
          * validate cube segment info
          */
         NDataSegment firstSegment = dsMgr.getDataflow(dfName).getSegments().get(0);
+
+        if (getProject().equals("default") && dfName.equals("ncube_basic_inner")) {
+            Map<Long, NDataCuboid> cuboidsMap1 = firstSegment.getCuboidsMap();
+            Map<Long, Long[]> compareTuples1 = Maps.newHashMap();
+            compareTuples1.put(1L, new Long[]{9896L, 9896L});
+            compareTuples1.put(1001L, new Long[]{9896L, 9896L});
+            compareTuples1.put(1002L, new Long[]{9896L, 9896L});
+            compareTuples1.put(2001L, new Long[]{9896L, 9896L});
+            compareTuples1.put(3001L, new Long[]{9896L, 9896L});
+            compareTuples1.put(1000001L, new Long[]{9896L, 9896L});
+            compareTuples1.put(1001001L, new Long[]{731L, 9896L});
+            compareTuples1.put(1002001L, new Long[]{302L, 9896L});
+            compareTuples1.put(1003001L, new Long[]{44L, 9896L});
+            compareTuples1.put(1004001L, new Long[]{9163L, 9896L});
+            compareTuples1.put(1005001L, new Long[]{105L, 9896L});
+            compareTuples1.put(1006001L, new Long[]{138L, 9896L});
+            compareTuples1.put(1007001L, new Long[]{9880L, 9896L});
+            compareTuples1.put(1008001L, new Long[]{9833L, 9896L});
+            compareTuples1.put(1009001L, new Long[]{9421L, 9896L});
+            compareTuples1.put(1010001L, new Long[]{143L, 9896L});
+            compareTuples1.put(1011001L, new Long[]{4714L, 9896L});
+            compareTuples1.put(1012001L, new Long[]{9884L, 9896L});
+            compareTuples1.put(20000000001L, new Long[]{9896L, 9896L});
+            compareTuples1.put(20000001001L, new Long[]{9896L, 9896L});
+            compareTuples1.put(20000002001L, new Long[]{9896L, 9896L});
+            verifyCuboidMetrics(cuboidsMap1, compareTuples1);
+        }
+
         Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2015-01-01")), firstSegment.getSegRange());
         //Assert.assertEquals(27, firstSegment.getDictionaries().size());
         Assert.assertEquals(7, firstSegment.getSnapshots().size());
@@ -397,12 +428,48 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
          */
         NDataSegment firstSegment = dsMgr.getDataflow(dfName).getSegments().get(0);
         NDataSegment secondSegment = dsMgr.getDataflow(dfName).getSegments().get(1);
+
+        if (getProject().equals("default") && dfName.equals("ncube_basic")) {
+            Map<Long, NDataCuboid> cuboidsMap1 = firstSegment.getCuboidsMap();
+            Map<Long, Long[]> compareTuples1 = Maps.newHashMap();
+            compareTuples1.put(1L, new Long[]{4903L, 4903L});
+            compareTuples1.put(1001L, new Long[]{4903L, 4903L});
+            compareTuples1.put(1002L, new Long[]{4903L, 4903L});
+            compareTuples1.put(2001L, new Long[]{4903L, 4903L});
+            compareTuples1.put(3001L, new Long[]{4903L, 4903L});
+            compareTuples1.put(1000001L, new Long[]{4903L, 4903L});
+            compareTuples1.put(20000000001L, new Long[]{4903L, 4903L});
+            compareTuples1.put(20000001001L, new Long[]{4903L, 4903L});
+            compareTuples1.put(20000002001L, new Long[]{4903L, 4903L});
+            verifyCuboidMetrics(cuboidsMap1, compareTuples1);
+
+            Map<Long, NDataCuboid> cuboidsMap2 = secondSegment.getCuboidsMap();
+            Map<Long, Long[]> compareTuples2 = Maps.newHashMap();
+            compareTuples2.put(1L, new Long[]{5097L, 5097L});
+            compareTuples2.put(1001L, new Long[]{5097L, 5097L});
+            compareTuples2.put(1002L, new Long[]{5097L, 5097L});
+            compareTuples2.put(2001L, new Long[]{5097L, 5097L});
+            compareTuples2.put(3001L, new Long[]{5097L, 5097L});
+            compareTuples2.put(1000001L, new Long[]{5097L, 5097L});
+            compareTuples2.put(20000000001L, new Long[]{5097L, 5097L});
+            compareTuples2.put(20000001001L, new Long[]{5097L, 5097L});
+            compareTuples2.put(20000002001L, new Long[]{5097L, 5097L});
+            verifyCuboidMetrics(cuboidsMap2, compareTuples2);
+        }
+
         Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2013-01-01")), firstSegment.getSegRange());
         Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"), SegmentRange.dateToLong("2015-01-01")), secondSegment.getSegRange());
         //Assert.assertEquals(31, firstSegment.getDictionaries().size());
         //Assert.assertEquals(31, secondSegment.getDictionaries().size());
         Assert.assertEquals(7, firstSegment.getSnapshots().size());
         Assert.assertEquals(7, secondSegment.getSnapshots().size());
+    }
+
+    private void verifyCuboidMetrics(Map<Long, NDataCuboid> cuboidsMap, Map<Long, Long[]> compareTuples) {
+        compareTuples.forEach((key, value) -> {
+            Assert.assertEquals(value[0], (Long) cuboidsMap.get(key).getRows());
+            Assert.assertEquals(value[1], (Long) cuboidsMap.get(key).getSourceRows());
+        });
     }
 
     private void validateTableExt(String tableName, long rows, int segSize, int colStats) {

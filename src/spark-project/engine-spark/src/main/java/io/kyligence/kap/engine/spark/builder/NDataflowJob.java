@@ -38,6 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.engine.spark.job.UdfManager;
+import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import lombok.val;
 
 public abstract class NDataflowJob extends AbstractApplication {
@@ -89,7 +90,13 @@ public abstract class NDataflowJob extends AbstractApplication {
     final protected void execute(OptionsHelper optionsHelper) throws Exception {
         String hdfsMetalUrl = optionsHelper.getOptionValue(OPTION_META_URL);
         jobId = optionsHelper.getOptionValue(OPTION_JOB_ID);
-        ss = SparkSession.builder().enableHiveSupport().getOrCreate();
+        ss = SparkSession.builder()
+                .enableHiveSupport()
+                .config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
+                .getOrCreate();
+        // for spark metrics
+        JobMetricsUtils.registerListener(ss);
+
         //#8341
         SparderEnv.setSparkSession(ss);
         UdfManager.create(ss);
@@ -105,6 +112,9 @@ public abstract class NDataflowJob extends AbstractApplication {
             ResourceStore.createImageStore(outputConfig).dump(resourceStore);
         } finally {
             KylinConfig.removeKylinConfigThreadLocal();
+            if (ss != null && !ss.conf().get("spark.master").startsWith("local")) {
+                ss.stop();
+            }
         }
     }
 

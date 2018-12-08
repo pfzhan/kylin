@@ -20,20 +20,31 @@
  *
  */
 
-package io.kyligence.kap.engine.spark.storage
+package io.kyligence.kap.engine.spark.utils
 
-import io.kyligence.kap.engine.spark.NSparkCubingEngine
-import org.apache.spark.sql._
+class JobMetrics {
 
-class ParquetStorage
-  extends NSparkCubingEngine.NSparkCubingStorage
-    with Serializable {
+  private var metrics: Map[String, Long] = Map.empty
 
-  override def saveTo(path: String, data: Dataset[Row], ss: SparkSession): Unit = {
-    data.write.mode(SaveMode.Overwrite).parquet(path)
+  def getMetrics(key: String): Long = {
+    metrics.getOrElse(key, 0)
   }
 
-  override def getFrom(path: String, ss: SparkSession): Dataset[Row] = {
-    ss.read.parquet(path)
+  def setMetrics(key: String, value: Long): Unit = {
+    metrics += (key -> value)
   }
+
+  def isDefinedAt(key: String): Boolean = {
+    metrics.isDefinedAt(key)
+  }
+
+  override def toString: String = {
+    s"CuboidRowsCnt is ${metrics.getOrElse(Metrics.CUBOID_ROWS_CNT, null)}, " +
+      s"sourceRowsCnt is ${metrics.getOrElse(Metrics.SOURCE_ROWS_CNT, null)}."
+  }
+}
+
+object Metrics {
+  val CUBOID_ROWS_CNT: String = "cuboidRowsCnt"
+  val SOURCE_ROWS_CNT: String = "sourceRowsCnt"
 }

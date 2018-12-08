@@ -189,7 +189,7 @@ object TableScanPlan extends Logging {
     //   [2012-01-01, 4972.2700, 623.45,[10000392,7,2012-01-01]]
     //   [2012-01-01, 4972.2700, 47.49,[10000029,4,2012-01-01]]
 
-    val inlinedSelectExpr = df.schema.fields.filter( _ != topNField.get).map(_.name) :+ s"inline(${topNField.get.name})"
+    val inlinedSelectExpr = df.schema.fields.filter(_ != topNField.get).map(_.name) :+ s"inline(${topNField.get.name})"
     val inlinedDF = df.selectExpr(inlinedSelectExpr: _*)
 
     // flatten multi dims in TopN measure, will not increase record number, a total flattened struct:
@@ -316,20 +316,20 @@ object TableScanPlan extends Logging {
     val newNameLookupDf = lookupDf.toDF(newNames: _*)
     val colIndex = olapTable.getSourceColumns.asScala
       .map(
-      column =>
-        if (column.isComputedColumn || column.getZeroBasedIndex < 0) {
-          RuntimeHelper.literalOne.as(column.toString)
-        } else  {
-          col(
-            SchemaProcessor
-              .generateDeriveTableSchemaName(
-                alisTableName,
-                column.getZeroBasedIndex,
-                column.getName
-              )
-              .toString
-          )
-        })
+        column =>
+          if (column.isComputedColumn || column.getZeroBasedIndex < 0) {
+            RuntimeHelper.literalOne.as(column.toString)
+          } else {
+            col(
+              SchemaProcessor
+                .generateDeriveTableSchemaName(
+                  alisTableName,
+                  column.getZeroBasedIndex,
+                  column.getName
+                )
+                .toString
+            )
+          })
     newNameLookupDf.select(colIndex: _*)
   }
 

@@ -128,7 +128,7 @@ public class MockedDFBuildJob extends NDataflowJob {
                     dataCuboid.setFileCount(123);
                     dataCuboid.setByteSize(123);
                     StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
-                            .saveCuboidData(dataCuboid, ds, ss);
+                            .saveTo(NSparkCubingUtil.getStoragePath(dataCuboid), ds, ss);
 
                     NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
                     update.setToAddOrUpdateCuboids(dataCuboid);

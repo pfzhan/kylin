@@ -37,7 +37,6 @@ import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.CuboidAggregator;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.measure.bitmap.BitmapCounter;
@@ -105,9 +104,6 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         buildCubes();
-        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), getProject());
-        val dataflow = dataflowManager.getDataflow("ncube_basic");
-        Assert.assertEquals(dataflow.getFirstSegment().getCuboidsMap().get(1L).getSourceByteSize(), 1278200L);
         compareCuboidParquetWithSparkSql("ncube_basic");
         compareCuboidParquetWithSparkSql("ncube_basic_inner");
     }
@@ -120,14 +116,13 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
         List<NDataCuboid> nDataCuboids = Lists.newArrayList();
         NDataflow df = dsMgr.getDataflow(dfName);
-        df = dsMgr.getDataflow(dfName);
         for (NDataSegment segment : df.getSegments()) {
             nDataCuboids.addAll(segment.getSegDetails().getCuboids());
         }
         for (NDataCuboid cuboid : nDataCuboids) {
             Set<Integer> rowKeys = cuboid.getCuboidLayout().getOrderedDimensions().keySet();
 
-            Dataset<Row> layoutDataset = StorageFactory.createEngineAdapter(cuboid.getCuboidLayout(), NSparkCubingEngine.NSparkCubingStorage.class).getCuboidData(cuboid, ss);
+            Dataset<Row> layoutDataset = StorageFactory.createEngineAdapter(cuboid.getCuboidLayout(), NSparkCubingEngine.NSparkCubingStorage.class).getFrom(NSparkCubingUtil.getStoragePath(cuboid), ss);
             layoutDataset = layoutDataset.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid))).sort(NSparkCubingUtil.getColumns(rowKeys));
             System.out.println("Query cuboid ------------ " + cuboid.getCuboidLayoutId());
             layoutDataset = dsConvertToOriginal(layoutDataset, cuboid.getCuboidLayout());

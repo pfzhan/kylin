@@ -31,12 +31,13 @@ import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.engine.spark.job.DFBuildJob;
+import io.kyligence.kap.engine.spark.builder.NSizeEstimator;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -167,7 +168,7 @@ public class ModelAnalyzer implements Serializable {
     }
 
     private TableAnalyzerResult analysisTable(final Dataset<Row> tableDS, final TableDesc tableDesc) {
-        final int partition = DFBuildJob.estimatePartitions(tableDS, config);
+        final int partition = estimatePartitions(tableDS, config);
         logger.info("Analysing table {}, repartition with size {}", tableDesc.getName(), partition);
         return tableDS.toJavaRDD().repartition(partition).mapPartitionsWithIndex((index, rowIterator) -> {
             final TableAnalyzer tableAnalyzer = new TableAnalyzer(tableDesc);
@@ -248,4 +249,11 @@ public class ModelAnalyzer implements Serializable {
         logger.info("Table {} analysis finished, update table ext desc done.", tableDesc.getName());
     }
 
+    public static int estimatePartitions(Dataset<Row> ds, KylinConfig config) {
+        int sizeMB = (int) (NSizeEstimator.estimate(ds, 0.1f) / (1024 * 1024));
+        int partition = sizeMB / KapConfig.wrap(config).getParquetStorageShardSize();
+        if (partition == 0)
+            partition = 1;
+        return partition;
+    }
 }

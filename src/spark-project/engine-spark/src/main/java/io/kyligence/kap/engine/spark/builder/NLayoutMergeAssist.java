@@ -55,6 +55,7 @@ import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 
 public class NLayoutMergeAssist implements Serializable {
     protected static final Logger logger = LoggerFactory.getLogger(NLayoutMergeAssist.class);
@@ -98,7 +99,7 @@ public class NLayoutMergeAssist implements Serializable {
         for (int i = 0; i < toMergeCuboids.size(); i++) {
             Dataset<Row> layoutDataset = StorageFactory
                     .createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
-                    .getCuboidData(toMergeCuboids.get(i), ss);
+                    .getFrom(NSparkCubingUtil.getStoragePath(toMergeCuboids.get(i)), ss);
 
             layoutDataset = rewriteDict(layoutDataset, toMergeSegments.get(i));
             if (mergeDataset == null) {
