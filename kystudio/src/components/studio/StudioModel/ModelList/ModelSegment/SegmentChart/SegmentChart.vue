@@ -238,18 +238,16 @@ export default class SegmentChart extends Vue {
     this.tip = { id, startDate, endDate, storage, style }
   }
   handleClick (event, segment) {
-    if (segment.hitCount) {
-      const isSelected = this.selectedSegmentIds.includes(segment.id)
-      const isSelectable = isFilteredSegmentsContinue(segment, this.selectedSegments)
-      if (isSelectable) {
-        if (isSelected) {
-          this.selectedSegmentIds = this.selectedSegmentIds.filter(segmentId => segmentId !== segment.id)
-        } else {
-          this.selectedSegmentIds.push(segment.id)
-        }
+    const isSelected = this.selectedSegmentIds.includes(segment.id)
+    const isSelectable = isFilteredSegmentsContinue(segment, this.selectedSegments)
+    if (isSelectable) {
+      if (isSelected) {
+        this.selectedSegmentIds = this.selectedSegmentIds.filter(segmentId => segmentId !== segment.id)
+      } else {
+        this.selectedSegmentIds.push(segment.id)
       }
-      this.$emit('input', this.selectedSegmentIds, isSelectable)
     }
+    this.$emit('input', this.selectedSegmentIds, isSelectable)
   }
   mounted () {
     this.handleScroll()
