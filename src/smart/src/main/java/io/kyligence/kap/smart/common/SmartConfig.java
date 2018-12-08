@@ -26,26 +26,14 @@ package io.kyligence.kap.smart.common;
 
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.dimension.DictionaryDimEnc;
+import org.apache.kylin.metadata.model.FunctionDesc;
 
 public class SmartConfig {
     private final KapConfig kapConfig;
-    private final KylinConfig kylinConfig;
-    private final ISmartStrategy strategy;
 
     private SmartConfig(KapConfig kapConfig) {
         this.kapConfig = kapConfig;
-        this.kylinConfig = kapConfig.getKylinConfig();
-
-        String strategyName = this.kapConfig.getSmartModelingStrategy();
-        switch (strategyName) {
-        case BatchSmartStrategy.NAME:
-            this.strategy = BatchSmartStrategy.INSTANCE;
-            break;
-        case DefaultSmartStrategy.NAME:
-        default:
-            this.strategy = DefaultSmartStrategy.INSTANCE;
-            break;
-        }
     }
 
     public static SmartConfig getInstanceFromEnv() {
@@ -69,10 +57,6 @@ public class SmartConfig {
         return Long.parseLong(getOptional(name, Long.toString(defaultValue)));
     }
 
-    private double getOptional(String name, double defaultValue) {
-        return Double.parseDouble(getOptional(name, Double.toString(defaultValue)));
-    }
-
     private int getOptional(String name, int defaultValue) {
         return Integer.parseInt(getOptional(name, Integer.toString(defaultValue)));
     }
@@ -82,126 +66,26 @@ public class SmartConfig {
     }
 
     public int getRowkeyDictEncCardinalityMax() {
-        return getOptional("rowkey.dict-encoding.max-cardinality", strategy.getRowkeyDictEncCardinalityMax());
+        return getOptional("rowkey.dict-encoding.max-cardinality", 1000000);
     }
 
     public int getRowkeyFixLenLengthMax() {
-        return getOptional("rowkey.fixlen-encoding.max-length", strategy.getRowkeyFixLenLengthMax());
+        return getOptional("rowkey.fixlen-encoding.max-length", 1000);
     }
 
     public long getRowkeyUHCCardinalityMin() {
-        return getOptional("rowkey.uhc.min-cardinality", strategy.getRowkeyUHCCardinalityMin());
-    }
-
-    public int getJointGroupCardinalityMax() {
-        return getOptional("joint.max-group-cardinality", strategy.getJointGroupCardinalityMax());
-    }
-
-    public int getJointColNumMax() {
-        return getOptional("joint.max-column-num", strategy.getJointColNumMax());
-    }
-
-    public double getDimDerivedRatio() {
-        return getOptional("dim.derived.ratio", strategy.getDimDerivedRatio());
-    }
-
-    public int getMandatoryCardinalityMax() {
-        return getOptional("mandatory.max-cardinality", strategy.getMandatoryCardinalityMax());
-    }
-
-    public double getApproxEqualMax() {
-        return getOptional("approx.eq.max", strategy.getApproxEqualMax());
-    }
-
-    public double getApproxEqualMin() {
-        return getOptional("approx.eq.min", strategy.getApproxEqualMin());
-    }
-
-    public int getMandatoryEnableQueryMin() {
-        return getOptional("mandatory.query-enabled.min", strategy.getMandatoryEnableQueryMin());
-    }
-
-    public int getRowkeyFilterPromotionTimes() {
-        return getOptional("rowkey.filter-promotion.times", strategy.getRowkeyFilterPromotionTimes());
-    }
-
-    public double getApproxDiffMax() {
-        return getOptional("approx.diff.max", strategy.getApproxDiffMax());
+        return getOptional("rowkey.uhc.min-cardinality", 1000000L);
     }
 
     public String getRowkeyDefaultEnc() {
-        return getOptional("rowkey.default-encoding", strategy.getRowkeyDefaultEnc());
-    }
-
-    public double getPhyscalWeight() {
-        return getOptional("physcal.weight", strategy.getPhyscalWeight());
-    }
-
-    public double getBusinessWeight() {
-        return getOptional("business.weight", strategy.getBusinessWeight());
-    }
-
-    public boolean getDomainQueryEnabled() {
-        return getOptional("domain.query-enabled", strategy.getDomainQueryEnabled());
-    }
-
-    public boolean getMeasureQueryEnabled() {
-        return getOptional("measure.query-enabled", strategy.getMeasureQueryEnabled());
-    }
-
-    public boolean getAggGroupKeepLegacy() {
-        return getOptional("aggGroup.keep-legacy", strategy.getAggGroupKeepLegacy());
-    }
-
-    public boolean getAggGroupStrictEnabled() {
-        return getOptional("aggGroup.strict-enabled", strategy.getAggGroupStrictEnabled());
-    }
-
-    public long getAggGroupStrictCombinationMax() {
-        return getOptional("aggGroup.strict.combination-max", kylinConfig.getCubeAggrGroupMaxCombination());
-    }
-
-    public int getAggGroupStrictRetryMax() {
-        return getOptional("aggGroup.strict.retry-max", strategy.getAggGroupStrictRetryMax());
-    }
-
-    public String getAggGroupStrategy() {
-        return getOptional("aggGroup.strategy", strategy.getAggGroupStrategy());
-    }
-
-    public int getDerivedStrictRetryMax() {
-        return getOptional("derived.strict.retry-max", strategy.getDerivedStrictRetryMax());
-    }
-
-    public int getDimCapMin() {
-        return getOptional("dim-cap.min", strategy.getDimCapMin());
-    }
-
-    public boolean getCuboidCombinationOverride() {
-        return getOptional("cuboid-combination-override", strategy.getCuboidCombinationOverride());
-    }
-
-    public boolean enableDimCapForAggGroupStrict() {
-        return getOptional("aggGroup.strict.dim-cap-enabled", strategy.enableDimCapForAggGroupStrict());
-    }
-
-    public boolean enableJointForAggGroupStrict() {
-        return getOptional("aggGroup.strict.joint-enabled", strategy.enableJointForAggGroupStrict());
-    }
-
-    public int getQueryDryRunThreads() {
-        return getOptional("dryrun.threads", strategy.getQueryDryRunThreads());
-    }
-
-    public String getModelScopeStrategy() {
-        return getOptional("model.scope.strategy", strategy.getModelScopeStrategy());
+        return getOptional("rowkey.default-encoding", DictionaryDimEnc.ENCODING_NAME);
     }
 
     public String getMeasureCountDistinctType() {
-        return getOptional("measure.count-distinct.return-type", strategy.getMeasureCountDistinctType());
+        return getOptional("measure.count-distinct.return-type", FunctionDesc.FUNC_COUNT_DISTINCT_BIT_MAP);
     }
 
     public int getProposeRetryMax() {
-        return getOptional("propose.retry-max", strategy.getProposeRetryMax());
+        return getOptional("propose.retry-max", 3);
     }
 }

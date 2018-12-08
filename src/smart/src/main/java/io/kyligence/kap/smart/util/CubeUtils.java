@@ -37,8 +37,6 @@ import io.kyligence.kap.smart.common.SmartConfig;
 
 public class CubeUtils {
 
-    private static final String BIG_INT = "bigint";
-
     private CubeUtils() {
     }
 
@@ -47,13 +45,18 @@ public class CubeUtils {
         String returnType = FunctionDesc.proposeReturnType(expression, colDataType,
                 Collections.singletonMap(FunctionDesc.FUNC_COUNT_DISTINCT,
                         SmartConfig.wrap(KylinConfig.getInstanceFromEnv()).getMeasureCountDistinctType()));
+
+        if (FunctionDesc.FUNC_COUNT_DISTINCT.equalsIgnoreCase(expression) && param.getNextParameter() != null) {
+            returnType = FunctionDesc.FUNC_COUNT_DISTINCT_HLLC10;
+        }
         FunctionDesc ret = FunctionDesc.newInstance(expression, param, returnType);
         ret.init(modelDesc);
         return ret;
     }
 
     public static FunctionDesc newCountStarFuncDesc(NDataModel modelDesc) {
-        return newFunctionDesc(modelDesc, FunctionDesc.FUNC_COUNT, ParameterDesc.newInstance("1"), BIG_INT);
+        return newFunctionDesc(modelDesc, FunctionDesc.FUNC_COUNT, ParameterDesc.newInstance("1"),
+                FunctionDesc.TYPE_BIGINT);
     }
 
     public static NDataModel.Measure newMeasure(FunctionDesc func, String name, int id) {

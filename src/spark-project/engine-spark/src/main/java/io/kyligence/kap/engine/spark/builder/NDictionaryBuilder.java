@@ -174,7 +174,7 @@ public class NDictionaryBuilder implements Serializable {
     }
 
     private NDataSegment writeDictionary(NDataSegment segment, Map<TblColRef, Dictionary<String>> dictionaryMap,
-                                         long startOffset, long endOffset) {
+            long startOffset, long endOffset) {
 
         // make a copy of the changing segment, avoid changing the cached object
         NDataflow dfCopy = segment.getDataflow().copy();
@@ -221,7 +221,7 @@ public class NDictionaryBuilder implements Serializable {
             Preconditions.checkArgument(cols.size() == 1);
             TblColRef ref = cols.get(0);
             DataType dataType = ref.getType();
-            if (false == dataType.isIntegerFamily()) {
+            if (!dataType.isIntegerFamily()) {
                 return ref;
             }
         }

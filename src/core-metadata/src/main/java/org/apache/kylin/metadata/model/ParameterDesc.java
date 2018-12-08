@@ -86,18 +86,25 @@ public class ParameterDesc implements Serializable {
         return r;
     }
 
+    @Getter
+    @Setter
     @JsonProperty("type")
     private String type;
+    @Getter
+    @Setter
     @JsonProperty("value")
     private String value;
 
+    @Getter
+    @Setter
     @JsonProperty("next_parameter")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private ParameterDesc nextParameter;
 
+    @Getter
     private TblColRef colRef = null;
-    private List<TblColRef> allColRefsIncludingNexts = null;
-    private List<PlainParameter> plainParameters = null;
+    private transient List<TblColRef> allColRefsIncludingNexts = null;
+    private transient List<PlainParameter> plainParameters = null;
 
     // Lazy evaluation
     public List<PlainParameter> getPlainParameters() {
@@ -107,28 +114,8 @@ public class ParameterDesc implements Serializable {
         return plainParameters;
     }
 
-    public String getType() {
-        return type;
-    }
-
-    public void setType(String type) {
-        this.type = type;
-    }
-
     public byte[] getBytes() throws UnsupportedEncodingException {
         return value.getBytes("UTF-8");
-    }
-
-    public String getValue() {
-        return value;
-    }
-
-    public void setValue(String value) {
-        this.value = value;
-    }
-
-    public TblColRef getColRef() {
-        return colRef;
     }
 
     void setColRef(TblColRef colRef) {
@@ -151,20 +138,12 @@ public class ParameterDesc implements Serializable {
         return allColRefsIncludingNexts;
     }
 
-    public ParameterDesc getNextParameter() {
-        return nextParameter;
-    }
-
-    public void setNextParameter(ParameterDesc nextParameter) {
-        this.nextParameter = nextParameter;
-    }
-
     public boolean isColumnType() {
         return FunctionDesc.PARAMETER_TYPE_COLUMN.equals(type);
     }
 
     public boolean isConstant() {
-        return FunctionDesc.PARAMETER_TYPE_CONSTANT.equals(type.toLowerCase());
+        return FunctionDesc.PARAMETER_TYPE_CONSTANT.equalsIgnoreCase(type);
     }
 
     @Override
@@ -179,22 +158,23 @@ public class ParameterDesc implements Serializable {
         if (type != null ? !type.equals(that.type) : that.type != null)
             return false;
 
-        ParameterDesc p = this, q = that;
+        ParameterDesc p = this;
+        ParameterDesc q = that;
         for (; p != null && q != null; p = p.nextParameter, q = q.nextParameter) {
-            if (p.isColumnType()) {
-                if (!q.isColumnType())
-                    return false;
-                if (!Objects.equals(q.getColRef(), p.getColRef()))
-                    return false;
-            } else {
-                if (q.isColumnType())
-                    return false;
-                if (!p.value.equals(q.value))
-                    return false;
+            if (p.isColumnType() != q.isColumnType()) {
+                return false;
+            }
+
+            if (p.isColumnType() && !Objects.equals(q.getColRef(), p.getColRef())) {
+                return false;
+            }
+
+            if (!p.isColumnType() && !p.value.equals(q.value)) {
+                return false;
             }
         }
 
-        return p == null && q == null;
+        return p == q;
     }
 
     public boolean equalInArbitraryOrder(Object o) {
@@ -220,7 +200,7 @@ public class ParameterDesc implements Serializable {
 
     @Override
     public String toString() {
-        String thisStr = isColumnType() ? colRef.toString() : value;
+        String thisStr = isColumnType() && colRef != null ? colRef.toString() : value;
         return nextParameter == null ? thisStr : thisStr + "," + nextParameter.toString();
     }
 
@@ -273,14 +253,6 @@ public class ParameterDesc implements Serializable {
             return single;
         }
 
-        public String getValue() {
-            return value;
-        }
-
-        public TblColRef getColRef() {
-            return colRef;
-        }
-
         @Override
         public int hashCode() {
             int result = type != null ? type.hashCode() : 0;
@@ -307,17 +279,13 @@ public class ParameterDesc implements Serializable {
                 if (this.colRef == null && that.colRef == null)
                     return Objects.equals(this.value, that.value);
                 // check for normal case
-                if (!Objects.equals(this.colRef, that.colRef)) {
-                    return false;
-                }
+                return Objects.equals(this.colRef, that.colRef);
             } else {
                 if (that.isColumnType())
                     return false;
-                if (!this.value.equals(that.value))
-                    return false;
+                return this.value.equals(that.value);
             }
 
-            return true;
         }
     }
 }

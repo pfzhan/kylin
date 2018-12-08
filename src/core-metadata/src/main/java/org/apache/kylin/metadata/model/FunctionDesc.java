@@ -44,7 +44,6 @@ package org.apache.kylin.metadata.model;
 
 import java.io.Serializable;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -115,6 +114,8 @@ public class FunctionDesc implements Serializable {
     public static final String FUNC_MAX = "MAX";
     public static final String FUNC_COUNT = "COUNT";
     public static final String FUNC_COUNT_DISTINCT = "COUNT_DISTINCT";
+    public static final String FUNC_COUNT_DISTINCT_HLLC10 = "hllc(10)";
+    public static final String FUNC_COUNT_DISTINCT_BIT_MAP = "bitmap";
     public static final String FUNC_PERCENTILE = "PERCENTILE_APPROX";
     public static final String FUNC_GROUPING = "GROUPING";
     public static final String FUNC_TOP_N = "TOP_N";
@@ -127,7 +128,7 @@ public class FunctionDesc implements Serializable {
 
     static {
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_TOP_N, "topn(100, 4)");
-        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT_DISTINCT, "bitmap");
+        EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT_DISTINCT, FUNC_COUNT_DISTINCT_BIT_MAP);
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_PERCENTILE, "percentile(100)");
         EXPRESSION_DEFAULT_TYPE_MAP.put(FUNC_COUNT, TYPE_BIGINT);
     }
@@ -146,7 +147,7 @@ public class FunctionDesc implements Serializable {
     @Setter
     @JsonProperty("configuration")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    private Map<String, String> configuration = new LinkedHashMap<String, String>();
+    private Map<String, String> configuration = Maps.newLinkedHashMap();
 
     private DataType returnDataType;
     private MeasureType<?> measureType;

@@ -228,19 +228,23 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     public void testAllQueries() throws Exception {
         executeTestScenario(
                 //                new TestScenario("sql", CompareLevel.SAME),
-                new TestScenario("sql_lookup", CompareLevel.SAME), new TestScenario("sql_casewhen", CompareLevel.SAME),
-                new TestScenario("sql_like", CompareLevel.SAME), new TestScenario("sql_cache", CompareLevel.SAME),
-                new TestScenario("sql_derived", CompareLevel.SAME), new TestScenario("sql_datetime", CompareLevel.SAME),
+                new TestScenario("sql_lookup", CompareLevel.SAME), //
+                new TestScenario("sql_casewhen", CompareLevel.SAME), //
+                new TestScenario("sql_like", CompareLevel.SAME), //
+                new TestScenario("sql_cache", CompareLevel.SAME), //
+                new TestScenario("sql_derived", CompareLevel.SAME), //
+                new TestScenario("sql_datetime", CompareLevel.SAME), //
                 new TestScenario("sql_tableau", CompareLevel.SAME_ROWCOUNT),
-                //               new TestScenario("sql_distinct", CompareLevel.SAME),
-                //               new TestScenario("sql_distinct_dim", CompareLevel.SAME),
-                //               new TestScenario("sql_distinct_precisely", CompareLevel.SAME, "left"),
+                new TestScenario("sql_distinct", CompareLevel.SAME),
+                new TestScenario("sql_distinct_dim", CompareLevel.SAME),
+                new TestScenario("sql_distinct_precisely", CompareLevel.SAME, "left"),
                 new TestScenario("sql_timestamp", CompareLevel.NONE),
                 new TestScenario("sql_multi_model", CompareLevel.SAME),
                 new TestScenario("sql_orderby", CompareLevel.SAME),
                 new TestScenario("sql_snowflake", CompareLevel.SAME),
                 new TestScenario("sql_topn", CompareLevel.SAME, "left"),
-                new TestScenario("sql_join", CompareLevel.SAME), new TestScenario("sql_union", CompareLevel.SAME),
+                new TestScenario("sql_join", CompareLevel.SAME), //
+                new TestScenario("sql_union", CompareLevel.SAME), //
                 new TestScenario("sql_window", CompareLevel.NONE),
                 new TestScenario("sql_h2_uncapable", CompareLevel.NONE),
                 new TestScenario("sql_grouping", CompareLevel.SAME), new TestScenario("sql_hive", CompareLevel.SAME),
@@ -273,24 +277,6 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     public void testCommonQuery() throws Exception {
         String[] exclusionList = new String[] { "query02.sql" };
         new TestScenario("sql", CompareLevel.SAME, exclusionList).execute();
-    }
-
-    @Test
-    public void testDistinct() throws Exception {
-        overwriteSystemProp("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
-        new TestScenario("sql_distinct", CompareLevel.SAME).execute();
-    }
-
-    @Test
-    public void testDistinctDim() throws Exception {
-        overwriteSystemProp("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
-        new TestScenario("sql_distinct_dim", CompareLevel.SAME).execute();
-    }
-
-    @Test
-    public void testDistinctPrecisely() throws Exception {
-        overwriteSystemProp("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
-        new TestScenario("sql_distinct_precisely", CompareLevel.SAME, "left").execute();
     }
 
     @Test

@@ -212,6 +212,59 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     @Test
+    public void testCountDistinctTwoParamColumn() throws IOException {
+        /*
+         * case 1:
+         */
+        String[] sqls = new String[] { "SELECT part_dt, SUM(price) AS GMV, COUNT(1) AS TRANS_CNT,\n"
+                + "COUNT(DISTINCT lstg_format_name), COUNT(DISTINCT seller_id, lstg_format_name) AS DIST_SELLER_FORMAT\n"
+                + "FROM kylin_sales GROUP BY part_dt" };
+
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        smartMaster.runAll();
+        {
+            final NSmartContext ctx = smartMaster.getContext();
+            final List<NDataModel.Measure> allMeasures = ctx.getModelContexts().get(0).getTargetModel()
+                    .getAllMeasures();
+            Assert.assertEquals(4, allMeasures.size());
+
+            final NDataModel.Measure measure3 = allMeasures.get(2);
+            Assert.assertEquals("COUNT_DISTINCT_LSTG_FORMAT_NAME", measure3.getName());
+            Assert.assertEquals(1, measure3.getFunction().getParameterCount());
+            Assert.assertEquals("bitmap", measure3.getFunction().getReturnDataType().getName());
+
+            final NDataModel.Measure measure4 = allMeasures.get(3);
+            Assert.assertEquals("COUNT_DISTINCT_SELLER_ID", measure4.getName());
+            Assert.assertEquals(2, measure4.getFunction().getParameterCount());
+            Assert.assertEquals("hllc", measure4.getFunction().getReturnDataType().getName());
+        }
+
+        /*
+         * case 2:
+         */
+        sqls = new String[] { "SELECT COUNT(DISTINCT META_CATEG_NAME) AS CNT, MAX(META_CATEG_NAME) AS max_name\n"
+                + "FROM kylin_category_groupings" };
+        smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        smartMaster.runAll();
+        {
+            final NSmartContext ctx = smartMaster.getContext();
+            final List<NDataModel.Measure> allMeasures = ctx.getModelContexts().get(0).getTargetModel()
+                    .getAllMeasures();
+            Assert.assertEquals(3, allMeasures.size());
+
+            final NDataModel.Measure measure1 = allMeasures.get(1);
+            Assert.assertEquals("COUNT_DISTINCT_META_CATEG_NAME", measure1.getName());
+            Assert.assertEquals(1, measure1.getFunction().getParameterCount());
+            Assert.assertEquals("bitmap", measure1.getFunction().getReturnDataType().getName());
+
+            final NDataModel.Measure measure2 = allMeasures.get(2);
+            Assert.assertEquals("MAX_META_CATEG_NAME", measure2.getName());
+            Assert.assertEquals(1, measure2.getFunction().getParameterCount());
+            Assert.assertEquals("varchar", measure2.getFunction().getReturnDataType().getName());
+        }
+    }
+
+    @Test
     public void testSaveAccelerateInfoOfOneSqlToManyLayouts() throws IOException {
         String[] sqls = new String[] { "select a.*, kylin_sales.lstg_format_name as lstg_format_name \n"
                 + "from ( select part_dt, sum(price) as sum_price from kylin_sales\n"

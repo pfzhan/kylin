@@ -24,14 +24,11 @@ package io.kyligence.kap.engine.spark.builder;
 
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.measure.bitmap.BitmapMeasureType;
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.spark.api.java.function.Function2;
@@ -44,7 +41,6 @@ import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Sets;
 
 import com.clearspring.analytics.util.Lists;
-import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidLayout;
@@ -137,7 +133,7 @@ public class DictionaryBuilder {
         NCubePlan cubePlan = seg.getDataflow().getCubePlan();
         for (NCuboidLayout layout : cubePlan.getAllCuboidLayouts()) {
             for (MeasureDesc measureDesc : layout.getCuboidDesc().getEffectiveMeasures().values()) {
-                if (needGlobalDictionary(measureDesc) == null)
+                if (NDictionaryBuilder.needGlobalDictionary(measureDesc) == null)
                     continue;
                 TblColRef col = measureDesc.getFunction().getParameter().getColRef();
                 colRefSet.add(col);
@@ -145,20 +141,6 @@ public class DictionaryBuilder {
         }
 
         return colRefSet;
-    }
-
-    private static TblColRef needGlobalDictionary(MeasureDesc measure) {
-        String returnDataTypeName = measure.getFunction().getReturnDataType().getName();
-        if (returnDataTypeName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
-            List<TblColRef> cols = measure.getFunction().getParameter().getColRefs();
-            Preconditions.checkArgument(cols.size() == 1);
-            TblColRef ref = cols.get(0);
-            DataType dataType = ref.getType();
-            if (false == dataType.isIntegerFamily()) {
-                return ref;
-            }
-        }
-        return null;
     }
 
     private String getLockPath(String pathName) {
