@@ -116,7 +116,7 @@ Vue.directive('focus', {
 Vue.directive('scroll', {
   inserted: function (el, binding, vnode) {
     if (el) {
-      let scrollbar = Scrollbar.init(el)
+      let scrollbar = Scrollbar.init(el, {continuousScrolling: true})
       let needObserve = binding.modifiers.observe
       if (needObserve) {
         scrollbar.addListener((status) => {
