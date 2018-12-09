@@ -23,8 +23,8 @@
 package org.apache.spark.sql.execution.datasources
 
 import org.apache.hadoop.fs.FileStatus
-
 import org.apache.spark.sql.Column
+import org.apache.spark.sql.types.StructType
 
 /**
  * Interface [[MetastoreSupport]] to describe how index metadata should be saved or loaded.
@@ -69,7 +69,7 @@ trait MetastoreSupport {
    * @param metastore current index metastore
    * @param indexDirectory index directory of metastore to load relevant data
    */
-  def loadIndex(metastore: Metastore, indexDirectory: FileStatus): MetastoreIndex
+  def loadIndex(metastore: Metastore, indexDirectory: FileStatus, userSpecifiedSchema: Option[StructType] = None): MetastoreIndex
 
   /**
    * Delete index, this method should be overwritten when special handling of data inside index

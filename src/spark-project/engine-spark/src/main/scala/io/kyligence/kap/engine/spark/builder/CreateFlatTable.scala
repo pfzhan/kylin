@@ -98,7 +98,8 @@ object CreateFlatTable {
     }
     val partDesc = model.getPartitionDesc
     if (partDesc != null && partDesc.getPartitionDateColumn != null) {
-      @SuppressWarnings(Array("rawtypes")) val segRange = flatTable.getSegRange
+      @SuppressWarnings(Array("rawtypes"))
+      val segRange = flatTable.getSegRange
       if (segRange != null && !segRange.isInfinite) {
         val afterConvertPartition = replaceDot(
           partDesc.getPartitionConditionBuilder

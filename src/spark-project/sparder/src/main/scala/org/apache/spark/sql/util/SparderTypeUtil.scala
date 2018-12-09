@@ -33,6 +33,8 @@ import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.Column
+import org.apache.spark.sql.functions._
 
 object SparderTypeUtil extends Logging {
   val DATETIME_FAMILY = List("time", "date", "timestamp", "datetime")
@@ -82,35 +84,36 @@ object SparderTypeUtil extends Logging {
       case SqlTypeName.DECIMAL => DataTypes.createDecimalType(dataType.getPrecision, dataType.getScale)
       case SqlTypeName.CHAR => DataTypes.StringType
       case SqlTypeName.VARCHAR => DataTypes.StringType
-      case SqlTypeName.INTEGER =>  DataTypes.IntegerType
-      case SqlTypeName.TINYINT =>  DataTypes.ByteType
+      case SqlTypeName.INTEGER => DataTypes.IntegerType
+      case SqlTypeName.TINYINT => DataTypes.ByteType
       case SqlTypeName.SMALLINT => DataTypes.ShortType
-      case SqlTypeName.BIGINT =>  DataTypes.LongType
-      case SqlTypeName.FLOAT =>  DataTypes.FloatType
-      case SqlTypeName.DOUBLE =>  DataTypes.DoubleType
-      case SqlTypeName.DATE =>  DataTypes.DateType
-      case SqlTypeName.TIMESTAMP =>  DataTypes.TimestampType
-      case SqlTypeName.BOOLEAN =>  DataTypes.BooleanType
+      case SqlTypeName.BIGINT => DataTypes.LongType
+      case SqlTypeName.FLOAT => DataTypes.FloatType
+      case SqlTypeName.DOUBLE => DataTypes.DoubleType
+      case SqlTypeName.DATE => DataTypes.DateType
+      case SqlTypeName.TIMESTAMP => DataTypes.TimestampType
+      case SqlTypeName.BOOLEAN => DataTypes.BooleanType
       case _ =>
         throw new IllegalArgumentException(s"unsupported SqlTypeName ${dataType.getSqlTypeName}")
     }
   }
 
   // scalastyle:off
-  def toSparkType(dataTp: DataType): org.apache.spark.sql.types.DataType = {
+  def toSparkType(dataTp: DataType, isSum: Boolean = false): org.apache.spark.sql.types.DataType = {
     dataTp.getName match {
-      case "decimal" => DecimalType(dataTp.getPrecision, dataTp.getScale)
+    // org.apache.spark.sql.catalyst.expressions.aggregate.Sum#resultType
+      case "decimal" => if (isSum) DecimalType(dataTp.getPrecision + 10, dataTp.getScale) else DecimalType(dataTp.getPrecision, dataTp.getScale)
       case "date" => DateType
       case "time" => DateType
       case "timestamp" => TimestampType
       case "datetime" => DateType
-      case "tinyint" => ByteType
-      case "smallint" => ShortType
-      case "integer" => IntegerType
-      case "int4" => IntegerType
+      case "tinyint" => if (isSum) LongType else ByteType
+      case "smallint" => if (isSum) LongType else ShortType
+      case "integer" => if (isSum) LongType else IntegerType
+      case "int4" => if (isSum) LongType else IntegerType
       case "bigint" => LongType
       case "long8" => LongType
-      case "float" => FloatType
+      case "float" => if (isSum)DoubleType else FloatType
       case "double" => DoubleType
       case tp if tp.startsWith("varchar") => StringType
       case tp if tp.startsWith("char") => StringType
@@ -123,7 +126,6 @@ object SparderTypeUtil extends Logging {
           StructField("dim", StringType),
           StructField("measure", DoubleType)
         )))
-
       case tp if tp.startsWith("bitmap") => BinaryType
       case tp if tp.startsWith("extendedcolumn") => BinaryType
       case tp if tp.startsWith("percentile") => BinaryType
@@ -252,10 +254,11 @@ object SparderTypeUtil extends Logging {
         case th: Throwable =>
           logError(s"Error for convert value : $s , class: ${s.getClass}", th)
           // fixme aron never come to here, for coverage ignore.
-                  safetyConvertStringToValue(s, rowType, toCalcite)
+          safetyConvertStringToValue(s, rowType, toCalcite)
       }
     }
   }
+
   def kylinRawTableSQLTypeToSparkType(dataTp: DataType): org.apache.spark.sql.types.DataType = {
     dataTp.getName match {
       case "decimal" => DecimalType(dataTp.getPrecision, dataTp.getScale)
@@ -345,17 +348,27 @@ object SparderTypeUtil extends Logging {
   }
 
   // ms to microsecond, spark need micro sec.
-//  def toSparkMicrosecond(calciteTimestamp: Long): java.lang.Long = {
-//    calciteTimestamp * 1000
-//  }
+  //  def toSparkMicrosecond(calciteTimestamp: Long): java.lang.Long = {
+  //    calciteTimestamp * 1000
+  //  }
 
   // ms to day
-//  def toSparkDate(calciteTimestamp: Long): java.lang.Integer = {
-//    (calciteTimestamp / 1000 / 3600 / 24).toInt
-//  }
+  //  def toSparkDate(calciteTimestamp: Long): java.lang.Integer = {
+  //    (calciteTimestamp / 1000 / 3600 / 24).toInt
+  //  }
 
   def toCalciteTimestamp(sparkTimestamp: Long): Long = {
     sparkTimestamp * 1000
   }
 
+  def alignDataType(origin: StructType, goal: StructType): Array[Column] = {
+    origin.zip(goal).map {
+      case (sparkField, kylinField) =>
+        if (!sparkField.dataType.sameType(kylinField.dataType)) {
+          col(sparkField.name).cast(kylinField.dataType)
+        } else {
+          col(sparkField.name)
+        }
+    }.toArray
+  }
 }

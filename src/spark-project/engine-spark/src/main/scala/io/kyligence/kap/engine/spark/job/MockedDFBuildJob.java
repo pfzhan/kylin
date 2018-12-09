@@ -99,7 +99,7 @@ public class MockedDFBuildJob extends NDataflowJob {
                 NDataSegment seg = dfMgr.getDataflow(dfName).getSegment(segId);
                 val dimensions = new ArrayList<Integer>(cubePlan.getModel().getEffectiveCols().keySet());
                 List<DataType> sparkTypes = dimensions.stream().map(x -> cubePlan.getModel().getColRef(x).getType())
-                        .map(SparderTypeUtil::toSparkType).collect(Collectors.toList());
+                        .map(tp -> SparderTypeUtil.toSparkType(tp, false)).collect(Collectors.toList());
                 val collect = IntStream.range(0, dimensions.size())
                         .mapToObj(x -> new StructField(String.valueOf(dimensions.get(x)), sparkTypes.get(x), true,
                                 Metadata.empty()))

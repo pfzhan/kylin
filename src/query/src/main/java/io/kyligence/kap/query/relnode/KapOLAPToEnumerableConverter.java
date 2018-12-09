@@ -54,7 +54,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
 import io.kyligence.kap.query.optrule.JoinFilterRule;
 import io.kyligence.kap.query.optrule.KapFilterRule;
 import io.kyligence.kap.query.optrule.KapProjectRule;
@@ -90,7 +89,7 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
 
     @Override
     public Result implement(EnumerableRelImplementor enumImplementor, Prefer pref) {
-        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
+//        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN BEFORE OLAPImplementor", this);
 
         // filter up, project push down

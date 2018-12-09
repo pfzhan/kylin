@@ -24,6 +24,7 @@ package org.apache.spark.sql
 
 import org.apache.spark.sql.execution.datasources.{CatalogTableSource, IndexedDataSource, Metastore}
 import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.types.StructType
 
 import scala.collection.mutable.{HashMap => MutableHashMap}
 
@@ -35,6 +36,8 @@ import scala.collection.mutable.{HashMap => MutableHashMap}
 class DataFrameIndexManager(sparkSession: SparkSession) {
   private var source: String = IndexedDataSource.parquet
   private var extraOptions = new MutableHashMap[String, String]()
+  private var userSpecifiedSchema: Option[StructType] = None
+
 
   /** File format for table */
   def format(source: String): DataFrameIndexManager = {
@@ -91,6 +94,18 @@ class DataFrameIndexManager(sparkSession: SparkSession) {
     require(columns.length == 1)
     option("shardByColumn", columns.head)
     option("support", "shard")
+  }
+
+  /**
+    * Specifies the input schema. Some data sources (e.g. JSON) can infer the input schema
+    * automatically from data. By specifying the schema here, the underlying data source can
+    * skip the schema inference step, and thus speed up data loading.
+    *
+    * @since 1.4.0
+    */
+  def schema(schema: StructType): DataFrameIndexManager = {
+    this.userSpecifiedSchema = Option(schema)
+    this
   }
 
   /**

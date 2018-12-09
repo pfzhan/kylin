@@ -40,6 +40,7 @@ import scala.util.{Failure, Success, Try}
 case class IndexedDataSource(
                               metastore: Metastore,
                               className: String,
+                              userSpecifiedSchema: Option[StructType] = None,
                               mode: SaveMode = SaveMode.ErrorIfExists,
                               options: Map[String, String] = Map.empty,
                               bucketSpec: Option[BucketSpec] = None,
@@ -69,7 +70,7 @@ case class IndexedDataSource(
     val caseInsensitiveOptions = CaseInsensitiveMap(options)
     providingClass.newInstance() match {
       case support: ShardMetastoreSupport =>
-        val indexCatalog = support.loadIndex(metastore, tablePath, options)
+        val indexCatalog = support.loadIndex(metastore, tablePath, options, userSpecifiedSchema)
         HadoopFsRelation(
           indexCatalog,
           partitionSchema = indexCatalog.partitionSchema,
@@ -90,7 +91,7 @@ case class IndexedDataSource(
 
         val spec = locationSpec(support.identifier, tablePath.getPath, catalogTable)
         val indexCatalog = metastore.load(spec) { status =>
-          support.loadIndex(metastore, status)
+          support.loadIndex(metastore, status, userSpecifiedSchema)
         }
 
         HadoopFsRelation(

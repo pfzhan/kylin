@@ -72,7 +72,7 @@ class ShardMetastoreSupportSuite extends UnitTestSuite with SparkLocal with Test
 
       val support = new ShardMetastoreSupport
 
-      val catalog = support.loadIndex(metastore, fs.getFileStatus(new Path(testPath)), options).
+      val catalog = support.loadIndex(metastore, fs.getFileStatus(new Path(testPath)), options, None).
         asInstanceOf[ShardIndex]
       val dataSchema = catalog.dataSchema
       assert(dataSchema.fields.length == 2)

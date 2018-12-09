@@ -28,7 +28,7 @@ import com.google.common.collect.Sets
 import io.kyligence.kap.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.cube.gridtable.NCuboidToGridTableMapping
 import io.kyligence.kap.cube.kv.NCubeDimEncMap
-import io.kyligence.kap.cube.model.{NDataSegment, NDataflow}
+import io.kyligence.kap.cube.model.{NDataflow, NDataSegment}
 import io.kyligence.kap.query.exception.UnsupportedQueryException
 import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
@@ -44,7 +44,7 @@ import org.apache.spark.sql.execution.datasource.CubeRelation
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.manager.SparderLookupManager
-import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, LongType, StructField, StructType}
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, _}
 
@@ -109,13 +109,21 @@ object TableScanPlan extends Logging {
           )
           val dimFields = cuboidLayout.getOrderedDimensions.asScala.map {
             entity =>
-              val dataType = SparderTypeUtil.kylinRawTableSQLTypeToSparkType(entity._2.getColumnDesc.getType)
+              val dataType = SparderTypeUtil.toSparkType(entity._2.getColumnDesc.getType)
               StructField(entity._1.toString, dataType)
           }.toArray
           val meaFields = cuboidLayout.getOrderedMeasures.asScala.map {
             entity =>
-              val dataType = SparderTypeUtil.kylinRawTableSQLTypeToSparkType(entity._2.getFunction.getReturnDataType)
-              StructField(entity._1.toString, dataType)
+              entity._2.getFunction.getExpression.toUpperCase match {
+                case "SUM" =>
+                val dataType = SparderTypeUtil.toSparkType(entity._2.getFunction.getReturnDataType,true)
+                  StructField(entity._1.toString, dataType)
+                case "COUNT" =>
+                  StructField(entity._1.toString, LongType)
+                case _ =>
+                  val dataType = SparderTypeUtil.toSparkType(entity._2.getFunction.getReturnDataType)
+                  StructField(entity._1.toString, dataType)
+              }
           }.toArray
 
           val parquetSchema = new StructType(dimFields ++ meaFields)
@@ -128,6 +136,7 @@ object TableScanPlan extends Logging {
                 cuboidLayout.getShardByColumns.asScala
                   .map(column => column.toString)
                   .toArray)
+              .schema(parquetSchema)
               .parquet(fileList.mkString(","))
               .toDF(relation.schema.fieldNames: _*)
           }

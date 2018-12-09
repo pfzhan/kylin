@@ -32,7 +32,7 @@ trait LocalToYarnSupport
 
   override def beforeAll(): Unit = {
     checkSystem("kylin.engine.spark.job-jar")
-    checkSystem("kylin.hadoop.conf.dir",
+    changeSystemProp("kylin.hadoop.conf.dir",
                        System.getenv("HADOOP_CONF_DIR"))
     super.beforeAll()
   }

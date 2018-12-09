@@ -25,7 +25,9 @@ package io.kyligence.kap.it
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.sql.common.{LocalMetadata, ParquetSSBSource, SparderBaseFunSuite}
+import org.scalatest.Ignore
 
+@Ignore
 class TestSSBSource
   extends SparderBaseFunSuite
     with ParquetSSBSource

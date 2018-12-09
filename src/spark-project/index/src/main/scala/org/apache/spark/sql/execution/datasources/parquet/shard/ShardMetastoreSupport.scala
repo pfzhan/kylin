@@ -27,6 +27,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Column
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.execution.datasources.parquet.ParquetFileFormat
+import org.apache.spark.sql.types.StructType
 
 class ShardMetastoreSupport extends MetastoreSupport with Logging {
   /**
@@ -71,11 +72,13 @@ class ShardMetastoreSupport extends MetastoreSupport with Logging {
     * @param metastore      current index metastore
     * @param indexDirectory index directory of metastore to load relevant data
     */
-  override def loadIndex(metastore: Metastore, indexDirectory: FileStatus): MetastoreIndex = {
-    loadIndex(metastore, indexDirectory, Map.empty)
+  override def loadIndex(metastore: Metastore, indexDirectory: FileStatus,
+                         userSpecifiedSchema: Option[StructType] = None): MetastoreIndex = {
+    loadIndex(metastore, indexDirectory, Map.empty, userSpecifiedSchema)
   }
 
-  def loadIndex(metastore: Metastore, indexDirectory: FileStatus, options: Map[String, String]): MetastoreIndex = {
-    new ShardIndex(metastore.session, indexDirectory.getPath, options)
+  def loadIndex(metastore: Metastore, indexDirectory: FileStatus, options: Map[String, String],
+                userSpecifiedSchema: Option[StructType]): MetastoreIndex = {
+    new ShardIndex(metastore.session, indexDirectory.getPath, options, userSpecifiedSchema)
   }
 }

@@ -31,7 +31,8 @@ import org.apache.spark.sql.execution.datasources.{MetastoreIndex, PartitionDire
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.{StructField, StructType}
 
-class ShardIndex(sparkSession: SparkSession, path: Path, options: Map[String, String]) extends MetastoreIndex {
+class ShardIndex(sparkSession: SparkSession, path: Path, options: Map[String, String],
+                 userSpecifiedSchema: Option[StructType]) extends MetastoreIndex {
 
   private var internalIndexFilters: Seq[Filter] = Nil
 
@@ -67,7 +68,11 @@ class ShardIndex(sparkSession: SparkSession, path: Path, options: Map[String, St
   }
 
   override def dataSchema: StructType = {
-    new ParquetFileFormat().inferSchema(sparkSession, options, files).get
+    if (userSpecifiedSchema.isDefined) {
+      userSpecifiedSchema.get
+    } else {
+      new ParquetFileFormat().inferSchema(sparkSession, options, files).get
+    }
   }
 
   override def setIndexFilters(filters: Seq[Filter]): Unit = {

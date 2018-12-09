@@ -35,6 +35,8 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.util.SparderTypeUtil;
 
 import java.util.Map;
 
@@ -43,14 +45,18 @@ public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingS
     public Dataset<Row> getSourceData(TableDesc table, SparkSession ss, Map<String, String> getSourceData) {
         ColumnDesc[] columnDescs = table.getColumns();
         List<String> tblColNames = Lists.newArrayListWithCapacity(columnDescs.length);
+        StructType kylinSchema = new StructType();
         for (ColumnDesc columnDesc : columnDescs) {
             if (!columnDesc.isComputedColumn()) {
+                kylinSchema.add(columnDesc.getName(), SparderTypeUtil.toSparkType(columnDesc.getType(), false), true);
                 tblColNames.add(columnDesc.getName());
             }
         }
         String[] colNames = tblColNames.toArray(new String[0]);
         String colString = Joiner.on(",").join(colNames);
         String sql = String.format("select %s from %s", colString, table.getIdentity());
-        return ss.sql(sql).toDF(colNames);
+        Dataset<Row> df = ss.sql(sql);
+        StructType sparkSchema = df.schema();
+        return df.select(SparderTypeUtil.alignDataType(sparkSchema, kylinSchema));
     }
 }

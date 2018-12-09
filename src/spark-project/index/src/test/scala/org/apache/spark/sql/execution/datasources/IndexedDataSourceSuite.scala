@@ -56,7 +56,7 @@ private[datasources] class TestMetastoreSupport extends MetastoreSupport {
 
   override def loadIndex(
                           metastore: Metastore,
-                          indexDirectory: FileStatus): MetastoreIndex = {
+                          indexDirectory: FileStatus, userSpecifiedSchema: Option[StructType]): MetastoreIndex = {
     new MetastoreIndex() {
       override def tablePath: Path = new Path(".")
 
@@ -68,7 +68,7 @@ private[datasources] class TestMetastoreSupport extends MetastoreSupport {
 
       override def setIndexFilters(filters: Seq[Filter]) = {}
 
-      override def indexFilters: Seq[Filter] = ???
+      override def indexFilters: Seq[Filter] = Nil
 
       override def listFilesWithIndexSupport(
                                               partitionFilters: Seq[Expression],

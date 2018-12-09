@@ -39,6 +39,7 @@ trait QuerySupport
   self: Suite =>
   val sparder = System.getProperty("kap.query.engine.sparder-enabled")
 
+
   override def beforeAll(): Unit = {
     super.beforeAll()
     System.setProperty("kap.query.engine.sparder-enabled", "true")

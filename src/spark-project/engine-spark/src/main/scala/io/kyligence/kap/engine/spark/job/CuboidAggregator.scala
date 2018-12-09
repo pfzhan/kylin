@@ -29,6 +29,7 @@ import java.util
 import io.kyligence.kap.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.engine.spark.builder.DFFlatTableEncoder
 import io.kyligence.kap.metadata.model.NDataModel
+import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.measure.bitmap.BitmapMeasureType
 import org.apache.kylin.measure.hllc.HLLCMeasureType
 import org.apache.kylin.metadata.model.TblColRef
@@ -88,7 +89,18 @@ object CuboidAggregator {
         if (afterAgg) {
           columns.append(col(measureEntry._1.toString))
         } else {
-          columns.append(lit(parameters.head.getValue))
+          if (function.getExpression.equalsIgnoreCase("SUM")) {
+            val parameteter = parameters.head.getValue
+            if (StringUtils.isNumeric(parameteter))  {
+                if (parameteter.contains(".")) {
+                  columns.append(lit(parameteter.toDouble))
+                } else {
+                  columns.append(lit(parameteter.toLong))
+                }
+            }
+          } else {
+            columns.append(lit(parameters.head.getValue))
+          }
         }
       }
 

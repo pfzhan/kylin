@@ -19,7 +19,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  */
-package org.apache.spark.sql.common;
+package org.apache.spark.sql.common
 
 import java.io.File
 
@@ -38,7 +38,6 @@ trait LocalMetadata extends BeforeAndAfterAll with BeforeAndAfterEach {
       metaStore.createTestMetadata(metadata)
     } else {
       metaStore.createTestMetadata("../" + metadata)
-
     }
   }
 

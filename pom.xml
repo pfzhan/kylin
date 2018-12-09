@@ -164,7 +164,7 @@
         <swagger2markup.version>1.3.3</swagger2markup.version>
 
         <!-- JVM Args for Testing -->
-        <argLine>-Xms1G -Xmx2G -XX:MaxPermSize=512M </argLine>
+        <argLine>-Xms1G -Xmx2G -XX:MaxPermSize=512M -Duser.timezone=UTC</argLine>
         <dropwizard.version>3.1.2</dropwizard.version>
     </properties>
 

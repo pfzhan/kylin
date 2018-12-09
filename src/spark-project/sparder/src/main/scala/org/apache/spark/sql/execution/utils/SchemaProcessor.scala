@@ -99,7 +99,7 @@ object SchemaProcessor {
     StructType(columnDescs.map { columnDesc =>
       StructField(
         columnDesc.getName,
-        SparderTypeUtil.kylinRawTableSQLTypeToSparkType(columnDesc.getType))
+        SparderTypeUtil.toSparkType(columnDesc.getType))
     })
   }
 

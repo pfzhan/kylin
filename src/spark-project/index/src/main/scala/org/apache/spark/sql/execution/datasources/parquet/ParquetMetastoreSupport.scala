@@ -48,7 +48,7 @@ case class ParquetMetastoreSupport() extends MetastoreSupport with Logging {
   override def fileFormat: FileFormat = new ParquetFileFormat()
 
   override def loadIndex(metastore: Metastore,
-                         indexDirectory: FileStatus): MetastoreIndex = {
+                         indexDirectory: FileStatus, userSpecifiedSchema: Option[StructType] = None): MetastoreIndex = {
     val readDir = tableMetadataLocation(indexDirectory.getPath)
     if (!metastore.fs.exists(readDir)) {
       throw new IOException(s"Path $readDir for table metadata does not exist")
