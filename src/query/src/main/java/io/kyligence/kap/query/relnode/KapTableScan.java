@@ -58,6 +58,7 @@ import org.apache.calcite.rel.rules.SortUnionTransposeRule;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.optrule.AggregateMultipleExpandRule;
 import org.apache.kylin.query.optrule.AggregateProjectReduceRule;
@@ -89,6 +90,7 @@ import io.kyligence.kap.query.util.ICutContextStrategy;
 /**
  */
 public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel {
+
     KapConfig kapConfig;
 
     boolean contextVisited = false; // means whether this TableScan has been visited in context implementor
@@ -207,7 +209,14 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
     @Override
     public void implementContext(OLAPContextImplementor olapContextImplementor, ContextVisitorState state) {
         contextVisited = true;
-        state.merge(ContextVisitorState.of(false, true));
+
+        final TableDesc sourceTable = this.getOlapTable().getSourceTable();
+        state.merge(ContextVisitorState.of(false, true, sourceTable.isFact()));
+
+        if (olapContextImplementor.getFirstTableDesc() == null) {
+            olapContextImplementor.setFirstTableDesc(sourceTable);
+        }
+        state.setHasFirstTable(olapContextImplementor.getFirstTableDesc().equals(sourceTable));
     }
 
     @Override

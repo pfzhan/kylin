@@ -574,11 +574,20 @@ public class NSmartMasterTest extends NTestBase {
                 + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
 
+        smartMaster.analyzeSQLs();
+
+        // after cutting context, change "DEFAULT.KYLIN_CAL_DT" to be a incremental load table
         val tableManager = NTableMetadataManager.getInstance(kylinConfig, proj);
         val table = tableManager.getTableDesc("DEFAULT.KYLIN_CAL_DT");
         table.setFact(true);
         tableManager.updateTableDesc(table);
-        smartMaster.runAll();
+
+        smartMaster.selectModel();
+        smartMaster.optimizeModel();
+        smartMaster.saveModel();
+        smartMaster.selectCubePlan();
+        smartMaster.optimizeCubePlan();
+        smartMaster.saveCubePlan();
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertEquals(1, accelerateInfoMap.values().size());

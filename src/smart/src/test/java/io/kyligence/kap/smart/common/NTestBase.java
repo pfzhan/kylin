@@ -33,11 +33,13 @@ import java.util.stream.Collectors;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
@@ -47,6 +49,7 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealizationJDBCDao;
+import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.query.Utils;
 import lombok.val;
 
@@ -104,5 +107,14 @@ public abstract class NTestBase {
             realizations.addAll(tmp);
         });
         return realizations;
+    }
+
+    protected Set<OLAPContext> collectAllOlapContexts(NSmartContext smartContext) {
+        Preconditions.checkArgument(smartContext != null);
+        Set<OLAPContext> olapContexts = Sets.newHashSet();
+        final List<NSmartContext.NModelContext> modelContexts = smartContext.getModelContexts();
+        modelContexts.forEach(modelCtx -> olapContexts.addAll(modelCtx.getModelTree().getOlapContexts()));
+
+        return olapContexts;
     }
 }

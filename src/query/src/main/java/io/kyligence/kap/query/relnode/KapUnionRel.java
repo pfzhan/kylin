@@ -89,7 +89,7 @@ public class KapUnionRel extends OLAPUnionRel implements KapRel {
             ContextVisitorState tempState = ContextVisitorState.init();
             RelNode input = getInput(i);
             olapContextImplementor.visitChild(input, this, tempState);
-            if (tempState.isHasFreeTable()) {
+            if (tempState.hasFreeTable()) {
                 // any input containing free table should be assigned a context
                 olapContextImplementor.allocateContext((KapRel) input, null);
             }

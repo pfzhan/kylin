@@ -103,7 +103,7 @@ public class KapLimitRel extends OLAPLimitRel implements KapRel {
         olapContextImplementor.fixSharedOlapTableScan(this);
         ContextVisitorState tempState = ContextVisitorState.init();
         olapContextImplementor.visitChild(getInput(), this, tempState);
-        if (tempState.isHasFreeTable()) {
+        if (tempState.hasFreeTable()) {
             olapContextImplementor.allocateContext(this, null);
             tempState.setHasFreeTable(false);
         }

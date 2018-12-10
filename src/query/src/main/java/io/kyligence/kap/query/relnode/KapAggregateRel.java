@@ -24,8 +24,10 @@
 
 package io.kyligence.kap.query.relnode;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.query.util.ICutContextStrategy;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCost;
 import org.apache.calcite.plan.RelOptPlanner;
@@ -43,9 +45,9 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPAggregateRel;
 import org.apache.kylin.query.relnode.OLAPContext;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.query.util.ICutContextStrategy;
 
 /**
  */
@@ -89,8 +91,8 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         olapContextImplementor.fixSharedOlapTableScan(this);
         ContextVisitorState tempState = ContextVisitorState.init();
         olapContextImplementor.visitChild(getInput(), this, tempState);
-        if (tempState.isHasFreeTable()) {
-            OLAPContext context = olapContextImplementor.allocateContext(this, null);
+        if (tempState.hasFreeTable()) {
+            olapContextImplementor.allocateContext(this, null);
             tempState.setHasFreeTable(false);
         }
         state.merge(tempState);

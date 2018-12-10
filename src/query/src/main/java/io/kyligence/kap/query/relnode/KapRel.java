@@ -32,6 +32,7 @@ import java.util.Stack;
 import org.apache.calcite.rel.BiRel;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.SingleRel;
+import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPTableScan;
@@ -45,6 +46,11 @@ public interface KapRel extends OLAPRel {
      * visitor pattern for cutting OLAP query contexts
      */
     class OLAPContextImplementor {
+
+        @Setter
+        @Getter
+        private TableDesc firstTableDesc;
+
         private Stack<RelNode> parentNodeStack = new Stack<>();
         private int ctxSeq = 0;
         private Queue<RelNode> aggRelQueue = new LinkedList<>();
@@ -128,27 +134,55 @@ public interface KapRel extends OLAPRel {
         }
     }
 
+    @Setter
     class ContextVisitorState {
-        @Setter @Getter private boolean hasFilter; // filter exists in the child
-        @Setter @Getter private boolean hasFreeTable; // free table (not in any context) exists in the child
 
-        public ContextVisitorState(boolean hasFilter, boolean hasFreeTable) {
+        private boolean hasFilter; // filter exists in the child
+        private boolean hasFreeTable; // free table (not in any context) exists in the child
+        private boolean hasIncrementalTable;
+        private boolean hasFirstTable;
+
+        public boolean hasFirstTable() {
+            return hasFirstTable;
+        }
+
+        public boolean hasIncrementalTable() {
+            return this.hasIncrementalTable;
+        }
+
+        public boolean hasFilter() {
+            return this.hasFilter;
+        }
+
+        public boolean hasFreeTable() {
+            return this.hasFreeTable;
+        }
+
+        public ContextVisitorState(boolean hasFilter, boolean hasFreeTable, boolean hasIncrementalTable) {
             this.hasFilter = hasFilter;
             this.hasFreeTable = hasFreeTable;
+            this.hasIncrementalTable = hasIncrementalTable;
         }
 
         // TODO: Maybe cache is required to improve performance
         public static ContextVisitorState of(boolean hasFilter, boolean hasFreeTable) {
-            return new ContextVisitorState(hasFilter, hasFreeTable);
+            return of(hasFilter, hasFreeTable, false);
+        }
+
+        public static ContextVisitorState of(boolean hasFilter, boolean hasFreeTable, boolean hasIncrementalTable) {
+            return new ContextVisitorState(hasFilter, hasFreeTable, hasIncrementalTable);
         }
 
         public static ContextVisitorState init() {
-            return of(false, false);
+            return of(false, false, false);
         }
 
         public ContextVisitorState merge(ContextVisitorState that) {
             this.hasFilter = that.hasFilter || this.hasFilter;
             this.hasFreeTable = that.hasFreeTable || this.hasFreeTable;
+            this.hasIncrementalTable = that.hasIncrementalTable || this.hasIncrementalTable;
+            this.hasFirstTable = that.hasFirstTable || this.hasFirstTable;
+
             return this;
         }
     }

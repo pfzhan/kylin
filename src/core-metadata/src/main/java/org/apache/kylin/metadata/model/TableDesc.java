@@ -292,7 +292,7 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
         this.columns = columns;
     }
 
-    public boolean getFact() {
+    public boolean isFact() {
         return isFact;
     }
 

@@ -24,33 +24,18 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.LinkedHashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.SetMultimap;
-import io.kyligence.kap.cube.model.NDataLoadingRange;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.NTableExtDesc;
-import io.kyligence.kap.metadata.model.VolatileRange;
-import io.kyligence.kap.rest.request.AutoMergeRequest;
-import io.kyligence.kap.rest.request.DateRangeRequest;
-import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
-import io.kyligence.kap.rest.response.TableDescResponse;
-import io.kyligence.kap.rest.response.TableNameResponse;
-import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.LoadingRangeUpdateEvent;
-import lombok.val;
-import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -76,17 +61,33 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
+import com.google.common.collect.FluentIterable;
+import com.google.common.collect.LinkedHashMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.SetMultimap;
+
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.LoadingRangeUpdateEvent;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableExtDesc;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.model.VolatileRange;
+import io.kyligence.kap.rest.request.AutoMergeRequest;
+import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
+import io.kyligence.kap.rest.response.TableDescResponse;
+import io.kyligence.kap.rest.response.TableNameResponse;
+import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import lombok.val;
+import lombok.var;
 
 @Component("tableService")
 public class TableService extends BasicService {
@@ -135,11 +136,11 @@ public class TableService extends BasicService {
     }
 
     private int compareTableDesc(TableDesc table1, TableDesc table2) {
-        if (!(table1.isTop() ^ table2.isTop())) {
-            if (!(table1.getFact() ^ table2.getFact())) {
+        if (table1.isTop() == table2.isTop()) {
+            if (table1.isFact() == table2.isFact()) {
                 return table1.getName().compareToIgnoreCase(table2.getName());
             } else {
-                return table1.getFact() && !table2.getFact() ? -1 : 1;
+                return table1.isFact() && !table2.isFact() ? -1 : 1;
             }
         } else {
             return table1.isTop() && !table2.isTop() ? -1 : 1;
@@ -167,7 +168,7 @@ public class TableService extends BasicService {
             } else {
                 nTableDesc.setUuid(origTable.getUuid());
                 nTableDesc.setLastModified(origTable.getLastModified());
-                nTableDesc.setFact(origTable.getFact());
+                nTableDesc.setFact(origTable.isFact());
             }
 
             tableMetaMgr.saveSourceTable(nTableDesc);
@@ -378,7 +379,7 @@ public class TableService extends BasicService {
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         String tableName = table.substring(table.lastIndexOf(".") + 1);
         String columnIdentity = tableName + "." + column;
-        boolean oldFact = tableDesc.getFact();
+        boolean oldFact = tableDesc.isFact();
         //toogle table type,remove all segments in related models
         if (fact == oldFact) {
             return;

@@ -48,10 +48,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.rest.response.TableNameResponse;
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.exception.PersistentException;
@@ -74,24 +70,28 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableExtDesc;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.TopTableRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
+import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @Slf4j
 public class TableServiceTest extends NLocalFileMetadataTestCase {
@@ -216,7 +216,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "");
         List<TableDesc> tables = tableService.getTableDesc("default", false, "", "DEFAULT", true);
         //test set fact and table list order by fact
-        Assert.assertTrue(tables.get(0).getName().equals("TEST_KYLIN_FACT") && tables.get(0).getFact());
+        Assert.assertTrue(tables.get(0).getName().equals("TEST_KYLIN_FACT") && tables.get(0).isFact());
         NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "default");
         NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
@@ -455,10 +455,10 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
         val dataloadingManager = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
         tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "", "");
-        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").getFact());
+        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isFact());
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "");
-        Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").getFact());
+        Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isFact());
         Assert.assertNotNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
     }
 
@@ -467,7 +467,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
         val dataloadingManager = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
         tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "", "");
-        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").getFact());
+        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isFact());
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
@@ -499,13 +499,13 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(modelManager.getDataModelDesc("nmodel_basic").getPartitionDesc().getPartitionDateColumn(),
                 "TEST_KYLIN_FACT.CAL_DT");
 
-        Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").getFact());
+        Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isFact());
         Assert.assertNotNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
 
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
         eventDao.deleteAllEvents();
         tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "", "");
-        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").getFact());
+        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isFact());
 
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         Assert.assertNull(modelManager.getDataModelDesc("nmodel_basic").getPartitionDesc());

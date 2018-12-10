@@ -40,7 +40,7 @@ public class FirstRoundContextCutStrategy implements ICutContextStrategy {
         KapRel.OLAPContextImplementor contextImplementor = new KapRel.OLAPContextImplementor();
         KapRel.ContextVisitorState initState = KapRel.ContextVisitorState.init();
         contextImplementor.visitChild(rootRel, rootRel, initState);
-        if (initState.isHasFreeTable()) {
+        if (initState.hasFreeTable()) {
             // if there are free tables, allocate a context for it
             contextImplementor.allocateContext((KapRel) rootRel, null);
         }
