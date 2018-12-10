@@ -18,25 +18,25 @@
                 v-model="popoverVisible">
                 <p class="info-block">
                   <span class="info-title">{{$t('useageMana')}}</span>
-                  <span class="useage" v-if="quotaInfo.total_storage_size>=0">{{useageRatio*100}}%</span>
+                  <span class="useage" v-if="quotaInfo.total_storage_size>=0">{{useageRatio*100 | fixed(2)}}%</span>
                   <span v-else>--</span>
                 </p>
                 <p class="info-block">
                   <span  class="info-title">{{$t('trash')}}</span>
-                  <span class="trash" v-if="quotaInfo.garbage_storage_size>=0">{{trashRatio*100}}%</span>
+                  <span class="trash" v-if="quotaInfo.garbage_storage_size>=0">{{trashRatio*100 | fixed(2)}}%</span>
                   <span v-else>--</span>
                 </p>
               </el-popover>
               <div class="quota-chart" v-popover:popover>
                 <div class="unUseage-block" :style="{'height': (1-useageRatio-trashRatio)*quotaHeight+'px'}">
-                  <div class="text" v-if="(trashRatio*quotaHeight<14 || useageRatio*quotaHeight<14)">{{unUseageRatio*100}}%</div>
+                  <div class="text" v-if="(trashRatio*quotaHeight<14 || useageRatio*quotaHeight<14)">{{unUseageRatio*100 | fixed(2)}}%</div>
                 </div>
                 <div class="total-use-block" :style="{'height': usedBlockHeight+'px'}">
                   <div class="useage-block" :style="{'height': (useageRatio*quotaHeight/usedBlockHeight)*100+'%'}">
-                    <div class="text" v-if="useageRatio*quotaHeight>=14">{{useageRatio*100}}%</div>
+                    <div class="text" v-if="useageRatio*quotaHeight>=14">{{useageRatio*100 | fixed(2)}}%</div>
                   </div>
                   <div class="trash-block" :style="{'height': (trashRatio*quotaHeight/usedBlockHeight)*100+'%'}">
-                    <div class="text" v-if="trashRatio*quotaHeight>=14">{{trashRatio*100}}%</div>
+                    <div class="text" v-if="trashRatio*quotaHeight>=14">{{trashRatio*100 | fixed(2)}}%</div>
                   </div>
                 </div>
               </div>
