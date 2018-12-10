@@ -71,12 +71,14 @@ sealed abstract class MeasureUDAF extends UserDefinedAggregateFunction {
   override def initialize(buffer: MutableAggregationBuffer): Unit = {
     if (byteBuffer == null) {
       byteBuffer = ByteBuffer.allocate(serializer.maxLength())
+      val dataType = KyDataType.getType(dataTpName)
       dataTpName match {
         case tp if tp.startsWith("hllc") =>
-          encoder = new HLLCCountEnc(KyDataType.getType(dataTpName)).asInstanceOf[MeasureEncoder[Any, Any]]
+          encoder = new HLLCCountEnc(dataType).asInstanceOf[MeasureEncoder[Any, Any]]
         case "bitmap" =>
-          encoder = new BitmapCountEnc(KyDataType.getType(dataTpName))
-            .asInstanceOf[MeasureEncoder[Any, Any]]
+          encoder = new BitmapCountEnc(dataType).asInstanceOf[MeasureEncoder[Any, Any]]
+        case tp if tp.startsWith("percentile") =>
+          encoder = new PercentileCountEnc(dataType).asInstanceOf[MeasureEncoder[Any, Any]]
       }
     }
     buffer.update(0, null)

@@ -74,7 +74,7 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_h2_uncapable"),
     FloderInfo("sql_grouping"),
     //    FloderInfo("sql_intersect_count"),
-    //    "sql_percentile",
+    FloderInfo("sql_percentile"),
     FloderInfo("sql_distinct")
   )
   val tempQuery = List(

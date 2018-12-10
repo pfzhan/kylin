@@ -139,6 +139,13 @@ object CuboidAggregator {
           val udfName = UdfManager.register(function.getReturnDataType,
             function.getExpression, schema, !afterAgg)
           callUDF(udfName, columns: _*).as(measureEntry._1.toString)
+        case "PERCENTILE_APPROX" =>
+          val udfName = UdfManager.register(function.getReturnDataType, function.getExpression, null, !afterAgg)
+          if (!afterAgg) {
+            callUDF(udfName, columns.head.cast(StringType)).as(measureEntry._1.toString)
+          } else {
+            callUDF(udfName, columns.head).as(measureEntry._1.toString)
+          }
       }
     }.toSeq
 

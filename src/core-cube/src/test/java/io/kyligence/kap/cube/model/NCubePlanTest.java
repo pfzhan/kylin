@@ -91,7 +91,7 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(model.findColumn("TEST_KYLIN_FACT.TRANS_ID"), effectiveDimCols.get(1));
 
         BiMap<Integer, NDataModel.Measure> effectiveMeasures = cube.getEffectiveMeasures();
-        Assert.assertEquals(15, effectiveMeasures.size());
+        Assert.assertEquals(16, effectiveMeasures.size());
 
         MeasureDesc m = effectiveMeasures.get(1000);
         Assert.assertEquals("TRANS_CNT", m.getName());
@@ -108,8 +108,8 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals(1000001, cuboidLayout.getId());
             Assert.assertEquals(33, cuboidLayout.getOrderedDimensions().size());
             Assert.assertEquals(33, cuboidLayout.getOrderedDimensions().size()); //test lazy init
-            Assert.assertEquals(15, cuboidLayout.getOrderedMeasures().size());
-            Assert.assertEquals(15, cuboidLayout.getOrderedMeasures().size()); //test lazy init
+            Assert.assertEquals(16, cuboidLayout.getOrderedMeasures().size());
+            Assert.assertEquals(16, cuboidLayout.getOrderedMeasures().size()); //test lazy init
         }
 
         {

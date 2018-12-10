@@ -24,6 +24,7 @@ package io.kyligence.kap.engine.spark.job
 
 import org.apache.kylin.measure.bitmap.{BitmapCounter, RoaringBitmapCounterFactory}
 import org.apache.kylin.measure.hllc.HLLCounter
+import org.apache.kylin.measure.percentile.PercentileCounter
 import org.apache.kylin.metadata.datatype.DataType
 
 sealed abstract class MeasureEncoder[T, V](dataType: DataType) {
@@ -32,6 +33,16 @@ sealed abstract class MeasureEncoder[T, V](dataType: DataType) {
   def encoder(value: T): V
 }
 
+class PercentileCountEnc(dataType: DataType) extends MeasureEncoder[Any, PercentileCounter](dataType: DataType) with Serializable {
+  def this() = this(DataType.getType("String"))
+
+  override def encoder(value: Any): PercentileCounter = {
+    val current: PercentileCounter = new PercentileCounter(dataType.getPrecision)
+    current.add(value.toString.toDouble)
+    current
+  }
+
+}
 
 class HLLCCountEnc(dataType: DataType) extends MeasureEncoder[Any, HLLCounter](dataType: DataType) with Serializable {
   def this() = this(DataType.getType("String"))

@@ -150,7 +150,7 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         Set<Integer> meaSet = Sets.newHashSet();
         for (Map.Entry<Integer, NDataModel.Measure> entry : cuboid.getCuboidLayout().getOrderedMeasures().entrySet()) {
             String funName = entry.getValue().getFunction().getReturnDataType().getName();
-            if (funName.equals("hllc") || funName.equals("topn")) {
+            if (funName.equals("hllc") || funName.equals("topn") || funName.equals("percentile")) {
                 continue;
             }
             meaSet.add(entry.getKey());
