@@ -187,7 +187,7 @@
     currentPager = 1
     pagerSize = 50
     scrollLoad () {
-      if (this.searchAllColumns.length !== this.filterResult.length) {
+      if (this.searchAllColumns && this.searchAllColumns.length !== this.filterResult.length) {
         this.currentPager += 1
       }
     }
@@ -201,7 +201,7 @@
     }
     get searchAllColumns () {
       if (!this.isShow) {
-        return
+        return []
       }
       return this.filterResult.slice(0, this.pagerSize * this.currentPager)
     }

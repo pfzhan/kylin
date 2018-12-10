@@ -91,10 +91,10 @@
                 </el-option>
               </el-select>
               <div class="list-actions clearfix">
-                <el-button plain text type="primary" size="medium" icon="el-icon-ksd-table_add"
+                <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
                   @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`)">
                 </el-button>
-                <el-button plain text class="delete" size="medium" icon="el-icon-ksd-symbol_type"
+                <el-button circle class="delete" size="mini" icon="el-icon-minus"
                   :disabled="aggregate.hierarchyArray.length === 1"
                   @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.hierarchyArray`, aggregateIdx, hierarchyRowIdx)">
                 </el-button>
@@ -121,10 +121,10 @@
                 </el-option>
               </el-select>
               <div class="list-actions clearfix">
-                <el-button plain text type="primary" size="medium" icon="el-icon-ksd-table_add"
+                <el-button circle plain type="primary" size="mini" icon="el-icon-ksd-add_2"
                   @click="handleAddDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`)">
                 </el-button>
-                <el-button plain text class="delete" size="medium" icon="el-icon-ksd-symbol_type"
+                <el-button circle class="delete" size="mini" icon="el-icon-minus"
                   :disabled="aggregate.jointArray.length === 1"
                   @click="handleRemoveDimensionRow(`aggregateArray.${aggregateIdx}.jointArray`, aggregateIdx, jointRowIdx)">
                 </el-button>
@@ -409,6 +409,7 @@ export default class AggregateModal extends Vue {
 @import '../../../../../../assets/styles/variables.less';
 
 .aggregate-modal {
+  .el-button + .el-button { margin-left: 4px;}
   .dimension {
     float: left;
     padding: 6px 13px;
@@ -494,24 +495,6 @@ export default class AggregateModal extends Vue {
     }
     .el-button--medium {
       float: left;
-    }
-    .delete i {
-      background: @fff;
-      color: @text-disabled-color;
-      &:hover {
-        background: @fff;
-        color: @text-disabled-color;
-      }
-    }
-    .delete.is-disabled i {
-      background: @grey-4;
-      border-radius: 50%;
-      overflow: hidden;
-      &:hover {
-        background: @grey-4;
-        border-radius: 50%;
-        overflow: hidden;
-      }
     }
   }
   .mandatory,

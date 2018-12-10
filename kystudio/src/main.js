@@ -39,8 +39,7 @@ import 'brace/theme/chrome'
 import 'brace/theme/monokai'
 import 'brace/ext/language_tools'
 import './assets/styles/index.less'
-import VueDND from 'awe-dnd'
-Vue.use(VueDND)
+
 Vue.component('confirm-btn', confirmBtn)
 Vue.component('common-tip', commonTip)
 Vue.component('pager', pager) // 弃用
