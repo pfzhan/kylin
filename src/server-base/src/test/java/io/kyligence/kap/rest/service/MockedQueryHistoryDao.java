@@ -76,6 +76,7 @@ public class MockedQueryHistoryDao extends QueryHistoryDAO {
             QueryHistory queryHistory = new QueryHistory("sql_pattern" + i,
                     QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN", System.currentTimeMillis(), 6000L);
             queryHistory.setInsertTime(currentTime + 30 * i * 1000L);
+            queryHistory.setAnsweredBy("HIVE");
             if (i == 4)
                 queryHistory.setSqlPattern("SELECT *\nFROM \"TEST_COUNTRY\"\nLIMIT 1");
             if (i == 5)
@@ -88,6 +89,7 @@ public class MockedQueryHistoryDao extends QueryHistoryDAO {
             QueryHistory queryHistoryForUpdate = new QueryHistory("sql" + (i+1),
                     QueryHistory.QUERY_HISTORY_SUCCEEDED, "ADMIN", System.currentTimeMillis(), 6000L);
             queryHistoryForUpdate.setInsertTime(currentTime + 30 * i * 1000L);
+            queryHistoryForUpdate.setAnsweredBy("HIVE");
             overallQueryHistories.add(queryHistoryForUpdate);
         }
     }

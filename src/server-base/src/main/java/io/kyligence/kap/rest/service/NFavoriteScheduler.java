@@ -157,6 +157,9 @@ public class NFavoriteScheduler {
             FrequencyStatus frequencyStatus = new FrequencyStatus(startTime);
 
             for (QueryHistory queryHistory : queryHistories) {
+                if (!isQualifiedCandidate(queryHistory))
+                    continue;
+
                 frequencyStatus.updateFrequency(queryHistory.getSqlPattern());
             }
 
@@ -221,16 +224,13 @@ public class NFavoriteScheduler {
             FrequencyStatus newStatus = new FrequencyStatus(startTime);
 
             for (QueryHistory queryHistory : queryHistories) {
+                if (!isQualifiedCandidate(queryHistory))
+                    continue;
+
                 String sqlPattern = queryHistory.getSqlPattern();
+                newStatus.updateFrequency(sqlPattern);
 
-                if (queryHistory.isException())
-                    continue;
-
-                int sqlPatternHash = sqlPattern.hashCode();
                 if (FavoriteQueryManager.getInstance(config, project).contains(sqlPattern))
-                    continue;
-
-                if (isInBlacklist(sqlPatternHash, project))
                     continue;
 
                 if (matchRuleBySingleRecord(queryHistory)) {
@@ -239,8 +239,6 @@ public class NFavoriteScheduler {
                     favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
                     candidates.add(favoriteQuery);
                 }
-
-                newStatus.updateFrequency(sqlPattern);
             }
 
             updateOverallFrequencyStatus(newStatus);
@@ -250,6 +248,22 @@ public class NFavoriteScheduler {
         }
 
         return startTime;
+    }
+
+    private boolean isQualifiedCandidate(QueryHistory queryHistory) {
+        // failed
+        if (queryHistory.isException())
+            return false;
+
+        String sqlPattern = queryHistory.getSqlPattern();
+        if (isInBlacklist(sqlPattern.hashCode(), project))
+            return false;
+
+        // query with constants, 1 <> 1
+        if (queryHistory.getAnsweredBy().contains("CONSTANTS"))
+            return false;
+
+        return true;
     }
 
     private void internalFavorite(final Set<FavoriteQuery> favoriteQueries) {

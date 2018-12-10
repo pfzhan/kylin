@@ -80,24 +80,28 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         queryHistory1.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryHistory1.setDuration(1000L);
         queryHistory1.setQueryTime(1001);
+        queryHistory1.setAnsweredBy("CONSTANTS");
 
         QueryHistory queryHistory2 = new QueryHistory();
         queryHistory2.setSqlPattern("sql2");
         queryHistory2.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryHistory2.setDuration(1000L);
         queryHistory2.setQueryTime(1002);
+        queryHistory2.setAnsweredBy("HIVE");
 
         QueryHistory queryHistory3 = new QueryHistory();
         queryHistory3.setSqlPattern("sql3");
         queryHistory3.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         queryHistory3.setDuration(1000L);
         queryHistory3.setQueryTime(1003);
+        queryHistory3.setAnsweredBy("HIVE");
 
         QueryHistory queryHistory4 = new QueryHistory();
         queryHistory4.setSqlPattern("sql3");
         queryHistory4.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
         queryHistory4.setDuration(1000L);
         queryHistory4.setQueryTime(1004);
+        queryHistory4.setAnsweredBy("HIVE");
 
         return Lists.newArrayList(queryHistory1, queryHistory2, queryHistory3, queryHistory4);
     }
@@ -157,9 +161,10 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
 
         favoriteScheduler.initFrequencyStatus();
         Assert.assertEquals(24 * 60, favoriteScheduler.getFrequencyStatuses().size());
-        Assert.assertEquals(3, favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().size());
+        Assert.assertEquals(2, favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().size());
+        Assert.assertNull(favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql1"));
         Assert.assertEquals(24 * 60,
-                (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql1"));
+                (int) favoriteScheduler.getOverAllStatus().getSqlPatternFreqMap().get("sql2"));
 
         NFavoriteScheduler.FrequencyStatus firstStatus = favoriteScheduler.getFrequencyStatuses().pollFirst();
         NFavoriteScheduler.FrequencyStatus lastStatus = favoriteScheduler.getFrequencyStatuses().pollLast();
@@ -207,15 +212,23 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         succeededQueryHistory.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
         succeededQueryHistory.setQueryTime(1001);
         succeededQueryHistory.setQuerySubmitter("ADMIN");
+        succeededQueryHistory.setAnsweredBy("Agg Index");
 
         QueryHistory failedQueryHistory = new QueryHistory();
         failedQueryHistory.setSqlPattern("failed_query");
         failedQueryHistory.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
         failedQueryHistory.setQueryTime(1001);
         failedQueryHistory.setQuerySubmitter("ADMIN");
+        failedQueryHistory.setAnsweredBy("Unknown");
+
+        // queries with constants will not be recorded down
+        QueryHistory queryWithConstants = new QueryHistory();
+        queryWithConstants.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
+        queryWithConstants.setSqlPattern("select * from table where 1 <> 1");
+        queryWithConstants.setAnsweredBy("CONSTANTS");
 
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(succeededQueryHistory, failedQueryHistory)).when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong());
+        Mockito.doReturn(Lists.newArrayList(succeededQueryHistory, failedQueryHistory, queryWithConstants)).when(queryHistoryDAO).getQueryHistoriesByTime(Mockito.anyLong(), Mockito.anyLong());
         Mockito.doReturn(queryHistoryDAO).when(favoriteScheduler).getQueryHistoryDao();
 
         autoMarkRunner.run();
@@ -423,6 +436,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         QueryHistory queryHistory = new QueryHistory("sql_pattern7", QueryHistory.QUERY_HISTORY_SUCCEEDED,
                 "ADMIN", System.currentTimeMillis(), 6000L);
         queryHistory.setInsertTime(mockedQueryHistoryDao.getCurrentTime() + 59 * 1000L);
+        queryHistory.setAnsweredBy("HIVE");
         mockedQueryHistoryDao.insert(queryHistory);
 
         // current time is 02-01 00:02:00, triggered next round, runner scanned from 2018-02-01 00:00:00 to 2018-02-01 00:01:00,
