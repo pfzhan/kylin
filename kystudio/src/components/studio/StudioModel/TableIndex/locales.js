@@ -39,7 +39,7 @@ export default {
   },
   'zh-cn': {
     noSupportRawTable: '只有KAP PLUS 提供Raw Table功能',
-    tableIndex: '表索引',
+    tableIndex: '表明细索引',
     ID: 'ID',
     column: '列',
     dataType: '数据类型',

@@ -8,6 +8,7 @@
       <!-- 表单：项目名 -->
       <el-form-item :label="$t('projectName')" prop="name" v-if="isFieldShow('name')">
         <el-input
+          v-focus="isShow"
           size="small"
           auto-complete="off"
           :value="form.name"

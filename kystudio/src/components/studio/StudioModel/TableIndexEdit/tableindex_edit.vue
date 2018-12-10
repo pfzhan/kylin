@@ -269,6 +269,7 @@
     closeModal (isSubmit) {
       this.hideModal()
       this.tableIndexMeta.name = ''
+      this.$refs.tableIndexForm.resetFields()
       setTimeout(() => {
         this.callback && this.callback({
           isSubmit: isSubmit

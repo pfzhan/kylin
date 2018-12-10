@@ -351,6 +351,7 @@
             <el-form :model="this" :rules="aliasRules" ref="aliasForm" @submit.native="()=> {return false}">
               <el-form-item prop="currentEditAlias">
               <el-input v-model="currentEditAlias" size="mini" @click.stop @keyup.enter.native="saveEditTableAlias"></el-input>
+              <input type="text" style="display:none" />
               <el-button type="primary" size="mini" icon="el-icon-check" @click.stop="saveEditTableAlias"></el-button><el-button size="mini" @click.stop="cancelEditAlias" icon="el-icon-close" plain></el-button>
               </el-form-item>
             </el-form>
