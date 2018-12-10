@@ -176,7 +176,7 @@ export default class AddMeasure extends Vue {
     {label: 'COUNT (column)', value: 'COUNT(column)'},
     {label: 'COUNT (constant)', value: 'COUNT(constant)'},
     {label: 'COUNT_DISTINCT', value: 'COUNT_DISTINCT'},
-    {label: 'CORR (Beta)', value: 'CORR'},
+    // {label: 'CORR (Beta)', value: 'CORR'},
     {label: 'PERCENTILE_APPROX', value: 'PERCENTILE_APPROX'}
   ]
   topNTypes = [
