@@ -82,6 +82,14 @@ export default {
     ]
   },
   "disableOptionMaps": {
+    // 菜单权限
+    "menu": {
+      "keyPattern": "groupRole-projectRole",
+      "entries": [
+        { "key": "systemAdmin-*", "value": "none" },
+        { "key": "systemUser-*", "value": "group" }
+      ]
+    },
     "modelActions": {
       "keyPattern": "projectType-modelType",
       "entries": [
@@ -93,14 +101,6 @@ export default {
     }
   },
   "enableOptionMaps": {
-    // 菜单权限
-    "menu": {
-      "keyPattern": "groupRole-projectRole",
-      "entries": [
-        { "key": "systemAdmin-*", "value": "dashboard,query,insight,queryHistory,favoriteQuery,studio,project,source,model,index,modelEdit,monitor,job,setting,security,user,group" },
-        { "key": "systemUser-*", "value": "dashboard,query,insight,queryHistory,favoriteQuery,studio,project,source,model,index,modelEdit,monitor,job,setting,security,user" }
-      ]
-    },
     // 用户操作权限
     "userActions": {
       "keyPattern": "groupRole",
