@@ -260,7 +260,7 @@ public class NSmartContextPartitionTest extends NTestBase {
          * --    /  \    /   \
          * --   A   *B join   join
          * --         /  \    /  \
-         * --        *B   D  *B   D
+         * --        *B   D   D   *B
          */
         sqls = new String[] { "SELECT kylin_cal_dt.cal_dt AS cal_dt, SUM(kylin_sales.price) AS price\n" //
                 + "FROM kylin_cal_dt\n" //
@@ -286,10 +286,10 @@ public class NSmartContextPartitionTest extends NTestBase {
         smartMaster.runAll();
         {
             final NSmartContext smartContext = smartMaster.getContext();
-            Assert.assertEquals(4, collectAllOlapContexts(smartContext).size());
+            Assert.assertEquals(5, collectAllOlapContexts(smartContext).size());
 
             final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
-            Assert.assertEquals(3, accelerateInfoMap.get(sqls[0]).getRelatedLayouts().size());
+            Assert.assertEquals(4, accelerateInfoMap.get(sqls[0]).getRelatedLayouts().size());
         }
 
         kylinCountry.setFact(false);
