@@ -4,7 +4,6 @@ import topLeftRightView from 'components/layout/layout_left_right_top'
 import layoutFull from 'components/layout/layout_full'
 import projectList from 'components/project/project_list'
 import login from 'components/user/login'
-import setting from 'components/security/reset_password'
 import newQuery from 'components/query/new_query'
 import queryHistory from 'components/query/query_history'
 import favoriteQuery from 'components/query/favorite_query'
@@ -89,11 +88,6 @@ let routerOptions = {
         name: 'Job',
         path: 'monitor/job',
         component: jobs
-      },
-      {
-        name: 'Setting',
-        path: 'setting',
-        component: setting
       },
       {
         name: 'NewQuery',

@@ -16,7 +16,6 @@ import directive from './directive'
 import confirmBtn from 'components/common/confirm_btn'
 import iconBtn from 'components/common/icon_button'
 import commonTip from 'components/common/common_tip'
-import tree from 'components/common/tree'
 import tab from 'components/common/tab'
 import pager from 'components/common/pager'// 弃用
 import kapPager from 'components/common/kap_pager'
@@ -44,7 +43,6 @@ import VueDND from 'awe-dnd'
 Vue.use(VueDND)
 Vue.component('confirm-btn', confirmBtn)
 Vue.component('common-tip', commonTip)
-Vue.component('tree', tree)
 Vue.component('pager', pager) // 弃用
 Vue.component('kap-pager', kapPager)
 Vue.component('kap-icon-button', iconBtn)

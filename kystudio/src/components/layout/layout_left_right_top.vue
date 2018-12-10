@@ -84,13 +84,6 @@
         </div>
       </el-col>
     </el-row>
-    <el-dialog @close="closeResetPassword" :title="$t('resetPassword')" :visible.sync="resetPasswordFormVisible" width="440px">
-        <reset_password :curUser="currentUser" ref="resetPassword" :show="resetPasswordFormVisible" v-on:validSuccess="resetPasswordValidSuccess"></reset_password>
-        <div slot="footer" class="dialog-footer">
-          <el-button @click="resetPasswordFormVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-          <el-button type="primary" plain @click="checkResetPasswordForm">{{$t('kylinLang.common.ok')}}</el-button>
-        </div>
-    </el-dialog>
     <el-dialog class="linsencebox"
       :title="kapVersion"
       width="440px"
@@ -136,7 +129,6 @@ import projectSelect from '../project/project_select'
 import changeLang from '../common/change_lang'
 import help from '../common/help'
 import canary from '../security/canary'
-import resetPassword from '../security/reset_password'
 import $ from 'jquery'
 import ElementUI from 'kyligence-ui'
 let MessageBox = ElementUI.MessageBox
@@ -173,7 +165,6 @@ let MessageBox = ElementUI.MessageBox
   components: {
     'project_select': projectSelect,
     'change_lang': changeLang,
-    'reset_password': resetPassword,
     help,
     canary
   },
