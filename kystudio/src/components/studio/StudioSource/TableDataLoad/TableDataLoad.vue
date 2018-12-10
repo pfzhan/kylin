@@ -147,7 +147,8 @@ import { handleSuccessAsync, handleError, isDatePartitionType, looseEqual } from
     ...mapActions({
       saveIncrementalTable: 'SAVE_FACT_TABLE',
       fetchRelatedModels: 'FETCH_RELATED_MODELS',
-      fetchChangeTypeInfo: 'FETCH_CHANGE_TYPE_INFO'
+      fetchChangeTypeInfo: 'FETCH_CHANGE_TYPE_INFO',
+      fetchRelatedModelStatus: 'FETCH_RELATED_MODEL_STATUS'
     })
   },
   locales
@@ -190,6 +191,17 @@ export default class TableDataLoad extends Vue {
   }
   @Watch('relatedModels', { immediate: true, deep: true })
   onRelatedModelsChange () {
+    this.refreshRelatedModelActions()
+    this.watchRelatedModelErrorStatus()
+  }
+  @Watch('table')
+  onTableChange () {
+    this.loadRelatedModel()
+  }
+  beforeDestroy () {
+    clearInterval(this.timer)
+  }
+  refreshRelatedModelActions () {
     for (const relatedModel of this.relatedModels) {
       const projectType = this.project.maintain_model_type
       const modelType = relatedModel.management_type
@@ -200,9 +212,26 @@ export default class TableDataLoad extends Vue {
       }
     }
   }
-  @Watch('table')
-  onTableChange () {
-    this.loadRelatedModel()
+  watchRelatedModelErrorStatus () {
+    const { projectName, relatedModels } = this
+
+    clearInterval(this.timer)
+
+    if (relatedModels.length) {
+      this.getRelatedModelStatus({ projectName, relatedModels })
+      this.timer = setInterval(async () => {
+        this.getRelatedModelStatus({ projectName, relatedModels })
+      }, 5000)
+    }
+  }
+  async getRelatedModelStatus ({ projectName, relatedModels }) {
+    const uuids = relatedModels.map(relatedModel => relatedModel.name)
+    const res = await this.fetchRelatedModelStatus({ projectName, uuids })
+    const statusList = await handleSuccessAsync(res)
+    statusList.forEach(modelStatus => {
+      const currentRelatedModel = this.relatedModels.find(relatedModel => relatedModel.alias === modelStatus.alias)
+      currentRelatedModel.has_error_jobs = modelStatus.has_error_jobs
+    })
   }
   async handleChangeDataRange (newDataRange) {
     const isSubmit = await this.callSourceTableModal({ editType: 'changeDataRange', table: this.table, newDataRange })
@@ -339,7 +368,7 @@ export default class TableDataLoad extends Vue {
         segment.endTime > endTime && (endTime = +segment.endTime)
         segment.status === 'NEW' && (isOnline = false)
       })
-      return { ...model, segments, startTime, endTime, isOnline, modelActions: [] }
+      return { ...model, segments, startTime, endTime, isOnline, modelActions: [], has_error_jobs: false }
     })
   }
 }

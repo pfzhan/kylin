@@ -154,5 +154,10 @@ export default {
   },
   updateAggregateGroups: (project, model, dimensions, aggregationGroups, isCatchUp) => {
     return Vue.resource(apiUrl + 'cube_plans/rule').update({ project, model, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp })
+  },
+  fetchRelatedModelStatus: (project, uuids) => {
+    const body = { project, uuids }
+    const headers = { 'X-Progress-Invisiable': 'true' }
+    return window.kapVm.$http.post(apiUrl + 'models/job_error_status', body, { headers })
   }
 }

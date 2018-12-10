@@ -353,6 +353,11 @@ export default class JobsList extends Vue {
   }
 
   created () {
+    const { modelAlias, jobStatus } = this.$route.query
+
+    modelAlias && (this.filter.subject = modelAlias)
+    jobStatus && (this.filter.status = jobStatus)
+
     this.selectedJob = {} // 防止切换project时，发一个不存在该项目jobId的jobDetail的请求
     this.filter.project = this.currentSelectedProject
     var autoFilter = () => {

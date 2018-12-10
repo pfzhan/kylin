@@ -170,7 +170,7 @@ export default {
     return Vue.resource(apiUrl + 'tables/data_range').save({project, table, start, end})
   },
   fetchRelatedModels (project, table, model, pageOffset, pageSize) {
-    return Vue.resource(apiUrl + 'models').get({project, table, model, pageOffset, pageSize})
+    return Vue.resource(apiUrl + 'models').get({project, table, model, pageOffset, pageSize, withJobStatus: false})
   },
   fetchTables (project, database, table, pageOffset, pageSize, isFuzzy, ext) {
     return Vue.resource(apiUrl + 'tables').get({project, database, table, pageOffset, pageSize, isFuzzy, ext})

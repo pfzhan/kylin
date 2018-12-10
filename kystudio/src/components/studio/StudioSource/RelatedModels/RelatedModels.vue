@@ -24,7 +24,16 @@
           <el-col v-for="relatedModel in modelCardGroup" :key="relatedModel.uuid" :span="span">
             <div class="model-card" :class="{ 'is-discard': relatedModel.management_type === 'MODEL_BASED' }">
               <el-row class="model-header">
-                <span class="model-name">{{relatedModel.alias}}</span>
+                <span class="model-name" :class="{ 'has-error': relatedModel.has_error_jobs }">
+                  {{relatedModel.alias}}
+                </span>
+                <el-popover placement="top" popper-class="model-error-tip" trigger="hover" v-if="relatedModel.has_error_jobs">
+                  <div class="error-tip">
+                    <span>{{$t('refreshFailed')}}</span>
+                    <span class="view-jobs" @click="handleViewJobs(relatedModel.alias)">{{$t('viewJobs')}}</span>
+                  </div>
+                  <i class="el-icon-ksd-alert" slot="reference"></i>
+                </el-popover>
               </el-row>
               <el-row class="model-body">
                 <el-col class="model-status" :span="24">
@@ -149,6 +158,12 @@ export default class RelatedModels extends Vue {
   handleLoadMore () {
     this.$emit('load-more')
   }
+  handleViewJobs (modelAlias) {
+    const path = '/monitor/job'
+    const jobStatus = 'ERROR'
+    const query = { modelAlias, jobStatus }
+    this.$router.push({ path, query })
+  }
   async handleDiscard (relatedModel) {
     try {
       const modelName = relatedModel.name
@@ -175,6 +190,8 @@ export default class RelatedModels extends Vue {
 </script>
 
 <style lang="less">
+@import '../../../../assets/styles/variables.less';
+
 .related-models {
   .header {
     border-bottom: 1px solid #CFD8DC;
@@ -227,10 +244,14 @@ export default class RelatedModels extends Vue {
     background: #F1F7FA;
   }
   .model-name {
-    font-size: 14px;
     color: #263238;
     line-height: 24px;
-    font-weight: 500;
+  }
+  .model-name.has-error {
+    color: @error-color-1;
+  }
+  .el-icon-ksd-alert {
+    color: @warning-color-1;
   }
   .model-body {
     font-size: 12px;
@@ -238,6 +259,7 @@ export default class RelatedModels extends Vue {
   }
   .model-header {
     margin-bottom: 10px;
+    font-size: 16px;
   }
   .model-header,
   .range-time {
@@ -275,6 +297,18 @@ export default class RelatedModels extends Vue {
   .model-status {
     margin-bottom: 10px;
     height: 24px;
+  }
+}
+
+.model-error-tip {
+  min-width: inherit;
+  white-space: nowrap;
+  .error-tip {
+    text-align: center;
+  }
+  .view-jobs {
+    color: @base-color;
+    cursor: pointer;
   }
 }
 </style>

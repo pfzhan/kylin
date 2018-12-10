@@ -211,6 +211,9 @@ export default {
     },
     [types.UPDATE_AGGREGATE_GROUPS] ({ commit }, params) {
       return api.model.updateAggregateGroups(params.projectName, params.modelName, params.dimensions, params.aggregationGroups, params.isCatchUp)
+    },
+    [types.FETCH_RELATED_MODEL_STATUS] ({ commit }, params) {
+      return api.model.fetchRelatedModelStatus(params.projectName, params.uuids)
     }
   },
   getters: {
