@@ -224,13 +224,13 @@ export default class TableDataLoad extends Vue {
       }, 5000)
     }
   }
-  async getRelatedModelStatus ({ projectName, relatedModels }) {
-    const uuids = relatedModels.map(relatedModel => relatedModel.name)
-    const res = await this.fetchRelatedModelStatus({ projectName, uuids })
-    const statusList = await handleSuccessAsync(res)
-    statusList.forEach(modelStatus => {
-      const currentRelatedModel = this.relatedModels.find(relatedModel => relatedModel.alias === modelStatus.alias)
-      currentRelatedModel.has_error_jobs = modelStatus.has_error_jobs
+  async getRelatedModelStatus ({ projectName }) {
+    const tableFullName = `${this.table.database}.${this.table.name}`
+    const res = await this.fetchRelatedModels({ projectName, tableFullName, pageOffset: 0, pageSize: 9999999 })
+    const { models } = await handleSuccessAsync(res)
+    models.forEach(model => {
+      const currentRelatedModel = this.relatedModels.find(relatedModel => relatedModel.alias === model.alias)
+      currentRelatedModel.has_error_jobs = model.has_error_jobs
     })
   }
   async handleChangeDataRange (newDataRange) {

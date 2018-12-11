@@ -20,7 +20,11 @@
           </div>
         </div>
       </div>
-      <pager class="ksd-center ksd-mb-20" ref="pager"  :totalSize="messages.length"  v-on:handleCurrentChange='pageCurrentChange1'></pager>
+      <kap-pager
+        class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
+        :totalSize="messages.length"
+        @handleCurrentChange="handleCurrentChange">
+      </kap-pager>
     </div>
   </div>
 </template>
@@ -53,7 +57,7 @@ export default class Messages extends Vue {
   backToDashBoard () {
     this.$router.push({name: 'Overview'})
   }
-  pageCurrentChange1 (currentPage) {
+  handleCurrentChange (currentPage) {
     this.currentPage1 = currentPage
   }
   pageCurrentChange2 (currentPage) {

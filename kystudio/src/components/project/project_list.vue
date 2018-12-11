@@ -74,7 +74,11 @@
       </template>
     </el-table-column>
     </el-table>
-    <pager class="ksd-center" :totalSize="projectsTotal" v-on:handleCurrentChange='pageCurrentChange' ></pager>
+    <kap-pager
+      class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
+      :totalSize="projectsTotal"
+      @handleCurrentChange="handleCurrentChange">
+    </kap-pager>
  </div>
 </template>
 <script>
@@ -109,9 +113,9 @@ export default {
     checkProjectForm () {
       this.$refs.projectForm.$emit('projectFormValid')
     },
-    pageCurrentChange (currentPage) {
+    handleCurrentChange (currentPage) {
       this.currentPage = currentPage
-      this.loadProjects({pageOffset: currentPage - 1, pageSize: this.pageCount})
+      this.loadProjects({pageOffset: currentPage, pageSize: this.pageCount})
     },
     addProject () {
       this.isEdit = false
@@ -121,43 +125,14 @@ export default {
     },
     async newProject () {
       const isSubmit = await this.callProjectEditModal({ editType: 'new' })
-      isSubmit && this.loadProjects({pageOffset: this.currentPage - 1, pageSize: this.pageCount})
+      isSubmit && this.loadProjects({pageOffset: this.currentPage, pageSize: this.pageCount})
     },
     async changeProject (project) {
       const isSubmit = await this.callProjectEditModal({ editType: 'edit', project })
       if (isSubmit) {
-        this.loadProjects({pageOffset: this.currentPage - 1, pageSize: this.pageCount})
+        this.loadProjects({pageOffset: this.currentPage, pageSize: this.pageCount})
         this.loadAllProjects()
       }
-    },
-    validSuccess (data) {
-      if (this.project.uuid) {
-        this.updateProject({name: this.project.name, desc: JSON.stringify(data)}).then((result) => {
-          this.$message({
-            type: 'success',
-            message: this.$t('saveSuccessful')
-          })
-          this.loadProjects({pageOffset: this.currentPage - 1, pageSize: this.pageCount})
-          this.loadAllProjects()
-        }, (res) => {
-          handleError(res)
-        })
-      } else {
-        this.saveProject(JSON.stringify(data)).then((result) => {
-          this.$message({
-            type: 'success',
-            message: this.$t('saveSuccessful')
-          })
-          this.loadProjects({pageOffset: this.currentPage - 1, pageSize: this.pageCount})
-          // this.loadAllProjects()
-        }, (res) => {
-          handleError(res)
-        })
-      }
-      this.FormVisible = false
-    },
-    validFailed (data) {
-      // this.FormVisible = false
     },
     removeProject (project) {
       this.$confirm(this.$t('deleteProject'), this.$t('tip'), {
@@ -170,7 +145,7 @@ export default {
             type: 'success',
             message: this.$t('kylinLang.common.delSuccess')
           })
-          this.loadProjects({pageOffset: this.currentPage - 1, pageSize: this.pageCount})
+          this.loadProjects({pageOffset: this.currentPage, pageSize: this.pageCount})
           this.loadAllProjects()
         }, (res) => {
           handleError(res)
@@ -202,15 +177,12 @@ export default {
     },
     hasAdminProjectPermission () {
       return hasPermission(this, permissions.ADMINISTRATION.mask)
-    },
-    resetProjectForm () {
-      this.$refs['projectForm'].$refs['projectForm'].resetFields()
     }
   },
   data () {
     return {
       pageCount: pageCount,
-      currentPage: 1,
+      currentPage: 0,
       project: {},
       isEdit: false,
       FormVisible: false,
@@ -255,7 +227,7 @@ export default {
     }
   },
   created () {
-    this.loadProjects({pageOffset: this.currentPage - 1, pageSize: this.pageCount})
+    this.loadProjects({pageOffset: this.currentPage, pageSize: this.pageCount})
   },
   locales: {
     'en': {project: 'Project', name: 'Name', owner: 'Owner', description: 'Description', createTime: 'Create Time', actions: 'Actions', access: 'Access', externalFilters: 'External Filters', edit: 'Configure', backup: 'Backup', delete: 'Delete', tip: 'Tip', cancel: 'Cancel', yes: 'Ok', saveSuccessful: 'Saved the project successful!', saveFailed: 'Save Failed!', deleteProject: 'Once it\'s deleted, your project\'s metadata and data will be cleaned up and can\'t be restored back.  ', projectConfig: 'Configuration', backupProject: 'Are you sure to backup this project ?', noProject: 'There is no Project.  You can click below button to add Project.'},

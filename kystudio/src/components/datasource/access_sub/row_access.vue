@@ -43,7 +43,11 @@
               </template>
             </el-table-column>
           </el-table>
-          <pager class="ksd-center" :totalSize="aclRowTotalSize" v-on:handleCurrentChange='pageCurrentChange' ref="pager"></pager>
+          <kap-pager
+            class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
+            :totalSize="aclRowTotalSize"
+            @handleCurrentChange="handleCurrentChange">
+          </kap-pager>
           <el-dialog :title="$t('restrict')" width="660px" :visible.sync="addGrantDialog" @close="closeDialog" :close-on-press-escape="false" :close-on-click-modal="false">
               <el-alert
                 :title="$t('rowAclDesc')"
@@ -382,7 +386,7 @@ export default {
         }
       })
     },
-    pageCurrentChange (curpage) {
+    handleCurrentChange (curpage) {
       this.currentPage = curpage
       this.getAllAclSetOfRow()
     },

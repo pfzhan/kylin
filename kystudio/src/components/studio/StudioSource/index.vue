@@ -85,7 +85,7 @@ import TableSamples from './TableSamples/index.vue'
 import TableStatistics from './TableStatistics/index.vue'
 import TableExtInfo from './TableExtInfo/index.vue'
 import ViewKafka from '../../kafka/view_kafka.vue'
-import Access from '../../datasource/access.vue'
+// import Access from '../../datasource/access.vue'
 import { sourceTypes } from '../../../config'
 import { handleSuccessAsync, transToGmtTime, handleError } from '../../../util'
 
@@ -97,8 +97,8 @@ import { handleSuccessAsync, transToGmtTime, handleError } from '../../../util'
     TableSamples,
     TableStatistics,
     TableExtInfo,
-    ViewKafka,
-    Access
+    ViewKafka
+    // Access
   },
   computed: {
     ...mapGetters([

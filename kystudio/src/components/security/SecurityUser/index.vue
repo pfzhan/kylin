@@ -82,10 +82,11 @@
       </el-table-column>
     </el-table>
 
-    <pager class="ksd-center" ref="pager"
+    <kap-pager
+      class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
       :totalSize="totalSize"
-      @handleCurrentChange="pageCurrentChange">
-    </pager>
+      @handleCurrentChange="handleCurrentChange">
+    </kap-pager>
   </div>
 </template>
 
@@ -161,8 +162,8 @@ export default class SecurityUser extends Vue {
     }, 1500)
   }
 
-  pageCurrentChange (pager) {
-    this.pagination.pageOffset = pager - 1
+  handleCurrentChange (pager) {
+    this.pagination.pageOffset = pager
     this.loadUsers(this.currentGroup)
   }
 

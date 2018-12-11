@@ -38,7 +38,11 @@
         </el-table-column>
       </el-table>
 
-      <pager class="ksd-center" ref="pager" :totalSize="groupUsersListSize"  v-on:handleCurrentChange='pageCurrentChange' ></pager>
+      <kap-pager
+        class="ksd-center ksd-mt-20 ksd-mb-20" ref="pager"
+        :totalSize="groupUsersListSize"
+        @handleCurrentChange="handleCurrentChange">
+      </kap-pager>
     </el-row>
 
     <GroupEditModal />
@@ -124,8 +128,8 @@ export default class SecurityGroup extends Vue {
     })
   }
 
-  pageCurrentChange (pager) {
-    this.pagination.pageOffset = pager - 1
+  handleCurrentChange (pager) {
+    this.pagination.pageOffset = pager
     this.loadGroupUsers()
   }
 }

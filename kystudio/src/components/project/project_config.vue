@@ -4,7 +4,6 @@
       :data="convertedPropertiesItem"
       border
       style="width: 100%">
-      </el-table-column>
       <el-table-column
         label="Key"
         prop="key">
@@ -14,17 +13,11 @@
         prop="value">
       </el-table-column>
     </el-table>
-    <el-pagination
-      background
-      :page-size="pageSize"
-      layout="prev, pager, next"
-      :total="convertedProperties.length"
-      :currentPage='currentPage'
-      @current-change="pageCurrentChange"
-      class="ksd-right ksd-mt-10"
-      v-show="convertedProperties.length">
-    </el-pagination>
-    <!-- <pager class="ksd-center" :perPageSize="pageSize" :totalSize="convertedProperties.length" :currentPage='currentPage' v-on:handleCurrentChange='pageCurrentChange' ></pager> -->
+    <kap-pager
+      class="ksd-right ksd-mt-10" ref="pager"
+      :totalSize="convertedProperties.length"
+      @handleCurrentChange="handleCurrentChange">
+    </kap-pager>
   </div>
 </template>
 <script>
@@ -35,7 +28,7 @@ export default {
   data () {
     return {
       convertedProperties: fromObjToArr(this.override),
-      pageSize: 5,
+      pageSize: 10,
       currentPage: 1,
       convertedPropertiesItem: []
     }
@@ -44,8 +37,9 @@ export default {
     this.convertedPropertiesItem = this.convertedProperties.slice(0, this.pageSize)
   },
   methods: {
-    pageCurrentChange (currentPage) {
-      this.convertedPropertiesItem = this.convertedProperties.slice(this.pageSize * (currentPage - 1), this.pageSize * currentPage)
+    handleCurrentChange (currentPage, pageSize) {
+      this.pageSize = pageSize
+      this.convertedPropertiesItem = this.convertedProperties.slice(this.pageSize * currentPage, this.pageSize * (currentPage + 1))
     }
   }
 }
