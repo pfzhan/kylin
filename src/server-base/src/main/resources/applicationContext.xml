@@ -35,7 +35,7 @@
 
     <description>Kylin Rest Service</description>
     <context:annotation-config/>
-    <!--<mvc:annotation-driven/>-->
+    <mvc:annotation-driven/>
     <aop:aspectj-autoproxy/>
 
     <bean class="org.apache.kylin.rest.init.InitialTaskManager" />
@@ -48,25 +48,6 @@
     </bean>
 
 
-    <!-- Rest service binding -->
-    <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping"/>
-
-    <bean id="mappingJacksonHttpMessageConverter"
-          class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter"/>
-    <bean id="stringHttpMessageConverter"
-          class="org.springframework.http.converter.StringHttpMessageConverter"/>
-    <bean id="formHttpMessageConverter"
-          class="org.springframework.http.converter.FormHttpMessageConverter"/>
-
-    <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
-        <property name="messageConverters">
-            <list>
-                <ref bean="mappingJacksonHttpMessageConverter"/>
-                <ref bean="stringHttpMessageConverter"/>
-                <ref bean="formHttpMessageConverter"/>
-            </list>
-        </property>
-    </bean>
 
     <bean class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
         <property name="viewResolvers">
