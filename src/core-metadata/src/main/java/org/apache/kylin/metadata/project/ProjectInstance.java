@@ -48,25 +48,29 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import javax.annotation.Nullable;
-
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import lombok.EqualsAndHashCode;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.util.StringUtil;
+import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.model.ISourceAware;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.model.ISourceAware;
+
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.EqualsAndHashCode;
+import lombok.val;
 
 /**
  * Project is a concept in Kylin similar to schema in DBMS
@@ -75,13 +79,14 @@ import org.apache.kylin.metadata.model.ISourceAware;
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class ProjectInstance extends RootPersistentEntity implements ISourceAware {
 
+    private static final Logger logger = LoggerFactory.getLogger(NProjectManager.class);
+
     public static final String DEFAULT_PROJECT_NAME = "default";
+
     private KylinConfigExt config;
 
     @JsonProperty("name")
     private String name;
-
-    private Set<String> tables = new TreeSet<String>();
 
     @JsonProperty("owner")
     private String owner;
@@ -92,16 +97,8 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @JsonProperty("create_time_utc")
     private long createTimeUTC;
 
-    @JsonProperty("last_update_time")
-    // FIXME why not RootPersistentEntity.lastModified??
-    private String lastUpdateTime;
-
     @JsonProperty("description")
     private String description;
-
-    private List<RealizationEntry> realizationEntries;
-
-    private List<String> models;
 
     @JsonProperty("ext_filters")
     private Set<String> extFilters = new TreeSet<String>();
@@ -124,8 +121,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     }
 
     public static ProjectInstance create(String name, String owner, String description,
-            LinkedHashMap<String, String> overrideProps, List<RealizationEntry> realizationEntries,
-            List<String> models, MaintainModelType maintainModelType) {
+            LinkedHashMap<String, String> overrideProps, MaintainModelType maintainModelType) {
         ProjectInstance projectInstance = new ProjectInstance();
 
         projectInstance.updateRandomUuid();
@@ -138,19 +134,11 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         if (maintainModelType != null) {
             projectInstance.setMaintainModelType(maintainModelType);
         }
-        if (realizationEntries != null)
-            projectInstance.setRealizationEntries(realizationEntries);
-        else
-            projectInstance.setRealizationEntries(Lists.<RealizationEntry> newArrayList());
-        if (models != null)
-            projectInstance.setModels(models);
-        else
-            projectInstance.setModels(new ArrayList<String>());
         return projectInstance;
     }
 
-    public void initConfig() {
-        this.config = KylinConfigExt.createInstance(KylinConfig.getInstanceFromEnv(), this.overrideKylinProps);
+    public void initConfig(KylinConfig config) {
+        this.config = KylinConfigExt.createInstance(config, this.overrideKylinProps);
     }
 
     // ============================================================================
@@ -207,85 +195,41 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         this.name = name;
     }
 
-    public boolean containsRealization(final String realizationType, final String realization) {
-        return Iterables.any(this.realizationEntries, new Predicate<RealizationEntry>() {
-            @Override
-            public boolean apply(RealizationEntry input) {
-                return input.getType().equals(realizationType) && input.getRealization().equalsIgnoreCase(realization);
-            }
-        });
+    public ImmutableList<RealizationEntry> getRealizationEntries() {
+        return ImmutableList.copyOf(getRealizationsFromResource(name));
     }
 
-    public void removeRealization(final String type, final String realization) {
-        Iterables.removeIf(this.realizationEntries, new Predicate<RealizationEntry>() {
-            @Override
-            public boolean apply(RealizationEntry input) {
-                return input.getType().equals(type) && input.getRealization().equalsIgnoreCase(realization);
-            }
-        });
+    public ImmutableList<String> getModels() {
+        return ImmutableList.copyOf(getModelsFromResource(name));
+    }
+
+    public ImmutableSet<String> getTables() {
+        return ImmutableSet.copyOf(getTableFromResource(name));
+    }
+
+    public boolean containsRealization(final String realizationType, final String realization) {
+        return Iterables.any(getRealizationsFromResource(this.name), input -> input.getType().equals(realizationType)
+                && input.getRealization().equalsIgnoreCase(realization));
     }
 
     public List<RealizationEntry> getRealizationEntries(final String realizationType) {
         if (realizationType == null)
-            return getRealizationEntries();
+            return getRealizationsFromResource(name);
 
-        return ImmutableList.copyOf(Iterables.filter(realizationEntries, new Predicate<RealizationEntry>() {
-            @Override
-            public boolean apply(@Nullable RealizationEntry input) {
-                return input.getType().equals(realizationType);
-            }
-        }));
+        return ImmutableList.copyOf(Iterables.filter(getRealizationsFromResource(this.name),
+                input -> input.getType().equals(realizationType)));
     }
 
     public int getRealizationCount(final String realizationType) {
+        val realizationEntries = getRealizationsFromResource(this.name);
         if (realizationType == null)
-            return this.realizationEntries.size();
+            return realizationEntries.size();
 
-        return Iterables.size(Iterables.filter(this.realizationEntries, new Predicate<RealizationEntry>() {
-            @Override
-            public boolean apply(RealizationEntry input) {
-                return input.getType().equals(realizationType);
-            }
-        }));
-    }
-
-    public void addRealizationEntry(final String realizationType, final String realizationName) {
-        RealizationEntry pdm = new RealizationEntry();
-        pdm.setType(realizationType);
-        pdm.setRealization(realizationName);
-        this.realizationEntries.add(pdm);
-    }
-
-    public void setTables(Set<String> tables) {
-        this.tables = tables;
+        return Iterables.size(Iterables.filter(realizationEntries, input -> input.getType().equals(realizationType)));
     }
 
     public boolean containsTable(String tableName) {
-        return tables.contains(tableName.toUpperCase());
-    }
-
-    public void removeTable(String tableName) {
-        tables.remove(tableName.toUpperCase());
-    }
-
-    public void addExtFilter(String extFilterName) {
-        this.getExtFilters().add(extFilterName);
-    }
-
-    public void removeExtFilter(String filterName) {
-        extFilters.remove(filterName);
-    }
-
-    public void addTable(String tableName) {
-        tables.add(tableName.toUpperCase());
-    }
-
-    public Set<String> getTables() {
-        return tables;
-    }
-
-    public Set<String> getExtFilters() {
-        return extFilters;
+        return getTableFromResource(name).contains(tableName.toUpperCase());
     }
 
     public String getOwner() {
@@ -296,41 +240,9 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         this.owner = owner;
     }
 
-    public void recordUpdateTime(long timeMillis) {
-        this.lastUpdateTime = formatTime(timeMillis);
-    }
-
-    public List<RealizationEntry> getRealizationEntries() {
-        return realizationEntries;
-    }
-
-    public void setRealizationEntries(List<RealizationEntry> entries) {
-        this.realizationEntries = entries;
-    }
-
-    public List<String> getModels() {
-        return models;
-    }
-
     public boolean containsModel(String modelName) {
+        List<String> models = getModelsFromResource(name);
         return models != null && models.contains(modelName);
-    }
-
-    public void setModels(List<String> models) {
-        this.models = models;
-    }
-
-    public void addModel(String modelName) {
-        if (this.getModels() == null) {
-            this.setModels(new ArrayList<String>());
-        }
-        this.getModels().add(modelName);
-    }
-
-    public void removeModel(String modelName) {
-        if (this.getModels() != null) {
-            this.getModels().remove(modelName);
-        }
     }
 
     public LinkedHashMap<String, String> getOverrideKylinProps() {
@@ -342,7 +254,9 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
             overrideKylinProps = new LinkedHashMap<>();
         }
         this.overrideKylinProps = overrideKylinProps;
-        initConfig();
+        if (config != null) {
+            this.config = KylinConfigExt.createInstance(config.base(), overrideKylinProps);
+        }
     }
 
     public KylinConfig getConfig() {
@@ -353,22 +267,15 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         this.config = config;
     }
 
-    public void init() {
+    public void init(KylinConfig config) {
         if (name == null)
             name = ProjectInstance.DEFAULT_PROJECT_NAME;
-
-        if (realizationEntries == null) {
-            realizationEntries = new ArrayList<RealizationEntry>();
-        }
-
-        if (tables == null)
-            tables = new TreeSet<String>();
 
         if (overrideKylinProps == null) {
             overrideKylinProps = new LinkedHashMap<>();
         }
 
-        initConfig();
+        initConfig(config);
 
         if (StringUtils.isBlank(this.name))
             throw new IllegalStateException("Project name must not be blank");
@@ -387,4 +294,61 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     public int getSourceType() {
         return getConfig().getDefaultSource();
     }
+
+    private List<String> getModelsFromResource(String projectName) {
+        String modeldescRootPath = getProjectRootPath(projectName) + ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT;
+        Set<String> modelResource = getStore().listResources(modeldescRootPath);
+        List<String> models = getNameListFromResource(modelResource);
+        return models;
+    }
+
+    private String getProjectRootPath(String prj) {
+        return "/" + prj;
+    }
+
+    private List<RealizationEntry> getRealizationsFromResource(String projectName) {
+        String dataflowRootPath = getProjectRootPath(projectName) + ResourceStore.DATAFLOW_RESOURCE_ROOT;
+        Set<String> realizationResource = getStore().listResources(dataflowRootPath);
+
+        if (realizationResource == null)
+            return new ArrayList<>();
+
+        List<String> realizations = getNameListFromResource(realizationResource);
+        List<RealizationEntry> realizationEntries = new ArrayList<>();
+        for (String realization : realizations) {
+            RealizationEntry entry = RealizationEntry.create("NCUBE", realization);
+            realizationEntries.add(entry);
+        }
+
+        return realizationEntries;
+    }
+
+    private Set<String> getTableFromResource(String projectName) {
+        String tableRootPath = getProjectRootPath(projectName) + ResourceStore.TABLE_RESOURCE_ROOT;
+        Set<String> tableResource = getStore().listResources(tableRootPath);
+        if (tableResource == null)
+            return new TreeSet<>();
+        List<String> tables = getNameListFromResource(tableResource);
+        Set<String> tableSet = new TreeSet<>(tables);
+        return tableSet;
+    }
+
+    //drop the path ahead name and drop suffix e.g [/default/model_desc/]nmodel_basic[.json]
+    private List<String> getNameListFromResource(Set<String> modelResource) {
+        if (modelResource == null)
+            return new ArrayList<>();
+        List<String> nameList = new ArrayList<>();
+        for (String resource : modelResource) {
+            String[] path = resource.split("/");
+            resource = path[path.length - 1];
+            resource = StringUtil.dropSuffix(resource, MetadataConstants.FILE_SURFIX);
+            nameList.add(resource);
+        }
+        return nameList;
+    }
+
+    ResourceStore getStore() {
+        return ResourceStore.getKylinMetaStore(this.config);
+    }
+
 }

@@ -26,25 +26,23 @@ package io.kyligence.kap.smart;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.VersionConflictException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealizationJDBCDao;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
@@ -58,20 +56,23 @@ public class NSmartMaster {
     private NSmartContext context;
     private NProposerProvider proposerProvider;
     private NDataModelManager dataModelManager;
-    FavoriteQueryRealizationJDBCDao dao;
+    FavoriteQueryManager favoriteQueryManager;
+    private String project;
 
     public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls) {
+        this.project = project;
         this.context = new NSmartContext(kylinConfig, project, sqls);
         this.proposerProvider = NProposerProvider.create(context);
         this.dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
-        this.dao = FavoriteQueryRealizationJDBCDao.getInstance(kylinConfig, project);
+        this.favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, project);
     }
 
     public NSmartMaster(KylinConfig kylinConfig, String project, String[] sqls, String draftVersion) {
+        this.project = project;
         this.context = new NSmartContext(kylinConfig, project, sqls, draftVersion);
         this.proposerProvider = NProposerProvider.create(context);
         this.dataModelManager = NDataModelManager.getInstance(kylinConfig, project);
-        this.dao = FavoriteQueryRealizationJDBCDao.getInstance(kylinConfig, project);
+        this.favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, project);
     }
 
     public NSmartContext getContext() {
@@ -107,7 +108,7 @@ public class NSmartMaster {
     }
 
     public void renameModel() {
-        List<NDataModel> modelList = dataModelManager.listModels();
+        List<NDataModel> modelList = dataModelManager.getDataModels();
         Set<String> usedNames = Sets.newHashSet();
         if (modelList != null) {
             for (NDataModel model : modelList) {
@@ -148,7 +149,7 @@ public class NSmartMaster {
                 saveAccelerateInfo();
                 logger.debug("save successfully after refresh, {}", context.getDraftVersion());
                 return;
-            } catch (IllegalStateException e) {
+            } catch (IllegalStateException | VersionConflictException e) {
                 logger.warn("save error after refresh, have retried " + i + " times", e);
             }
         }
@@ -162,29 +163,30 @@ public class NSmartMaster {
         selectCubePlan();
     }
 
-    public void runAll() throws IOException {
+    public void runAll() {
+        runAllAndForContext(null);
+    }
+
+    public void runAllAndForContext(Consumer<NSmartContext> hook) {
         analyzeSQLs();
         selectModel();
         optimizeModel();
         renameModel();
-        saveModel();
-
         selectCubePlan();
         optimizeCubePlan();
-        saveCubePlan();
-        saveAccelerateInfo();
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            saveModel();
+            saveCubePlan();
+            saveAccelerateInfo();
+            if (hook != null) {
+                hook.accept(getContext());
+            }
+            return null;
+        }, project);
     }
 
-    public List<NSmartContext.NModelContext> getModelContext(boolean isOptimize) throws IOException {
-        if (isOptimize) {
-            runAll();
-        } else {
-            selectModelAndCubePlan();
-        }
-        return getContext().getModelContexts();
-    }
-
-    public void saveCubePlan() throws IOException {
+    public void saveCubePlan() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(context.getKylinConfig(), context.getProject());
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(context.getKylinConfig(), context.getProject());
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
@@ -199,48 +201,29 @@ public class NSmartMaster {
                 continue;
             }
 
-            cubePlan = cubePlanManager.updateCubePlan(cubePlan);
-
-            NDataflow df = dataflowManager.getDataflow(cubePlan.getName());
-            NDataflowUpdate update = new NDataflowUpdate(df.getName());
-            List<NDataCuboid> toAddCuboids = Lists.newArrayList();
-
-            for (NDataSegment seg : df.getSegments()) {
-                Map<Long, NDataCuboid> cuboidMap = seg.getCuboidsMap();
-
-                cubePlan.getAllCuboids().forEach(desc -> desc.getLayouts().forEach(layout -> {
-                    if (!cuboidMap.containsKey(layout.getId())) {
-                        toAddCuboids.add(NDataCuboid.newDataCuboid(df, seg.getId(), layout.getId()));
-                    }
-                }));
-            }
-
-            update.setToAddOrUpdateCuboids(toAddCuboids.toArray(new NDataCuboid[0]));
-            dataflowManager.updateDataflow(update);
+            cubePlanManager.updateCubePlan(cubePlan);
         }
     }
 
     public void saveAccelerateInfo() {
-        List<FavoriteQueryRealization> favoriteQueryRealizations = Lists.newArrayList();
         val accelerateInfoMap = context.getAccelerateInfoMap();
         accelerateInfoMap.forEach((sqlPattern, accelerateInfo) -> {
             if (!accelerateInfo.isBlocked()) {
+                List<FavoriteQueryRealization> favoriteQueryRealizations = Lists.newArrayList();
                 for (val layout : accelerateInfo.getRelatedLayouts()) {
                     FavoriteQueryRealization realization = new FavoriteQueryRealization();
-                    realization.setSqlPatternHash(sqlPattern.hashCode());
                     realization.setModelId(layout.getModelId());
                     realization.setCubePlanId(layout.getCubePlanId());
                     realization.setCuboidLayoutId(layout.getLayoutId());
                     favoriteQueryRealizations.add(realization);
                 }
+
+                favoriteQueryManager.resetRealizations(sqlPattern, favoriteQueryRealizations);
             }
         });
-
-        dao.batchDelete(favoriteQueryRealizations);
-        dao.batchInsert(favoriteQueryRealizations);
     }
 
-    public void saveModel() throws IOException {
+    public void saveModel() {
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
             if (modelCtx.withoutTargetModel()) {
                 continue;
@@ -250,12 +233,6 @@ public class NSmartMaster {
                 dataModelManager.updateDataModelDesc(model);
             } else {
                 dataModelManager.createDataModelDesc(model, model.getOwner());
-            }
-            try {
-                Thread.sleep(1000L);
-            } catch (InterruptedException e) {
-                logger.warn("Interrupted!", e);
-                Thread.currentThread().interrupt();
             }
         }
     }

@@ -24,20 +24,18 @@
 
 package io.kyligence.kap.metadata.favorite;
 
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.AutoReadWriteLock;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
-import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class FavoriteRuleManager {
     private static final Logger logger = LoggerFactory.getLogger(FavoriteRuleManager.class);
@@ -46,9 +44,7 @@ public class FavoriteRuleManager {
 
     private final KylinConfig kylinConfig;
 
-    private CaseInsensitiveStringCache<FavoriteRule> cache;
     private CachedCrudAssist<FavoriteRule> crud;
-    private AutoReadWriteLock autoLock = new AutoReadWriteLock();
 
     protected static final Map<String, String> REVERSE_RULE_NAME_MAP = Maps.newHashMap();
 
@@ -75,11 +71,10 @@ public class FavoriteRuleManager {
     }
 
     private void init() throws IOException {
-        this.cache = new CaseInsensitiveStringCache<>(this.kylinConfig, this.project, ResourceStore.QUERY_FILTER_RULE_RESOURCE_ROOT);
 
         final ResourceStore store = ResourceStore.getKylinMetaStore(this.kylinConfig);
         final String resourceRootPath = "/" + this.project + ResourceStore.QUERY_FILTER_RULE_RESOURCE_ROOT;
-        this.crud = new CachedCrudAssist<FavoriteRule>(store, resourceRootPath, FavoriteRule.class, cache) {
+        this.crud = new CachedCrudAssist<FavoriteRule>(store, resourceRootPath, FavoriteRule.class) {
             @Override
             protected FavoriteRule initEntityAfterReload(FavoriteRule entity, String resourceName) {
                 return entity;
@@ -88,47 +83,32 @@ public class FavoriteRuleManager {
 
         crud.setCheckCopyOnWrite(true);
         crud.reloadAll();
-
-        Broadcaster.getInstance(kylinConfig).registerListener(new Broadcaster.Listener() {
-            @Override
-            public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey) throws IOException {
-                try (AutoReadWriteLock.AutoLock lock = FavoriteRuleManager.this.autoLock.lockForWrite()) {
-                    if (Broadcaster.Event.DROP == event) {
-                        cache.removeLocal(cacheKey);
-                    } else if (Broadcaster.Event.UPDATE == event) {
-                        crud.reloadQuietly(cacheKey);
-                    }
-                }
-            }
-        }, this.project, ResourceStore.QUERY_FILTER_RULE_RESOURCE_ROOT);
     }
 
-    public FavoriteRule createRule(final FavoriteRule rule) throws IOException {
-        try (final AutoReadWriteLock.AutoLock lock = this.autoLock.lockForWrite()) {
-            return crud.save(rule);
+    public FavoriteRule createRule(final FavoriteRule rule) {
+        return crud.save(rule);
+    }
+
+    public void appendSqlConditions(List<FavoriteRule.SQLCondition> newConditions, String ruleName)
+            throws RuleConditionExistException {
+        FavoriteRule rule = crud.copyBySerialization(getByName(ruleName));
+        List<FavoriteRule.AbstractCondition> conditions = rule.getConds();
+
+        for (FavoriteRule.SQLCondition newCondition : newConditions) {
+            checkIfInOppositeList(newCondition, REVERSE_RULE_NAME_MAP.get(ruleName));
+
+            if (conditions.contains(newCondition))
+                continue;
+
+            conditions.add(newCondition);
         }
+
+        rule.setConds(conditions);
+        crud.save(rule);
     }
 
-    public void appendSqlConditions(List<FavoriteRule.SQLCondition> newConditions, String ruleName) throws IOException, RuleConditionExistException {
-        try (final AutoReadWriteLock.AutoLock lock = this.autoLock.lockForWrite()) {
-            FavoriteRule rule = crud.copyBySerialization(getByName(ruleName));
-            List<FavoriteRule.AbstractCondition> conditions = rule.getConds();
-
-            for (FavoriteRule.SQLCondition newCondition : newConditions) {
-                checkIfInOppositeList(newCondition, REVERSE_RULE_NAME_MAP.get(ruleName));
-
-                if (conditions.contains(newCondition))
-                    continue;
-
-                conditions.add(newCondition);
-            }
-
-            rule.setConds(conditions);
-            crud.save(rule);
-        }
-    }
-
-    private void checkIfInOppositeList(FavoriteRule.SQLCondition sqlCondition, String ruleName) throws RuleConditionExistException {
+    private void checkIfInOppositeList(FavoriteRule.SQLCondition sqlCondition, String ruleName)
+            throws RuleConditionExistException {
         FavoriteRule rule = getByName(ruleName);
         for (FavoriteRule.AbstractCondition condition : rule.getConds()) {
             if (sqlCondition.getSqlPatternHash() == ((FavoriteRule.SQLCondition) condition).getSqlPatternHash())
@@ -137,80 +117,71 @@ public class FavoriteRuleManager {
     }
 
     public void removeSqlCondition(String id, String ruleName) throws IOException {
-        try (final AutoReadWriteLock.AutoLock lock = this.autoLock.lockForWrite()) {
-            FavoriteRule rule = crud.copyBySerialization(getByName(ruleName));
-            List<FavoriteRule.AbstractCondition> conditions = rule.getConds();
+        FavoriteRule rule = crud.copyBySerialization(getByName(ruleName));
+        List<FavoriteRule.AbstractCondition> conditions = rule.getConds();
 
-            for (int i = 0; i < conditions.size(); i++) {
-                FavoriteRule.SQLCondition sqlCondition = (FavoriteRule.SQLCondition) conditions.get(i);
-                if (id.equals(sqlCondition.getId())) {
-                    conditions.remove(sqlCondition);
-                }
+        for (int i = 0; i < conditions.size(); i++) {
+            FavoriteRule.SQLCondition sqlCondition = (FavoriteRule.SQLCondition) conditions.get(i);
+            if (id.equals(sqlCondition.getId())) {
+                conditions.remove(sqlCondition);
             }
-
-            rule.setConds(conditions);
-            crud.save(rule);
         }
+
+        rule.setConds(conditions);
+        crud.save(rule);
     }
 
-    public FavoriteRule.SQLCondition updateWhitelistSql(FavoriteRule.SQLCondition updatedCondition) throws IOException, RuleConditionExistException {
-        try (final AutoReadWriteLock.AutoLock lock = this.autoLock.lockForWrite()) {
-            checkIfInOppositeList(updatedCondition, REVERSE_RULE_NAME_MAP.get(FavoriteRule.WHITELIST_NAME));
+    public FavoriteRule.SQLCondition updateWhitelistSql(FavoriteRule.SQLCondition updatedCondition)
+            throws RuleConditionExistException {
+        checkIfInOppositeList(updatedCondition, REVERSE_RULE_NAME_MAP.get(FavoriteRule.WHITELIST_NAME));
 
-            FavoriteRule whitelist = crud.copyBySerialization(getByName(FavoriteRule.WHITELIST_NAME));
+        FavoriteRule whitelist = crud.copyBySerialization(getByName(FavoriteRule.WHITELIST_NAME));
 
-            List<FavoriteRule.AbstractCondition> conditions = whitelist.getConds();
-            int index = 0;
-            boolean idExist = false;
-            // need to loop over all conditions to check if updated sql exists in whitelist
-            for (int i = 0; i < conditions.size(); i++) {
-                FavoriteRule.SQLCondition sqlCondition = (FavoriteRule.SQLCondition) conditions.get(i);
-                // when updated sql already exists in white list
-                if (updatedCondition.equals(sqlCondition))
-                    return null;
-
-                if (updatedCondition.getId().equals(sqlCondition.getId())) {
-                    idExist = true;
-                    index = i;
-                }
-            }
-
-            if (!idExist)
+        List<FavoriteRule.AbstractCondition> conditions = whitelist.getConds();
+        int index = 0;
+        boolean idExist = false;
+        // need to loop over all conditions to check if updated sql exists in whitelist
+        for (int i = 0; i < conditions.size(); i++) {
+            FavoriteRule.SQLCondition sqlCondition = (FavoriteRule.SQLCondition) conditions.get(i);
+            // when updated sql already exists in white list
+            if (updatedCondition.getSql().equals(sqlCondition.getSql()))
                 return null;
 
-            conditions.set(index, updatedCondition);
-            whitelist.setConds(conditions);
-            crud.save(whitelist);
-
-            return updatedCondition;
+            if (updatedCondition.getId().equals(sqlCondition.getId())) {
+                idExist = true;
+                index = i;
+            }
         }
+
+        if (!idExist)
+            return null;
+
+        conditions.set(index, updatedCondition);
+        whitelist.setConds(conditions);
+        crud.save(whitelist);
+
+        return updatedCondition;
     }
 
-    public void updateRule(List<FavoriteRule.AbstractCondition> conditions, boolean isEnabled, String ruleName) throws IOException {
-        try (final AutoReadWriteLock.AutoLock lock = this.autoLock.lockForWrite()) {
-            FavoriteRule copy = crud.copyBySerialization(getByName(ruleName));
-            copy.setEnabled(isEnabled);
+    public void updateRule(List<FavoriteRule.AbstractCondition> conditions, boolean isEnabled, String ruleName) {
+        FavoriteRule copy = crud.copyBySerialization(getByName(ruleName));
+        copy.setEnabled(isEnabled);
 
-            List<FavoriteRule.AbstractCondition> newConditions = Lists.newArrayList();
-            if (!conditions.isEmpty()) {
-                for (FavoriteRule.AbstractCondition condition : conditions) {
-                    newConditions.add(condition);
-                }
+        List<FavoriteRule.AbstractCondition> newConditions = Lists.newArrayList();
+        if (!conditions.isEmpty()) {
+            for (FavoriteRule.AbstractCondition condition : conditions) {
+                newConditions.add(condition);
             }
-
-            copy.setConds(newConditions);
-            crud.save(copy);
         }
+
+        copy.setConds(newConditions);
+        crud.save(copy);
     }
 
     public List<FavoriteRule> getAll() {
         List<FavoriteRule> favoriteRules = Lists.newArrayList();
 
-        try (AutoReadWriteLock.AutoLock lock = this.autoLock.lockForRead()) {
-            for (Map.Entry<String, FavoriteRule> entry : cache.getMap().entrySet()) {
-                favoriteRules.add(entry.getValue());
-            }
-        }
+        favoriteRules.addAll(crud.getAll());
 
         logger.debug("Loaded " + favoriteRules.size() + " rules");
         return favoriteRules;

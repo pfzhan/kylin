@@ -24,16 +24,18 @@
 
 package io.kyligence.kap.rest.response;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Getter;
-import lombok.Setter;
+import java.util.List;
+
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @Setter
 @Getter
@@ -58,8 +60,12 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
     private long dataRangeStart;
     @JsonProperty("data_range_end")
     private long dataRangeEnd;
-    @JsonProperty("target_subject")
-    private String targetSubject;
+    @JsonProperty("target_model")
+    private String targetModel;
+    @JsonProperty("target_segments")
+    private List<String> targetSegments;
+    @JsonProperty("target_model_alias")
+    private String targetModelAlias;
     @JsonProperty("step_ratio")
     private float stepRatio;
     @JsonProperty("create_time")
@@ -76,7 +82,9 @@ public class ExecutableResponse implements Comparable<ExecutableResponse> {
         executableResponse.setDuration((AbstractExecutable.getDuration(abstractExecutable.getCreateTime(),
                 abstractExecutable.getEndTime(), abstractExecutable.getInterruptTime()) / 1000));
         executableResponse.setLastModified(abstractExecutable.getLastModified());
-        executableResponse.setTargetSubject(abstractExecutable.getTargetSubject());
+        executableResponse.setTargetModel(abstractExecutable.getTargetModel());
+        executableResponse.setTargetSegments(abstractExecutable.getTargetSegments());
+        executableResponse.setTargetModelAlias(abstractExecutable.getTargetModelAlias());
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) abstractExecutable).getTasks();
         executableResponse.steps = tasks.size();
         int successSteps = 0;

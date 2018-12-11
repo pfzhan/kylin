@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,113 +42,65 @@
 
 package io.kyligence.kap.event.handle;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
+
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.EventStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
-
-import static com.google.common.base.Preconditions.checkNotNull;
-import static io.kyligence.kap.event.manager.EventManager.GLOBAL;
-
+@Slf4j
 public abstract class AbstractEventHandler implements EventHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(AbstractEventHandler.class);
-
-    public AbstractEventHandler(){
-        EventOrchestratorManager.getInstance(KylinConfig.getInstanceFromEnv()).register(this);
+    public AbstractEventHandler() {
     }
 
     @Override
-    public final void handle(EventContext eventContext) throws Exception {
+    public final void handle(EventContext eventContext) {
 
         try {
-            onHandleStart(eventContext);
-
-            Throwable throwable;
-            do {
-                try {
-                    throwable = null;
-                    doHandle(eventContext);
-                } catch (Throwable e) {
-                    logger.error("EventHandler doHandle error : " + e.getMessage(), e);
-                    throwable = e;
-                }
-            } while (needRetry(eventContext, throwable));
-
-            if (throwable != null) {
-                throw new RuntimeException(throwable);
+            boolean valid = checkBeforeHandle(eventContext);
+            if (!valid) {
+                log.info("handle {} later", eventContext);
+                return;
             }
-
-            onHandleFinished(eventContext);
-
+            doHandle(eventContext);
         } catch (Exception e) {
-            onHandleError(eventContext, e);
-            logger.error("handle error : " + e.getMessage(), e);
+            //TODO: how to handle error? will there be errors?
+            throw e;
         }
-
     }
 
-    private boolean needRetry(EventContext eventContext, Throwable throwable) {
-        if (throwable == null) {
-            return false;
-        }
-        int retry = eventContext.getRetry();
-        retry --;
-        eventContext.setRetry(retry);
-        return retry > 0;
-    }
-
-    private void onHandleError(EventContext eventContext, Exception e) throws Exception {
-        Event event = eventContext.getEvent();
-        event.setMsg(e.getMessage());
-        event.setStatus(EventStatus.ERROR);
-        getEventDao(eventContext).updateEvent(event);
-    }
-
-    protected void onHandleFinished(EventContext eventContext) throws Exception {
-        Event event = eventContext.getEvent();
-        event.setStatus(EventStatus.SUCCEED);
-        getEventDao(eventContext).updateEvent(event);
-    }
-
-    protected void onHandleStart(EventContext eventContext) throws Exception {
+    protected boolean checkBeforeHandle(EventContext eventContext) {
         Event event = eventContext.getEvent();
         checkNotNull(event);
         KylinConfig kylinConfig = eventContext.getConfig();
         String project = event.getProject();
         checkNotNull(project);
         checkNotNull(NProjectManager.getInstance(kylinConfig).getProject(project));
-
-        event.setStatus(EventStatus.RUNNING);
-        getEventDao(eventContext).updateEvent(event);
+        val execManager = NExecutableManager.getInstance(kylinConfig, project);
+        val runningCount = execManager.countByModelAndStatus(event.getModelName(),
+                Sets.newHashSet(ExecutableState.RUNNING, ExecutableState.READY));
+        log.debug("model {} has {} running jobs", event.getModelName(), runningCount);
+        return runningCount == 0L;
     }
 
-    protected EventDao getEventDao(EventContext eventContext) {
-        String project = eventContext.getEvent().getProject();
-        if (eventContext.getEvent().isGlobal()) {
-            project = GLOBAL;
-        }
-        return EventDao.getInstance(eventContext.getConfig(), project);
+    protected EventDao getEventDao(String project, KylinConfig config) {
+        return EventDao.getInstance(config, project);
     }
 
-    protected abstract void doHandle(EventContext eventContext) throws Exception;
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
+    protected NExecutableManager getExecutableManager(String project, KylinConfig config) {
+        return NExecutableManager.getInstance(config, project);
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        return this.getClass().equals(obj.getClass());
-    }
+    protected abstract void doHandle(EventContext eventContext);
+
 }

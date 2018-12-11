@@ -29,12 +29,7 @@ import java.util.Set;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.AutoReadWriteLock;
-import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
-import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,16 +52,12 @@ public class ColumnACLManager {
 
     private KylinConfig config;
     // user ==> TableACL
-    private CaseInsensitiveStringCache<ColumnACL> columnACLMap;
     private CachedCrudAssist<ColumnACL> crud;
-    private AutoReadWriteLock lock = new AutoReadWriteLock();
 
     public ColumnACLManager(KylinConfig config) throws IOException {
         logger.info("Initializing ColumnACLManager with config " + config);
         this.config = config;
-        // todo prj
-        this.columnACLMap = new CaseInsensitiveStringCache<>(config, "", "column_acl");
-        this.crud = new CachedCrudAssist<ColumnACL>(getStore(), "/column_acl", "", ColumnACL.class, columnACLMap) {
+        this.crud = new CachedCrudAssist<ColumnACL>(getStore(), "/column_acl", "", ColumnACL.class) {
             @Override
             protected ColumnACL initEntityAfterReload(ColumnACL acl, String resourceName) {
                 acl.init(resourceName);
@@ -75,22 +66,6 @@ public class ColumnACLManager {
         };
 
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new ColumnACLSyncListener(), "", "column_acl");
-    }
-
-    private class ColumnACLSyncListener extends Broadcaster.Listener {
-
-        @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
-                throws IOException {
-            try (AutoLock l = lock.lockForWrite()) {
-                if (event == Event.DROP)
-                    columnACLMap.removeLocal(cacheKey);
-                else
-                    crud.reloadQuietly(cacheKey);
-            }
-            broadcaster.notifyProjectACLUpdate(cacheKey);
-        }
     }
 
     public KylinConfig getConfig() {
@@ -102,54 +77,42 @@ public class ColumnACLManager {
     }
 
     public ColumnACL getColumnACLByCache(String project) {
-        try (AutoLock l = lock.lockForRead()) {
-            ColumnACL columnACL = columnACLMap.get(project);
-            if (columnACL == null) {
-                return newColumnACL(project);
-            }
-            return columnACL;
+        ColumnACL columnACL = crud.get(project);
+        if (columnACL == null) {
+            return newColumnACL(project);
         }
+        return columnACL;
     }
 
     public void addColumnACL(String project, String name, String table, Set<String> columns, String type)
             throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            ColumnACL columnACL = loadColumnACL(project).add(name, table, columns, type);
-            crud.save(columnACL);
-        }
+        ColumnACL columnACL = loadColumnACL(project).add(name, table, columns, type);
+        crud.save(columnACL);
     }
 
     public void updateColumnACL(String project, String name, String table, Set<String> columns, String type)
             throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            ColumnACL columnACL = loadColumnACL(project).update(name, table, columns, type);
-            crud.save(columnACL);
-        }
+        ColumnACL columnACL = loadColumnACL(project).update(name, table, columns, type);
+        crud.save(columnACL);
     }
 
     public void deleteColumnACL(String project, String name, String table, String type) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            ColumnACL columnACL = loadColumnACL(project).delete(name, table, type);
-            crud.save(columnACL);
-        }
+        ColumnACL columnACL = loadColumnACL(project).delete(name, table, type);
+        crud.save(columnACL);
     }
 
     public void deleteColumnACL(String project, String name, String type) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            ColumnACL columnACL = loadColumnACL(project).delete(name, type);
-            crud.save(columnACL);
-        }
+        ColumnACL columnACL = loadColumnACL(project).delete(name, type);
+        crud.save(columnACL);
     }
 
     public void deleteColumnACLByTbl(String project, String table) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            ColumnACL columnACL = loadColumnACL(project).deleteByTbl(table);
-            crud.save(columnACL);
-        }
+        ColumnACL columnACL = loadColumnACL(project).deleteByTbl(table);
+        crud.save(columnACL);
     }
 
     private ColumnACL loadColumnACL(String project) throws IOException {
-        ColumnACL acl = crud.reload(project);
+        ColumnACL acl = crud.get(project);
         if (acl == null) {
             acl = newColumnACL(project);
         }

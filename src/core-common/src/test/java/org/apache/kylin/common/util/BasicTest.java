@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -50,7 +49,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -65,7 +63,6 @@ import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
  * <p/>
@@ -114,15 +111,32 @@ public class BasicTest {
 
     @Test
     public void testyy() throws InterruptedException {
-        long wallClock = System.currentTimeMillis();
 
-        HashMap<Integer, byte[]> map = Maps.newHashMap();
-        for (int i = 0; i < 10000000; i++) {
-            byte[] a = new byte[100];
-            map.put(i, a);
+    }
+
+    static class City {
+
+    }
+
+    static class Person {
+        private City city;
+        private String lastName;
+
+        public City getCity() {
+            return city;
         }
 
-        System.out.println("Time Consumed: " + (System.currentTimeMillis() - wallClock));
+        public void setCity(City city) {
+            this.city = city;
+        }
+
+        public String getLastName() {
+            return lastName;
+        }
+
+        public void setLastName(String lastName) {
+            this.lastName = lastName;
+        }
     }
 
     @Test

@@ -82,7 +82,7 @@ public class NUserGroupService extends UserGroupService {
             }
 
             try {
-                store.putResource(PATH, userGroup, USER_GROUP_SERIALIZER);
+                store.checkAndPutResource(PATH, userGroup, USER_GROUP_SERIALIZER);
                 return;
             } catch (WriteConflictException e) {
                 logger.info("Find WriteConflictException, sleep 100 ms.", e);
@@ -94,7 +94,7 @@ public class NUserGroupService extends UserGroupService {
     }
 
     private UserGroup getUserGroup() throws IOException {
-        UserGroup userGroup = store.getResource(PATH, UserGroup.class, USER_GROUP_SERIALIZER);
+        UserGroup userGroup = store.getResource(PATH, USER_GROUP_SERIALIZER);
         if (userGroup == null) {
             userGroup = new UserGroup();
         }
@@ -122,7 +122,7 @@ public class NUserGroupService extends UserGroupService {
     public void addGroup(String name) throws IOException {
         aclEvaluate.checkIsGlobalAdmin();
         UserGroup userGroup = getUserGroup();
-        store.putResource(PATH, userGroup.add(name), USER_GROUP_SERIALIZER);
+        store.checkAndPutResource(PATH, userGroup.add(name), USER_GROUP_SERIALIZER);
     }
 
     @Override
@@ -139,7 +139,7 @@ public class NUserGroupService extends UserGroupService {
         //delete group's project ACL
         accessService.revokeProjectPermission(name, MetadataConstants.TYPE_GROUP);
 
-        store.putResource(PATH, getUserGroup().delete(name), USER_GROUP_SERIALIZER);
+        store.checkAndPutResource(PATH, getUserGroup().delete(name), USER_GROUP_SERIALIZER);
     }
 
     //user's group information is stored by user its own.Object user group does not hold user's ref.

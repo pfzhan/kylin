@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -42,18 +41,21 @@
  */
 package org.apache.kylin.source.jdbc;
 
-import java.io.IOException;
+import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HiveCmdBuilder;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.PatternedLogger;
-import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+
+import lombok.val;
 
 /**
  */
@@ -62,33 +64,33 @@ public class HiveCmdStep extends AbstractExecutable {
     private static final Logger logger = LoggerFactory.getLogger(HiveCmdStep.class);
     private final PatternedLogger stepLogger = new PatternedLogger(logger);
 
-    protected void createFlatHiveTable(KylinConfig config) throws IOException {
-        final HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
-        hiveCmdBuilder.overwriteHiveProps(config.getHiveConfigOverride());
-        hiveCmdBuilder.addStatement(getCmd());
-        final String cmd = hiveCmdBuilder.toString();
+    protected ExecuteResult createFlatHiveTable(KylinConfig config) {
+        try {
+            final HiveCmdBuilder hiveCmdBuilder = new HiveCmdBuilder();
+            hiveCmdBuilder.overwriteHiveProps(config.getHiveConfigOverride());
+            hiveCmdBuilder.addStatement(getCmd());
+            final String cmd = hiveCmdBuilder.toString();
 
-        stepLogger.log("cmd: ");
-        stepLogger.log(cmd);
+            stepLogger.log("cmd: ");
+            stepLogger.log(cmd);
 
-        Pair<Integer, String> response = config.getCliCommandExecutor().execute(cmd, stepLogger);
-        getManager().addJobInfo(getId(), stepLogger.getInfo());
-        if (response.getFirst() != 0) {
-            throw new RuntimeException("Failed to create flat hive table, error code " + response.getFirst());
+            Pair<Integer, String> result = config.getCliCommandExecutor().execute(cmd, stepLogger);
+
+            Preconditions.checkState(result.getFirst() == 0);
+            Map<String, String> extraInfo = makeExtraInfo(stepLogger.getInfo());
+            val ret = ExecuteResult.createSucceed(result.getSecond());
+            ret.getExtraInfo().putAll(extraInfo);
+            return ret;
+        } catch (Exception e) {
+            return ExecuteResult.createError(e);
         }
+
     }
 
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+    protected ExecuteResult doWork(ExecutableContext context) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        try {
-            createFlatHiveTable(config);
-            return new ExecuteResult(ExecuteResult.State.SUCCEED, stepLogger.getBufferedLog());
-
-        } catch (Exception e) {
-            logger.error("job:" + getId() + " execute finished with exception", e);
-            return new ExecuteResult(ExecuteResult.State.ERROR, stepLogger.getBufferedLog());
-        }
+        return createFlatHiveTable(config);
     }
 
     public void setCmd(String sql) {

@@ -30,10 +30,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.common.persistence.image.ImageStore;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
@@ -44,11 +47,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
-import io.kyligence.kap.common.util.KylinConfigUtils;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealizationJDBCDao;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.query.Utils;
 import lombok.val;
@@ -60,18 +61,18 @@ public abstract class NTestBase {
     protected String proj = "learn_kylin";
     protected File tmpMeta;
     protected KylinConfig kylinConfig;
-    protected FavoriteQueryRealizationJDBCDao dao;
+    protected FavoriteQueryManager favoriteQueryManager;
 
     @Before
     public void setUp() throws Exception {
         String metaDir = "src/test/resources/nsmart/learn_kylin/meta";
         tmpMeta = Files.createTempDir();
-        FileUtils.copyDirectory(new File(metaDir), tmpMeta);
+        FileUtils.copyDirectory(new File(metaDir), new File(tmpMeta, ImageStore.METADATA_DIR));
 
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
-        KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
+        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath() + ",mq=mock");
+        kylinConfig.setProperty("kylin.env", "UT");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
-        dao = FavoriteQueryRealizationJDBCDao.getInstance(kylinConfig, proj);
+        favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
     }
 
     @After
@@ -103,7 +104,7 @@ public abstract class NTestBase {
             final String cubePlanId = layout.getCuboidDesc().getCubePlan().getId();
             final String modelId = layout.getModel().getId();
 
-            val tmp = dao.getByConditions(modelId, cubePlanId, layoutId);
+            val tmp = favoriteQueryManager.getRealizationsByConditions(modelId, cubePlanId, layoutId);
             realizations.addAll(tmp);
         });
         return realizations;
@@ -116,5 +117,14 @@ public abstract class NTestBase {
         modelContexts.forEach(modelCtx -> olapContexts.addAll(modelCtx.getModelTree().getOlapContexts()));
 
         return olapContexts;
+    }
+    protected void initFQData(String[] sqls) {
+        List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
+        for (String sql : sqls) {
+            FavoriteQuery fq = new FavoriteQuery(sql);
+            favoriteQueries.add(fq);
+        }
+
+        favoriteQueryManager.create(favoriteQueries);
     }
 }

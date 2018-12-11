@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -68,6 +68,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.rest.transaction.Transaction;
 
 public class KylinUserService implements UserService {
 
@@ -99,6 +101,7 @@ public class KylinUserService implements UserService {
     }
 
     @Override
+    @Transaction
     //@PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN) --- DON'T DO THIS, CAUSES CIRCULAR DEPENDENCY BETWEEN UserService & AclService
     public void createUser(UserDetails user) {
         if (getKylinUserManager().exists(user.getUsername())) {
@@ -109,6 +112,7 @@ public class KylinUserService implements UserService {
     }
 
     @Override
+    @Transaction
     //@PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN) --- DON'T DO THIS, CAUSES CIRCULAR DEPENDENCY BETWEEN UserService & AclService
     public void updateUser(UserDetails user) {
         Preconditions.checkState(user instanceof ManagedUser, "User {} is not ManagedUser", user);

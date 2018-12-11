@@ -25,42 +25,40 @@ package io.kyligence.kap.event.handle;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
+
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.NExecutableManager;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
+import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
-import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.NExecutableManager;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.event.manager.EventDao;
-import org.mockito.Mock;
-import org.mockito.Mockito;
 
 public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
-
-    @Mock
-    private FavoriteQueryJDBCDao favoriteQueryJDBCDao = Mockito.mock(FavoriteQueryJDBCDao.class);
 
     private static final String DEFAULT_PROJECT = "default";
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         this.createTestMetadata();
     }
 
@@ -71,99 +69,61 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testHandlerIdempotent() throws Exception {
-
-
         // first add cuboid layouts
         String sqlPattern = "select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT";
         List<String> sqls = Lists.<String> newArrayList(sqlPattern);
         NSmartMaster master = new NSmartMaster(getTestConfig(), DEFAULT_PROJECT, sqls.toArray(new String[0]));
         master.runAll();
 
-        List<NSmartContext.NModelContext> contexts = master.getContext().getModelContexts();
-        List<Long> addedCuboidLayoutIds = calcAddedCuboidLayoutIds(contexts);
-
         AddCuboidEvent event = new AddCuboidEvent();
-        event.setApproved(true);
         event.setProject(DEFAULT_PROJECT);
         event.setModelName("nmodel_basic");
         event.setCubePlanName("ncube_basic");
-        event.setLayoutIds(Lists.<Long> newArrayList(addedCuboidLayoutIds));
-        event.setSqlPatterns(Lists.<String> newArrayList());
+        event.setOwner("ADMIN");
         EventContext eventContext = new EventContext(event, getTestConfig());
         val handler = Mockito.spy(new AddCuboidHandler());
-        Mockito.doReturn(favoriteQueryJDBCDao).when(handler).getFavoriteQueryDao();
         handler.handle(eventContext);
 
         List<Event> events = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT).getEvents();
         Assert.assertNotNull(events);
-        Assert.assertTrue(events.size() == 1);
+        Assert.assertTrue(events.size() == 0);
 
-        String jobId = eventContext.getEvent().getJobId();
-        Assert.assertNotNull(jobId);
-
+        String jobId = ((AddCuboidEvent) eventContext.getEvent()).getJobId();
         AbstractExecutable job = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getJob(jobId);
         Assert.assertNotNull(job);
-
-        // do handle again
-        handler.handle(eventContext);
-
-        String jobId2 = eventContext.getEvent().getJobId();
-        Assert.assertNotNull(jobId);
-        Assert.assertEquals(jobId, jobId2);
-
-        int size = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getAllExecutables().size();
-        Assert.assertEquals(size, 1);
-
-
+        Assert.assertEquals(NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getDataflow("ncube_basic")
+                .getSegments().getFirstSegment().getId(),
+                ((ChainedExecutable) job).getTasks().get(1).getParam("segmentIds"));
+        Assert.assertEquals("20000002001", ((ChainedExecutable) job).getTasks().get(1).getParam("cuboidLayoutIds"));
     }
 
     @Test
-    public void testHandler_FullLoad_Pass() throws Exception {
-        val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
+    public void testHandleEmptySegment() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataflow df = dataflowManager.getDataflow("ncube_basic");
         // remove the existed seg
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
-        dataflowManager.updateDataflow(update);
-
-        getTestConfig().setProperty("kylin.server.mode", "query");
-
-        // first add cuboid layouts
-        String sqlPattern = "select CAL_DT, sum(PRICE) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT";
-        List<String> sqls = Lists.<String> newArrayList(sqlPattern);
-        NSmartMaster master = new NSmartMaster(getTestConfig(), DEFAULT_PROJECT, sqls.toArray(new String[0]));
-        master.runAll();
-
-        List<NSmartContext.NModelContext> contexts = master.getContext().getModelContexts();
-        List<Long> addedCuboidLayoutIds = calcAddedCuboidLayoutIds(contexts);
 
         AddCuboidEvent event = new AddCuboidEvent();
-        event.setApproved(true);
         event.setProject(DEFAULT_PROJECT);
         event.setModelName("nmodel_basic");
         event.setCubePlanName("ncube_basic");
-        event.setLayoutIds(Lists.<Long> newArrayList(addedCuboidLayoutIds));
-        event.setSqlPatterns(Lists.<String> newArrayList());
+        event.setJobId(UUID.randomUUID().toString());
+        event.setOwner("ADMIN");
         EventContext eventContext = new EventContext(event, getTestConfig());
         val handler = Mockito.spy(new AddCuboidHandler());
-        Mockito.doReturn(favoriteQueryJDBCDao).when(handler).getFavoriteQueryDao();
-        eventDao.deleteAllEvents();
         handler.handle(eventContext);
 
-        List<Event> events = eventDao.getEvents();
+        List<Event> events = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT).getEvents();
         Assert.assertNotNull(events);
-        Assert.assertTrue(events.size() == 1);
+        Assert.assertTrue(events.size() == 0);
 
-        String jobId = eventContext.getEvent().getJobId();
-        Assert.assertNotNull(jobId);
-
+        String jobId = ((AddCuboidEvent) eventContext.getEvent()).getJobId();
         AbstractExecutable job = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getJob(jobId);
         Assert.assertNotNull(job);
-        Assert.assertEquals(0L, job.getDataRangeStart());
-        Assert.assertEquals(Long.MAX_VALUE, job.getDataRangeEnd());
-
     }
+
 
     private List<Long> calcAddedCuboidLayoutIds(List<NSmartContext.NModelContext> contexts) {
         List<Long> originLayoutIds = new ArrayList<>();

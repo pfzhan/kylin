@@ -25,7 +25,6 @@
 package io.kyligence.kap.metadata.filter;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,12 +37,11 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.commons.io.Charsets;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.commons.lang.RandomStringUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.StorageURL;
-import org.apache.kylin.common.persistence.HDFSResourceStore;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ByteArray;
@@ -59,6 +57,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Sets;
+import com.google.common.io.ByteStreams;
 
 public class MassinFilterManager {
     public static final Logger logger = LoggerFactory.getLogger(MassinFilterManager.class);
@@ -119,7 +118,7 @@ public class MassinFilterManager {
             bos.close();
 
             ResourceStore store = getStore();
-            store.putResource(resourcePath, new ByteArrayInputStream(baos.toByteArray()), 0);
+            store.checkAndPutResource(resourcePath, ByteStreams.asByteSource(baos.toByteArray()), -1);
         } else {
             throw new RuntimeException("HBASE_TABLE FilterTableType Not supported yet");
         }
@@ -145,35 +144,30 @@ public class MassinFilterManager {
                 return cached.getSecond();
             }
 
-            InputStream inputStream = null;
             Set<ByteArray> ret = Sets.newHashSet();
-            try {
-                ResourceStore store = getStore();
-                RawResource rawResource = store.getResource(resourceIdentifier);
-                inputStream = rawResource.inputStream;
-                List<String> lines = IOUtils.readLines(inputStream, Charset.defaultCharset());
+            ResourceStore store = getStore();
+            RawResource rawResource = store.getResource(resourceIdentifier);
+            List<String> lines;
+            try (InputStream is = rawResource.getByteSource().openStream()) {
+                lines = IOUtils.readLines(is, Charset.defaultCharset());
+            }
 
-                DimensionEncoding encoding = EncodingMapping.get(resourceIdentifier);
-                for (String line : lines) {
-                    if (StringUtils.isEmpty(line)) {
-                        continue;
-                    }
-
-                    try {
-                        if (encoding != null) {
-                            ByteArray byteArray = ByteArray.allocate(encoding.getLengthOfEncoding());
-                            encoding.encode(line, byteArray.array(), 0);
-                            ret.add(byteArray);
-                        } else {
-                            ret.add(new ByteArray(line.getBytes()));
-                        }
-                    } catch (Exception e) {
-                        throw e;
-                    }
+            DimensionEncoding encoding = EncodingMapping.get(resourceIdentifier);
+            for (String line : lines) {
+                if (StringUtils.isEmpty(line)) {
+                    continue;
                 }
-            } finally {
-                if (inputStream != null) {
-                    IOUtils.closeQuietly(inputStream);
+
+                try {
+                    if (encoding != null) {
+                        ByteArray byteArray = ByteArray.allocate(encoding.getLengthOfEncoding());
+                        encoding.encode(line, byteArray.array(), 0);
+                        ret.add(byteArray);
+                    } else {
+                        ret.add(new ByteArray(line.getBytes()));
+                    }
+                } catch (Exception e) {
+                    throw e;
                 }
             }
             return ret;
@@ -183,19 +177,20 @@ public class MassinFilterManager {
     }
 
     private ResourceStore getStore() {
-        ResourceStore store = RESOURCE_STORE_CACHE.get(kylinConfig);
-        if (store == null) {
-            StorageURL url = StorageURL.valueOf(
-                    kylinConfig.getMetadataUrlPrefix() + "@hdfs,path=" + kylinConfig.getHdfsWorkingDirectory());
-            try {
-                store = new HDFSResourceStore(kylinConfig, url);
-                synchronized (MassinFilterManager.class) {
-                    RESOURCE_STORE_CACHE.put(kylinConfig, store);
-                }
-            } catch (Exception e) {
-                throw new RuntimeException("Failed to create HDFSResourceStore at " + url, e);
-            }
-        }
-        return store;
+//        ResourceStore store = RESOURCE_STORE_CACHE.get(kylinConfig);
+//        if (store == null) {
+//            StorageURL url = StorageURL.valueOf(
+//                    kylinConfig.getMetadataUrlPrefix() + "@hdfs,path=" + kylinConfig.getHdfsWorkingDirectory());
+//            try {
+//                store = new HDFSResourceStore(kylinConfig);
+//                synchronized (MassinFilterManager.class) {
+//                    RESOURCE_STORE_CACHE.put(kylinConfig, store);
+//                }
+//            } catch (Exception e) {
+//                throw new RuntimeException("Failed to create HDFSResourceStore at " + url, e);
+//            }
+//        }
+//        return store;
+        throw new NotImplementedException("never use it again");
     }
 }

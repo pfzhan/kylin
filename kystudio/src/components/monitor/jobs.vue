@@ -20,7 +20,7 @@
         <el-button plain size="medium" class="ksd-ml-20" icon="el-icon-refresh" @click="refreshJobs">{{$t('kylinLang.common.refresh')}}</el-button>
       </el-col>
       <el-col  :xs="24" :md="12" :lg="12">
-        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.subject"  @input="filterChange" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
+        <el-input :placeholder="$t('kylinLang.common.pleaseFilter')" v-model="filter.subjectAlias"  @input="filterChange" class="show-search-btn ksd-fright" size="medium" prefix-icon="el-icon-search">
         </el-input>
       </el-col>
     </el-row>
@@ -59,7 +59,7 @@
         sortable
         :min-width="140"
         show-overflow-tooltip
-        prop="target_subject">
+        prop="target_model_alias">
       </el-table-column>
        <el-table-column
         :label="$t('dataRange')"
@@ -299,7 +299,7 @@ export default class JobsList extends Vue {
     jobNames: [],
     sortBy: 'last_modify',
     status: '',
-    subject: ''
+    subjectAlias: ''
   }
   jobsList = []
   jobTotal = 0
@@ -620,7 +620,7 @@ export default class JobsList extends Vue {
     if (_column.label === this.$t('startTime')) {
       this.filter.sortby = 'create_time'
     } else if (_column.label === this.$t('TargetSubject')) {
-      this.filter.sortby = 'target_subject'
+      this.filter.sortby = 'target_model_alias'
     } else if (_column.label === this.$t('Duration')) {
       this.filter.sortby = 'duration'
     }

@@ -220,7 +220,7 @@ public class NTableControllerTest {
     @Test
     public void testSetDateRangePass() throws Exception {
         final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
-        Mockito.doNothing().when(tableService).setDataRange(dateRangeRequest);
+        Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(dateRangeRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -421,7 +421,7 @@ public class NTableControllerTest {
     @Test
     public void testUpdateAutoMergeConfig() throws Exception {
         AutoMergeRequest autoMergeRequest = mockAutoMergeRequest();
-        Mockito.doNothing().when(tableService).setAutoMergeConfigByTable(autoMergeRequest);
+        Mockito.doNothing().when(tableService).setAutoMergeConfigByTable("default", autoMergeRequest);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/tables/auto_merge_config").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(autoMergeRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))

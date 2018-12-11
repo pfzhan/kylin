@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,13 +42,11 @@
 
 package io.kyligence.kap.event.manager;
 
-
-import io.kyligence.kap.event.model.Event;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.exception.PersistentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.kyligence.kap.event.model.Event;
 
 public class EventManager {
 
@@ -84,7 +81,7 @@ public class EventManager {
         this.eventDao = EventDao.getInstance(config, project);
     }
 
-    public void post(Event event) throws PersistentException {
+    public void post(Event event) {
         if (event.isGlobal() && !GLOBAL.equals(project)) {
             // dispatch to global
             EventManager.getInstance(config).post(event);

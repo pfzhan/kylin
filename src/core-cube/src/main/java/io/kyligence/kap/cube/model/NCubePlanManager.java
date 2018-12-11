@@ -24,19 +24,14 @@
 
 package io.kyligence.kap.cube.model;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.AutoReadWriteLock;
-import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
 import org.apache.kylin.cube.model.validation.ValidateContext;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,14 +45,12 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 public class NCubePlanManager implements IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NCubePlanManager.class);
 
-    public static final String NCUBE_PLAN_ENTITY_NAME = "cube_plan";
-
     public static NCubePlanManager getInstance(KylinConfig config, String project) {
         return config.getManager(project, NCubePlanManager.class);
     }
 
     // called by reflection
-    static NCubePlanManager newInstance(KylinConfig config, String project) throws IOException {
+    static NCubePlanManager newInstance(KylinConfig config, String project) {
         return new NCubePlanManager(config, project);
     }
 
@@ -66,21 +59,14 @@ public class NCubePlanManager implements IKeepNames {
     private KylinConfig config;
     private String project;
 
-    // name ==> NCubePlan
-    private CaseInsensitiveStringCache<NCubePlan> cubePlanMap;
     private CachedCrudAssist<NCubePlan> crud;
 
-    // protects concurrent operations around the cached map, to avoid for example
-    // writing an entity in the middle of reloading it (dirty read)
-    private AutoReadWriteLock cubePlanMapLock = new AutoReadWriteLock();
-
-    private NCubePlanManager(KylinConfig cfg, final String project) throws IOException {
+    private NCubePlanManager(KylinConfig cfg, final String project) {
         logger.info("Initializing NCubePlanManager with config " + config);
         this.config = cfg;
         this.project = project;
-        this.cubePlanMap = new CaseInsensitiveStringCache<>(config, project, NCUBE_PLAN_ENTITY_NAME);
         String resourceRootPath = "/" + project + NCubePlan.CUBE_PLAN_RESOURCE_ROOT;
-        this.crud = new CachedCrudAssist<NCubePlan>(getStore(), resourceRootPath, NCubePlan.class, cubePlanMap) {
+        this.crud = new CachedCrudAssist<NCubePlan>(getStore(), resourceRootPath, NCubePlan.class) {
             @Override
             protected NCubePlan initEntityAfterReload(NCubePlan cubePlan, String resourceName) {
                 try {
@@ -97,7 +83,6 @@ public class NCubePlanManager implements IKeepNames {
 
         // touch lower level metadata before registering my listener
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new CubePlanSyncListener(), project, NCUBE_PLAN_ENTITY_NAME);
     }
 
     public NCubePlan findMatchingCubePlan(String modelName, String project, KylinConfig kylinConfig) {
@@ -113,139 +98,94 @@ public class NCubePlanManager implements IKeepNames {
         throw new IllegalStateException("model " + modelName + " does not contain cube");
     }
 
-    private class CubePlanSyncListener extends Broadcaster.Listener {
-
-        @Override
-        public void onProjectSchemaChange(Broadcaster broadcaster, String project) throws IOException {
-            for (IRealization real : NProjectManager.getInstance(config).listAllRealizations(project)) {
-                if (real instanceof NDataflow) {
-                    String planName = ((NDataflow) real).getCubePlanName();
-                    try (AutoLock lock = cubePlanMapLock.lockForWrite()) {
-                        crud.reloadQuietly(planName);
-                    }
-                }
-            }
-        }
-
-        @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
-                throws IOException {
-            String planName = cacheKey;
-            NCubePlan cubePlan = getCubePlan(planName);
-            String prj = cubePlan == null ? null : cubePlan.getProject();
-
-            try (AutoLock lock = cubePlanMapLock.lockForWrite()) {
-                if (event == Broadcaster.Event.DROP)
-                    cubePlanMap.removeLocal(planName);
-                else
-                    crud.reloadQuietly(planName);
-
-            }
-
-            broadcaster.notifyProjectSchemaUpdate(prj);
-        }
-    }
-
     public NCubePlan copy(NCubePlan plan) {
         return crud.copyBySerialization(plan);
     }
 
     public NCubePlan getCubePlan(String name) {
-        try (AutoLock lock = cubePlanMapLock.lockForRead()) {
-            return cubePlanMap.get(name);
-        }
+        return crud.get(name);
     }
 
     public List<NCubePlan> listAllCubePlans() {
-        try (AutoLock lock = cubePlanMapLock.lockForRead()) {
-            return Lists.newArrayList(cubePlanMap.values());
-        }
+        return Lists.newArrayList(crud.getAll());
     }
 
-    public NCubePlan createCubePlan(NCubePlan cubePlan) throws IOException {
-        try (AutoLock lock = cubePlanMapLock.lockForWrite()) {
-            if (cubePlan.getUuid() == null || cubePlan.getName() == null)
-                throw new IllegalArgumentException();
-            if (cubePlanMap.containsKey(cubePlan.getName()))
-                throw new IllegalArgumentException("NCubePlan '" + cubePlan.getName() + "' already exists");
+    public NCubePlan createCubePlan(NCubePlan cubePlan) {
+        if (cubePlan.getUuid() == null || cubePlan.getName() == null)
+            throw new IllegalArgumentException();
+        if (crud.contains(cubePlan.getName()))
+            throw new IllegalArgumentException("NCubePlan '" + cubePlan.getName() + "' already exists");
 
-            try {
-                // init the cube plan if not yet
-                if (cubePlan.getConfig() == null)
-                    cubePlan.initAfterReload(config);
-            } catch (Exception e) {
-                logger.warn("Broken cube plan " + cubePlan, e);
-                cubePlan.addError(e.getMessage());
-            }
-
-            // Check base validation
-            if (!cubePlan.getError().isEmpty()) {
-                throw new IllegalArgumentException(cubePlan.getErrorMsg());
-            }
-            // Semantic validation
-            NCubePlanValidator validator = new NCubePlanValidator();
-            ValidateContext context = validator.validate(cubePlan);
-            if (!context.ifPass()) {
-                throw new IllegalArgumentException(cubePlan.getErrorMsg());
-            }
-
-            return saveCube(cubePlan);
+        try {
+            // init the cube plan if not yet
+            if (cubePlan.getConfig() == null)
+                cubePlan.initAfterReload(config);
+        } catch (Exception e) {
+            logger.warn("Broken cube plan " + cubePlan, e);
+            cubePlan.addError(e.getMessage());
         }
+
+        // Check base validation
+        if (!cubePlan.getError().isEmpty()) {
+            throw new IllegalArgumentException(cubePlan.getErrorMsg());
+        }
+        // Semantic validation
+        NCubePlanValidator validator = new NCubePlanValidator();
+        ValidateContext context = validator.validate(cubePlan);
+        if (!context.ifPass()) {
+            throw new IllegalArgumentException(cubePlan.getErrorMsg());
+        }
+
+        return saveCube(cubePlan);
     }
 
     public interface NCubePlanUpdater {
         void modify(NCubePlan copyForWrite);
     }
 
-    public NCubePlan updateCubePlan(String cubePlanName, NCubePlanUpdater updater) throws IOException {
-        try (AutoLock lock = cubePlanMapLock.lockForWrite()) {
-            NCubePlan cached = getCubePlan(cubePlanName);
-            NCubePlan copy = copy(cached);
-            updater.modify(copy);
-            return updateCubePlan(copy);
-        }
+    public NCubePlan updateCubePlan(String cubePlanName, NCubePlanUpdater updater) {
+        NCubePlan cached = getCubePlan(cubePlanName);
+        NCubePlan copy = copy(cached);
+        updater.modify(copy);
+        return updateCubePlan(copy);
     }
 
     // use the NCubePlanUpdater instead
     @Deprecated
-    public NCubePlan updateCubePlan(NCubePlan cubePlan) throws IOException {
-        try (AutoLock lock = cubePlanMapLock.lockForWrite()) {
-            if (cubePlan.isCachedAndShared())
-                throw new IllegalStateException();
+    public NCubePlan updateCubePlan(NCubePlan cubePlan) {
+        if (cubePlan.isCachedAndShared())
+            throw new IllegalStateException();
 
-            if (cubePlan.getUuid() == null || cubePlan.getName() == null)
-                throw new IllegalArgumentException();
+        if (cubePlan.getUuid() == null || cubePlan.getName() == null)
+            throw new IllegalArgumentException();
 
-            String name = cubePlan.getName();
-            if (!cubePlanMap.containsKey(name))
-                throw new IllegalArgumentException("NCubePlan '" + name + "' does not exist.");
+        String name = cubePlan.getName();
+        if (!crud.contains(name))
+            throw new IllegalArgumentException("NCubePlan '" + name + "' does not exist.");
 
-            try {
-                // init the cube plan if not yet
-                if (cubePlan.getConfig() == null)
-                    cubePlan.initAfterReload(config);
-            } catch (Exception e) {
-                logger.warn("Broken cube desc " + cubePlan, e);
-                cubePlan.addError(e.getMessage());
-                throw new IllegalArgumentException(cubePlan.getErrorMsg());
-            }
-
-            return saveCube(cubePlan);
+        try {
+            // init the cube plan if not yet
+            if (cubePlan.getConfig() == null)
+                cubePlan.initAfterReload(config);
+        } catch (Exception e) {
+            logger.warn("Broken cube desc " + cubePlan, e);
+            cubePlan.addError(e.getMessage());
+            throw new IllegalArgumentException(cubePlan.getErrorMsg());
         }
+
+        return saveCube(cubePlan);
     }
 
     // remove cubePlan
-    public void removeCubePlan(NCubePlan cubePlan) throws IOException {
-        try (AutoLock lock = cubePlanMapLock.lockForWrite()) {
-            crud.delete(cubePlan);
-        }
+    public void removeCubePlan(NCubePlan cubePlan) {
+        crud.delete(cubePlan);
     }
 
     private ResourceStore getStore() {
         return ResourceStore.getKylinMetaStore(this.config);
     }
 
-    private NCubePlan saveCube(NCubePlan cubePlan) throws IOException {
+    private NCubePlan saveCube(NCubePlan cubePlan) {
         cubePlan.setCuboids(cubePlan.getCuboids().stream()
                 .peek(cuboid -> cuboid.setLayouts(cuboid.getLayouts().stream()
                         .filter(l -> l.isAuto() || l.getId() >= NCuboidDesc.TABLE_INDEX_START_ID)

@@ -79,9 +79,11 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
+import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 
 @SuppressWarnings("serial")
 public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase implements Serializable {
@@ -248,16 +250,16 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         List<NCuboidLayout> round1 = Lists.newArrayList(layouts);
         buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(round1),
-                prj);
+                prj, true);
     }
 
-    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts)
+    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts, boolean isAppend)
             throws Exception {
-        buildCuboid(cubeName, segmentRange, toBuildLayouts, getProject());
+        buildCuboid(cubeName, segmentRange, toBuildLayouts, getProject(), isAppend);
     }
 
     protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts,
-            String prj) throws Exception {
+            String prj, boolean isAppend) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
         NExecutableManager execMgr = NExecutableManager.getInstance(config, prj);
@@ -277,6 +279,16 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         if (!Objects.equals(wait(job), ExecutableState.SUCCEED)) {
             throw new IllegalStateException();
         }
+
+        val merger = new AfterBuildResourceMerger(config, getProject());
+        if (isAppend) {
+            merger.mergeAfterIncrement(df.getName(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
+                    ExecutableUtils.getRemoteStore(config, sparkStep));
+        } else {
+            merger.mergeAfterCatchup(df.getName(), Sets.newHashSet(oneSeg.getId()),
+                    ExecutableUtils.getLayoutIds(sparkStep), ExecutableUtils.getRemoteStore(config, sparkStep));
+        }
+        merger.mergeAnalysis(df.getName(), ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep()));
 
         //Assert.assertEquals(ExecutableState.SUCCEED, wait(job));
     }

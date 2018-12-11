@@ -74,7 +74,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertNotEquals(mgrDefault, mgrSsb);
 
         NDataModelManager mgrInvalid = NDataModelManager.getInstance(getTestConfig(), "not_exist_prj");
-        Assert.assertEquals(0, mgrInvalid.listModels().size());
+        Assert.assertEquals(0, mgrInvalid.getDataModels().size());
     }
 
     @Test
@@ -106,12 +106,12 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModels() {
-        List<NDataModel> models = mgrDefault.listModels();
+        List<NDataModel> models = mgrDefault.getDataModels();
         Assert.assertEquals(6, models.size());
 
         NDataModelManager mgrSsb;
         mgrSsb = NDataModelManager.getInstance(getTestConfig(), "ssb");
-        List<NDataModel> models2 = mgrSsb.listModels();
+        List<NDataModel> models2 = mgrSsb.getDataModels();
         Assert.assertEquals(1, models2.size());
     }
 
@@ -172,16 +172,17 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void createDataModelDesc_simpleModel_succeed() throws IOException {
-        int modelNum = mgrDefault.listModels().size();
+        int modelNum = mgrDefault.getDataModels().size();
         NDataModel nDataModel = JsonUtil.deepCopy((NDataModel) mgrDefault.getDataModelDesc("nmodel_basic"),
                 NDataModel.class);
 
         nDataModel.setName("nmodel_basic2");
         nDataModel.setUuid(UUID.randomUUID().toString());
         nDataModel.setLastModified(0L);
+        nDataModel.setMvcc(-1);
         mgrDefault.createDataModelDesc(nDataModel, "root");
 
-        Assert.assertEquals(modelNum + 1, mgrDefault.listModels().size());
+        Assert.assertEquals(modelNum + 1, mgrDefault.getDataModels().size());
     }
 
     @Test
@@ -214,6 +215,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         nDataModel.setName("nmodel_basic2");
         nDataModel.setUuid(UUID.randomUUID().toString());
         nDataModel.setLastModified(0L);
+        nDataModel.setMvcc(-1);
 
         //make conflict on NamedColumn.name
         List<NDataModel.NamedColumn> allNamedColumns = nDataModel.getAllNamedColumns();

@@ -38,20 +38,17 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.Nonnull;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.AutoReadWriteLock;
 import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
-import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
-import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,7 +76,7 @@ public class RowACLManager {
     private ResourceStore store;
     private static final Serializer<RowACL> ROW_ACL_SERIALIZER = new JsonSerializer<>(RowACL.class);
     private static final String DIR_PREFIX = "/row_acl";
-    private CaseInsensitiveStringCache<String> rowACLKeys;
+    private Map<String, String> rowACLKeys;
     private Cache<String, Map<String, String>> queryUserRowACL;
     private AutoReadWriteLock lock = new AutoReadWriteLock();
 
@@ -90,38 +87,8 @@ public class RowACLManager {
         this.queryUserRowACL = CacheBuilder.newBuilder().maximumSize(1000).expireAfterAccess(3, TimeUnit.DAYS).build();
 
         // todo prj
-        this.rowACLKeys = new CaseInsensitiveStringCache<>(config, "", "row_acl");
+        this.rowACLKeys = new ConcurrentSkipListMap<>();
         loadAllKeys();
-        Broadcaster.getInstance(config).registerListener(new RowACLSyncListener(), "", "row_acl");
-    }
-
-    private class RowACLSyncListener extends Broadcaster.Listener {
-
-        // cacheKey : /row_acl/project/type/userOrGroup/tablename.json
-        @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
-                throws IOException {
-            try (AutoLock l = lock.lockForWrite()) {
-                invalidateQueryUserRowACL(cacheKey);
-                if (event == Event.DROP) {
-                    rowACLKeys.removeLocal(cacheKey);
-                } else {
-                    // rowACLKeys only has : add/delete operation.
-                    rowACLKeys.putLocal(cacheKey, "/");
-                }
-            }
-            int s = StringUtils.ordinalIndexOf(cacheKey, "/", 2);
-            int e = StringUtils.ordinalIndexOf(cacheKey, "/", 3);
-            String project = cacheKey.substring(s + 1, e);
-            broadcaster.notifyProjectACLUpdate(project);
-        }
-
-        private void invalidateQueryUserRowACL(String cacheKey) {
-            int s = StringUtils.ordinalIndexOf(cacheKey, "/", 4);
-            int e = StringUtils.ordinalIndexOf(cacheKey, "/", 5);
-            String username = cacheKey.substring(s + 1, e);
-            queryUserRowACL.invalidate(username);
-        }
     }
 
     private void loadAllKeys() throws IOException {
@@ -130,7 +97,7 @@ public class RowACLManager {
             return;
         }
         for (String key : keys) {
-            rowACLKeys.putLocal(key, "");
+            rowACLKeys.put(key, "");
         }
     }
 
@@ -176,11 +143,7 @@ public class RowACLManager {
     public RowACL getRowACL(String project, String type, String name, String table) {
         table = table.toUpperCase();
         RowACL acl;
-        try {
-            acl = store.getResource(path(project, type, name, table), RowACL.class, ROW_ACL_SERIALIZER);
-        } catch (IOException e) {
-            throw new RuntimeException("Can not get row ACL");
-        }
+        acl = store.getResource(path(project, type, name, table), ROW_ACL_SERIALIZER);
         return acl;
     }
 
@@ -198,15 +161,15 @@ public class RowACLManager {
         try (AutoLock l = lock.lockForWrite()) {
             table = table.toUpperCase();
             validateACLExists(project, type, name, table);
-            RowACL rowACL = store.getResource(path(project, type, name, table), RowACL.class, ROW_ACL_SERIALIZER);
+            RowACL rowACL = store.getResource(path(project, type, name, table), ROW_ACL_SERIALIZER);
             putRowACL(project, type, name, table, condsWithColumn, rowACL);
         }
     }
 
     private void putRowACL(String project, String type, String name, String table, ColumnToConds condsWithColumn,
-                           RowACL rowACL) throws IOException {
+            RowACL rowACL) throws IOException {
         rowACL.add(condsWithColumn);
-        store.putResource(path(project, type, name, table), rowACL, ROW_ACL_SERIALIZER);
+        store.checkAndPutResource(path(project, type, name, table), rowACL, ROW_ACL_SERIALIZER);
         rowACLKeys.put(path(project, type, name, table), "");
     }
 

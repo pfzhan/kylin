@@ -7,3 +7,8 @@ server:
 spring:
   profiles:
     active: "testing"
+
+logging:
+  level:
+    io.kyligence: DEBUG
+    org.apache.kylin: DEBUG

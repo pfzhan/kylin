@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -35,13 +34,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
@@ -62,17 +61,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.LoadingRangeUpdateEvent;
+import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -86,6 +88,7 @@ import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
+import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
 import lombok.var;
 
@@ -99,37 +102,26 @@ public class TableService extends BasicService {
     @Autowired
     private ModelService modelService;
 
+    @Transaction(project = 0)
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
-            boolean isFuzzy) throws IOException {
+            boolean isFuzzy) {
         NTableMetadataManager nTableMetadataManager = getTableManager(project);
         List<TableDesc> tables = new ArrayList<>();
         //get table not fuzzy,can use getTableDesc(tableName)
         if (StringUtils.isNotEmpty(tableName) && !isFuzzy) {
             tables.add(nTableMetadataManager.getTableDesc(database + "." + tableName));
         } else {
-            tables.addAll(Lists.newArrayList(
-                    FluentIterable.from(nTableMetadataManager.listAllTables()).filter(new Predicate<TableDesc>() {
-                        @Override
-                        public boolean apply(TableDesc tableDesc) {
-                            if (StringUtils.isEmpty(database)) {
-                                return true;
-                            }
-                            return tableDesc.getDatabase().equalsIgnoreCase(database);
-                        }
-                    }).filter(new Predicate<TableDesc>() {
-                        @Override
-                        public boolean apply(TableDesc tableDesc) {
-                            if (StringUtils.isEmpty(tableName)) {
-                                return true;
-                            }
-                            return tableDesc.getName().toLowerCase().contains(tableName.toLowerCase());
-                        }
-                    }).toSortedList(new Comparator<TableDesc>() {
-                        @Override
-                        public int compare(TableDesc o1, TableDesc o2) {
-                            return compareTableDesc(o1, o2);
-                        }
-                    })));
+            tables.addAll(nTableMetadataManager.listAllTables().stream().filter(tableDesc -> {
+                if (StringUtils.isEmpty(database)) {
+                    return true;
+                }
+                return tableDesc.getDatabase().equalsIgnoreCase(database);
+            }).filter(tableDesc -> {
+                if (StringUtils.isEmpty(tableName)) {
+                    return true;
+                }
+                return tableDesc.getName().toLowerCase().contains(tableName.toLowerCase());
+            }).sorted(this::compareTableDesc).collect(Collectors.toList()));
         }
         tables = getTablesResponse(tables, project, withExt);
         return tables;
@@ -147,12 +139,12 @@ public class TableService extends BasicService {
         }
     }
 
-    public String[] loadTableToProject(TableDesc tableDesc, TableExtDesc extDesc, String project) throws IOException {
+    @Transaction(project = 2)
+    public String[] loadTableToProject(TableDesc tableDesc, TableExtDesc extDesc, String project) {
         return loadTablesToProject(Lists.newArrayList(Pair.newPair(tableDesc, extDesc)), project);
     }
 
-    private String[] loadTablesToProject(List<Pair<TableDesc, TableExtDesc>> allMeta, String project)
-            throws IOException {
+    private String[] loadTablesToProject(List<Pair<TableDesc, TableExtDesc>> allMeta, String project) {
         final NTableMetadataManager tableMetaMgr = getTableManager(project);
         // save table meta
         List<String> saved = Lists.newArrayList();
@@ -190,11 +182,11 @@ public class TableService extends BasicService {
             saved.add(tableDesc.getIdentity());
             savedTables.add(tableDesc);
         }
-        String[] result = (String[]) saved.toArray(new String[saved.size()]);
-        addTableToProject(savedTables, project);
+        String[] result = saved.toArray(new String[saved.size()]);
         return result;
     }
 
+    @Transaction(project = 1)
     public List<Pair<TableDesc, TableExtDesc>> extractTableMeta(String[] tables, String project, int sourceType)
             throws Exception {
         // de-dup
@@ -221,10 +213,6 @@ public class TableService extends BasicService {
         return allMeta;
     }
 
-    private void addTableToProject(List<TableDesc> tables, String project) throws IOException {
-        getProjectManager().addTableDescToProject(tables, project);
-    }
-
     public List<String> getSourceDbNames(String project, int dataSourceType) throws Exception {
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
@@ -235,19 +223,13 @@ public class TableService extends BasicService {
             throws Exception {
         ISourceMetadataExplorer explr = SourceFactory.getSource(getProjectManager().getProject(project))
                 .getSourceMetadataExplorer();
-        List<String> tables = Lists
-                .newArrayList(FluentIterable.from(explr.listTables(database)).filter(new Predicate<String>() {
-                    @Override
-                    public boolean apply(String s) {
-                        if (StringUtils.isEmpty(table)) {
-                            return true;
-                        } else if (s.toLowerCase().contains(table.toLowerCase())) {
-                            return true;
-                        }
-                        return false;
-                    }
-                }));
-        return tables;
+        return explr.listTables(database).stream().filter(s -> {
+            if (StringUtils.isEmpty(table)) {
+                return true;
+            } else {
+                return s.toLowerCase().contains(table.toLowerCase());
+            }
+        }).collect(Collectors.toList());
     }
 
     public List<TableNameResponse> getTableNameResponses(String project, String database, int dataSourceType,
@@ -286,8 +268,7 @@ public class TableService extends BasicService {
         return tableDescResponse;
     }
 
-    private List<TableDesc> getTablesResponse(List<TableDesc> tables, String project, boolean withExt)
-            throws IOException {
+    private List<TableDesc> getTablesResponse(List<TableDesc> tables, String project, boolean withExt) {
         List<TableDesc> descs = new ArrayList<TableDesc>();
         NDataModelManager dataModelManager = getDataModelManager(project);
         Iterator<TableDesc> it = tables.iterator();
@@ -344,7 +325,7 @@ public class TableService extends BasicService {
     }
 
     //get table's primaryKeys(pair first) and foreignKeys(pari second)
-    private Pair<Set<String>, Set<String>> getTableColumnType(TableDesc table, String project) throws IOException {
+    private Pair<Set<String>, Set<String>> getTableColumnType(TableDesc table, String project) {
         NDataModelManager dataModelManager = getDataModelManager(project);
         List<String> models = dataModelManager.getModelsUsingTable(table);
         Set<String> primaryKey = new HashSet<>();
@@ -370,8 +351,8 @@ public class TableService extends BasicService {
         return (dbTableName[0] + "." + dbTableName[1]).toUpperCase();
     }
 
-    public void setFact(String table, String project, boolean fact, String column, String dateFormat)
-            throws IOException, PersistentException {
+    @Transaction(project = 1)
+    public void setFact(String table, String project, boolean fact, String column, String dateFormat) {
         NTableMetadataManager tableManager = getTableManager(project);
 
         val modelManager = getDataModelManager(project);
@@ -410,10 +391,11 @@ public class TableService extends BasicService {
             if (!fact) {
                 buildFullSegment(model, project);
             }
+            // else: await table's range being set
         }
     }
 
-    private void syncPartitionDesc(String model, String project, String column, String dateFormat) throws IOException {
+    private void syncPartitionDesc(String model, String project, String column, String dateFormat) {
         val dataloadingManager = getDataLoadingRangeManager(project);
         val datamodelManager = getDataModelManager(project);
         val modelDesc = datamodelManager.getDataModelDesc(model);
@@ -436,7 +418,7 @@ public class TableService extends BasicService {
         datamodelManager.updateDataModelDesc(modelUpdate);
     }
 
-    private void buildFullSegment(String model, String project) throws IOException, PersistentException {
+    private void buildFullSegment(String model, String project) {
         val eventManager = getEventManager(project);
         val dataflowManager = getDataflowManager(project);
         val cubePlanManager = getCubePlanManager(project);
@@ -444,18 +426,27 @@ public class TableService extends BasicService {
         val dataflow = dataflowManager.getDataflow(cubePlan.getName());
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
-        val event = new AddSegmentEvent();
-        event.setSegmentIds(Lists.newArrayList(newSegment.getId()));
-        event.setApproved(true);
-        event.setCubePlanName(cubePlan.getName());
-        event.setModelName(model);
-        event.setSegmentRange(newSegment.getSegRange());
-        event.setProject(project);
-        eventManager.post(event);
+
+        val addSegmentEvent = new AddSegmentEvent();
+        addSegmentEvent.setSegmentId(newSegment.getId());
+        addSegmentEvent.setCubePlanName(cubePlan.getName());
+        addSegmentEvent.setModelName(model);
+        addSegmentEvent.setProject(project);
+        addSegmentEvent.setJobId(UUID.randomUUID().toString());
+        addSegmentEvent.setOwner(getUsername());
+        eventManager.post(addSegmentEvent);
+
+        PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
+        postAddSegmentEvent.setCubePlanName(cubePlan.getName());
+        postAddSegmentEvent.setModelName(model);
+        postAddSegmentEvent.setProject(project);
+        postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
+        postAddSegmentEvent.setOwner(getUsername());
+        eventManager.post(postAddSegmentEvent);
     }
 
-    public void setDataRange(DateRangeRequest dateRangeRequest) throws IOException, PersistentException {
-        String project = dateRangeRequest.getProject();
+    @Transaction(project = 0)
+    public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws IOException {
         String table = dateRangeRequest.getTable();
         SegmentRange segmentRange = getSegmentRangeByTable(dateRangeRequest);
         NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
@@ -472,14 +463,8 @@ public class TableService extends BasicService {
         checkShrinkRangeInBuildingSide(allRange, readyRange, newSegmentRange);
 
         List<SegmentRange> segmentRanges = getNewSegmentRanges(rangeManager.getDataLoadingRange(table), segmentRange);
-        EventManager eventManager = getEventManager(project);
         for (SegmentRange seg : segmentRanges) {
-            LoadingRangeUpdateEvent updateEvent = new LoadingRangeUpdateEvent();
-            updateEvent.setTableName(table);
-            updateEvent.setApproved(true);
-            updateEvent.setProject(project);
-            updateEvent.setSegmentRange(seg);
-            eventManager.post(updateEvent);
+            handleLoadingRangeUpdate(project, table, seg);
             dataLoadingRange = rangeManager.appendSegmentRange(dataLoadingRange, seg);
         }
 
@@ -498,6 +483,54 @@ public class TableService extends BasicService {
             rangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
         }
 
+    }
+
+    private void handleLoadingRangeUpdate(String project, String tableName, SegmentRange segmentRange)
+            throws IOException {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        TableDesc tableDesc = NTableMetadataManager.getInstance(kylinConfig, project).getTableDesc(tableName);
+        if (tableDesc == null) {
+            throw new IllegalArgumentException("TableDesc '" + tableName + "' does not exist");
+        }
+        List<String> modelNames = NDataModelManager.getInstance(kylinConfig, project)
+                .getTableOrientedModelsUsingRootTable(tableDesc);
+        if (CollectionUtils.isNotEmpty(modelNames)) {
+            EventManager eventManager = EventManager.getInstance(kylinConfig, project);
+            NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
+            for (String modelName : modelNames) {
+
+                NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName,
+                        project, kylinConfig);
+                NDataflow df = dataflowManager.getDataflow(cubePlan.getName());
+                NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
+                AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
+                addSegmentEvent.setProject(project);
+                addSegmentEvent.setModelName(modelName);
+                addSegmentEvent.setCubePlanName(cubePlan.getName());
+                addSegmentEvent.setSegmentId((dataSegment.getId()));
+                addSegmentEvent.setJobId(UUID.randomUUID().toString());
+                addSegmentEvent.setOwner(getUsername());
+                eventManager.post(addSegmentEvent);
+
+                PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
+                postAddSegmentEvent.setCubePlanName(cubePlan.getName());
+                postAddSegmentEvent.setModelName(modelName);
+                postAddSegmentEvent.setProject(project);
+                postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
+                postAddSegmentEvent.setOwner(getUsername());
+                eventManager.post(postAddSegmentEvent);
+
+                logger.info(
+                        "LoadingRangeUpdateHandler produce AddSegmentEvent project : {}, model : {}, cubePlan : {}, segmentRange : {}",
+                        project, modelName, cubePlan.getName(), segmentRange);
+            }
+        } else {
+            // there is no models, just update the dataLoadingRange waterMark
+            NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(kylinConfig,
+                    project);
+            dataLoadingRangeManager.updateDataLoadingRangeWaterMark(tableName);
+        }
     }
 
     private void checkShrinkRangeInBuildingSide(SegmentRange allRange, SegmentRange readyRange,
@@ -555,13 +588,15 @@ public class TableService extends BasicService {
 
     }
 
-    public void unloadTable(String project, String table) throws IOException {
+    @Transaction(project = 0)
+    public void unloadTable(String project, String table) {
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         tableMetadataManager.removeTableExt(table);
         tableMetadataManager.removeSourceTable(table);
     }
 
-    public void setTop(String table, String project, boolean top) throws IOException {
+    @Transaction(project = 1)
+    public void setTop(String table, String project, boolean top) {
         NTableMetadataManager nTableMetadataManager = getTableManager(project);
         TableDesc tableDesc = nTableMetadataManager.getTableDesc(table);
         tableDesc.setTop(top);
@@ -611,7 +646,8 @@ public class TableService extends BasicService {
         return dataLoadingRange;
     }
 
-    public void setPushDownMode(String project, String table, boolean pushdownRangeLimited) throws IOException {
+    @Transaction(project = 0)
+    public void setPushDownMode(String project, String table, boolean pushdownRangeLimited) {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRangeUpdate = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
@@ -647,8 +683,8 @@ public class TableService extends BasicService {
         return mergeConfig;
     }
 
-    public void setAutoMergeConfigByModel(AutoMergeRequest autoMergeRequest) throws IOException {
-        String project = autoMergeRequest.getProject();
+    @Transaction(project = 0)
+    public void setAutoMergeConfigByModel(String project, AutoMergeRequest autoMergeRequest) {
         String modelName = autoMergeRequest.getModel();
         NDataModelManager dataModelManager = getDataModelManager(project);
         List<AutoMergeTimeEnum> autoMergeRanges = new ArrayList<>();
@@ -673,7 +709,7 @@ public class TableService extends BasicService {
 
         } else {
             autoMergeRequest.setTable(model.getRootFactTable().getTableIdentity());
-            setAutoMergeConfigByTable(autoMergeRequest);
+            setAutoMergeConfigByTable(project, autoMergeRequest);
 
         }
     }
@@ -684,8 +720,8 @@ public class TableService extends BasicService {
         return dataLoadingRange.isPushdownRangeLimited();
     }
 
-    public void setAutoMergeConfigByTable(AutoMergeRequest autoMergeRequest) throws IOException {
-        String project = autoMergeRequest.getProject();
+    @Transaction(project = 0)
+    public void setAutoMergeConfigByTable(String project, AutoMergeRequest autoMergeRequest) {
         String tableName = autoMergeRequest.getTable();
         List<AutoMergeTimeEnum> autoMergeRanges = new ArrayList<>();
         for (String range : autoMergeRequest.getAutoMergeTimeRanges()) {

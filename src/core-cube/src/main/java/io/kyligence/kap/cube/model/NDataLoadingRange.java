@@ -79,6 +79,7 @@ public class NDataLoadingRange extends RootPersistentEntity {
 
     @JsonProperty("segment_ranges")
     private List<SegmentRange> segmentRanges = Lists.newArrayList();
+
     // (waterMarkStart, waterMarkEnd]
     @JsonProperty("water_mark_start")
     private int waterMarkStart = -1;

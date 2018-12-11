@@ -39,8 +39,8 @@ import java.util.Map;
 import javax.servlet.http.HttpServletResponse;
 
 import io.kyligence.kap.rest.PagingUtil;
-import io.kyligence.kap.rest.request.QueryHistoryRequest;
-import io.kyligence.kap.rest.response.QueryStatisticsResponse;
+import io.kyligence.kap.metadata.query.QueryHistoryRequest;
+import io.kyligence.kap.metadata.query.QueryStatisticsResponse;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -231,9 +231,11 @@ public class NQueryController extends NBasicController {
 
     @RequestMapping(value = "/statistics", method = RequestMethod.GET, params = { "start_time",
             "end_time" }, produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse<List<QueryStatisticsResponse>> queryStatistics(@RequestParam("start_time") long startTime,
+    public EnvelopeResponse<List<QueryStatisticsResponse>> queryStatistics(
+            @RequestParam("project") String project,
+            @RequestParam("start_time") long startTime,
             @RequestParam("end_time") long endTime) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.getQueryStatistics(startTime, endTime), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.getQueryStatistics(project, startTime, endTime), "");
     }
 
 }

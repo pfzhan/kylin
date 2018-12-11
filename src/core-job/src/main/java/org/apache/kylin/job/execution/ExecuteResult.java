@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,27 +42,61 @@
 
 package org.apache.kylin.job.execution;
 
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+
 import com.google.common.base.Preconditions;
+import com.google.common.base.Throwables;
+import com.google.common.collect.Maps;
+
+import lombok.Getter;
 
 /**
  */
 public final class ExecuteResult {
 
-    public static enum State {
-        SUCCEED, FAILED, ERROR, DISCARDED, STOPPED
+    public enum State {
+        SUCCEED, ERROR
     }
 
     private final State state;
     private final String output;
+    private final Throwable throwable;
 
-    public ExecuteResult(State state) {
-        this(state, "");
-    }
+    //extra
+    @Getter
+    private Map<String, String> extraInfo = Maps.newHashMap();
 
-    public ExecuteResult(State state, String output) {
+    private ExecuteResult(State state, String output, Throwable throwable) {
         Preconditions.checkArgument(state != null, "state cannot be null");
+
+        if (state == State.SUCCEED) {
+            Preconditions.checkNotNull(output);
+            Preconditions.checkState(throwable == null);
+        } else if (state == State.ERROR) {
+            Preconditions.checkNotNull(throwable);
+            Preconditions.checkState(output == null);
+        } else {
+            throw new IllegalStateException();
+        }
+
         this.state = state;
         this.output = output;
+        this.throwable = throwable;
+    }
+
+    public static ExecuteResult createSucceed() {
+        return new ExecuteResult(State.SUCCEED, "succeed", null);
+    }
+
+    public static ExecuteResult createSucceed(String output) {
+        return new ExecuteResult(State.SUCCEED, output, null);
+    }
+
+    public static ExecuteResult createError(Throwable throwable) {
+        Preconditions.checkArgument(throwable != null, "throwable cannot be null");
+        return new ExecuteResult(State.ERROR, null, throwable);
     }
 
     public State state() {
@@ -76,5 +109,23 @@ public final class ExecuteResult {
 
     public String output() {
         return output;
+    }
+
+    public Throwable getThrowable() {
+        return throwable;
+    }
+
+    public String getErrorMsg() {
+        if (succeed()) {
+            return null;
+        }
+
+        if (throwable != null) {
+            return Throwables.getStackTraceAsString(throwable);
+        } else if (StringUtils.isNotEmpty(output)) {
+            return output;
+        } else {
+            return "error";
+        }
     }
 }

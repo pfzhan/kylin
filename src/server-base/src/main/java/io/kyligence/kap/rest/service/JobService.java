@@ -27,27 +27,18 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
-import com.google.common.base.Predicates;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.request.JobActionEnum;
-import io.kyligence.kap.rest.request.JobFilter;
-import io.kyligence.kap.rest.response.ExecutableResponse;
-import io.kyligence.kap.rest.response.ExecutableStepResponse;
-import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -63,6 +54,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.rest.request.JobActionEnum;
+import io.kyligence.kap.rest.request.JobFilter;
+import io.kyligence.kap.rest.response.ExecutableResponse;
+import io.kyligence.kap.rest.response.ExecutableStepResponse;
+import io.kyligence.kap.rest.transaction.Transaction;
+import lombok.val;
+
 @Component("jobService")
 public class JobService extends BasicService {
 
@@ -70,11 +70,10 @@ public class JobService extends BasicService {
     @Qualifier("tableExtService")
     private TableExtService tableExtService;
 
-
     private static final Logger logger = LoggerFactory.getLogger(JobService.class);
     private static final String JOB_NAME = "job_name";
     private static final String CREATE_TIME = "create_time";
-    private static final String TARGET_SUBJECT = "target_subject";
+    private static final String TARGET_SUBJECT_ALIAS = "target_subject_alias";
     private static final String JOB_STATUS = "job_status";
     private static final String EXEC_START_TIME = "exec_start_time";
     private static final String DURATION = "duration";
@@ -87,71 +86,64 @@ public class JobService extends BasicService {
         long timeStartInMillis = getTimeStartInMillis(calendar, JobTimeFilterEnum.getByCode(jobFilter.getTimeFilter()));
         long timeEndInMillis = Long.MAX_VALUE;
         List<AbstractExecutable> jobs = executableManager.getAllExecutables(timeStartInMillis, timeEndInMillis);
-        ImmutableList<ExecutableResponse> filteredJobs = FluentIterable.from(jobs)
-                .filter(Predicates.and(new Predicate<AbstractExecutable>() {
-                    @Override
-                    public boolean apply(AbstractExecutable abstractExecutable) {
-                        if (StringUtils.isEmpty(jobFilter.getStatus())) {
-                            return true;
-                        }
-                        ExecutableState state = abstractExecutable.getStatus();
-                        return state.equals(parseToExecutableState(JobStatusEnum.valueOf(jobFilter.getStatus())));
+        List<ExecutableResponse> filteredJobs = jobs.stream().filter(
+
+                ((Predicate<AbstractExecutable>) (abstractExecutable -> {
+                    if (StringUtils.isEmpty(jobFilter.getStatus())) {
+                        return true;
                     }
-                }, new Predicate<AbstractExecutable>() {
-                    @Override
-                    public boolean apply(AbstractExecutable abstractExecutable) {
-                        String subject = jobFilter.getSubject();
-                        if (StringUtils.isEmpty(subject)) {
-                            return true;
-                        }
-                        return abstractExecutable.getTargetSubject().toLowerCase().contains(subject.toLowerCase());
+                    ExecutableState state = abstractExecutable.getStatus();
+                    return state.equals(parseToExecutableState(JobStatusEnum.valueOf(jobFilter.getStatus())));
+                })).and(abstractExecutable -> {
+                    String subject = jobFilter.getSubjectAlias();
+                    if (StringUtils.isEmpty(subject)) {
+                        return true;
                     }
-                }, new Predicate<AbstractExecutable>() {
-                    @Override
-                    public boolean apply(AbstractExecutable abstractExecutable) {
-                        List<String> jobNames = jobFilter.getJobNames();
-                        if (CollectionUtils.isEmpty(jobNames)) {
-                            return true;
-                        }
-                        return jobNames.contains(abstractExecutable.getName());
+                    return abstractExecutable.getTargetModelAlias().toLowerCase().contains(subject.toLowerCase());
+                }).and(abstractExecutable -> {
+                    List<String> jobNames = jobFilter.getJobNames();
+                    if (CollectionUtils.isEmpty(jobNames)) {
+                        return true;
                     }
-                })).transform(new Function<AbstractExecutable, ExecutableResponse>() {
-                    @Override
-                    public ExecutableResponse apply(AbstractExecutable abstractExecutable) {
-                        ExecutableResponse executableResponse = ExecutableResponse.create(abstractExecutable);
-                        executableResponse.setStatus(parseToJobStatus(abstractExecutable.getStatus()));
-                        return executableResponse;
+                    return jobNames.contains(abstractExecutable.getName());
+                }).and(abstractExecutable -> {
+                    String subject = jobFilter.getSubject();
+                    if (StringUtils.isEmpty(subject)) {
+                        return true;
                     }
-                }).toSortedList(new Comparator<ExecutableResponse>() {
-                    @Override
-                    public int compare(ExecutableResponse o1, ExecutableResponse o2) {
-                        String sortBy = jobFilter.getSortBy();
-                        return sortJobs(sortBy, o1, o2);
-                    }
-                });
+                    //if filter on uuid, then it must be accurate
+                    return abstractExecutable.getTargetModel().equals(jobFilter.getSubject());
+                })
+
+        ).map(abstractExecutable -> {
+            ExecutableResponse executableResponse = ExecutableResponse.create(abstractExecutable);
+            executableResponse.setStatus(parseToJobStatus(abstractExecutable.getStatus()));
+            return executableResponse;
+        }).sorted((o1, o2) -> {
+            String sortBy = jobFilter.getSortBy();
+            return sortJobs(sortBy, o1, o2);
+        }).collect(Collectors.toList());
+
         if (jobFilter.isReverse()) {
-            filteredJobs = filteredJobs.reverse();
+            filteredJobs = Lists.reverse(filteredJobs);
         }
-        List<ExecutableResponse> executableResponseResults = Lists.newArrayList(filteredJobs);
-        return executableResponseResults;
+        return filteredJobs;
     }
 
     private int sortJobs(String sortBy, ExecutableResponse o1, ExecutableResponse o2) {
         switch (sortBy) {
-            case JOB_NAME:
-                return o1.getJobName().compareTo(o2.getJobName());
-            case TARGET_SUBJECT:
-                return o1.getTargetSubject().compareTo(o2.getTargetSubject());
-            case JOB_STATUS:
-                return o1.getStatus().compareTo(o2.getStatus());
-            case EXEC_START_TIME:
-                return o1.getExecStartTime() < o2.getExecStartTime() ? -1 : 1;
-            case CREATE_TIME:
-                return o1.getCreateTime() < o2.getCreateTime() ? -1 : 1;
-            case DURATION:
-                return o1.getDuration() < o2.getDuration() ? -1 : 1;
-            default:
-                return o1.getLastModified() < o2.getLastModified() ? -1 : 1;
+        case JOB_NAME:
+            return o1.getJobName().compareTo(o2.getJobName());
+        case TARGET_SUBJECT_ALIAS:
+            return o1.getTargetModelAlias().compareTo(o2.getTargetModelAlias());
+        case JOB_STATUS:
+            return o1.getStatus().compareTo(o2.getStatus());
+        case EXEC_START_TIME:
+            return o1.getExecStartTime() < o2.getExecStartTime() ? -1 : 1;
+        case DURATION:
+            return o1.getDuration() < o2.getDuration() ? -1 : 1;
+        default:
+            return o1.getLastModified() < o2.getLastModified() ? -1 : 1;
         }
     }
 
@@ -159,68 +151,66 @@ public class JobService extends BasicService {
         Message msg = MsgPicker.getMsg();
 
         switch (timeFilter) {
-            case LAST_ONE_DAY:
-                calendar.add(Calendar.DAY_OF_MONTH, -1);
-                return calendar.getTimeInMillis();
-            case LAST_ONE_WEEK:
-                calendar.add(Calendar.WEEK_OF_MONTH, -1);
-                return calendar.getTimeInMillis();
-            case LAST_ONE_MONTH:
-                calendar.add(Calendar.MONTH, -1);
-                return calendar.getTimeInMillis();
-            case LAST_ONE_YEAR:
-                calendar.add(Calendar.YEAR, -1);
-                return calendar.getTimeInMillis();
-            case ALL:
-                return 0;
-            default:
-                throw new BadRequestException(String.format(msg.getILLEGAL_TIME_FILTER(), timeFilter));
+        case LAST_ONE_DAY:
+            calendar.add(Calendar.DAY_OF_MONTH, -1);
+            return calendar.getTimeInMillis();
+        case LAST_ONE_WEEK:
+            calendar.add(Calendar.WEEK_OF_MONTH, -1);
+            return calendar.getTimeInMillis();
+        case LAST_ONE_MONTH:
+            calendar.add(Calendar.MONTH, -1);
+            return calendar.getTimeInMillis();
+        case LAST_ONE_YEAR:
+            calendar.add(Calendar.YEAR, -1);
+            return calendar.getTimeInMillis();
+        case ALL:
+            return 0;
+        default:
+            throw new BadRequestException(String.format(msg.getILLEGAL_TIME_FILTER(), timeFilter));
         }
     }
-
 
     private ExecutableState parseToExecutableState(JobStatusEnum status) {
         Message msg = MsgPicker.getMsg();
 
         switch (status) {
-            case DISCARDED:
-                return ExecutableState.DISCARDED;
-            case ERROR:
-                return ExecutableState.ERROR;
-            case FINISHED:
-                return ExecutableState.SUCCEED;
-            case NEW:
-                return ExecutableState.READY;
-            case PENDING:
-                return ExecutableState.READY;
-            case RUNNING:
-                return ExecutableState.RUNNING;
-            case STOPPED:
-                return ExecutableState.STOPPED;
-            default:
-                throw new BadRequestException(String.format(msg.getILLEGAL_EXECUTABLE_STATE(), status));
+        case DISCARDED:
+            return ExecutableState.DISCARDED;
+        case ERROR:
+            return ExecutableState.ERROR;
+        case FINISHED:
+            return ExecutableState.SUCCEED;
+        case NEW:
+            return ExecutableState.READY;
+        case PENDING:
+            return ExecutableState.READY;
+        case RUNNING:
+            return ExecutableState.RUNNING;
+        case STOPPED:
+            return ExecutableState.STOPPED;
+        default:
+            throw new BadRequestException(String.format(msg.getILLEGAL_EXECUTABLE_STATE(), status));
         }
     }
 
     private JobStatusEnum parseToJobStatus(ExecutableState state) {
         switch (state) {
-            case READY:
-                return JobStatusEnum.PENDING;
-            case RUNNING:
-                return JobStatusEnum.RUNNING;
-            case ERROR:
-                return JobStatusEnum.ERROR;
-            case DISCARDED:
-                return JobStatusEnum.DISCARDED;
-            case SUCCEED:
-                return JobStatusEnum.FINISHED;
-            case STOPPED:
-                return JobStatusEnum.STOPPED;
-            default:
-                throw new RuntimeException("invalid state:" + state);
+        case READY:
+            return JobStatusEnum.PENDING;
+        case RUNNING:
+            return JobStatusEnum.RUNNING;
+        case ERROR:
+            return JobStatusEnum.ERROR;
+        case DISCARDED:
+            return JobStatusEnum.DISCARDED;
+        case SUCCEED:
+            return JobStatusEnum.FINISHED;
+        case STOPPED:
+            return JobStatusEnum.STOPPED;
+        default:
+            throw new RuntimeException("invalid state:" + state);
         }
     }
-
 
     private void dropJob(String project, String jobId) throws IOException {
         NExecutableManager executableManager = getExecutableManager(project);
@@ -267,7 +257,8 @@ public class JobService extends BasicService {
         List<? extends AbstractExecutable> tasks = ((ChainedExecutable) executable).getTasks();
         for (int i = 0; i < tasks.size(); ++i) {
             AbstractExecutable task = tasks.get(i);
-            executableStepList.add(parseToExecutableStep(task, i, getExecutableManager(project).getOutput(task.getId())));
+            executableStepList
+                    .add(parseToExecutableStep(task, i, getExecutableManager(project).getOutput(task.getId())));
         }
         return executableStepList;
 
@@ -299,6 +290,7 @@ public class JobService extends BasicService {
         return result;
     }
 
+    @Transaction(project = 1)
     public void updateJobStatusBatchly(List<String> jobIds, String project, String action, String status)
             throws IOException {
         val executableManager = getExecutableManager(project);
@@ -308,11 +300,24 @@ public class JobService extends BasicService {
         }
     }
 
+    @Transaction(project = 0)
     public void dropJobBatchly(String project, List<String> jobIds, String status) throws IOException {
         val executableManager = getExecutableManager(project);
         val jobs = executableManager.getExecutablesByStatus(jobIds, status);
         for (val job : jobs) {
             dropJob(project, job.getId());
         }
+    }
+
+    @Transaction(project = 0)
+    public void addJob(String project, ExecutablePO executablePO) {
+        val executableManager = getExecutableManager(project);
+        executableManager.addJob(executablePO);
+    }
+
+    @Transaction(project = 0)
+    public void resumeJob(String project, String jobId) {
+        val executableManager = getExecutableManager(project);
+        executableManager.resumeJob(jobId);
     }
 }

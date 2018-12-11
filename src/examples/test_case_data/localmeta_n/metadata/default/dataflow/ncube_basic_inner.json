@@ -11,7 +11,7 @@
   "status" : "ONLINE",
   "cost" : 50,
   "segments" : [ {
-    "id" : 0,
+    "id" : "ef783e4d-e35f-4bd9-8afd-efd64336f04d",
     "name" : "FULL_BUILD",
     "create_time_utc" : 1522136036687,
     "status" : "READY",

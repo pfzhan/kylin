@@ -31,8 +31,10 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 
+import io.kyligence.kap.common.util.KylinConfigUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.image.ImageStore;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -41,7 +43,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
-import io.kyligence.kap.common.util.KylinConfigUtils;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.query.Utils;
@@ -112,16 +113,16 @@ public class NSmartDemoTest {
         String[] sqls = sqlList.toArray(new String[0]);
 
         File tmpMeta = Files.createTempDir();
-        FileUtils.copyDirectory(new File(metaDir), tmpMeta);
-        KylinConfig kylinConfig = Utils.newKylinConfig(tmpMeta.getAbsolutePath());
+        FileUtils.copyDirectory(new File(metaDir), new File(tmpMeta, ImageStore.METADATA_DIR));
+        KylinConfig kylinConfig = Utils.newKylinConfig(tmpMeta.getAbsolutePath() + ",mq=mock");
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqls);
         smartMaster.runAll();
 
         NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig, projectName);
-        Assert.assertFalse(dataModelManager.listModels().isEmpty());
-        System.out.println("Number of models: " + dataModelManager.listModels().size());
+        Assert.assertFalse(dataModelManager.getDataModels().isEmpty());
+        System.out.println("Number of models: " + dataModelManager.getDataModels().size());
 
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig, projectName);
         Assert.assertFalse(cubePlanManager.listAllCubePlans().isEmpty());

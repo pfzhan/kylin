@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.metadata.project;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
@@ -35,8 +34,8 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.lang.reflect.Method;
-import java.util.Set;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import lombok.val;
 
 
 public class NProjectManagerTest extends NLocalFileMetadataTestCase {
@@ -64,13 +63,8 @@ public class NProjectManagerTest extends NLocalFileMetadataTestCase {
             fs.mkdirs(metadataPath);
         }
 
-        Class<?> clazz = projectManager.getClass();
-        Method method = clazz.getDeclaredMethod("getProjectsFromResource");
-        method.setAccessible(true);
-        Set<String> projectNames = (Set<String>) method.invoke(projectManager);
-
-        Assert.assertEquals(8, projectNames.size());
-        Assert.assertTrue(!projectNames.contains("test"));
-
+        val projects = projectManager.listAllProjects();
+        Assert.assertEquals(8, projects.size());
+        Assert.assertTrue(projects.stream().noneMatch(p -> p.getName().equals("test")));
     }
 }

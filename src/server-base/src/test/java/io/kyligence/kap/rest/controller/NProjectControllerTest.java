@@ -51,7 +51,7 @@ import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
-import io.kyligence.kap.rest.service.GarbageCleanService;
+import io.kyligence.kap.rest.service.MetadataCleanupService;
 import io.kyligence.kap.rest.service.ProjectService;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -82,7 +82,7 @@ public class NProjectControllerTest {
     private ProjectService projectService;
 
     @Mock
-    private GarbageCleanService garbageCleanService;
+    private MetadataCleanupService garbageCleanService;
 
     @InjectMocks
     private NProjectController nProjectController = Mockito.spy(new NProjectController());

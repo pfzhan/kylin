@@ -33,6 +33,8 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import io.kyligence.kap.cube.storage.ProjectStorageInfoCollector;
+import io.kyligence.kap.cube.storage.StorageInfoEnum;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
@@ -42,7 +44,7 @@ import org.apache.kylin.common.util.SetThreadName;
 import org.apache.kylin.job.Scheduler;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.exception.SchedulerException;
+import org.apache.kylin.job.exception.JobSuicideException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.Executable;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -55,8 +57,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.storage.ProjectStorageInfoCollector;
-import io.kyligence.kap.cube.storage.StorageInfoEnum;
 import lombok.val;
 
 /**
@@ -74,7 +74,6 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     private static final Logger logger = LoggerFactory.getLogger(NDefaultScheduler.class);
     private volatile boolean initialized = false;
     private volatile boolean hasStarted = false;
-    volatile boolean fetchFailed = false;
     private JobEngineConfig jobEngineConfig;
     private ProjectStorageInfoCollector collector;
 
@@ -147,22 +146,15 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                         nStopped++;
                         break;
                     default:
-                        if (fetchFailed) {
-                            executableManager.forceKillJob(NExecutableManager.extractId(path));
-                            nError++;
-                        } else {
-                            nOthers++;
-                        }
+                        nOthers++;
                         break;
                     }
                 }
 
-                fetchFailed = false;
                 logger.info(
                         "Job Fetcher: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} others",
                         nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded, nOthers);
             } catch (Exception e) {
-                fetchFailed = true;
                 logger.warn("Job Fetcher caught a exception ", e);
             }
         }
@@ -228,10 +220,12 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 executable.execute(context);
                 // trigger the next step asap
                 fetcherPool.schedule(fetcher, 0, TimeUnit.SECONDS);
+            } catch (JobSuicideException e) {
+                logger.info("job " + executable.getId() + " suicides as its serving model/segment no longer exists", e);
             } catch (ExecuteException e) {
-                logger.error("ExecuteException job:" + executable.getId(), e);
+                logger.error("ExecuteException occurred while job: " + executable.getId(), e);
             } catch (Exception e) {
-                logger.error("unknown error execute job:" + executable.getId(), e);
+                logger.error("unknown error execute job: " + executable.getId(), e);
             } finally {
                 threadToInterrupt.remove(executable.getId());
                 context.removeRunningJob(executable);
@@ -242,12 +236,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     @Override
     public void stateChanged(CuratorFramework client, ConnectionState newState) {
         if ((newState == ConnectionState.SUSPENDED) || (newState == ConnectionState.LOST)) {
-            try {
-                logger.info("ZK Connection state change to {}, shutdown default scheduler.", newState);
-                shutdown();
-            } catch (SchedulerException e) {
-                throw new IllegalStateException("failed to shutdown scheduler", e);
-            }
+            logger.info("ZK Connection state change to {}, shutdown default scheduler.", newState);
+            shutdown();
         }
     }
 
@@ -263,18 +253,13 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     public static synchronized void destroyInstance() {
 
         for (Map.Entry<String, NDefaultScheduler> entry : INSTANCE_MAP.entrySet()) {
-
-            try {
-                entry.getValue().shutdown();
-            } catch (SchedulerException ex) {
-                logger.error("Error shutting down NDefaultScheduler for project " + entry.getKey(), ex);
-            }
+            entry.getValue().shutdown();
         }
         INSTANCE_MAP.clear();
     }
 
     @Override
-    public synchronized void init(JobEngineConfig jobEngineConfig, JobLock lock) throws SchedulerException {
+    public synchronized void init(JobEngineConfig jobEngineConfig, JobLock lock) {
         jobLock = lock;
 
         String serverMode = jobEngineConfig.getConfig().getServerMode();
@@ -316,7 +301,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     }
 
     @Override
-    public void shutdown() throws SchedulerException {
+    public void shutdown() {
         logger.info("Shutting down DefaultScheduler ....");
         jobLock.unlockJobEngine();
         ExecutorServiceUtil.shutdownGracefully(fetcherPool, 60);

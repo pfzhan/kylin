@@ -24,11 +24,10 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.rest.response.LoadTableResponse;
-import io.kyligence.kap.shaded.influxdb.com.google.common.common.base.Function;
-import io.kyligence.kap.shaded.influxdb.com.google.common.common.collect.Lists;
+import java.io.IOException;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
@@ -39,9 +38,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Set;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.model.NTableExtDesc;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.rest.response.LoadTableResponse;
+import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.shaded.influxdb.com.google.common.common.collect.Lists;
 
 @Component("tableExtService")
 public class TableExtService extends BasicService {
@@ -60,6 +63,7 @@ public class TableExtService extends BasicService {
      * [2] : tables that didn't load due to other error
      * @throws Exception if reading hive metadata error
      */
+    @Transaction(project = 1)
     public LoadTableResponse loadTables(String[] tables, String project, Integer sourceType) throws Exception {
         List<Pair<TableDesc, TableExtDesc>> extractTableMeta = tableService.extractTableMeta(tables, project,
                 sourceType);
@@ -90,7 +94,8 @@ public class TableExtService extends BasicService {
      *
      * @throws IOException on error
      */
-    public void loadTable(TableDesc tableDesc, TableExtDesc extDesc, String project) throws IOException {
+    @Transaction(project = 2)
+    public void loadTable(TableDesc tableDesc, TableExtDesc extDesc, String project) {
 
         String[] loaded = tableService.loadTableToProject(tableDesc, extDesc, project);
         // sanity check when loaded is empty or loaded table is not the table
@@ -100,10 +105,11 @@ public class TableExtService extends BasicService {
 
     }
 
-    public void removeJobIdFromTableExt(String jobId, String project) throws IOException {
+    @Transaction(project = 1)
+    public void removeJobIdFromTableExt(String jobId, String project) {
         NTableMetadataManager tableMetadataManager = getTableManager(project);
         for (TableDesc desc : tableMetadataManager.listAllTables()) {
-            TableExtDesc extDesc = tableMetadataManager.getTableExtIfExists(desc);
+            NTableExtDesc extDesc = tableMetadataManager.getTableExtIfExists(desc);
             if (extDesc == null) {
                 continue;
             }
@@ -115,17 +121,13 @@ public class TableExtService extends BasicService {
 
     }
 
+    @Transaction(project = 0)
     public LoadTableResponse loadTablesByDatabase(String project, final String[] databases, int datasourceType)
             throws Exception {
         LoadTableResponse loadTableByDatabaseResponse = new LoadTableResponse();
         for (final String database : databases) {
             List<String> tables = tableService.getSourceTableNames(project, database, datasourceType, "");
-            List<String> identities = Lists.transform(tables, new Function<String, String>() {
-                @Override
-                public String apply(String s) {
-                    return database + "." + s;
-                }
-            });
+            List<String> identities = Lists.transform(tables, s -> database + "." + s);
             String[] tableToLoad = new String[identities.size()];
             LoadTableResponse loadTableResponse = loadTables(identities.toArray(tableToLoad), project, datasourceType);
             loadTableByDatabaseResponse.getLoaded().addAll(loadTableResponse.getLoaded());

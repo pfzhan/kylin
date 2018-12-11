@@ -172,7 +172,6 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.resumeJob(job.getId());
         Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.READY));
         manager.pauseJob(job.getId());
-        job.setEndTime(System.currentTimeMillis());
         manager.resumeJob(job.getId());
         Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.READY));
     }

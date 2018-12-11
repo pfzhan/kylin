@@ -42,7 +42,6 @@
 
 package org.apache.kylin.metadata.model;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -216,7 +215,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
     }
 
     public SegmentRange autoMergeSegments(boolean isAutoMergeEnabled, String modelName,
-            List<AutoMergeTimeEnum> autoMergeTimeEnums, VolatileRange volatileRange) throws IOException {
+            List<AutoMergeTimeEnum> autoMergeTimeEnums, VolatileRange volatileRange) {
         if (!isAutoMergeEnabled) {
             return null;
         }

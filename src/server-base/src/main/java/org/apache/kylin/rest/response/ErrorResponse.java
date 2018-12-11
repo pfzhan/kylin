@@ -60,7 +60,7 @@ public class ErrorResponse extends EnvelopeResponse {
     //request URL, kept from legacy codes
     public String url;
 
-    public ErrorResponse(String url, Exception exception) {
+    public ErrorResponse(String url, Throwable exception) {
         super();
 
         this.url = url;

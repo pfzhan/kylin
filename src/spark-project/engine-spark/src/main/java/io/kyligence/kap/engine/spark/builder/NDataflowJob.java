@@ -24,11 +24,11 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
-import io.kyligence.kap.engine.spark.job.UdfManager;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.AbstractApplication;
 import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.spark.sql.SparderEnv;
@@ -37,8 +37,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.cube.model.NBatchConstants;
+import io.kyligence.kap.engine.spark.job.UdfManager;
+import lombok.val;
 
-public class NDataflowJob extends AbstractApplication {
+public abstract class NDataflowJob extends AbstractApplication {
     protected static final Logger logger = LoggerFactory.getLogger(NDataflowJob.class);
 
     @SuppressWarnings("static-access")
@@ -56,6 +58,10 @@ public class NDataflowJob extends AbstractApplication {
     @SuppressWarnings("static-access")
     public static final Option OPTION_META_URL = OptionBuilder.withArgName(NBatchConstants.P_DIST_META_URL).hasArg()
             .isRequired(true).withDescription("Cubing metadata url").create(NBatchConstants.P_DIST_META_URL);
+
+    public static final Option OPTION_OUTPUT_META_URL = OptionBuilder.withArgName(NBatchConstants.P_OUTPUT_META_URL).hasArg()
+            .isRequired(true).withDescription("Cubing output metadata url").create(NBatchConstants.P_OUTPUT_META_URL);
+
 
     @SuppressWarnings("static-access")
     public static final Option OPTION_JOB_ID = OptionBuilder.withArgName(NBatchConstants.P_JOB_ID).hasArg()
@@ -75,11 +81,12 @@ public class NDataflowJob extends AbstractApplication {
         options.addOption(OPTION_LAYOUT_IDS);
         options.addOption(OPTION_META_URL);
         options.addOption(OPTION_JOB_ID);
+        options.addOption(OPTION_OUTPUT_META_URL);
         return options;
     }
 
     @Override
-    protected void execute(OptionsHelper optionsHelper) throws Exception {
+    final protected void execute(OptionsHelper optionsHelper) throws Exception {
         String hdfsMetalUrl = optionsHelper.getOptionValue(OPTION_META_URL);
         jobId = optionsHelper.getOptionValue(OPTION_JOB_ID);
         ss = SparkSession.builder().enableHiveSupport().getOrCreate();
@@ -88,5 +95,14 @@ public class NDataflowJob extends AbstractApplication {
         UdfManager.create(ss);
         config = KylinConfig.loadKylinConfigFromHdfs(hdfsMetalUrl);
         KylinConfig.setKylinConfigThreadLocal(config);
+        doExecute(optionsHelper);
+        // Output metadata to another folder
+        val resourceStore = ResourceStore.getKylinMetaStore(config);
+        val outputConfig = KylinConfig.createKylinConfig(config);
+        outputConfig.setMetadataUrl(optionsHelper.getOptionValue(OPTION_OUTPUT_META_URL));
+        ResourceStore.createImageStore(outputConfig).dump(resourceStore);
+        KylinConfig.removeKylinConfigThreadLocal();
     }
+
+    protected abstract void doExecute(OptionsHelper optionsHelper) throws Exception;
 }

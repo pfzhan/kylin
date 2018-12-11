@@ -42,6 +42,7 @@
 
 package org.apache.kylin.metadata.model;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
@@ -65,7 +66,7 @@ import com.google.common.collect.Lists;
  */
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
-public class TableDesc extends RootPersistentEntity implements ISourceAware {
+public class TableDesc extends RootPersistentEntity implements Serializable, ISourceAware {
     @SuppressWarnings("unused")
     private static final Logger logger = LoggerFactory.getLogger(TableDesc.class);
 
@@ -152,6 +153,7 @@ public class TableDesc extends RootPersistentEntity implements ISourceAware {
         this.project = other.project;
         this.database.setName(other.getDatabase());
         this.identity = other.identity;
+        setMvcc(other.getMvcc());
     }
 
     @Override

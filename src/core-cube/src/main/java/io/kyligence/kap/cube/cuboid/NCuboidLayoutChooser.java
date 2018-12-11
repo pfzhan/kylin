@@ -33,6 +33,8 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.Nullable;
 
@@ -41,14 +43,12 @@ import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.FluentIterable;
 import com.google.common.collect.ImmutableCollection;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
@@ -150,29 +150,21 @@ public class NCuboidLayoutChooser {
             }
 
             TreeSet<NLayoutCandidate> availableCandidates = new TreeSet<>(ordering);
-            FluentIterable<NLayoutCandidate> transform = FluentIterable.from(cuboidDesc.getLayouts())
-                    .filter(new Predicate<NCuboidLayout>() {
-                        @Override
-                        public boolean apply(@Nullable NCuboidLayout input) {
-                            if (input == null || (isRawQuery != input.getCuboidDesc().isTableIndex())) {
-                                return false;
-                            }
+            Stream<NLayoutCandidate> transform = cuboidDesc.getLayouts().stream().filter(input -> {
+                if (input == null || (isRawQuery != input.getCuboidDesc().isTableIndex())) {
+                    return false;
+                }
+                NDataCuboid cuboid = segment.getCuboid(input.getId());
+                return cuboid != null;
+            }).map(input -> {
+                NLayoutCandidate candidate = new NLayoutCandidate(input);
+                if (!needDerive.isEmpty()) {
+                    candidate.setDerivedToHostMap(needDerive);
+                }
+                return candidate;
+            });
 
-                            NDataCuboid cuboid = segment.getCuboid(input.getId());
-                            return cuboid != null && cuboid.getStatus() == SegmentStatusEnum.READY;
-                        }
-                    }).transform(new Function<NCuboidLayout, NLayoutCandidate>() {
-                        @Override
-                        public NLayoutCandidate apply(NCuboidLayout input) {
-                            NLayoutCandidate candidate = new NLayoutCandidate(input);
-                            if (!needDerive.isEmpty()) {
-                                candidate.setDerivedToHostMap(needDerive);
-                            }
-                            return candidate;
-                        }
-                    });
-
-            Iterables.addAll(availableCandidates, transform);
+            Iterables.addAll(availableCandidates, transform.collect(Collectors.toList()));
 
             if (availableCandidates.isEmpty()) {
                 return true;
@@ -297,17 +289,13 @@ public class NCuboidLayoutChooser {
                 return true;
             }
 
-            Collection<NCuboidLayout> availableLayouts = Collections2.filter(cuboidDesc.getLayouts(),
-                    new Predicate<NCuboidLayout>() {
-                        @Override
-                        public boolean apply(@Nullable NCuboidLayout input) {
-                            if (input == null)
-                                return false;
+            Collection<NCuboidLayout> availableLayouts = Collections2.filter(cuboidDesc.getLayouts(), input -> {
+                if (input == null)
+                    return false;
 
-                            NDataCuboid cuboid = segment.getCuboid(input.getId());
-                            return cuboid != null && cuboid.getStatus() == SegmentStatusEnum.READY;
-                        }
-                    });
+                NDataCuboid cuboid = segment.getCuboid(input.getId());
+                return cuboid != null;
+            });
 
             if (availableLayouts.isEmpty()) {
                 return false;// ?? TODO: why false

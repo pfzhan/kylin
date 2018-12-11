@@ -25,8 +25,6 @@ package io.kyligence.kap.smart.query;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.Map;
 import java.util.Set;
@@ -36,11 +34,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.common.persistence.image.ImageStore;
 import org.apache.kylin.common.util.JsonUtil;
 
-import io.kyligence.kap.smart.util.MetaStoreUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import lombok.val;
 
 class NLocalQueryRunner extends AbstractQueryRunner {
 
@@ -59,13 +58,11 @@ class NLocalQueryRunner extends AbstractQueryRunner {
 
     @Override
     public KylinConfig prepareConfig() throws IOException {
-        String metaPath = MetaStoreUtil.dumpResources(KylinConfig.getInstanceFromEnv(), dumpResources);
-        File metaDir;
-        try {
-            metaDir = new File(new URI(metaPath));
-        } catch (URISyntaxException e) {
-            throw new IOException(e);
-        }
+        File tmp = File.createTempFile("kylin_job_meta", "");
+        FileUtils.forceDelete(tmp);
+        val properties = KylinConfig.getInstanceFromEnv().exportToProperties();
+        ResourceStore.dumpResources(KylinConfig.getInstanceFromEnv(), tmp, dumpResources, properties);
+        File metaDir = new File(tmp, ImageStore.METADATA_DIR);
 
         for (Map.Entry<String, RootPersistentEntity> mockupResource : mockupResources.entrySet()) {
             File dumpFile = new File(metaDir, mockupResource.getKey());
@@ -78,7 +75,7 @@ class NLocalQueryRunner extends AbstractQueryRunner {
             FileUtils.writeStringToFile(dumpFile, dumpJson, Charset.defaultCharset());
         }
 
-        KylinConfig config = Utils.newKylinConfig(metaDir.getAbsolutePath());
+        KylinConfig config = Utils.newKylinConfig(tmp.getAbsolutePath());
         Utils.exposeAllTableAndColumn(config);
         Utils.setLargeCuboidCombinationConf(config);
         Utils.setLargeRowkeySizeConf(config);
@@ -93,7 +90,7 @@ class NLocalQueryRunner extends AbstractQueryRunner {
     @Override
     public void cleanupConfig(KylinConfig config) throws IOException {
         Utils.clearCacheForKylinConfig(config);
-        File metaDir = new File(config.getMetadataUrl().toString());
+        File metaDir = new File(config.getMetadataUrl().getIdentifier());
         if (metaDir.exists() && metaDir.isDirectory()) {
             FileUtils.forceDelete(metaDir);
             logger.debug("Deleted the meta dir: {}", metaDir);

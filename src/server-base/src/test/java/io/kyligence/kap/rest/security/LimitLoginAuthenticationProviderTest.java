@@ -73,7 +73,7 @@ public class LimitLoginAuthenticationProviderTest extends ServiceTestBase {
     }
 
     @Before
-    public void setup() throws NoSuchFieldException, IllegalAccessException {
+    public void setup() {
         createTestMetadata();
         MockitoAnnotations.initMocks(this);
         RequestContextHolder.setRequestAttributes(attrs);

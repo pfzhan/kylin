@@ -54,12 +54,6 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import lombok.val;
 
-/**
- * This is a second level cache that is built on top of first level cached objects,
- * including Realization, TableDesc, ColumnDesc etc, to speed up query time metadata lookup.
- * <p/>
- * On any object update, the L2 cache simply gets wiped out because it's cheap to rebuild.
- */
 class NProjectLoader {
 
     private static final Logger logger = LoggerFactory.getLogger(NProjectLoader.class);
@@ -68,10 +62,6 @@ class NProjectLoader {
 
     NProjectLoader(NProjectManager mgr) {
         this.mgr = mgr;
-    }
-
-    public void clear() {
-        /// no cache any more
     }
 
     public Map<String, ExternalFilterDesc> listExternalFilterDesc(String project) {
@@ -134,7 +124,7 @@ class NProjectLoader {
     public List<ColumnDesc> listComputedColumns(String project, TableDesc tableDesc) {
         List<ColumnDesc> result = Lists.newArrayList();
         val modelMgr = NDataModelManager.getInstance(mgr.getConfig(), project);
-        for (NDataModel r : modelMgr.listModels()) {
+        for (NDataModel r : modelMgr.getDataModels()) {
             val computedColumns = ComputedColumnUtil.createComputedColumns(r.getComputedColumnDescs(), tableDesc);
             if (belongToTable(tableDesc.getIdentity(), r)) {
                 result.addAll(Arrays.asList(computedColumns));
@@ -169,15 +159,6 @@ class NProjectLoader {
                 projectBundle.tables.put(tableDesc.getIdentity(), new TableBundle(tableDesc));
             } else {
                 logger.warn("Table '{}' defined under project '{}' is not found.", tableName, project);
-            }
-        });
-
-        pi.getExtFilters().forEach(extFilterName -> {
-            ExternalFilterDesc filterDesc = metaMgr.getExtFilterDesc(extFilterName);
-            if (filterDesc != null) {
-                projectBundle.extFilters.put(extFilterName, filterDesc);
-            } else {
-                logger.warn("External Filter '{}' defined under project '{}' is not found.", extFilterName, project);
             }
         });
 

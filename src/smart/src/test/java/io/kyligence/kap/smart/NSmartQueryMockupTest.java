@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
@@ -279,7 +280,7 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
             if (real instanceof NDataflow) {
                 NDataflow copy = dfMgr.getDataflow(real.getName()).copy();
                 NDataSegment segment = new NDataSegment();
-                segment.setId(0);
+                segment.setId(UUID.randomUUID().toString());
                 segment.setName("TEST");
                 segment.setDataflow(copy);
                 segment.setStatus(SegmentStatusEnum.READY);
@@ -292,7 +293,6 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
                 for (NCuboidDesc cuboidDesc : copy.getCubePlan().getAllCuboids()) {
                     for (NCuboidLayout layout : cuboidDesc.getLayouts()) {
                         NDataCuboid c = NDataCuboid.newDataCuboid(copy, segment.getId(), layout.getId());
-                        c.setStatus(SegmentStatusEnum.READY);
                         cuboids.add(c);
                     }
                 }

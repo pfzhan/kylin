@@ -23,6 +23,8 @@
  */
 package io.kyligence.kap.metadata.favorite;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.EqualsAndHashCode;
@@ -30,13 +32,16 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.io.Serializable;
+
+
 @Getter
 @Setter
-@ToString
+@ToString(exclude = "favoriteQuery")
 @EqualsAndHashCode
-public class FavoriteQueryRealization {
-    @JsonProperty("sql_pattern_hash")
-    private int sqlPatternHash;
+public class FavoriteQueryRealization implements Serializable {
+    @JsonBackReference
+    private FavoriteQuery favoriteQuery;
     @JsonProperty("model_id")
     private String modelId;
     @JsonProperty("semantic_version")
@@ -45,4 +50,9 @@ public class FavoriteQueryRealization {
     private String cubePlanId;
     @JsonProperty("cuboid_layout_id")
     private long cuboidLayoutId;
+
+    @JsonIgnore
+    public String getSqlPattern() {
+        return favoriteQuery.getSqlPattern();
+    }
 }

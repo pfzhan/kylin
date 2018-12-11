@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,17 +42,72 @@
 
 package org.apache.kylin.common.persistence;
 
-import java.io.InputStream;
+import java.io.IOException;
+
+import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import com.google.common.io.ByteSource;
+import com.google.common.io.ByteStreams;
+
+import lombok.val;
 
 /**
+ * overall, RawResource is immutable
  */
 public class RawResource {
 
-    public final InputStream inputStream;
-    public final long timestamp;
+    private String resPath;
+    @JsonSerialize(using = ByteSourceSerializer.class)
+    @JsonDeserialize(using = BytesourceDeserializer.class)
+    private ByteSource byteSource;
+    private long timestamp;
+    private long mvcc;
 
-    public RawResource(InputStream resource, long timestamp) {
-        this.inputStream = resource;
+    public RawResource(String resPath, ByteSource byteSource, long timestamp, long mvcc) {
+        this.resPath = resPath;
+        this.byteSource = byteSource;
         this.timestamp = timestamp;
+        this.mvcc = mvcc;
+    }
+
+    public String getResPath() {
+        return this.resPath;
+    }
+
+    public ByteSource getByteSource() {
+        return this.byteSource;
+    }
+
+    public long getTimestamp() {
+        return this.timestamp;
+    }
+
+    public long getMvcc() {
+        return this.mvcc;
+    }
+
+    private static class ByteSourceSerializer extends JsonSerializer<ByteSource> {
+        @Override
+        public void serialize(ByteSource value, JsonGenerator gen, SerializerProvider serializers)
+                throws IOException, JsonProcessingException {
+            val bytes = value.read();
+            gen.writeBinary(bytes);
+        }
+    }
+
+    private static class BytesourceDeserializer extends JsonDeserializer<ByteSource> {
+        @Override
+        public ByteSource deserialize(JsonParser p, DeserializationContext ctxt)
+                throws IOException, JsonProcessingException {
+            val bytes = p.getBinaryValue();
+            return ByteStreams.asByteSource(bytes);
+        }
     }
 }

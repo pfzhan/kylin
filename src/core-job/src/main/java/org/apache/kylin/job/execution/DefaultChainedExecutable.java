@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,13 +43,11 @@
 package org.apache.kylin.job.execution;
 
 import java.util.List;
-import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
  */
@@ -69,7 +66,6 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         }
     }
 
-
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         List<? extends Executable> executables = getTasks();
@@ -84,42 +80,35 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 // the job is paused
                 break;
             } else if (state == ExecutableState.ERROR) {
-                throw new IllegalStateException("invalid subtask state, subtask:" + subTask.getName() + ", state:" + subTask.getStatus());
+                throw new IllegalStateException(
+                        "invalid subtask state, subtask:" + subTask.getName() + ", state:" + subTask.getStatus());
             }
             if (subTask.isRunnable()) {
                 return subTask.execute(context);
             }
         }
-        return new ExecuteResult(ExecuteResult.State.SUCCEED, null);
+        return ExecuteResult.createSucceed();
+
     }
 
     @Override
     protected void onExecuteStart(ExecutableContext executableContext) {
-        final long startTime = getStartTime();
-        if (startTime > 0) {
-            getManager().updateJobOutput(getId(), ExecutableState.RUNNING, null, null);
-        } else {
-            Map<String, String> info = Maps.newHashMap();
-            info.put(START_TIME, Long.toString(System.currentTimeMillis()));
-            getManager().updateJobOutput(getId(), ExecutableState.RUNNING, info, null);
-        }
+        super.onExecuteStart(executableContext);
     }
 
     @Override
-    protected void onExecuteError(Throwable exception, ExecutableContext executableContext) {
-        super.onExecuteError(exception, executableContext);
+    protected void onExecuteError(ExecuteResult result, ExecutableContext executableContext) {
+        super.onExecuteError(result, executableContext);
         notifyUserStatusChange(executableContext, ExecutableState.ERROR);
     }
 
     @Override
     protected void onExecuteFinished(ExecuteResult result, ExecutableContext executableContext) {
         NExecutableManager mgr = getManager();
-        
+
         if (isDiscarded()) {
-            setEndTime(System.currentTimeMillis());
             notifyUserStatusChange(executableContext, ExecutableState.DISCARDED);
         } else if (isPaused()) {
-            setEndTime(System.currentTimeMillis());
             notifyUserStatusChange(executableContext, ExecutableState.STOPPED);
         } else if (result.succeed()) {
             List<? extends Executable> jobs = getTasks();
@@ -151,25 +140,25 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                     hasDiscarded = true;
                 }
             }
+            setEndTime(result);
             if (allSucceed) {
-                setEndTime(System.currentTimeMillis());
-                mgr.updateJobOutput(getId(), ExecutableState.SUCCEED, null, null);
+                updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, result.getExtraInfo(), null);
                 notifyUserStatusChange(executableContext, ExecutableState.SUCCEED);
             } else if (hasError) {
-                setEndTime(System.currentTimeMillis());
-                mgr.updateJobOutput(getId(), ExecutableState.ERROR, null, null);
+                updateJobOutput(getProject(), getId(), ExecutableState.ERROR, result.getExtraInfo(), null);
                 notifyUserStatusChange(executableContext, ExecutableState.ERROR);
             } else if (hasRunning) {
-                mgr.updateJobOutput(getId(), ExecutableState.RUNNING, null, null);
+                //TODO: normal?
+                updateJobOutput(getProject(), getId(), ExecutableState.RUNNING, result.getExtraInfo(), null);
             } else if (hasDiscarded) {
-                setEndTime(System.currentTimeMillis());
-                mgr.updateJobOutput(getId(), ExecutableState.DISCARDED, null, null);
+                updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, result.getExtraInfo(), null);
             } else {
-                mgr.updateJobOutput(getId(), ExecutableState.READY, null, null);
+                //TODO: normal?
+                updateJobOutput(getProject(), getId(), ExecutableState.READY, result.getExtraInfo(), null);
             }
         } else {
-            setEndTime(System.currentTimeMillis());
-            mgr.updateJobOutput(getId(), ExecutableState.ERROR, null, result.output());
+            setEndTime(result);
+            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, result.getExtraInfo(), null);
             notifyUserStatusChange(executableContext, ExecutableState.ERROR);
         }
     }
@@ -178,7 +167,6 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     public List<AbstractExecutable> getTasks() {
         return subTasks;
     }
-
 
     @Override
     protected boolean needRetry() {

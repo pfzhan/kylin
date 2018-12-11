@@ -28,14 +28,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.rest.request.JobFilter;
-import io.kyligence.kap.rest.request.JobUpdateRequest;
-import io.kyligence.kap.rest.response.ExecutableResponse;
-import io.kyligence.kap.rest.response.ExecutableStepResponse;
-import io.kyligence.kap.rest.service.JobService;
-
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -43,11 +38,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import io.kyligence.kap.rest.request.JobFilter;
+import io.kyligence.kap.rest.request.JobUpdateRequest;
+import io.kyligence.kap.rest.response.ExecutableResponse;
+import io.kyligence.kap.rest.response.ExecutableStepResponse;
+import io.kyligence.kap.rest.service.JobService;
 
 @Controller
 @RequestMapping(value = "/jobs")
@@ -63,18 +66,19 @@ public class NJobController extends NBasicController {
             @RequestParam(value = "jobNames", required = false) List<String> jobNames,
             @RequestParam(value = "timeFilter", required = true) Integer timeFilter,
             @RequestParam(value = "subject", required = false) String subject,
+            @RequestParam(value = "subjectAlias", required = false) String subjectAlias,
             @RequestParam(value = "project", required = true) String project,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer pageOffset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer pageSize,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modified") String sortBy,
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
-        JobFilter jobFilter = new JobFilter(status, jobNames, timeFilter, subject, project, sortBy, reverse);
+        JobFilter jobFilter = new JobFilter(status, jobNames, timeFilter, subject, subjectAlias, project, sortBy,
+                reverse);
         List<ExecutableResponse> executables = jobService.listJobs(jobFilter);
         Map<String, Object> result = getDataResponse("jobList", executables, pageOffset, pageSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
     }
-
 
     @RequestMapping(value = "/{project}", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
@@ -87,6 +91,20 @@ public class NJobController extends NBasicController {
             throw new BadRequestException("At least one job should be selected to delete!");
         }
         jobService.dropJobBatchly(project, jobIds, status);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @PostMapping(value = "", produces = "application/vnd.apache.kylin-v2+json")
+    @ResponseBody
+    public EnvelopeResponse addJob(@RequestBody ExecutablePO executablePO) {
+        jobService.addJob(executablePO.getProject(), executablePO);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @PutMapping(value = "/resume", produces = "application/vnd.apache.kylin-v2+json")
+    public EnvelopeResponse resumeJob(@RequestParam(value = "project") String project,
+            @RequestParam(value = "jobId") String jobId) {
+        jobService.resumeJob(project, jobId);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -104,11 +122,11 @@ public class NJobController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "/detail", method = {RequestMethod.GET}, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/detail", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getJobDetail(@RequestParam(value = "project", required = true) String project,
-                                         @RequestParam(value = "jobId", required = true) String jobId) {
+            @RequestParam(value = "jobId", required = true) String jobId) {
         checkProjectName(project);
         checkRequiredArg("jobId", jobId);
         List<ExecutableStepResponse> jobDetails = jobService.getJobDetail(project, jobId);

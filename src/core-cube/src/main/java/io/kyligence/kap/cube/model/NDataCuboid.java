@@ -27,7 +27,6 @@ package io.kyligence.kap.cube.model;
 import java.io.Serializable;
 
 import org.apache.kylin.common.KylinConfigExt;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonBackReference;
@@ -39,7 +38,7 @@ import lombok.Getter;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NDataCuboid implements Serializable {
 
-    public static NDataCuboid newDataCuboid(NDataflow df, int segId, long cuboidLayoutId) {
+    public static NDataCuboid newDataCuboid(NDataflow df, String segId, long cuboidLayoutId) {
         return newDataCuboid(NDataSegDetails.newSegDetails(df, segId), cuboidLayoutId);
     }
 
@@ -47,7 +46,6 @@ public class NDataCuboid implements Serializable {
         NDataCuboid r = new NDataCuboid();
         r.setSegDetails(segDetails);
         r.setCuboidLayoutId(cuboidLayoutId);
-        r.setStatus(SegmentStatusEnum.NEW);
         return r;
     }
 
@@ -57,8 +55,6 @@ public class NDataCuboid implements Serializable {
     private NDataSegDetails segDetails;
     @JsonProperty("cuboid_layout_id")
     private long cuboidLayoutId;
-    @JsonProperty("status")
-    private SegmentStatusEnum status;
     @JsonProperty("build_job_id")
     private String buildJobId;
     @JsonProperty("rows")
@@ -107,15 +103,6 @@ public class NDataCuboid implements Serializable {
     public void setCuboidLayoutId(long cuboidLayoutId) {
         checkIsNotCachedAndShared();
         this.cuboidLayoutId = cuboidLayoutId;
-    }
-
-    public SegmentStatusEnum getStatus() {
-        return status;
-    }
-
-    public void setStatus(SegmentStatusEnum status) {
-        checkIsNotCachedAndShared();
-        this.status = status;
     }
 
     public String getBuildJobId() {
@@ -220,7 +207,7 @@ public class NDataCuboid implements Serializable {
 
     @Override
     public String toString() {
-        return "NDataCuboid [" + segDetails.getDataflowName() + "." + segDetails.getSegmentId() + "." + cuboidLayoutId
+        return "NDataCuboid [" + segDetails.getDataflowName() + "." + segDetails.getUuid() + "." + cuboidLayoutId
                 + "]";
     }
 }

@@ -60,7 +60,7 @@ public class NSmartSSBTest extends NLocalFileMetadataTestCase {
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
 
         Assert.assertTrue(!projectManager.listAllRealizations(project).isEmpty());
-        Assert.assertTrue(!dataModelManager.listModels().isEmpty());
+        Assert.assertTrue(!dataModelManager.getDataModels().isEmpty());
 
         final String sqlsPath = "./src/test/resources/nsmart/ssb/sql";
         File fileFolder = new File(sqlsPath);
@@ -80,6 +80,6 @@ public class NSmartSSBTest extends NLocalFileMetadataTestCase {
         projectManager = NProjectManager.getInstance(getTestConfig());
 
         Assert.assertFalse(projectManager.listAllRealizations(project).isEmpty());
-        Assert.assertFalse(dataModelManager.listModels().isEmpty());
+        Assert.assertFalse(dataModelManager.getDataModels().isEmpty());
     }
 }

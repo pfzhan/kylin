@@ -52,10 +52,9 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.util.AclEvaluate;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -64,11 +63,11 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import org.springframework.test.util.ReflectionTestUtils;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -90,8 +89,8 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
     private NProjectManager projectManager;
 
-    @BeforeClass
-    public static void setupResource() throws Exception {
+    @Before
+    public void setupResource() throws Exception {
         System.setProperty("HADOOP_USER_NAME", "root");
         staticCreateTestMetadata();
 
@@ -105,8 +104,8 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
     }
 
-    @AfterClass
-    public static void tearDown() {
+    @After
+    public void tearDown() {
         staticCleanupTestMetadata();
     }
 
@@ -231,14 +230,17 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
         List<CuboidLayoutQueryTimes> hotCuboidLayoutQueryTimesList = Lists.newArrayList();
         KylinConfig config = getTestConfig();
-        QueryHistoryDAO.getInstance(config);
+        QueryHistoryDAO.getInstance(config, "default");
 
-        Field field = config.getClass().getDeclaredField("managersCache");
+        Field field = config.getClass().getDeclaredField("managersByPrjCache");
         field.setAccessible(true);
 
-        ConcurrentHashMap<Class, Object> cache = (ConcurrentHashMap<Class, Object>) field.get(config);
-        QueryHistoryDAO dao = Mockito.spy(QueryHistoryDAO.getInstance(config));
-        cache.put(QueryHistoryDAO.class, dao);
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> cache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) field
+                .get(config);
+        QueryHistoryDAO dao = Mockito.spy(QueryHistoryDAO.getInstance(config, "default"));
+        ConcurrentHashMap<String, Object> prjCache = new ConcurrentHashMap<>();
+        prjCache.put("default", dao);
+        cache.put(QueryHistoryDAO.class, prjCache);
         Mockito.doReturn(hotCuboidLayoutQueryTimesList).when(dao).getCuboidLayoutQueryTimes("default", 5,
                 CuboidLayoutQueryTimes.class);
 

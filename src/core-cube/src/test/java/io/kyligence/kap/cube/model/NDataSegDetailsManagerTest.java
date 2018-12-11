@@ -27,7 +27,6 @@ package io.kyligence.kap.cube.model;
 import java.io.IOException;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -60,23 +59,15 @@ public class NDataSegDetailsManagerTest extends NLocalFileMetadataTestCase {
 
         NDataSegDetails details = mgr.getForSegment(segment);
         Assert.assertNotNull(details);
-        Assert.assertEquals(segment.getId(), details.getSegmentId());
+        Assert.assertEquals(segment.getId(), details.getUuid());
         Assert.assertEquals(8, details.getCuboids().size());
         Assert.assertSame(segment.getConfig(), details.getConfig());
-
-        for (NDataCuboid cuboidInstance : details.getCuboids()) {
-            Assert.assertEquals(SegmentStatusEnum.READY, cuboidInstance.getStatus());
-            cuboidInstance.setStatus(SegmentStatusEnum.NEW);
-        }
 
         details = mgr.upsertForSegment(details);
         details = mgr.getForSegment(segment);
         Assert.assertNotNull(details);
-        for (NDataCuboid cuboidInstance : details.getCuboids()) {
-            Assert.assertEquals(SegmentStatusEnum.NEW, cuboidInstance.getStatus());
-        }
 
-        mgr.removeForSegment(details.getDataflow(), details.getSegmentId());
+        mgr.removeForSegment(details.getDataflow(), details.getUuid());
         Assert.assertNull(mgr.getForSegment(segment));
     }
 }

@@ -54,7 +54,7 @@ public class SucceedTestExecutable extends DefaultChainedExecutable {
             this.retry++;
         } catch (InterruptedException e) {
         }
-        return new ExecuteResult(ExecuteResult.State.SUCCEED, "succeed");
+        return ExecuteResult.createSucceed();
     }
 
     @Override
@@ -67,7 +67,7 @@ public class SucceedTestExecutable extends DefaultChainedExecutable {
         NDataflowManager nDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflow dataflow = nDataflowManager.getDataflow("ncube_basic");
         List<NDataSegment> segments = new ArrayList<>();
-        segments.add(dataflow.getSegment(0));
+        segments.add(dataflow.getSegments().getFirstSegment());
         NDataSegment[] segmentsArray = new NDataSegment[segments.size()];
         NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
         NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());

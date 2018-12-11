@@ -46,13 +46,13 @@ package org.apache.kylin.metadata.realization;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+
+import io.kyligence.kap.metadata.model.NDataModel;
 
 public interface IRealization extends IStorageAware {
 
@@ -94,5 +94,4 @@ public interface IRealization extends IStorageAware {
 
     boolean hasPrecalculatedFields();
 
-    LookupStringTable getLookupTable(String lookupTableName);
 }

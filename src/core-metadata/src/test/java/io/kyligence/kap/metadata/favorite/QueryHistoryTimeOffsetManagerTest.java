@@ -29,15 +29,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
 
 public class QueryHistoryTimeOffsetManagerTest extends NLocalFileMetadataTestCase {
-    private static QueryHistoryTimeOffsetManager manager;
-
     @Before
     public void setUp() {
         createTestMetadata();
-        manager = QueryHistoryTimeOffsetManager.getInstance(getTestConfig());
     }
 
     @After
@@ -46,21 +42,34 @@ public class QueryHistoryTimeOffsetManagerTest extends NLocalFileMetadataTestCas
     }
 
     @Test
-    public void testBasics() throws IOException {
-        // test get time offset
-        QueryHistoryTimeOffset timeOffset = manager.get();
-        Assert.assertEquals(1514736000000L, timeOffset.getAutoMarkTimeOffset());
-        Assert.assertEquals(0, timeOffset.getFavoriteQueryUpdateTimeOffset());
+    public void testBasics() {
+        // test save time offset
+        QueryHistoryTimeOffsetManager manager = QueryHistoryTimeOffsetManager.getInstance(getTestConfig(), "default");
+        QueryHistoryTimeOffset timeOffset = new QueryHistoryTimeOffset(1000, 1000);
+        manager.save(timeOffset);
+
+        timeOffset = manager.get();
+        Assert.assertEquals(1000L, timeOffset.getAutoMarkTimeOffset());
+        Assert.assertEquals(1000L, timeOffset.getFavoriteQueryUpdateTimeOffset());
 
         // test update time offset
         timeOffset.setAutoMarkTimeOffset(999);
-        timeOffset.setFavoriteQueryUpdateTimeOffset(1000);
+        timeOffset.setFavoriteQueryUpdateTimeOffset(999);
 
         manager.save(timeOffset);
 
         timeOffset = manager.get();
 
         Assert.assertEquals(999, timeOffset.getAutoMarkTimeOffset());
-        Assert.assertEquals(1000, timeOffset.getFavoriteQueryUpdateTimeOffset());
+        Assert.assertEquals(999, timeOffset.getFavoriteQueryUpdateTimeOffset());
+    }
+
+    @Test
+    public void testProjectHasNoTimeOffsetData() {
+        QueryHistoryTimeOffsetManager manager = QueryHistoryTimeOffsetManager.getInstance(getTestConfig(), "newten");
+        QueryHistoryTimeOffset timeOffset = manager.get();
+        Assert.assertNotNull(timeOffset);
+        Assert.assertNotNull(timeOffset.getAutoMarkTimeOffset());
+        Assert.assertNotNull(timeOffset.getFavoriteQueryUpdateTimeOffset());
     }
 }

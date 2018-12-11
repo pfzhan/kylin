@@ -23,129 +23,49 @@
  */
 package io.kyligence.kap.event.handle;
 
-
-
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.EventStatus;
-import io.kyligence.kap.metadata.model.NDataModel;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.EventContext;
+import lombok.val;
 
 abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(AbstractEventWithJobHandler.class);
 
     @Override
-    protected final void doHandle(EventContext eventContext) throws Exception {
+    protected final void doHandle(EventContext eventContext) {
         Event event = eventContext.getEvent();
-        String project = event.getProject();
-        KylinConfig kylinConfig = eventContext.getConfig();
-        NExecutableManager execMgr = NExecutableManager.getInstance(kylinConfig, project);
+        val project = event.getProject();
+        val kylinConfig = eventContext.getConfig();
 
-        AbstractExecutable job;
-        if (event.getJobId() == null) {
-            job = createJob(eventContext);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val eventId = event.getId();
+            EventDao eventDao = getEventDao(project, kylinConfig);
+            AbstractExecutable job = createJob(eventContext);
             if (job == null) {
-                return;
+                logger.info("No job is required by event {}, aborting handler...", event);
+                eventDao.deleteEvent(eventId);
+                return null;
             }
-            execMgr.addJob(job);
-            eventContext.getEvent().setJobId(job.getId());
-            getEventDao(eventContext).updateEvent(eventContext.getEvent());
-        } else {
-            job = NExecutableManager.getInstance(kylinConfig, project).getJob(event.getJobId());
-        }
 
-        boolean needWait = kylinConfig.getEventWaitForJobFinished();
-        waitForJobFinished(job, eventContext, needWait);
+            job.initConfig(kylinConfig);
+            val po = NExecutableManager.toPO(job, project);
 
-        ExecutableState jobStatus = job.getStatus();
-        eventContext.setJobStatus(jobStatus);
-        if (ExecutableState.SUCCEED.equals(jobStatus)) {
-            onJobSuccess(eventContext);
-        } else if (ExecutableState.ERROR.equals(jobStatus)) {
-            if (needRetryJob(job, eventContext)) {
-                NExecutableManager.getInstance(kylinConfig, project).resumeJob(job.getId());
-            } else {
-                onJobError(eventContext);
-            }
-        } else if (ExecutableState.DISCARDED.equals(jobStatus)) {
-            onJobDiscarded(eventContext);
-        }
+            NExecutableManager executableManager = getExecutableManager(project, kylinConfig);
+            executableManager.addJob(po);
+
+            eventDao.deleteEvent(eventId);
+
+            return null;
+        }, project);
     }
 
-    private boolean needRetryJob(AbstractExecutable job, EventContext eventContext) throws PersistentException {
-        Event event = eventContext.getEvent();
-        int jobRetry = event.getJobRetry();
-        if (jobRetry > 0 && job != null) {
-            jobRetry --;
-            event.setJobRetry(jobRetry);
-            getEventDao(eventContext).updateEvent(event);
-            return true;
-        }
-        return false;
-    }
+    protected abstract AbstractExecutable createJob(EventContext eventContext);
 
-    @Override
-    protected void onHandleFinished(EventContext eventContext) throws Exception {
-        Event event = eventContext.getEvent();
-        String jobId = event.getJobId();
-        if (StringUtils.isNotBlank(jobId)) {
-            ExecutableState jobStatus = eventContext.getJobStatus();
-            if (ExecutableState.SUCCEED.equals(jobStatus) || ExecutableState.DISCARDED.equals(jobStatus)) {
-                // event stats is running unless the job stats is succeed or discard
-                // no need update event if stats is still running
-                event.setStatus(EventStatus.SUCCEED);
-                getEventDao(eventContext).updateEvent(event);
-            }
-        } else {
-            event.setStatus(EventStatus.SUCCEED);
-            getEventDao(eventContext).updateEvent(event);
-        }
-    }
-
-    protected void onJobError(EventContext eventContext) throws Exception {}
-
-    protected void onJobSuccess(EventContext eventContext) throws Exception {}
-
-    protected void onJobDiscarded(EventContext eventContext) throws Exception {}
-
-    protected abstract AbstractExecutable createJob(EventContext eventContext) throws Exception;
-
-    protected void waitForJobFinished(AbstractExecutable job, EventContext eventContext, boolean wait) throws Exception {
-        while (wait) {
-            ExecutableState jobStatus = job.getStatus();
-            if (jobStatus == ExecutableState.SUCCEED ||
-                    jobStatus == ExecutableState.ERROR || // if job failed, the event will not block, and the stats of
-                    // event is still running(waiting), so that other model's event will not be blocked.
-                    jobStatus == ExecutableState.DISCARDED) {
-                break;
-            } else {
-                try {
-                    Thread.sleep(10 * 1000);
-                } catch (InterruptedException e) {
-                    logger.error("waitForJobStatus error : " + e.getMessage(), e);
-                }
-            }
-        }
-    }
-
-    protected void updateDataLoadingRange(NDataflow df) throws IOException {
-        NDataModel model = df.getModel();
-        String tableName = model.getRootFactTableName();
-        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(df.getConfig(), df.getProject());
-        dataLoadingRangeManager.updateDataLoadingRangeWaterMark(tableName);
-    }
 }

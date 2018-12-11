@@ -50,19 +50,12 @@ package io.kyligence.kap.rest.service;
 
 import java.net.UnknownHostException;
 
-import io.kyligence.kap.common.metric.MetricWriter;
+import com.google.common.base.Preconditions;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
-import io.kyligence.kap.rest.response.QueryStatisticsResponse;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.Query;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.impl.InfluxDBResultMapper;
-import org.apache.kylin.common.KapConfig;
+import io.kyligence.kap.metadata.query.QueryStatisticsResponse;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.query.util.QueryUtil;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.service.QueryService;
@@ -75,12 +68,6 @@ import io.kyligence.kap.common.metric.MetricWriterStrategy;
 @Component("kapQueryService")
 public class KapQueryService extends QueryService {
     private static final Logger logger = LoggerFactory.getLogger(KapQueryService.class);
-
-    private static final String STATISTICS_SQL = "SELECT COUNT(query_id), MEAN(\"duration\") FROM query_metric WHERE (time >= %dms AND time <= %dms) AND error_type = '' GROUP BY engine_type";
-
-    private final KapConfig kapConfig = KapConfig.getInstanceFromEnv();
-
-    private volatile InfluxDB influxDB;
 
     @Override
     protected String makeErrorMsgUserFriendly(Throwable e) {
@@ -99,7 +86,7 @@ public class KapQueryService extends QueryService {
          }
          message = sb.toString();
          }
-        
+
          */
         return message;
     }
@@ -110,14 +97,14 @@ public class KapQueryService extends QueryService {
             final QueryMetricsContext queryMetricsContext = QueryMetricsContext.collect(sqlRequest, sqlResponse,
                     QueryContext.current());
 
-            MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME, QueryHistory.QUERY_MEASUREMENT,
+            MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME, getQueryHistoryDao(sqlRequest.getProject()).getQueryMetricMeasurement(),
                     queryMetricsContext.getInfluxdbTags(), queryMetricsContext.getInfluxdbFields(),
                     System.currentTimeMillis());
 
             for (final QueryMetricsContext.RealizationMetrics realizationMetrics : queryMetricsContext
                     .getRealizationMetrics()) {
 
-                MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME, QueryHistory.REALIZATION_MEASUREMENT,
+                MetricWriterStrategy.INSTANCE.write(QueryHistory.DB_NAME, getQueryHistoryDao(sqlRequest.getProject()).getRealizationMetricMeasurement(),
                         realizationMetrics.getInfluxdbTags(), realizationMetrics.getInfluxdbFields(),
                         System.currentTimeMillis());
             }
@@ -126,30 +113,9 @@ public class KapQueryService extends QueryService {
         super.recordMetric(sqlRequest, sqlResponse);
     }
 
-    public QueryStatisticsResponse getQueryStatistics(long startTime, long endTime) {
-        if (!MetricWriter.Type.INFLUX.name().equals(kapConfig.diagnosisMetricWriterType())) {
-            throw new IllegalStateException(MsgPicker.getMsg().getNOT_SET_INFLUXDB());
-        }
+    public QueryStatisticsResponse getQueryStatistics(String project, long startTime, long endTime) {
+        Preconditions.checkArgument(project != null && !project.isEmpty());
 
-        final String statisticsQuery = String.format(STATISTICS_SQL, startTime, endTime);
-
-        final QueryResult result = getInfluxDB().query(new Query(statisticsQuery, QueryHistory.DB_NAME));
-        final InfluxDBResultMapper mapper = new InfluxDBResultMapper();
-        return QueryStatisticsResponse.valueOf(mapper.toPOJO(result, QueryStatisticsResponse.QueryStatistics.class));
-    }
-
-    private InfluxDB getInfluxDB() {
-        if (influxDB == null) {
-            synchronized (this) {
-                if (influxDB != null) {
-                    return this.influxDB;
-                }
-
-                this.influxDB = InfluxDBFactory.connect("http://" + kapConfig.influxdbAddress(),
-                        kapConfig.influxdbUsername(), kapConfig.influxdbPassword());
-            }
-        }
-
-        return this.influxDB;
+        return QueryStatisticsResponse.valueOf(getQueryHistoryDao(project).getQueryStatistics(startTime, endTime));
     }
 }

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -51,7 +50,6 @@ import java.util.List;
 import java.util.NavigableSet;
 import java.util.Set;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.StringUtil;
 import org.slf4j.Logger;
@@ -155,19 +153,16 @@ public class ResourceTool {
 
     public static String cat(KylinConfig config, String path) throws IOException {
         ResourceStore store = ResourceStore.getKylinMetaStore(config);
-        InputStream is = store.getResource(path).inputStream;
-        BufferedReader br = null;
+        RawResource resource = store.getResource(path);
         StringBuffer sb = new StringBuffer();
-        String line;
-        try {
-            br = new BufferedReader(new InputStreamReader(is));
+        try (InputStream is = resource.getByteSource().openStream();
+                BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+
+            String line;
             while ((line = br.readLine()) != null) {
                 System.out.println(line);
                 sb.append(line).append('\n');
             }
-        } finally {
-            IOUtils.closeQuietly(is);
-            IOUtils.closeQuietly(br);
         }
         return sb.toString();
     }
@@ -236,8 +231,7 @@ public class ResourceTool {
                 try {
                     RawResource res = src.getResource(path);
                     if (res != null) {
-                        dst.putResource(path, res.inputStream, res.timestamp);
-                        res.inputStream.close();
+                        dst.getImageStore().putResource(res);
                     } else {
                         System.out.println("Resource not exist for " + path);
                     }
@@ -277,7 +271,7 @@ public class ResourceTool {
         resetR(store, "/");
     }
 
-    public static void resetR(ResourceStore store, String path) throws IOException {
+    public static void resetR(ResourceStore store, String path) {
         NavigableSet<String> children = store.listResources(path);
         if (children == null) { // path is a resource (not a folder)
             if (matchFilter(path)) {
@@ -289,7 +283,7 @@ public class ResourceTool {
         }
     }
 
-    private static void remove(KylinConfig config, String path) throws IOException {
+    private static void remove(KylinConfig config, String path) {
         ResourceStore store = ResourceStore.getKylinMetaStore(config);
         resetR(store, path);
     }

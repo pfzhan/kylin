@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -102,8 +101,8 @@ public class Utils {
     }
 
     public static void clearCacheForKylinConfig(KylinConfig kylinConfig) throws IOException {
-        Broadcaster.getInstance(kylinConfig).notifyNonStaticListener(Broadcaster.SYNC_ALL, Broadcaster.Event.UPDATE,
-                Broadcaster.SYNC_ALL);
+//        Broadcaster.getInstance(kylinConfig).notifyNonStaticListener(Broadcaster.SYNC_ALL, Broadcaster.Event.UPDATE,
+//                Broadcaster.SYNC_ALL);
     }
 
     public static void exposeAllTableAndColumn(KylinConfig kylinConfig) {

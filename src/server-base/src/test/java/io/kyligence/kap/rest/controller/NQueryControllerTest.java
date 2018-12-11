@@ -45,7 +45,7 @@ package io.kyligence.kap.rest.controller;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.rest.request.QueryHistoryRequest;
+import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.rest.service.KapQueryService;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.kylin.common.util.JsonUtil;
@@ -225,11 +225,12 @@ public class NQueryControllerTest {
     @Test
     public void testQueryStatistics() throws Exception {
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/statistics").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default")
                 .param("start_time", "0").param("end_time", "999999999999")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nQueryController).queryStatistics(Mockito.anyLong(), Mockito.anyLong());
+        Mockito.verify(nQueryController).queryStatistics("default", 0, 999999999999L);
     }
 
     private List<QueryHistory> mockedQueryHistories() {

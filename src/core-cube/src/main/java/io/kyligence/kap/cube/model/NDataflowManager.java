@@ -31,24 +31,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.AutoReadWriteLock;
-import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
-import org.apache.kylin.dict.lookup.NSnapshotManager;
-import org.apache.kylin.dict.lookup.NSnapshotTable;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
-import org.apache.kylin.metadata.lookup.LookupStringTable;
-import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.IRealizationProvider;
@@ -59,8 +51,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeepNames;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.var;
 
@@ -82,32 +72,20 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     private KylinConfig config;
     private String project;
 
-    // NDataflow name ==> NDataflow
-    private CaseInsensitiveStringCache<NDataflow> dataflowMap;
     private CachedCrudAssist<NDataflow> crud;
 
-    // protects concurrent operations around the dataflowMap,
-    // to avoid, for example, writing a dataflow in the middle of reloading it (dirty read)
-    private AutoReadWriteLock dfMapLock = new AutoReadWriteLock();
-
-    private NDataflowManager(KylinConfig cfg, final String project) throws IOException {
+    private NDataflowManager(KylinConfig cfg, final String project) {
         logger.info("Initializing NDataflowManager with config " + cfg);
         this.config = cfg;
         this.project = project;
-        this.dataflowMap = new CaseInsensitiveStringCache<>(config, project, "ncube");
         String resourceRootPath = "/" + project + NDataflow.DATAFLOW_RESOURCE_ROOT;
-        this.crud = new CachedCrudAssist<NDataflow>(getStore(), resourceRootPath, NDataflow.class, dataflowMap) {
+        this.crud = new CachedCrudAssist<NDataflow>(getStore(), resourceRootPath, NDataflow.class) {
             @Override
             protected NDataflow initEntityAfterReload(NDataflow df, String resourceName) {
-                NCubePlan plan = NCubePlanManager.getInstance(config, project).getCubePlan(df.getCubePlanName());
+                NCubePlan plan = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                        .getCubePlan(df.getCubePlanName());
                 df.setProject(project);
-                try {
-                    df.initAfterReload((KylinConfigExt) plan.getConfig());
-                } catch (Exception e) {
-                    logger.warn("Broken NDataflow " + resourceName, e);
-                    //TODO: vialate checkIsNotCachedAndShared
-                    //df.setStatus(RealizationStatusEnum.DESCBROKEN);
-                }
+                df.initAfterReload((KylinConfigExt) plan.getConfig());
                 return df;
             }
         };
@@ -115,10 +93,9 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
         // touch lower level metadata before registering my listener
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new NDataflowSyncListener(), project, "ncube");
     }
 
-    public NDataflow removeLayouts(NDataflow df, List<Long> tobeRemoveCuboidLayoutIds) throws IOException {
+    public NDataflow removeLayouts(NDataflow df, Collection<Long> tobeRemoveCuboidLayoutIds) {
         List<NDataCuboid> tobeRemoveCuboidLayout = Lists.newArrayList();
         Segments<NDataSegment> segments = df.getSegments();
         for (NDataSegment segment : segments) {
@@ -139,67 +116,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return df;
     }
 
-    private class NDataflowSyncListener extends Broadcaster.Listener {
-        @Override
-        public void onProjectSchemaChange(Broadcaster broadcaster, String project) throws IOException {
-            for (IRealization real : NProjectManager.getInstance(config).listAllRealizations(project)) {
-                if (real.getType().equals(getRealizationType())) {
-                    try (AutoLock lock = dfMapLock.lockForWrite()) {
-                        crud.reloadQuietly(real.getName());
-                    }
-                }
-            }
-        }
-
-        @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
-                throws IOException {
-            String dataflowName = cacheKey;
-
-            try (AutoLock lock = dfMapLock.lockForWrite()) {
-                if (event == Broadcaster.Event.DROP)
-                    dataflowMap.removeLocal(dataflowName);
-                else
-                    crud.reloadQuietly(dataflowName);
-            }
-
-            broadcaster.notifyProjectDataUpdate(project);
-        }
-    }
-
-    NDataflow reloadDataFlow(String dataFlowName) {
-        try (AutoLock lock = dfMapLock.lockForWrite()) {
-            return crud.reload(dataFlowName);
-        }
-    }
-
-    public LookupStringTable getLookupTable(NDataSegment cubeSegment, JoinDesc join) {
-        long ts = System.currentTimeMillis();
-
-        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(cubeSegment.getConfig(),
-                cubeSegment.getProject());
-        NSnapshotManager snapshotMgr = NSnapshotManager.getInstance(cubeSegment.getConfig(), cubeSegment.getProject());
-
-        String tableName = join.getPKSide().getTableIdentity();
-        String[] pkCols = join.getPrimaryKey();
-        String snapshotResPath = cubeSegment.getSnapshots().get(tableName);
-        if (snapshotResPath == null)
-            throw new IllegalStateException(
-                    "No snaphot for table '" + tableName + "' found on cube segment " + cubeSegment.getName());
-
-        try {
-            NSnapshotTable snapshot = snapshotMgr.getSnapshotTable(snapshotResPath);
-            TableDesc tableDesc = metaMgr.getTableDesc(tableName);
-            LookupStringTable enhancedStringLookupTable = new LookupStringTable(tableDesc, pkCols, snapshot);
-            logger.info("Time to get lookup up table for {} is {} ", join.getPKSide().getTableName(),
-                    (System.currentTimeMillis() - ts));
-            return enhancedStringLookupTable;
-        } catch (IOException e) {
-            throw new IllegalStateException(
-                    "Failed to load lookup table " + tableName + " from snapshot " + snapshotResPath, e);
-        }
-    }
-
     @Override
     public String getRealizationType() {
         return NDataflow.REALIZATION_TYPE;
@@ -215,26 +131,20 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public List<NDataflow> listAllDataflows() {
-        try (AutoLock lock = dfMapLock.lockForRead()) {
-            return new ArrayList<>(dataflowMap.values());
-        }
+        return crud.getAll();
     }
 
     public NDataflow getDataflow(String name) {
-        try (AutoLock lock = dfMapLock.lockForRead()) {
-            return dataflowMap.get(name);
-        }
+        return crud.get(name);
     }
 
     public NDataflow getDataflowByUuid(String uuid) {
-        try (AutoLock lock = dfMapLock.lockForRead()) {
-            Collection<NDataflow> copy = new ArrayList<>(dataflowMap.values());
-            for (NDataflow df : copy) {
-                if (uuid.equals(df.getUuid()))
-                    return df;
-            }
-            return null;
+        Collection<NDataflow> copy = crud.getAll();
+        for (NDataflow df : copy) {
+            if (uuid.equals(df.getUuid()))
+                return df;
         }
+        return null;
     }
 
     public NDataflow getDataflowByModelName(String name) {
@@ -243,7 +153,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
                 return dataflow;
             }
         }
-        throw new IllegalStateException("Cannot find " + name + "'s dataflow");
+
+        return null;
     }
 
     public List<NDataflow> getDataflowsByCubePlan(String cubePlan) {
@@ -259,79 +170,81 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return result;
     }
 
-    public NDataflow createDataflow(String dfName, String projectName, NCubePlan plan, String owner)
-            throws IOException {
-        try (AutoLock lock = dfMapLock.lockForWrite()) {
-            NDataflow df = NDataflow.create(dfName, plan);
-            return createDataflow(df, projectName, owner);
-        }
+    public NDataflow createDataflow(String dfName, String projectName, NCubePlan plan, String owner) {
+        NDataflow df = NDataflow.create(dfName, plan);
+
+        // save dataflow
+        df.setOwner(owner);
+        df.getSegments().validate();
+        crud.save(df);
+
+        fillDf(df);
+
+        return df;
     }
 
-    public NDataflow createDataflow(NDataflow df, String projectName, String owner) throws IOException {
-        try (AutoLock lock = dfMapLock.lockForWrite()) {
-            logger.info("Creating NDataflow '" + projectName + "-->" + df.getName() + "' from instance object.");
+    public void fillDf(NDataflow df) {
+        // if it's table oriented, create segments at once
+        String tableName = df.getModel().getRootFactTable().getTableIdentity();
+        NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).getDataLoadingRange(tableName);
+        if (dataLoadingRange != null) {
+            List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
+            if (CollectionUtils.isNotEmpty(segmentRanges)) {
+                Segments<NDataSegment> segs = new Segments<>();
 
-            // save dataflow
-            df.setOwner(owner);
-            df.getSegments().validate();
-            crud.save(df);
-
-            // add to project
-            NProjectManager.getInstance(config).moveRealizationToProject(getRealizationType(), df.getName(),
-                    projectName, owner);
-
-            return df;
-        }
-    }
-
-    public NDataSegment appendSegment(NDataflow df, SegmentRange segRange) throws IOException {
-        try (AutoLock lock = dfMapLock.lockForWrite()) {
-            checkBuildingSegment(df);
-
-            //            // case of full build
-            //            if (!df.getModel().getPartitionDesc().isPartitioned()) {
-            //                segRange = null;
-            //            }
-
-            NDataSegment newSegment = newSegment(df, segRange);
-            validateNewSegments(df, newSegment);
-
-            NDataflowUpdate upd = new NDataflowUpdate(df.getName());
-            upd.setToAddSegs(newSegment);
-            updateDataflow(upd);
-            return newSegment;
-        }
-    }
-
-    public NDataSegment refreshSegment(NDataflow df, SegmentRange segRange) throws IOException {
-        try (AutoLock lock = dfMapLock.lockForWrite()) {
-            checkBuildingSegment(df);
-
-            NDataSegment newSegment = newSegment(df, segRange);
-
-            NDataSegment toRefreshSeg = null;
-            for (NDataSegment NDataSegment : df.getSegments()) {
-                if (NDataSegment.getSegRange().equals(segRange)) {
-                    toRefreshSeg = NDataSegment;
-                    break;
-                }
+                segmentRanges.forEach(segRange -> {
+                    NDataSegment newSegment = newSegment(df, segRange);
+                    newSegment.setStatus(SegmentStatusEnum.READY);
+                    segs.add(newSegment);
+                });
+                val update = new NDataflowUpdate(df.getName());
+                update.setToAddSegs(segs.toArray(new NDataSegment[0]));
+                updateDataflow(update);
             }
-
-            if (toRefreshSeg == null) {
-                throw new IllegalArgumentException("No matching segment ");
-            }
-
-            newSegment.setSegmentRange(toRefreshSeg.getSegRange());
-
-            NDataflowUpdate upd = new NDataflowUpdate(df.getName());
-            upd.setToAddSegs(newSegment);
-            updateDataflow(upd);
-
-            return newSegment;
         }
     }
 
-    public NDataSegment mergeSegments(NDataflow dataflow, SegmentRange segRange, boolean force) throws IOException {
+    public NDataSegment appendSegment(NDataflow df, SegmentRange segRange) {
+        checkBuildingSegment(df);
+
+        NDataSegment newSegment = newSegment(df, segRange);
+        validateNewSegments(df, newSegment);
+
+        NDataflowUpdate upd = new NDataflowUpdate(df.getName());
+        upd.setToAddSegs(newSegment);
+        updateDataflow(upd);
+        return newSegment;
+    }
+
+    public NDataSegment refreshSegment(NDataflow df, SegmentRange segRange) {
+        checkBuildingSegment(df);
+
+        NDataSegment newSegment = newSegment(df, segRange);
+
+        NDataSegment toRefreshSeg = null;
+        for (NDataSegment NDataSegment : df.getSegments()) {
+            if (NDataSegment.getSegRange().equals(segRange)) {
+                toRefreshSeg = NDataSegment;
+                break;
+            }
+        }
+
+        if (toRefreshSeg == null) {
+            throw new IllegalArgumentException(
+                    "For streaming NDataflow, only one segment can be refreshed at one time");
+        }
+
+        newSegment.setSegmentRange(toRefreshSeg.getSegRange());
+
+        NDataflowUpdate upd = new NDataflowUpdate(df.getName());
+        upd.setToAddSegs(newSegment);
+        updateDataflow(upd);
+
+        return newSegment;
+    }
+
+    public NDataSegment mergeSegments(NDataflow dataflow, SegmentRange segRange, boolean force) {
         NDataflow dataflowCopy = dataflow.copy();
         if (dataflowCopy.getSegments().isEmpty())
             throw new IllegalArgumentException(dataflow + " has no segments");
@@ -405,9 +318,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         // BREAKING CHANGE: remove legacy caring as in org.apache.kylin.cube.CubeManager.SegmentAssist.newSegment()
         Preconditions.checkNotNull(segRange);
 
-        NDataSegment lastSeg = df.getSegmentWithMaxId();
         NDataSegment segment = new NDataSegment();
-        segment.setId(lastSeg == null ? 0 : lastSeg.getId() + 1);
+        segment.setId(UUID.randomUUID().toString());
         segment.setName(Segments.makeSegmentName(segRange));
         segment.setCreateTimeUTC(System.currentTimeMillis());
         segment.setDataflow(df);
@@ -434,10 +346,11 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         void modify(NDataflow copyForWrite);
     }
 
-    public NDataflow updateDataflow(String dfName, NDataflowUpdater updater) throws IOException {
-        try (AutoLock lock = dfMapLock.lockForWrite()) {
-            return updateDataflowWithRetry(dfName, updater, 3);
-        }
+    public NDataflow updateDataflow(String dfName, NDataflowUpdater updater) {
+        NDataflow cached = getDataflow(dfName);
+        NDataflow copy = copy(cached);
+        updater.modify(copy);
+        return crud.save(copy);
     }
 
     public long getSegmentSize(NDataSegment segment) {
@@ -458,7 +371,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return byteSize;
     }
 
-    private NDataflow updateDataflowWithRetry(String dfName, NDataflowUpdater updater, int retry) throws IOException {
+    private NDataflow updateDataflowWithRetry(String dfName, NDataflowUpdater updater, int retry) {
         RuntimeException firstException = null;
 
         for (; retry >= 0; retry--) {
@@ -466,12 +379,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             NDataflow copy = copy(cached);
             updater.modify(copy);
             try {
-                NDataflow df = crud.save(copy);
-
-                //this is a duplicate call to take care of scenarios where REST cache service unavailable
-                NProjectManager.getInstance(df.getConfig()).clearL2Cache();
-
-                return df;
+                return crud.save(copy);
             } catch (IllegalStateException ex) {
                 if (firstException == null)
                     firstException = ex;
@@ -481,96 +389,82 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         throw firstException;
     }
 
-    public NDataflow updateDataflow(final NDataflowUpdate update) throws IOException {
-        return updateDataflow(update.getDataflowName(), new NDataflowUpdater() {
-            @Override
-            public void modify(NDataflow copyForWrite) {
-                NDataflow df = copyForWrite;
-                Segments<NDataSegment> newSegs = (Segments<NDataSegment>) df.getSegments().clone();
+    public NDataflow updateDataflow(final NDataflowUpdate update) {
+        NDataflow newDf = updateDataflow(update.getDataflowName(), copyForWrite -> {
+            NDataflow df = copyForWrite;
+            Segments<NDataSegment> newSegs = (Segments<NDataSegment>) df.getSegments().clone();
 
-                if (update.getToAddSegs() != null) {
-                    for (NDataSegment seg : update.getToAddSegs()) {
-                        seg.setDataflow(df);
-                        newSegs.add(seg);
-                    }
-                }
-
-                if (update.getToUpdateSegs() != null) {
-                    for (NDataSegment seg : update.getToUpdateSegs()) {
-                        seg.setDataflow(df);
-                        for (int i = 0; i < newSegs.size(); i++) {
-                            if (newSegs.get(i).getId() == seg.getId()) {
-                                newSegs.set(i, seg);
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                if (update.getToRemoveSegs() != null) {
-                    Iterator<NDataSegment> iterator = newSegs.iterator();
-                    while (iterator.hasNext()) {
-                        NDataSegment currentSeg = iterator.next();
-                        for (NDataSegment toRemoveSeg : update.getToRemoveSegs()) {
-                            if (currentSeg.getId() == toRemoveSeg.getId()) {
-                                logger.info("Remove segment " + currentSeg.toString());
-                                iterator.remove();
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                Collections.sort(newSegs);
-                newSegs.validate();
-                df.setSegments(newSegs);
-
-                if (update.getStatus() != null) {
-                    df.setStatus(update.getStatus());
-                }
-
-                if (update.getDescription() != null) {
-                    df.setDescription(update.getDescription());
-                }
-
-                if (update.getOwner() != null) {
-                    df.setOwner(update.getOwner());
-                }
-
-                if (update.getCost() > 0) {
-                    df.setCost(update.getCost());
-                }
-
-                // NDataCuboid updates are idempotent, safe to re-do (retry) many times
-                try {
-                    NDataSegDetailsManager.getInstance(df.getConfig(), project).updateDataflow(df, update);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
+            if (update.getToAddSegs() != null) {
+                for (NDataSegment seg : update.getToAddSegs()) {
+                    seg.setDataflow(df);
+                    newSegs.add(seg);
                 }
             }
+
+            if (update.getToUpdateSegs() != null) {
+                for (NDataSegment seg : update.getToUpdateSegs()) {
+                    seg.setDataflow(df);
+                    for (int i = 0; i < newSegs.size(); i++) {
+                        if (newSegs.get(i).getId().equals(seg.getId())) {
+                            newSegs.set(i, seg);
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (update.getToRemoveSegs() != null) {
+                Iterator<NDataSegment> iterator = newSegs.iterator();
+                while (iterator.hasNext()) {
+                    NDataSegment currentSeg = iterator.next();
+                    for (NDataSegment toRemoveSeg : update.getToRemoveSegs()) {
+                        if (currentSeg.getId().equals(toRemoveSeg.getId())) {
+                            logger.info("Remove segment " + currentSeg.toString());
+                            iterator.remove();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            df.setSegments(newSegs);
+
+            if (update.getStatus() != null) {
+                df.setStatus(update.getStatus());
+            }
+
+            if (update.getDescription() != null) {
+                df.setDescription(update.getDescription());
+            }
+
+            if (update.getOwner() != null) {
+                df.setOwner(update.getOwner());
+            }
+
+            if (update.getCost() > 0) {
+                df.setCost(update.getCost());
+            }
+            NDataSegDetailsManager.getInstance(df.getConfig(), project).updateDataflow(df, update);
         });
+
+        return newDf;
     }
 
-    public NDataflow dropDataflow(String dfName) throws IOException {
-        try (AutoLock lock = dfMapLock.lockForWrite()) {
-            logger.info("Dropping NDataflow '" + dfName + "'");
+    public NDataflow dropDataflow(String dfName) {
+        logger.info("Dropping NDataflow '" + dfName + "'");
 
-            NDataflow df = getDataflow(dfName);
+        NDataflow df = getDataflow(dfName);
 
-            // delete NDataSegDetails first
-            NDataSegDetailsManager segDetailsManager = NDataSegDetailsManager.getInstance(config, project);
-            for (NDataSegment seg : df.getSegments()) {
-                segDetailsManager.removeForSegment(df, seg.getId());
-            }
-
-            // remove NDataflow and update cache
-            crud.delete(df);
-
-            // delete NDataflow from project
-            NProjectManager.getInstance(config).removeRealizationsFromProject(project, getRealizationType(), dfName);
-
-            return df;
+        // delete NDataSegDetails first
+        NDataSegDetailsManager segDetailsManager = NDataSegDetailsManager.getInstance(config, project);
+        for (NDataSegment seg : df.getSegments()) {
+            segDetailsManager.removeForSegment(df, seg.getId());
         }
+
+        // remove NDataflow and update cache
+        crud.delete(df);
+
+        return df;
     }
 
     public List<NDataSegment> calculateHoles(String dfName) {

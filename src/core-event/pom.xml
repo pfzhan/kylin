@@ -35,7 +35,6 @@
             <artifactId>kap-engine-spark</artifactId>
         </dependency>
 
-
         <!--Env & Test-->
         <dependency>
             <groupId>io.kyligence.ke</groupId>

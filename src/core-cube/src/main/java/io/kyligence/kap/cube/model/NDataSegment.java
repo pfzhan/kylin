@@ -57,7 +57,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @JsonBackReference
     private NDataflow dataflow;
     @JsonProperty("id")
-    private int id; // Sequence ID within NDataflow
+    private String id; // Sequence ID within NDataflow
     @JsonProperty("name")
     private String name;
     @JsonProperty("create_time_utc")
@@ -238,11 +238,11 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         this.dataflow = df;
     }
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         checkIsNotCachedAndShared();
         this.id = id;
     }
@@ -372,7 +372,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((dataflow == null) ? 0 : dataflow.hashCode());
-        result = prime * result + id;
+        result = prime * result + id.hashCode();
         return result;
     }
 
@@ -390,11 +390,11 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
                 return false;
         } else if (!dataflow.equals(other.dataflow))
             return false;
-        return id == other.id;
+        return id.equals(other.id);
     }
 
     @Override
     public String toString() {
-        return "NDataSegment [" + dataflow.getName() + "." + id + "]";
+        return "NDataSegment [" + dataflow.getName() + "." + id + segmentRange + "]";
     }
 }

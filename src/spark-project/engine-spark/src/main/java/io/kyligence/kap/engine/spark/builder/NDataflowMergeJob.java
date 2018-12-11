@@ -24,7 +24,27 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.commons.cli.Options;
+import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.dict.NDictionaryInfo;
+import org.apache.kylin.dict.NDictionaryManager;
+import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.storage.StorageFactory;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
@@ -35,25 +55,6 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import org.apache.commons.cli.Options;
-import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.dict.NDictionaryInfo;
-import org.apache.kylin.dict.NDictionaryManager;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.storage.StorageFactory;
-import org.apache.spark.sql.Column;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class NDataflowMergeJob extends NDataflowJob {
     protected static final Logger logger = LoggerFactory.getLogger(NDataflowMergeJob.class);
@@ -64,10 +65,9 @@ public class NDataflowMergeJob extends NDataflowJob {
     }
 
     @Override
-    protected void execute(OptionsHelper optionsHelper) throws Exception {
-        super.execute(optionsHelper);
+    protected void doExecute(OptionsHelper optionsHelper) throws Exception {
         String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
-        int newSegmentId = Integer.parseInt(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS));
+        String newSegmentId = optionsHelper.getOptionValue(OPTION_SEGMENT_IDS);
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(optionsHelper.getOptionValue(OPTION_LAYOUT_IDS));
         project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
 
@@ -79,7 +79,7 @@ public class NDataflowMergeJob extends NDataflowJob {
         mergeSegments(dfName, newSegmentId, layoutIds);
     }
 
-    private void mergeDictionary(String dataflowName, int segmentId) {
+    private void mergeDictionary(String dataflowName, String segmentId) {
         final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
         final NDataflow dataflow = mgr.getDataflow(dataflowName);
         final NDataSegment mergedSeg = dataflow.getSegment(segmentId);
@@ -142,7 +142,7 @@ public class NDataflowMergeJob extends NDataflowJob {
         }
     }
 
-    private void mergeSegments(String dataflowName, int segmentId, Set<Long> specifiedCuboids) throws IOException {
+    private void mergeSegments(String dataflowName, String segmentId, Set<Long> specifiedCuboids) throws IOException {
         final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
         final NDataflow dataflow = mgr.getDataflow(dataflowName);
         final NDataSegment mergedSeg = dataflow.getSegment(segmentId);
@@ -151,7 +151,7 @@ public class NDataflowMergeJob extends NDataflowJob {
         // collect layouts need to merge
         Map<Long, NLayoutMergeAssist> mergeCuboidsAsssit = Maps.newConcurrentMap();
         for (NDataSegment seg : mergingSegments) {
-            for (NDataCuboid cuboid : seg.getSegDetails().getCuboidByStatus(SegmentStatusEnum.READY)) {
+            for (NDataCuboid cuboid : seg.getSegDetails().getCuboids()) {
                 long layoutId = cuboid.getCuboidLayoutId();
 
                 NLayoutMergeAssist assist = mergeCuboidsAsssit.get(layoutId);
@@ -204,7 +204,6 @@ public class NDataflowMergeJob extends NDataflowJob {
         dataCuboid.setSourceByteSize(sourceByteSize);
         dataCuboid.setSourceRows(sourceCount);
         dataCuboid.setBuildJobId(jobId);
-        dataCuboid.setStatus(SegmentStatusEnum.READY);
 
         StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
                 .saveCuboidData(dataCuboid, dataset, ss);

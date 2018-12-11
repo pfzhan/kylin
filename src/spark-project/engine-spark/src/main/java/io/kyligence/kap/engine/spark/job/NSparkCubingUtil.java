@@ -36,7 +36,6 @@ import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegDetails;
 import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
 
 public class NSparkCubingUtil {
     public static final String SEPARATOR = "_0_DOT_0_";
@@ -67,8 +66,8 @@ public class NSparkCubingUtil {
         return r;
     }
 
-    public static Set<Integer> toSegmentIds(Set<NDataSegment> segments) {
-        Set<Integer> r = new LinkedHashSet<>();
+    public static Set<String> toSegmentIds(Set<NDataSegment> segments) {
+        Set<String> r = new LinkedHashSet<>();
         for (NDataSegment seg : segments) {
             r.add(seg.getId());
         }
@@ -79,14 +78,6 @@ public class NSparkCubingUtil {
         Set<Long> r = new LinkedHashSet<>();
         for (NCuboidLayout cl : cuboids) {
             r.add(cl.getId());
-        }
-        return r;
-    }
-
-    public static Set<NDataSegment> toSegments(NDataflow dataflow, Set<Integer> ids) {
-        Set<NDataSegment> r = new LinkedHashSet<>();
-        for (int id : ids) {
-            r.add(dataflow.getSegment(id));
         }
         return r;
     }
@@ -135,7 +126,7 @@ public class NSparkCubingUtil {
         KapConfig config = KapConfig.wrap(dataCuboid.getConfig());
         String hdfsWorkingDir = config.getReadHdfsWorkingDirectory();
         String path = hdfsWorkingDir + segDetails.getProject() + "/parquet/" + segDetails.getDataSegment().getDataflow().getUuid() + "/"
-                + segDetails.getSegmentId() + "/" + dataCuboid.getCuboidLayoutId();
+                + segDetails.getUuid() + "/" + dataCuboid.getCuboidLayoutId();
         return path;
     }
 

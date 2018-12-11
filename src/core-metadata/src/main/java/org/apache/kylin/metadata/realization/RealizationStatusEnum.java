@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,7 +44,7 @@ package org.apache.kylin.metadata.realization;
 
 import java.io.Serializable;
 
-public enum RealizationStatusEnum implements Serializable{
+public enum RealizationStatusEnum implements Serializable {
 
-    OFFLINE, ONLINE, DESCBROKEN, NO_CUBEPLAN, NEW
+    OFFLINE, ONLINE, DESCBROKEN, LAG_BEHIND
 }

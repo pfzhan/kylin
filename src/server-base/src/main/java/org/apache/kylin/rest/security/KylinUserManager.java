@@ -46,16 +46,11 @@ import static org.apache.kylin.common.persistence.ResourceStore.USER_ROOT;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.AutoReadWriteLock;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.cachesync.CaseSensitiveStringCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,15 +71,12 @@ public class KylinUserManager {
 
     private KylinConfig config;
     // user ==> ManagedUser
-    private CaseSensitiveStringCache<ManagedUser> userMap;
     private CachedCrudAssist<ManagedUser> crud;
-    private AutoReadWriteLock lock = new AutoReadWriteLock();
 
-    public KylinUserManager(KylinConfig config) throws IOException {
+    public KylinUserManager(KylinConfig config) {
         logger.info("Initializing KylinUserManager with config " + config);
         this.config = config;
-        this.userMap = new CaseSensitiveStringCache<>(config, "", "user");
-        this.crud = new CachedCrudAssist<ManagedUser>(getStore(), USER_ROOT, "", ManagedUser.class, userMap) {
+        this.crud = new CachedCrudAssist<ManagedUser>(getStore(), USER_ROOT, "", ManagedUser.class) {
             @Override
             protected ManagedUser initEntityAfterReload(ManagedUser user, String resourceName) {
                 return user;
@@ -92,21 +84,6 @@ public class KylinUserManager {
         };
 
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new ManagedUserSyncListener(), "", "user");
-    }
-
-    private class ManagedUserSyncListener extends Broadcaster.Listener {
-
-        @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
-                throws IOException {
-            try (AutoReadWriteLock.AutoLock l = lock.lockForWrite()) {
-                if (event == Broadcaster.Event.DROP)
-                    userMap.removeLocal(cacheKey);
-                else
-                    crud.reloadQuietly(cacheKey);
-            }
-        }
     }
 
     public KylinConfig getConfig() {
@@ -118,52 +95,33 @@ public class KylinUserManager {
     }
 
     public ManagedUser get(String name) {
-        try (AutoReadWriteLock.AutoLock l = lock.lockForRead()) {
-            return userMap.get(name);
-        }
+        return crud.get(name);
     }
 
     public List<ManagedUser> list() {
-        try (AutoReadWriteLock.AutoLock l = lock.lockForRead()) {
-            List<ManagedUser> users = new ArrayList<>();
-            users.addAll(userMap.values());
-            Collections.sort(users, new Comparator<ManagedUser>() {
-                @Override
-                public int compare(ManagedUser o1, ManagedUser o2) {
-                    return o1.getUsername().compareToIgnoreCase(o2.getUsername());
-                }
-            });
-            return users;
-        }
+        List<ManagedUser> users = new ArrayList<>(crud.getAll());
+        users.sort((o1, o2) -> o1.getUsername().compareToIgnoreCase(o2.getUsername()));
+        return users;
     }
 
     public void update(ManagedUser user) {
-        try (AutoReadWriteLock.AutoLock l = lock.lockForWrite()) {
-            ManagedUser exist = userMap.get(user.getUsername());
-            if (exist != null) {
-                user.setLastModified(exist.getLastModified());
-            }
-            crud.save(user);
-        } catch (IOException e) {
-            throw new RuntimeException("Can not update user.", e);
+        ManagedUser exist = crud.get(user.getUsername());
+        if (exist != null) {
+            user.setLastModified(exist.getLastModified());
+            user.setMvcc(exist.getMvcc());
         }
+        crud.save(user);
     }
 
     public void delete(String username) {
-        try (AutoReadWriteLock.AutoLock l = lock.lockForWrite()) {
-            crud.delete(username);
-        } catch (IOException e) {
-            throw new RuntimeException("Can not delete user.", e);
-        }
+        crud.delete(username);
     }
 
     public boolean exists(String username) {
-        try (AutoReadWriteLock.AutoLock l = lock.lockForRead()) {
-            return userMap.containsKey(username);
-        }
+        return crud.contains(username);
     }
 
-    public void reloadAll() throws IOException {
+    public void reloadAll() {
         crud.reloadAll();
     }
 }

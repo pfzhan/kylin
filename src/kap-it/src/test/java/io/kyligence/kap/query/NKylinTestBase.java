@@ -43,7 +43,6 @@ public class NKylinTestBase extends KylinTestBase {
         //setup env
         NLocalFileMetadataTestCase.staticCreateTestMetadata();
         config = KylinConfig.getInstanceFromEnv();
-        config.setProperty("kylin.metadata.store-factory", "io.kyligence.kap.common.persistence.KapMetaStoreFactory");
 
 
         //setup cube conn

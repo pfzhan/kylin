@@ -25,113 +25,24 @@
 package io.kyligence.kap.rest.service;
 
 import com.google.common.base.Preconditions;
-import io.kyligence.kap.common.metric.MetricWriter;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.rest.request.QueryHistoryRequest;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
-import java.util.List;
 
 @Component("queryHistoryService")
 public class QueryHistoryService extends BasicService {
-
-    private void checkMetricWriterType() {
-        if (!MetricWriter.Type.INFLUX.name().equals(KapConfig.wrap(getConfig()).diagnosisMetricWriterType())) {
-            throw new IllegalStateException(MsgPicker.getMsg().getNOT_SET_INFLUXDB());
-        }
-    }
-
     public HashMap<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
         Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
-        checkMetricWriterType();
+        QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(request.getProject());
 
         HashMap<String, Object> data = new HashMap<>();
-        String filterSql = getQueryHistoryFilterSql(request);
-        data.put("query_histories", getQueryHistoryManager().getQueryHistoriesBySql(
-                getQueryHistoriesSql(request.getProject(), filterSql, limit, offset), QueryHistory.class));
-
-        List<QueryHistory> sizeList = getQueryHistoryManager().getQueryHistoriesBySql(
-                getQueryHistoriesTotalSizeSql(request.getProject(), filterSql), QueryHistory.class);
-        if (sizeList == null || sizeList.isEmpty())
-            data.put("size", 0);
-        else
-            data.put("size", sizeList.get(0).getSize());
+        data.put("query_histories", queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset));
+        data.put("size", queryHistoryDAO.getQueryHistoriesSize(request));
 
         return data;
-    }
-
-    String getQueryHistoriesSql(String project, String filterSql, int limit, int offset) {
-        return String.format("SELECT * FROM %s WHERE project = '%s' ", QueryHistory.QUERY_MEASUREMENT, project)
-                + filterSql + String.format("ORDER BY time DESC LIMIT %d OFFSET %d", limit, offset * limit);
-    }
-
-    String getQueryHistoriesTotalSizeSql(String project, String filterSql) {
-        return String.format("SELECT count(query_id) FROM %s WHERE project = '%s' ", QueryHistory.QUERY_MEASUREMENT,
-                project) + filterSql;
-    }
-
-    String getQueryHistoryFilterSql(QueryHistoryRequest request) {
-        StringBuilder sb = new StringBuilder();
-
-        // filter by time
-        sb.append(String.format("AND (query_time >= %d AND query_time < %d) ", request.getStartTimeFrom(),
-                request.getStartTimeTo()));
-        // filter by duration
-        sb.append(String.format("AND (\"duration\" >= %d AND \"duration\" <= %d) ", request.getLatencyFrom() * 1000L,
-                request.getLatencyTo() * 1000L));
-
-        if (StringUtils.isNotEmpty(request.getSql())) {
-            sb.append(String.format("AND sql_text =~ /%s/ ", request.getSql()));
-        }
-
-        if (request.getRealizations() != null && !request.getRealizations().isEmpty()) {
-            sb.append("AND (");
-            for (int i = 0; i < request.getRealizations().size(); i++) {
-                switch (request.getRealizations().get(i)) {
-                case "pushdown":
-                    sb.append("cube_hit = 'false' OR ");
-                    break;
-                case "modelName":
-                    sb.append("cube_hit = 'true' OR ");
-                    break;
-                default:
-                    throw new IllegalArgumentException(
-                            String.format("Illegal realization type %s", request.getRealizations().get(i)));
-                }
-
-                if (i == request.getRealizations().size() - 1) {
-                    sb.setLength(sb.length() - 4);
-                    sb.append(") ");
-                }
-            }
-        }
-
-        if (request.getAccelerateStatuses() != null && !request.getAccelerateStatuses().isEmpty()) {
-            sb.append("AND (");
-            for (int i = 0; i < request.getAccelerateStatuses().size(); i++) {
-                if (i == request.getAccelerateStatuses().size() - 1)
-                    sb.append(String.format("accelerate_status = '%s') ", request.getAccelerateStatuses().get(i)));
-                else
-                    sb.append(String.format("accelerate_status = '%s' OR ", request.getAccelerateStatuses().get(i)));
-            }
-        }
-
-        return sb.toString();
-    }
-
-    public List<QueryHistory> getQueryHistories(long startTime, long endTime) {
-        checkMetricWriterType();
-        return getQueryHistoryManager().getQueryHistoriesBySql(getQueryHistoriesByTimeSql(startTime, endTime),
-                QueryHistory.class);
-    }
-
-    String getQueryHistoriesByTimeSql(long startTime, long endTime) {
-        return String.format("SELECT * FROM %s WHERE time >= %dms AND time < %dms", QueryHistory.QUERY_MEASUREMENT,
-                startTime, endTime);
     }
 }

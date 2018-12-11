@@ -33,8 +33,6 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.cube.model.NDataflowUpdate;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -47,11 +45,14 @@ import org.spark_project.guava.base.Preconditions;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NDataflowUpdate;
 
 public class NSparkMergingJob extends DefaultChainedExecutable {
     @SuppressWarnings("unused")
@@ -64,7 +65,7 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
      * @param layouts,       user is allowed to specify the cuboids to merge. By default, it is null and merge all
      *                       the ready cuboids in the segments.
      */
-    public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<NCuboidLayout> layouts, String submitter) {
+    public static NSparkMergingJob merge(NDataSegment mergedSegment, Set<NCuboidLayout> layouts, String submitter, String jobId) {
         Preconditions.checkArgument(mergedSegment != null);
         Preconditions.checkArgument(submitter != null);
 
@@ -73,13 +74,14 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
         }
         NSparkMergingJob job = new NSparkMergingJob();
         job.setName(JobTypeEnum.INDEX_MERGE.toString());
+        job.setId(jobId);
         job.setDataRangeStart(Long.parseLong(mergedSegment.getSegRange().getStart().toString()));
         job.setDataRangeEnd(Long.parseLong(mergedSegment.getSegRange().getEnd().toString()));
-        job.setTargetSubject(mergedSegment.getModel().getAlias());
+        job.setTargetModel(mergedSegment.getModel().getName());
+        job.setTargetSegments(Lists.newArrayList(String.valueOf(mergedSegment.getId())));
         job.setProject(mergedSegment.getProject());
         job.setSubmitter(submitter);
         job.addSparkMergingStep(mergedSegment, layouts);
-        job.addUpdateAfterMergeStep();
         job.addCleanupStep(mergedSegment);
 
         return job;
@@ -112,6 +114,7 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
         KylinConfigExt config = df.getConfig();
         step.setSparkSubmitClassName(config.getSparkMergeClassName());
         step.setName(ExecutableConstants.STEP_NAME_MERGER_SPARK_SEGMENT);
+        step.setTargetModel(mergedSegment.getModel().getName());
         step.setProject(getProject());
         step.setProjectParam();
         step.setDataflowName(df.getName());
@@ -122,29 +125,23 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
         this.addTask(step);
     }
 
-    private void addUpdateAfterMergeStep() {
-        NSparkCubingUpdateAfterMergeStep executable = new NSparkCubingUpdateAfterMergeStep();
-        executable.setName(ExecutableConstants.STEP_NAME_UPDATE_CUBE_INFO);
-        executable.setProject(getProject());
-        this.addTask(executable);
-    }
-
     private void addCleanupStep(NDataSegment mergedSegment) {
         NDataflow dataflow = mergedSegment.getDataflow();
         String name = dataflow.getName();
-        Collection<Integer> ids = Collections2.transform(dataflow.getMergingSegments(mergedSegment),
-                new Function<NDataSegment, Integer>() {
+        Collection<String> ids = Collections2.transform(dataflow.getMergingSegments(mergedSegment),
+                new Function<NDataSegment, String>() {
                     @Nullable
                     @Override
-                    public Integer apply(@Nullable NDataSegment input) {
+                    public String apply(@Nullable NDataSegment input) {
                         return input.getId();
                     }
                 });
 
-        Set<Integer> segmentIds = new HashSet<>();
+        Set<String> segmentIds = new HashSet<>();
         segmentIds.addAll(ids);
         NSparkCleanupAfterMergeStep step = new NSparkCleanupAfterMergeStep();
         step.setName(ExecutableConstants.STEP_NAME_CLEANUP);
+        step.setTargetModel(mergedSegment.getModel().getName());
         step.setProject(getProject());
         step.setDataflowName(name);
         step.setSegmentIds(segmentIds);

@@ -24,12 +24,14 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.builder.NModelAnalysisJob;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
@@ -72,12 +74,12 @@ public class NSparkAnalysisStep extends NSparkExecutable {
         return this.getParam(NBatchConstants.P_DATAFLOW_NAME);
     }
 
-    void setSegmentIds(Set<Integer> segmentIds) {
-        this.setParam(NBatchConstants.P_SEGMENT_IDS, NSparkCubingUtil.ids2Str(segmentIds));
+    void setSegmentIds(Set<String> segmentIds) {
+        this.setParam(NBatchConstants.P_SEGMENT_IDS, Joiner.on(",").join(segmentIds));
     }
 
-    public Set<Integer> getSegmentIds() {
-        return NSparkCubingUtil.str2Ints(this.getParam(NBatchConstants.P_SEGMENT_IDS));
+    public Set<String> getSegmentIds() {
+        return Sets.newHashSet(StringUtils.split(this.getParam(NBatchConstants.P_SEGMENT_IDS)));
     }
 
     void setCuboidLayoutIds(Set<Long> clIds) {

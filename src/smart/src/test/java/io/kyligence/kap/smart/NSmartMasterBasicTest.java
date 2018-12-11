@@ -159,14 +159,14 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // save
         {
-            Assert.assertEquals(0, dataModelManager.listModels().size());
+            Assert.assertEquals(0, dataModelManager.getDataModels().size());
             Assert.assertEquals(0, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(0, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveModel();
             smartMaster.saveCubePlan();
 
-            Assert.assertEquals(1, dataModelManager.listModels().size());
+            Assert.assertEquals(1, dataModelManager.getDataModels().size());
             Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
         }
@@ -250,14 +250,14 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // save
         {
-            Assert.assertEquals(1, dataModelManager.listModels().size());
+            Assert.assertEquals(1, dataModelManager.getDataModels().size());
             Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveModel();
             smartMaster.saveCubePlan();
 
-            Assert.assertEquals(1, dataModelManager.listModels().size());
+            Assert.assertEquals(1, dataModelManager.getDataModels().size());
             Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
         }
@@ -326,14 +326,14 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // save
         {
-            Assert.assertEquals(1, dataModelManager.listModels().size());
+            Assert.assertEquals(1, dataModelManager.getDataModels().size());
             Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveCubePlan();
             smartMaster.saveModel();
 
-            Assert.assertEquals(1, dataModelManager.listModels().size());
+            Assert.assertEquals(1, dataModelManager.getDataModels().size());
             Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
         }
@@ -403,14 +403,14 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // save
         {
-            Assert.assertEquals(1, dataModelManager.listModels().size());
+            Assert.assertEquals(1, dataModelManager.getDataModels().size());
             Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveModel();
             smartMaster.saveCubePlan();
 
-            Assert.assertEquals(3, dataModelManager.listModels().size());
+            Assert.assertEquals(3, dataModelManager.getDataModels().size());
             Assert.assertEquals(3, cubePlanManager.listAllCubePlans().size());
             Assert.assertEquals(3, dataflowManager.listAllDataflows().size());
         }

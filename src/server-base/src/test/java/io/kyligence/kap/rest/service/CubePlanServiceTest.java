@@ -23,14 +23,12 @@
  */
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.rest.constant.Constant;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -54,7 +52,6 @@ import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.RemoveCuboidByIdEvent;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.TableIndexResponse;
@@ -66,11 +63,14 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
     @InjectMocks
     private CubePlanService cubePlanService = Mockito.spy(new CubePlanService());
 
+    @InjectMocks
+    private ModelSemanticHelper semanticService = Mockito.spy(new ModelSemanticHelper());
+
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
     @Before
-    public void setupResource() throws Exception {
+    public void setupResource() {
         System.setProperty("HADOOP_USER_NAME", "root");
         staticCreateTestMetadata();
     }
@@ -84,47 +84,51 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
     public void setup() {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        cubePlanService.setSemanticUpater(semanticService);
 
     }
 
     @Test
-    public void testUpdateCubePlan() throws IOException, PersistentException {
+    public void testUpdateCubePlan() {
         val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = cubePlanManager.getCubePlan("ncube_basic");
-        val saved = cubePlanService.updateRuleBasedCuboid(UpdateRuleBasedCuboidRequest.builder().project("default")
-                .model("nmodel_basic").dimensions(Arrays.asList(1, 2, 3, 4))
-                .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
+        val saved = cubePlanService.updateRuleBasedCuboid("default",
+                UpdateRuleBasedCuboidRequest.builder().project("default").model("nmodel_basic")
+                        .dimensions(Arrays.asList(1, 2, 3, 4))
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
         Assert.assertNotNull(saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid());
         Assert.assertEquals(4, saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().getDimensions().size());
         Assert.assertEquals(origin.getAllCuboidLayouts().size() + 1, saved.getAllCuboidLayouts().size());
     }
 
     @Test
-    public void testUpdateEmptyRule() throws IOException, PersistentException {
+    public void testUpdateEmptyRule() {
         val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = cubePlanManager.getCubePlan("ncube_basic");
-        val saved = cubePlanService.updateRuleBasedCuboid(UpdateRuleBasedCuboidRequest.builder().project("default")
-                .model("nmodel_basic").dimensions(Arrays.asList(1, 2, 3, 4))
-                .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
+        val saved = cubePlanService.updateRuleBasedCuboid("default",
+                UpdateRuleBasedCuboidRequest.builder().project("default").model("nmodel_basic")
+                        .dimensions(Arrays.asList(1, 2, 3, 4))
+                        .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
         Assert.assertNotNull(saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid());
         Assert.assertEquals(4, saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().getDimensions().size());
         Assert.assertEquals(origin.getAllCuboidLayouts().size() + 1, saved.getAllCuboidLayouts().size());
     }
 
     @Test
-    public void testCreateTableIndex() throws IOException, PersistentException {
+    public void testCreateTableIndex() {
         val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = cubePlanManager.getCubePlan("ncube_basic");
         val originLayoutSize = origin.getAllCuboidLayouts().size();
-        cubePlanService.createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
-                .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
-                        "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
-                .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
-                .layoutOverrideIndices(new HashMap<String, String>() {
-                    {
-                        put("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "eq");
-                    }
-                }).sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+        cubePlanService.createTableIndex("default",
+                CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
+                                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
+                        .layoutOverrideIndices(new HashMap<String, String>() {
+                            {
+                                put("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "eq");
+                            }
+                        }).sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
         val saved = cubePlanManager.getCubePlan("ncube_basic");
         Assert.assertEquals(originLayoutSize + 1, saved.getAllCuboidLayouts().size());
         NCuboidLayout newLayout = null;
@@ -143,22 +147,22 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
 
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
         val allEvents = eventDao.getEvents();
-        Assert.assertEquals(1, allEvents.size());
+        allEvents.sort(Comparator.comparing(Event::getCreateTimeNanosecond));
+        Assert.assertEquals(2, allEvents.size());
         val newLayoutEvent = allEvents.get(0);
         Assert.assertTrue(newLayoutEvent instanceof AddCuboidEvent);
-        Assert.assertThat(((AddCuboidEvent) newLayoutEvent).getLayoutIds(),
-                CoreMatchers.is(Arrays.asList(newLayout.getId())));
     }
 
     @Test
-    public void testCreateTableIndexIsAuto() throws IOException, PersistentException {
+    public void testCreateTableIndexIsAuto() {
         val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         val origin = cubePlanManager.getCubePlan("ncube_basic");
         val originLayoutSize = origin.getAllCuboidLayouts().size();
-        cubePlanService.createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
-                .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_SITES.SITE_NAME", "TEST_KYLIN_FACT.CAL_DT",
-                        "TEST_KYLIN_FACT.LSTG_SITE_ID", "TEST_KYLIN_FACT.PRICE"))
-                .sortByColumns(Arrays.asList("TEST_SITES.SITE_NAME")).build());
+        cubePlanService.createTableIndex("default",
+                CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_SITES.SITE_NAME",
+                                "TEST_KYLIN_FACT.CAL_DT", "TEST_KYLIN_FACT.LSTG_SITE_ID", "TEST_KYLIN_FACT.PRICE"))
+                        .sortByColumns(Arrays.asList("TEST_SITES.SITE_NAME")).build());
         var saved = cubePlanManager.getCubePlan("ncube_basic");
         Assert.assertEquals(originLayoutSize, saved.getAllCuboidLayouts().size());
         var layout = saved.getCuboidLayout(20000000001L);
@@ -178,88 +182,91 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateDuplicateTableIndex() throws IOException, PersistentException {
+    public void testCreateDuplicateTableIndex() {
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("Already exists same layout");
-        cubePlanService.createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
-                .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
-                        "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
-                .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
-                .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
-        cubePlanService.createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
-                .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
-                        "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
-                .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
-                .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+        cubePlanService.createTableIndex("default",
+                CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
+                                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
+                        .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+        cubePlanService.createTableIndex("default",
+                CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
+                                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
+                        .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
     }
 
     @Test
-    public void testRemoveTableIndex() throws IOException, PersistentException {
-        cubePlanService.createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
-                .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
-                        "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
-                .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
-                .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+    public void testRemoveTableIndex() {
+        cubePlanService.createTableIndex("default",
+                CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
+                                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
+                        .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
         cubePlanService.removeTableIndex("default", "nmodel_basic", 20000003001L);
 
-        val eventDao = EventDao.getInstance(getTestConfig(), "default");
-        var allEvents = eventDao.getEvents();
-        allEvents.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
-        Assert.assertEquals(2, allEvents.size());
-        val event = allEvents.get(1);
-        Assert.assertThat(((RemoveCuboidByIdEvent) event).getLayoutIds(), CoreMatchers.is(Arrays.asList(20000003001L)));
+        Assert.assertFalse(cubePlanService.getCubePlanManager("default").getCubePlan("ncube_basic")
+                .getAllCuboidLayouts().stream().anyMatch(l -> l.getId() == 20000003001L));
     }
 
     @Test
-    public void testRemoveWrongId() throws IOException, PersistentException {
+    public void testRemoveWrongId() {
         thrown.expect(IllegalStateException.class);
         cubePlanService.removeTableIndex("default", "nmodel_basic", 20000002001L);
     }
 
     @Test
-    public void testUpdateTableIndex() throws IOException, PersistentException {
-        cubePlanService.createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
-                .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
-                        "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
-                .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
-                .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
-        cubePlanService.updateTableIndex(
+    public void testUpdateTableIndex() {
+        cubePlanService.createTableIndex("default",
+                CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
+                                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
+                        .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+        cubePlanService.updateTableIndex("default",
                 CreateTableIndexRequest.builder().id(20000003001L).project("default").model("nmodel_basic")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+
+        Assert.assertFalse(cubePlanService.getCubePlanManager("default").getCubePlan("ncube_basic")
+                .getAllCuboidLayouts().stream().anyMatch(l -> l.getId() == 20000003001L));
+        Assert.assertTrue(cubePlanService.getCubePlanManager("default").getCubePlan("ncube_basic")
+                .getAllCuboidLayouts().stream().anyMatch(l -> l.getId() == 20000004001L));
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
         val allEvents = eventDao.getEvents();
         allEvents.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
-        Assert.assertEquals(3, allEvents.size());
-        val event = allEvents.get(1);
-        Assert.assertThat(((RemoveCuboidByIdEvent) event).getLayoutIds(), CoreMatchers.is(Arrays.asList(20000003001L)));
-        val event2 = allEvents.get(2);
-        Assert.assertThat(((AddCuboidEvent) event2).getLayoutIds(), CoreMatchers.is(Arrays.asList(20000004001L)));
+        Assert.assertEquals(4, allEvents.size());
     }
 
     @Test
-    public void testGetTableIndex() throws IOException, PersistentException {
+    public void testGetTableIndex() {
         val originSize = cubePlanService.getTableIndexs("default", "nmodel_basic").size();
-        cubePlanService
-                .createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic").name("ti1")
+        cubePlanService.createTableIndex("default",
+                CreateTableIndexRequest.builder().project("default").model("nmodel_basic").name("ti1")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
-        cubePlanService.createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
-                .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
-                        "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID",
-                        "TEST_CATEGORY_GROUPINGS.META_CATEG_NAME", "TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME"))
-                .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
-                .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
-        cubePlanService.createTableIndex(CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
-                .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
-                        "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID",
-                        "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME"))
-                .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
-                .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+        cubePlanService.createTableIndex("default",
+                CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
+                                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID",
+                                "TEST_CATEGORY_GROUPINGS.META_CATEG_NAME", "TEST_CATEGORY_GROUPINGS.CATEG_LVL2_NAME"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
+                        .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
+        cubePlanService.createTableIndex("default",
+                CreateTableIndexRequest.builder().project("default").model("nmodel_basic")
+                        .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
+                                "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID",
+                                "TEST_CATEGORY_GROUPINGS.CATEG_LVL3_NAME"))
+                        .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
+                        .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
         val result = cubePlanService.getTableIndexs("default", "nmodel_basic");
         Assert.assertEquals(3 + originSize, result.size());
         val first = result.get(originSize);
@@ -281,7 +288,8 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetRule() throws Exception {
         Assert.assertNull(cubePlanService.getRule("default", "nmodel_basic"));
-        val rule = JsonUtil.deepCopy(cubePlanService.getRule("default", "nmodel_basic_inner"), NRuleBasedCuboidsDesc.class);
+        val rule = JsonUtil.deepCopy(cubePlanService.getRule("default", "nmodel_basic_inner"),
+                NRuleBasedCuboidsDesc.class);
         Assert.assertNotNull(rule);
         val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), "default");
         cubeMgr.updateCubePlan("ncube_basic_inner", copy -> {

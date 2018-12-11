@@ -42,10 +42,10 @@
 
 package org.apache.kylin.rest.service;
 
-import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
-import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -117,7 +117,7 @@ public abstract class BasicService {
         return FavoriteRuleManager.getInstance(getConfig(), project);
     }
 
-    protected String getUsername() {
+    protected static String getUsername() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         if (StringUtils.isEmpty(username)) {
             username = "";
@@ -125,15 +125,16 @@ public abstract class BasicService {
         return username;
     }
 
-    public QueryHistoryDAO getQueryHistoryManager() {
-        return QueryHistoryDAO.getInstance(getConfig());
+    public QueryHistoryDAO getQueryHistoryDao(String project) {
+        return QueryHistoryDAO.getInstance(getConfig(), project);
     }
 
-    public QueryHistoryTimeOffsetManager getQHTimeOffsetManager() {
-        return QueryHistoryTimeOffsetManager.getInstance(getConfig());
+    public FavoriteQueryManager getFavoriteQueryManager(String project) {
+        return FavoriteQueryManager.getInstance(getConfig(), project);
     }
 
-    public FavoriteQueryJDBCDao getFavoriteQueryDao() {
-        return FavoriteQueryJDBCDao.getInstance(getConfig());
+    public NFavoriteScheduler getFavoriteScheduler(String project) {
+        return NFavoriteScheduler.getInstance(getConfig(), project);
     }
+
 }

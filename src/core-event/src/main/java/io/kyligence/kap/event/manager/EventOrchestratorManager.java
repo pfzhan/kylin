@@ -46,17 +46,14 @@ import static io.kyligence.kap.event.manager.EventManager.GLOBAL;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.lock.JobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.event.handle.EventHandler;
 import io.kyligence.kap.metadata.project.NProjectManager;
 
 /**
@@ -64,8 +61,6 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 public class EventOrchestratorManager {
 
     private static final Logger logger = LoggerFactory.getLogger(EventOrchestratorManager.class);
-
-    private JobLock jobLock;
 
     public volatile static EventOrchestratorManager instance;
 
@@ -110,22 +105,10 @@ public class EventOrchestratorManager {
         instance = null;
     }
 
-    public synchronized void register(EventHandler handler) {
-        for (Map.Entry<String, EventOrchestrator> entry : INSTANCE_MAP.entrySet()) {
-            entry.getValue().register(handler);
-        }
-    }
-
     public synchronized void addProject(String project) {
         if (!INSTANCE_MAP.containsKey(project)) {
             EventOrchestrator eventOrchestrator = new EventOrchestrator(project, KylinConfig.getInstanceFromEnv());
             INSTANCE_MAP.put(project, eventOrchestrator);
-            for (Map.Entry<Class<?>, CopyOnWriteArraySet<EventHandler>> handleSetEntry : INSTANCE_MAP.get(GLOBAL)
-                    .getSubscribers().entrySet()) {
-                for (EventHandler eventHandler : handleSetEntry.getValue()) {
-                    eventOrchestrator.register(eventHandler);
-                }
-            }
         }
     }
 }

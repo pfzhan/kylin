@@ -23,39 +23,44 @@
  */
 package io.kyligence.kap.event;
 
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.commons.collections.CollectionUtils;
+import org.apache.hadoop.util.Shell;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
+import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.spark.SparkConf;
+import org.apache.spark.sql.SparderEnv;
+import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.internal.StaticSQLConf;
+import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.config.BeanDefinition;
-import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
-import org.springframework.core.type.filter.AssignableTypeFilter;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.event.handle.AbstractEventHandler;
-import io.kyligence.kap.event.handle.AddSegmentHandler;
+import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.EventStatus;
-import io.kyligence.kap.event.model.PostModelSemanticUpdateEvent;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.ModelRequest;
@@ -71,78 +76,86 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     public static final String DEFAULT_PROJECT = "default";
     public static final String MODEL_NAME = "nmodel_basic";
 
+    protected static SparkConf sparkConf;
+    protected static SparkSession ss;
+
+    @BeforeClass
+    public static void beforeClass() {
+
+        if (Shell.MAC)
+            System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
+
+        sparkConf = new SparkConf().setAppName(UUID.randomUUID().toString()).setMaster("local[4]");
+        sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
+        sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
+        sparkConf.set("spark.sql.shuffle.partitions", "1");
+
+        ss = SparkSession.builder().config(sparkConf).getOrCreate();
+        SparderEnv.setSparkSession(ss);
+
+        System.out.println("Check spark sql config [spark.sql.catalogImplementation = "
+                + ss.conf().get("spark.sql.catalogImplementation") + "]");
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        if (Shell.MAC)
+            System.clearProperty("org.xerial.snappy.lib.name");//reset
+
+        ss.close();
+    }
+
     @Before
     public void setupHandlers() {
-        EventOrchestratorManager.destroyInstance();
-        val scanner = new ClassPathScanningCandidateComponentProvider(false);
-        scanner.addIncludeFilter(new AssignableTypeFilter(AbstractEventHandler.class));
-        for (BeanDefinition component : scanner.findCandidateComponents("io.kyligence.kap")) {
-            try {
-                if (component.isAbstract()) {
-                    continue;
-                }
-                val clazz = Class.forName(component.getBeanClassName());
-                if (clazz.equals(AddSegmentHandler.class)) {
-                    new MockAddSegmentHandler();
-                } else {
-                    clazz.newInstance();
-                }
-                log.debug("new handler {}", component.getBeanClassName());
-            } catch (Exception e) {
-                log.debug("cannot construct {}", component.getBeanClassName());
-            }
-        }
         System.setProperty("kylin.job.scheduler.poll-interval-second", "3");
+        System.setProperty("kylin.job.event.poll-interval-second", "1");
+        EventOrchestratorManager.destroyInstance();
+        EventOrchestratorManager.getInstance(getTestConfig());
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
+        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+    }
+
+    @After
+    public void tearDown() {
+        EventOrchestratorManager.destroyInstance();
+        NDefaultScheduler.getInstance(DEFAULT_PROJECT).shutdown();
+        System.clearProperty("kylin.job.event.poll-interval-second");
+        System.clearProperty("kylin.job.scheduler.poll-interval-second");
     }
 
     @Test
     public void testSemanticChangedHappy() throws Exception {
         val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        changeModelRequest();
-
-        val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val firstStepEvents = eventDao.getEvents();
-        Assert.assertEquals(1, firstStepEvents.size());
-
         var df = dfManager.getDataflowByModelName(MODEL_NAME);
-        Assert.assertTrue(df.isReconstructing());
+        String tableName = df.getModel().getRootFactTable().getTableIdentity();
+        NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
+        dataLoadingRange.setUuid(UUID.randomUUID().toString());
+        dataLoadingRange.setTableName(tableName);
+        dataLoadingRange.setColumnName(df.getModel().getPartitionDesc().getPartitionDateColumn());
+        dataLoadingRange.setSegmentRanges(Lists.newArrayList(
+                new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-01-01"),
+                        SegmentRange.dateToLong("2012-03-01")),
+                new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-03-01"),
+                        SegmentRange.dateToLong("2012-05-01"))));
+        NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT)
+                .createDataLoadingRange(dataLoadingRange);
 
-        val runningEventSize = waitForEventFinished(3);
-        df = dfManager.getDataflowByModelName(MODEL_NAME);
-        Assert.assertEquals(1, runningEventSize);
-        val allEvents = eventDao.getEvents();
-        allEvents.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
-        val addEvent = (AddCuboidEvent) allEvents.get(1);
-        Assert.assertTrue(CollectionUtils.isEqualCollection(addEvent.getLayoutIds(),
-                Arrays.<Long> asList(1000001L, 1L, 1001L, 1002L, 2001L, 3001L, 20000001001L)));
-        Assert.assertTrue(df.isReconstructing());
+        val update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfManager.updateDataflow(update);
 
-    }
-
-    @Test
-    public void testSkipAddSegmentStep() throws Exception {
-        val eventManager = EventManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val prevEvent = new AddSegmentEvent();
-        prevEvent.setJobId("job123");
-        prevEvent.setProject(DEFAULT_PROJECT);
-        prevEvent.setModelName(MODEL_NAME);
-        prevEvent.setCubePlanName("ncube_basic");
-        prevEvent.setApproved(true);
-        eventManager.post(prevEvent);
-
-        val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         changeModelRequest();
+
         val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val firstStepEvents = eventDao.getEvents();
         Assert.assertEquals(2, firstStepEvents.size());
 
-        waitForEventFinished(6);
-        val events = eventDao.getEvents();
-        events.sort(Comparator.comparingLong(e -> e.getCreateTimeNanosecond()));
-        log.debug("events are {}", events);
-        Assert.assertEquals(6, events.size());
-        Assert.assertTrue(events.get(4) instanceof PostModelSemanticUpdateEvent);
-        Assert.assertTrue(events.get(5) instanceof AddSegmentEvent);
+        waitForEventFinished(0);
+
+        df = dfManager.getDataflowByModelName(MODEL_NAME);
+        Assert.assertEquals(2, df.getSegments().size());
+        Assert.assertEquals(df.getCubePlan().getAllCuboidLayouts().size(),
+                df.getSegments().getLatestReadySegment().getCuboidsMap().size());
     }
 
     private void changeModelRequest() throws Exception {
@@ -185,22 +198,16 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         while (true) {
             int finishedEventNum = 0;
             events = eventDao.getEvents();
-            for (Event event : events) {
-                EventStatus status = event.getStatus();
-                if (status.equals(EventStatus.SUCCEED) || status.equals(EventStatus.ERROR)) {
-                    finishedEventNum++;
-                }
-            }
             log.debug("finished {}, all {}", finishedEventNum, events.size());
-            if (finishedEventNum == events.size() && finishedEventNum == expectedSize) {
+            if (events.size() == 0) {
                 break;
             }
-            if (System.currentTimeMillis() - startTime > 20 * 1000) {
+            if (System.currentTimeMillis() - startTime > 200 * 1000) {
                 break;
             }
             Thread.sleep(5000);
         }
-        return events.stream().filter(e -> e.getStatus() == EventStatus.READY).count();
+        return 0L;
     }
 
 }

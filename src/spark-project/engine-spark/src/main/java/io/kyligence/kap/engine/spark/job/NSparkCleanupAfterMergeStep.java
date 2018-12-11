@@ -27,6 +27,8 @@ package io.kyligence.kap.engine.spark.job;
 import java.io.IOException;
 import java.util.Set;
 
+import com.google.common.base.Joiner;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -42,8 +44,8 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 
 public class NSparkCleanupAfterMergeStep extends AbstractExecutable {
 
-    public void setSegmentIds(Set<Integer> segmentIds) {
-        this.setParam(NBatchConstants.P_SEGMENT_IDS, NSparkCubingUtil.ids2Str(segmentIds));
+    public void setSegmentIds(Set<String> segmentIds) {
+        this.setParam(NBatchConstants.P_SEGMENT_IDS, Joiner.on(",").join(segmentIds));
     }
 
     public void setDataflowName(String dataflowName) {
@@ -53,12 +55,12 @@ public class NSparkCleanupAfterMergeStep extends AbstractExecutable {
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
         String name = getParam(NBatchConstants.P_DATAFLOW_NAME);
-        Set<Integer> segmentIds = NSparkCubingUtil.str2Ints(getParam(NBatchConstants.P_SEGMENT_IDS));
+        String[] segmentIds = StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS));
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflow dataflow = NDataflowManager.getInstance(config, getProject()).getDataflow(name);
         String hdfsWorkingDir = KapConfig.wrap(config).getReadHdfsWorkingDirectory();
 
-        for (Integer segmentId : segmentIds) {
+        for (String segmentId : segmentIds) {
             String path = hdfsWorkingDir + "parquet/" + dataflow.getUuid() + "/" + segmentId;
 
             try {
@@ -68,7 +70,7 @@ public class NSparkCleanupAfterMergeStep extends AbstractExecutable {
             }
         }
 
-        return new ExecuteResult(ExecuteResult.State.SUCCEED);
+        return ExecuteResult.createSucceed();
     }
 
 }

@@ -59,6 +59,7 @@ public class StreamingManagerTest {
 
     @Before
     public void setUp() throws Exception {
+        System.setProperty("kylin.env", "UT");
         cleanMetadataHelper = new CleanMetadataHelper();
         cleanMetadataHelper.setUp();
     }
@@ -66,6 +67,7 @@ public class StreamingManagerTest {
     @After
     public void after() throws Exception {
         cleanMetadataHelper.tearDown();
+        System.clearProperty("kylin.env");
     }
 
     @Test

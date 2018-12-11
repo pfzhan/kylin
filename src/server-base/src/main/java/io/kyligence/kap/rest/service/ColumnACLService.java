@@ -27,6 +27,7 @@ package io.kyligence.kap.rest.service;
 import com.google.common.collect.ImmutableSet;
 import io.kyligence.kap.metadata.acl.ColumnACL;
 import io.kyligence.kap.metadata.acl.ColumnACLManager;
+import io.kyligence.kap.rest.transaction.Transaction;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
@@ -63,6 +64,7 @@ public class ColumnACLService extends BasicService {
         return getColumnACL(project).contains(name, type);
     }
 
+    @Transaction(project = 0)
     public void addToColumnACL(String project, String name, String table, Set<String> columns, String type)
             throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
@@ -89,22 +91,26 @@ public class ColumnACLService extends BasicService {
         return failUsers;
     }
 
+    @Transaction(project = 0)
     public void updateColumnACL(String project, String name, String table, Set<String> columns, String type)
             throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         ColumnACLManager.getInstance(getConfig()).updateColumnACL(project, name, table, columns, type);
     }
 
+    @Transaction(project = 0)
     public void deleteFromColumnACL(String project, String name, String table, String type) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         ColumnACLManager.getInstance(getConfig()).deleteColumnACL(project, name, table, type);
     }
 
+    @Transaction(project = 0)
     public void deleteFromColumnACL(String project, String name, String type) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         ColumnACLManager.getInstance(getConfig()).deleteColumnACL(project, name, type);
     }
 
+    @Transaction(project = 0)
     public void deleteFromColumnACLByTbl(String project, String table) throws IOException {
         aclEvaluate.checkProjectAdminPermission(project);
         ColumnACLManager.getInstance(getConfig()).deleteColumnACLByTbl(project, table);

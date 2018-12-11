@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.event.handle;
 
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +32,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
@@ -46,13 +43,13 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class MergeSegmentHandler extends AbstractEventWithJobHandler {
 
-    private static final Logger logger = LoggerFactory.getLogger(MergeSegmentHandler.class);
-
     @Override
-    public AbstractExecutable createJob(EventContext eventContext) throws Exception {
+    public AbstractExecutable createJob(EventContext eventContext) {
         MergeSegmentEvent event = (MergeSegmentEvent) eventContext.getEvent();
         String project = event.getProject();
         KylinConfig kylinConfig = eventContext.getConfig();
@@ -68,19 +65,13 @@ public class MergeSegmentHandler extends AbstractEventWithJobHandler {
                     + " must contain at least 2 ready segments, but there is " + readySegments.size());
         }
         for (Map.Entry<Long, NDataCuboid> cuboid : readySegments.getLatestReadySegment().getCuboidsMap().entrySet()) {
-            if (cuboid.getValue().getStatus() == SegmentStatusEnum.READY) {
-                layouts.add(cuboid.getValue().getCuboidLayout());
-            }
+            layouts.add(cuboid.getValue().getCuboidLayout());
         }
 
         NDataSegment mergeSeg = dfMgr.mergeSegments(df, event.getSegmentRange(), false);
-        job = NSparkMergingJob.merge(mergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
+        job = NSparkMergingJob.merge(mergeSeg, Sets.newLinkedHashSet(layouts), event.getOwner(), event.getJobId());
 
         return job;
     }
 
-    @Override
-    public Class<?> getEventClassType() {
-        return MergeSegmentEvent.class;
-    }
 }

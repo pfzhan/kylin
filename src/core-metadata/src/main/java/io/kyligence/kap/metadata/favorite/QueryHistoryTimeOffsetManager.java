@@ -27,11 +27,11 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.common.util.AutoReadWriteLock;
+import org.apache.kylin.metadata.MetadataConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import java.util.List;
 
 public class QueryHistoryTimeOffsetManager {
     private static final Logger logger = LoggerFactory.getLogger(QueryHistoryTimeOffsetManager.class);
@@ -40,31 +40,41 @@ public class QueryHistoryTimeOffsetManager {
             QueryHistoryTimeOffset.class);
 
     private final KylinConfig kylinConfig;
-    private AutoReadWriteLock autoLock = new AutoReadWriteLock();
     private ResourceStore resourceStore;
+    private String resourceRootPath;
 
-    public static QueryHistoryTimeOffsetManager getInstance(KylinConfig kylinConfig) {
-        return kylinConfig.getManager(QueryHistoryTimeOffsetManager.class);
+    public static QueryHistoryTimeOffsetManager getInstance(KylinConfig kylinConfig, String project) {
+        return kylinConfig.getManager(project, QueryHistoryTimeOffsetManager.class);
     }
 
     // called by reflection
-    static QueryHistoryTimeOffsetManager newInstance(KylinConfig config) throws IOException {
-        return new QueryHistoryTimeOffsetManager(config);
+    static QueryHistoryTimeOffsetManager newInstance(KylinConfig config, String project){
+        return new QueryHistoryTimeOffsetManager(config, project);
     }
 
-    private QueryHistoryTimeOffsetManager(KylinConfig kylinConfig) {
+    private QueryHistoryTimeOffsetManager(KylinConfig kylinConfig, String project) {
         logger.info("Initializing QueryHistoryTimeOffsetManager with config " + kylinConfig);
         this.kylinConfig = kylinConfig;
         resourceStore = ResourceStore.getKylinMetaStore(this.kylinConfig);
+        this.resourceRootPath = "/" + project + ResourceStore.QUERY_HISTORY_TIME_OFFSET;
     }
 
-    public void save(QueryHistoryTimeOffset time) throws IOException {
-        try (final AutoReadWriteLock.AutoLock lock = this.autoLock.lockForWrite()) {
-            resourceStore.putResource(ResourceStore.QUERY_HISTORY_TIME_OFFSET, time, QUERY_HISTORY_TIME_OFFSET_SERIALIZER);
+    private String path(String uuid) {
+        return this.resourceRootPath + "/" + uuid + MetadataConstants.FILE_SURFIX;
+    }
+
+    public void save(QueryHistoryTimeOffset time) {
+        resourceStore.checkAndPutResource(path(time.getUuid()), time, QUERY_HISTORY_TIME_OFFSET_SERIALIZER);
+    }
+
+    public QueryHistoryTimeOffset get() {
+        List<QueryHistoryTimeOffset> queryHistoryTimeOffsetList = resourceStore.getAllResources(resourceRootPath, QUERY_HISTORY_TIME_OFFSET_SERIALIZER);
+        if (queryHistoryTimeOffsetList.isEmpty()) {
+            QueryHistoryTimeOffset queryHistoryTimeOffset = new QueryHistoryTimeOffset(System.currentTimeMillis(), System.currentTimeMillis());
+            save(queryHistoryTimeOffset);
+            return queryHistoryTimeOffset;
         }
-    }
 
-    public QueryHistoryTimeOffset get() throws IOException {
-        return resourceStore.getResource(ResourceStore.QUERY_HISTORY_TIME_OFFSET, QueryHistoryTimeOffset.class, QUERY_HISTORY_TIME_OFFSET_SERIALIZER);
+        return queryHistoryTimeOffsetList.get(0);
     }
 }

@@ -33,6 +33,7 @@ import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_SUM;
 import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_TOP_N;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.RandomUtils;
@@ -63,14 +64,17 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
+import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.util.CubeUtils;
 import io.kyligence.kap.spark.KapSparkSession;
+import lombok.val;
 
 public class NMeasuresTest extends NLocalWithSparkSessionTest {
     @Before
@@ -241,5 +245,12 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(job);
 
         Assert.assertEquals(ExecutableState.SUCCEED, wait(job));
+
+        val analysisStore = ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep());
+        val buildStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep());
+        AfterBuildResourceMerger merger = new AfterBuildResourceMerger(config, getProject());
+        val layoutIds = toBuildLayouts.stream().map(NCuboidLayout::getId).collect(Collectors.toSet());
+        merger.mergeAfterIncrement(df.getName(), oneSeg.getId(), layoutIds, buildStore);
+        merger.mergeAnalysis(df.getName(), analysisStore);
     }
 }

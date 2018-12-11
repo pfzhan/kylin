@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,8 +46,6 @@ import io.kyligence.kap.event.model.EventContext;
 
 public interface EventHandler {
 
-    void handle(EventContext eventContext) throws Exception;
-
-    Class<?> getEventClassType();
+    void handle(EventContext eventContext);
 
 }

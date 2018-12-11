@@ -42,8 +42,13 @@
 
 package org.apache.kylin.model;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import static io.kyligence.kap.metadata.model.NTableMetadataManager.getInstance;
+
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.kylin.measure.hllc.HLLCSerializer;
 import org.apache.kylin.measure.hllc.HLLCounter;
@@ -56,12 +61,9 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.List;
-
-import static io.kyligence.kap.metadata.model.NTableMetadataManager.getInstance;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.model.NTableExtDesc;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class TableExtDescTest extends NLocalFileMetadataTestCase {
 
@@ -85,7 +87,7 @@ public class TableExtDescTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasic() throws IOException {
         final TableDesc tableDesc = tableMetadataManager.getTableDesc(tableName);
-        TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
+        NTableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableName);
 
         final List<TableExtDesc.ColumnStats> columnStatsList = new ArrayList<>(tableDesc.getColumnCount());
         final SegmentRange segRange_1 = new SegmentRange.TimePartitionedSegmentRange(0L, 10L);

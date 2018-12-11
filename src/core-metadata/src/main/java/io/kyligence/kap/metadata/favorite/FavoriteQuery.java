@@ -23,31 +23,32 @@
  */
 package io.kyligence.kap.metadata.favorite;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+
+import java.util.List;
 
 @Getter
 @Setter
 @ToString
-public class FavoriteQuery {
+public class FavoriteQuery extends RootPersistentEntity {
     public static final String CHANNEL_FROM_RULE = "rule-based";
     public static final String CHANNEL_FROM_WHITE_LIST = "whitelist-based";
 
     @JsonProperty("sql_pattern")
     private String sqlPattern;
-    @JsonProperty("sql_pattern_hash")
-    private int sqlPatternHash;
     @JsonProperty("last_query_time")
     private long lastQueryTime;
     @JsonProperty("totalCount")
     private int totalCount;
     @JsonProperty("status")
     private FavoriteQueryStatusEnum status;
-    @JsonProperty("project")
-    private String project;
 
     @JsonProperty("success_count")
     private int successCount;
@@ -59,24 +60,39 @@ public class FavoriteQuery {
     @JsonProperty("channel")
     private String channel;
 
+    @JsonProperty("success_rate")
+    private float successRate;
+    @JsonProperty("average_duration")
+    private float averageDuration;
+
+    @JsonProperty("realization")
+    @JsonManagedReference
+    private List<FavoriteQueryRealization> realizations = Lists.newArrayList();
+
     public FavoriteQuery() {
+        updateRandomUuid();
     }
 
-    public FavoriteQuery(final String sqlPattern, final int sqlPatternHash, final String project) {
+    public FavoriteQuery(final String sqlPattern) {
+        updateRandomUuid();
         this.sqlPattern = sqlPattern;
-        this.sqlPatternHash = sqlPatternHash;
-        this.project = project;
         this.lastQueryTime = System.currentTimeMillis();
         this.status = FavoriteQueryStatusEnum.WAITING;
     }
 
-    public FavoriteQuery(final String sqlPattern, final int sqlPatternHash, final String project, long lastQueryTime, int totalCount, long totalDuration) {
+    public FavoriteQuery(final String sqlPattern, long lastQueryTime, int totalCount, long totalDuration) {
+        updateRandomUuid();
         this.sqlPattern = sqlPattern;
-        this.sqlPatternHash = sqlPatternHash;
-        this.project = project;
         this.lastQueryTime = lastQueryTime;
         this.totalCount = totalCount;
         this.totalDuration = totalDuration;
+        if (totalCount == 0) {
+            this.averageDuration = 0;
+            this.successCount = 0;
+        } else {
+            this.averageDuration = totalDuration / (float) totalCount;
+            this.successRate = successCount / (float) totalCount;
+        }
         this.status = FavoriteQueryStatusEnum.WAITING;
     }
 
@@ -86,6 +102,21 @@ public class FavoriteQuery {
             this.successCount ++;
         this.totalDuration += queryHistory.getDuration();
         this.lastQueryTime = queryHistory.getQueryTime();
+    }
+
+    public void update(FavoriteQuery favoriteQuery) {
+        this.lastQueryTime = favoriteQuery.getLastQueryTime();
+        this.totalCount += favoriteQuery.getTotalCount();
+        this.totalDuration += favoriteQuery.getTotalDuration();
+        this.successCount += favoriteQuery.getSuccessCount();
+        // this.totalcount is at least 1
+        this.averageDuration = totalDuration / (float) totalCount;
+        this.successRate = successCount / (float) totalCount;
+    }
+
+    public void updateStatus(FavoriteQueryStatusEnum status, String comment) {
+        setStatus(status);
+        setComment(comment);
     }
 
     @Override
@@ -98,11 +129,11 @@ public class FavoriteQuery {
 
         FavoriteQuery that = (FavoriteQuery) obj;
 
-        return this.sqlPattern.equals(that.getSqlPattern()) && this.project.equals(that.getProject());
+        return this.sqlPattern.equals(that.getSqlPattern());
     }
 
     @Override
     public int hashCode() {
-        return (this.project + this.sqlPattern).hashCode();
+        return this.sqlPattern.hashCode();
     }
 }

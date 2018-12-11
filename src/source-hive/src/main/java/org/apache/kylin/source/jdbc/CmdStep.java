@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -42,17 +41,20 @@
  */
 package org.apache.kylin.source.jdbc;
 
-import java.io.IOException;
+import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.PatternedLogger;
-import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+
+import lombok.val;
 
 /**
  */
@@ -68,27 +70,26 @@ public class CmdStep extends AbstractExecutable {
     public CmdStep() {
     }
 
-    protected void sqoopFlatHiveTable(KylinConfig config) throws IOException {
-        String cmd = getParam("cmd");
-        stepLogger.log(String.format("exe cmd:%s", cmd));
-        Pair<Integer, String> response = config.getCliCommandExecutor().execute(cmd, stepLogger);
-        getManager().addJobInfo(getId(), stepLogger.getInfo());
-        if (response.getFirst() != 0) {
-            throw new RuntimeException("Failed to create flat hive table, error code " + response.getFirst());
+    protected ExecuteResult sqoopFlatHiveTable(KylinConfig config) {
+        try {
+            String cmd = getParam("cmd");
+            stepLogger.log(String.format("exe cmd:%s", cmd));
+            Pair<Integer, String> result = config.getCliCommandExecutor().execute(cmd, stepLogger);
+
+            Preconditions.checkState(result.getFirst() == 0);
+            Map<String, String> extraInfo = makeExtraInfo(stepLogger.getInfo());
+            val ret = ExecuteResult.createSucceed(result.getSecond());
+            ret.getExtraInfo().putAll(extraInfo);
+            return ret;
+        } catch (Exception e) {
+            return ExecuteResult.createError(e);
         }
     }
 
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+    protected ExecuteResult doWork(ExecutableContext context) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        try {
-            sqoopFlatHiveTable(config);
-            return new ExecuteResult(ExecuteResult.State.SUCCEED, stepLogger.getBufferedLog());
-
-        } catch (Exception e) {
-            logger.error("job:" + getId() + " execute finished with exception", e);
-            return new ExecuteResult(ExecuteResult.State.ERROR, stepLogger.getBufferedLog());
-        }
+        return sqoopFlatHiveTable(config);
     }
 
 }

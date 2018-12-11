@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,11 +42,23 @@
 
 package io.kyligence.kap.event.model;
 
-public class MergeSegmentEvent extends Event {
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.event.handle.EventHandler;
+import io.kyligence.kap.event.handle.MergeSegmentHandler;
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.kylin.metadata.model.SegmentRange;
 
-    public MergeSegmentEvent() {
-        super();
-        setTriggerType(TriggerType.TIME_LINE);
+@Setter
+@Getter
+public class MergeSegmentEvent extends JobRelatedEvent {
+
+    @JsonProperty("segment_range")
+    private SegmentRange segmentRange;
+
+    @Override
+    public EventHandler getEventHandler() {
+        return new MergeSegmentHandler();
     }
 
 }

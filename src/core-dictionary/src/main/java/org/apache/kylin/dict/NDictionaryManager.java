@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,9 +42,6 @@
 
 package org.apache.kylin.dict;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.NavigableSet;
@@ -380,7 +376,7 @@ public class NDictionaryManager {
 
     private String checkDupByInfo(NDictionaryInfo dictInfo) throws IOException {
         final ResourceStore store = getStore();
-        final List<NDictionaryInfo> allResources = store.getAllResources(dictInfo.getResourceDir(), NDictionaryInfo.class,
+        final List<NDictionaryInfo> allResources = store.getAllResources(dictInfo.getResourceDir(),
                 NDictionaryInfoSerializer.INFO_SERIALIZER);
 
         TableSignature input = dictInfo.getInput();
@@ -396,7 +392,7 @@ public class NDictionaryManager {
     private NDictionaryInfo findLargestDictInfo(NDictionaryInfo dictInfo) throws IOException {
         final ResourceStore store = getStore();
         final List<NDictionaryInfo> allResources = store.getAllResources(dictInfo.getResourceDir(),
-                NDictionaryInfo.class, NDictionaryInfoSerializer.INFO_SERIALIZER);
+                NDictionaryInfoSerializer.INFO_SERIALIZER);
 
         NDictionaryInfo largestDict = null;
         for (NDictionaryInfo DictionaryInfo : allResources) {
@@ -436,17 +432,8 @@ public class NDictionaryManager {
     void save(NDictionaryInfo dict) throws IOException {
         ResourceStore store = getStore();
         String path = dict.getResourcePath();
-        logger.info("Saving dictionary at " + path);
-
-        ByteArrayOutputStream buf = new ByteArrayOutputStream();
-        DataOutputStream dout = new DataOutputStream(buf);
-        NDictionaryInfoSerializer.FULL_SERIALIZER.serialize(dict, dout);
-        dout.close();
-        buf.close();
-
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(buf.toByteArray());
-        store.putResource(path, inputStream, System.currentTimeMillis());
-        inputStream.close();
+        logger.info("Saving dictionary at {}", path);
+        store.checkAndPutResource(path, dict, NDictionaryInfoSerializer.FULL_SERIALIZER);
     }
 
     NDictionaryInfo load(String resourcePath, boolean loadDictObj) throws IOException {
@@ -454,7 +441,7 @@ public class NDictionaryManager {
 
         logger.info("DictionaryManager(" + System.identityHashCode(this) + ") loading DictionaryInfo(loadDictObj:"
                 + loadDictObj + ") at " + resourcePath);
-        NDictionaryInfo info = store.getResource(resourcePath, NDictionaryInfo.class,
+        NDictionaryInfo info = store.getResource(resourcePath,
                 loadDictObj ? NDictionaryInfoSerializer.FULL_SERIALIZER : NDictionaryInfoSerializer.INFO_SERIALIZER);
         info.setProject(project);
         return info;

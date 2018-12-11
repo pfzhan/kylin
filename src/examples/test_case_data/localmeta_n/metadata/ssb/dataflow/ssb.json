@@ -8,7 +8,7 @@
   "mp_values" : [ ],
   "cube_plan" : "ssb",
   "create_time_utc" : 1514536509210,
-  "status" : "NEW",
+  "status" : "OFFLINE",
   "cost" : 50,
   "segments" : [ ],
   "storage_location_identifier" : null

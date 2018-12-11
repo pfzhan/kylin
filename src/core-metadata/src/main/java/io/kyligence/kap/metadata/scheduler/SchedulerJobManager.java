@@ -97,7 +97,7 @@ public class SchedulerJobManager {
         SchedulerJobInstance job;
 
         try {
-            job = store.getResource(concatResourcePath(name), SchedulerJobInstance.class,
+            job = store.getResource(concatResourcePath(name),
                     SCHEDULER_JOB_INSTANCE_SERIALIZER);
         } catch (Exception e) {
             logger.error("Error during load scheduler job instance " + name, e);
@@ -112,7 +112,7 @@ public class SchedulerJobManager {
         SchedulerJobInstance job;
 
         try {
-            job = store.getResource(path, SchedulerJobInstance.class, SCHEDULER_JOB_INSTANCE_SERIALIZER);
+            job = store.getResource(path, SCHEDULER_JOB_INSTANCE_SERIALIZER);
             checkNotNull(job, "job (at %s) not found", path);
 
             String jobName = job.getName();
@@ -214,7 +214,7 @@ public class SchedulerJobManager {
         }
 
         String path = SchedulerJobInstance.concatResourcePath(job.getName());
-        getStore().putResource(path, job, SCHEDULER_JOB_INSTANCE_SERIALIZER);
+        getStore().checkAndPutResource(path, job, SCHEDULER_JOB_INSTANCE_SERIALIZER);
         return job;
     }
 
@@ -232,7 +232,7 @@ public class SchedulerJobManager {
 
         // Save Source
         String path = job.getResourcePath();
-        getStore().putResource(path, job, SCHEDULER_JOB_INSTANCE_SERIALIZER);
+        getStore().checkAndPutResource(path, job, SCHEDULER_JOB_INSTANCE_SERIALIZER);
 
         return job;
     }

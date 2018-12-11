@@ -43,17 +43,16 @@
 
 package org.apache.kylin.cube.cuboid.algorithm;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
+import lombok.NoArgsConstructor;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.cube.cuboid.algorithm.generic.GeneticAlgorithm;
 import org.apache.kylin.cube.cuboid.algorithm.greedy.GreedyAlgorithm;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,6 +62,7 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.Maps;
 
+@NoArgsConstructor
 public class CuboidRecommender {
     private static final Logger logger = LoggerFactory.getLogger(CuboidRecommender.class);
 
@@ -75,24 +75,6 @@ public class CuboidRecommender {
                 }
             }).maximumSize(KylinConfig.getInstanceFromEnv().getCubePlannerRecommendCuboidCacheMaxSize())
             .expireAfterWrite(1, TimeUnit.DAYS).build();
-
-    private class CuboidRecommenderSyncListener extends Broadcaster.Listener {
-        @Override
-        public void onClearAll(Broadcaster broadcaster) throws IOException {
-            cuboidRecommendCache.invalidateAll();
-        }
-
-        @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
-                throws IOException {
-            cuboidRecommendCache.invalidate(cacheKey);
-        }
-    }
-
-    public CuboidRecommender() {
-        Broadcaster.getInstance(KylinConfig.getInstanceFromEnv()).registerListener(new CuboidRecommenderSyncListener(),
-                "", "cube");
-    }
 
     private static CuboidRecommender instance = new CuboidRecommender();
 

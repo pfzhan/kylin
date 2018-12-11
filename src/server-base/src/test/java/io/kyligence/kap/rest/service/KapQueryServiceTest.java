@@ -24,32 +24,22 @@
 
 package io.kyligence.kap.rest.service;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.rest.response.QueryStatisticsResponse;
-import io.kyligence.kap.shaded.influxdb.okhttp3.Interceptor;
-import io.kyligence.kap.shaded.influxdb.okhttp3.MediaType;
-import io.kyligence.kap.shaded.influxdb.okhttp3.OkHttpClient;
-import io.kyligence.kap.shaded.influxdb.okhttp3.Protocol;
-import io.kyligence.kap.shaded.influxdb.okhttp3.Request;
-import io.kyligence.kap.shaded.influxdb.okhttp3.Response;
-import io.kyligence.kap.shaded.influxdb.okhttp3.ResponseBody;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
-import org.apache.kylin.common.KapConfig;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.QueryStatisticsResponse;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.io.IOException;
+import org.mockito.InjectMocks;
+import org.mockito.Mockito;
 
 public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
 
-    private KapQueryService kapQueryService = new KapQueryService();
-
-    private final String mockData = "{\"results\":[{\"series\":[{\"name\":\"query_metric\",\"tags\":{\"engine_type\":\"RDBMS\"},\"columns\":[\"time\",\"count\",\"mean\"],\"values\":[[\"1970-01-01T00:00:00Z\",7.0,1108.7142857142858]]}],\"error\":null}],\"error\":null}\n";
+    @InjectMocks
+    private KapQueryService kapQueryService = Mockito.spy(new KapQueryService());
 
     @BeforeClass
     public static void setupResource() throws Exception {
@@ -63,14 +53,20 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
-        ReflectionTestUtils.setField(kapQueryService, "influxDB", mockInfluxDB());
-        final KapConfig kapConfig = (KapConfig) ReflectionTestUtils.getField(kapQueryService, "kapConfig");
-        kapConfig.getKylinConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
+        createTestMetadata();
     }
 
     @Test
     public void testGetQueryStatistics() {
-        final QueryStatisticsResponse actual = kapQueryService.getQueryStatistics(0L, Long.MAX_VALUE);
+        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        QueryStatisticsResponse.QueryStatistics queryStatistics = new QueryStatisticsResponse.QueryStatistics();
+        queryStatistics.setEngineType("RDBMS");
+        queryStatistics.setCount(7);
+        queryStatistics.setMeanDuration(1108.7142857142858);
+        Mockito.doReturn(Lists.newArrayList(queryStatistics)).when(queryHistoryDAO).getQueryStatistics(Mockito.anyLong(), Mockito.anyLong());
+        Mockito.doReturn(queryHistoryDAO).when(kapQueryService).getQueryHistoryDao("default");
+
+        final QueryStatisticsResponse actual = kapQueryService.getQueryStatistics("default", 0L, Long.MAX_VALUE);
 
         Assert.assertEquals(7, actual.getAmount());
 
@@ -98,20 +94,5 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(0d, tableIndex.getMeanDuration(), 0.1);
         Assert.assertEquals(0d, tableIndex.getRatio(), 0.01);
 
-    }
-
-    private InfluxDB mockInfluxDB() {
-        final OkHttpClient.Builder client = new OkHttpClient.Builder();
-        client.addInterceptor(new Interceptor() {
-            @Override
-            public Response intercept(Chain chain) throws IOException {
-                final Request request = chain.request();
-                return new Response.Builder().request(request).protocol(Protocol.HTTP_2).code(200)
-                        .addHeader("Content-Type", "application/json").message("ok")
-                        .body(ResponseBody.create(MediaType.parse("application/json"), mockData)).build();
-            }
-        });
-
-        return InfluxDBFactory.connect("http://localhost:8096", "username", "password", client);
     }
 }

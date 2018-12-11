@@ -27,11 +27,14 @@ package io.kyligence.kap.newten;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.cube.model.NDataflowManager;
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.spark.SparkContext;
 import org.apache.spark.sql.SparkSession;
 import org.junit.After;
@@ -70,6 +73,10 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
 
     @Test
     public void testCanNotAnswer() throws Exception {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
+        dfMgr.updateDataflow("match_copy", copyForWrite -> {
+            copyForWrite.setStatus(RealizationStatusEnum.OFFLINE);
+        });
         SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
         existingCxt.stop();
         ss = SparkSession.builder().config(sparkConf).getOrCreate();

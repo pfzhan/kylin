@@ -24,17 +24,17 @@
 
 package io.kyligence.kap.smart;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -100,40 +100,26 @@ public class NSmartContext {
     }
 
     /**
-     * generate a biMap of sql and it's hashcode
-     */
-    private BiMap<String, Integer> genSqlHashcodeMap() {
-        BiMap<String, Integer> map = HashBiMap.create();
-        for (String sql : this.sqls) {
-            if (!map.containsKey(sql)) {
-                map.put(sql, sql.hashCode());
-            }
-        }
-        return map;
-    }
-
-    /**
      * Rebuild accelerationInfoMap by relations between favorite query and layout from database
      * @param favoriteQueryRealizations serialized relations between layout and favorite query
      */
     public void reBuildAccelerationInfoMap(Set<FavoriteQueryRealization> favoriteQueryRealizations) {
-        final BiMap<String, Integer> sqlHashcodeMap = genSqlHashcodeMap();
+        final Set<String> sqlPatternsSet = new HashSet<>(Lists.newArrayList(this.sqls));
         for (FavoriteQueryRealization fqRealization : favoriteQueryRealizations) {
-            final String sql = sqlHashcodeMap.inverse().get(fqRealization.getSqlPatternHash());
-            if (sql == null) {
+            final String sqlPattern = fqRealization.getSqlPattern();
+            if (!sqlPatternsSet.contains(sqlPattern))
                 continue;
-            }
-            if (!accelerateInfoMap.containsKey(sql)) {
-                accelerateInfoMap.put(sql, new AccelerateInfo());
+            if (!accelerateInfoMap.containsKey(sqlPattern)) {
+                accelerateInfoMap.put(sqlPattern, new AccelerateInfo());
             }
 
-            if (accelerateInfoMap.containsKey(sql)) {
-                val queryRelatedLayouts = accelerateInfoMap.get(sql).getRelatedLayouts();
+            if (accelerateInfoMap.containsKey(sqlPattern)) {
+                val queryRelatedLayouts = accelerateInfoMap.get(sqlPattern).getRelatedLayouts();
                 String modelId = fqRealization.getModelId();
                 String cubePlanId = fqRealization.getCubePlanId();
                 long layoutId = fqRealization.getCuboidLayoutId();
                 int semanticVersion = fqRealization.getSemanticVersion();
-                val queryLayoutRelation = new AccelerateInfo.QueryLayoutRelation(sql, modelId, cubePlanId, layoutId,
+                val queryLayoutRelation = new AccelerateInfo.QueryLayoutRelation(sqlPattern, modelId, cubePlanId, layoutId,
                         semanticVersion);
                 queryRelatedLayouts.add(queryLayoutRelation);
             }

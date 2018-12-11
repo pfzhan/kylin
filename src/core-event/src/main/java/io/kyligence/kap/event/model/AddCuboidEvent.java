@@ -44,25 +44,29 @@
 package io.kyligence.kap.event.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.event.handle.AddCuboidHandler;
+import io.kyligence.kap.event.handle.EventHandler;
 import lombok.Getter;
 import lombok.Setter;
 
 import java.util.List;
+import java.util.UUID;
 
 @Setter
 @Getter
-public class AddCuboidEvent extends Event {
-
-    @JsonProperty("layout_ids")
-    private List<Long> layoutIds;
+public class AddCuboidEvent extends JobRelatedEvent {
 
     @JsonProperty("sql_patterns")
     private List<String> sqlPatterns;
 
     public AddCuboidEvent() {
         super();
-        setTriggerType(TriggerType.SPACE_WISE);
-        setParallel(true);
+        jobId = UUID.randomUUID().toString();
+    }
+
+    @Override
+    public EventHandler getEventHandler() {
+        return new AddCuboidHandler();
     }
 
 }

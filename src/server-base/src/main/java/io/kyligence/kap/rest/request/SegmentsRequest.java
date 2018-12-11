@@ -32,7 +32,7 @@ import lombok.Setter;
 public class SegmentsRequest {
 
     private String modelName;
-    private int[] ids;
+    private String[] ids;
     private String project;
 
 }

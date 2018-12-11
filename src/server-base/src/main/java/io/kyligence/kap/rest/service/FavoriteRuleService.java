@@ -24,22 +24,13 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealizationDao;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealizationJDBCDao;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.query.util.QueryPatternUtil;
-import io.kyligence.kap.rest.response.FavoriteRuleResponse;
-import io.kyligence.kap.rest.response.UpdateWhitelistResponse;
-import io.kyligence.kap.smart.query.advisor.SQLAdvice;
-import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
-import io.kyligence.kap.smart.query.validator.AbstractSQLValidator;
-import io.kyligence.kap.smart.query.validator.SQLValidateResult;
-import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.query.util.QueryUtil;
@@ -54,12 +45,20 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.query.util.QueryPatternUtil;
+import io.kyligence.kap.rest.response.FavoriteRuleResponse;
+import io.kyligence.kap.rest.response.UpdateWhitelistResponse;
+import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.smart.query.advisor.SQLAdvice;
+import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
+import io.kyligence.kap.smart.query.validator.AbstractSQLValidator;
+import io.kyligence.kap.smart.query.validator.SQLValidateResult;
+import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
 
 @Component("favoriteRuleService")
 public class FavoriteRuleService extends BasicService {
@@ -135,10 +134,11 @@ public class FavoriteRuleService extends BasicService {
         return favoriteRule;
     }
 
-    public void updateRegularRule(FavoriteRuleUpdateRequest request, String ruleName) throws IOException {
-        Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
+    @Transaction(project = 0)
+    public void updateRegularRule(String project, FavoriteRuleUpdateRequest request, String ruleName) throws IOException {
+        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
 
-        FavoriteRule rule = getFavoriteRule(request.getProject(), ruleName);
+        FavoriteRule rule = getFavoriteRule(project, ruleName);
         rule.setEnabled(request.isEnable());
 
         List<FavoriteRule.AbstractCondition> conds = Lists.newArrayList();
@@ -167,10 +167,15 @@ public class FavoriteRuleService extends BasicService {
         }
 
         rule.setConds(conds);
-        getFavoriteRuleManager(request.getProject()).updateRule(conds, rule.isEnabled(), ruleName);
-        favoriteQueryService.scheduleAutoMark();
+        getFavoriteRuleManager(project).updateRule(conds, rule.isEnabled(), ruleName);
+        NFavoriteScheduler favoriteScheduler = getFavoriteScheduler(project);
+        if (!favoriteScheduler.hasStarted()) {
+            throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
+        }
+        favoriteScheduler.scheduleAutoFavorite();
     }
 
+    @Transaction(project = 1)
     public SQLValidateResult appendSqlToBlacklist(String sql, String project) throws IOException {
         //sql validation
         Map<String, SQLValidateResult> map = sqlValidate(Lists.newArrayList(sql), project);
@@ -193,26 +198,15 @@ public class FavoriteRuleService extends BasicService {
             throw new IllegalArgumentException(MsgPicker.getMsg().getSQL_ALREADY_IN_WHITELIST());
         }
 
-        deleteSqlFromDao(sqlPatternHash, project);
+        getFavoriteQueryManager(project).delete(sqlPattern);
         return result;
-    }
-
-    // todo: transaction
-    private void deleteSqlFromDao(int sqlPatternHash, String project) {
-        // delete FQ
-        getFavoriteQueryDao().delete(sqlPatternHash, project);
-        // delete FQ realizations
-        FavoriteQueryRealizationDao favoriteQueryRealizationDao = FavoriteQueryRealizationJDBCDao
-                .getInstance(getConfig(), project);
-        FavoriteQueryRealization favoriteQueryRealization = new FavoriteQueryRealization();
-        favoriteQueryRealization.setSqlPatternHash(sqlPatternHash);
-        favoriteQueryRealizationDao.batchDelete(Lists.newArrayList(favoriteQueryRealization));
     }
 
     public List<FavoriteRuleResponse> getBlacklistSqls(String project) {
         return getSqlList(project, FavoriteRule.BLACKLIST_NAME);
     }
 
+    @Transaction(project = 1)
     public void removeBlacklistSql(String id, String project) throws IOException {
         Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
         getFavoriteRuleManager(project).removeSqlCondition(id, FavoriteRule.BLACKLIST_NAME);
@@ -230,6 +224,7 @@ public class FavoriteRuleService extends BasicService {
         return map;
     }
 
+    @Transaction(project = 2)
     public void appendSqlToWhitelist(String sql, int sqlPatternHash, String project) throws IOException {
         FavoriteRule.SQLCondition newSqlCondition = new FavoriteRule.SQLCondition(sql, sqlPatternHash, true);
         try {
@@ -240,6 +235,7 @@ public class FavoriteRuleService extends BasicService {
         }
     }
 
+    @Transaction(project = 1)
     public void loadSqlsToWhitelist(MultipartFile file, String project) throws IOException {
         List<String> sqls = transferFileToSqls(file);
         if (sqls.isEmpty())
@@ -323,6 +319,7 @@ public class FavoriteRuleService extends BasicService {
         return QueryUtil.massageSql(sql, project, DEFAULT_LIMIT, DEFAULT_OFFSET, DEFAULT_SCHEMA);
     }
 
+    @Transaction(project = 2)
     public UpdateWhitelistResponse updateWhitelistSql(String updatedSql, String id, String project) throws IOException {
         Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
 
@@ -382,6 +379,7 @@ public class FavoriteRuleService extends BasicService {
         return getSqlList(project, FavoriteRule.WHITELIST_NAME);
     }
 
+    @Transaction(project = 1)
     public void removeWhitelistSql(String id, String project) throws IOException {
         Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
         getFavoriteRuleManager(project).removeSqlCondition(id, FavoriteRule.WHITELIST_NAME);
@@ -389,17 +387,12 @@ public class FavoriteRuleService extends BasicService {
 
     public double getFavoriteRuleOverallImpact(String project) {
         // get rule based favorite query size
-        int favoriteQuerySize = getFavoriteQueryDao().getRulebasedFQSize(project);
+        int favoriteQuerySize = getFavoriteQueryManager(project).getRuleBasedSize();
         int sqlPatternSizeOfQueryHistory;
 
-        Map<String, Integer> sqlPatternFreqMapInProj = favoriteQueryService.getOverAllStatus().getSqlPatternFreqMap()
-                .get(project);
+        Map<String, Integer> sqlPatternFreqMapInProj = getFavoriteScheduler(project).getOverAllStatus().getSqlPatternFreqMap();
 
-        if (sqlPatternFreqMapInProj == null)
-            sqlPatternSizeOfQueryHistory = 0;
-        else
-            sqlPatternSizeOfQueryHistory = sqlPatternFreqMapInProj.size();
-
+        sqlPatternSizeOfQueryHistory = sqlPatternFreqMapInProj.size();
         if (sqlPatternSizeOfQueryHistory == 0)
             return 0;
 

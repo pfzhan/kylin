@@ -24,14 +24,12 @@
 
 package io.kyligence.kap.rest.controller;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.rest.PagingUtil;
-import io.kyligence.kap.rest.request.AppendBlacklistSqlRequest;
-import io.kyligence.kap.rest.request.WhitelistUpdateRequest;
-import io.kyligence.kap.rest.response.FavoriteRuleResponse;
-import io.kyligence.kap.rest.service.FavoriteQueryService;
-import io.kyligence.kap.rest.service.FavoriteRuleService;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -46,10 +44,15 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.rest.PagingUtil;
+import io.kyligence.kap.rest.request.AppendBlacklistSqlRequest;
+import io.kyligence.kap.rest.request.WhitelistUpdateRequest;
+import io.kyligence.kap.rest.response.FavoriteRuleResponse;
+import io.kyligence.kap.rest.service.FavoriteQueryService;
+import io.kyligence.kap.rest.service.FavoriteRuleService;
 
 @RestController
 @RequestMapping(value = "/query/favorite_queries", produces = { "application/vnd.apache.kylin-v2+json" })
@@ -64,7 +67,7 @@ public class FavoriteQueryController extends NBasicController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     @ResponseBody
     public EnvelopeResponse manualFavorite(@RequestBody FavoriteRequest request) throws IOException {
-        favoriteQueryService.manualFavorite(request);
+        favoriteQueryService.manualFavorite(request.getProject(), request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -74,8 +77,9 @@ public class FavoriteQueryController extends NBasicController {
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         HashMap<String, Object> data = Maps.newHashMap();
-        data.put("favorite_queries", favoriteQueryService.getFavoriteQueriesByPage(project, limit, offset));
-        data.put("size", favoriteQueryService.getFavoriteQuerySize(project));
+        List<FavoriteQuery> allFavoriteQueries = favoriteQueryService.getFavoriteQueries(project);
+        data.put("favorite_queries", PagingUtil.cutPage(allFavoriteQueries, offset, limit));
+        data.put("size", allFavoriteQueries.size());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
@@ -121,21 +125,21 @@ public class FavoriteQueryController extends NBasicController {
     @RequestMapping(value = "/rules/frequency", method = RequestMethod.PUT)
     @ResponseBody
     public EnvelopeResponse updateFrequencyRule(@RequestBody FavoriteRuleUpdateRequest request) throws IOException {
-        favoriteRuleService.updateRegularRule(request, FavoriteRule.FREQUENCY_RULE_NAME);
+        favoriteRuleService.updateRegularRule(request.getProject(), request, FavoriteRule.FREQUENCY_RULE_NAME);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @RequestMapping(value = "/rules/submitter", method = RequestMethod.PUT)
     @ResponseBody
     public EnvelopeResponse updateSubmitterRule(@RequestBody FavoriteRuleUpdateRequest request) throws IOException {
-        favoriteRuleService.updateRegularRule(request, FavoriteRule.SUBMITTER_RULE_NAME);
+        favoriteRuleService.updateRegularRule(request.getProject(), request, FavoriteRule.SUBMITTER_RULE_NAME);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @RequestMapping(value = "/rules/duration", method = RequestMethod.PUT)
     @ResponseBody
     public EnvelopeResponse updateDurationRule(@RequestBody FavoriteRuleUpdateRequest request) throws IOException {
-        favoriteRuleService.updateRegularRule(request, FavoriteRule.DURATION_RULE_NAME);
+        favoriteRuleService.updateRegularRule(request.getProject(), request, FavoriteRule.DURATION_RULE_NAME);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 

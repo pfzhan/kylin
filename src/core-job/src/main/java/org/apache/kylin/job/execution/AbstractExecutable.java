@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,28 +42,41 @@
 
 package org.apache.kylin.job.execution;
 
+import static org.apache.kylin.job.constant.ExecutableConstants.MR_JOB_ID;
+import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_ID;
+import static org.apache.kylin.job.constant.ExecutableConstants.YARN_APP_URL;
+
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Collections;
+import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MailService;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.exception.PersistentException;
+import org.apache.kylin.job.exception.JobSuicideException;
 import org.apache.kylin.job.impl.threadpool.DefaultContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Objects;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 
 /**
  */
@@ -78,6 +90,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     public static final String INTERRUPT_TIME = "interruptTime";
     protected static final String PARENT_ID = "parentId";
     public static final String RUNTIME_INFO = "runtimeInfo";
+    protected static final String EVENT_ID = "eventId";
 
     protected static final Logger logger = LoggerFactory.getLogger(AbstractExecutable.class);
     protected int retry = 0;
@@ -101,7 +114,8 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         this.dataRangeEnd = dataRangeEnd;
     }
 
-    private String targetSubject;
+    private String targetModel;// uuid of the model
+    private List<String> targetSegments = Lists.newArrayList();//uuid of related segments
     private String id;
     private long dataRangeStart;
     private long dataRangeEnd;
@@ -109,13 +123,54 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     private String project;
     private Map<String, Object> runTimeInfo = Maps.newHashMap();
 
-
-    public String getTargetSubject() {
-        return targetSubject;
+    public String getTargetModel() {
+        return targetModel;
     }
 
-    public void setTargetSubject(String targetSubject) {
-        this.targetSubject = targetSubject;
+    public List<String> getTargetSegments() {
+        return targetSegments;
+    }
+
+    public String getTargetModelAlias() {
+        NDataModel dataModelDesc = NDataModelManager.getInstance(config, getProject()).getDataModelDesc(targetModel);
+        return dataModelDesc == null ? null : dataModelDesc.getAlias();
+    }
+
+    private boolean checkTargetSegmentExists(String segmentId) {
+        NDataflow dataflow = NDataflowManager.getInstance(config, getProject()).getDataflowByModelName(targetModel);
+        if (dataflow == null) {
+            return false;
+        }
+        NDataSegment segment = dataflow.getSegment(segmentId);
+        return segment != null;
+    }
+
+    public boolean checkAnyTargetSegmentExists() {
+        List<String> topJobTargetSegments = targetSegments;
+        AbstractExecutable parent = getParent();
+        if (parent != null) {
+            topJobTargetSegments = parent.targetSegments;
+        }
+
+        Preconditions.checkState(!topJobTargetSegments.isEmpty());
+
+        return topJobTargetSegments.stream().anyMatch(this::checkTargetSegmentExists);
+    }
+
+    public void suicideIfNecessary() {
+        if (!checkAnyTargetSegmentExists()) {
+            updateJobOutput(project, getId(), ExecutableState.DISCARDED, null,
+                    "suicide as its serving model/segment no longer exists");
+            throw new JobSuicideException();
+        }
+    }
+
+    public void setTargetModel(String targetModel) {
+        this.targetModel = targetModel;
+    }
+
+    public void setTargetSegments(List<String> targetSegments) {
+        this.targetSegments = targetSegments;
     }
 
     public AbstractExecutable() {
@@ -139,33 +194,50 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     }
 
     protected void onExecuteStart(ExecutableContext executableContext) {
-        Map<String, String> info = Maps.newHashMap();
-        info.put(START_TIME, Long.toString(System.currentTimeMillis()));
-        getManager().updateJobOutput(getId(), ExecutableState.RUNNING, info, null);
+
+        suicideIfNecessary();
+
+        final long startTime = getStartTime();
+        if (startTime > 0) {
+            updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null);
+        } else {
+            Map<String, String> info = Maps.newHashMap();
+            info.put(START_TIME, Long.toString(System.currentTimeMillis()));
+            updateJobOutput(project, getId(), ExecutableState.RUNNING, info, null);
+        }
     }
 
     protected void onExecuteFinished(ExecuteResult result, ExecutableContext executableContext) {
-        setEndTime(System.currentTimeMillis());
-        if (!isDiscarded() && !isRunnable()) {
-            if (result.succeed()) {
-                getManager().updateJobOutput(getId(), ExecutableState.SUCCEED, null, result.output());
-            } else {
-                getManager().updateJobOutput(getId(), ExecutableState.ERROR, null, result.output());
-            }
-        }
+        suicideIfNecessary();
+
+        Preconditions.checkState(result.succeed());
+        Preconditions.checkState(this.getStatus() == ExecutableState.RUNNING);
+
+        setEndTime(result);
+        updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output());
     }
 
-    protected void onExecuteError(Throwable exception, ExecutableContext executableContext) {
-        if (!isDiscarded()) {
-            getManager().addJobInfo(getId(), END_TIME, Long.toString(System.currentTimeMillis()));
-            String output = null;
-            if (exception != null) {
-                final StringWriter out = new StringWriter();
-                exception.printStackTrace(new PrintWriter(out));
-                output = out.toString();
-            }
-            getManager().updateJobOutput(getId(), ExecutableState.ERROR, null, output);
-        }
+    protected void onExecuteError(ExecuteResult result, ExecutableContext executableContext) {
+        suicideIfNecessary();
+
+        Preconditions.checkState(!result.succeed());
+        Preconditions.checkState(this.getStatus() == ExecutableState.RUNNING);
+
+        setEndTime(result);
+        updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg());
+    }
+
+    public static void updateJobOutput(String project, String jobId, ExecutableState newStatus,
+            Map<String, String> info, String output) {
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NExecutableManager executableManager = getExecutableManager(project);
+            executableManager.updateJobOutput(jobId, newStatus, info, output);
+            return null;
+        }, project);
+    }
+
+    private static NExecutableManager getExecutableManager(String project) {
+        return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
 
     @Override
@@ -174,70 +246,57 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         logger.info("Executing AbstractExecutable (" + this.getName() + ")");
 
         Preconditions.checkArgument(executableContext instanceof DefaultContext);
-        ExecuteResult result = null;
-        try {
-            onExecuteStart(executableContext);
-            Throwable exception;
-            do {
-                if (retry > 0) {
-                    logger.info("Retry " + retry);
-                }
-                exception = null;
-                result = null;
-                try {
-                    result = doWork(executableContext);
-                } catch (Throwable e) {
-                    logger.error("error running Executable: " + this.toString());
-                    exception = e;
-                }
-                retry++;
-            } while (((result != null && result.succeed() == false) || exception != null) && needRetry() == true);
+        ExecuteResult result;
+        onExecuteStart(executableContext);
 
-            if (exception != null) {
-                onExecuteError(exception, executableContext);
-                throw new ExecuteException(exception);
+        do {
+            if (retry > 0) {
+                logger.info("Retrying for the {}th time ", retry);
             }
 
+            suicideIfNecessary();
+
+            try {
+                result = doWork(executableContext);
+            } catch (Throwable e) {
+                result = ExecuteResult.createError(e);
+            }
+
+            retry++;
+
+        } while (needRetry(this.retry, result.getThrowable())); //exception in ExecuteResult should handle by user itself.
+        //check exception in result to avoid retry on ChainedExecutable(only need retry on subtask actually)
+
+        if (!result.succeed()) {
+            onExecuteError(result, executableContext);
+            throw new ExecuteException(result.getThrowable());
+        } else {
             onExecuteFinished(result, executableContext);
-        } catch (Exception e) {
-            if (isMetaDataPersistException(e)) {
-                handleMetaDataPersistException(e);
-            }
-            if (e instanceof ExecuteException) {
-                throw e;
-            } else {
-                throw new ExecuteException(e);
-            }
+            return result;
         }
-        return result;
     }
 
-    protected void handleMetaDataPersistException(Exception e) {
-        // do nothing.
+    // Retry will happen in below cases:
+    // 1) if property "kylin.job.retry-exception-classes" is not set or is null, all jobs with exceptions will retry according to the retry times.
+    // 2) if property "kylin.job.retry-exception-classes" is set and is not null, only jobs with the specified exceptions will retry according to the retry times.
+    public boolean needRetry(int retry, Throwable t) {
+        if (retry > KylinConfig.getInstanceFromEnv().getJobRetry() || t == null
+                || (this instanceof DefaultChainedExecutable)) {
+            return false;
+        } else {
+            return isRetryableException(t.getClass().getName());
+        }
     }
 
-    private boolean isMetaDataPersistException(Exception e) {
-        if (e instanceof PersistentException) {
-            return true;
-        }
-
-        Throwable t = e.getCause();
-        int depth = 0;
-        while (t != null && depth < 5) {
-            depth++;
-            if (t instanceof PersistentException) {
-                return true;
-            }
-            t = t.getCause();
-        }
-        return false;
+    private static boolean isRetryableException(String exceptionName) {
+        String[] jobRetryExceptions = KylinConfig.getInstanceFromEnv().getJobRetryExceptions();
+        return ArrayUtils.isEmpty(jobRetryExceptions) || ArrayUtils.contains(jobRetryExceptions, exceptionName);
     }
 
     protected abstract ExecuteResult doWork(ExecutableContext context) throws ExecuteException;
 
     @Override
-    public void cleanup() throws ExecuteException {
-
+    public void cleanup() {
     }
 
     @Override
@@ -402,6 +461,34 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return getManager().getOutput(getId());
     }
 
+    //will modify input info
+    public Map<String, String> makeExtraInfo(Map<String, String> info) {
+        if (info == null) {
+            return Maps.newHashMap();
+        }
+
+        // post process
+        if (info.containsKey(MR_JOB_ID) && !info.containsKey(ExecutableConstants.YARN_APP_ID)) {
+            String jobId = info.get(MR_JOB_ID);
+            if (jobId.startsWith("job_")) {
+                info.put(YARN_APP_ID, jobId.replace("job_", "application_"));
+            }
+        }
+
+        if (info.containsKey(YARN_APP_ID)
+                && !org.apache.commons.lang3.StringUtils.isEmpty(config.getJobTrackingURLPattern())) {
+            String pattern = config.getJobTrackingURLPattern();
+            try {
+                String newTrackingURL = String.format(pattern, info.get(YARN_APP_ID));
+                info.put(YARN_APP_URL, newTrackingURL);
+            } catch (IllegalFormatException ife) {
+                logger.error("Illegal tracking url pattern: {}", config.getJobTrackingURLPattern());
+            }
+        }
+
+        return info;
+    }
+
     protected long getExtraInfoAsLong(String key, long defaultValue) {
         return getExtraInfoAsLong(getOutput(), key, defaultValue);
     }
@@ -442,24 +529,23 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         }
     }
 
-    protected final void addExtraInfo(String key, String value) {
-        getManager().addJobInfo(getId(), key, value);
-    }
-
     protected final Map<String, String> getExtraInfo() {
         return getOutput().getExtra();
     }
 
-    public final void setStartTime(long time) {
-        addExtraInfo(START_TIME, time + "");
+    public final void setStartTime(ExecuteResult result) {
+        result.getExtraInfo()
+                .putAll(makeExtraInfo(ImmutableMap.of(START_TIME, Long.toString(System.currentTimeMillis()))));
     }
 
-    public final void setEndTime(long time) {
-        addExtraInfo(END_TIME, time + "");
+    public final void setEndTime(ExecuteResult result) {
+        result.getExtraInfo()
+                .putAll(makeExtraInfo(ImmutableMap.of(END_TIME, Long.toString(System.currentTimeMillis()))));
     }
 
-    public final void setInterruptTime(long time) {
-        addExtraInfo(INTERRUPT_TIME, time + "");
+    public final void setInterruptTime(ExecuteResult result) {
+        result.getExtraInfo()
+                .putAll(makeExtraInfo(ImmutableMap.of(INTERRUPT_TIME, Long.toString(System.currentTimeMillis()))));
     }
 
     public final long getStartTime() {

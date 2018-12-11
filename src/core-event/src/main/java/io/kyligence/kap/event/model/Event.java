@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -45,15 +44,16 @@ package io.kyligence.kap.event.model;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.metadata.model.SegmentRange;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.event.handle.EventHandler;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -64,14 +64,8 @@ import lombok.Setter;
 @Getter
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class Event extends RootPersistentEntity {
+abstract public class Event extends RootPersistentEntity {
 
-    @JsonProperty("status")
-    private EventStatus status = EventStatus.READY;
-    @JsonProperty("triggerType")
-    private TriggerType triggerType;
-    @JsonProperty("approved")
-    private boolean approved = false;
     @JsonProperty("project")
     private String project;
     @JsonProperty("modelName")
@@ -79,28 +73,29 @@ public class Event extends RootPersistentEntity {
     @JsonProperty("cubePlanName")
     private String cubePlanName;
     @JsonProperty("isGlobal")
-    private boolean isGlobal = false;
-    @JsonProperty("segmentRange")
-    private SegmentRange segmentRange;
+    private boolean isGlobal = false;//TODO:
     @JsonProperty("params")
     private Map<String, Object> addedInfo = Maps.newHashMap();
     @JsonProperty("msg")
     private String msg;
-    @JsonProperty("jobId")
-    private String jobId;
-    @JsonProperty("jobRetry")
-    private int jobRetry = 3;
-    @JsonProperty("isParallel")
-    private boolean isParallel = false;
-    @JsonProperty("parentId")
-    private String parentId;
     @JsonProperty("create_time_nanosecond")
-    @Getter
     protected long createTimeNanosecond;
+    @JsonProperty("sequence_id")
+    protected int sequenceId;//in case two event happend in same nano second
+    @JsonProperty("owner")
+    protected String owner;
 
     public Event() {
         createTimeNanosecond = System.nanoTime();
+        sequenceId = sequenceGenerate();
         uuid = UUID.randomUUID().toString();
     }
 
+    public abstract EventHandler getEventHandler();
+
+    static AtomicInteger sequence = new AtomicInteger(0);
+
+    private static int sequenceGenerate() {
+        return sequence.getAndUpdate(operand -> (operand + 1) % 65536);
+    }
 }

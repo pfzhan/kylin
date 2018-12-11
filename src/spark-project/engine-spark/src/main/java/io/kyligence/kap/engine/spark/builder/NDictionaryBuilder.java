@@ -161,15 +161,11 @@ public class NDictionaryBuilder implements Serializable {
         }
         final long end = System.currentTimeMillis();
         NDataSegment segCopy = writeDictionary(seg, dictionaryMap, start, end);
-        try {
-            NDataflowUpdate update = new NDataflowUpdate(dataflow.getName());
-            update.setToUpdateSegs(segCopy);
-            NDataflow updatedDataflow = NDataflowManager.getInstance(seg.getConfig(), dataflow.getProject())
-                    .updateDataflow(update);
-            return updatedDataflow.getSegment(seg.getId());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to deal with the request: " + e.getLocalizedMessage());
-        }
+        NDataflowUpdate update = new NDataflowUpdate(dataflow.getName());
+        update.setToUpdateSegs(segCopy);
+        NDataflow updatedDataflow = NDataflowManager.getInstance(seg.getConfig(), dataflow.getProject())
+                .updateDataflow(update);
+        return updatedDataflow.getSegment(seg.getId());
     }
 
     private NDataSegment writeDictionary(NDataSegment segment, Map<TblColRef, Dictionary<String>> dictionaryMap,

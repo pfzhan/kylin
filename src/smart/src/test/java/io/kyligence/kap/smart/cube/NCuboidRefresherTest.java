@@ -35,8 +35,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.persistence.image.ImageStore;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -70,6 +73,7 @@ public class NCuboidRefresherTest extends NTestBase {
         //------------propose-----------------------------------------
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
+        initFQData(sqls);
         String draftVersion = UUID.randomUUID().toString();
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls, draftVersion);
         smartMaster.runAll();
@@ -142,6 +146,7 @@ public class NCuboidRefresherTest extends NTestBase {
         //------------propose-----------------------------------------
         String[] sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from kylin_sales "
                 + "where part_dt = '2012-01-03' group by part_dt, lstg_format_name" };
+        initFQData(sqls);
         String draftVersion = UUID.randomUUID().toString();
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls, draftVersion);
         smartMaster.runAll();
@@ -222,6 +227,7 @@ public class NCuboidRefresherTest extends NTestBase {
                         + "where lstg_format_name = 'ABIN' group by part_dt, lstg_format_name",
                 "select sum(price) from kylin_sales where part_dt = '2012-01-03'",
                 "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" };
+        initFQData(sqls);
         String draftVersion = UUID.randomUUID().toString();
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls, draftVersion);
         smartMaster.runAll();
@@ -294,6 +300,7 @@ public class NCuboidRefresherTest extends NTestBase {
         // -----------t1: line A propose-------------------------
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
+        initFQData(sqls);
         String draftVersionA = UUID.randomUUID().toString();
         NSmartMaster smartMasterA = new NSmartMaster(kylinConfig, proj, sqls, draftVersionA);
         smartMasterA.runAll();
@@ -302,6 +309,7 @@ public class NCuboidRefresherTest extends NTestBase {
         String draftVersionB = UUID.randomUUID().toString();
         String[] otherSqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt < '2012-01-02'" };
+        initFQData(otherSqls);
         NSmartMaster smartMasterB = new NSmartMaster(kylinConfig, proj, otherSqls, draftVersionB);
         smartMasterB.runAll();
 
@@ -447,6 +455,7 @@ public class NCuboidRefresherTest extends NTestBase {
         // -----------t1: line A propose-------------------------
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
+        initFQData(sqls);
         String draftVersionA = UUID.randomUUID().toString();
         NSmartMaster smartMasterA = new NSmartMaster(kylinConfig, proj, sqls, draftVersionA);
         smartMasterA.runAll();
@@ -455,6 +464,7 @@ public class NCuboidRefresherTest extends NTestBase {
         String draftVersionB = UUID.randomUUID().toString();
         String[] otherSqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt <= '2012-01-02'" };
+        initFQData(otherSqls);
         NSmartMaster smartMasterB = new NSmartMaster(kylinConfig, proj, otherSqls, draftVersionB);
         smartMasterB.runAll();
 
@@ -586,6 +596,7 @@ public class NCuboidRefresherTest extends NTestBase {
         // -----------t1: line A propose-------------------------
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
+        initFQData(sqls);
         String draftVersionA = UUID.randomUUID().toString();
         NSmartMaster smartMasterA = new NSmartMaster(kylinConfig, proj, sqls, draftVersionA);
         smartMasterA.runAll();
@@ -636,6 +647,7 @@ public class NCuboidRefresherTest extends NTestBase {
         String draftVersionB = UUID.randomUUID().toString();
         String[] otherSqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt <= '2012-01-02'" };
+        initFQData(otherSqls);
         NSmartMaster smartMasterB = new NSmartMaster(kylinConfig, proj, otherSqls, draftVersionB);
         smartMasterB.runAll();
 
@@ -717,6 +729,7 @@ public class NCuboidRefresherTest extends NTestBase {
         // -----------t1: line A propose-------------------------
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
+        initFQData(sqls);
         String draftVersionA = UUID.randomUUID().toString();
         NSmartMaster smartMasterA = new NSmartMaster(kylinConfig, proj, sqls, draftVersionA);
         smartMasterA.runAll();
@@ -725,6 +738,7 @@ public class NCuboidRefresherTest extends NTestBase {
         String draftVersionB = UUID.randomUUID().toString();
         String[] otherSqls = new String[] {
                 "select lstg_format_name, part_dt, price, item_count from kylin_sales where part_dt = '2012-01-01'" };
+        initFQData(otherSqls);
         NSmartMaster smartMasterB = new NSmartMaster(kylinConfig, proj, otherSqls, draftVersionB);
         smartMasterB.runAll();
 
@@ -862,6 +876,7 @@ public class NCuboidRefresherTest extends NTestBase {
                         + "where lstg_format_name > 'ABIN' group by part_dt, lstg_format_name",
                 "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt",
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
+        initFQData(sqls);
         String draftVersionA = UUID.randomUUID().toString();
         NSmartMaster smartMasterA = new NSmartMaster(kylinConfig, proj, sqls, draftVersionA);
         smartMasterA.runAll();
@@ -890,6 +905,7 @@ public class NCuboidRefresherTest extends NTestBase {
 
                 "select lstg_format_name, part_dt, price from kylin_sales where part_dt = '2012-01-01'",
                 "select lstg_format_name, part_dt, price, item_count from kylin_sales where part_dt = '2012-01-01'" };
+        initFQData(otherSqls);
         NSmartMaster smartMasterB = new NSmartMaster(kylinConfig, proj, otherSqls, draftVersionB);
         smartMasterB.runAll();
         {
@@ -1014,12 +1030,14 @@ public class NCuboidRefresherTest extends NTestBase {
 
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
+        initFQData(sqls);
         String draftVersionA = "a";
         NSmartMaster master = new NSmartMaster(kylinConfig, proj, sqls, draftVersionA);
         master.runAll();
 
         String[] otherSqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt < '2012-01-02'" };
+        initFQData(otherSqls);
         String draftVersionB = "b";
         NSmartMaster masterB = new NSmartMaster(kylinConfig, proj, otherSqls, draftVersionB);
         masterB.runAll();
@@ -1123,15 +1141,21 @@ public class NCuboidRefresherTest extends NTestBase {
     }
 
     private void showTableExdInfo() throws IOException {
+        val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+        ResourceStore.dumpResources(kylinConfig, tmpMeta, resourceStore.listResourcesRecursively("/"));
         reAddMetadataTableExd();
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
+        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath() + ",mq=mock");
+        kylinConfig.setProperty("kylin.env", "UT");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+        favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
     }
 
     private void hideTableExdInfo() throws IOException {
         deleteMetadataTableExd();
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
+        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath() + ",mq=mock");
+        kylinConfig.setProperty("kylin.env", "UT");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+        favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
     }
 
     // ================== handle table exd ==============
@@ -1139,7 +1163,8 @@ public class NCuboidRefresherTest extends NTestBase {
 
     private void deleteMetadataTableExd() throws IOException {
         Preconditions.checkNotNull(tmpMeta, "no valid metadata.");
-        final File[] files = tmpMeta.listFiles();
+        val metaDir = new File(tmpMeta, ImageStore.METADATA_DIR);
+        final File[] files = metaDir.listFiles();
         Preconditions.checkNotNull(files);
         for (File file : files) {
             if (!file.isDirectory() || !file.getName().equals(proj)) {
@@ -1150,7 +1175,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Preconditions.checkNotNull(directories);
             for (File item : directories) {
                 if (item.isDirectory() && item.getName().equals("table_exd")) {
-                    final File destTableExd = new File(tmpMeta.getParent(), "table_exd");
+                    final File destTableExd = new File(metaDir.getParent(), "table_exd");
                     tmpTableExdDir = destTableExd.getCanonicalPath();
                     if (destTableExd.exists()) {
                         FileUtils.forceDelete(destTableExd);
@@ -1164,7 +1189,8 @@ public class NCuboidRefresherTest extends NTestBase {
 
     private void reAddMetadataTableExd() throws IOException {
         Preconditions.checkNotNull(tmpMeta, "no valid metadata.");
-        final File[] files = tmpMeta.listFiles();
+        val metaDir = new File(tmpMeta, ImageStore.METADATA_DIR);
+        final File[] files = metaDir.listFiles();
         Preconditions.checkNotNull(files);
         for (File file : files) {
             if (file.isDirectory() && file.getName().equals(proj)) {

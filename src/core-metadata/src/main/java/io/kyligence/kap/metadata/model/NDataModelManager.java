@@ -33,15 +33,10 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.common.util.AutoReadWriteLock;
-import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.measure.topn.TopNMeasureType;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
-import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -49,6 +44,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -77,13 +73,7 @@ public class NDataModelManager {
     private KylinConfig config;
     private String project;
 
-    // name => DataModelDesc
-    private CaseInsensitiveStringCache<NDataModel> dataModelDescMap;
     private CachedCrudAssist<NDataModel> crud;
-
-    // protects concurrent operations around the cached map, to avoid for example
-    // writing an entity in the middle of reloading it (dirty read)
-    private AutoReadWriteLock modelMapLock = new AutoReadWriteLock();
 
     public NDataModelManager(KylinConfig config, String project) throws IOException {
         init(config, project);
@@ -92,14 +82,13 @@ public class NDataModelManager {
     protected void init(KylinConfig cfg, final String project) throws IOException {
         this.config = cfg;
         this.project = project;
-        this.dataModelDescMap = new CaseInsensitiveStringCache<>(config, project, "data_model");
         String resourceRootPath = "/" + project + ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT;
-        this.crud = new CachedCrudAssist<NDataModel>(getStore(), resourceRootPath, NDataModel.class, dataModelDescMap) {
+        this.crud = new CachedCrudAssist<NDataModel>(getStore(), resourceRootPath, NDataModel.class) {
             @Override
             protected NDataModel initEntityAfterReload(NDataModel model, String resourceName) {
                 model.setProject(project);
                 if (!model.isDraft()) {
-                    model.init(config, getAllTablesMap(), listModels(), true);
+                    model.init(config, getAllTablesMap(), Lists.newArrayList(getCache().values()), true);
                 }
                 return model;
             }
@@ -108,36 +97,6 @@ public class NDataModelManager {
         // touch lower level metadata before registering model listener
         NTableMetadataManager.getInstance(config, project);
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new NDataModelSyncListener(), project, "data_model");
-    }
-
-    private class NDataModelSyncListener extends Broadcaster.Listener {
-
-        @Override
-        public void onProjectSchemaChange(Broadcaster broadcaster, String project) throws IOException {
-            //clean up the current project's table desc
-            // TODO: Why model changes trigger TableDesc reset?
-            NTableMetadataManager.getInstance(config, project).resetProjectSpecificTableDesc();
-
-            try (AutoLock lock = modelMapLock.lockForWrite()) {
-                for (String model : getProjectManager().getProject(project).getModels()) {
-                    crud.reloadQuietly(model);
-                }
-            }
-        }
-
-        @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
-                throws IOException {
-            try (AutoLock lock = modelMapLock.lockForWrite()) {
-                if (event == Event.DROP)
-                    dataModelDescMap.removeLocal(cacheKey);
-                else
-                    crud.reloadQuietly(cacheKey);
-            }
-
-            broadcaster.notifyProjectSchemaUpdate(project);
-        }
     }
 
     public KylinConfig getConfig() {
@@ -154,143 +113,101 @@ public class NDataModelManager {
     }
 
     public List<NDataModel> getDataModels() {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
-            return new ArrayList<>(dataModelDescMap.values());
-        }
+        return crud.getAll();
     }
 
     public NDataModel getDataModelDesc(String name) {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
-            return dataModelDescMap.get(name);
+        if (name == null) {
+            return null;
         }
-    }
-
-    public List<NDataModel> listModels() {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
-            return new ArrayList<>(dataModelDescMap.values());
-        }
+        return crud.get(name);
     }
 
     // within a project, find models that use the specified table
-    public List<String> getModelsUsingTable(TableDesc table) throws IOException {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
-            List<String> models = new ArrayList<>();
-            for (NDataModel modelDesc : listModels()) {
-                if (modelDesc.containsTable(table))
-                    models.add(modelDesc.getName());
-            }
-            return models;
+    public List<String> getModelsUsingTable(TableDesc table) {
+        List<String> models = new ArrayList<>();
+        for (NDataModel modelDesc : getDataModels()) {
+            if (modelDesc.containsTable(table))
+                models.add(modelDesc.getName());
         }
+        return models;
     }
 
     // within a project, find models that use the specified table as root table
-    public List<String> getModelsUsingRootTable(TableDesc table) throws IOException {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
-            List<String> models = new ArrayList<>();
-            for (NDataModel modelDesc : listModels()) {
-                if (modelDesc.isRootFactTable(table)) {
-                    models.add(modelDesc.getName());
-                }
+    public List<String> getModelsUsingRootTable(TableDesc table) {
+        List<String> models = new ArrayList<>();
+        for (NDataModel modelDesc : getDataModels()) {
+            if (modelDesc.isRootFactTable(table)) {
+                models.add(modelDesc.getName());
             }
-            return models;
         }
+        return models;
     }
 
-    public List<String> getTableOrientedModelsUsingRootTable(TableDesc table) throws IOException {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
-            List<String> models = new ArrayList<>();
-            for (NDataModel modelDesc : listModels()) {
-                if (modelDesc.isRootFactTable(table)
-                        && modelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-                    models.add(modelDesc.getName());
-                }
+    public List<String> getTableOrientedModelsUsingRootTable(TableDesc table) {
+        List<String> models = new ArrayList<>();
+        for (NDataModel modelDesc : getDataModels()) {
+            if (modelDesc.isRootFactTable(table)
+                    && modelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+                models.add(modelDesc.getName());
             }
-            return models;
         }
+        return models;
     }
 
     public boolean isTableInAnyModel(TableDesc table) {
-        try (AutoLock lock = modelMapLock.lockForRead()) {
-            for (NDataModel model : listModels()) {
-                if (model.containsTable(table))
-                    return true;
-            }
+        for (NDataModel model : getDataModels()) {
+            if (model.containsTable(table))
+                return true;
         }
         return false;
     }
 
-    //    public DataModelDesc reloadDataModel(String modelName) {
-    //        try (AutoLock lock = modelMapLock.lockForWrite()) {
-    //            return crud.reloadQuietlyAt(resourcePath(modelName));
-    //        }
-    //    }
-
-    public NDataModel dropModel(NDataModel desc) throws IOException {
-        try (AutoLock lock = modelMapLock.lockForWrite()) {
-            crud.delete(desc);
-            // delete model from project
-            getProjectManager().removeModel(desc.getName(), desc.getProject());
-            return desc;
-        }
+    public NDataModel dropModel(NDataModel desc) {
+        crud.delete(desc);
+        return desc;
     }
 
-    public NDataModel createDataModelDesc(NDataModel desc, String owner) throws IOException {
+    public NDataModel createDataModelDesc(NDataModel desc, String owner) {
         if (StringUtils.isEmpty(desc.getProject())) {
             desc.setProject(project);
         }
         String name = desc.getName();
         Preconditions.checkArgument(desc.getProject().equals(project), "Model %s belongs to project %s, not %s", name,
                 desc.getProject(), project);
-        try (AutoLock lock = modelMapLock.lockForWrite()) {
-            if (dataModelDescMap.containsKey(name))
-                throw new IllegalArgumentException("DataModelDesc '" + name + "' already exists");
+        if (crud.contains(name))
+            throw new IllegalArgumentException("DataModelDesc '" + name + "' already exists");
 
-            NProjectManager prjMgr = getProjectManager();
-            ProjectInstance prj = prjMgr.getProject(project);
-            if (prj.containsModel(name))
-                throw new IllegalStateException("project " + project + " already contains model " + name);
+        NProjectManager prjMgr = getProjectManager();
+        ProjectInstance prj = prjMgr.getProject(project);
+        if (prj.containsModel(name))
+            throw new IllegalStateException("project " + project + " already contains model " + name);
 
-            try {
-                // Temporarily register model under project, because we want to
-                // update project formally after model is saved.
-                prj.getModels().add(name);
+        desc.setOwner(owner);
+        desc = saveDataModelDesc(desc);
 
-                desc.setOwner(owner);
-                desc = saveDataModelDesc(desc);
-
-            } finally {
-                prj.getModels().remove(name);
-            }
-
-            // now that model is saved, update project formally
-            prjMgr.addModelToProject(name, project);
-            return desc;
-        }
+        return desc;
     }
 
-    public NDataModel updateDataModel(String model, NDataModelUpdater updater) throws IOException {
-        try (AutoLock lock = modelMapLock.lockForWrite()) {
-            val cached = getDataModelDesc(model);
-            val copy = copyForWrite(cached);
-            updater.modify(copy);
-            return updateDataModelDesc(copy);
-        }
+    public NDataModel updateDataModel(String model, NDataModelUpdater updater) {
+        val cached = getDataModelDesc(model);
+        val copy = copyForWrite(cached);
+        updater.modify(copy);
+        return updateDataModelDesc(copy);
     }
 
-    public NDataModel updateDataModelDesc(NDataModel desc) throws IOException {
-        try (AutoLock lock = modelMapLock.lockForWrite()) {
-            String name = desc.getName();
-            if (!dataModelDescMap.containsKey(desc.getName())) {
-                throw new IllegalArgumentException("DataModelDesc '" + name + "' does not exist.");
-            }
-            return saveDataModelDesc(desc);
+    public NDataModel updateDataModelDesc(NDataModel desc) {
+        String name = desc.getName();
+        if (!crud.contains(desc.getName())) {
+            throw new IllegalArgumentException("DataModelDesc '" + name + "' does not exist.");
         }
+        return saveDataModelDesc(desc);
     }
 
-    private NDataModel saveDataModelDesc(NDataModel dataModelDesc) throws IOException {
+    private NDataModel saveDataModelDesc(NDataModel dataModelDesc) {
         dataModelDesc.checkSingleIncrementingLoadingTable();
         if (!dataModelDesc.isDraft())
-            dataModelDesc.init(config, this.getAllTablesMap(), listModels(), true);
+            dataModelDesc.init(config, this.getAllTablesMap(), getDataModels(), true);
 
         crud.save(dataModelDesc);
 
@@ -333,7 +250,7 @@ public class NDataModelManager {
         return parts[1];
     }
 
-    public NDataModel copyForWrite(NDataModel nDataModel) throws IOException {
+    public NDataModel copyForWrite(NDataModel nDataModel) {
         return crud.copyForWrite(nDataModel);
     }
 

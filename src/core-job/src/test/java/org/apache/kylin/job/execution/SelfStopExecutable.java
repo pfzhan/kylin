@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,8 +42,6 @@
 
 package org.apache.kylin.job.execution;
 
-import org.apache.kylin.job.exception.ExecuteException;
-
 /**
  */
 public class SelfStopExecutable extends BaseTestExecutable {
@@ -56,17 +53,17 @@ public class SelfStopExecutable extends BaseTestExecutable {
     }
 
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+    protected ExecuteResult doWork(ExecutableContext context) {
         doingWork = true;
         try {
             for (int i = 0; i < 20; i++) {
                 sleepOneSecond();
-                
+
                 if (isDiscarded())
-                    return new ExecuteResult(ExecuteResult.State.STOPPED, "stopped");
+                    return ExecuteResult.createError(new MockJobException());
             }
-                
-            return new ExecuteResult(ExecuteResult.State.SUCCEED, "succeed");
+
+            return ExecuteResult.createSucceed();
         } finally {
             doingWork = false;
         }

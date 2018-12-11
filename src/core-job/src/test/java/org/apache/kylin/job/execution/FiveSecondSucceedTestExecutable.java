@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,23 +42,28 @@
 
 package org.apache.kylin.job.execution;
 
-import org.apache.kylin.job.exception.ExecuteException;
-
 /**
  */
 public class FiveSecondSucceedTestExecutable extends BaseTestExecutable {
 
+    private final int seconds;
+
     public FiveSecondSucceedTestExecutable() {
+        this(5);
+    }
+    public FiveSecondSucceedTestExecutable(int seconds) {
         super();
+        this.seconds = seconds;
     }
 
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+    protected ExecuteResult doWork(ExecutableContext context) {
         try {
-            Thread.sleep(5000);
+            Thread.sleep(seconds * 1000);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        return new ExecuteResult(ExecuteResult.State.SUCCEED, "succeed");
+
+        return ExecuteResult.createSucceed();
     }
 }

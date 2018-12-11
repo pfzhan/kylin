@@ -56,12 +56,12 @@ public class NSparkMergingStep extends NSparkExecutable {
         return this.getParam(NBatchConstants.P_DATAFLOW_NAME);
     }
 
-    void setSegmentId(int segmentId) {
-        this.setParam(NBatchConstants.P_SEGMENT_IDS, String.valueOf(segmentId));
+    void setSegmentId(String segmentId) {
+        this.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId);
     }
 
-    public int getSegmentIds() {
-        return Integer.parseInt(this.getParam(NBatchConstants.P_SEGMENT_IDS));
+    public String getSegmentIds() {
+        return this.getParam(NBatchConstants.P_SEGMENT_IDS);
     }
 
     void setCuboidLayoutIds(Set<Long> clIds) {

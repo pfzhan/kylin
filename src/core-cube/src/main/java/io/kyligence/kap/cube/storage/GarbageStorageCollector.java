@@ -31,10 +31,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -47,7 +47,6 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.CuboidLayoutQueryTimes;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import lombok.val;
 import lombok.var;
 
@@ -57,7 +56,7 @@ public class GarbageStorageCollector implements StorageInfoCollector {
     public void collect(KylinConfig config, String project, StorageVolumeInfo storageVolumeInfo) {
         config = NProjectManager.getInstance(config).getProject(project).getConfig();
         int queryTimesThreshold = config.getQueryTimesThresholdOfGarbageStorage();
-        List<CuboidLayoutQueryTimes> hotCuboidLayoutQueryTimesList = QueryHistoryDAO.getInstance(config)
+        List<CuboidLayoutQueryTimes> hotCuboidLayoutQueryTimesList = QueryHistoryDAO.getInstance(config, project)
                 .getCuboidLayoutQueryTimes(project, queryTimesThreshold, CuboidLayoutQueryTimes.class);
         // query history can not provide the statistics of cuboidLayout which never been queried,
         // so that we calculate out the cuboidLayouts which query times is more than the queryTimesThreshold
@@ -89,16 +88,13 @@ public class GarbageStorageCollector implements StorageInfoCollector {
         Map<String, Set<Long>> garbageModelIndexMap = Maps.newHashMap();
         Map<String, Set<Long>> hotModelIndexMap = convertToModelIndexMap(hotCuboidLayoutQueryTimesList);
 
-        List<NDataModel> models = NDataModelManager.getInstance(config, project).listModels();
+        List<NDataModel> models = NDataModelManager.getInstance(config, project).getDataModels();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(config, project);
         long cuboidSurvivalTimeThreshold = config.getCuboidLayoutSurvivalTimeThreshold();
 
         for (NDataModel model : models) {
             val modelId = model.getName();
             val dataflow = dataflowManager.getDataflowByModelName(modelId);
-            if (RealizationStatusEnum.NEW.equals(dataflow.getStatus())) {
-                continue;
-            }
             val firstReadySegment = getFirstBuildAndReadySegment(dataflow);
             if (firstReadySegment == null) {
                 continue;
@@ -110,7 +106,7 @@ public class GarbageStorageCollector implements StorageInfoCollector {
                 hotCuboidLayoutIdSet = Sets.newHashSet();
             }
             val finalHotCuboidLayoutIdSet = hotCuboidLayoutIdSet;
-            val cuboidLayoutIdSet = dataCuboids.stream().filter(dc -> !SegmentStatusEnum.NEW.equals(dc.getStatus()))
+            val cuboidLayoutIdSet = dataCuboids.stream()
                     .filter(dc -> (System.currentTimeMillis() - dc.getCreateTime()) > cuboidSurvivalTimeThreshold)
                     .map(NDataCuboid::getCuboidLayoutId).filter(id -> !finalHotCuboidLayoutIdSet.contains(id))
                     .collect(Collectors.toSet());

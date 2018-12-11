@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -63,7 +62,8 @@ import kafka.server.KafkaServerStartable;
 import kafka.utils.ZkUtils;
 
 public class MockKafka {
-    private static Properties createProperties(ZkConnection zkServerConnection, String logDir, String port, String brokerId) {
+    private static Properties createProperties(ZkConnection zkServerConnection, String logDir, String port,
+            String brokerId) {
         Properties properties = new Properties();
         properties.put("port", port);
         properties.put("broker.id", brokerId);
@@ -84,7 +84,8 @@ public class MockKafka {
     private ZkConnection zkConnection;
 
     public MockKafka(ZkConnection zkServerConnection) {
-        this(zkServerConnection, System.getProperty("java.io.tmpdir") + "/" + UUID.randomUUID().toString(), "9092", "1");
+        this(zkServerConnection, System.getProperty("java.io.tmpdir") + "/" + UUID.randomUUID().toString(), "9092",
+                "1");
         start();
     }
 
@@ -94,14 +95,16 @@ public class MockKafka {
     }
 
     public MockKafka(ZkConnection zkServerConnection, int port, int brokerId) {
-        this(zkServerConnection, System.getProperty("java.io.tmpdir") + "/" + UUID.randomUUID().toString(), String.valueOf(port), String.valueOf(brokerId));
+        this(zkServerConnection, System.getProperty("java.io.tmpdir") + "/" + UUID.randomUUID().toString(),
+                String.valueOf(port), String.valueOf(brokerId));
         //start();
     }
 
     private MockKafka(ZkConnection zkServerConnection, String logDir, String port, String brokerId) {
         this(createProperties(zkServerConnection, logDir, port, brokerId));
         this.zkConnection = zkServerConnection;
-        System.out.println(String.format("Kafka %s:%s dir:%s", kafkaServer.serverConfig().brokerId(), kafkaServer.serverConfig().port(), kafkaServer.serverConfig().logDirs()));
+        System.out.println(String.format("Kafka %s:%s dir:%s", kafkaServer.staticServerConfig().brokerId(),
+                kafkaServer.staticServerConfig().port(), kafkaServer.staticServerConfig().logDirs()));
     }
 
     public void createTopic(String topic, int partition, int replication) {
@@ -120,9 +123,10 @@ public class MockKafka {
         ZkClient zkClient = new ZkClient(zkConnection);
         ZkUtils zkUtils = new ZkUtils(zkClient, zkConnection, false);
         zkClient.setZkSerializer(new ZKStringSerializer());
-        MetadataResponse.TopicMetadata topicMetadata = AdminUtils.fetchTopicMetadataFromZk(topic, zkUtils);
+        //        MetadataResponse.TopicMetadata topicMetadata = AdminUtils.fetchTopicMetadataFromZk(topic, zkUtils);
         zkClient.close();
-        return topicMetadata;
+        return null;
+        //        return topicMetadata;
     }
 
     /**

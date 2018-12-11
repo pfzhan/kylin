@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -101,11 +100,8 @@ public class CliCommandExecutor {
         }
     }
 
-    public Pair<Integer, String> execute(String command) throws IOException {
-        return execute(command, new SoutLogger());
-    }
 
-    public Pair<Integer, String> execute(String command, Logger logAppender) throws IOException {
+    public Pair<Integer, String> execute(String command, Logger logAppender) throws ShellException {
         Pair<Integer, String> r;
         if (remoteHost == null) {
             r = runNativeCommand(command, logAppender);
@@ -114,7 +110,7 @@ public class CliCommandExecutor {
         }
 
         if (r.getFirst() != 0)
-            throw new IOException("OS command error exit with return code: " + r.getFirst() //
+            throw new ShellException("OS command error exit with return code: " + r.getFirst() //
                     + ", error message: " + r.getSecond() + "The command is: \n" + command
                     + (remoteHost == null ? "" : " (remoteHost:" + remoteHost + ")") //
             );
@@ -122,54 +118,57 @@ public class CliCommandExecutor {
         return r;
     }
 
-    private Pair<Integer, String> runRemoteCommand(String command, Logger logAppender) throws IOException {
-        SSHClient ssh = new SSHClient(remoteHost, port, remoteUser, remotePwd);
-
-        SSHClientOutput sshOutput;
+    private Pair<Integer, String> runRemoteCommand(String command, Logger logAppender) throws ShellException {
         try {
+            SSHClient ssh = new SSHClient(remoteHost, port, remoteUser, remotePwd);
+
+            SSHClientOutput sshOutput;
             sshOutput = ssh.execCommand(command, remoteTimeoutSeconds, logAppender);
             int exitCode = sshOutput.getExitCode();
             String output = sshOutput.getText();
             return Pair.newPair(exitCode, output);
-        } catch (IOException e) {
-            throw e;
         } catch (Exception e) {
-            throw new IOException(e.getMessage(), e);
+            throw new ShellException(e);
         }
     }
 
-    private Pair<Integer, String> runNativeCommand(String command, Logger logAppender) throws IOException {
-        String[] cmd = new String[3];
-        String osName = System.getProperty("os.name");
-        if (osName.startsWith("Windows")) {
-            cmd[0] = "cmd.exe";
-            cmd[1] = "/C";
-        } else {
-            cmd[0] = "/bin/bash";
-            cmd[1] = "-c";
-        }
-        cmd[2] = command;
-
-        ProcessBuilder builder = new ProcessBuilder(cmd);
-        builder.redirectErrorStream(true);
-        Process proc = builder.start();
-
-        BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-        String line;
-        StringBuilder result = new StringBuilder();
-        while ((line = reader.readLine()) != null) {
-            result.append(line).append('\n');
-            if (logAppender != null) {
-                logAppender.log(line);
-            }
-        }
-
+    private Pair<Integer, String> runNativeCommand(String command, Logger logAppender) throws ShellException {
         try {
-            int exitCode = proc.waitFor();
-            return Pair.newPair(exitCode, result.toString());
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IOException(e);
+
+            String[] cmd = new String[3];
+            String osName = System.getProperty("os.name");
+            if (osName.startsWith("Windows")) {
+                cmd[0] = "cmd.exe";
+                cmd[1] = "/C";
+            } else {
+                cmd[0] = "/bin/bash";
+                cmd[1] = "-c";
+            }
+            cmd[2] = command;
+
+            ProcessBuilder builder = new ProcessBuilder(cmd);
+            builder.redirectErrorStream(true);
+            Process proc = builder.start();
+
+            BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+            String line;
+            StringBuilder result = new StringBuilder();
+            while ((line = reader.readLine()) != null) {
+                result.append(line).append('\n');
+                if (logAppender != null) {
+                    logAppender.log(line);
+                }
+            }
+
+            try {
+                int exitCode = proc.waitFor();
+                return Pair.newPair(exitCode, result.toString());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw e;
+            }
+        } catch (Exception e) {
+            throw new ShellException(e);
         }
     }
 

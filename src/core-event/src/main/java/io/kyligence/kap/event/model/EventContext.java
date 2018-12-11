@@ -43,59 +43,23 @@
 
 package io.kyligence.kap.event.model;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ExecutableState;
 
+@Setter
+@Getter
 public class EventContext {
 
     private Event event;
     private KylinConfig config;
     private ExecutableState jobStatus;
     private Throwable exception;
-    private int retry = 3;
 
     public EventContext(Event event, KylinConfig config) {
         this.event = event;
         this.config = config;
     }
-
-    public Event getEvent() {
-        return event;
-    }
-
-    public void setEvent(Event event) {
-        this.event = event;
-    }
-
-    public KylinConfig getConfig() {
-        return config;
-    }
-
-    public void setConfig(KylinConfig config) {
-        this.config = config;
-    }
-
-    public ExecutableState getJobStatus() {
-        return jobStatus;
-    }
-
-    public void setJobStatus(ExecutableState jobStatus) {
-        this.jobStatus = jobStatus;
-    }
-
-    public Throwable getException() {
-        return exception;
-    }
-
-    public void setException(Throwable exception) {
-        this.exception = exception;
-    }
-
-    public int getRetry() {
-        return retry;
-    }
-
-    public void setRetry(int retry) {
-        this.retry = retry;
-    }
 }
+

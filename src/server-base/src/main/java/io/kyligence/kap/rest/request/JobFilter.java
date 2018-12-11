@@ -43,6 +43,8 @@ public class JobFilter {
 
     private String subject;
 
+    private String subjectAlias;
+
     private String project;
 
     private String sortBy;

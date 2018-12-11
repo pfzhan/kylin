@@ -45,6 +45,7 @@ package io.kyligence.kap.rest.controller;
 import java.util.ArrayList;
 
 import java.util.List;
+import java.util.UUID;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.model.NCubePlanManager;
@@ -275,7 +276,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testUpdateModelStatus() throws Exception {
         ModelUpdateRequest modelUpdateRequest = mockModelUpdateRequest();
         modelUpdateRequest.setStatus("DISABLED");
-        Mockito.doNothing().when(modelService).updateDataModelStatus("default", "nmodel_basic", "DISABLED");
+        Mockito.doNothing().when(modelService).updateDataModelStatus("default", "nmodel_basic", "OFFLINE");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockModelUpdateRequest()))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -316,7 +317,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         SegmentsRequest request = mockSegmentRequest();
         Mockito.doNothing().when(modelService).deleteSegmentById("nmodel_basic", "default", request.getIds());
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/segments/{project}/{model}", "default", "nmodel_basic")
-                .param("ids", "0")
+                .param("ids", "ef5e0663-feba-4ed2-b71c-21958122bbff")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nModelController).deleteSegments("default", "nmodel_basic", request.getIds());
@@ -347,7 +348,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     private SegmentsRequest mockSegmentRequest() {
         SegmentsRequest segmentsRequest = new SegmentsRequest();
-        segmentsRequest.setIds(new int[]{ 0 });
+        segmentsRequest.setIds(new String[]{ "ef5e0663-feba-4ed2-b71c-21958122bbff"});
         segmentsRequest.setModelName("nmodel_basic");
         segmentsRequest.setProject("default");
         return segmentsRequest;
@@ -357,7 +358,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testCreateModel() throws Exception {
         ModelRequest request = new ModelRequest();
         request.setProject("default");
-        Mockito.doNothing().when(modelService).createModel(request);
+        Mockito.doNothing().when(modelService).createModel(request.getProject(), request);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -458,7 +459,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     private Segments<NDataSegment> mockSegments() {
         final Segments<NDataSegment> nDataSegments = new Segments<NDataSegment>();
         NDataSegment segment = new NDataSegment();
-        segment.setId(1);
+        segment.setId(UUID.randomUUID().toString());
         segment.setName("seg1");
         nDataSegments.add(segment);
         return nDataSegments;

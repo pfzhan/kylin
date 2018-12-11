@@ -43,9 +43,11 @@
 package org.apache.kylin.source.jdbc;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -108,45 +110,40 @@ public class H2Database {
         TableDesc tableDesc = metaMgr.getTableDesc(tableName.toUpperCase());
 
         String path = path(tableDesc);
-        FileOutputStream tempFileStream = null;
-        InputStream csvStream = null;
-        File tempFile = null;
         try {
-            tempFile = File.createTempFile("tmp_h2", ".csv");
-            tempFileStream = new FileOutputStream(tempFile);
-            csvStream = metaMgr.getStore().getResource(path).inputStream;
+            File tempFile = File.createTempFile("tmp_h2", ".csv");
+            try (FileOutputStream tempFileStream = new FileOutputStream(tempFile)) {
+                try (InputStream is = new FileInputStream(Paths.get(config.getMetadataUrl().getIdentifier(), path).toFile())) {
+                    IOUtils.copy(is, tempFileStream);
+                }
 
-            IOUtils.copy(csvStream, tempFileStream);
+                String cvsFilePath = tempFile.getPath();
+                try (Statement stmt = h2Connection.createStatement()) {
 
-            String cvsFilePath = tempFile.getPath();
-            try (Statement stmt = h2Connection.createStatement()) {
+                    String createDBSql = "CREATE SCHEMA IF NOT EXISTS DEFAULT;\nCREATE SCHEMA IF NOT EXISTS EDW;\nSET SCHEMA DEFAULT;\n";
+                    stmt.executeUpdate(createDBSql);
 
-                String createDBSql = "CREATE SCHEMA IF NOT EXISTS DEFAULT;\nCREATE SCHEMA IF NOT EXISTS EDW;\nSET SCHEMA DEFAULT;\n";
-                stmt.executeUpdate(createDBSql);
+                    String sql = generateCreateH2TableSql(tableDesc, cvsFilePath);
+                    stmt.executeUpdate(sql);
 
-                String sql = generateCreateH2TableSql(tableDesc, cvsFilePath);
-                stmt.executeUpdate(sql);
-
-                List<String> createIndexStatements = generateCreateH2IndexSql(tableDesc);
-                for (String indexSql : createIndexStatements) {
-                    stmt.executeUpdate(indexSql);
+                    List<String> createIndexStatements = generateCreateH2IndexSql(tableDesc);
+                    for (String indexSql : createIndexStatements) {
+                        stmt.executeUpdate(indexSql);
+                    }
                 }
             }
 
+            FileUtils.deleteQuietly(tempFile);
         } catch (IOException e) {
             throw new IllegalStateException(e);
-        } finally {
-            IOUtils.closeQuietly(csvStream);
-            IOUtils.closeQuietly(tempFileStream);
-            FileUtils.deleteQuietly(tempFile);
         }
     }
 
     private String path(TableDesc tableDesc) {
         if ("EDW.TEST_SELLER_TYPE_DIM".equals(tableDesc.getIdentity())) // it is a view of table below
-            return "/../data/" + "EDW.TEST_SELLER_TYPE_DIM" + ".csv";
+            return "/data/" + "EDW.TEST_SELLER_TYPE_DIM" + ".csv";
         else
-            return "/../data/" + tableDesc.getIdentity() + ".csv";
+            return "/data/" + tableDesc.getIdentity() + ".csv";
     }
 
     private String generateCreateH2TableSql(TableDesc tableDesc, String csvFilePath) {

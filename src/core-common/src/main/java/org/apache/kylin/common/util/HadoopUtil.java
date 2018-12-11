@@ -208,4 +208,8 @@ public class HadoopUtil {
             return null;
         }
     }
+
+    public static String getLatestImagePath(KylinConfig kylinConfig) {
+        return kylinConfig.getHdfsWorkingDirectory() + "image/latest";
+    }
 }

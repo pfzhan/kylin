@@ -23,18 +23,18 @@
  */
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.exception.PersistentException;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.google.common.base.Preconditions;
@@ -49,36 +49,35 @@ import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
-import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.CubePlanRuleUpdateEvent;
-import io.kyligence.kap.event.model.RemoveCuboidByIdEvent;
+import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.TableIndexResponse;
+import io.kyligence.kap.rest.transaction.Transaction;
+import lombok.Setter;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service("cubePlanService")
 public class CubePlanService extends BasicService {
 
-    // TODO: transaction
-    public NCubePlan updateRuleBasedCuboid(final UpdateRuleBasedCuboidRequest request)
-            throws IOException, PersistentException {
+    @Setter
+    @Autowired
+    private ModelSemanticHelper semanticUpater;
+
+    @Transaction(project = 0)
+    public NCubePlan updateRuleBasedCuboid(String project, final UpdateRuleBasedCuboidRequest request) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val cubePlanManager = NCubePlanManager.getInstance(kylinConfig, request.getProject());
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        val eventManager = EventManager.getInstance(kylinConfig, request.getProject());
+        val cubePlanManager = getCubePlanManager(project);
         val modelManager = NDataModelManager.getInstance(kylinConfig, request.getProject());
         NCubePlan originCubePlan = getCubePlan(request.getProject(), request.getModel());
         val model = modelManager.getDataModelDesc(request.getModel());
 
         Preconditions.checkNotNull(model);
-
-        val df = dataflowManager.getDataflowByModelName(request.getModel());
-        Preconditions.checkState(!df.isReconstructing(), "model " + request.getModel() + " is reconstructing ");
-        dataflowManager.updateDataflow(df.getName(), copyForWrite -> copyForWrite.setReconstructing(true));
 
         val cubePlan = cubePlanManager.updateCubePlan(originCubePlan.getName(), copyForWrite -> {
             val newRuleBasedCuboid = new NRuleBasedCuboidsDesc();
@@ -86,27 +85,21 @@ public class CubePlanService extends BasicService {
             copyForWrite.setNewRuleBasedCuboid(newRuleBasedCuboid);
         });
         if (request.isLoadData()) {
-            val event = new CubePlanRuleUpdateEvent();
-            event.setApproved(true);
-            event.setProject(request.getProject());
-            event.setCubePlanName(cubePlan.getName());
-            event.setModelName(cubePlan.getModelName());
-            eventManager.post(event);
+            semanticUpater.handleCubeUpdateRule(request.getProject(), model.getName(), cubePlan.getName());
         }
         return cubePlan;
     }
 
-    // TODO: transaction
-    public void updateTableIndex(CreateTableIndexRequest request) throws PersistentException, IOException {
-        removeTableIndex(request.getProject(), request.getModel(), request.getId());
-        createTableIndex(request);
+    @Transaction(project = 0)
+    public void updateTableIndex(String project, CreateTableIndexRequest request) {
+        removeTableIndex(project, request.getModel(), request.getId());
+        createTableIndex(project, request);
     }
 
-    // TODO: transaction
-    public void createTableIndex(CreateTableIndexRequest request) throws PersistentException, IOException {
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val cubePlanManager = NCubePlanManager.getInstance(kylinConfig, request.getProject());
-        val eventManager = EventManager.getInstance(kylinConfig, request.getProject());
+    @Transaction(project = 0)
+    public void createTableIndex(String project, CreateTableIndexRequest request) {
+        val cubePlanManager = getCubePlanManager(project);
+        val eventManager = getEventManager(project);
 
         val cubePlan = getCubePlan(request.getProject(), request.getModel());
         NDataModel model = cubePlan.getModel();
@@ -167,21 +160,28 @@ public class CubePlanService extends BasicService {
             });
             if (request.isLoadData()) {
                 val addEvent = new AddCuboidEvent();
-                addEvent.setApproved(true);
                 addEvent.setProject(request.getProject());
                 addEvent.setModelName(cubePlan.getModelName());
                 addEvent.setCubePlanName(cubePlan.getName());
-                addEvent.setLayoutIds(Arrays.asList(newLayout.getId()));
+                addEvent.setOwner(getUsername());
+                addEvent.setJobId(UUID.randomUUID().toString());
                 eventManager.post(addEvent);
+
+                val postAddEvent = new PostAddCuboidEvent();
+                postAddEvent.setProject(request.getProject());
+                postAddEvent.setModelName(cubePlan.getModelName());
+                postAddEvent.setCubePlanName(cubePlan.getName());
+                postAddEvent.setJobId(addEvent.getJobId());
+                postAddEvent.setOwner(getUsername());
+                eventManager.post(postAddEvent);
             }
         }
     }
 
-    // TODO: transaction
-    public void removeTableIndex(String project, String model, final long id) throws IOException, PersistentException {
+    @Transaction(project = 0)
+    public void removeTableIndex(String project, String model, final long id) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val cubePlanManager = NCubePlanManager.getInstance(kylinConfig, project);
-        val eventManager = EventManager.getInstance(kylinConfig, project);
 
         val cubePlan = getCubePlan(project, model);
         Preconditions.checkState(cubePlan != null);
@@ -198,14 +198,18 @@ public class CubePlanService extends BasicService {
         if (savedCubePlan.getCuboidLayout(id) != null) {
             return;
         }
-        val removeEvent = new RemoveCuboidByIdEvent();
-        removeEvent.setIncludeManual(true);
-        removeEvent.setLayoutIds(Arrays.asList(id));
-        removeEvent.setProject(project);
-        removeEvent.setApproved(true);
-        removeEvent.setModelName(cubePlan.getModelName());
-        removeEvent.setCubePlanName(cubePlan.getName());
-        eventManager.post(removeEvent);
+        handleRemoveLayout(project, cubePlan.getName(), Sets.newHashSet(id), true, false);
+    }
+
+    public void handleRemoveLayout(String project, String cubePlanName, Set<Long> layoutIds, boolean includeAuto,
+            boolean includeManual) {
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        val dfMgr = NDataflowManager.getInstance(kylinConfig, project);
+        val df = dfMgr.getDataflow(cubePlanName);
+        val cpMgr = NCubePlanManager.getInstance(kylinConfig, project);
+        cpMgr.updateCubePlan(cubePlanName, copyForWrite -> copyForWrite.removeLayouts(layoutIds, NCuboidLayout::equals,
+                includeAuto, includeManual));
+        dfMgr.removeLayouts(df, layoutIds);
     }
 
     public List<TableIndexResponse> getTableIndexs(String project, String model) {
@@ -247,11 +251,6 @@ public class CubePlanService extends BasicService {
             val dataCuboid = segment.getCuboid(cuboidLayout.getId());
             if (dataCuboid == null) {
                 continue;
-            }
-            val segmentStatus = dataCuboid.getStatus();
-            if (segmentStatus == SegmentStatusEnum.NEW) {
-                status = TableIndexResponse.Status.EMPTY;
-                break;
             }
             readyCount++;
         }

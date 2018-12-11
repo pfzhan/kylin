@@ -28,12 +28,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -46,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
@@ -74,22 +78,24 @@ public class DFBuildJob extends NDataflowJob {
     }
 
     @Override
-    protected void execute(OptionsHelper optionsHelper) throws Exception {
+    protected void doExecute(OptionsHelper optionsHelper) throws Exception {
         long start = System.currentTimeMillis();
         logger.info("Start Build");
-        super.execute(optionsHelper);
         String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
         project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
-        Set<Integer> segmentIds = NSparkCubingUtil.str2Ints(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS));
+        Set<String> segmentIds = Sets.newHashSet(StringUtils.split(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS)));
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(optionsHelper.getOptionValue(OPTION_LAYOUT_IDS));
 
         try {
             NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
             NCubePlan cubePlan = dfMgr.getDataflow(dfName).getCubePlan();
-            Set<NCuboidLayout> cuboids = NSparkCubingUtil.toLayouts(cubePlan, layoutIds);
+            Set<NCuboidLayout> cuboids = NSparkCubingUtil.toLayouts(cubePlan, layoutIds).stream()
+                    .filter(Objects::nonNull).collect(Collectors.toSet());
             nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(cuboids, dfName);
 
-            for (int segId : segmentIds) {
+            //TODO: what if a segment is deleted during building?
+
+            for (String segId : segmentIds) {
                 NDataSegment seg = dfMgr.getDataflow(dfName).getSegment(segId);
 
                 // choose source
@@ -185,7 +191,6 @@ public class DFBuildJob extends NDataflowJob {
         dataCuboid.setSourceByteSize(sourceByteSize);
         dataCuboid.setSourceRows(sourceCount);
         dataCuboid.setBuildJobId(jobId);
-        dataCuboid.setStatus(SegmentStatusEnum.READY);
 
         StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
                 .saveCuboidData(dataCuboid, dataset, ss);

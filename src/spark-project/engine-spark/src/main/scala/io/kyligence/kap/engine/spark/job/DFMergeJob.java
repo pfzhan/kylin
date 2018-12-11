@@ -31,7 +31,6 @@ import java.util.Set;
 
 import org.apache.commons.cli.Options;
 import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
@@ -61,11 +60,9 @@ public class DFMergeJob extends NDataflowJob {
         return super.getOptions();
     }
 
-    @Override
-    protected void execute(OptionsHelper optionsHelper) throws Exception {
-        super.execute(optionsHelper);
+    protected void doExecute(OptionsHelper optionsHelper) throws Exception {
         String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
-        int newSegmentId = Integer.parseInt(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS));
+        String newSegmentId = optionsHelper.getOptionValue(OPTION_SEGMENT_IDS);
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(optionsHelper.getOptionValue(OPTION_LAYOUT_IDS));
         project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
 
@@ -75,7 +72,7 @@ public class DFMergeJob extends NDataflowJob {
         mergeSegments(dfName, newSegmentId, layoutIds);
     }
 
-    private void mergeSnapshot(String dataflowName, int segmentId) {
+    private void mergeSnapshot(String dataflowName, String segmentId) {
         final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
         final NDataflow dataflow = mgr.getDataflow(dataflowName);
         final NDataSegment mergedSeg = dataflow.getSegment(segmentId);
@@ -83,18 +80,14 @@ public class DFMergeJob extends NDataflowJob {
 
         Collections.sort(mergingSegments);
 
-        try {
-            NDataflow flowCopy = dataflow.copy();
-            NDataSegment segCopy = flowCopy.getSegment(segmentId);
+        NDataflow flowCopy = dataflow.copy();
+        NDataSegment segCopy = flowCopy.getSegment(segmentId);
 
-            makeSnapshotForNewSegment(segCopy, mergingSegments);
+        makeSnapshotForNewSegment(segCopy, mergingSegments);
 
-            NDataflowUpdate update = new NDataflowUpdate(dataflowName);
-            update.setToUpdateSegs(segCopy);
-            mgr.updateDataflow(update);
-        } catch (IOException e) {
-            logger.error("fail to merge dictionary or lookup snapshots", e);
-        }
+        NDataflowUpdate update = new NDataflowUpdate(dataflowName);
+        update.setToUpdateSegs(segCopy);
+        mgr.updateDataflow(update);
 
     }
 
@@ -105,7 +98,7 @@ public class DFMergeJob extends NDataflowJob {
         }
     }
 
-    private void mergeSegments(String dataflowName, int segmentId, Set<Long> specifiedCuboids) throws IOException {
+    private void mergeSegments(String dataflowName, String segmentId, Set<Long> specifiedCuboids) throws IOException {
         final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
         final NDataflow dataflow = mgr.getDataflow(dataflowName);
         final NDataSegment mergedSeg = dataflow.getSegment(segmentId);
@@ -114,7 +107,7 @@ public class DFMergeJob extends NDataflowJob {
         // collect layouts need to merge
         Map<Long, DFLayoutMergeAssist> mergeCuboidsAsssit = Maps.newConcurrentMap();
         for (NDataSegment seg : mergingSegments) {
-            for (NDataCuboid cuboid : seg.getSegDetails().getCuboidByStatus(SegmentStatusEnum.READY)) {
+            for (NDataCuboid cuboid : seg.getSegDetails().getCuboids()) {
                 long layoutId = cuboid.getCuboidLayoutId();
 
                 DFLayoutMergeAssist assist = mergeCuboidsAsssit.get(layoutId);
@@ -173,7 +166,6 @@ public class DFMergeJob extends NDataflowJob {
         dataCuboid.setSourceByteSize(sourceSizeByte);
         dataCuboid.setSourceRows(sourceCount);
         dataCuboid.setBuildJobId(jobId);
-        dataCuboid.setStatus(SegmentStatusEnum.READY);
 
         StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
                 .saveCuboidData(dataCuboid, dataset, ss);

@@ -62,21 +62,14 @@ public class EventOrchestratorManagerTest extends NLocalFileMetadataTestCase {
         Map<String, EventOrchestrator> map = (Map<String, EventOrchestrator>) x.get(null);
         EventOrchestrator eventOrchestrator = map.get("@global");
 
-        Field fetcherPoolField = EventOrchestrator.class.getDeclaredField("fetcherPool");
+        Field fetcherPoolField = EventOrchestrator.class.getDeclaredField("checkerPool");
         fetcherPoolField.setAccessible(true);
         ExecutorService es1 = (ExecutorService) fetcherPoolField.get(eventOrchestrator);
 
-        Field eventProcessPoolField = EventOrchestrator.class.getDeclaredField("eventProcessPool");
-        eventProcessPoolField.setAccessible(true);
-        ExecutorService es2 = (ExecutorService) eventProcessPoolField.get(eventOrchestrator);
-
         Assert.assertFalse(es1.isShutdown());
-        Assert.assertFalse(es2.isShutdown());
 
         EventOrchestratorManager.destroyInstance();
-
         Assert.assertTrue(es1.isShutdown());
-        Assert.assertTrue(es2.isShutdown());
     }
 
 }

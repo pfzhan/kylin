@@ -120,14 +120,17 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         hotCuboidLayoutQueryTimesList.add(cuboidLayoutQueryTimes);
 
         KylinConfig config = getTestConfig();
-        QueryHistoryDAO.getInstance(config);
+        QueryHistoryDAO.getInstance(config, PROJECT);
 
-        Field field = config.getClass().getDeclaredField("managersCache");
+        Field field = config.getClass().getDeclaredField("managersByPrjCache");
         field.setAccessible(true);
 
-        ConcurrentHashMap<Class, Object> cache = (ConcurrentHashMap<Class, Object>) field.get(config);
-        QueryHistoryDAO dao = Mockito.spy(QueryHistoryDAO.getInstance(config));
-        cache.put(QueryHistoryDAO.class, dao);
+        ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>> cache = (ConcurrentHashMap<Class, ConcurrentHashMap<String, Object>>) field
+                .get(config);
+        QueryHistoryDAO dao = Mockito.spy(QueryHistoryDAO.getInstance(config, PROJECT));
+        ConcurrentHashMap<String, Object> prjCache = new ConcurrentHashMap<>();
+        prjCache.put(PROJECT, dao);
+        cache.put(QueryHistoryDAO.class, prjCache);
         Mockito.doReturn(hotCuboidLayoutQueryTimesList).when(dao).getCuboidLayoutQueryTimes("default", 5,
                 CuboidLayoutQueryTimes.class);
 

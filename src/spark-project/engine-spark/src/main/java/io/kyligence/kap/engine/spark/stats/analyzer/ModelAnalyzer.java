@@ -35,6 +35,7 @@ import io.kyligence.kap.engine.spark.builder.NDataflowBuildJob;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -186,7 +187,7 @@ public class ModelAnalyzer implements Serializable {
 
         final NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config,
                 dataModel.getProject());
-        final TableExtDesc tableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
+        val tableExt = tableMetadataManager.getOrCreateTableExt(tableDesc);
 
         // for lookup table
         boolean isLookup = false;

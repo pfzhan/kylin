@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -94,7 +93,7 @@ public class CuboidDescResponse {
         for (NDataSegment segment : segments) {
             for (NCuboidLayout layout : layouts) {
                 NDataCuboid nDataCuboid = segment.getCuboid(layout.getId());
-                if (nDataCuboid == null || nDataCuboid.getStatus().equals(SegmentStatusEnum.NEW)) {
+                if (nDataCuboid == null) {
                     status = CuboidStatus.EMPTY;
                     return;
                 }

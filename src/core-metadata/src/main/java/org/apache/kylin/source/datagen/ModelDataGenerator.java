@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,10 +43,10 @@
 package org.apache.kylin.source.datagen;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
@@ -58,11 +57,9 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.val;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Bytes;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -75,8 +72,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.io.ByteStreams;
 
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.val;
 
 public class ModelDataGenerator {
     private static final Logger logger = LoggerFactory.getLogger(ModelDataGenerator.class);
@@ -103,7 +103,7 @@ public class ModelDataGenerator {
         Set<TableDesc> allTableDesc = new LinkedHashSet<>();
 
         val allTables = model.getJoinTables();
-        for (int i = allTables.size()- 1; i >= -1; i--) { // reverse order needed for FK generation
+        for (int i = allTables.size() - 1; i >= -1; i--) { // reverse order needed for FK generation
             TableDesc table = (i == -1) ? model.getRootFactTable().getTableDesc()
                     : allTables.get(i).getTableRef().getTableDesc();
             allTableDesc.add(table);
@@ -294,25 +294,25 @@ public class ModelDataGenerator {
 
         List<String> r = new ArrayList<>();
 
-        BufferedReader in = new BufferedReader(
-                new InputStreamReader(outputStore.getResource(path(pk.getTable())).inputStream, "UTF-8"));
-        try {
+        RawResource resource = outputStore.getResource(path(pk.getTable()));
+        try (InputStream is = resource.getByteSource().openStream();
+                BufferedReader in = new BufferedReader(new InputStreamReader(is, "UTF-8"))) {
+
             String line;
             while ((line = in.readLine()) != null) {
                 r.add(line.split(",")[pk.getZeroBasedIndex()]);
             }
-        } finally {
-            IOUtils.closeQuietly(in);
         }
+
         return r;
     }
 
-    private void saveResource(byte[] content, String path) throws IOException {
+    private void saveResource(byte[] content, String path) {
         System.out.println("Generated " + outputStore.getReadableResourcePath(path));
         if (outprint) {
             System.out.println(Bytes.toString(content));
         }
-        outputStore.putResource(path, new ByteArrayInputStream(content), System.currentTimeMillis());
+        outputStore.checkAndPutResource(path, ByteStreams.asByteSource(content), -1);
     }
 
     private String path(TableDesc table) {

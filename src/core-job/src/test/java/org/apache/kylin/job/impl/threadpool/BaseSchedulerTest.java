@@ -42,7 +42,10 @@
 
 package org.apache.kylin.job.impl.threadpool;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
+import java.util.Map;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.SchedulerException;
@@ -55,8 +58,9 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
+import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import lombok.val;
 
 public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
 
@@ -82,6 +86,12 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
         staticCreateTestMetadata();
         executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         startScheduler();
+
+        val clazz = EventStore.class;
+        val field = clazz.getDeclaredField("MQ_PROVIDERS");
+        field.setAccessible(true);
+        val providers = (Map<String, String>) field.get(null);
+        providers.put("mock", "org.apache.kylin.job.impl.threadpool.MockMQ2");
     }
 
     void startScheduler() throws SchedulerException {
@@ -166,8 +176,8 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
             try {
                 AbstractExecutable job = executableManager.getJob(jobId);
                 ExecutableState status = job.getStatus();
-                if (status == ExecutableState.RUNNING) {
-                    scheduler.fetchFailed = true;
+                if (status == ExecutableState.RUNNING || status.isFinalState()) {
+                    //                    scheduler.fetchFailed = true;
                     break;
                 }
                 Thread.sleep(2000);

@@ -68,7 +68,7 @@ import org.apache.kylin.metadata.datatype.DataType;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class TableExtDesc extends RootPersistentEntity {
+public class TableExtDesc extends RootPersistentEntity implements Serializable {
 
     private static final HLLCSerializer HLLC_SERIALIZER = new HLLCSerializer(DataType.getType("hllc14"));
 

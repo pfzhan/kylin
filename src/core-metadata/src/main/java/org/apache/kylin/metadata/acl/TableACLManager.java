@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,12 +46,7 @@ import java.io.IOException;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.AutoReadWriteLock;
-import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
-import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,17 +68,12 @@ public class TableACLManager {
     // ============================================================================
 
     private KylinConfig config;
-    // user ==> TableACL
-    private CaseInsensitiveStringCache<TableACL> tableACLMap;
     private CachedCrudAssist<TableACL> crud;
-    private AutoReadWriteLock lock = new AutoReadWriteLock();
 
     public TableACLManager(KylinConfig config) throws IOException {
         logger.info("Initializing TableACLManager with config " + config);
         this.config = config;
-        // todo prj
-        this.tableACLMap = new CaseInsensitiveStringCache<>(config, "", "table_acl");
-        this.crud = new CachedCrudAssist<TableACL>(getStore(), "/table_acl", TableACL.class, tableACLMap) {
+        this.crud = new CachedCrudAssist<TableACL>(getStore(), "/table_acl", TableACL.class) {
             @Override
             protected TableACL initEntityAfterReload(TableACL acl, String resourceName) {
                 acl.init(resourceName);
@@ -93,22 +82,6 @@ public class TableACLManager {
         };
 
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new TableACLSyncListener(), "", "table_acl");
-    }
-
-    private class TableACLSyncListener extends Broadcaster.Listener {
-
-        @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
-                throws IOException {
-            try (AutoLock l = lock.lockForWrite()) {
-                if (event == Event.DROP)
-                    tableACLMap.removeLocal(cacheKey);
-                else
-                    crud.reloadQuietly(cacheKey);
-            }
-            broadcaster.notifyProjectACLUpdate(cacheKey);
-        }
     }
 
     public KylinConfig getConfig() {
@@ -120,45 +93,32 @@ public class TableACLManager {
     }
 
     public TableACL getTableACLByCache(String project) {
-        try (AutoLock l = lock.lockForRead()) {
-            TableACL tableACL = tableACLMap.get(project);
-            if (tableACL == null) {
-                return newTableACL(project);
-            }
-            return tableACL;
-        }
+        TableACL tableACL = crud.get(project);
+        return tableACL;
     }
 
     public void addTableACL(String project, String name, String table, String type) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            TableACL tableACL = loadTableACL(project).add(name, table, type);
-            crud.save(tableACL);
-        }
+        TableACL tableACL = loadTableACL(project).add(name, table, type);
+        crud.save(tableACL);
     }
 
     public void deleteTableACL(String project, String name, String table, String type) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            TableACL tableACL = loadTableACL(project).delete(name, table, type);
-            crud.save(tableACL);
-        }
+        TableACL tableACL = loadTableACL(project).delete(name, table, type);
+        crud.save(tableACL);
     }
 
     public void deleteTableACL(String project, String name, String type) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            TableACL tableACL = loadTableACL(project).delete(name, type);
-            crud.save(tableACL);
-        }
+        TableACL tableACL = loadTableACL(project).delete(name, type);
+        crud.save(tableACL);
     }
 
     public void deleteTableACLByTbl(String project, String table) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            TableACL tableACL = loadTableACL(project).deleteByTbl(table);
-            crud.save(tableACL);
-        }
+        TableACL tableACL = loadTableACL(project).deleteByTbl(table);
+        crud.save(tableACL);
     }
 
     private TableACL loadTableACL(String project) throws IOException {
-        TableACL acl = crud.reload(project);
+        TableACL acl = crud.get(project);
         if (acl == null) {
             acl = newTableACL(project);
         }

@@ -23,18 +23,18 @@
  */
 package io.kyligence.kap.event.handle;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
 
 public class RefreshSegmentHandlerTest extends NLocalFileMetadataTestCase {
 
@@ -60,31 +60,16 @@ public class RefreshSegmentHandlerTest extends NLocalFileMetadataTestCase {
         SegmentRange segmentRange = df.getSegments().get(0).getSegRange();
 
         RefreshSegmentEvent event = new RefreshSegmentEvent();
-        event.setApproved(true);
         event.setProject(DEFAULT_PROJECT);
         event.setModelName("nmodel_basic");
         event.setCubePlanName("ncube_basic");
         event.setSegmentRange(segmentRange);
+        event.setOwner("ADMIN");
 
         EventContext eventContext = new EventContext(event, getTestConfig());
         RefreshSegmentHandler handler = new RefreshSegmentHandler();
 
         handler.handle(eventContext);
-
-        String jobId = eventContext.getEvent().getJobId();
-        Assert.assertNotNull(jobId);
-
-        handler.handle(eventContext);
-
-        AbstractExecutable job = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getJob(jobId);
-        Assert.assertNotNull(job);
-
-        // do handle again
-        handler.handle(eventContext);
-
-        String jobId2 = eventContext.getEvent().getJobId();
-        Assert.assertNotNull(jobId);
-        Assert.assertEquals(jobId, jobId2);
 
         int size = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getAllExecutables().size();
         Assert.assertEquals(size, 1);

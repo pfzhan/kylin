@@ -42,22 +42,20 @@
 
 package io.kyligence.kap.event.manager;
 
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.NavigableSet;
 
-import io.kyligence.kap.event.model.Event;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.job.exception.PersistentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.event.model.Event;
 
 /**
  */
@@ -71,7 +69,7 @@ public class EventDao {
     }
 
     // called by reflection
-    static EventDao newInstance(KylinConfig config, String project) throws IOException {
+    static EventDao newInstance(KylinConfig config, String project) {
         return new EventDao(config, project);
     }
 
@@ -96,98 +94,51 @@ public class EventDao {
         return resourceRootPath + "/" + uuid;
     }
 
-    private Event readEventResource(String path) throws IOException {
-        return store.getResource(path, Event.class, EVENT_SERIALIZER);
+    private Event readEventResource(String path) {
+        return store.getResource(path, EVENT_SERIALIZER);
     }
 
-    private long writeEventResource(String path, Event event) throws IOException {
-        return store.putResource(path, event, EVENT_SERIALIZER);
+    private void writeEventResource(String path, Event event) {
+        store.checkAndPutResource(path, event, EVENT_SERIALIZER);
     }
 
-    public List<Event> getEvents() throws PersistentException {
-        try {
-            return store.getAllResources(resourceRootPath, Event.class, EVENT_SERIALIZER);
-        } catch (IOException e) {
-            logger.error("error get all events:", e);
-            throw new PersistentException(e);
-        }
+    public List<Event> getEvents() {
+        return store.getAllResources(resourceRootPath, EVENT_SERIALIZER);
     }
 
     //for UT
-    public void deleteAllEvents() throws PersistentException {
+    public void deleteAllEvents() {
         List<Event> events = getEvents();
-        try {
-            for (Event event : events) {
-                store.deleteResource(resourceRootPath + "/" + event.getUuid());
-            }
-        } catch (IOException e) {
-            logger.error("error get all events:", e);
-            throw new PersistentException(e);
+        for (Event event : events) {
+            store.deleteResource(resourceRootPath + "/" + event.getUuid());
         }
     }
 
-    public List<Event> getEventsUnApproved() throws PersistentException {
-        List<Event> unApprovedEvents = new ArrayList<>();
-
-        for (Event event : getEvents()) {
-            if (!event.isApproved()) {
-                unApprovedEvents.add(event);
-            }
-        }
-        return unApprovedEvents;
+    public void deleteEvent(String eventId) {
+        store.deleteResource(resourceRootPath + "/" + eventId);
     }
 
-    public List<Event> getEvents(long timeStart, long timeEndExclusive) throws PersistentException {
-        try {
-            return store.getAllResources(resourceRootPath, timeStart, timeEndExclusive, Event.class, EVENT_SERIALIZER);
-        } catch (IOException e) {
-            logger.error("error get all Jobs:", e);
-            throw new PersistentException(e);
-        }
+    public List<Event> getEvents(long timeStart, long timeEndExclusive) {
+        return store.getAllResources(resourceRootPath, timeStart, timeEndExclusive, EVENT_SERIALIZER);
     }
 
-    public Event getEvent(String uuid) throws PersistentException {
-        try {
-            return readEventResource(pathOfEvent(uuid));
-        } catch (IOException e) {
-            logger.error("error get job:" + uuid, e);
-            throw new PersistentException(e);
-        }
+    public Event getEvent(String uuid) {
+        return readEventResource(pathOfEvent(uuid));
     }
 
-    public Event addEvent(Event event) throws PersistentException {
-        try {
-            if (getEvent(event.getUuid()) != null) {
-                throw new IllegalArgumentException("event id:" + event.getUuid() + " already exists");
-            }
-            writeEventResource(pathOfEvent(event), event);
-            return event;
-        } catch (IOException e) {
-            logger.error("error save event:" + event.getUuid(), e);
-            throw new PersistentException(e);
+    public Event addEvent(Event event) {
+        if (getEvent(event.getUuid()) != null) {
+            throw new IllegalArgumentException("event id:" + event.getUuid() + " already exists");
         }
+        writeEventResource(pathOfEvent(event), event);
+        return event;
     }
 
-    public void updateEvent(Event event) throws PersistentException {
-        try {
-            final long ts = writeEventResource(pathOfEvent(event.getUuid()), event);
-            event.setLastModified(ts);
-        } catch (IOException e) {
-            logger.error("error update event id:" + event.getUuid(), e);
-            throw new PersistentException(e);
+    public List<String> getAllEventPathes() {
+        NavigableSet<String> resources = store.listResources(resourceRootPath);
+        if (resources == null) {
+            return Collections.emptyList();
         }
-    }
-
-    public List<String> getAllEventPathes() throws PersistentException {
-        try {
-            NavigableSet<String> resources = store.listResources(resourceRootPath);
-            if (resources == null) {
-                return Collections.emptyList();
-            }
-            return Lists.newArrayList(resources);
-        } catch (IOException e) {
-            logger.error("error get all Events:", e);
-            throw new PersistentException(e);
-        }
+        return Lists.newArrayList(resources);
     }
 }

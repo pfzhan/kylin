@@ -65,8 +65,8 @@ public class QueryHistory {
     public static final String DB_NAME = InfluxDBWriter.DEFAULT_DATABASE;
 
     // table names
-    public static final String QUERY_MEASUREMENT = "query_metric";
-    public static final String REALIZATION_MEASUREMENT = "realization_metric";
+    public static final String QUERY_MEASUREMENT_PREFIX = "query_metric";
+    public static final String REALIZATION_MEASUREMENT_PREFIX = "realization_metric";
 
     public static final String QUERY_ID = "query_id";
     public static final String SQL_TEXT = "sql_text";
@@ -76,7 +76,6 @@ public class QueryHistory {
     public static final String TOTAL_SCAN_COUNT = "total_scan_count";
     public static final String RESULT_ROW_COUNT = "result_row_count";
     public static final String SUBMITTER = "submitter";
-    public static final String PROJECT = "project";
     public static final String MODEL = "model";
     public static final String REALIZATIONS = "realizations";
     public static final String CUBOID_LAYOUT_ID = "cuboid_layout_id";
@@ -153,11 +152,8 @@ public class QueryHistory {
     @Column(name = ANSWERED_BY, tag = true)
     private String answeredBy;
 
-    @Column(name = PROJECT, tag = true)
-    private String queryProject;
-
     @Column(name = "count")
-    private int size;
+    private int count;
 
     // only for test
     private transient long insertTime;
@@ -165,9 +161,8 @@ public class QueryHistory {
     public QueryHistory() {
     }
 
-    public QueryHistory(String sqlPattern, String project, String queryStatus, String querySubmitter, long queryTime, long duration) {
+    public QueryHistory(String sqlPattern, String queryStatus, String querySubmitter, long queryTime, long duration) {
         this.sqlPattern = sqlPattern;
-        this.queryProject = project;
         this.queryStatus = queryStatus;
         this.querySubmitter = querySubmitter;
         this.queryTime = queryTime;
@@ -176,14 +171,6 @@ public class QueryHistory {
 
     public QueryHistory(String sql) {
         this.sql = sql;
-    }
-
-    public String getProject() {
-       return this.queryProject;
-    }
-
-    public void setProject(String project) {
-        this.queryProject = project;
     }
 
     public boolean isException() {

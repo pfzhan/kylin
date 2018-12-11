@@ -201,7 +201,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
             // assert tags
             final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
-            Assert.assertEquals("default", influxdbTags.get("project"));
             Assert.assertEquals("ADMIN", influxdbTags.get("submitter"));
             Assert.assertEquals("Unknown", influxdbTags.get("suite"));
             Assert.assertEquals("MOCKUP", influxdbTags.get("engine_type"));
@@ -278,7 +277,6 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
 
             // assert realization metric tags
             final Map<String, String> actualTags = actual.getInfluxdbTags();
-            Assert.assertEquals("default", actualTags.get("project"));
             Assert.assertEquals("Unknown", actualTags.get("suite"));
             Assert.assertEquals("mocked_model", actualTags.get("model"));
             Assert.assertEquals("1", actualTags.get("cuboid_layout_id"));

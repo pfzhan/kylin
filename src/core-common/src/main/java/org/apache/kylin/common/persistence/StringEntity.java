@@ -47,6 +47,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang.StringUtils;
 
 @SuppressWarnings("serial")
@@ -65,7 +67,9 @@ public class StringEntity extends RootPersistentEntity {
         }
     };
 
-    String str;
+    @Getter
+    @Setter
+    private String str;
 
     public StringEntity(String str) {
         this.str = str;

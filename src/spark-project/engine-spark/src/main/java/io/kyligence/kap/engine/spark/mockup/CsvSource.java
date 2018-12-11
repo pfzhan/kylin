@@ -35,7 +35,6 @@ import java.util.TreeSet;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -71,9 +70,8 @@ public class CsvSource implements ISource {
             @Override
             public List<String> listDatabases() {
                 Set<String> databases = new TreeSet<>();
-                String resPath = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getStorageUrl()
-                        .toString();
-                String path = resPath + "/../data/tableDesc";
+                String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
+                String path = resPath + "/data/tableDesc";
                 File[] files = new File(path).listFiles();
                 for (File file : files) {
                     if (!file.isDirectory()) {
@@ -90,9 +88,8 @@ public class CsvSource implements ISource {
             @Override
             public List<String> listTables(String database) {
                 Set<String> tables = new TreeSet<>();
-                String resPath = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getStorageUrl()
-                        .toString();
-                String path = resPath + "/../data/tableDesc";
+                String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
+                String path = resPath + "/data/tableDesc";
                 File[] files = new File(path).listFiles();
                 for (File file : files) {
                     if (!file.isDirectory()) {
@@ -110,9 +107,8 @@ public class CsvSource implements ISource {
             @Override
             public Pair<TableDesc, TableExtDesc> loadTableMetadata(String database, String table, String prj)
                     throws IOException {
-                String resPath = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv()).getStorageUrl()
-                        .toString();
-                String path = resPath + "/../data/tableDesc/" + database + "." + table + ".json";
+                String resPath = KylinConfig.getInstanceFromEnv().getMetadataUrl().getIdentifier();
+                String path = resPath + "/data/tableDesc/" + database + "." + table + ".json";
                 TableDesc tableDesc = JsonUtil.readValue(new File(path), TableDesc.class);
                 tableDesc.setTableType("defaultTable");
                 TableExtDesc tableExt = new TableExtDesc();

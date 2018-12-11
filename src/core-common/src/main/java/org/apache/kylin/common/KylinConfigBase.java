@@ -61,7 +61,7 @@ import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.lock.DistributedLockFactory;
-import org.apache.kylin.common.persistence.HDFSResourceStore;
+import org.apache.kylin.common.persistence.image.HDFSImageStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -356,10 +356,6 @@ abstract public class KylinConfigBase implements Serializable {
     // METADATA
     // ============================================================================
 
-    public String getMetaStoreFactory() {
-        return getOptional("kylin.metadata.store-factory", "");
-    }
-
     public int getQueryConcurrentRunningThresholdForProject() {
         // by default there's no limitation
         return Integer.parseInt(getOptional("kylin.query.project-concurrent-running-threshold", "0"));
@@ -374,7 +370,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public StorageURL getMetadataUrl() {
-        return StorageURL.valueOf(getOptional("kylin.metadata.url", "kylin_metadata@hbase"));
+        return StorageURL.valueOf(getOptional("kylin.metadata.url", "kylin_metadata@hdfs,mq=kafka"));
     }
 
     public int getCacheSyncRetrys() {
@@ -390,13 +386,11 @@ abstract public class KylinConfigBase implements Serializable {
         return getMetadataUrl().getIdentifier();
     }
 
-    public Map<String, String> getResourceStoreImpls() {
+    public Map<String, String> getImageStoreImpls() {
         Map<String, String> r = Maps.newLinkedHashMap();
         // ref constants in ISourceAware
-        r.put("", "org.apache.kylin.common.persistence.FileResourceStore");
-        r.put("hbase", "org.apache.kylin.storage.hbase.HBaseResourceStore");
-        r.put("hdfs", "org.apache.kylin.common.persistence.HDFSResourceStore");
-        r.put("ifile", "IdentifierFileResourceStore");
+        r.put("", "org.apache.kylin.common.persistence.image.FileImageStore");
+        r.put("hdfs", "org.apache.kylin.common.persistence.image.HDFSImageStore");
         r.putAll(getPropertiesByPrefix("kylin.metadata.resource-store-provider.")); // note the naming convention -- http://kylin.apache.org/development/coding_naming_convention.html
         return r;
     }
@@ -592,10 +586,10 @@ abstract public class KylinConfigBase implements Serializable {
     public StorageURL getJobTmpMetaStoreUrl(String jobId) {
         Map<String, String> params = new HashMap<>();
         params.put("path", getHdfsWorkingDirectory() + "job_tmp/" + jobId + "/meta");
-        return new StorageURL(getMetadataUrlPrefix(), HDFSResourceStore.HDFS_SCHEME, params);
+        return new StorageURL(getMetadataUrlPrefix(), HDFSImageStore.HDFS_SCHEME, params);
     }
 
-    public CliCommandExecutor getCliCommandExecutor() throws IOException {
+    public CliCommandExecutor getCliCommandExecutor() {
         CliCommandExecutor exec = new CliCommandExecutor();
         if (getRunAsRemoteCommand()) {
             exec.setRunAtRemote(getRemoteHadoopCliHostname(), getRemoteHadoopCliPort(), getRemoteHadoopCliUsername(),
@@ -686,6 +680,10 @@ abstract public class KylinConfigBase implements Serializable {
 
     public int getJobRetry() {
         return Integer.parseInt(this.getOptional("kylin.job.retry", "0"));
+    }
+
+    public String[] getJobRetryExceptions() {
+        return getOptionalStringArray("kylin.job.retry-exception-classes", new String[0]);
     }
 
     public int getCubeStatsHLLPrecision() {
@@ -1378,7 +1376,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public String[] getRestServers() {
-        return getOptionalStringArray("kylin.server.cluster-servers", new String[0]);
+        return getOptionalStringArray("kylin.server.cluster-servers", new String[] { "admin:KYLIN@localhost:7070" });
     }
 
     public String getClusterName() {
@@ -1387,6 +1385,10 @@ abstract public class KylinConfigBase implements Serializable {
 
     public String getInitTasks() {
         return getOptional("kylin.server.init-tasks");
+    }
+
+    public String getNodeId() {
+        return getOptional("kylin.server.node-id", "kylin0");
     }
 
     public int getWorkersPerServer() {
@@ -1480,11 +1482,6 @@ abstract public class KylinConfigBase implements Serializable {
 
     public int getFavoriteStatisticsCollectionInterval() {
         return Integer.parseInt(this.getOptional("kylin.favorite.statistics-collection-interval", "60"));
-    }
-
-    public StorageURL getFavoriteStorageUrl() {
-        return StorageURL.valueOf(this.getOptional("kylin.favorite.storage-url",
-                "kylin_favorite@jdbc,url=jdbc:mysql://localhost:3306/kylin,username=root,password="));
     }
 
     public int getFavoriteAccelerateBatchSize() {
@@ -1588,10 +1585,6 @@ abstract public class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.storage.columnar.separate-fs-enable", "false"));
     }
 
-    public boolean getEventWaitForJobFinished() {
-        return Boolean.valueOf(getOptional("kylin.event.wait-for-job-finished", "false"));
-    }
-
     public Boolean isEnumerableRulesEnabled() {
         return Boolean.parseBoolean(getOptional("kylin.query.calcite.enumerable-rules-enabled", "false"));
     }
@@ -1617,4 +1610,7 @@ abstract public class KylinConfigBase implements Serializable {
                 TimeUnit.MILLISECONDS);
     }
 
+    public int getImageCountThreshold() {
+        return Integer.parseInt(getOptional("kylin.image.count-threshold", "5"));
+    }
 }

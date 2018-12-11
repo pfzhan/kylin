@@ -74,7 +74,6 @@ public class QueryMetricsContext {
     private String sqlPattern;
 
     private String submitter;
-    private String project;
     private String hostname;
     private String suite;
 
@@ -161,7 +160,6 @@ public class QueryMetricsContext {
         this.queryTime = QueryContext.current().getQueryStartMillis();
 
         this.submitter = request.getUsername();
-        this.project = request.getProject();
 
         this.hostname = response.getServer();
         this.suite = response.getSuite() == null ? UNKNOWN : response.getSuite();
@@ -197,7 +195,7 @@ public class QueryMetricsContext {
         collectErrorType(context);
         collectRealizationMetrics(response);
 
-        logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter, project,
+        logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter,
                 hostname, suite, queryDuration, totalScanBytes, errorType, engineType);
     }
 
@@ -233,7 +231,6 @@ public class QueryMetricsContext {
         for (RealizationMetrics singleMetric : response.getRealizationMetrics()) {
             singleMetric.setQueryId(queryId);
             singleMetric.setSuite(suite);
-            singleMetric.setProject(project);
             this.realizationMetrics.add(singleMetric);
         }
     }
@@ -241,7 +238,6 @@ public class QueryMetricsContext {
     public Map<String, String> getInfluxdbTags() {
         final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder() //
                 .put(QueryHistory.SUBMITTER, submitter) //
-                .put(QueryHistory.PROJECT, project) //
                 .put(QueryHistory.SUITE, suite) //
                 .put(QueryHistory.ENGINE_TYPE, engineType)
                 .put(QueryHistory.ANSWERED_BY, answeredBy)
@@ -308,8 +304,6 @@ public class QueryMetricsContext {
 
         private String suite;
 
-        private String project;
-
         private String cuboidLayoutId;
 
         private String realizationType;
@@ -325,7 +319,6 @@ public class QueryMetricsContext {
         public Map<String, String> getInfluxdbTags() {
             return ImmutableMap.<String, String> builder() //
                     .put(QueryHistory.SUITE, suite) //
-                    .put(QueryHistory.PROJECT, project) //
                     .put(QueryHistory.MODEL, modelName) //
                     .put(QueryHistory.CUBOID_LAYOUT_ID, cuboidLayoutId) //
                     .put(QueryHistory.REALIZATION_TYPE, realizationType) //

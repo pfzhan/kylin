@@ -57,13 +57,8 @@ import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.persistence.WriteConflictException;
-import org.apache.kylin.common.util.AutoReadWriteLock;
-import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.apache.kylin.rest.exception.BadRequestException;
-import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.security.AclRecord;
@@ -71,7 +66,6 @@ import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.acls.domain.PermissionFactory;
 import org.springframework.security.acls.domain.PrincipalSid;
@@ -89,7 +83,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 @Component("aclService")
-public class AclService implements MutableAclService, InitializingBean {
+public class AclService implements MutableAclService {
     private static final Logger logger = LoggerFactory.getLogger(AclService.class);
 
     public static final String DIR_PREFIX = "/acl/";
@@ -103,15 +97,12 @@ public class AclService implements MutableAclService, InitializingBean {
     @Autowired
     protected PermissionFactory aclPermissionFactory;
     // cache
-    private CaseInsensitiveStringCache<AclRecord> aclMap;
     private CachedCrudAssist<AclRecord> crud;
-    private AutoReadWriteLock lock = new AutoReadWriteLock();
 
     public AclService() throws IOException {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         ResourceStore aclStore = ResourceStore.getKylinMetaStore(config);
-        this.aclMap = new CaseInsensitiveStringCache<>(config, "", "acl");
-        this.crud = new CachedCrudAssist<AclRecord>(aclStore, "/acl", "", AclRecord.class, aclMap) {
+        this.crud = new CachedCrudAssist<AclRecord>(aclStore, "/acl", "", AclRecord.class) {
             @Override
             protected AclRecord initEntityAfterReload(AclRecord acl, String resourceName) {
                 acl.init(null, aclPermissionFactory, permissionGrantingStrategy);
@@ -122,40 +113,10 @@ public class AclService implements MutableAclService, InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() throws Exception {
-        Broadcaster.getInstance(KylinConfig.getInstanceFromEnv()).registerStaticListener(new AclRecordSyncListener(),
-                "", "acl");
-    }
-
-    private class AclRecordSyncListener extends Broadcaster.Listener {
-
-        @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
-                throws IOException {
-            try (AutoLock l = lock.lockForWrite()) {
-                if (event == Broadcaster.Event.DROP)
-                    aclMap.removeLocal(cacheKey);
-                else
-                    crud.reloadQuietly(cacheKey);
-            }
-            broadcaster.notifyProjectACLUpdate(cacheKey);
-        }
-
-        @Override
-        public void onClearAll(Broadcaster broadcaster) throws IOException {
-            try (AutoLock l = lock.lockForWrite()) {
-                aclMap.clear();
-            }
-        }
-    }
-
-    @Override
     public List<ObjectIdentity> findChildren(ObjectIdentity parentIdentity) {
         List<ObjectIdentity> oids = new ArrayList<>();
         Collection<AclRecord> allAclRecords;
-        try (AutoLock l = lock.lockForRead()) {
-            allAclRecords = new ArrayList<>(aclMap.values());
-        }
+        allAclRecords = crud.getAll();
         for (AclRecord record : allAclRecords) {
             ObjectIdentityImpl parent = record.getParentDomainObjectInfo();
             if (parent != null && parent.equals(parentIdentity)) {
@@ -214,48 +175,36 @@ public class AclService implements MutableAclService, InitializingBean {
 
     @Override
     public MutableAcl createAcl(ObjectIdentity objectIdentity) throws AlreadyExistsException {
-        try (AutoLock l = lock.lockForWrite()) {
-            AclRecord aclRecord = getAclRecordByCache(objID(objectIdentity));
-            if (aclRecord != null) {
-                throw new AlreadyExistsException("ACL of " + objectIdentity + " exists!");
-            }
-            AclRecord record = newPrjACL(objectIdentity);
-            crud.save(record);
-            logger.debug("ACL of " + objectIdentity + " created successfully.");
-        } catch (IOException e) {
-            throw new InternalErrorException(e);
+        AclRecord aclRecord = getAclRecordByCache(objID(objectIdentity));
+        if (aclRecord != null) {
+            throw new AlreadyExistsException("ACL of " + objectIdentity + " exists!");
         }
+        AclRecord record = newPrjACL(objectIdentity);
+        crud.save(record);
+        logger.debug("ACL of " + objectIdentity + " created successfully.");
         return (MutableAcl) readAclById(objectIdentity);
     }
 
     @Override
     public void deleteAcl(ObjectIdentity objectIdentity, boolean deleteChildren) throws ChildrenExistException {
-        try (AutoLock l = lock.lockForWrite()) {
-            List<ObjectIdentity> children = findChildren(objectIdentity);
-            if (!deleteChildren && children.size() > 0) {
-                Message msg = MsgPicker.getMsg();
-                throw new BadRequestException(String.format(msg.getIDENTITY_EXIST_CHILDREN(), objectIdentity));
-            }
-            for (ObjectIdentity oid : children) {
-                deleteAcl(oid, deleteChildren);
-            }
-            crud.delete(objID(objectIdentity));
-            logger.debug("ACL of " + objectIdentity + " deleted successfully.");
-        } catch (IOException e) {
-            throw new InternalErrorException(e);
+        List<ObjectIdentity> children = findChildren(objectIdentity);
+        if (!deleteChildren && children.size() > 0) {
+            Message msg = MsgPicker.getMsg();
+            throw new BadRequestException(String.format(msg.getIDENTITY_EXIST_CHILDREN(), objectIdentity));
         }
+        for (ObjectIdentity oid : children) {
+            deleteAcl(oid, deleteChildren);
+        }
+        crud.delete(objID(objectIdentity));
+        logger.debug("ACL of " + objectIdentity + " deleted successfully.");
     }
 
     // Try use the updateAclWithRetry() method family whenever possible
     @Override
     public MutableAcl updateAcl(MutableAcl mutableAcl) throws NotFoundException {
-        try (AutoLock l = lock.lockForWrite()) {
-            AclRecord record = ((MutableAclRecord) mutableAcl).getAclRecord();
-            crud.save(record);
-            logger.debug("ACL of " + mutableAcl.getObjectIdentity() + " updated successfully.");
-        } catch (IOException e) {
-            throw new InternalErrorException(e);
-        }
+        AclRecord record = ((MutableAclRecord) mutableAcl).getAclRecord();
+        crud.save(record);
+        logger.debug("ACL of " + mutableAcl.getObjectIdentity() + " updated successfully.");
         return mutableAcl;
     }
 
@@ -292,18 +241,7 @@ public class AclService implements MutableAclService, InitializingBean {
 
     @Nullable
     private AclRecord getAclRecordByCache(String id) {
-        try (AutoLock l = lock.lockForRead()) {
-            if (aclMap.size() > 0) {
-                return aclMap.get(id);
-            }
-        }
-
-        try (AutoLock l = lock.lockForWrite()) {
-            crud.reloadAll();
-            return aclMap.get(id);
-        } catch (IOException e) {
-            throw new RuntimeException("Can not get ACL record from cache.", e);
-        }
+        return crud.get(id);
     }
 
     private AclRecord newPrjACL(ObjectIdentity objID) {
@@ -341,8 +279,6 @@ public class AclService implements MutableAclService, InitializingBean {
                         + " retry remaining " + retry + ", will retry...");
                 acl = readAcl(acl.getObjectIdentity());
 
-            } catch (IOException e) {
-                throw new InternalErrorException(e);
             }
         }
         throw new RuntimeException("should not reach here");

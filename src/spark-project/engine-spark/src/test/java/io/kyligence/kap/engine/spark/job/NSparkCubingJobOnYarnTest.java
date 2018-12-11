@@ -26,6 +26,7 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import org.apache.kylin.common.KylinConfig;
@@ -118,7 +119,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         df = dsMgr.getDataflow("ncube_basic");
         oneSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(0L, SegmentRange.dateToLong("2013-06-01")), false);
 
-        NSparkMergingJob mergeJob = NSparkMergingJob.merge(oneSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
+        NSparkMergingJob mergeJob = NSparkMergingJob.merge(oneSeg, Sets.newLinkedHashSet(layouts), "ADMIN", UUID.randomUUID().toString());
 
         // launch the job
         execMgr.addJob(mergeJob);

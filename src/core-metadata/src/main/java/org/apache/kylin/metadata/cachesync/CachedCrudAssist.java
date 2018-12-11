@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -49,6 +48,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListMap;
 
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -59,6 +60,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
+
+import lombok.AccessLevel;
+import lombok.Getter;
+import lombok.val;
 
 public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
 
@@ -69,32 +75,32 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     final private String resRootPath;
     final private String resPathSuffix;
     final private Serializer<T> serializer;
-    final private SingleValueCache<String, T> cache;
+    @Getter(AccessLevel.PROTECTED)
+    final private Map<String, T> cache;
 
     private boolean checkCopyOnWrite;
 
-    public CachedCrudAssist(ResourceStore store, String resourceRootPath, Class<T> entityType,
-                            SingleValueCache<String, T> cache) {
-        this(store, resourceRootPath, MetadataConstants.FILE_SURFIX, entityType, cache);
+    public CachedCrudAssist(ResourceStore store, String resourceRootPath, Class<T> entityType) {
+        this(store, resourceRootPath, MetadataConstants.FILE_SURFIX, entityType);
     }
 
     public CachedCrudAssist(ResourceStore store, String resourceRootPath, String resourcePathSuffix,
-                            Class<T> entityType, SingleValueCache<String, T> cache) {
+            Class<T> entityType) {
         this.store = store;
         this.entityType = entityType;
         this.resRootPath = resourceRootPath;
         this.resPathSuffix = resourcePathSuffix;
-        this.serializer = new JsonSerializer<T>(entityType);
-        this.cache = cache;
+        this.serializer = new JsonSerializer<>(entityType);
+        this.cache = new ConcurrentSkipListMap<>(String.CASE_INSENSITIVE_ORDER);
 
         this.checkCopyOnWrite = store.getConfig().isCheckCopyOnWrite();
 
-        Preconditions.checkArgument(resRootPath.startsWith("/"));
-        Preconditions.checkArgument(resRootPath.endsWith("/") == false);
+        Preconditions.checkArgument(resourceRootPath.equals("") || resRootPath.startsWith("/"));
+        Preconditions.checkArgument(!resRootPath.endsWith("/"));
     }
 
     public Serializer<T> getSerializer() {
-        return (Serializer<T>) serializer;
+        return serializer;
     }
 
     public void setCheckCopyOnWrite(boolean check) {
@@ -104,7 +110,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     // Make copy of an entity such that update can apply on the copy.
     // Note cached and shared object MUST NOT be updated directly.
     public T copyForWrite(T entity) {
-        if (entity.isCachedAndShared() == false)
+        if (!entity.isCachedAndShared())
             return entity;
         else
             return copyBySerialization(entity);
@@ -116,7 +122,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         try {
             byte[] bytes;
             try (ByteArrayOutputStream buf = new ByteArrayOutputStream();
-                 DataOutputStream dout = new DataOutputStream(buf)) {
+                    DataOutputStream dout = new DataOutputStream(buf)) {
                 serializer.serialize(entity, dout);
                 bytes = buf.toByteArray();
             }
@@ -143,7 +149,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         return resourcePath.substring(resRootPath.length() + 1, resourcePath.length() - resPathSuffix.length());
     }
 
-    public void reloadAll() throws IOException {
+    public void reloadAll() {
         logger.debug("Reloading " + entityType.getSimpleName() + " from " + store.getReadableResourcePath(resRootPath));
 
         cache.clear();
@@ -157,12 +163,8 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
                 + " resource");
     }
 
-    public T reload(String resourceName) {
+    private T reload(String resourceName) {
         return reloadAt(resourcePath(resourceName));
-    }
-
-    public T reloadQuietly(String resourceName) {
-        return reloadQuietlyAt(resourcePath(resourceName));
     }
 
     private T reloadQuietlyAt(String path) {
@@ -176,10 +178,10 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
 
     public T reloadAt(String path) {
         try {
-            T entity = store.getResource(path, entityType, serializer);
+            T entity = store.getResource(path, serializer);
             if (entity == null) {
                 logger.warn("No " + entityType.getSimpleName() + " found at " + path + ", returning null");
-                cache.removeLocal(resourceName(path));
+                cache.remove(resourceName(path));
                 return null;
             }
 
@@ -187,11 +189,11 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
             entity.setCachedAndShared(true);
             entity = initEntityAfterReload(entity, resourceName(path));
 
-            if (path.equals(resourcePath(entity.resourceName())) == false)
+            if (!path.equals(resourcePath(entity.resourceName())))
                 throw new IllegalStateException("The entity " + entity + " read from " + path
                         + " will save to a different path " + resourcePath(entity.resourceName()));
 
-            cache.putLocal(entity.resourceName(), entity);
+            cache.put(entity.resourceName(), entity);
             return entity;
         } catch (Exception e) {
             throw new IllegalStateException("Error loading " + entityType.getSimpleName() + " at " + path, e);
@@ -199,13 +201,24 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     }
 
     public T get(String resourceName) {
+        val raw = store.getResource(resourcePath(resourceName));
+        val entity = cache.get(resourceName);
+        if (entity == null) {
+            reloadAt(resourcePath(resourceName));
+        } else if (raw.getMvcc() == entity.getMvcc()) {
+            return entity;
+        } else if (raw.getMvcc() < entity.getMvcc()) {
+            throw new IllegalStateException("resource " + raw.getResPath() + " version is less than cache");
+        } else {
+            reloadAt(resourcePath(resourceName));
+        }
         return cache.get(resourceName);
     }
 
     abstract protected T initEntityAfterReload(T entity, String resourceName);
 
     // This will trigger broadcast
-    public T save(T entity) throws IOException {
+    public T save(T entity) {
         Preconditions.checkArgument(entity != null);
         Preconditions.checkArgument(entity.getUuid() != null);
         Preconditions.checkArgument(entityType.isInstance(entity));
@@ -223,21 +236,18 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         String path = resourcePath(resName);
         logger.debug("Saving {} at {}", entityType.getSimpleName(), path);
 
-        store.putResource(path, entity, serializer);
-
-        // just to trigger the event broadcast, the entity won't stay in cache
-        cache.put(resName, entity);
+        store.checkAndPutResource(path, entity, serializer);
 
         // keep the pass-in entity out of cache, the caller may use it for further update
         // return a reloaded new object
         return reload(resName);
     }
 
-    public void delete(T entity) throws IOException {
+    public void delete(T entity) {
         delete(entity.resourceName());
     }
 
-    public void delete(String resName) throws IOException {
+    public void delete(String resName) {
         Preconditions.checkArgument(resName != null);
 
         String path = resourcePath(resName);
@@ -247,4 +257,16 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         cache.remove(resName);
     }
 
+    public List<T> getAll() {
+        val all = Lists.<T> newArrayList();
+        for (String path : store.collectResourceRecursively(resRootPath, resPathSuffix)) {
+            T value = get(resourceName(path));
+            all.add(value);
+        }
+        return all;
+    }
+
+    public boolean contains(String name) {
+        return store.getResource(resourcePath(name)) != null;
+    }
 }

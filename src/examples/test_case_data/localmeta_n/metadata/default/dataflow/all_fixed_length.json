@@ -11,7 +11,7 @@
   "status" : "OFFLINE",
   "cost" : 50,
   "segments" : [ {
-    "id" : 0,
+    "id" : "11124840-b3e3-43db-bcab-2b78da666d00",
     "name" : "20171104141833_20171105141833",
     "create_time_utc" : 1509805113772,
     "status" : "READY",

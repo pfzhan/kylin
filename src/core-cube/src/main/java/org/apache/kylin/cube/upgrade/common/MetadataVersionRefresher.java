@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,12 +42,13 @@
 
 package org.apache.kylin.cube.upgrade.common;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.NavigableSet;
 
+import com.google.common.io.ByteStreams;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.slf4j.Logger;
@@ -84,14 +84,17 @@ public class MetadataVersionRefresher {
         collectFiles(this.store, "/", all);
 
         for (String path : all) {
-            if (path.endsWith(MetadataConstants.FILE_SURFIX) && !(path.startsWith(ResourceStore.DICT_RESOURCE_ROOT) || path.startsWith(ResourceStore.SNAPSHOT_RESOURCE_ROOT))) {
+            if (path.endsWith(MetadataConstants.FILE_SURFIX) && !(path.startsWith(ResourceStore.DICT_RESOURCE_ROOT)
+                    || path.startsWith(ResourceStore.SNAPSHOT_RESOURCE_ROOT))) {
                 logger.info("Updating metadata version of path {}", path);
-                ObjectNode objectNode = (ObjectNode) mapper.readTree(this.store.getResource(path).inputStream);
+                ObjectNode objectNode;
+                try (InputStream is = this.store.getResource(path).getByteSource().openStream()) {
+                    objectNode = (ObjectNode) mapper.readTree(is);
+                }
                 objectNode.put("version", version);
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 mapper.writeValue(baos, objectNode);
-                ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-                this.store.putResource(path, bais, System.currentTimeMillis());
+                this.store.checkAndPutResource(path, ByteStreams.asByteSource(baos.toByteArray()), -1);
             }
         }
     }

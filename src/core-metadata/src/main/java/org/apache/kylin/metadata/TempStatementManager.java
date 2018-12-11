@@ -43,18 +43,11 @@
 package org.apache.kylin.metadata;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.common.persistence.WriteConflictException;
-import org.apache.kylin.common.util.AutoReadWriteLock;
-import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,16 +69,13 @@ public class TempStatementManager {
     // ============================================================================
 
     private KylinConfig config;
-    private CaseInsensitiveStringCache<TempStatementEntity> tmpStatMap;
     private CachedCrudAssist<TempStatementEntity> crud;
-    private AutoReadWriteLock lock = new AutoReadWriteLock();
 
     private TempStatementManager(KylinConfig cfg) throws IOException {
         this.config = cfg;
         //TODO: support prj
-        this.tmpStatMap = new CaseInsensitiveStringCache<>(config, "", "temp_statement");
         this.crud = new CachedCrudAssist<TempStatementEntity>(getStore(), ResourceStore.TEMP_STATMENT_RESOURCE_ROOT,
-                TempStatementEntity.class, tmpStatMap) {
+                TempStatementEntity.class) {
             @Override
             protected TempStatementEntity initEntityAfterReload(TempStatementEntity t, String resourceName) {
                 return t; // noop
@@ -94,23 +84,6 @@ public class TempStatementManager {
 
         crud.reloadAll();
 
-        // touch lower level metadata before registering my listener
-        //TODO: support prj
-        Broadcaster.getInstance(config).registerListener(new TempStatementSyncListener(), "", "temp_statement");
-    }
-
-    private class TempStatementSyncListener extends Broadcaster.Listener {
-
-        @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Broadcaster.Event event, String cacheKey)
-                throws IOException {
-            try (AutoLock l = lock.lockForWrite()) {
-                if (event == Broadcaster.Event.DROP)
-                    tmpStatMap.removeLocal(cacheKey);
-                else
-                    crud.reloadQuietly(cacheKey);
-            }
-        }
     }
 
     public String getTempStatement(String statementId) {
@@ -123,17 +96,7 @@ public class TempStatementManager {
     }
 
     public TempStatementEntity getTempStatEntity(String sessionId, String statementId) {
-        try (AutoLock l = lock.lockForRead()) {
-            return tmpStatMap.get(TempStatementEntity.resourceName(sessionId, statementId));
-        }
-    }
-
-    // for test
-    List<String> reloadAllTempStatement() throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            crud.reloadAll();
-            return new ArrayList<>(tmpStatMap.keySet());
-        }
+        return crud.get(TempStatementEntity.resourceName(sessionId, statementId));
     }
 
     public void updateTempStatement(String statementId, String statement) throws IOException {
@@ -141,11 +104,9 @@ public class TempStatementManager {
     }
 
     public void updateTempStatement(String sessionId, String statementId, String statement) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            TempStatementEntity entity = new TempStatementEntity(sessionId, statementId, statement);
-            entity = prepareToOverwrite(entity, getTempStatEntity(sessionId, statementId));
-            updateTempStatementWithRetry(entity, 0);
-        }
+        TempStatementEntity entity = new TempStatementEntity(sessionId, statementId, statement);
+        entity = prepareToOverwrite(entity, getTempStatEntity(sessionId, statementId));
+        crud.save(entity);
     }
 
     private TempStatementEntity prepareToOverwrite(TempStatementEntity entity, TempStatementEntity origin) {
@@ -160,31 +121,12 @@ public class TempStatementManager {
         return entity;
     }
 
-    private void updateTempStatementWithRetry(TempStatementEntity entity, int retry) throws IOException {
-        try {
-            crud.save(entity);
-        } catch (WriteConflictException ise) {
-            logger.warn("Write conflict to update temp statement" + entity.statementId + " at try " + retry
-                    + ", will retry...");
-            if (retry >= 7) {
-                logger.error("Retried 7 times till got error, abandoning...", ise);
-                throw ise;
-            }
-
-            TempStatementEntity reload = crud.reload(entity.resourceName());
-            entity = prepareToOverwrite(entity, reload);
-            updateTempStatementWithRetry(entity, ++retry);
-        }
-    }
-
     public void removeTempStatement(String statementId) throws IOException {
         removeTempStatement(TempStatementEntity.DEFAULT_SESSION_ID, statementId);
     }
 
     public void removeTempStatement(String session, String statementId) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            crud.delete(TempStatementEntity.resourceName(session, statementId));
-        }
+        crud.delete(TempStatementEntity.resourceName(session, statementId));
     }
 
     private ResourceStore getStore() {

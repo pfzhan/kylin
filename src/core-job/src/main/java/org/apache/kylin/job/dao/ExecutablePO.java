@@ -92,7 +92,9 @@ public class ExecutablePO extends RootPersistentEntity {
     @JsonProperty("data_range_end")
     private long dataRangeEnd;
 
-    @JsonProperty("target_subject")
+    @JsonProperty("target_model")
+    private String targetModel;
 
-    private String targetSubject;
+    @JsonProperty("target_segments")
+    private List<String> targetSegments;
 }

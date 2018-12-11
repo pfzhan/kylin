@@ -22,7 +22,7 @@
         <kylin.engine/>
         <kylin.storage/>
         <sparder.enabled/>
-        <guava.version>20.0</guava.version>
+        <!--<guava.version>20.0</guava.version>-->
         <beanutils.version>1.9.2</beanutils.version>
     </properties>
 

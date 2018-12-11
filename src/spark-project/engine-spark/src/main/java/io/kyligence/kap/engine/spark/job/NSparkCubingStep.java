@@ -27,6 +27,9 @@ package io.kyligence.kap.engine.spark.job;
 import java.util.Arrays;
 import java.util.Set;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
+import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,12 +63,12 @@ public class NSparkCubingStep extends NSparkExecutable {
         return this.getParam(NBatchConstants.P_DATAFLOW_NAME);
     }
 
-    void setSegmentIds(Set<Integer> segmentIds) {
-        this.setParam(NBatchConstants.P_SEGMENT_IDS, NSparkCubingUtil.ids2Str(segmentIds));
+    void setSegmentIds(Set<String> segmentIds) {
+        this.setParam(NBatchConstants.P_SEGMENT_IDS, Joiner.on(",").join(segmentIds));
     }
 
-    public Set<Integer> getSegmentIds() {
-        return NSparkCubingUtil.str2Ints(this.getParam(NBatchConstants.P_SEGMENT_IDS));
+    public Set<String> getSegmentIds() {
+        return Sets.newHashSet(StringUtils.split(this.getParam(NBatchConstants.P_SEGMENT_IDS)));
     }
 
     void setCuboidLayoutIds(Set<Long> clIds) {

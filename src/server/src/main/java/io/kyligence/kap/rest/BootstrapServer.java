@@ -33,7 +33,6 @@ import org.apache.catalina.Context;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.exception.SchedulerException;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -49,24 +48,10 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ImportResource;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.event.handle.AddCuboidHandler;
-import io.kyligence.kap.event.handle.AddSegmentHandler;
-import io.kyligence.kap.event.handle.CubePlanRuleUpdateHandler;
-import io.kyligence.kap.event.handle.LoadingRangeRefreshHandler;
-import io.kyligence.kap.event.handle.LoadingRangeUpdateHandler;
-import io.kyligence.kap.event.handle.MergeSegmentHandler;
-import io.kyligence.kap.event.handle.ModelSemanticUpdateHandler;
-import io.kyligence.kap.event.handle.AccelerateEventHandler;
-import io.kyligence.kap.event.handle.PostCubePlanRuleUpdateHandler;
-import io.kyligence.kap.event.handle.PostModelSemanticUpdateHandler;
-import io.kyligence.kap.event.handle.ProjectHandler;
-import io.kyligence.kap.event.handle.RefreshSegmentHandler;
-import io.kyligence.kap.event.handle.RemoveCuboidByIdHandler;
-import io.kyligence.kap.event.handle.RemoveSegmentHandler;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import org.springframework.scheduling.annotation.EnableScheduling;
 
 @ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
 @SpringBootApplication
@@ -116,29 +101,10 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
     }
 
     private static void initBackend() {
-        new ProjectHandler();
-        new AddSegmentHandler();
-        new MergeSegmentHandler();
-        new RemoveSegmentHandler();
-        new RemoveCuboidByIdHandler();
-        new AddCuboidHandler();
-        new AccelerateEventHandler();
-        new LoadingRangeUpdateHandler();
-        new LoadingRangeRefreshHandler();
-        new RefreshSegmentHandler();
-        new CubePlanRuleUpdateHandler();
-        new PostCubePlanRuleUpdateHandler();
-        new ModelSemanticUpdateHandler();
-        new PostModelSemanticUpdateHandler();
-
         NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
         for (ProjectInstance projectInstance : projectManager.listAllProjects()) {
             NDefaultScheduler scheduler = NDefaultScheduler.getInstance(projectInstance.getName());
-            try {
-                scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
-            } catch (SchedulerException e) {
-                throw new RuntimeException(e);
-            }
+            scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
             if (!scheduler.hasStarted()) {
                 throw new RuntimeException("Scheduler for " +projectInstance.getName() + " has not been started");
             }
@@ -169,7 +135,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         try {
             Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1", "sa", "");
             H2Database h2DB = new H2Database(h2Connection, KylinConfig.getInstanceFromEnv(), "default");
-            h2DB.loadAllTables();
+//            h2DB.loadAllTables();
         } catch (SQLException ex) {
             logger.error(ex.getMessage(), ex);
         }

@@ -35,7 +35,7 @@
 
     <description>Kylin Rest Service</description>
     <context:annotation-config/>
-    <mvc:annotation-driven/>
+    <!--<mvc:annotation-driven/>-->
     <aop:aspectj-autoproxy/>
 
     <bean class="org.apache.kylin.rest.init.InitialTaskManager" />

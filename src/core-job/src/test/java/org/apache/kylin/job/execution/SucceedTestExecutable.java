@@ -43,7 +43,7 @@ public class SucceedTestExecutable extends BaseTestExecutable {
             this.retry++;
         } catch (InterruptedException e) {
         }
-        return new ExecuteResult(ExecuteResult.State.SUCCEED, "succeed");
+        return ExecuteResult.createSucceed();
     }
 
     @Override

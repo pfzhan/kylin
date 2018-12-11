@@ -28,8 +28,8 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 import org.apache.calcite.jdbc.Driver;
 import org.apache.kylin.common.KapConfig;
@@ -53,15 +53,16 @@ import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Sets;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 
 @SuppressWarnings("serial")
 public class KapSparkSession extends SparkSession {
@@ -162,7 +163,7 @@ public class KapSparkSession extends SparkSession {
             logger.error("Collect query error", e);
         }
     }
-
+    
     private void collectQueryHistory(String sql) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         final QueryHistoryManager manager = QueryHistoryManager.getInstance(config);
@@ -193,12 +194,12 @@ public class KapSparkSession extends SparkSession {
         if (!scheduler.hasStarted()) {
             throw new RuntimeException("scheduler has not been started");
         }
-
+    
         logger.info("Magic starts from here. Let's wait several minutes......");
         NSmartController.optimizeFromPushdown(config, project);
         logger.info("Auto modeling done. Starts to build......");
         buildAllCubes(config, project);
-
+    
         NDefaultScheduler.destroyInstance();
         use(project);
         logger.info("Job finished. Come on! Query me!");
@@ -216,16 +217,15 @@ public class KapSparkSession extends SparkSession {
             Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
             NDataSegment oneSeg;
             List<NCuboidLayout> layouts;
+            boolean isAppend = false;
             if (readySegments.isEmpty()) {
                 oneSeg = dataflowManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
                 layouts = df.getCubePlan().getAllCuboidLayouts();
+                isAppend = true;
             } else {
                 oneSeg = readySegments.getFirstSegment();
-                layouts = Lists.newArrayList();
-                for (Map.Entry<Long, NDataCuboid> cuboid : oneSeg.getCuboidsMap().entrySet()) {
-                    if (cuboid.getValue().getStatus() == SegmentStatusEnum.NEW)
-                        layouts.add(cuboid.getValue().getCuboidLayout());
-                }
+                layouts = df.getCubePlan().getAllCuboidLayouts().stream()
+                        .filter(c -> !oneSeg.getCuboidsMap().containsKey(c.getId())).collect(Collectors.toList());
             }
 
             // create cubing job
@@ -243,6 +243,16 @@ public class KapSparkSession extends SparkSession {
                             break;
                     }
                 }
+                val analysisStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkAnalysisStep());
+                val buildStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkCubingStep());
+                AfterBuildResourceMerger merger = new AfterBuildResourceMerger(kylinConfig, project);
+                val layoutIds = layouts.stream().map(NCuboidLayout::getId).collect(Collectors.toSet());
+                if (isAppend) {
+                    merger.mergeAfterIncrement(df.getName(), oneSeg.getId(), layoutIds, buildStore);
+                } else {
+                    merger.mergeAfterCatchup(df.getName(), Sets.newHashSet(oneSeg.getId()), layoutIds, buildStore);
+                }
+                merger.mergeAnalysis(df.getName(), analysisStore);
             }
         }
     }

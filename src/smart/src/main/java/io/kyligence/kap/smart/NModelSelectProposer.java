@@ -98,7 +98,7 @@ public class NModelSelectProposer extends NAbstractProposer {
     }
 
     private NDataModel compareWithFactTable(ModelTree modelTree) {
-        for (NDataModel model : modelManager.listModels()) {
+        for (NDataModel model : modelManager.getDataModels()) {
             if (matchModelTree(model, modelTree)) {
                 return model;
             }

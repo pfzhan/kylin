@@ -68,7 +68,7 @@ public class NColumnACLManagerTest extends NLocalFileMetadataTestCase {
         manager.addColumnACL(PROJECT, USER_NAME, TABLE, TEST_COLUMNS, MetadataConstants.TYPE_USER);
         manager.addColumnACL(PROJECT, GROUP_NAME, TABLE, TEST_COLUMNS, MetadataConstants.TYPE_GROUP);
 
-        final ColumnACL actual = getStore().getResource("/column_acl/" + PROJECT, ColumnACL.class, new JsonSerializer<>(ColumnACL.class));
+        final ColumnACL actual = getStore().getResource("/column_acl/" + PROJECT, new JsonSerializer<>(ColumnACL.class));
         Assert.assertTrue(actual.contains(USER_NAME, MetadataConstants.TYPE_USER));
         Assert.assertTrue(actual.contains(GROUP_NAME, MetadataConstants.TYPE_GROUP));
     }

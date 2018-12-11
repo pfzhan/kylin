@@ -23,14 +23,11 @@
  */
 package io.kyligence.kap.event.handle;
 
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -49,14 +46,15 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-
+import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
 
 public class RefreshSegmentHandler extends AbstractEventWithJobHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(RefreshSegmentHandler.class);
 
     @Override
-    public AbstractExecutable createJob(EventContext eventContext) throws Exception {
+    public AbstractExecutable createJob(EventContext eventContext) {
         RefreshSegmentEvent event = (RefreshSegmentEvent) eventContext.getEvent();
 
         String project = event.getProject();
@@ -74,9 +72,7 @@ public class RefreshSegmentHandler extends AbstractEventWithJobHandler {
         }
 
         for (Map.Entry<Long, NDataCuboid> cuboid : readySegments.getLatestReadySegment().getCuboidsMap().entrySet()) {
-            if (cuboid.getValue().getStatus() == SegmentStatusEnum.READY) {
-                layouts.add(cuboid.getValue().getCuboidLayout());
-            }
+            layouts.add(cuboid.getValue().getCuboidLayout());
         }
         if (CollectionUtils.isEmpty(layouts)) {
             return null;
@@ -101,8 +97,4 @@ public class RefreshSegmentHandler extends AbstractEventWithJobHandler {
         return job;
     }
 
-    @Override
-    public Class<?> getEventClassType() {
-        return RefreshSegmentEvent.class;
-    }
 }

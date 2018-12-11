@@ -25,7 +25,6 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,9 +38,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.ResourceTool;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.exception.ExecuteException;
@@ -51,7 +50,10 @@ import org.apache.kylin.job.execution.ExecuteResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.cube.model.NBatchConstants;
+import lombok.val;
 
 /**
  */
@@ -81,6 +83,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
     protected void setDistMetaUrl(String metaUrl) {
         this.setParam(NBatchConstants.P_DIST_META_URL, metaUrl);
+        this.setParam(NBatchConstants.P_OUTPUT_META_URL, metaUrl + "_output");
     }
 
     public String getDistMetaUrl() {
@@ -121,49 +124,52 @@ public class NSparkExecutable extends AbstractExecutable {
             throw new ExecuteException("meta dump failed", e);
         }
 
-        try {
-            String jobMessage = "";
-            if (config.isUTEnv()) {
-                jobMessage = runLocalMode(formatAppArgsForSparkLocal());
-            } else {
-                jobMessage = runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar, appArgs);
-            }
-            return new ExecuteResult(ExecuteResult.State.SUCCEED, jobMessage);
-        } catch (Exception e) {
-            logger.error("error run spark job", e);
-            return new ExecuteResult(ExecuteResult.State.ERROR, e.getMessage());
+        if (config.isUTEnv()) {
+            return runLocalMode(formatAppArgsForSparkLocal());
+        } else {
+            return runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar, appArgs);
         }
     }
 
-    private String runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
-            String kylinJobJar, String[] appArgs) throws IOException {
-        StringBuilder sb = new StringBuilder();
-        sb.append("export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry ");
+    private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
+            String kylinJobJar, String[] appArgs) {
 
-        Map<String, String> sparkConfs = config.getSparkConfigOverride();
-        for (Map.Entry<String, String> entry : sparkConfs.entrySet()) {
-            sb.append(" --conf ").append(entry.getKey()).append("=").append(entry.getValue()).append(" ");
-        }
-
-        sb.append("--jars %s %s %s");
-        String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), jars, kylinJobJar,
-                StringUtil.join(Arrays.asList(appArgs), " "));
-        logger.debug("spark submit cmd: {}", cmd);
-
-        CliCommandExecutor exec = new CliCommandExecutor();
         PatternedLogger patternedLogger = new PatternedLogger(logger);
-        exec.execute(cmd, patternedLogger);
-        getManager().addJobInfo(getId(), patternedLogger.getInfo());
-        return patternedLogger.getBufferedLog();
+        try {
+            StringBuilder sb = new StringBuilder();
+            sb.append(
+                    "export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry ");
+
+            Map<String, String> sparkConfs = config.getSparkConfigOverride();
+            for (Map.Entry<String, String> entry : sparkConfs.entrySet()) {
+                sb.append(" --conf ").append(entry.getKey()).append("=").append(entry.getValue()).append(" ");
+            }
+
+            sb.append("--jars %s %s %s");
+            String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), jars, kylinJobJar,
+                    StringUtil.join(Arrays.asList(appArgs), " "));
+            logger.debug("spark submit cmd: {}", cmd);
+
+            CliCommandExecutor exec = new CliCommandExecutor();
+            Pair<Integer, String> result = exec.execute(cmd, patternedLogger);
+
+            Preconditions.checkState(result.getFirst() == 0);
+            Map<String, String> extraInfo = makeExtraInfo(patternedLogger.getInfo());
+            val ret = ExecuteResult.createSucceed(result.getSecond());
+            ret.getExtraInfo().putAll(extraInfo);
+            return ret;
+        } catch (Exception e) {
+            return ExecuteResult.createError(e);
+        }
     }
 
-    private String runLocalMode(String[] appArgs) {
+    private ExecuteResult runLocalMode(String[] appArgs) {
         try {
             Class<? extends Object> appClz = ClassUtil.forName(getSparkSubmitClassName(), Object.class);
             appClz.getMethod("main", String[].class).invoke(null, (Object) appArgs);
-            return "";
+            return ExecuteResult.createSucceed();
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            return ExecuteResult.createError(e);
         }
     }
 
@@ -227,23 +233,14 @@ public class NSparkExecutable extends AbstractExecutable {
         File tmpDir = File.createTempFile("kylin_job_meta", "");
         FileUtils.forceDelete(tmpDir); // we need a directory, so delete the file first
 
-        tmpDir.mkdirs();
-
-        // dump metadata
-        ResourceStore.dumpResources(config, tmpDir, dumpList);
-
-        // write kylin.properties
         Properties props = config.exportToProperties();
         props.setProperty("kylin.metadata.url", metaDumpUrl);
-        File kylinPropsFile = new File(tmpDir, "kylin.properties");
-        try (FileOutputStream os = new FileOutputStream(kylinPropsFile)) {
-            props.store(os, kylinPropsFile.getAbsolutePath());
-        }
+        // dump metadata
+        ResourceStore.dumpResources(config, tmpDir, dumpList, props);
 
         // copy metadata to target metaUrl
         KylinConfig dstConfig = KylinConfig.createKylinConfig(props);
-        ResourceTool.copy(KylinConfig.createInstanceFromUri(tmpDir.getAbsolutePath()), dstConfig);
-
+        ResourceStore.createImageStore(dstConfig).uploadFromFile(tmpDir);
         // clean up
         logger.debug("Copied metadata to the target metaUrl, delete the temp dir: {}", tmpDir);
         FileUtils.forceDelete(tmpDir);

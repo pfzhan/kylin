@@ -30,8 +30,11 @@ import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
@@ -76,6 +79,7 @@ import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
 
 @SuppressWarnings("serial")
 public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
@@ -250,7 +254,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         // Round1. Build new segment
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(round1), "ADMIN");
-        NSparkCubingStep sparkStep = (NSparkCubingStep) job.getSparkCubingStep();
+        NSparkCubingStep sparkStep = job.getSparkCubingStep();
         StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
         Assert.assertEquals("hdfs", distMetaUrl.getScheme());
         Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));
@@ -265,6 +269,11 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         ExecutableState status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
+        val merger = new AfterBuildResourceMerger(config, getProject());
+        merger.mergeAfterIncrement(df.getName(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
+                ExecutableUtils.getRemoteStore(config, sparkStep));
+        merger.mergeAnalysis(df.getName(), ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep()));
+
         /**
          * Round2. Build new layouts, should reuse the data from already existing cuboid.
          * Notice: After round1 the segment has been updated, need to refresh the cache before use the old one.
@@ -276,7 +285,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         round2.add(df.getCubePlan().getCuboidLayout(1001L));
 
         //update seg
-        oneSeg = dsMgr.getDataflow("ncube_basic").getSegment(oneSeg.getId());
+        val df2 = dsMgr.getDataflow("ncube_basic");
+        oneSeg = df2.getSegment(oneSeg.getId());
         nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(round2, df.getName());
         for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
             NCuboidLayout layout = NCuboidLayoutChooser.selectLayoutForBuild(oneSeg,
@@ -290,9 +300,13 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         // wait job done
         status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
+        merger.mergeAfterCatchup(df2.getName(), Sets.newHashSet(oneSeg.getId()),
+                ExecutableUtils.getLayoutIds(job.getSparkCubingStep()),
+                ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep()));
+        merger.mergeAnalysis(df2.getName(), ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep()));
 
-        validateCube(0);
-        validateTableIndex(0);
+        validateCube(df2.getSegments().getFirstSegment().getId());
+        validateTableIndex(df2.getSegments().getFirstSegment().getId());
         validateTableExt(df.getModel().getRootFactTableName(), 10000, 1, 11);
     }
 
@@ -360,15 +374,16 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         long start = SegmentRange.dateToLong("2011-01-01");
         long end = SegmentRange.dateToLong("2012-06-01");
         buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts), true);
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
         buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts), true);
         df = dsMgr.getDataflow("ncube_basic");
         NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2010-01-02"), SegmentRange.dateToLong("2013-01-01")), false);
-        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
+        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
+                UUID.randomUUID().toString());
         execMgr.addJob(firstMergeJob);
         while (true) {
             if (execMgr.getJob(firstMergeJob.getId()).getStatus().equals(ExecutableState.RUNNING)) {
@@ -474,8 +489,9 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
-        validateCube(0);
-        validateTableIndex(0);
+        val df2 = dsMgr.getDataflow(df.getName());
+        validateCube(df2.getSegments().getFirstSegment().getId());
+        validateTableIndex(df2.getSegments().getFirstSegment().getId());
     }
 
     @Test
@@ -485,9 +501,9 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow(cubeName);
         buildCuboid(cubeName, SegmentRange.TimePartitionedSegmentRange.createInfinite(),
-                Sets.<NCuboidLayout> newLinkedHashSet(df.getCubePlan().getAllCuboidLayouts()));
+                Sets.<NCuboidLayout> newLinkedHashSet(df.getCubePlan().getAllCuboidLayouts()), true);
         List<Object[]> resultFromLayout = getCuboidDataAfterDecoding(
-                NDataflowManager.getInstance(config, getProject()).getDataflow(cubeName).getSegment(1), 1);
+                NDataflowManager.getInstance(config, getProject()).getDataflow(cubeName).getSegments().get(1), 1);
         for (Object[] row : resultFromLayout) {
             if (row[0].equals("10000000158")) {
                 Assert.assertEquals("4", row[1].toString());// COUNT(*)
@@ -537,19 +553,19 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         long start = SegmentRange.dateToLong("2011-01-01");
         long end = SegmentRange.dateToLong("2012-06-01");
         buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts), true);
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
         buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts), true);
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2013-06-01");
         buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts), true);
         start = SegmentRange.dateToLong("2013-06-01");
         end = SegmentRange.dateToLong("2015-01-01");
         buildCuboid("ncube_basic", new SegmentRange.TimePartitionedSegmentRange(start, end),
-                Sets.<NCuboidLayout> newLinkedHashSet(layouts));
+                Sets.<NCuboidLayout> newLinkedHashSet(layouts), true);
 
         /**
          * Round2. Merge two segments
@@ -557,7 +573,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         df = dsMgr.getDataflow("ncube_basic");
         NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2010-01-02"), SegmentRange.dateToLong("2013-01-01")), false);
-        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
+        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN",
+                UUID.randomUUID().toString());
         execMgr.addJob(firstMergeJob);
         // wait job done
 
@@ -567,7 +584,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataSegment secondMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(
                 SegmentRange.dateToLong("2013-01-01"), SegmentRange.dateToLong("2015-06-01")), false);
         NSparkMergingJob secondMergeJob = NSparkMergingJob.merge(secondMergeSeg, Sets.newLinkedHashSet(layouts),
-                "ADMIN");
+                "ADMIN", UUID.randomUUID().toString());
         execMgr.addJob(secondMergeJob);
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob));
@@ -575,8 +592,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         /**
          * validate cube segment info
          */
-        NDataSegment firstSegment = dsMgr.getDataflow("ncube_basic").getSegment(4);
-        NDataSegment secondSegment = dsMgr.getDataflow("ncube_basic").getSegment(5);
+        NDataSegment firstSegment = dsMgr.getDataflow("ncube_basic").getSegments().get(4);
+        NDataSegment secondSegment = dsMgr.getDataflow("ncube_basic").getSegments().get(5);
         Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2011-01-01"),
                 SegmentRange.dateToLong("2013-01-01")), firstSegment.getSegRange());
         Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"),
@@ -587,7 +604,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(7, secondSegment.getSnapshots().size());
     }
 
-    private void validateCube(int segmentId) {
+    private void validateCube(String segmentId) {
         NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow("ncube_basic");
         NDataSegment seg = df.getSegment(segmentId);
 
@@ -620,7 +637,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         }*/
     }
 
-    private void validateTableIndex(int segmentId) {
+    private void validateTableIndex(String segmentId) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("ncube_basic");
@@ -649,7 +666,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    public void testNSparkCubingJobUsingModelAlias() throws IOException {
+    public void testNSparkCubingJobUsingModelUuid() {
         String modelAlias = "nmodel_basic_alias";
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("ncube_basic");
@@ -671,7 +688,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN");
 
-        String targetSubject = job.getTargetSubject();
-        Assert.assertEquals(modelAlias, targetSubject);
+        String targetSubject = job.getTargetModel();
+        Assert.assertEquals(dataModel.getName(), targetSubject);
     }
 }

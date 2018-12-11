@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,13 +42,17 @@
 
 package org.apache.kylin.job.common;
 
-import java.io.IOException;
+import java.util.Map;
+
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+
+import lombok.val;
 
 /**
  */
@@ -64,16 +67,20 @@ public class ShellExecutable extends AbstractExecutable {
     }
 
     @Override
-    protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
+    protected ExecuteResult doWork(ExecutableContext context) {
         try {
-            logger.info("executing:" + getCmd());
+            logger.info("executing:{}", getCmd());
             final PatternedLogger patternedLogger = new PatternedLogger(logger);
-            final Pair<Integer, String> result = context.getConfig().getCliCommandExecutor().execute(getCmd(), patternedLogger);
-            getManager().addJobInfo(getId(), patternedLogger.getInfo());
-            return new ExecuteResult(result.getFirst() == 0 ? ExecuteResult.State.SUCCEED : ExecuteResult.State.FAILED, result.getSecond());
-        } catch (IOException e) {
-            logger.error("job:" + getId() + " execute finished with exception", e);
-            return new ExecuteResult(ExecuteResult.State.ERROR, e.getLocalizedMessage());
+            final Pair<Integer, String> result = context.getConfig().getCliCommandExecutor().execute(getCmd(),
+                    patternedLogger);
+
+            Preconditions.checkState(result.getFirst() == 0);
+            Map<String, String> extraInfo = makeExtraInfo(patternedLogger.getInfo());
+            val ret = ExecuteResult.createSucceed(result.getSecond());
+            ret.getExtraInfo().putAll(extraInfo);
+            return ret;
+        } catch (Exception e) {
+            return ExecuteResult.createError(e);
         }
     }
 

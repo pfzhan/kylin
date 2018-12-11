@@ -49,8 +49,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
@@ -73,6 +75,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import io.kyligence.kap.common.persistence.transaction.TransactionException;
+
 public class NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NBasicController.class);
 
@@ -92,7 +96,12 @@ public class NBasicController {
             cause = cause.getCause();
         }
 
-        return new ErrorResponse(req.getRequestURL().toString(), ex);
+        Throwable returnEx = ex;
+        if (ex instanceof TransactionException) {
+            returnEx = ex.getCause();
+        }
+
+        return new ErrorResponse(req.getRequestURL().toString(), returnEx);
     }
 
     @ResponseStatus(HttpStatus.FORBIDDEN)

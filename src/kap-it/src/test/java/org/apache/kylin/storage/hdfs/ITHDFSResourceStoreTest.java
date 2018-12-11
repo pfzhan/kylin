@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,9 +42,8 @@
 
 package org.apache.kylin.storage.hdfs;
 
-
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStoreTest;
+import org.apache.kylin.common.persistence.ResourceStoreTestBase;
 import org.apache.kylin.common.util.HBaseMetadataTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -63,21 +61,24 @@ public class ITHDFSResourceStoreTest extends HBaseMetadataTestCase {
     }
 
     @After
-    public void after() throws Exception {
+    public void after() {
         this.cleanupTestMetadata();
     }
 
     @Test
-    public void testBasic() throws Exception {
-        ResourceStoreTest.testAStore(ResourceStoreTest.mockUrl("hdfs", kylinConfig), kylinConfig);
+    public void testBasic() {
+        String hdfs = ResourceStoreTestBase.mockUrl("hdfs", kylinConfig);
+        ResourceStoreTestBase.wrapInNewUrl(hdfs, kylinConfig, ResourceStoreTestBase::testAStore);
     }
 
     @Ignore
     @Test
-    public void performanceTest() throws Exception {
+    public void performanceTest() {
         //test hdfs performance
-        ResourceStoreTest.testPerformance(ResourceStoreTest.mockUrl("hdfs", kylinConfig), kylinConfig);
+        String hdfs = ResourceStoreTestBase.mockUrl("hdfs", kylinConfig);
+        ResourceStoreTestBase.wrapInNewUrl(hdfs, kylinConfig, ResourceStoreTestBase::testPerformance);
         //test hbase
-        ResourceStoreTest.testPerformance(ResourceStoreTest.mockUrl("hbase", kylinConfig), kylinConfig);
+        String hbase = ResourceStoreTestBase.mockUrl("hbase", kylinConfig);
+        ResourceStoreTestBase.wrapInNewUrl(hbase, kylinConfig, ResourceStoreTestBase::testPerformance);
     }
 }

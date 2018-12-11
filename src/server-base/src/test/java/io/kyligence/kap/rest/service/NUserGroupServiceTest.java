@@ -53,8 +53,13 @@ public class NUserGroupServiceTest extends ServiceTestBase {
 
     @Test
     public void testBasic() throws IOException {
+        for (String group : userGroupService.getAllUserGroups()) {
+            if (!group.equals(GROUP_ALL_USERS)) {
+                userGroupService.deleteGroup(group);
+            }
+        }
         //test group add and get
-        userGroupService.addGroup(GROUP_ALL_USERS);
+//        userGroupService.addGroup(GROUP_ALL_USERS);
         userGroupService.addGroup("g1");
         userGroupService.addGroup("g2");
         userGroupService.addGroup("g3");

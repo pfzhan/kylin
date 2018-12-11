@@ -24,23 +24,21 @@
 
 package io.kyligence.kap.cube.model;
 
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.MetadataConstants;
-import org.apache.kylin.metadata.lookup.LookupStringTable;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.IStorageAware;
-import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableRef;
@@ -58,12 +56,10 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.Getter;
-import lombok.Setter;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-public class NDataflow extends RootPersistentEntity implements IRealization, IKeep, IStorageAware {
+public class NDataflow extends RootPersistentEntity implements Serializable, IRealization, IKeep {
     public static final String REALIZATION_TYPE = "NCUBE";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
 
@@ -76,7 +72,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         df.setCubePlanName(plan.getName());
         df.setCreateTimeUTC(System.currentTimeMillis());
         df.setSegments(new Segments<NDataSegment>());
-        df.setStatus(RealizationStatusEnum.NEW);
+        df.setStatus(RealizationStatusEnum.ONLINE);
         df.updateRandomUuid();
 
         return df;
@@ -104,10 +100,6 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     private long createTimeUTC;
     @JsonProperty("status")
     private RealizationStatusEnum status;
-    @Setter
-    @Getter
-    @JsonProperty("reconstructing")
-    private boolean isReconstructing;
     @JsonProperty("cost")
     private int cost = 50;
 
@@ -122,7 +114,7 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
 
     // ================================================================
 
-    void initAfterReload(KylinConfigExt config) {
+    public void initAfterReload(KylinConfigExt config) {
         this.config = config;
         for (NDataSegment seg : segments) {
             seg.initAfterReload();
@@ -192,6 +184,11 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         }
     }
 
+    public String getModelAlias() {
+        NDataModel model = getModel();
+        return model == null ? null : model.getAlias();
+    }
+
     @Override
     public Set<TblColRef> getAllColumns() {
         return getCubePlan().listAllTblColRefs();
@@ -235,9 +232,9 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         return segments.getTSEnd();
     }
 
-    public NDataSegment getSegment(int segId) {
+    public NDataSegment getSegment(String segId) {
         for (NDataSegment seg : segments) {
-            if (seg.getId() == segId)
+            if (seg.getId().equals(segId))
                 return seg;
         }
         return null;
@@ -277,47 +274,6 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
         }
     }
 
-    //get the segment with max id
-    public NDataSegment getSegmentWithMaxId() {
-        List<NDataSegment> existing = getSegments();
-        if (existing.isEmpty()) {
-            return null;
-        } else {
-            int maxIndex = 0;
-            for (int i = 1; i < existing.size(); i++) {
-                if (existing.get(maxIndex).getId() < existing.get(i).getId())
-                    maxIndex = i;
-            }
-            return existing.get(maxIndex);
-        }
-    }
-
-    public boolean checkAllowedOnline() {
-        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getConfig(),
-                getProject());
-        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager
-                .getDataLoadingRange(getModel().getRootFactTableName());
-        if (dataLoadingRange == null) {
-            return true;
-        } else {
-            Segments readySegments = this.getSegments(SegmentStatusEnum.READY);
-            if (CollectionUtils.isEmpty(readySegments)) {
-                return false;
-            }
-            SegmentRange readyRange = readySegments.getFirstSegment().getSegRange()
-                    .coverWith(readySegments.getLatestReadySegment().getSegRange());
-            if (dataLoadingRange.getActualQueryStart() == -1 && dataLoadingRange.getActualQueryEnd() == -1) {
-                return true;
-            }
-            if (Long.parseLong(readyRange.getStart().toString()) <= dataLoadingRange.getActualQueryStart()
-                    && Long.parseLong(readyRange.getEnd().toString()) >= dataLoadingRange.getActualQueryEnd()) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-    }
-
     @Override
     public boolean supportsLimitPushDown() {
         return true; // TODO: storage_type defined on cuboid level, which will decide whether to support
@@ -326,16 +282,6 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
     @Override
     public boolean hasPrecalculatedFields() {
         return true;
-    }
-
-    @Override
-    public LookupStringTable getLookupTable(String lookupTableName) {
-        //lookupTableName is assumed to be in this model for sure
-
-        TableRef table = getModel().findTable(lookupTableName);
-        JoinDesc joinByPKSide = getModel().getJoinByPKSide(table);
-        return NDataflowManager.getInstance(getConfig(), getProject()).getLookupTable(this.getLastSegment(),
-                joinByPKSide);
     }
 
     @Override
@@ -415,6 +361,10 @@ public class NDataflow extends RootPersistentEntity implements IRealization, IKe
 
     public void setSegments(Segments<NDataSegment> segments) {
         checkIsNotCachedAndShared();
+
+        Collections.sort(segments);
+        segments.validate();
+
         this.segments = segments;
     }
 

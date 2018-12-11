@@ -24,25 +24,23 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
+import org.apache.hadoop.util.StringUtils;
+import org.apache.kylin.common.util.OptionsHelper;
+
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.engine.spark.stats.analyzer.ModelAnalyzer;
 import io.kyligence.kap.metadata.model.NDataModel;
-import org.apache.kylin.common.util.OptionsHelper;
-
-import java.util.Set;
+import lombok.val;
 
 public class NModelAnalysisJob extends NDataflowJob {
 
     @Override
-    protected void execute(OptionsHelper optionsHelper) throws Exception {
-        super.execute(optionsHelper);
-
+    protected void doExecute(OptionsHelper optionsHelper) throws Exception {
         String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
         project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
-        Set<Integer> segmentIds = NSparkCubingUtil.str2Ints(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS));
+        val segmentIds = StringUtils.split(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS));
 
         final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
         final NDataflow dataflow = mgr.getDataflow(dfName);
@@ -50,7 +48,7 @@ public class NModelAnalysisJob extends NDataflowJob {
 
         final ModelAnalyzer modelAnalyzer = new ModelAnalyzer(dataModel, config);
         logger.info("Start to analysis model {}", dataflow.getName());
-        for (int segId : segmentIds) {
+        for (String segId : segmentIds) {
             NDataSegment seg = dataflow.getSegment(segId);
             logger.info("Analysis segment {}", seg.getName());
             modelAnalyzer.analyze(seg, ss);

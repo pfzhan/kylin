@@ -46,7 +46,6 @@ import org.junit.Ignore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.util.KylinConfigUtils;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
@@ -66,7 +65,6 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         super.init();
         kylinConfig = getTestConfig();
         overwriteSystemProp("kap.smart.conf.model.inner-join.exactly-match", "true");
-        KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
     }
 
     protected void overwriteSystemProp(String key, String value) {

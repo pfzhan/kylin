@@ -54,6 +54,9 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import lombok.Getter;
+import lombok.Setter;
+
 /**
  * Marks the root entity of JSON persistence. Unit of read, write, cache, and
  * refresh.
@@ -83,6 +86,7 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     @JsonProperty("last_modified")
     protected long lastModified;
 
+
     // if cached and shared, the object MUST NOT be modified (call setXXX() for example)
     protected boolean isCachedAndShared = false;
 
@@ -93,6 +97,11 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
      */
     @JsonProperty("version")
     protected String version = KylinVersion.getCurrentVersion().toString();
+
+    @Getter
+    @Setter
+    @JsonProperty("mvcc")
+    private long mvcc = -1;
 
     public String getVersion() {
         return version;
@@ -185,5 +194,10 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
 
     public String getResourcePath() {
         return "";
+    }
+
+    @Override
+    public String toString() {
+        return getClass().getName() + "@" + uuid;
     }
 }

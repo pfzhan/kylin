@@ -28,6 +28,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -81,7 +82,7 @@ import lombok.Getter;
 import lombok.val;
 
 @SuppressWarnings("serial")
-public class NCubePlan extends RootPersistentEntity implements IEngineAware, IKeep {
+public class NCubePlan extends RootPersistentEntity implements Serializable, IEngineAware, IKeep {
     public static final String CUBE_PLAN_RESOURCE_ROOT = "/cube_plan";
 
     public static String concatResourcePath(String name) {

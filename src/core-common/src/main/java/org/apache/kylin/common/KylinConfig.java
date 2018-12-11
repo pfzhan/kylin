@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -61,12 +60,12 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.kylin.common.util.ClassUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.restclient.RestClient;
+import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.OrderedProperties;
 import org.slf4j.Logger;
@@ -148,7 +147,7 @@ public class KylinConfig extends KylinConfigBase {
             System.setProperty(KylinConfig.KYLIN_CONF, localMetaDir);
 
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            config.setMetadataUrl(localMetaDir + "/metadata");
+            config.setMetadataUrl(localMetaDir + ",mq=mock");
 
             // make sure a local working directory
             File workingDir = new File(localMetaDir, "working-dir");
@@ -301,7 +300,14 @@ public class KylinConfig extends KylinConfigBase {
     }
 
     public static void setKylinConfigThreadLocal(KylinConfig config) {
+        if (THREAD_ENV_INSTANCE.get() != null) {
+            logger.warn("current thread already has a thread local config {}", config);
+        }
         THREAD_ENV_INSTANCE.set(config);
+    }
+
+    public static boolean isKylinConfigThreadLocal() {
+        return THREAD_ENV_INSTANCE.get() != null;
     }
 
     public static void removeKylinConfigThreadLocal() {
@@ -411,7 +417,6 @@ public class KylinConfig extends KylinConfigBase {
         }
     }
 
-
     public static KylinConfig loadKylinPropsAndMetadata() throws IOException {
         File metaDir = new File("meta");
         if (!metaDir.getAbsolutePath().equals(System.getProperty(KylinConfig.KYLIN_CONF))) {
@@ -427,7 +432,6 @@ public class KylinConfig extends KylinConfigBase {
             return KylinConfig.getInstanceFromEnv();
         }
     }
-
 
     public static KylinConfig loadKylinConfigFromHdfsIfNeeded(String uri) {
         KylinConfig config;
@@ -650,6 +654,10 @@ public class KylinConfig extends KylinConfigBase {
         } finally {
             IOUtils.closeQuietly(fos);
         }
+    }
+
+    public boolean isSystemConfig() {
+        return SYS_ENV_INSTANCE == this;
     }
 
     public synchronized void reloadFromSiteProperties() {

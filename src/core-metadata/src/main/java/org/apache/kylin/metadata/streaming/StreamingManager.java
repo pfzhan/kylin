@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,18 +43,12 @@
 package org.apache.kylin.metadata.streaming;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.AutoReadWriteLock;
-import org.apache.kylin.common.util.AutoReadWriteLock.AutoLock;
-import org.apache.kylin.metadata.cachesync.Broadcaster;
-import org.apache.kylin.metadata.cachesync.Broadcaster.Event;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.cachesync.CaseInsensitiveStringCache;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,16 +73,13 @@ public class StreamingManager {
     private KylinConfig config;
 
     // name ==> StreamingConfig
-    private CaseInsensitiveStringCache<StreamingConfig> streamingMap;
     private CachedCrudAssist<StreamingConfig> crud;
-    private AutoReadWriteLock lock = new AutoReadWriteLock();
 
     private StreamingManager(KylinConfig config) throws IOException {
         this.config = config;
         // todo prj
-        this.streamingMap = new CaseInsensitiveStringCache<StreamingConfig>(config, "", "streaming");
         this.crud = new CachedCrudAssist<StreamingConfig>(getStore(), ResourceStore.STREAMING_RESOURCE_ROOT,
-                StreamingConfig.class, streamingMap) {
+                StreamingConfig.class) {
             @Override
             protected StreamingConfig initEntityAfterReload(StreamingConfig t, String resourceName) {
                 return t; // noop
@@ -98,23 +88,6 @@ public class StreamingManager {
 
         // touch lower level metadata before registering my listener
         crud.reloadAll();
-        Broadcaster.getInstance(config).registerListener(new StreamingSyncListener(), "", "streaming");
-    }
-
-    private class StreamingSyncListener extends Broadcaster.Listener {
-
-        @Override
-        public void onEntityChange(Broadcaster broadcaster, String entity, Event event, String cacheKey)
-                throws IOException {
-            String streamingName = cacheKey;
-
-            try (AutoLock l = lock.lockForWrite()) {
-                if (event == Event.DROP)
-                    streamingMap.removeLocal(streamingName);
-                else
-                    crud.reloadQuietly(streamingName);
-            }
-        }
     }
 
     private ResourceStore getStore() {
@@ -122,57 +95,44 @@ public class StreamingManager {
     }
 
     public StreamingConfig getStreamingConfig(String name) {
-        try (AutoLock l = lock.lockForRead()) {
-            return streamingMap.get(name);
-        }
+        return crud.get(name);
     }
 
     public List<StreamingConfig> listAllStreaming() {
-        try (AutoLock l = lock.lockForRead()) {
-            return new ArrayList<>(streamingMap.values());
-        }
+        return crud.getAll();
     }
-    
+
     // for test
     List<StreamingConfig> reloadAll() throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            crud.reloadAll();
-            return listAllStreaming();
-        }        
+        crud.reloadAll();
+        return listAllStreaming();
     }
 
     public StreamingConfig createStreamingConfig(StreamingConfig streamingConfig) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            if (streamingConfig == null || StringUtils.isEmpty(streamingConfig.getName())) {
-                throw new IllegalArgumentException();
-            }
-            if (streamingMap.containsKey(streamingConfig.resourceName()))
-                throw new IllegalArgumentException(
-                        "StreamingConfig '" + streamingConfig.getName() + "' already exists");
-
-            streamingConfig.updateRandomUuid();
-            
-            return crud.save(streamingConfig);
+        if (streamingConfig == null || StringUtils.isEmpty(streamingConfig.getName())) {
+            throw new IllegalArgumentException();
         }
+        if (crud.contains(streamingConfig.resourceName()))
+            throw new IllegalArgumentException("StreamingConfig '" + streamingConfig.getName() + "' already exists");
+
+        streamingConfig.updateRandomUuid();
+
+        return crud.save(streamingConfig);
     }
 
     public StreamingConfig updateStreamingConfig(StreamingConfig desc) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            if (desc.getUuid() == null || desc.getName() == null) {
-                throw new IllegalArgumentException("SteamingConfig Illegal.");
-            }
-            if (!streamingMap.containsKey(desc.resourceName())) {
-                throw new IllegalArgumentException("StreamingConfig '" + desc.getName() + "' does not exist.");
-            }
-
-            return crud.save(desc);
+        if (desc.getUuid() == null || desc.getName() == null) {
+            throw new IllegalArgumentException("SteamingConfig Illegal.");
         }
+        if (!crud.contains(desc.resourceName())) {
+            throw new IllegalArgumentException("StreamingConfig '" + desc.getName() + "' does not exist.");
+        }
+
+        return crud.save(desc);
     }
 
     public void removeStreamingConfig(StreamingConfig streamingConfig) throws IOException {
-        try (AutoLock l = lock.lockForWrite()) {
-            crud.delete(streamingConfig);
-        }
+        crud.delete(streamingConfig);
     }
 
 }

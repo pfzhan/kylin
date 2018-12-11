@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,7 +44,6 @@ import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealizationJDBCDao;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 
@@ -53,13 +53,13 @@ class NCuboidRefresher extends NAbstractCubeProposer {
 
     private String draftVersion;
     private final NSmartContext smartContext;
-    private FavoriteQueryRealizationJDBCDao dao;
+    private FavoriteQueryManager favoriteQueryManager;
 
     NCuboidRefresher(NModelContext context) {
         super(context);
         smartContext = context.getSmartContext();
         draftVersion = smartContext.getDraftVersion();
-        dao = FavoriteQueryRealizationJDBCDao.getInstance(smartContext.getKylinConfig(), smartContext.getProject());
+        favoriteQueryManager = FavoriteQueryManager.getInstance(smartContext.getKylinConfig(), smartContext.getProject());
     }
 
     @Override
@@ -93,26 +93,17 @@ class NCuboidRefresher extends NAbstractCubeProposer {
         smartContext.reBuildAccelerationInfoMap(allFavoriteQueryRealizations);
 
         // 5. delete unmodified cuboids in originalCuboidMap, collect favoriteQueryRealizations and delete them
-        Set<FavoriteQueryRealization> favoriteQueryToDelete = Sets.newHashSet();
         originalCuboidsMap.forEach((cuboidIdentifier, cuboidDesc) -> {
             final Iterator<NCuboidLayout> iterator = cuboidDesc.getLayouts().iterator();
             while (iterator.hasNext()) {
                 final NCuboidLayout layout = iterator.next();
                 if (layout.matchDraftVersion(draftVersion)) {
                     final Set<String> sqlPattern = smartContext.eraseLayoutInAccelerateInfo(layout);
-                    sqlPattern.forEach(sql -> {
-                        FavoriteQueryRealization tmp = new FavoriteQueryRealization();
-                        tmp.setSqlPatternHash(sql.hashCode());
-                        tmp.setModelId(layout.getModel().getId());
-                        tmp.setCubePlanId(layout.getCuboidDesc().getCubePlan().getId());
-                        tmp.setCuboidLayoutId(layout.getId());
-                        favoriteQueryToDelete.add(tmp);
-                    });
+                    sqlPattern.forEach(sql -> favoriteQueryManager.removeRealizations(sql));
                     iterator.remove();
                 }
             }
         });
-        dao.batchDelete(Lists.newArrayList(favoriteQueryToDelete));
 
         // 6. propose cuboid again
         final CuboidSuggester cuboidSuggester = new CuboidSuggester(context, cubePlan, originalCuboidsMap);
@@ -146,7 +137,7 @@ class NCuboidRefresher extends NAbstractCubeProposer {
             final String modelId = layout.getModel().getId();
             final String cubePlanId = layout.getCuboidDesc().getCubePlan().getId();
 
-            final List<FavoriteQueryRealization> byConditions = dao.getByConditions(modelId, cubePlanId, layoutId);
+            final List<FavoriteQueryRealization> byConditions = favoriteQueryManager.getRealizationsByConditions(modelId, cubePlanId, layoutId);
             favoriteQueryRealizations.addAll(byConditions);
         });
 

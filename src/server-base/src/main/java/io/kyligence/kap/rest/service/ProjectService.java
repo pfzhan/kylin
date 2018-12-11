@@ -28,12 +28,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
+import io.kyligence.kap.rest.transaction.Transaction;
 import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -53,13 +51,15 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.cube.storage.StorageInfoEnum;
-import io.kyligence.kap.event.model.AddProjectEvent;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import lombok.val;
+
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Component("projectService")
@@ -70,13 +70,19 @@ public class ProjectService extends BasicService {
     @Autowired
     private AclEvaluate aclEvaluate;
 
-    public ProjectInstance deserializeProjectDesc(ProjectRequest projectRequest) throws IOException {
+    public ProjectInstance deserializeProjectDesc(ProjectRequest projectRequest) {
         logger.debug("Saving project " + projectRequest.getProjectDescData());
-        ProjectInstance projectDesc = JsonUtil.readValue(projectRequest.getProjectDescData(), ProjectInstance.class);
+        ProjectInstance projectDesc;
+        try {
+            projectDesc = JsonUtil.readValue(projectRequest.getProjectDescData(), ProjectInstance.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         return projectDesc;
     }
 
-    public ProjectInstance createProject(ProjectInstance newProject) throws IOException, PersistentException {
+    @Transaction
+    public ProjectInstance createProject(ProjectInstance newProject) {
         Message msg = MsgPicker.getMsg();
         String projectName = newProject.getName();
         String description = newProject.getDescription();
@@ -88,14 +94,12 @@ public class ProjectService extends BasicService {
         String owner = SecurityContextHolder.getContext().getAuthentication().getName();
         ProjectInstance createdProject = getProjectManager().createProject(projectName, owner, description,
                 overrideProps, newProject.getMaintainModelType());
-        AddProjectEvent projectEvent = new AddProjectEvent(createdProject.getName());
-        getEventManager(createdProject.getName()).post(projectEvent);
         createDefaultRules(projectName);
         logger.debug("New project created.");
         return createdProject;
     }
 
-    private void createDefaultRules(String projectName) throws IOException {
+    private void createDefaultRules(String projectName) {
         // create default rules
         // frequency rule
         FavoriteRule.Condition freqCond = new FavoriteRule.Condition();
@@ -139,8 +143,8 @@ public class ProjectService extends BasicService {
                 .collect(Collectors.toList());
     }
 
-    public ProjectInstance updateProject(ProjectInstance newProject, ProjectInstance currentProject)
-            throws IOException {
+    @Transaction
+    public ProjectInstance updateProject(ProjectInstance newProject, ProjectInstance currentProject) {
         String newProjectName = newProject.getName();
         String newDescription = newProject.getDescription();
         LinkedHashMap<String, String> overrideProps = newProject.getOverrideKylinProps();
@@ -152,8 +156,9 @@ public class ProjectService extends BasicService {
         return updatedProject;
     }
 
+    @Transaction(project = 0)
     public void updateQueryAccelerateThresholdConfig(String project, Integer threshold, boolean autoApply,
-            boolean batchEnabled) throws IOException {
+            boolean batchEnabled) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         overrideKylinProps.put("kylin.favorite.query-accelerate-threshold", threshold.toString());
         overrideKylinProps.put("kylin.favorite.query-accelerate-threshold-batch-enable", batchEnabled + "");
@@ -171,7 +176,8 @@ public class ProjectService extends BasicService {
         return thresholdResponse;
     }
 
-    public void updateMantainModelType(String project, String maintainModelType) throws IOException {
+    @Transaction(project = 0)
+    public void updateMantainModelType(String project, String maintainModelType) {
         val projectManager = getProjectManager();
         val projectUpdate = projectManager.copyForWrite(projectManager.getProject(project));
         projectUpdate.setMaintainModelType(MaintainModelType.valueOf(maintainModelType));
@@ -219,8 +225,7 @@ public class ProjectService extends BasicService {
         updateProjectOverrideKylinProps(project, overrideKylinProps);
     }
 
-    private void updateProjectOverrideKylinProps(String project, Map<String, String> overrideKylinProps)
-            throws IOException {
+    private void updateProjectOverrideKylinProps(String project, Map<String, String> overrideKylinProps) {
         val projectManager = getProjectManager();
         val projectInstance = projectManager.getProject(project);
         if (projectInstance == null) {

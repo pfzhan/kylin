@@ -60,13 +60,6 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
     @Override
     public void cleanupTestMetadata() {
-        try {
-            Class<?> clz = Class.forName("org.apache.kylin.metadata.cachesync.Broadcaster");
-            Object broadcaster = clz.getMethod("getInstance", KylinConfig.class).invoke(null, getTestConfig());
-            clz.getMethod("notifyClearAll").invoke(broadcaster);
-        } catch (Exception e) {
-            // ignore
-        }
         staticCleanupTestMetadata();
     }
 
@@ -84,7 +77,6 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
     public static KylinConfig getTestConfig() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(config);
         return config;
     }
 

@@ -27,7 +27,7 @@ package io.kyligence.kap.rest.service;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.rest.response.FavoriteRuleResponse;
 import io.kyligence.kap.rest.response.UpdateWhitelistResponse;
@@ -314,6 +314,9 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetFilterRulesAndUpdate() throws IOException {
+        NFavoriteScheduler favoriteScheduler = Mockito.mock(NFavoriteScheduler.class);
+        Mockito.doReturn(true).when(favoriteScheduler).hasStarted();
+        Mockito.doReturn(favoriteScheduler).when(favoriteRuleService).getFavoriteScheduler(PROJECT);
         Map<String, Object> frequencyRuleResult = favoriteRuleService.getFrequencyRule(PROJECT);
         Assert.assertTrue((boolean) frequencyRuleResult.get(FavoriteRule.ENABLE));
         Assert.assertEquals(0.1, (float) frequencyRuleResult.get("freqValue"), 0.1);
@@ -335,15 +338,16 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         request.setEnable(false);
         request.setFreqValue("0.2");
 
-        favoriteRuleService.updateRegularRule(request, FavoriteRule.FREQUENCY_RULE_NAME);
+        favoriteRuleService.updateRegularRule(PROJECT, request, FavoriteRule.FREQUENCY_RULE_NAME);
         frequencyRuleResult = favoriteRuleService.getFrequencyRule(PROJECT);
         Assert.assertFalse((boolean) frequencyRuleResult.get(FavoriteRule.ENABLE));
         Assert.assertEquals(0.2, (float) frequencyRuleResult.get("freqValue"), 0.1);
-        Mockito.verify(favoriteQueryService).scheduleAutoMark();
+        Mockito.verify(favoriteScheduler).scheduleAutoFavorite();
 
         request.setUsers(Lists.newArrayList("userA", "userB", "userC", "ADMIN"));
 
-        favoriteRuleService.updateRegularRule(request, FavoriteRule.SUBMITTER_RULE_NAME);
+        // update submitter rule
+        favoriteRuleService.updateRegularRule(PROJECT, request, FavoriteRule.SUBMITTER_RULE_NAME);
         submitterRuleResult = favoriteRuleService.getSubmitterRule(PROJECT);
         users = (ArrayList<String>) submitterRuleResult.get("users");
         Assert.assertFalse((boolean) submitterRuleResult.get(FavoriteRule.ENABLE));
@@ -351,7 +355,8 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
 
         request.setDurationValue(new String[]{"0", "10"});
 
-        favoriteRuleService.updateRegularRule(request, FavoriteRule.DURATION_RULE_NAME);
+        // update duration rule
+        favoriteRuleService.updateRegularRule(PROJECT, request, FavoriteRule.DURATION_RULE_NAME);
         durationRuleResult = favoriteRuleService.getDurationRule(PROJECT);
         durationValues = (ArrayList<Long>) durationRuleResult.get("durationValue");
         Assert.assertFalse((boolean) durationRuleResult.get(FavoriteRule.ENABLE));
@@ -362,29 +367,29 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetFavoriteRuleOverallImpact() {
         // mock the case when already have 3 rule-based favorite queries in database
-        FavoriteQueryJDBCDao favoriteQueryDao = Mockito.mock(FavoriteQueryJDBCDao.class);
-        Mockito.doReturn(3).when(favoriteQueryDao).getRulebasedFQSize(PROJECT);
-        Mockito.doReturn(favoriteQueryDao).when(favoriteRuleService).getFavoriteQueryDao();
+        FavoriteQueryManager favoriteQueryManager = Mockito.mock(FavoriteQueryManager.class);
+        Mockito.doReturn(3).when(favoriteQueryManager).getRuleBasedSize();
+        Mockito.doReturn(favoriteQueryManager).when(favoriteRuleService).getFavoriteQueryManager(PROJECT);
 
         // case of query history sql pattern is 0
-        FavoriteQueryService.FrequencyStatus frequencyStatus = favoriteQueryService.new FrequencyStatus(System.currentTimeMillis());
-        Mockito.doReturn(frequencyStatus).when(favoriteQueryService).getOverAllStatus();
+        NFavoriteScheduler favoriteScheduler = Mockito.mock(NFavoriteScheduler.class);
+        NFavoriteScheduler.FrequencyStatus frequencyStatus = favoriteScheduler.new FrequencyStatus(System.currentTimeMillis());
+        Mockito.doReturn(frequencyStatus).when(favoriteScheduler).getOverAllStatus();
+        Mockito.doReturn(favoriteScheduler).when(favoriteRuleService).getFavoriteScheduler(PROJECT);
 
         double result = favoriteRuleService.getFavoriteRuleOverallImpact(PROJECT);
         Assert.assertEquals(0, result, 0.1);
 
         // case of query history sql pattern size is greater than 0, which is 5
-        Map<String, Map<String, Integer>> sqlPatternMap = Maps.newHashMap();
         Map<String, Integer> sqlPatternInProj = Maps.newHashMap();
         sqlPatternInProj.put("test_sql1", 1);
         sqlPatternInProj.put("test_sql2", 1);
         sqlPatternInProj.put("test_sql3", 1);
         sqlPatternInProj.put("test_sql4", 1);
         sqlPatternInProj.put("test_sql5", 1);
-        sqlPatternMap.put(PROJECT, sqlPatternInProj);
-        frequencyStatus.setSqlPatternFreqMap(sqlPatternMap);
+        frequencyStatus.setSqlPatternFreqMap(sqlPatternInProj);
 
-        Mockito.doReturn(frequencyStatus).when(favoriteQueryService).getOverAllStatus();
+        Mockito.doReturn(frequencyStatus).when(favoriteScheduler).getOverAllStatus();
 
         result = favoriteRuleService.getFavoriteRuleOverallImpact(PROJECT);
         Assert.assertEquals(0.6, result, 0.1);

@@ -53,8 +53,8 @@ public class NoErrorStatusExecutable extends DefaultChainedExecutable {
     }
 
     @Override
-    protected void onExecuteError(Throwable exception, ExecutableContext executableContext) {
-        return;
+    protected void onExecuteError(ExecuteResult result, ExecutableContext executableContext) {
+        super.onExecuteError(result, executableContext);
     }
 
 }

@@ -31,7 +31,6 @@ import java.util.List;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
@@ -97,8 +96,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "sortby", required = false, defaultValue = "last_modify") String sortBy,
-            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse)
-            throws IOException {
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
         List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
@@ -115,11 +113,11 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelResponse, "");
     }
 
-    @RequestMapping(value = "", method = {RequestMethod.POST}, produces = {"application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse createModel(@RequestBody ModelRequest modelRequest) throws IOException {
         checkProjectName(modelRequest.getProject());
-        modelService.createModel(modelRequest);
+        modelService.createModel(modelRequest.getProject(), modelRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -215,14 +213,13 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelRelations, "");
     }
 
-
     @RequestMapping(value = "/affected_models", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getAffectedModelsByToggleTableType(
             @RequestParam(value = "table", required = true) String tableName,
             @RequestParam(value = "project", required = true) String project,
-            @RequestParam(value = "fact", required = true) boolean fact) throws IOException {
+            @RequestParam(value = "fact", required = true) boolean fact) {
         checkProjectName(project);
         checkRequiredArg("table", tableName);
         val affectedModelResponse = modelService.getAffectedModelsByToggleTableType(tableName, project, fact);
@@ -232,17 +229,17 @@ public class NModelController extends NBasicController {
 
     @PutMapping(value = "/semantic", produces = "application/vnd.apache.kylin-v2+json")
     @ResponseBody
-    public EnvelopeResponse updateSemantic(@RequestBody ModelRequest request) throws IOException, PersistentException {
+    public EnvelopeResponse updateSemantic(@RequestBody ModelRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_NAME, request.getName());
-        modelService.updateDataModelSemantic(request);
+        modelService.updateDataModelSemantic(request.getProject(), request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @RequestMapping(value = "/name", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateModelName(@RequestBody ModelUpdateRequest modelRenameRequest) throws IOException {
+    public EnvelopeResponse updateModelName(@RequestBody ModelUpdateRequest modelRenameRequest) {
         checkProjectName(modelRenameRequest.getProject());
         checkRequiredArg(MODEL_NAME, modelRenameRequest.getModelName());
         String newAlias = modelRenameRequest.getNewModelName();
@@ -258,7 +255,7 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/status", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateModelStatus(@RequestBody ModelUpdateRequest modelRenameRequest) throws Exception {
+    public EnvelopeResponse updateModelStatus(@RequestBody ModelUpdateRequest modelRenameRequest) {
         checkProjectName(modelRenameRequest.getProject());
         checkRequiredArg(MODEL_NAME, modelRenameRequest.getModelName());
         modelService.updateDataModelStatus(modelRenameRequest.getModelName(), modelRenameRequest.getProject(),
@@ -266,10 +263,10 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "/management_type", method = {RequestMethod.PUT}, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/management_type", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse unlinkModel(@RequestBody UnlinkModelRequest unlinkModelRequest) throws Exception {
+    public EnvelopeResponse unlinkModel(@RequestBody UnlinkModelRequest unlinkModelRequest) {
         checkProjectName(unlinkModelRequest.getProject());
         checkRequiredArg(MODEL_NAME, unlinkModelRequest.getModelName());
         modelService.unlinkModel(unlinkModelRequest.getModelName(), unlinkModelRequest.getProject());
@@ -279,8 +276,7 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/{project}/{model}", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse deleteModel(@PathVariable("project") String project, @PathVariable("model") String model)
-            throws IOException {
+    public EnvelopeResponse deleteModel(@PathVariable("project") String project, @PathVariable("model") String model) {
         checkProjectName(project);
         modelService.dropModel(model, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
@@ -289,9 +285,8 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/segments/{project}/{model}", method = { RequestMethod.DELETE }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse deleteSegments(@PathVariable("project") String project,
-                                           @PathVariable("model") String model,
-                                           @RequestParam(value = "ids", required = false) int[] ids) throws IOException, PersistentException {
+    public EnvelopeResponse deleteSegments(@PathVariable("project") String project, @PathVariable("model") String model,
+            @RequestParam(value = "ids", required = false) String[] ids) {
         checkProjectName(project);
         if (ArrayUtils.isEmpty(ids)) {
             modelService.purgeModelManually(model, project);
@@ -301,9 +296,10 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
-    @RequestMapping(value = "/clone", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/clone", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse cloneModel(@RequestBody ModelCloneRequest request) throws IOException {
+    public EnvelopeResponse cloneModel(@RequestBody ModelCloneRequest request) {
         checkProjectName(request.getProject());
         String newModelName = request.getNewModelName();
         String modelName = request.getModelName();
@@ -318,10 +314,10 @@ public class NModelController extends NBasicController {
 
     }
 
-    @RequestMapping(value = "/segments", method = {RequestMethod.PUT}, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/segments", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse refreshSegmentsByIds(@RequestBody SegmentsRequest request) throws IOException, PersistentException {
+    public EnvelopeResponse refreshSegmentsByIds(@RequestBody SegmentsRequest request) {
         checkProjectName(request.getProject());
         if (ArrayUtils.isEmpty(request.getIds())) {
             throw new BadRequestException("You should choose at least one segment to refresh!");
@@ -331,11 +327,12 @@ public class NModelController extends NBasicController {
     }
 
     @RequestMapping(value = "/segments", method = RequestMethod.POST, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse buildSegmentsManually(@RequestBody BuildSegmentsRequest buildSegmentsRequest) throws IOException, PersistentException {
+    public EnvelopeResponse buildSegmentsManually(@RequestBody BuildSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
-        modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), buildSegmentsRequest.getModel(), buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), buildSegmentsRequest.getModel(),
+                buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -355,15 +352,14 @@ public class NModelController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getComputedColumnUsage(@RequestParam(value = "project", required = true) String project) {
-        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.getComputedColumnUsages(project),
-                "");
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.getComputedColumnUsages(project), "");
     }
 
     @RequestMapping(value = "/{name}/data_check", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse updateModelDataCheckDesc(@PathVariable("name") String modelName,
-            @RequestBody ModelCheckRequest request) throws IOException {
+            @RequestBody ModelCheckRequest request) {
         request.checkSelf();
         modelService.updateModelDataCheckDesc(request.getProject(), modelName, request.getCheckOptions(),
                 request.getFaultThreshold(), request.getFaultActions());

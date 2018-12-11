@@ -71,8 +71,6 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Collections2;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -134,7 +132,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -185,13 +185,11 @@ public class QueryService extends BasicService {
     }
 
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
-        SQLResponse ret = null;
+        SQLResponse ret;
         try {
             slowQueryDetector.queryStart(Thread.currentThread(), sqlRequest, getUsername(), System.currentTimeMillis());
-
             ret = queryWithSqlMassage(sqlRequest);
             return ret;
-
         } finally {
             slowQueryDetector.queryEnd(Thread.currentThread());
             Thread.interrupted(); //reset if interrupted
@@ -226,8 +224,7 @@ public class QueryService extends BasicService {
         queries.add(query);
         Query[] queryArray = new Query[queries.size()];
         QueryRecord record = new QueryRecord(queries.toArray(queryArray));
-        queryStore.putResourceWithoutCheck(getQueryKeyById(project, creator), record, System.currentTimeMillis(),
-                QueryRecordSerializer.getInstance());
+        queryStore.checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
         return;
     }
 
@@ -250,8 +247,7 @@ public class QueryService extends BasicService {
         }
         Query[] queryArray = new Query[queries.size()];
         QueryRecord record = new QueryRecord(queries.toArray(queryArray));
-        queryStore.putResourceWithoutCheck(getQueryKeyById(project, creator), record, System.currentTimeMillis(),
-                QueryRecordSerializer.getInstance());
+        queryStore.checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
         return;
     }
 
@@ -260,7 +256,7 @@ public class QueryService extends BasicService {
             return null;
         }
         List<Query> queries = new ArrayList<Query>();
-        QueryRecord record = queryStore.getResource(getQueryKeyById(project, creator), QueryRecord.class,
+        QueryRecord record = queryStore.getResource(getQueryKeyById(project, creator),
                 QueryRecordSerializer.getInstance());
         if (record != null) {
             for (Query query : record.getQueries()) {

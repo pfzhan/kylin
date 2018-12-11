@@ -24,7 +24,7 @@
 package io.kyligence.kap.rest.controller;
 
 import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryResponse;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.request.AppendBlacklistSqlRequest;
 import io.kyligence.kap.rest.request.WhitelistUpdateRequest;
@@ -86,25 +86,24 @@ public class FavoriteQueryControllerTest {
         Mockito.verify(favoriteQueryController, Mockito.only()).manualFavorite(Mockito.any(request.getClass()));
     }
 
-    private List<FavoriteQueryResponse> mockedFavoriteQueries() {
-        List<FavoriteQueryResponse> mockedFavoriteQueries = Lists.newArrayList();
-        mockedFavoriteQueries.add(new FavoriteQueryResponse("sql1", "sql1".hashCode(), PROJECT));
-        mockedFavoriteQueries.add(new FavoriteQueryResponse("sql2", "sql1".hashCode(), PROJECT));
-        mockedFavoriteQueries.add(new FavoriteQueryResponse("sql3", "sql1".hashCode(), PROJECT));
+    private List<FavoriteQuery> mockedFavoriteQueries() {
+        List<FavoriteQuery> mockedFavoriteQueries = Lists.newArrayList();
+        mockedFavoriteQueries.add(new FavoriteQuery("sql1"));
+        mockedFavoriteQueries.add(new FavoriteQuery("sql2"));
+        mockedFavoriteQueries.add(new FavoriteQuery("sql3"));
 
         return mockedFavoriteQueries;
     }
 
     @Test
     public void testListAllFavorite() throws Exception {
-        Mockito.when(favoriteQueryService.getFavoriteQueriesByPage(PROJECT, 10, 0)).thenReturn(mockedFavoriteQueries());
-        Mockito.when(favoriteQueryService.getFavoriteQuerySize(PROJECT)).thenReturn(10);
+        Mockito.when(favoriteQueryService.getFavoriteQueries(PROJECT)).thenReturn(mockedFavoriteQueries());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries")
                 .contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT)
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
-                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(10))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(3))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries.length()").value(3))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries[0].sql_pattern").value("sql1"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries[1].sql_pattern").value("sql2"))

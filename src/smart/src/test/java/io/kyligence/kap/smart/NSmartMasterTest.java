@@ -174,6 +174,7 @@ public class NSmartMasterTest extends NTestBase {
                         + "where lstg_format_name > 'ABIN' group by part_dt, lstg_format_name",
                 "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt",
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
+        initFQData(sqls);
         String draftVersion = UUID.randomUUID().toString();
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls, draftVersion);
         smartMaster.analyzeSQLs();
@@ -272,6 +273,7 @@ public class NSmartMasterTest extends NTestBase {
                 + "join kylin_sales on a.part_dt = kylin_sales.part_dt \n"
                 + "group by lstg_format_name, a.part_dt, a.sum_price" };
         String draftVersion = UUID.randomUUID().toString();
+        initFQData(sqls);
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls, draftVersion);
         smartMaster.runAll();
 

@@ -23,9 +23,6 @@
  */
 package io.kyligence.kap.rest.controller;
 
-import java.io.IOException;
-
-import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,17 +53,15 @@ public class NCubePlanController extends NBasicController {
     private CubePlanService cubePlanService;
 
     @PutMapping(value = "/rule", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse updateRule(@RequestBody UpdateRuleBasedCuboidRequest request)
-            throws IOException, PersistentException {
+    public EnvelopeResponse updateRule(@RequestBody UpdateRuleBasedCuboidRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_NAME, request.getModel());
-        cubePlanService.updateRuleBasedCuboid(request);
+        cubePlanService.updateRuleBasedCuboid(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @GetMapping(value = "/rule", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse getRule(@RequestParam("project") String project, @RequestParam("model") String model)
-            throws IOException, PersistentException {
+    public EnvelopeResponse getRule(@RequestParam("project") String project, @RequestParam("model") String model) {
         checkProjectName(project);
         checkRequiredArg(MODEL_NAME, model);
         val rule = cubePlanService.getRule(project, model);
@@ -74,27 +69,25 @@ public class NCubePlanController extends NBasicController {
     }
 
     @PostMapping(value = "/table_index", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse createTableIndex(@RequestBody CreateTableIndexRequest request)
-            throws IOException, PersistentException {
+    public EnvelopeResponse createTableIndex(@RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_NAME, request.getModel());
-        cubePlanService.createTableIndex(request);
+        cubePlanService.createTableIndex(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @PutMapping(value = "/table_index", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse updateTableIndex(@RequestBody CreateTableIndexRequest request)
-            throws PersistentException, IOException {
+    public EnvelopeResponse updateTableIndex(@RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_NAME, request.getModel());
         checkRequiredArg("id", request.getId());
-        cubePlanService.updateTableIndex(request);
+        cubePlanService.updateTableIndex(request.getProject(), request);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
 
     @DeleteMapping(value = "/table_index/{project}/{model}/{id}", produces = { "application/vnd.apache.kylin-v2+json" })
     public EnvelopeResponse deleteTableIndex(@PathVariable("project") String project,
-            @PathVariable("model") String model, @PathVariable("id") Long id) throws PersistentException, IOException {
+            @PathVariable("model") String model, @PathVariable("id") Long id) {
         checkProjectName(project);
         checkRequiredArg(MODEL_NAME, model);
         checkRequiredArg("id", id);

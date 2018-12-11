@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiConsumer;
@@ -34,6 +35,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -41,34 +43,52 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.springframework.stereotype.Component;
+import org.apache.kylin.rest.service.BasicService;
+import org.springframework.stereotype.Service;
 
+import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.smart.util.CubeUtils;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
-@Component
-public class ModelSemanticHelper {
+@Slf4j
+@Service
+public class ModelSemanticHelper extends BasicService {
 
-    public NDataModel convertToDataModel(ModelRequest modelRequest) throws IOException {
-        List<SimplifiedMeasure> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
-        NDataModel dataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelRequest), NDataModel.class);
-        dataModel.setUuid(UUID.randomUUID().toString());
-        dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
-        dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel));
-        return dataModel;
+    public NDataModel convertToDataModel(ModelRequest modelRequest) {
+        try {
+            List<SimplifiedMeasure> simplifiedMeasures = modelRequest.getSimplifiedMeasures();
+            NDataModel dataModel = JsonUtil.readValue(JsonUtil.writeValueAsString(modelRequest), NDataModel.class);
+            dataModel.setUuid(UUID.randomUUID().toString());
+            dataModel.setAllMeasures(convertMeasure(simplifiedMeasures));
+            dataModel.setAllNamedColumns(convertNamedColumns(modelRequest.getProject(), dataModel));
+            return dataModel;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private List<NDataModel.NamedColumn> convertNamedColumns(String project, NDataModel dataModel) {
@@ -125,7 +145,7 @@ public class ModelSemanticHelper {
         return columns;
     }
 
-    public void updateModelColumns(NDataModel originModel, ModelRequest request) throws IOException {
+    public void updateModelColumns(NDataModel originModel, ModelRequest request) {
         val expectedModel = convertToDataModel(request);
         originModel.setJoinTables(expectedModel.getJoinTables());
         originModel.setCanvas(expectedModel.getCanvas());
@@ -256,5 +276,199 @@ public class ModelSemanticHelper {
             measures.add(measure);
         }
         return measures;
+    }
+
+    public void handleSemanticUpdate(String project, String model, NDataModel originModel) {
+        val config = KylinConfig.getInstanceFromEnv();
+        val cubeMgr = NCubePlanManager.getInstance(config, project);
+        val modelMgr = NDataModelManager.getInstance(config, project);
+        val dataflowManager = NDataflowManager.getInstance(config, project);
+
+        val matchingCubePlan = cubeMgr.findMatchingCubePlan(model, project, config);
+        val newModel = modelMgr.getDataModelDesc(model);
+
+        if (isSignificantChange(originModel, newModel)) {
+            handleMeasuresChanged(matchingCubePlan, newModel.getEffectiveMeasureMap().keySet(),
+                    NCubePlan::setRuleBasedCuboidsDesc, cubeMgr);
+            // do not need to fire this event, the follow logic will clear all segments
+            removeUselessDimensions(matchingCubePlan, newModel.getEffectiveDimenionsMap().keySet(), false, config);
+            modelMgr.updateDataModel(newModel.getName(),
+                    copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
+            handleReloadData(newModel, dataflowManager, config, project);
+            return;
+        }
+        val dimensionsOnlyAdded = newModel.getEffectiveDimenionsMap().keySet()
+                .containsAll(originModel.getEffectiveDimenionsMap().keySet());
+        val measuresNotChanged = CollectionUtils.isEqualCollection(newModel.getEffectiveMeasureMap().keySet(),
+                originModel.getEffectiveMeasureMap().keySet());
+        if (dimensionsOnlyAdded && measuresNotChanged) {
+            return;
+        }
+        // measure changed: does not matter to auto created cuboids' data, need refresh rule based cuboids
+        if (!measuresNotChanged) {
+            handleMeasuresChanged(matchingCubePlan, newModel.getEffectiveMeasureMap().keySet(), (cube, rule) -> {
+                cube.setNewRuleBasedCuboid(rule);
+                handleCubeUpdateRule(project, model, cube.getName());
+            }, cubeMgr);
+        }
+        // dimension deleted: previous step is remove dimensions in rule,
+        //   so we only remove the auto created cuboids
+        if (!dimensionsOnlyAdded) {
+            removeUselessDimensions(matchingCubePlan, newModel.getEffectiveDimenionsMap().keySet(), true, config);
+        }
+    }
+
+    // if partitionDesc, mpCol, joinTable changed, we need reload data from datasource
+    private boolean isSignificantChange(NDataModel originModel, NDataModel newModel) {
+        return !Objects.equals(originModel.getPartitionDesc(), newModel.getPartitionDesc())
+                || !Objects.equals(originModel.getMpColStrs(), newModel.getMpColStrs())
+                || !Objects.equals(originModel.getJoinTables(), newModel.getJoinTables());
+    }
+
+    private boolean handleMeasuresChanged(NCubePlan cube, Set<Integer> measures,
+            BiConsumer<NCubePlan, NRuleBasedCuboidsDesc> descConsumer, NCubePlanManager cubePlanManager) {
+        val savedCube = cubePlanManager.updateCubePlan(cube.getName(), copyForWrite -> {
+            copyForWrite.setCuboids(copyForWrite.getCuboids().stream().filter(cuboid -> {
+                val allMeasures = cuboid.getMeasures();
+                allMeasures.removeAll(measures);
+                return allMeasures.size() == 0;
+            }).collect(Collectors.toList()));
+            if (copyForWrite.getRuleBasedCuboidsDesc() == null) {
+                return;
+            }
+            try {
+                val newRule = JsonUtil.deepCopy(copyForWrite.getRuleBasedCuboidsDesc(), NRuleBasedCuboidsDesc.class);
+                newRule.setMeasures(Lists.newArrayList(measures));
+                descConsumer.accept(copyForWrite, newRule);
+            } catch (IOException e) {
+                log.warn("copy rule failed ", e);
+            }
+        });
+        return savedCube.getRuleBasedCuboidsDesc() != null
+                && savedCube.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid() != null;
+    }
+
+    private void removeUselessDimensions(NCubePlan cube, Set<Integer> availableDimensions, boolean triggerEvent,
+            KylinConfig config) {
+        val cubePlanManager = NCubePlanManager.getInstance(config, cube.getProject());
+        val dataflowManager = NDataflowManager.getInstance(config, cube.getProject());
+        val layoutIds = cube.getWhitelistCuboidLayouts().stream()
+                .filter(layout -> layout.getColOrder().stream()
+                        .anyMatch(col -> col < NDataModel.MEASURE_ID_BASE && !availableDimensions.contains(col)))
+                .map(NCuboidLayout::getId).collect(Collectors.toSet());
+        if (layoutIds.isEmpty()) {
+            return;
+        }
+        if (triggerEvent) {
+            cubePlanManager.updateCubePlan(cube.getName(),
+                    copyForWrite -> copyForWrite.removeLayouts(layoutIds, NCuboidLayout::equals, false, true));
+            val df = dataflowManager.getDataflow(cube.getName());
+            dataflowManager.removeLayouts(df, layoutIds);
+        } else {
+            cubePlanManager.updateCubePlan(cube.getName(),
+                    copy -> copy.setCuboids(copy.getCuboids().stream()
+                            .filter(cuboid -> availableDimensions.containsAll(cuboid.getDimensions()))
+                            .collect(Collectors.toList())));
+        }
+    }
+
+    private void handleReloadData(NDataModel model, NDataflowManager dataflowManager, KylinConfig config,
+            String project) {
+        var df = dataflowManager.getDataflowByModelName(model.getName());
+        df = dataflowManager.updateDataflow(df.getName(), copyForWrite -> {
+            copyForWrite.setSegments(new Segments<>());
+        });
+        dataflowManager.fillDf(df);
+
+        EventManager eventManager = EventManager.getInstance(config, project);
+
+        AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
+        addCuboidEvent.setProject(project);
+        addCuboidEvent.setModelName(model.getName());
+        addCuboidEvent.setCubePlanName(df.getCubePlanName());
+        addCuboidEvent.setJobId(UUID.randomUUID().toString());
+        addCuboidEvent.setOwner(getUsername());
+        eventManager.post(addCuboidEvent);
+
+        PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
+        postAddCuboidEvent.setProject(project);
+        postAddCuboidEvent.setModelName(model.getName());
+        postAddCuboidEvent.setCubePlanName(df.getCubePlanName());
+        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
+        postAddCuboidEvent.setOwner(getUsername());
+        eventManager.post(postAddCuboidEvent);
+    }
+
+    public void handleCubeUpdateRule(String project, String model, String cubePlanName) {
+        val kylinConfig = KylinConfig.getInstanceFromEnv();
+        val cubePlanManager = getCubePlanManager(project);
+        val dataflowManager = getDataflowManager(project);
+        val ruleBasedCuboidDesc = cubePlanManager.getCubePlan(cubePlanName).getRuleBasedCuboidsDesc();
+        val newRuleBasedCuboidDesc = ruleBasedCuboidDesc.getNewRuleBasedCuboid();
+        val eventManager = EventManager.getInstance(kylinConfig, project);
+        if (newRuleBasedCuboidDesc == null) {
+            log.debug("There is no new rule");
+            return;
+        }
+
+        val originLayouts = ruleBasedCuboidDesc.genCuboidLayouts(false);
+        val targetLayouts = ruleBasedCuboidDesc.getNewRuleBasedCuboid().genCuboidLayouts(false);
+
+        if (!onlyRemoveMeasures(originLayouts, targetLayouts)) {
+            val difference = Maps.difference(Maps.asMap(originLayouts, Functions.identity()),
+                    Maps.asMap(targetLayouts, Functions.identity()));
+
+            // new cuboid
+            if (difference.entriesOnlyOnRight().size() > 0) {
+                AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
+                addCuboidEvent.setCubePlanName(cubePlanName);
+                addCuboidEvent.setModelName(model);
+                addCuboidEvent.setJobId(UUID.randomUUID().toString());
+                addCuboidEvent.setOwner(getUsername());
+                addCuboidEvent.setProject(project);
+                eventManager.post(addCuboidEvent);
+
+                PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
+                postAddCuboidEvent.setCubePlanName(cubePlanName);
+                postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
+                postAddCuboidEvent.setModelName(model);
+                postAddCuboidEvent.setOwner(getUsername());
+                postAddCuboidEvent.setProject(project);
+                eventManager.post(postAddCuboidEvent);
+            }
+
+            // old cuboid
+            if (difference.entriesOnlyOnLeft().size() > 0) {
+                val cube = cubePlanManager.getCubePlan(cubePlanName);
+                val layoutIds = Sets.<Long> newHashSet();
+                for (NCuboidLayout removedLayout : difference.entriesOnlyOnLeft().keySet()) {
+                    layoutIds.add(removedLayout.getId());
+                }
+                cube.getWhitelistCuboidLayouts().forEach(l -> {
+                    layoutIds.remove(l.getId());
+                });
+                val df = dataflowManager.getDataflow(cubePlanName);
+                dataflowManager.removeLayouts(df, layoutIds);
+            }
+        }
+    }
+
+    private boolean onlyRemoveMeasures(Set<NCuboidLayout> originLayouts, Set<NCuboidLayout> targetLayouts) {
+        if (originLayouts.size() != targetLayouts.size()) {
+            return false;
+        }
+        for (NCuboidLayout originLayout : originLayouts) {
+            boolean result = false;
+            for (NCuboidLayout targetLayout : targetLayouts) {
+                if (originLayout.containMeasures(targetLayout)) {
+                    result = true;
+                    break;
+                }
+            }
+            if (!result) {
+                return false;
+            }
+        }
+        return true;
     }
 }

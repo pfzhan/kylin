@@ -868,6 +868,14 @@ public class NDataModel extends RootPersistentEntity {
         return getCopyOf(this);
     }
 
+    public String getProject() {
+        return project;
+    }
+
+    public void setProject(String project) {
+        this.project = project;
+    }
+
     public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
             boolean isOnlineModel) {
         // tweak the tables according to Computed Columns defined in model

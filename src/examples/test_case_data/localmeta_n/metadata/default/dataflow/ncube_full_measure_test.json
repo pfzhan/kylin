@@ -12,7 +12,7 @@
   "cost": 50,
   "segments": [
     {
-      "id": 0,
+      "id": "a9e2c5c6-689d-42d4-8706-16f6ff9998b7",
       "name": "FULL_BUILD",
       "create_time_utc": 1512113393458,
       "status": "READY",

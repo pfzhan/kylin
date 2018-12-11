@@ -43,12 +43,27 @@
 
 package io.kyligence.kap.event.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import io.kyligence.kap.event.handle.EventHandler;
+import io.kyligence.kap.event.handle.RefreshSegmentHandler;
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.kylin.metadata.model.SegmentRange;
+
+@Setter
+@Getter
 public class RefreshSegmentEvent extends Event {
+
+    @JsonProperty("segment_range")
+    private SegmentRange segmentRange;
 
     public RefreshSegmentEvent() {
         super();
-        setTriggerType(TriggerType.TIME_LINE);
-        setParallel(true);
+    }
+
+    @Override
+    public EventHandler getEventHandler() {
+        return new RefreshSegmentHandler();
     }
 
 }

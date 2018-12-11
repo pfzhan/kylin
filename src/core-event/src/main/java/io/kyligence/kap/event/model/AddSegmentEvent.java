@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,23 +43,22 @@
 package io.kyligence.kap.event.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+
+import io.kyligence.kap.event.handle.AddSegmentHandler;
+import io.kyligence.kap.event.handle.EventHandler;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
-
 @Setter
 @Getter
-public class AddSegmentEvent extends Event {
+public class AddSegmentEvent extends JobRelatedEvent {
 
-    @JsonProperty("segment_ids")
-    private List<Integer> segmentIds;
+    @JsonProperty("segment_id")
+    private String segmentId;
 
-    public AddSegmentEvent() {
-        super();
-        setTriggerType(TriggerType.TIME_LINE);
-        setParallel(true);
+    @Override
+    public EventHandler getEventHandler() {
+        return new AddSegmentHandler();
     }
 
 }
-

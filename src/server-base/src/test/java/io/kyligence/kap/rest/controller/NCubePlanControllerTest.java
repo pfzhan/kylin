@@ -83,7 +83,7 @@ public class NCubePlanControllerTest {
                 .project("default").model("nmodel_basic")
                 .parentForward(3).aggregationGroups(Lists.<NAggregationGroup> newArrayList())
                 .cuboidBlackSet(Sets.newHashSet(1L, 2L, 3L)).build();
-        Mockito.when(cubePlanService.updateRuleBasedCuboid(Mockito.any(UpdateRuleBasedCuboidRequest.class)))
+        Mockito.when(cubePlanService.updateRuleBasedCuboid(Mockito.anyString(), Mockito.any(UpdateRuleBasedCuboidRequest.class)))
                 .thenReturn(null);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/cube_plans/rule").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))

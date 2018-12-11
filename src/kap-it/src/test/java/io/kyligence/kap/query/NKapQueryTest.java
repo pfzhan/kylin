@@ -73,7 +73,7 @@ public class NKapQueryTest extends NKylinTestBase {
             System.setProperty("org.xerial.snappy.lib.name", "libsnappyjava.jnilib");//for snappy
         logger.info("setUp in NKapQueryTest");
         joinType = "left";
-
+        System.setProperty("kap.query.engine.sparder-enabled", "false");
         NKylinTestBase.setupAll();
     }
 
@@ -83,6 +83,7 @@ public class NKapQueryTest extends NKylinTestBase {
             System.clearProperty("org.xerial.snappy.lib.name");//reset
 
         logger.info("tearDown in NKapQueryTest");
+        System.clearProperty("kap.query.engine.sparder-enabled");
         NKylinTestBase.clean();
     }
 

@@ -37,10 +37,11 @@ public class QueryHistoryTimeOffset extends RootPersistentEntity {
     private long favoriteQueryUpdateTimeOffset;
 
     public QueryHistoryTimeOffset() {
-
+        updateRandomUuid();
     }
 
     public QueryHistoryTimeOffset(long autoMarkTimeOffset, long favoriteQueryUpdateTimeOffset) {
+        updateRandomUuid();
         this.autoMarkTimeOffset = autoMarkTimeOffset;
         this.favoriteQueryUpdateTimeOffset = favoriteQueryUpdateTimeOffset;
     }

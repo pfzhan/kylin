@@ -23,10 +23,12 @@
  */
 package io.kyligence.kap.rest.storage;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
@@ -34,10 +36,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryRealizationJDBCDao;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.AllArgsConstructor;
@@ -50,9 +49,7 @@ public class FavoriteQueryCleaner implements GarbageCleaner {
 
     private final ProjectInstance project;
 
-    private List<FavoriteQuery> inactiveFavoriteQueries = Lists.newArrayList();
-
-    private List<FavoriteQueryRealization> inactiveRealizations = Lists.newArrayList();
+    private Set<String> inactiveFavoriteSqlPatterns = new HashSet<>();
 
     private List<CubeCleanInfo> usedLayouts = Lists.newArrayList();
 
@@ -62,50 +59,37 @@ public class FavoriteQueryCleaner implements GarbageCleaner {
 
     @Override
     public void collect(NDataModel model) {
-        val favoriteQueryRealizationDao = FavoriteQueryRealizationJDBCDao.getInstance(KylinConfig.getInstanceFromEnv(),
-                model.getProject());
-        val favoriteQueryDao = FavoriteQueryJDBCDao.getInstance(KylinConfig.getInstanceFromEnv());
+        val favoriteQueryManager = FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName());
         val cube = getCube(model);
         val layoutIds = getLayouts(cube);
 
-        val allRealizations = favoriteQueryRealizationDao.getByConditions(model.getId(), cube.getId(), null);
+        val allRealizations = favoriteQueryManager.getRealizationsByConditions(model.getId(), cube.getId(), null);
 
         val outdatedRealizations = allRealizations.stream().filter(
                 r -> r.getSemanticVersion() != model.getSemanticVersion() || !layoutIds.contains(r.getCuboidLayoutId()))
                 .collect(Collectors.toList());
 
-        val outdatedFqsInModel = Lists.<FavoriteQuery> newArrayList();
-        for (FavoriteQueryRealization unused : outdatedRealizations) {
-            val fq = favoriteQueryDao.getFavoriteQuery(unused.getSqlPatternHash(), model.getProject());
-            if (fq == null) {
-                continue;
-            }
-            fq.setStatus(FavoriteQueryStatusEnum.WAITING);
-            outdatedFqsInModel.add(fq);
-        }
-
+        val outdatedFqsInModel = new HashSet<String>();
         // all realizations in fq is useless, even though it's layoutid is exist;
-        val outdatedRealizationsInModel = Lists.<FavoriteQueryRealization> newArrayList();
-        for (FavoriteQuery fq : outdatedFqsInModel) {
-            val realizations = favoriteQueryRealizationDao.getBySqlPatternHash(fq.getSqlPatternHash());
-            outdatedRealizationsInModel.addAll(realizations);
+        for (FavoriteQueryRealization unused : outdatedRealizations) {
+            outdatedFqsInModel.add(unused.getSqlPattern());
         }
 
-        val usedIds = allRealizations.stream().filter(r -> !outdatedRealizationsInModel.contains(r))
+        val usedIds = allRealizations.stream().filter(r -> !outdatedRealizations.contains(r))
                 .map(FavoriteQueryRealization::getCuboidLayoutId).collect(Collectors.toSet());
         usedLayouts.add(new CubeCleanInfo(cube.getName(), usedIds));
 
-        inactiveRealizations.addAll(outdatedRealizationsInModel);
-        inactiveFavoriteQueries.addAll(outdatedFqsInModel);
+        inactiveFavoriteSqlPatterns.addAll(outdatedFqsInModel);
     }
 
     @Override
     public void cleanup() throws Exception {
-        val fqDao = FavoriteQueryJDBCDao.getInstance(KylinConfig.getInstanceFromEnv());
-        fqDao.batchUpdateStatus(inactiveFavoriteQueries);
+        val fqManager = FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName());
 
-        val fqrDao = FavoriteQueryRealizationJDBCDao.getInstance(KylinConfig.getInstanceFromEnv(), project.getName());
-        fqrDao.batchDelete(inactiveRealizations);
+        for (String sqlPattern : inactiveFavoriteSqlPatterns) {
+            fqManager.updateStatus(sqlPattern, FavoriteQueryStatusEnum.WAITING, null);
+            fqManager.removeRealizations(sqlPattern);
+        }
 
         val cubeManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName());
         for (CubeCleanInfo entry : usedLayouts) {

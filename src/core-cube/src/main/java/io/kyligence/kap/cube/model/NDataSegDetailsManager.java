@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.cube.model;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,6 +31,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -61,7 +61,7 @@ class NDataSegDetailsManager implements IKeepNames {
 
     // called by reflection
     @SuppressWarnings("unused")
-    static NDataSegDetailsManager newInstance(KylinConfig config, String project) throws IOException {
+    static NDataSegDetailsManager newInstance(KylinConfig config, String project) {
         return new NDataSegDetailsManager(config, project);
     }
 
@@ -70,7 +70,7 @@ class NDataSegDetailsManager implements IKeepNames {
     private KylinConfig kylinConfig;
     private String project;
 
-    private NDataSegDetailsManager(KylinConfig config, String project) throws IOException {
+    private NDataSegDetailsManager(KylinConfig config, String project) {
         logger.info("Initializing NDataSegDetailsManager with config " + config);
         this.kylinConfig = config;
         this.project = project;
@@ -83,35 +83,30 @@ class NDataSegDetailsManager implements IKeepNames {
     private ResourceStore getStore() {
         return ResourceStore.getKylinMetaStore(this.kylinConfig);
     }
-    
-    private NDataSegDetails getForSegment(NDataflow df, int segId) {
-        try {
-            NDataSegDetails instances = getStore().getResource(getResourcePathForSegment(df.getName(), segId),
-                    NDataSegDetails.class, DATA_SEG_CUBOID_INSTANCES_SERIALIZER);
-            if (instances != null) {
-                instances.setConfig(df.getConfig());
-                instances.setProject(project);
-            }
-            return instances;
-        } catch (IOException e) {
-            logger.error("Failed to load NDataSegDetails for segment {}", df.getName() + "." + segId, e);
-            return null;
+
+    private NDataSegDetails getForSegment(NDataflow df, String segId) {
+        NDataSegDetails instances = getStore().getResource(getResourcePathForSegment(df.getName(), segId),
+                DATA_SEG_CUBOID_INSTANCES_SERIALIZER);
+        if (instances != null) {
+            instances.setConfig(df.getConfig());
+            instances.setProject(project);
         }
+        return instances;
     }
 
     NDataSegDetails getForSegment(NDataSegment segment) {
         return getForSegment(segment.getDataflow(), segment.getId());
     }
 
-    void updateDataflow(NDataflow df, NDataflowUpdate update) throws IOException {
+    void updateDataflow(NDataflow df, NDataflowUpdate update) {
 
         // figure out all impacted segments
-        Set<Integer> allSegIds = new TreeSet<>();
-        Map<Integer, List<NDataCuboid>> toUpsert = new TreeMap<>();
-        Map<Integer, List<NDataCuboid>> toRemove = new TreeMap<>();
+        Set<String> allSegIds = new TreeSet<>();
+        Map<String, List<NDataCuboid>> toUpsert = new TreeMap<>();
+        Map<String, List<NDataCuboid>> toRemove = new TreeMap<>();
         if (update.getToAddOrUpdateCuboids() != null) {
             for (NDataCuboid c : update.getToAddOrUpdateCuboids()) {
-                int segId = c.getSegDetails().getSegmentId();
+                val segId = c.getSegDetails().getUuid();
                 allSegIds.add(segId);
                 List<NDataCuboid> list = toUpsert.get(segId);
                 if (list == null)
@@ -121,7 +116,7 @@ class NDataSegDetailsManager implements IKeepNames {
         }
         if (update.getToRemoveCuboids() != null) {
             for (NDataCuboid c : update.getToRemoveCuboids()) {
-                int segId = c.getSegDetails().getSegmentId();
+                val segId = c.getSegDetails().getUuid();
                 allSegIds.add(segId);
                 List<NDataCuboid> list = toRemove.get(segId);
                 if (list == null)
@@ -136,7 +131,7 @@ class NDataSegDetailsManager implements IKeepNames {
         }
 
         // upsert for each segment
-        for (int segId : allSegIds) {
+        for (String segId : allSegIds) {
             NDataSegDetails details = getForSegment(df, segId);
             if (details == null)
                 details = NDataSegDetails.newSegDetails(df, segId);
@@ -166,33 +161,33 @@ class NDataSegDetailsManager implements IKeepNames {
     private NDataSegDetails upsertForSegmentQuietly(NDataSegDetails details) {
         try {
             return upsertForSegment(details);
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("Failed to insert/update NDataSegDetails for segment {}",
-                    details.getDataflowName() + "." + details.getSegmentId(), e);
+                    details.getDataflowName() + "." + details.getUuid(), e);
             return null;
         }
     }
 
-    NDataSegDetails upsertForSegment(NDataSegDetails details) throws IOException {
+    NDataSegDetails upsertForSegment(NDataSegDetails details) {
         Preconditions.checkNotNull(details, "NDataSegDetails cannot be null.");
 
-        getStore().putResource(details.getResourcePath(), details, DATA_SEG_CUBOID_INSTANCES_SERIALIZER);
+        getStore().checkAndPutResource(details.getResourcePath(), details, DATA_SEG_CUBOID_INSTANCES_SERIALIZER);
         return details;
     }
 
-    private void removeForSegmentQuietly(NDataflow df, int segId) {
+    private void removeForSegmentQuietly(NDataflow df, String segId) {
         try {
             removeForSegment(df, segId);
-        } catch (IOException e) {
+        } catch (Exception e) {
             logger.error("Failed to remove NDataSegDetails for segment {}", df.getName() + "." + segId, e);
         }
     }
 
-    void removeForSegment(NDataflow df, int segId) throws IOException {
+    void removeForSegment(NDataflow df, String segId) {
         getStore().deleteResource(getResourcePathForSegment(df.getName(), segId));
     }
 
-    private String getResourcePathForSegment(String dataflowName, int segId) {
+    private String getResourcePathForSegment(String dataflowName, String segId) {
         return "/" + project + NDataSegDetails.DATAFLOW_DETAILS_RESOURCE_ROOT + "/" + dataflowName + "/" + segId
                 + MetadataConstants.FILE_SURFIX;
     }

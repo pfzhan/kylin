@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart.query.mockup;
 
-import org.apache.kylin.query.enumerator.LookupTableEnumerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,14 +65,6 @@ public abstract class AbstractQueryExecutor {
      * if stack trace elements contains LookupTableEnumerator, update the status of SQLResult and return true
      */
     boolean isSqlResultStatusModifiedByExceptionCause(SQLResult sqlResult, StackTraceElement[] stackTraceElements) {
-        for (StackTraceElement element : stackTraceElements) {
-            if (element.toString().contains(LookupTableEnumerator.class.getName())) {
-                logger.debug("This query hits table snapshot.");
-
-                sqlResult.setStatus(SQLResult.Status.SUCCESS);
-                return true;
-            }
-        }
         return false;
     }
 }

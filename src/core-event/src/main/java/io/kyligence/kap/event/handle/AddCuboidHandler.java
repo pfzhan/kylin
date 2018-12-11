@@ -25,148 +25,66 @@ package io.kyligence.kap.event.handle;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
-import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.Segments;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataLoadingRange;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryJDBCDao;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
-import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.val;
 
 public class AddCuboidHandler extends AbstractEventWithJobHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(AddCuboidHandler.class);
 
     @Override
-    protected void onJobSuccess(EventContext eventContext) throws Exception {
+    public AbstractExecutable createJob(EventContext eventContext) {
         AddCuboidEvent event = (AddCuboidEvent) eventContext.getEvent();
         String project = event.getProject();
         KylinConfig kylinConfig = eventContext.getConfig();
 
-        String cubePlanName = event.getCubePlanName();
-        NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-        NDataflow df = dfMgr.getDataflow(cubePlanName);
-        updateDataLoadingRange(df);
-
-        List<String> sqlList = event.getSqlPatterns();
-        if (CollectionUtils.isNotEmpty(sqlList)) {
-            List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
-            for (String sqlPattern : sqlList) {
-                FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern, sqlPattern.hashCode(), project);
-                favoriteQuery.setStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED);
-                favoriteQueries.add(favoriteQuery);
-            }
-            getFavoriteQueryDao().batchUpdateStatus(favoriteQueries);
-        }
-
-    }
-
-    public FavoriteQueryJDBCDao getFavoriteQueryDao() {
-        return FavoriteQueryJDBCDao.getInstance(KylinConfig.getInstanceFromEnv());
-    }
-
-    @Override
-    public AbstractExecutable createJob(EventContext eventContext) throws Exception {
-        AddCuboidEvent event = (AddCuboidEvent) eventContext.getEvent();
-        String project = event.getProject();
-        KylinConfig kylinConfig = eventContext.getConfig();
-
-        Segments<NDataSegment> toBeProcessedSegments;
-        Set<NCuboidLayout> toBeProcessedLayouts;
         String cubePlanName = event.getCubePlanName();
         NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).getCubePlan(cubePlanName);
         checkNotNull(cubePlan);
         NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
         NDataflow df = dfMgr.getDataflow(cubePlanName);
 
-        AbstractExecutable job;
-        List<Long> layoutIds = event.getLayoutIds();
-        if (CollectionUtils.isEmpty(layoutIds)) {
+        val readySegs = df.getSegments(SegmentStatusEnum.READY);
+        if (readySegs.isEmpty()) {
+            logger.trace("no job will run for event {} because no ready segment is found", event);
             return null;
         }
-        // calc to be process layouts
-        toBeProcessedLayouts = Sets.newLinkedHashSet();
-        for (Long layoutId : layoutIds) {
-            NCuboidLayout cuboidLayout = cubePlan.getCuboidLayout(layoutId);
-            if (cuboidLayout != null) {
-                toBeProcessedLayouts.add(cuboidLayout);
+
+        // be process layouts = all layouts - ready layouts
+        val lastReadySeg = readySegs.getLatestReadySegment();
+        Set<NCuboidLayout> toBeProcessedLayouts = Sets.newLinkedHashSet();
+        for (NCuboidLayout layout : cubePlan.getAllCuboidLayouts()) {
+            NDataCuboid nc = lastReadySeg.getCuboid(layout.getId());
+            if (nc == null) {
+                toBeProcessedLayouts.add(layout);
             }
         }
 
         if (CollectionUtils.isEmpty(toBeProcessedLayouts)) {
+            logger.trace("no job will run for event {} because no layout awaits building", event);
             return null;
         }
 
-        // calc to be process segments
-        // there is no ready seg
-        // case 1 : there is no seg, get segRange from loadingRage
-        // case 2 : there is a seg building, get segRange from the building seg
-        toBeProcessedSegments = df.getSegments();
-        if (CollectionUtils.isEmpty(toBeProcessedSegments)) {
-            synchronized (AddCuboidHandler.class) {
-                // double check if the segment exists
-                df = dfMgr.getDataflow(cubePlanName);
-                toBeProcessedSegments = df.getSegments();
-                if (CollectionUtils.isEmpty(toBeProcessedSegments)) {
-                    List<SegmentRange> segmentRangeList = Lists.newArrayList();
-                    SegmentRange segmentRange = event.getSegmentRange();
-                    if (segmentRange == null) {
-                        NDataModel model = cubePlan.getModel();
-                        String tableName = model.getRootFactTable().getTableIdentity();
-                        NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager.getInstance(kylinConfig, project).getDataLoadingRange(tableName);
-                        if (dataLoadingRange == null) {
-                            segmentRangeList.add(new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
-                        } else {
-                            List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
-                            if (CollectionUtils.isNotEmpty(segmentRanges)) {
-                                segmentRangeList.addAll(segmentRanges);
-                            }
-                        }
-
-                    } else {
-                        segmentRangeList.add(segmentRange);
-                    }
-
-                    if (CollectionUtils.isEmpty(segmentRangeList)) {
-                        return null;
-                    }
-                    for (SegmentRange range : segmentRangeList) {
-                        NDataSegment oneSeg = NDataflowManager.getInstance(kylinConfig, project).appendSegment(df, range);
-                        toBeProcessedSegments.add(oneSeg);
-                    }
-                }
-            }
-        }
-
-        job = NSparkCubingJob.create(Sets.newLinkedHashSet(toBeProcessedSegments), toBeProcessedLayouts
-                , "ADMIN");
-        return job;
+        return NSparkCubingJob.create(Sets.newLinkedHashSet(readySegs), toBeProcessedLayouts, event.getOwner(), event.getJobId());
     }
 
-    @Override
-    public Class<?> getEventClassType() {
-        return AddCuboidEvent.class;
-    }
 }

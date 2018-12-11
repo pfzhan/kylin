@@ -33,7 +33,6 @@ import com.google.common.cache.{
 }
 import io.kyligence.kap.metadata.model.NTableMetadataManager
 import org.apache.kylin.common.{KapConfig, KylinConfig}
-import org.apache.kylin.dict.lookup.SnapshotTableSerializer
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.utils.DeriveTableColumnInfo
 import org.apache.spark.sql.types.{
@@ -47,8 +46,6 @@ import org.apache.spark.sql.{DataFrame, Dataset, Row, SparderEnv}
 
 // scalastyle:off
 object SparderLookupManager extends Logging {
-  lazy val serializer: SnapshotTableSerializer =
-    SnapshotTableSerializer.FULL_SERIALIZER
   val DEFAULT_MAXSIZE = 100
   val DEFAULT_EXPIRE_TIME = 1
   val DEFAULT_TIME_UNIT = TimeUnit.HOURS

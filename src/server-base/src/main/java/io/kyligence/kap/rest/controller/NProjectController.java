@@ -24,14 +24,13 @@
 
 package io.kyligence.kap.rest.controller;
 
-import io.kyligence.kap.rest.request.MaintainModelTypeRequest;
-import io.kyligence.kap.rest.request.ProjectRequest;
-import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
-import io.kyligence.kap.rest.service.GarbageCleanService;
-import io.kyligence.kap.rest.service.ProjectService;
+import io.kyligence.kap.rest.service.MetadataCleanupService;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -50,9 +49,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
+
+import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
+import io.kyligence.kap.rest.request.MaintainModelTypeRequest;
+import io.kyligence.kap.rest.request.ProjectRequest;
+import io.kyligence.kap.rest.service.ProjectService;
 
 @Controller
 @RequestMapping(value = "/projects")
@@ -69,8 +70,7 @@ public class NProjectController extends NBasicController {
     private ProjectService projectService;
 
     @Autowired
-    @Qualifier("garbageCleanService")
-    GarbageCleanService garbageCleanService;
+    MetadataCleanupService garbageCleanService;
 
     @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
@@ -87,7 +87,7 @@ public class NProjectController extends NBasicController {
     @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN)
-    public EnvelopeResponse saveProject(@RequestBody ProjectRequest projectRequest) throws IOException, PersistentException {
+    public EnvelopeResponse saveProject(@RequestBody ProjectRequest projectRequest) {
 
         ProjectInstance projectDesc = projectService.deserializeProjectDesc(projectRequest);
         if (StringUtils.isEmpty(projectDesc.getName())) {
@@ -132,11 +132,13 @@ public class NProjectController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public EnvelopeResponse updateQueryAccelerateThresholdConfig(@RequestBody FavoriteQueryThresholdRequest favoriteQueryThresholdRequest) throws IOException {
+    public EnvelopeResponse updateQueryAccelerateThresholdConfig(
+            @RequestBody FavoriteQueryThresholdRequest favoriteQueryThresholdRequest) {
         checkProjectName(favoriteQueryThresholdRequest.getProject());
         checkRequiredArg("threshold", favoriteQueryThresholdRequest.getThreshold());
-        projectService.updateQueryAccelerateThresholdConfig(favoriteQueryThresholdRequest.getProject(), favoriteQueryThresholdRequest.getThreshold(),
-                favoriteQueryThresholdRequest.isAutoApply(), favoriteQueryThresholdRequest.isBatchEnabled());
+        projectService.updateQueryAccelerateThresholdConfig(favoriteQueryThresholdRequest.getProject(),
+                favoriteQueryThresholdRequest.getThreshold(), favoriteQueryThresholdRequest.isAutoApply(),
+                favoriteQueryThresholdRequest.isBatchEnabled());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
 
     }
@@ -155,7 +157,7 @@ public class NProjectController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
-    public EnvelopeResponse updateMantainModelType(@RequestBody MaintainModelTypeRequest request) throws IOException {
+    public EnvelopeResponse updateMantainModelType(@RequestBody MaintainModelTypeRequest request) {
         checkProjectName(request.getProject());
         projectService.updateMantainModelType(request.getProject(), request.getMaintainModelType());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");

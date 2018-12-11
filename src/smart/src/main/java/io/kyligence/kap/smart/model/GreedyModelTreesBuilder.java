@@ -51,9 +51,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.model.NDataModel.TableKind;
 import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModel.TableKind;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.smart.util.JoinDescUtil;
 import io.kyligence.kap.smart.util.OLAPContextUtil;
 import io.kyligence.kap.smart.util.TableAliasGenerator;

@@ -28,11 +28,15 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
+import io.kyligence.kap.engine.spark.merger.AfterMergeResourceMerger;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.spark.KapSparkSession;
+import lombok.val;
+import lombok.var;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -55,6 +59,7 @@ import org.spark_project.guava.collect.Sets;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletionService;
 import java.util.concurrent.ExecutorCompletionService;
@@ -299,25 +304,29 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2013-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts));
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts), true);
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2015-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts));
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts), true);
 
         /**
          * Round2. Merge two segments
          */
         df = dsMgr.getDataflow(dfName);
         NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2015-01-01")), false);
-        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
+        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN", UUID.randomUUID().toString());
         execMgr.addJob(firstMergeJob);
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
+        val merger = new AfterMergeResourceMerger(config, getProject());
+        var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkCubingStep());
+        merger.mergeAfterJob(df.getName(), firstMergeSeg.getId(), mergeStore);
+
 
         /**
          * validate cube segment info
          */
-        NDataSegment firstSegment = dsMgr.getDataflow(dfName).getSegment(2);
+        NDataSegment firstSegment = dsMgr.getDataflow(dfName).getSegments().get(0);
         Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2015-01-01")), firstSegment.getSegRange());
         //Assert.assertEquals(27, firstSegment.getDictionaries().size());
         Assert.assertEquals(7, firstSegment.getSnapshots().size());
@@ -342,22 +351,22 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2012-06-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts));
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts), true);
         validateTableExt(df.getModel().getRootFactTableName(), 2054, 1, 11);
 
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts));
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts), true);
         validateTableExt(df.getModel().getRootFactTableName(), 4903, 2, 11);
 
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2013-06-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts));
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts), true);
         validateTableExt(df.getModel().getRootFactTableName(), 7075, 3, 11);
 
         start = SegmentRange.dateToLong("2013-06-01");
         end = SegmentRange.dateToLong("2015-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts));
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts), true);
         validateTableExt(df.getModel().getRootFactTableName(), 10000, 4, 11);
 
         /**
@@ -365,24 +374,29 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
          */
         df = dsMgr.getDataflow(dfName);
         NDataSegment firstMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2013-01-01")), false);
-        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
+        NSparkMergingJob firstMergeJob = NSparkMergingJob.merge(firstMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN", UUID.randomUUID().toString());
         execMgr.addJob(firstMergeJob);
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
+        val merger = new AfterMergeResourceMerger(config, getProject());
+        var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkCubingStep());
+        merger.mergeAfterJob(df.getName(), firstMergeSeg.getId(), mergeStore);
 
         df = dsMgr.getDataflow(dfName);
 
         NDataSegment secondMergeSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"), SegmentRange.dateToLong("2015-06-01")), false);
-        NSparkMergingJob secondMergeJob = NSparkMergingJob.merge(secondMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN");
+        NSparkMergingJob secondMergeJob = NSparkMergingJob.merge(secondMergeSeg, Sets.newLinkedHashSet(layouts), "ADMIN", UUID.randomUUID().toString());
         execMgr.addJob(secondMergeJob);
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob));
+        mergeStore = ExecutableUtils.getRemoteStore(config, secondMergeJob.getSparkCubingStep());
+        merger.mergeAfterJob(df.getName(), secondMergeSeg.getId(), mergeStore);
 
         /**
          * validate cube segment info
          */
-        NDataSegment firstSegment = dsMgr.getDataflow(dfName).getSegment(4);
-        NDataSegment secondSegment = dsMgr.getDataflow(dfName).getSegment(5);
+        NDataSegment firstSegment = dsMgr.getDataflow(dfName).getSegments().get(0);
+        NDataSegment secondSegment = dsMgr.getDataflow(dfName).getSegments().get(1);
         Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"), SegmentRange.dateToLong("2013-01-01")), firstSegment.getSegRange());
         Assert.assertEquals(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2013-01-01"), SegmentRange.dateToLong("2015-01-01")), secondSegment.getSegRange());
         //Assert.assertEquals(31, firstSegment.getDictionaries().size());

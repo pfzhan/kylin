@@ -31,18 +31,16 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
-import io.kyligence.kap.rest.response.QueryTimesResponse;
-
+import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
-import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -69,9 +67,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.google.common.primitives.Ints;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
@@ -90,11 +87,8 @@ import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.event.model.LoadingRangeRefreshEvent;
-import io.kyligence.kap.event.model.ModelSemanticUpdateEvent;
+import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
-import io.kyligence.kap.event.model.RemoveSegmentEvent;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.ManagementType;
@@ -104,6 +98,7 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
@@ -111,6 +106,7 @@ import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
@@ -135,6 +131,10 @@ public class ModelService extends BasicService {
     @Setter
     @Autowired
     private ModelSemanticHelper semanticUpdater;
+
+    @Setter
+    @Autowired
+    private SegmentHelper segmentHelper;
 
     private NDataModel getNDataModelByModelName(String modelName, String project) {
         NDataModelManager modelManager = getDataModelManager(project);
@@ -200,7 +200,7 @@ public class ModelService extends BasicService {
         if (cubePlan != null) {
             return getDataflowManager(projectName).getDataflow(cubePlan.getName()).getStatus();
         } else {
-            return RealizationStatusEnum.OFFLINE;
+            return null;
         }
     }
 
@@ -292,8 +292,7 @@ public class ModelService extends BasicService {
         return result;
     }
 
-    public List<RelatedModelResponse> getRelateModels(String project, String table, String modelName)
-            throws IOException {
+    public List<RelatedModelResponse> getRelateModels(String project, String table, String modelName) {
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         NDataModelManager dataModelManager = getDataModelManager(project);
         List<String> models = dataModelManager.getTableOrientedModelsUsingRootTable(tableDesc);
@@ -323,7 +322,7 @@ public class ModelService extends BasicService {
 
     private void checkAliasExist(String modelName, String newAlias, String project) {
         NDataModelManager dataModelManager = getDataModelManager(project);
-        List<NDataModel> models = dataModelManager.listModels();
+        List<NDataModel> models = dataModelManager.getDataModels();
         for (NDataModel model : models) {
             if (!StringUtils.isNotEmpty(modelName) && model.getName().equals(modelName)) {
                 continue;
@@ -333,7 +332,8 @@ public class ModelService extends BasicService {
         }
     }
 
-    public void dropModel(String model, String project) throws IOException {
+    @Transaction(project = 1)
+    public void dropModel(String model, String project) {
         NDataModel dataModelDesc = getNDataModelByModelName(model, project);
         NCubePlanManager cubePlanManager = getCubePlanManager(project);
         NDataflowManager dataflowManager = getDataflowManager(project);
@@ -347,16 +347,14 @@ public class ModelService extends BasicService {
         getDataModelManager(project).dropModel(dataModelDesc);
     }
 
-    public void purgeModel(String model, String project) throws IOException {
+    @Transaction(project = 1)
+    public void purgeModel(String model, String project) {
         NDataflowManager dataflowManager = getDataflowManager(project);
         val cubePlan = getCubePlan(model, project);
         List<NDataSegment> segments = new ArrayList<>();
         if (cubePlan != null) {
             NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
             NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
-            if (dataflow.getStatus().equals(RealizationStatusEnum.ONLINE)) {
-                nDataflowUpdate.setStatus(RealizationStatusEnum.NEW);
-            }
             segments.addAll(dataflow.getSegments());
             NDataSegment[] segmentsArray = new NDataSegment[segments.size()];
             NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
@@ -366,7 +364,8 @@ public class ModelService extends BasicService {
 
     }
 
-    public void purgeModelManually(String model, String project) throws IOException {
+    @Transaction(project = 1)
+    public void purgeModelManually(String model, String project) {
         NDataModel dataModelDesc = getNDataModelByModelName(model, project);
         if (dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
             throw new BadRequestException(MODEL + model + "' is table oriented, can not pruge the model!!");
@@ -374,20 +373,27 @@ public class ModelService extends BasicService {
         purgeModel(model, project);
     }
 
-    public void cloneModel(String modelName, String newModelName, String project) throws IOException {
+    @Transaction(project = 2)
+    public void cloneModel(String modelName, String newModelName, String project) {
         checkAliasExist("", newModelName, project);
         NDataModelManager dataModelManager = getDataModelManager(project);
         NDataModel dataModelDesc = getNDataModelByModelName(modelName, project);
         //copyForWrite nDataModel do init,but can not set new modelname
-        NDataModel nDataModel = JsonUtil.readValue(JsonUtil.writeValueAsIndentString(dataModelDesc), NDataModel.class);
+        NDataModel nDataModel;
+        try {
+            nDataModel = JsonUtil.readValue(JsonUtil.writeValueAsIndentString(dataModelDesc), NDataModel.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         nDataModel.setName(UUID.randomUUID().toString());
         nDataModel.setAlias(newModelName);
         nDataModel.setLastModified(0L);
+        nDataModel.setMvcc(-1);
         dataModelManager.createDataModelDesc(nDataModel, nDataModel.getOwner());
         cloneCubePlan(modelName, nDataModel.getName(), project, nDataModel.getOwner());
     }
 
-    private void cloneCubePlan(String modelName, String newModelName, String project, String owner) throws IOException {
+    private void cloneCubePlan(String modelName, String newModelName, String project, String owner) {
         NCubePlanManager cubePlanManager = getCubePlanManager(project);
         NCubePlan cubePlan = cubePlanManager.findMatchingCubePlan(modelName, project, getConfig());
         NDataflowManager dataflowManager = getDataflowManager(project);
@@ -398,6 +404,7 @@ public class ModelService extends BasicService {
         copy.updateRandomUuid();
         copy.setName(copy.getUuid());
         copy.setLastModified(0L);
+        copy.setMvcc(-1);
         cubePlanManager.createCubePlan(copy);
         NDataflow nDataflow = new NDataflow();
         nDataflow.setStatus(RealizationStatusEnum.OFFLINE);
@@ -406,7 +413,8 @@ public class ModelService extends BasicService {
         dataflowManager.createDataflow(copy.getName(), project, copy, owner);
     }
 
-    public void renameDataModel(String project, String modelName, String newAlias) throws IOException {
+    @Transaction(project = 0)
+    public void renameDataModel(String project, String modelName, String newAlias) {
         NDataModelManager modelManager = getDataModelManager(project);
         NDataModel nDataModel = getNDataModelByModelName(modelName, project);
         //rename
@@ -416,7 +424,8 @@ public class ModelService extends BasicService {
         modelManager.updateDataModelDesc(modelUpdate);
     }
 
-    public void unlinkModel(String modelName, String project) throws IOException {
+    @Transaction(project = 1)
+    public void unlinkModel(String modelName, String project) {
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         NDataModelManager dataModelManager = getDataModelManager(project);
 
@@ -438,7 +447,8 @@ public class ModelService extends BasicService {
         }
     }
 
-    public void updateDataModelStatus(String modelName, String project, String status) throws Exception {
+    @Transaction(project = 1)
+    public void updateDataModelStatus(String modelName, String project, String status) {
         NDataModel nDataModel = getNDataModelByModelName(modelName, project);
         NCubePlan cubePlan = getCubePlan(nDataModel.getName(), project);
         NDataflowManager dataflowManager = getDataflowManager(project);
@@ -453,21 +463,13 @@ public class ModelService extends BasicService {
             if (status.equals(RealizationStatusEnum.OFFLINE.name())) {
                 nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
             } else if (status.equals(RealizationStatusEnum.ONLINE.name())) {
-                if (!dataflow.checkAllowedOnline()) {
-                    throw new IllegalStateException(
-                            "Some segments in model '" + modelName + "' are not ready, can not online the model!");
-                } else {
-                    nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
-                }
+                nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
             }
             dataflowManager.updateDataflow(nDataflowUpdate);
         }
     }
 
     private void checkDataflowStatus(NDataflow dataflow, String modelName) {
-        if (dataflow.getStatus().equals(RealizationStatusEnum.NEW)) {
-            throw new IllegalStateException("No ready segment in model '" + modelName + "', can not online the model!");
-        }
         if (dataflow.getStatus().equals(RealizationStatusEnum.DESCBROKEN)) {
             throw new BadRequestException("DescBroken model " + modelName + " can not online or offline!");
         }
@@ -479,17 +481,17 @@ public class ModelService extends BasicService {
         return SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
     }
 
-    public boolean isModelsUsingTable(String table, String project) throws IOException {
+    public boolean isModelsUsingTable(String table, String project) {
         return getDataModelManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table))
                 .size() > 0;
     }
 
-    public List<String> getModelsUsingTable(String table, String project) throws IOException {
+    public List<String> getModelsUsingTable(String table, String project) {
         return getDataModelManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table));
     }
 
     public RefreshAffectedSegmentsResponse getAffectedSegmentsResponse(String project, String table, String start,
-            String end, ManagementType managementType) throws IOException {
+            String end, ManagementType managementType) {
         Segments<NDataSegment> segments = new Segments<>();
         RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
         long byteSize = 0L;
@@ -515,8 +517,9 @@ public class ModelService extends BasicService {
         return response;
     }
 
+    @Transaction(project = 0)
     public void refreshSegments(String project, String table, String refreshStart, String refreshEnd,
-            String affectedStart, String affectedEnd) throws IOException, PersistentException {
+            String affectedStart, String affectedEnd) {
         RefreshAffectedSegmentsResponse response = getAffectedSegmentsResponse(project, table, refreshStart, refreshEnd,
                 ManagementType.TABLE_ORIENTED);
         if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
@@ -532,22 +535,16 @@ public class ModelService extends BasicService {
             }
         }
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
-        EventManager eventManager = getEventManager(project);
         SegmentRange segmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(refreshStart, refreshEnd);
-        LoadingRangeRefreshEvent event = new LoadingRangeRefreshEvent();
-        event.setSegmentRange(segmentRange);
-        event.setApproved(true);
-        event.setProject(project);
-        event.setTableName(table);
-        eventManager.post(event);
+        segmentHelper.refreshLoadingRange(project, table, segmentRange);
     }
 
-    public void createModel(ModelRequest modelRequest) throws IOException {
+    @Transaction(project = 0)
+    public void createModel(String project, ModelRequest modelRequest) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             modelRequest.setOwner(((UserDetails) authentication.getPrincipal()).getUsername());
         }
-        String project = modelRequest.getProject();
         checkAliasExist(modelRequest.getName(), modelRequest.getAlias(), project);
         //remove some attributes in modelResponse to fit NDataModel
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
@@ -563,10 +560,11 @@ public class ModelService extends BasicService {
         nCubePlan.setModelName(modelRequest.getName());
         cubePlanManager.createCubePlan(nCubePlan);
         dataflowManager.createDataflow(nCubePlan.getName(), nCubePlan.getProject(), nCubePlan, model.getOwner());
+
     }
 
-    public void buildSegmentsManually(String project, String model, String start, String end)
-            throws IOException, PersistentException {
+    @Transaction(project = 0)
+    public void buildSegmentsManually(String project, String model, String start, String end) {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(model);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new BadRequestException("Table oriented model '" + model + "' can not build segments manually!");
@@ -585,16 +583,25 @@ public class ModelService extends BasicService {
 
         NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
         NDataSegment newSegment = dataflowManager.appendSegment(dataflow, segmentRangeToBuild);
-        List<Integer> segmentIds = new ArrayList<>();
-        segmentIds.add(newSegment.getId());
+        Set<String> segmentIds = Sets.newHashSet(newSegment.getId());
+
         AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
-        addSegmentEvent.setApproved(true);
-        addSegmentEvent.setSegmentIds(segmentIds);
+        addSegmentEvent.setSegmentId(newSegment.getId());
         addSegmentEvent.setCubePlanName(cubePlan.getName());
         addSegmentEvent.setModelName(model);
-        addSegmentEvent.setSegmentRange(segmentRangeToBuild);
+        addSegmentEvent.setJobId(UUID.randomUUID().toString());
+        addSegmentEvent.setOwner(getUsername());
         addSegmentEvent.setProject(project);
         eventManager.post(addSegmentEvent);
+
+        PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
+        postAddSegmentEvent.setCubePlanName(cubePlan.getName());
+        postAddSegmentEvent.setModelName(model);
+        postAddSegmentEvent.setProject(project);
+        postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
+        postAddSegmentEvent.setOwner(getUsername());
+        eventManager.post(postAddSegmentEvent);
+
     }
 
     private void checkSegmentToBuildOverlapsBuilt(String project, String model, SegmentRange segmentRangeToBuild) {
@@ -708,8 +715,9 @@ public class ModelService extends BasicService {
         }
     }
 
+    @Transaction(project = 0)
     public void updateModelDataCheckDesc(String project, String modelName, long checkOptions, long faultThreshold,
-            long faultActions) throws IOException {
+            long faultActions) {
 
         final NDataModel dataModel = getDataModelManager(project).getDataModelDesc(modelName);
         if (dataModel == null) {
@@ -720,19 +728,19 @@ public class ModelService extends BasicService {
         getDataModelManager(project).updateDataModelDesc(dataModel);
     }
 
-    public void deleteSegmentById(String model, String project, int[] ids) throws PersistentException {
+    @Transaction(project = 1)
+    public void deleteSegmentById(String model, String project, String[] ids) {
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
         if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
             throw new BadRequestException(MODEL + model + "' is table oriented, can not remove segments manually!");
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
-        EventManager eventManager = getEventManager(project);
         checkSegmentsOverlapWithBuilding(model, project, ids);
         checkDeleteSegmentLegally(model, project, ids);
         val cubePlan = getCubePlan(model, project);
         NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
-        List<Integer> idsToDelete = new ArrayList<>();
-        for (int id : ids) {
+        Set<String> idsToDelete = Sets.newHashSet();
+        for (String id : ids) {
             if (dataflow.getSegment(id) != null) {
                 idsToDelete.add(id);
             }
@@ -740,23 +748,17 @@ public class ModelService extends BasicService {
         if (CollectionUtils.isEmpty(idsToDelete)) {
             return;
         }
-        RemoveSegmentEvent event = new RemoveSegmentEvent();
-        event.setSegmentIds(idsToDelete);
-        event.setCubePlanName(cubePlan.getName());
-        event.setModelName(model);
-        event.setApproved(true);
-        event.setProject(project);
-        eventManager.post(event);
+        segmentHelper.removeSegment(project, dataflow.getName(), idsToDelete);
     }
 
-    private void checkSegmentsOverlapWithBuilding(String model, String project, int[] ids) {
+    private void checkSegmentsOverlapWithBuilding(String model, String project, String[] ids) {
         NDataflowManager dataflowManager = getDataflowManager(project);
         NCubePlan cubePlan = getCubePlan(model, project);
         NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
         Segments<NDataSegment> buildingSegments = dataflow.getSegments().getBuildingSegments();
         if (buildingSegments.size() > 0) {
             for (NDataSegment segment : buildingSegments) {
-                for (int id : ids) {
+                for (String id : ids) {
                     if (segment.getSegRange().overlaps(dataflow.getSegment(id).getSegRange())) {
                         throw new BadRequestException("Can not remove segment (ID:" + id
                                 + "), because this segment overlaps building segments!");
@@ -767,18 +769,18 @@ public class ModelService extends BasicService {
         }
     }
 
-    private void checkDeleteSegmentLegally(String model, String project, int[] ids) {
+    private void checkDeleteSegmentLegally(String model, String project, String[] ids) {
         NDataflowManager dataflowManager = getDataflowManager(project);
         val cubePlan = getCubePlan(model, project);
-        List<Integer> idsToDelete = Ints.asList(ids);
+        List<String> idsToDelete = Lists.newArrayList(ids);
         NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
         Segments<NDataSegment> allSegments = dataflow.getSegments();
         if (allSegments.size() <= 2) {
             return;
         } else {
             for (int i = 1; i < allSegments.size() - 1; i++) {
-                for (int id : idsToDelete) {
-                    if (id == allSegments.get(i).getId()) {
+                for (String id : idsToDelete) {
+                    if (id.equals(allSegments.get(i).getId())) {
                         checkNeighbouringSegmentsDeleted(idsToDelete, i, allSegments);
                     }
                 }
@@ -787,52 +789,48 @@ public class ModelService extends BasicService {
         }
     }
 
-    private void checkNeighbouringSegmentsDeleted(List<Integer> idsToDelete, int i,
-            Segments<NDataSegment> allSegments) {
+    private void checkNeighbouringSegmentsDeleted(List<String> idsToDelete, int i, Segments<NDataSegment> allSegments) {
         if (!idsToDelete.contains(allSegments.get(i - 1).getId())
                 || !idsToDelete.contains(allSegments.get(i + 1).getId())) {
             throw new BadRequestException("Only consecutive segments in head or tail can be removed!");
         }
     }
 
-    public void refreshSegmentById(String modelName, String project, int[] ids) throws PersistentException {
+    @Transaction(project = 0)
+    public void refreshSegmentById(String modelName, String project, String[] ids) {
         NDataflowManager dataflowManager = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);
         checkSegmentsOverlapWithBuilding(modelName, project, ids);
         NCubePlan cubePlan = getCubePlan(modelName, project);
         NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
-        for (int id : ids) {
+
+        for (String id : ids) {
             NDataSegment segment = dataflow.getSegment(id);
             if (dataflow.getSegment(id) != null) {
-                Event event = new RefreshSegmentEvent();
+                val event = new RefreshSegmentEvent();
                 event.setSegmentRange(segment.getSegRange());
                 event.setProject(project);
-                event.setApproved(true);
                 event.setModelName(modelName);
                 event.setCubePlanName(segment.getCubePlan().getName());
+                event.setOwner(getUsername());
                 eventManager.post(event);
-
             }
         }
     }
 
-    // TODO: transaction
-    public void updateDataModelSemantic(ModelRequest request) throws PersistentException, IOException {
-        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        val cubeManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
+    @Transaction(project = 0)
+    public void updateDataModelSemantic(String project, ModelRequest request) {
+        val modelManager = getDataModelManager(project);
+        val cubeManager = getCubePlanManager(project);
+        val dataflowManager = getDataflowManager(project);
         val originModel = modelManager.getDataModelDesc(request.getName());
 
-        //        Preconditions.checkState(originModel.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN,
-        //                "model " + originModel.getName() + " is AUTO_MAINTAIN");
-
         val df = dataflowManager.getDataflowByModelName(request.getName());
-        Preconditions.checkState(!df.isReconstructing(), "model " + request.getName() + " is reconstructing ");
         val copyModel = modelManager.copyForWrite(originModel);
         semanticUpdater.updateModelColumns(copyModel, request);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
-        copyModel.init(modelManager.getConfig(), allTables, modelManager.listModels(), false);
+        copyModel.init(modelManager.getConfig(), allTables, modelManager.getDataModels(), false);
 
         val cubePlan = cubeManager.findMatchingCubePlan(request.getName(), request.getProject(),
                 KylinConfig.getInstanceFromEnv());
@@ -849,23 +847,14 @@ public class ModelService extends BasicService {
         }
 
         modelManager.updateDataModelDesc(copyModel);
-        dataflowManager.updateDataflow(df.getName(), copyForWrite -> copyForWrite.setReconstructing(true));
-        val eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        val event = new ModelSemanticUpdateEvent();
-        event.setProject(request.getProject());
-        event.setModelName(request.getName());
-        event.setCubePlanName(df.getCubePlanName());
-        event.setOriginModel(originModel);
-        event.setApproved(true);
-        eventManager.post(event);
+        semanticUpdater.handleSemanticUpdate(project, request.getName(), originModel);
     }
 
-    public NDataModel convertToDataModel(ModelRequest modelDesc) throws IOException {
+    public NDataModel convertToDataModel(ModelRequest modelDesc) {
         return semanticUpdater.convertToDataModel(modelDesc);
     }
 
-    public AffectedModelsResponse getAffectedModelsByToggleTableType(String tableName, String project, boolean fact)
-            throws IOException {
+    public AffectedModelsResponse getAffectedModelsByToggleTableType(String tableName, String project, boolean fact) {
         val dataflowManager = getDataflowManager(project);
         val modelManager = getDataModelManager(project);
         val table = getTableManager(project).getTableDesc(tableName);
@@ -883,7 +872,7 @@ public class ModelService extends BasicService {
         return response;
     }
 
-    public void checkSingleIncrementingLoadingTable(String project, String tableName) throws IOException {
+    public void checkSingleIncrementingLoadingTable(String project, String tableName) {
         val modelManager = getDataModelManager(project);
         val table = getTableManager(project).getTableDesc(tableName);
         val modelsUsingTable = modelManager.getModelsUsingTable(table);
@@ -915,7 +904,7 @@ public class ModelService extends BasicService {
             modelInfoList.add(getModelInfoByModel(model, project));
         }
 
-        List<QueryTimesResponse> result = getQueryHistoryManager().getQueryTimesResponseBySql(suite, project, model,
+        List<QueryTimesResponse> result = getQueryHistoryDao(project).getQueryTimesResponseBySql(suite, project, model,
                 start, end, QueryTimesResponse.class);
         Map<String, QueryTimesResponse> resultMap = result.stream()
                 .collect(Collectors.toMap(QueryTimesResponse::getModel, queryTimesResponse -> queryTimesResponse));

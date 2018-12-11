@@ -42,7 +42,6 @@
 
 package org.apache.kylin.rest.service;
 
-
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -56,9 +55,9 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
-
-import javax.annotation.Nullable;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
@@ -96,23 +95,17 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.base.Function;
-import com.google.common.base.Optional;
-import com.google.common.base.Predicate;
-import com.google.common.collect.FluentIterable;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import net.sf.ehcache.CacheManager;
-
 
 /**
  * @author xduo
@@ -120,7 +113,8 @@ import net.sf.ehcache.CacheManager;
 public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Mock
-    private CacheManager cacheManager = Mockito.spy(CacheManager.create(ClassLoader.getSystemResourceAsStream("ehcache-test.xml")));
+    private CacheManager cacheManager = Mockito
+            .spy(CacheManager.create(ClassLoader.getSystemResourceAsStream("ehcache-test.xml")));
 
     @InjectMocks
     private QueryService queryService = Mockito.spy(new QueryService());
@@ -135,7 +129,8 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() {
         createTestMetadata();
-        SecurityContextHolder.getContext().setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
 
         ReflectionTestUtils.setField(queryService, "aclEvaluate", Mockito.mock(AclEvaluate.class));
         ReflectionTestUtils.setField(queryService, "cacheManager", cacheManager);
@@ -173,13 +168,14 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.when(queryService.getConnection(project)).thenReturn(connection);
 
         // mock PushDownUtil
-        Mockito.when(queryService.tryPushDownSelectQuery(project, sql, null, sqlException, false)).
-                thenReturn(new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST, Collections.EMPTY_LIST));
+        Mockito.when(queryService.tryPushDownSelectQuery(project, sql, null, sqlException, false)).thenReturn(
+                new Pair<List<List<String>>, List<SelectedColumnMeta>>(Collections.EMPTY_LIST, Collections.EMPTY_LIST));
 
     }
 
     private void stubQueryConnectionException(final String project) throws Exception {
-        Mockito.when(queryService.getConnection(project)).thenThrow(new RuntimeException(new ResourceLimitExceededException("")));
+        Mockito.when(queryService.getConnection(project))
+                .thenThrow(new RuntimeException(new ResourceLimitExceededException("")));
     }
 
     @AfterClass
@@ -437,7 +433,6 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
 
-
         //we have two projects: default and testproject1. different projects exposes different views of
         //table, depending on what model it has.
         {
@@ -457,9 +452,9 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             //make sure test_kylin_fact contains all computed columns
             factColumns = getFactColumns(tableMetas4default);
             Assert.assertEquals(21, factColumns.size());
-            Assert.assertTrue(getColumnNames(factColumns)
-                    .containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT", "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME",
-                            "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME", "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR")));
+            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
+                    "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
+                    "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR")));
         }
 
         //add a new model with new cc
@@ -467,17 +462,14 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             NDataModel dKapModel = makeModelWithMoreCC();
             modelManager.updateDataModelDesc(dKapModel);
 
-            //wait for broadcast
-            Thread.sleep(1000);
-
             final List<TableMetaWithType> tableMetas = queryService.getMetadataV2("default");
 
             ColumnDesc[] columnDescs = findColumnDescs();
             factColumns = getFactColumns(tableMetas);
             Assert.assertEquals(11 + columnDescs.length, factColumns.size());
-            Assert.assertTrue(getColumnNames(factColumns).containsAll(
-                    Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT", "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
-                            "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR", "DEAL_YEAR_PLUS_ONE")));
+            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
+                    "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
+                    "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR", "DEAL_YEAR_PLUS_ONE")));
         }
 
         //remove a cc from model
@@ -485,21 +477,19 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             NDataModel dKapModel = makeModelWithLessCC();
             modelManager.updateDataModelDesc(dKapModel);
 
-            //wait for broadcast
-            Thread.sleep(1000);
-
             final List<TableMetaWithType> tableMetas4default = queryService.getMetadataV2("default");
             ColumnDesc[] columnDescs = findColumnDescs();
             factColumns = getFactColumns(tableMetas4default);
             Assert.assertEquals(10 + columnDescs.length, factColumns.size());
-            Assert.assertTrue(getColumnNames(factColumns)
-                    .containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT", "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME",
-                            "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME", "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR")));
+            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
+                    "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
+                    "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR")));
         }
     }
 
     private ColumnDesc[] findColumnDescs() {
-        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(KylinConfig.getInstanceFromEnv(),
+                "default");
         tableMetadataManager.resetProjectSpecificTableDesc();
         TableDesc tableDesc = tableMetadataManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
         ColumnDesc[] columnDescs = tableDesc.getColumns();
@@ -553,25 +543,14 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private List<ColumnMeta> getFactColumns(List<TableMetaWithType> tableMetas) {
-        Optional<TableMetaWithType> factTable = FluentIterable.from(tableMetas)
-                .filter(new Predicate<TableMetaWithType>() {
-                    @Override
-                    public boolean apply(@Nullable TableMetaWithType tableMetaWithType) {
-                        return tableMetaWithType.getTABLE_NAME().equals("TEST_KYLIN_FACT");
-                    }
-                }).first();
+        Optional<TableMetaWithType> factTable = tableMetas.stream()
+                .filter(tableMetaWithType -> tableMetaWithType.getTABLE_NAME().equals("TEST_KYLIN_FACT")).findFirst();
         Assert.assertTrue(factTable.isPresent());
         return factTable.get().getColumns();
     }
 
-    private ImmutableSet<String> getColumnNames(List<ColumnMeta> columns) {
-        return FluentIterable.from(columns).transform(new Function<ColumnMeta, String>() {
-            @Nullable
-            @Override
-            public String apply(@Nullable ColumnMeta columnMeta) {
-                return columnMeta.getCOLUMN_NAME();
-            }
-        }).toSet();
+    private Set<String> getColumnNames(List<ColumnMeta> columns) {
+        return columns.stream().map(ColumnMeta::getCOLUMN_NAME).collect(Collectors.toSet());
     }
 
     @Test

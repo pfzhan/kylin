@@ -30,9 +30,11 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.rest.constant.Constant;
 import org.hamcrest.CoreMatchers;
 import org.junit.After;
@@ -50,9 +52,14 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
 import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -66,8 +73,12 @@ import io.kyligence.kap.rest.response.ParameterResponse;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import lombok.val;
 import lombok.var;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
+
+    private static final String MODEL_NAME = "nmodel_basic";
 
     @InjectMocks
     private ModelService modelService = Mockito.spy(new ModelService());
@@ -117,9 +128,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             newCC.setTableIdentity("DEFAULT.TEST_KYLIN_FACT");
             newCC.setTableAlias("TEST_KYLIN_FACT");
             request.getComputedColumnDescs().add(newCC);
-            modelService.updateDataModelSemantic(request);
-            dfMgr.updateDataflow(dfMgr.getDataflowByModelName(request.getName()).getName(),
-                    copyForWrite -> copyForWrite.setReconstructing(false));
+            modelService.updateDataModelSemantic(request.getProject(), request);
 
             NDataModel model = getTestModel();
             Assert.assertTrue(model.getComputedColumnNames().contains("TEST_CC_1"));
@@ -136,9 +145,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             newDimension.setAliasDotColumn("TEST_KYLIN_FACT.TEST_CC_1");
             newDimension.setStatus(ColumnStatus.DIMENSION);
             request.getAllNamedColumns().add(newDimension);
-            modelService.updateDataModelSemantic(request);
-            dfMgr.updateDataflow(dfMgr.getDataflowByModelName(request.getName()).getName(),
-                    copyForWrite -> copyForWrite.setReconstructing(false));
+            modelService.updateDataModelSemantic(request.getProject(), request);
 
             ModelRequest requestToVerify = newSemanticRequest();
             Assert.assertEquals(colIdOfCC, requestToVerify.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1"));
@@ -162,9 +169,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             param.setValue("TEST_KYLIN_FACT.TEST_CC_1");
             newMeasure.setParameterValue(Lists.newArrayList(param));
             request.getSimplifiedMeasures().add(newMeasure);
-            modelService.updateDataModelSemantic(request);
-            dfMgr.updateDataflow(dfMgr.getDataflowByModelName(request.getName()).getName(),
-                    copyForWrite -> copyForWrite.setReconstructing(false));
+            modelService.updateDataModelSemantic(request.getProject(), request);
 
             NDataModel model = getTestModel();
             Measure measure = model.getAllMeasures().stream().filter(m -> m.getName().equals("TEST_MEASURE_WITH_CC"))
@@ -184,9 +189,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                     .filter(cc -> cc.getColumnName().equals("TEST_CC_1")).findFirst().get();
             Assert.assertNotNull(ccDesc);
             ccDesc.setExpression("1 + 2");
-            modelService.updateDataModelSemantic(request);
-            dfMgr.updateDataflow(dfMgr.getDataflowByModelName(request.getName()).getName(),
-                    copyForWrite -> copyForWrite.setReconstructing(false));
+            modelService.updateDataModelSemantic(request.getProject(), request);
 
             NDataModel model = getTestModel();
             NamedColumn originalColumn = model.getAllNamedColumns().stream().filter(col -> col.getId() == colIdOfCC)
@@ -218,7 +221,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             ModelRequest request = newSemanticRequest();
             Assert.assertTrue(request.getComputedColumnDescs().removeIf(cc -> cc.getColumnName().equals("TEST_CC_1")));
             try {
-                modelService.updateDataModelSemantic(request);
+                modelService.updateDataModelSemantic(request.getProject(), request);
                 Assert.fail();
             } catch (Exception e) {
                 Assert.assertTrue(e instanceof IllegalStateException);
@@ -229,7 +232,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
             // remove broken measure
             request.getSimplifiedMeasures().removeIf(m -> m.getName().equals("TEST_MEASURE_WITH_CC"));
-            modelService.updateDataModelSemantic(request);
+            modelService.updateDataModelSemantic(request.getProject(), request);
 
             NDataModel model = getTestModel();
             Assert.assertFalse(model.getAllNamedColumns().stream().filter(c -> c.getId() == newColIdOfCC).findFirst()
@@ -254,14 +257,12 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         request.setSimplifiedMeasures(request.getSimplifiedMeasures().stream()
                 .filter(m -> m.getId() != 1002 && m.getId() != 1003).collect(Collectors.toList()));
         // add new measure and remove 1002 and 1003
-        modelService.updateDataModelSemantic(request);
+        modelService.updateDataModelSemantic("default", request);
 
         val model = getTestModel();
         Assert.assertEquals("GMV_AVG", model.getEffectiveMeasureMap().get(1017).getName());
         Assert.assertNull(model.getEffectiveMeasureMap().get(1002));
         Assert.assertNull(model.getEffectiveMeasureMap().get(1003));
-        val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        Assert.assertEquals(1, eventDao.getEvents().size());
     }
 
     @Test
@@ -269,7 +270,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val request = newSemanticRequest();
         request.getSimplifiedMeasures().get(0).setName("NEW_MEASURE");
         val originId = request.getSimplifiedMeasures().get(0).getId();
-        modelService.updateDataModelSemantic(request);
+        modelService.updateDataModelSemantic("default", request);
 
         val model = getTestModel();
         Assert.assertEquals("NEW_MEASURE", model.getEffectiveMeasureMap().get(originId).getName());
@@ -283,7 +284,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val colCount = request.getAllNamedColumns().stream().filter(n -> n.getAliasDotColumn().startsWith("TEST_ORDER"))
                 .count();
         request = changeAlias(request, OLD_ALIAS, NEW_ALIAS);
-        modelService.updateDataModelSemantic(request);
+        modelService.updateDataModelSemantic("default", request);
 
         val model = getTestModel();
         val tombCount = model.getAllNamedColumns().stream().filter(n -> n.getAliasDotColumn().startsWith("TEST_ORDER"))
@@ -291,24 +292,24 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                     Assert.assertEquals(ColumnStatus.TOMB, col.getStatus());
                 }).count();
         Assert.assertEquals(colCount, tombCount);
-        val otherTombCount = model.getAllNamedColumns().stream().filter(n -> !n.getAliasDotColumn().startsWith("TEST_ORDER"))
-                .filter(nc -> !nc.isExist()).count();
+        val otherTombCount = model.getAllNamedColumns().stream()
+                .filter(n -> !n.getAliasDotColumn().startsWith("TEST_ORDER")).filter(nc -> !nc.isExist()).count();
         Assert.assertEquals(1, otherTombCount);
         Assert.assertEquals(203, model.getAllNamedColumns().size());
         val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        Assert.assertEquals(1, eventDao.getEvents().size());
+        Assert.assertEquals(2, eventDao.getEvents().size());
     }
 
     @Test
     public void testRenameTableAliasUsedAsMeasure() throws Exception {
         val request = JsonUtil.readValue(
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_measure.json"), ModelRequest.class);
-        modelService.createModel(request);
+        modelService.createModel(request.getProject(), request);
 
         val updateRequest = JsonUtil.readValue(
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_measure_change_alias.json"),
                 ModelRequest.class);
-        modelService.updateDataModelSemantic(updateRequest);
+        modelService.updateDataModelSemantic("default", updateRequest);
 
         var model = modelService.getDataModelManager("default").getDataModelDesc(request.getName());
         Assert.assertThat(
@@ -316,17 +317,11 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                         .map(MeasureDesc::getName).collect(Collectors.toList()),
                 CoreMatchers.is(Lists.newArrayList("COUNT_ALL", "MAX1")));
 
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        val df = dfMgr.getDataflowByModelName(model.getName());
-        dfMgr.updateDataflow(df.getName(), copyForWrite -> {
-            copyForWrite.setReconstructing(false);
-        });
-
         // make sure update again is ok
         val updateRequest2 = JsonUtil.readValue(
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_measure_change_alias_twice.json"),
                 ModelRequest.class);
-        modelService.updateDataModelSemantic(updateRequest2);
+        modelService.updateDataModelSemantic("default", updateRequest2);
         model = modelService.getDataModelManager("default").getDataModelDesc(request.getName());
         Assert.assertThat(
                 model.getAllMeasures().stream().filter(m -> !m.tomb).sorted(Comparator.comparing(k -> k.id))
@@ -356,8 +351,9 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         request.getComputedColumnDescs().remove(ccDesc);
 
         val prevId = getTestModel().getAllNamedColumns().stream()
-                .filter(n -> n.getAliasDotColumn().equals(newCol.getAliasDotColumn())).findFirst().map(n -> n.getId()).orElse(0);
-        modelService.updateDataModelSemantic(request);
+                .filter(n -> n.getAliasDotColumn().equals(newCol.getAliasDotColumn())).findFirst().map(n -> n.getId())
+                .orElse(0);
+        modelService.updateDataModelSemantic("default", request);
 
         val model = getTestModel();
         Assert.assertEquals(newCol.getName(), model.getNameByColumnId(prevId));
@@ -365,16 +361,10 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         Assert.assertFalse(model.getComputedColumnNames().contains("DEAL_YEAR"));
         Assert.assertNull(model.getEffectiveDimenionsMap().get(ccColId));
         Assert.assertNull(model.getEffectiveColsMap().get(ccColId));
-        val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        Assert.assertEquals(1, eventDao.getEvents().size());
-
-        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        dfMgr.updateDataflow(dfMgr.getDataflowByModelName(request.getName()).getName(),
-                copyForWrite -> copyForWrite.setReconstructing(false));
 
         newCol.setName("PRICE3");
         request.getComputedColumnDescs().add(ccDesc);
-        modelService.updateDataModelSemantic(request);
+        modelService.updateDataModelSemantic("default", request);
         val model2 = getTestModel();
         Assert.assertEquals(newCol.getName(), model2.getNameByColumnId(prevId));
         Assert.assertTrue(model2.getComputedColumnNames().contains("DEAL_YEAR"));
@@ -390,7 +380,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val request = JsonUtil.readValue(
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_multi_measures.json"),
                 ModelRequest.class);
-        modelService.createModel(request);
+        modelService.createModel(request.getProject(), request);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
         val model = modelManager.getDataModelDesc("new_model");
         Assert.assertEquals(3, model.getEffectiveMeasureMap().size());
@@ -414,7 +404,216 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val request = newSemanticRequest();
         request.setAllNamedColumns(
                 request.getAllNamedColumns().stream().filter(c -> c.getId() != 26).collect(Collectors.toList()));
-        modelService.updateDataModelSemantic(request);
+        modelService.updateDataModelSemantic("default", request);
+    }
+
+    @Test
+    public void testChangeJoinType() throws Exception {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val originModel = getTestBasicModel();
+        modelMgr.updateDataModel(MODEL_NAME, model -> {
+            val joins = model.getJoinTables();
+            joins.get(0).getJoin().setType("inner");
+        });
+        semanticService.handleSemanticUpdate("default", MODEL_NAME, originModel);
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
+        log.debug("events are {}", events);
+        Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
+    }
+
+    @Test
+    public void testChangePartitionDesc() throws Exception {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val originModel = getTestBasicModel();
+        val cube = dfMgr.getDataflowByModelName(originModel.getName()).getCubePlan();
+        val ids = cube.getAllCuboidLayouts().stream().map(NCuboidLayout::getId).collect(Collectors.toList());
+
+        modelMgr.updateDataModel(MODEL_NAME, model -> {
+            val partitionDesc = model.getPartitionDesc();
+            partitionDesc.setCubePartitionType(PartitionDesc.PartitionType.UPDATE_INSERT);
+        });
+        semanticService.handleSemanticUpdate("default", originModel.getName(), originModel);
+
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
+        Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
+        //        val savedIds = ((AddCuboidEvent) events.get(1)).getLayoutIds();
+        //        Assert.assertTrue(CollectionUtils.isEqualCollection(savedIds,
+        //                Arrays.<Long> asList(1000001L, 1L, 1001L, 1002L, 2001L, 3001L, 20000001001L)));
+    }
+
+    @Test
+    public void testOnlyAddDimensions() throws Exception {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val originModel = getTestBasicModel();
+        modelMgr.updateDataModel(MODEL_NAME, model -> model.setAllNamedColumns(model.getAllNamedColumns().stream()
+                .peek(c -> c.setStatus(NDataModel.ColumnStatus.DIMENSION)).collect(Collectors.toList())));
+        semanticService.handleSemanticUpdate("default", MODEL_NAME, originModel);
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
+        Assert.assertEquals(0, events.size());
+
+    }
+
+    @Test
+    public void testOnlyChangeMeasures() throws Exception {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), "default");
+        val originModel = getTestBasicModel();
+        modelMgr.updateDataModel(MODEL_NAME, model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
+            if (m.id == 1011) {
+                m.id = 1017;
+            }
+        }).collect(Collectors.toList())));
+        semanticService.handleSemanticUpdate("default", MODEL_NAME, originModel);
+
+        var events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        Assert.assertEquals(0, events.size());
+
+        cubeMgr.updateCubePlan("ncube_basic", copyForWrite -> {
+            val rule = new NRuleBasedCuboidsDesc();
+            rule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
+            rule.setMeasures(Arrays.asList(1001, 1000));
+            copyForWrite.setRuleBasedCuboidsDesc(rule);
+        });
+        semanticService.handleSemanticUpdate("default", MODEL_NAME, originModel);
+        events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        Assert.assertEquals(0, events.size());
+
+        val cube = cubeMgr.getCubePlan("ncube_basic");
+        for (NCuboidLayout layout : cube.getWhitelistCuboidLayouts()) {
+            Assert.assertTrue(!layout.getColOrder().contains(1011));
+            Assert.assertTrue(!layout.getCuboidDesc().getMeasures().contains(1011));
+        }
+    }
+
+    @Test
+    public void testOnlyChangeMeasuresWithRule() throws Exception {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), "default");
+        val originModel = getTestInnerModel();
+        modelMgr.updateDataModel(originModel.getName(),
+                model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
+                    if (m.id == 1011) {
+                        m.id = 1017;
+                    }
+                }).collect(Collectors.toList())));
+
+        semanticService.handleSemanticUpdate("default", originModel.getName(), originModel);
+//
+//        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+//        Assert.assertEquals(1, events.size());
+//        Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
+
+        val cube = cubeMgr.getCubePlan("ncube_basic_inner");
+        for (NCuboidLayout layout : cube.getWhitelistCuboidLayouts()) {
+            Assert.assertTrue(!layout.getColOrder().contains(1011));
+            Assert.assertTrue(!layout.getCuboidDesc().getMeasures().contains(1011));
+        }
+        val newRule = cube.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid();
+        Assert.assertTrue(!newRule.getMeasures().contains(1011));
+    }
+
+    @Test
+    public void testAllChanged() throws Exception {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), "default");
+        val originModel = getTestInnerModel();
+        modelMgr.updateDataModel(originModel.getName(),
+                model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
+                    if (m.id == 1011) {
+                        m.id = 1017;
+                    }
+                }).collect(Collectors.toList())));
+        modelMgr.updateDataModel(originModel.getName(), model -> {
+            val joins = model.getJoinTables();
+            joins.get(0).getJoin().setType("left");
+        });
+        modelMgr.updateDataModel(originModel.getName(),
+                model -> model.setAllNamedColumns(model.getAllNamedColumns().stream().peek(c -> {
+                    c.setStatus(NDataModel.ColumnStatus.DIMENSION);
+                    if (c.getId() == 26) {
+                        c.setStatus(NDataModel.ColumnStatus.EXIST);
+                    }
+                }).collect(Collectors.toList())));
+        semanticService.handleSemanticUpdate("default", originModel.getName(), originModel);
+
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        events.sort(Comparator.comparing(Event::getCreateTimeNanosecond));
+        Assert.assertEquals(2, events.size());
+        Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
+
+        val cube = cubeMgr.getCubePlan("ncube_basic_inner");
+        for (NCuboidLayout layout : cube.getWhitelistCuboidLayouts()) {
+            Assert.assertTrue(!layout.getColOrder().contains(1011));
+            Assert.assertTrue(!layout.getCuboidDesc().getMeasures().contains(1011));
+            //            if (removeEvent.getLayoutIds().contains(layout.getId())) {
+            //                Assert.assertTrue(layout.getColOrder().contains(26));
+            //            } else {
+            //                Assert.assertTrue(!layout.getColOrder().contains(26));
+            //            }
+        }
+    }
+
+    @Test
+    public void testOnlyRuleChanged() throws Exception {
+        val cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val df = dfMgr.getDataflow("ncube_basic_inner");
+        val originSegLayoutSize = df.getSegments().get(0).getCuboidsMap().size();
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        val cube = df.getCubePlan();
+        val nc1 = NDataCuboid.newDataCuboid(df, df.getSegments().get(0).getId(), cube.getRuleBaseCuboidLayouts().get(0).getId());
+        val nc2 = NDataCuboid.newDataCuboid(df, df.getSegments().get(0).getId(), cube.getRuleBaseCuboidLayouts().get(1).getId());
+        val nc3 = NDataCuboid.newDataCuboid(df, df.getSegments().get(0).getId(), cube.getRuleBaseCuboidLayouts().get(2).getId());
+        update.setToAddOrUpdateCuboids(nc1, nc2, nc3);
+        dfMgr.updateDataflow(update);
+
+        val cubePlan = cubePlanManager.updateCubePlan("ncube_basic_inner", copyForWrite -> {
+            val newRule = new NRuleBasedCuboidsDesc();
+            newRule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
+            newRule.setMeasures(Arrays.asList(1001, 1002));
+            copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(newRule);
+        });
+        semanticService.handleCubeUpdateRule("default", cubePlan.getModelName(), cubePlan.getName());
+
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        events.sort(Comparator.comparing(Event::getCreateTimeNanosecond));
+        Assert.assertEquals(2, events.size());
+        Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
+        val df2 = NDataflowManager.getInstance(getTestConfig(), "default").getDataflow(cubePlan.getName());
+        Assert.assertEquals(originSegLayoutSize, df2.getFirstSegment().getCuboidsMap().size());
+    }
+
+    @Test
+    public void testOnlyRemoveMeasures() throws Exception {
+        val cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), "default");
+
+        val cubePlan = cubePlanManager.updateCubePlan("ncube_basic_inner", copyForWrite -> {
+            val newRule = (NRuleBasedCuboidsDesc) SerializationUtils.clone(copyForWrite.getRuleBasedCuboidsDesc());
+            newRule.setMeasures(copyForWrite.getRuleBasedCuboidsDesc().getMeasures().stream()
+                    .filter(m -> m != 1000 && m != 1001).collect(Collectors.toList()));
+            copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(newRule);
+        });
+        semanticService.handleCubeUpdateRule("default", cubePlan.getModelName(), cubePlan.getName());
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
+        Assert.assertEquals(0, events.size());
+
+    }
+
+    private NDataModel getTestInnerModel() {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val model = modelMgr.getDataModelDesc("nmodel_basic_inner");
+        return model;
+    }
+
+    private NDataModel getTestBasicModel() {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val model = modelMgr.getDataModelDesc("nmodel_basic");
+        return model;
     }
 
     private ModelRequest changeAlias(ModelRequest request, String old, String newAlias) throws IOException {

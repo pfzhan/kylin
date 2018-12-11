@@ -51,6 +51,10 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
+            <artifactId>kap-core-event</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-engine-spark</artifactId>
         </dependency>
         <dependency>

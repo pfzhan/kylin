@@ -86,17 +86,13 @@ public class NSnapshotBuilder {
         NDataflow dfCopy = seg.getDataflow().copy();
         NDataSegment segCopy = dfCopy.getSegment(seg.getId());
 
-        try {
-            NDataflowUpdate update = new NDataflowUpdate(dataflow.getName());
-            segCopy.getSnapshots().putAll(newSnapMap);
-            update.setToUpdateSegs(segCopy);
-            NDataflow updatedDataflow = NDataflowManager.getInstance(seg.getConfig(), seg.getProject())
-                    .updateDataflow(update);
-            return updatedDataflow.getSegment(seg.getId());
+        NDataflowUpdate update = new NDataflowUpdate(dataflow.getName());
+        segCopy.getSnapshots().putAll(newSnapMap);
+        update.setToUpdateSegs(segCopy);
+        NDataflow updatedDataflow = NDataflowManager.getInstance(seg.getConfig(), seg.getProject())
+                .updateDataflow(update);
+        return updatedDataflow.getSegment(seg.getId());
 
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to deal with the request: " + e.getLocalizedMessage());
-        }
     }
 
 }
