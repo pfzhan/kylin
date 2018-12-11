@@ -60,7 +60,6 @@ import lombok.Setter;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.NamedThreadFactory;
-import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,7 +78,6 @@ public class NFavoriteScheduler {
 
     private ScheduledExecutorService autoFavoriteScheduler;
     private ScheduledExecutorService updateFavoriteScheduler;
-    private KylinConfig config;
     private String project;
 
     private QueryHistoryTimeOffset queryHistoryTimeOffset;
@@ -95,12 +93,12 @@ public class NFavoriteScheduler {
 
     private static final Map<String, NFavoriteScheduler> INSTANCE_MAP = Maps.newConcurrentMap();
 
-    public NFavoriteScheduler(KylinConfig config, String project) {
+    public NFavoriteScheduler(String project) {
         Preconditions.checkNotNull(project);
 
-        this.config = config;
         this.project = project;
 
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
         ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(project);
         fetchQueryHistoryGapTime = projectInstance.getConfig().getQueryHistoryScanPeriod();
         backwardShiftTime = KapConfig.getInstanceFromEnv().getInfluxDBFlushDuration() * 2;
@@ -110,7 +108,7 @@ public class NFavoriteScheduler {
                 System.identityHashCode(NFavoriteScheduler.this));
     }
 
-    public static NFavoriteScheduler getInstance(KylinConfig config, String project) {
+    public static NFavoriteScheduler getInstance(String project) {
         NFavoriteScheduler ret = INSTANCE_MAP.get(project);
         if (ret != null)
             return ret;
@@ -118,7 +116,7 @@ public class NFavoriteScheduler {
         synchronized (NFavoriteScheduler.class) {
             ret = INSTANCE_MAP.get(project);
             if (ret == null) {
-                ret = new NFavoriteScheduler(config, project);
+                ret = new NFavoriteScheduler(project);
                 INSTANCE_MAP.put(project, ret);
             }
         }
@@ -127,7 +125,7 @@ public class NFavoriteScheduler {
     }
 
     public void init() {
-        ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(project);
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
 
         // init schedulers
         autoFavoriteScheduler = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NFavoriteScheduler"));
@@ -169,7 +167,7 @@ public class NFavoriteScheduler {
     }
 
     QueryHistoryDAO getQueryHistoryDao() {
-        return QueryHistoryDAO.getInstance(config, project);
+        return QueryHistoryDAO.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
 
     public class AutoFavoriteRunner implements Runnable {
@@ -187,7 +185,7 @@ public class NFavoriteScheduler {
         }
     }
 
-    private void autoFavorite() throws PersistentException {
+    private void autoFavorite() {
         Set<FavoriteQuery> candidates = new HashSet<>();
 
         // scan query history
@@ -201,7 +199,7 @@ public class NFavoriteScheduler {
 
         // update time offset
         queryHistoryTimeOffset.setAutoMarkTimeOffset(lastTimeOffset);
-        QueryHistoryTimeOffsetManager.getInstance(config, project).save(queryHistoryTimeOffset);
+        QueryHistoryTimeOffsetManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(queryHistoryTimeOffset);
     }
 
     private long scanQueryHistoryByTime(Set<FavoriteQuery> candidates) {
@@ -220,7 +218,7 @@ public class NFavoriteScheduler {
                     continue;
 
                 int sqlPatternHash = sqlPattern.hashCode();
-                if (FavoriteQueryManager.getInstance(config, project).contains(sqlPattern))
+                if (FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project).contains(sqlPattern))
                     continue;
 
                 if (isInBlacklist(sqlPatternHash, project))
@@ -245,7 +243,8 @@ public class NFavoriteScheduler {
         return startTime;
     }
 
-    private void internalFavorite(final Set<FavoriteQuery> favoriteQueries) throws PersistentException {
+    private void internalFavorite(final Set<FavoriteQuery> favoriteQueries) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
         FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
         manager.create(Lists.newArrayList(favoriteQueries));
 
@@ -274,7 +273,7 @@ public class NFavoriteScheduler {
     }
 
     void addCandidatesByFrequencyRule(Set<FavoriteQuery> candidates) {
-        FavoriteRule freqRule = FavoriteRuleManager.getInstance(config, project)
+        FavoriteRule freqRule = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getByName(FavoriteRule.FREQUENCY_RULE_NAME);
         Preconditions.checkArgument(freqRule != null);
 
@@ -308,7 +307,7 @@ public class NFavoriteScheduler {
 
         for (int frequency : orderingResult) {
             for (String sqlPattern : sqlPatternsMap.get(frequency)) {
-                if (FavoriteQueryManager.getInstance(config, project).contains(sqlPattern))
+                if (FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project).contains(sqlPattern))
                     continue;
                 FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern);
                 favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
@@ -331,7 +330,7 @@ public class NFavoriteScheduler {
     }
 
     boolean matchRuleBySingleRecord(QueryHistory queryHistory) {
-        List<FavoriteRule> rules = FavoriteRuleManager.getInstance(config, project).getAllEnabled();
+        List<FavoriteRule> rules = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getAllEnabled();
 
         for (FavoriteRule rule : rules) {
             if (rule.getName().equals(FavoriteRule.SUBMITTER_RULE_NAME)) {
@@ -354,7 +353,7 @@ public class NFavoriteScheduler {
     }
 
     private boolean isInBlacklist(int sqlPatternHash, String project) {
-        FavoriteRule blacklist = FavoriteRuleManager.getInstance(config, project)
+        FavoriteRule blacklist = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getByName(FavoriteRule.BLACKLIST_NAME);
         List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
 
@@ -401,6 +400,7 @@ public class NFavoriteScheduler {
             favoriteQueries.add(favoritesInProj.getValue());
         }
 
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
         FavoriteQueryManager.getInstance(config, project).updateStatistics(favoriteQueries);
         queryHistoryTimeOffset.setFavoriteQueryUpdateTimeOffset(endTime);
         QueryHistoryTimeOffsetManager.getInstance(config, project).save(queryHistoryTimeOffset);
@@ -409,7 +409,7 @@ public class NFavoriteScheduler {
     private void updateFavoriteQuery(QueryHistory queryHistory, Map<String, FavoriteQuery> favoritesAboutToUpdate) {
         String sqlPattern = queryHistory.getSqlPattern();
 
-        if (!FavoriteQueryManager.getInstance(config, project).contains(sqlPattern))
+        if (!FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project).contains(sqlPattern))
             return;
 
         FavoriteQuery favoriteQuery = favoritesAboutToUpdate.get(sqlPattern);

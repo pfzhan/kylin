@@ -64,7 +64,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         createTestFavoriteQuery();
         setUpTimeOffset();
-        favoriteScheduler = Mockito.spy(new NFavoriteScheduler(getTestConfig(), PROJECT));
+        favoriteScheduler = Mockito.spy(new NFavoriteScheduler(PROJECT));
     }
 
     @After

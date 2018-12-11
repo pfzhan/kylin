@@ -83,7 +83,7 @@ public class AppInitializer {
                     throw new RuntimeException("Scheduler for " + project + " has not been started");
                 }
 
-                NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
                 favoriteScheduler.init();
 
                 if (!favoriteScheduler.hasStarted()) {

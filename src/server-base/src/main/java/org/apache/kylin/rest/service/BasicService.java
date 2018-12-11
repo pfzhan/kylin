@@ -134,7 +134,7 @@ public abstract class BasicService {
     }
 
     public NFavoriteScheduler getFavoriteScheduler(String project) {
-        return NFavoriteScheduler.getInstance(getConfig(), project);
+        return NFavoriteScheduler.getInstance(project);
     }
 
 }

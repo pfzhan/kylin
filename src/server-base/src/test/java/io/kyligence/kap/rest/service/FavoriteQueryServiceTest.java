@@ -114,7 +114,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         ReflectionTestUtils.setField(favoriteQueryService, "favoriteRuleService", Mockito.spy(new FavoriteRuleService()));
         for (ProjectInstance projectInstance : NProjectManager.getInstance(getTestConfig()).listAllProjects()) {
-            NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(getTestConfig(), projectInstance.getName());
+            NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(projectInstance.getName());
             Assert.assertTrue(favoriteScheduler.hasStarted());
         }
     }
