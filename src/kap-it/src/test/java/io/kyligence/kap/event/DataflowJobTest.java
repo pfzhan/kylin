@@ -37,6 +37,7 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -152,6 +153,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
+    @Ignore
     public void testCuboid() throws InterruptedException {
         val eventManager = EventManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val cubeManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
