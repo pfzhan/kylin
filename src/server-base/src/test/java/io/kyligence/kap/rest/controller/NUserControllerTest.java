@@ -54,12 +54,12 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -76,7 +76,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-public class NUserControllerTest {
+public class NUserControllerTest extends ServiceTestBase {
 
     private MockMvc mockMvc;
 
@@ -93,7 +93,7 @@ public class NUserControllerTest {
     private AccessService accessService;
 
     @Before
-    public void setup() throws IOException {
+    public void setup() {
         MockitoAnnotations.initMocks(this);
         mockMvc = MockMvcBuilders.standaloneSetup(nUserController)
                 .defaultRequest(MockMvcRequestBuilders.get("/").servletPath("/api")).build();
@@ -101,11 +101,6 @@ public class NUserControllerTest {
         ManagedUser user = new ManagedUser("ADMIN", "ADMIN", false, authorities);
         Authentication authentication = new TestingAuthenticationToken(user, "ADMIN", Constant.ROLE_ADMIN);
         SecurityContextHolder.getContext().setAuthentication(authentication);
-    }
-
-    @BeforeClass
-    public static void setupProfile() throws IOException {
-        System.setProperty("spring.profiles.active", "testing");
     }
 
     @After
