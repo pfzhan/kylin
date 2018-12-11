@@ -159,11 +159,11 @@ export function loadLiquidFillGauge (elementId, value, config) {
     .attr('y2', '100%')
   linearColor.append('stop')
     .attr('offset', '0%')
-    .style('stop-color', '#019EE5')
+    .style('stop-color', '#62E5FF')
     .style('stop-opacity', 1)
   linearColor.append('stop')
     .attr('offset', '100%')
-    .style('stop-color', '#62E5FF')
+    .style('stop-color', '#019EE5')
     .style('stop-opacity', 1)
 
   // The inner circle with the clipping wave attached.

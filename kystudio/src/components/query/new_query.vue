@@ -31,10 +31,10 @@
                     <el-checkbox v-model="hasLimit" @change="changeLimit">Limit</el-checkbox>
                   </el-form-item>
                   <el-form-item>
-                    <el-input  placeholder="" size="small" style="width:90px;" v-model="listRows" class="limit-input"></el-input>
+                    <el-input placeholder="" size="small" style="width:90px;" @input="handleInputChange" v-model="listRows" class="limit-input"></el-input>
                   </el-form-item>
                   <el-form-item>
-                    <el-button type="primary" plain size="small" @click="submitQuery">{{$t('kylinLang.common.submit')}}</el-button>
+                    <el-button type="primary" plain size="small" @click.native.prevent="submitQuery">{{$t('kylinLang.common.submit')}}</el-button>
                   </el-form-item>
                 </el-form>
               </p>
@@ -166,6 +166,11 @@ export default class NewQuery extends Vue {
   }
   resetQuery () {
     this.sourceSchema = ''
+  }
+  handleInputChange (value) {
+    this.$nextTick(() => {
+      this.listRows = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
+    })
   }
   loadSavedQuery (pageIndex) {
     this.getSavedQueries({

@@ -422,23 +422,29 @@ i[class^=el-icon-]{
   &>.el-tabs--card {
     &>.el-tabs__header{
       margin-bottom: 0;
+      .el-tabs__nav-next, .el-tabs__nav-prev {
+        line-height: 32px;
+      }
     }
     &>.el-tabs__content{
       width: 100%;
     }
     .el-tabs__item {
-      height: 32px;
-      line-height: 32px;
+      height: 30px;
+      line-height: 30px;
     }
   }
 }
 .el-tabs--card {
+  .el-tabs__nav-next, .el-tabs__nav-prev {
+    line-height: 32px;
+  }
   .el-tabs__item {
     &.is-closable:hover{
       padding-left: 20px;
     }
-    height: 32px;
-    line-height: 32px;
+    height: 30px;
+    line-height: 30px;
     padding-left: 20px;
   }
 }

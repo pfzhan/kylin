@@ -78,7 +78,7 @@
     </el-row>
     <hr class="divider"/>
     <div class="clearfix ksd-mb-10">
-      <div class="ksd-fright">
+      <div class="ksd-fleft">
         <span>{{$t('kylinLang.common.startTime')}}</span>
         <el-date-picker v-model="startTime" type="date" size="small" :placeholder="$t('kylinLang.common.startTime')"></el-date-picker>
         <span class="ksd-ml-10">{{$t('kylinLang.common.endTime')}}</span>
@@ -87,54 +87,62 @@
     </div>
     <el-row :gutter="10" class="count-row">
       <el-col :span="6">
-        <div class="dash-card">
-          <div class="cart-title">{{$t('queryCount')}}</div>
-          <div class="content">
-            <span class="num">55,327</span>
+        <div class="dash-card" :class="{'isActive': showQueryChart}">
+          <div class="inner-card">
+            <div class="cart-title">{{$t('queryCount')}}</div>
+            <div class="content">
+              <span class="num">55,327</span>
+            </div>
+            <el-button type="primary" plain size="mini" @click="loadQueryChart">{{$t('viewDetail')}}</el-button>
           </div>
-          <el-button type="primary" plain size="mini">{{$t('viewDetail')}}</el-button>
         </div>
       </el-col>
       <el-col :span="6">
-        <div class="dash-card">
-          <div class="cart-title">{{$t('avgQueryLatency')}}</div>
-          <div class="content">
-            <span class="num">0.48</span>
-            <span class="unit">sec</span>
+        <div class="dash-card" :class="{'isActive': showLatencyChart}">
+          <div class="inner-card">
+            <div class="cart-title">{{$t('avgQueryLatency')}}</div>
+            <div class="content">
+              <span class="num">0.48</span>
+              <span class="unit">sec</span>
+            </div>
+            <el-button type="primary" plain size="mini" @click="loadLatencyChart">{{$t('viewDetail')}}</el-button>
           </div>
-          <el-button type="primary" plain size="mini">{{$t('viewDetail')}}</el-button>
         </div>
       </el-col>
       <el-col :span="6">
-        <div class="dash-card">
-          <div class="cart-title">{{$t('jobCount')}}</div>
-          <div class="content">
-            <span class="num">5</span>
+        <div class="dash-card" :class="{'isActive': showJobChart}">
+          <div class="inner-card">
+            <div class="cart-title">{{$t('jobCount')}}</div>
+            <div class="content">
+              <span class="num">5</span>
+            </div>
+            <el-button type="primary" plain size="mini" @click="loadJobChart">{{$t('viewDetail')}}</el-button>
           </div>
-          <el-button type="primary" plain size="mini">{{$t('viewDetail')}}</el-button>
         </div>
       </el-col>
       <el-col :span="6">
-        <div class="dash-card">
-          <div class="cart-title">{{$t('avgBulidTime')}}</div>
-          <div class="content">
-            <span class="num">11.81</span>
-            <span class="unit">sec</span>
+        <div class="dash-card" :class="{'isActive': showBulidChart}">
+          <div class="inner-card">
+            <div class="cart-title">{{$t('avgBulidTime')}}</div>
+            <div class="content">
+              <span class="num">11.81</span>
+              <span class="unit">sec</span>
+            </div>
+            <el-button type="primary" plain size="mini" @click="loadBulidChart">{{$t('viewDetail')}}</el-button>
           </div>
-          <el-button type="primary" plain size="mini">{{$t('viewDetail')}}</el-button>
         </div>
       </el-col>
     </el-row>
-    <el-row :gutter="10" class="ksd-mt-10 chart-row">
-      <el-col :span="12">
-        <div class="dash-card">
+    <el-row class="ksd-mt-10 chart-row dash-card">
+      <el-col :span="12" class="chart-block">
+        <div>
           <div class="cart-title" v-if="isAutoProject">{{$t('queryByIndex')}}</div>
           <div class="cart-title" v-else>{{$t('queryByModel')}}</div>
           <img src="../../assets/img/chart01.png" width="100%" height="100%"/>
         </div>
       </el-col>
-      <el-col :span="12">
-        <div class="dash-card">
+      <el-col :span="12" class="chart-block">
+        <div>
           <div class="cart-title">{{$t('queryByDay')}}</div>
           <img src="../../assets/img/chart02.png" width="100%" height="100%"/>
         </div>
@@ -185,6 +193,32 @@ export default class Dashboard extends Vue {
   usedBlockHeight = 0
   popoverVisible = false
   quotaHeight = 170
+  showQueryChart = true
+  showLatencyChart = false
+  showJobChart = false
+  showBulidChart = false
+  resetShow () {
+    this.showQueryChart = false
+    this.showLatencyChart = false
+    this.showJobChart = false
+    this.showBulidChart = false
+  }
+  loadQueryChart () {
+    this.resetShow()
+    this.showQueryChart = true
+  }
+  loadLatencyChart () {
+    this.resetShow()
+    this.showLatencyChart = true
+  }
+  loadJobChart () {
+    this.resetShow()
+    this.showJobChart = true
+  }
+  loadBulidChart () {
+    this.resetShow()
+    this.showBulidChart = true
+  }
   drawImpactChart () {
     $(this.$el.querySelector('#ruleImpact')).empty()
     const config1 = liquidFillGaugeDefaultSettings()
@@ -358,11 +392,46 @@ export default class Dashboard extends Vue {
     .ratio-row .dash-card {
       height: 253px;
     }
-    .count-row .dash-card {
+    .count-row .el-col {
+      position: relative;
       height: 176px;
+      .dash-card {
+        position: absolute;
+        height: 176px;
+        width: calc(~"100% - 10px");
+        padding: 0;
+        .inner-card {
+          padding: 15px;
+        }
+        &.isActive {
+          height: 188px;
+          border-top: 2px solid @base-color-1;
+          .inner-card {
+            height: 160px;
+            width: calc(~"100% - 28px");
+            border-bottom: none;
+            position: absolute;
+            top: 0px;
+            left: -1px;
+            z-index: 1;
+            background-color: @fff;
+          }
+        }
+      }
     }
-    .chart-row .dash-card {
-      height: 355px;
+    .chart-row.dash-card {
+      .chart-block {
+        > div {
+          height: 355px;
+        }
+       &:first-child {
+        border-right: 1px solid @line-border-color;
+        padding-right: 15px;
+       }
+       &:last-child {
+         padding-left: 15px;
+       }
+      }
     }
     .divider {
       margin: 25px 0;
