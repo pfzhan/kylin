@@ -130,9 +130,6 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         // update not exist sql pattern status, no exception
         favoriteQueryManager.updateStatus("not_exist_sql_pattern", FavoriteQueryStatusEnum.FULLY_ACCELERATED, null);
 
-        // get rule based size
-        Assert.assertEquals(4, favoriteQueryManager.getRuleBasedSize());
-
         // delete
         favoriteQueryManager.delete("sql1");
         Assert.assertEquals(5, favoriteQueryManager.getAll().size());

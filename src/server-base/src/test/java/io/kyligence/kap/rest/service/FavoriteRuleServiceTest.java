@@ -25,10 +25,9 @@
 package io.kyligence.kap.rest.service;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.FavoriteRuleResponse;
 import io.kyligence.kap.rest.response.UpdateWhitelistResponse;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
@@ -365,33 +364,12 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetFavoriteRuleOverallImpact() {
-        // mock the case when already have 3 rule-based favorite queries in database
-        FavoriteQueryManager favoriteQueryManager = Mockito.mock(FavoriteQueryManager.class);
-        Mockito.doReturn(3).when(favoriteQueryManager).getRuleBasedSize();
-        Mockito.doReturn(favoriteQueryManager).when(favoriteRuleService).getFavoriteQueryManager(PROJECT);
-
-        // case of query history sql pattern is 0
-        NFavoriteScheduler favoriteScheduler = Mockito.mock(NFavoriteScheduler.class);
-        NFavoriteScheduler.FrequencyStatus frequencyStatus = favoriteScheduler.new FrequencyStatus(System.currentTimeMillis());
-        Mockito.doReturn(frequencyStatus).when(favoriteScheduler).getOverAllStatus();
-        Mockito.doReturn(favoriteScheduler).when(favoriteRuleService).getFavoriteScheduler(PROJECT);
-
-        double result = favoriteRuleService.getFavoriteRuleOverallImpact(PROJECT);
-        Assert.assertEquals(0, result, 0.1);
-
-        // case of query history sql pattern size is greater than 0, which is 5
-        Map<String, Integer> sqlPatternInProj = Maps.newHashMap();
-        sqlPatternInProj.put("test_sql1", 1);
-        sqlPatternInProj.put("test_sql2", 1);
-        sqlPatternInProj.put("test_sql3", 1);
-        sqlPatternInProj.put("test_sql4", 1);
-        sqlPatternInProj.put("test_sql5", 1);
-        frequencyStatus.setSqlPatternFreqMap(sqlPatternInProj);
-
-        Mockito.doReturn(frequencyStatus).when(favoriteScheduler).getOverAllStatus();
-
-        result = favoriteRuleService.getFavoriteRuleOverallImpact(PROJECT);
-        Assert.assertEquals(0.6, result, 0.1);
+    public void testGetAccelerateRatio() {
+        double ratio = favoriteRuleService.getAccelerateRatio(PROJECT);
+        Assert.assertEquals(0, ratio, 0.1);
+        AccelerateRatioManager ratioManager = AccelerateRatioManager.getInstance(getTestConfig(), PROJECT);
+        ratioManager.increment(100, 1000);
+        ratio = favoriteRuleService.getAccelerateRatio(PROJECT);
+        Assert.assertEquals(0.1, ratio, 0.1);
     }
 }

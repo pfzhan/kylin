@@ -31,6 +31,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.query.AccelerateRatio;
+import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.query.util.QueryUtil;
@@ -385,17 +387,12 @@ public class FavoriteRuleService extends BasicService {
         getFavoriteRuleManager(project).removeSqlCondition(id, FavoriteRule.WHITELIST_NAME);
     }
 
-    public double getFavoriteRuleOverallImpact(String project) {
-        // get rule based favorite query size
-        int favoriteQuerySize = getFavoriteQueryManager(project).getRuleBasedSize();
-        int sqlPatternSizeOfQueryHistory;
-
-        Map<String, Integer> sqlPatternFreqMapInProj = getFavoriteScheduler(project).getOverAllStatus().getSqlPatternFreqMap();
-
-        sqlPatternSizeOfQueryHistory = sqlPatternFreqMapInProj.size();
-        if (sqlPatternSizeOfQueryHistory == 0)
+    public double getAccelerateRatio(String project) {
+        AccelerateRatioManager ratioManager = getAccelerateRatioManager(project);
+        AccelerateRatio accelerateRatio = ratioManager.get();
+        if (accelerateRatio == null || accelerateRatio.getOverallQueryNum() == 0)
             return 0;
 
-        return favoriteQuerySize / (double) sqlPatternSizeOfQueryHistory;
+        return accelerateRatio.getQueryNumOfMarkedAsFavorite() / (double) accelerateRatio.getOverallQueryNum();
     }
 }

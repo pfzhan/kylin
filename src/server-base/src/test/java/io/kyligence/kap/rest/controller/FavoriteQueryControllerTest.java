@@ -220,14 +220,14 @@ public class FavoriteQueryControllerTest {
     }
 
     @Test
-    public void testGetFavoriteRuleOverallImpact() throws Exception {
-        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/rules/impact")
+    public void testGetAccelerateRatio() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries/accelerate_ratio")
                 .contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT)
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(favoriteQueryController, Mockito.only()).getRulesOverallImpact(PROJECT);
+        Mockito.verify(favoriteQueryController, Mockito.only()).getAccelerateRatio(PROJECT);
     }
 
     @Test

@@ -70,6 +70,7 @@ import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffset;
 import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import lombok.Getter;
@@ -218,20 +219,30 @@ public class NFavoriteScheduler {
         long endTime = startTime + fetchQueryHistoryGapTime;
         long maxTime = getSystemTime() - backwardShiftTime;
 
+        int queryMarkedAsFavoriteNum = 0;
+        int overallQueryNum = 0;
+
         while (endTime <= maxTime) {
             List<QueryHistory> queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime);
 
             FrequencyStatus newStatus = new FrequencyStatus(startTime);
 
             for (QueryHistory queryHistory : queryHistories) {
+                // failed query
+                if (queryHistory.isException())
+                    continue;
+
+                overallQueryNum ++;
                 if (!isQualifiedCandidate(queryHistory))
                     continue;
 
                 String sqlPattern = queryHistory.getSqlPattern();
                 newStatus.updateFrequency(sqlPattern);
 
-                if (FavoriteQueryManager.getInstance(config, project).contains(sqlPattern))
+                if (FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project).contains(sqlPattern)) {
+                    queryMarkedAsFavoriteNum++;
                     continue;
+                }
 
                 if (matchRuleBySingleRecord(queryHistory)) {
                     final FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern);
@@ -247,14 +258,12 @@ public class NFavoriteScheduler {
             endTime += fetchQueryHistoryGapTime;
         }
 
+        AccelerateRatioManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .increment(queryMarkedAsFavoriteNum, overallQueryNum);
         return startTime;
     }
 
     private boolean isQualifiedCandidate(QueryHistory queryHistory) {
-        // failed
-        if (queryHistory.isException())
-            return false;
-
         String sqlPattern = queryHistory.getSqlPattern();
         if (isInBlacklist(sqlPattern.hashCode(), project))
             return false;

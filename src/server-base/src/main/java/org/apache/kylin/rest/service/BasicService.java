@@ -44,6 +44,7 @@ package org.apache.kylin.rest.service;
 
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import org.apache.commons.lang.StringUtils;
@@ -137,4 +138,7 @@ public abstract class BasicService {
         return NFavoriteScheduler.getInstance(project);
     }
 
+    public AccelerateRatioManager getAccelerateRatioManager(String project) {
+        return AccelerateRatioManager.getInstance(getConfig(), project);
+    }
 }

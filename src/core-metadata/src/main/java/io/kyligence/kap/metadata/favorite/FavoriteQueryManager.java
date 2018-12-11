@@ -158,11 +158,6 @@ public class FavoriteQueryManager implements IKeepNames {
         return allFqs;
     }
 
-    public int getRuleBasedSize() {
-        return crud.listAll().stream().filter(input -> input.getChannel().equals(FavoriteQuery.CHANNEL_FROM_RULE))
-                .collect(Collectors.toList()).size();
-    }
-
     public List<String> getUnAcceleratedSqlPattern() {
         List<FavoriteQuery> favoriteQueries = crud.listAll().stream()
                 .filter(input -> input.getStatus().equals(FavoriteQueryStatusEnum.WAITING))

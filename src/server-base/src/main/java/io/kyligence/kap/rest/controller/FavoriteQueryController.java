@@ -205,10 +205,10 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "rules/impact", method = RequestMethod.GET)
+    @RequestMapping(value = "/accelerate_ratio", method = RequestMethod.GET)
     @ResponseBody
-    public EnvelopeResponse getRulesOverallImpact(@RequestParam("project") String project) {
+    public EnvelopeResponse getAccelerateRatio(@RequestParam("project") String project) {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                favoriteRuleService.getFavoriteRuleOverallImpact(project), "");
+                favoriteRuleService.getAccelerateRatio(project), "");
     }
 }
