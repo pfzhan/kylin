@@ -23,12 +23,12 @@
  */
 package io.kyligence.kap.rest.config;
 
-import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -40,6 +40,8 @@ import io.kyligence.kap.common.persistence.transaction.EventSynchronization;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -54,9 +56,44 @@ public class AppInitializer {
         val replayer = EventSynchronization.getInstance(kylinConfig);
         eventStore.syncEvents(replayer::replay);
         val candidate = new NodeCandidate(kylinConfig.getNodeId());
-        LeaderInitiator.getInstance(kylinConfig).start(candidate);
+
+        val leaderInitiator = LeaderInitiator.getInstance(kylinConfig);
+        leaderInitiator.start(candidate);
+
+        if (leaderInitiator.isLeader()) {
+            val projectManager = NProjectManager.getInstance(kylinConfig);
+            for (ProjectInstance project : projectManager.listAllProjects()) {
+                initProject(kylinConfig, project.getName());
+            }
+        }
         EventListenerRegistry.getInstance(kylinConfig).register(new GlobalEventListener(), UnitOfWork.GLOBAL_UNIT);
+
         eventStore.startConsumer(replayer::replay);
+    }
+
+    static void initProject(KylinConfig config, String project) {
+        if (UnitOfWork.containsLock(project)) {
+            log.info("already contains project {}", project);
+            return;
+        }
+        UnitOfWork.newLock(project);
+        val leaderInitiator = LeaderInitiator.getInstance(config);
+        if (leaderInitiator.isLeader()) {
+            EventOrchestratorManager.getInstance(config).addProject(project);
+            NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+            scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+            if (!scheduler.hasStarted()) {
+                throw new RuntimeException("Scheduler for " + project + " has not been started");
+            }
+
+            NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
+            favoriteScheduler.init();
+
+            if (!favoriteScheduler.hasStarted()) {
+                throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
+            }
+        }
+
     }
 
     static class GlobalEventListener implements EventListenerRegistry.ResourceEventListener {
@@ -69,27 +106,7 @@ public class AppInitializer {
             }
             val project = term[1];
             log.debug("try to init project {}", project);
-            if (UnitOfWork.containsLock(project)) {
-                log.info("already contains project {}", project);
-                return;
-            }
-            UnitOfWork.newLock(project);
-            val leaderInitiator = LeaderInitiator.getInstance(config);
-            if (leaderInitiator.isLeader()) {
-                EventOrchestratorManager.getInstance(config).addProject(project);
-                NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-                scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
-                if (!scheduler.hasStarted()) {
-                    throw new RuntimeException("Scheduler for " + project + " has not been started");
-                }
-
-                NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
-                favoriteScheduler.init();
-
-                if (!favoriteScheduler.hasStarted()) {
-                    throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
-                }
-            }
+            initProject(config, project);
         }
 
         @Override

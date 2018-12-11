@@ -69,7 +69,6 @@ public class EventSynchronization {
     }
 
     public void replay(Event event, boolean locally) {
-        log.debug("replay {}:{} locally: {}", event.getClass().getSimpleName(), event, locally);
         // No need to replay in leader
         if (leaderInitiator.isLeader() && !locally) {
             return;
@@ -102,11 +101,13 @@ public class EventSynchronization {
 
     private void replayDelete(ResourceDeleteEvent event) {
         val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+        log.debug("replay delete {}", event.getResPath());
         resourceStore.deleteResource(event.getResPath());
     }
 
     private void replayUpdate(ResourceCreateOrUpdateEvent event) {
         val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+        log.debug("replay update {}, {}", event.getResPath(), event.getCreatedOrUpdated().getMvcc());
         val raw = event.getCreatedOrUpdated();
         resourceStore.checkAndPutResource(raw.getResPath(), raw.getByteSource(), raw.getMvcc());
     }

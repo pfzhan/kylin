@@ -86,7 +86,7 @@ public class HDFSImageStore extends ImageStore {
         try {
             out = fs.create(p, true);
             IOUtils.copy(bs.openStream(), out);
-            fs.setTimes(p, ts, ts);
+            fs.setTimes(p, ts, -1);
         } catch (Exception e) {
             throw new IOException("Put resource fail", e);
         } finally {

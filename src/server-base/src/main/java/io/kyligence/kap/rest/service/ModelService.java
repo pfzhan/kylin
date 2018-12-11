@@ -35,8 +35,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.response.ModelInfoResponse;
-import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -97,11 +95,13 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NSpanningTreeResponse;
@@ -161,7 +161,7 @@ public class ModelService extends BasicService {
             if (isModelNameMatch && isModelOwnerMatch) {
                 RealizationStatusEnum modelStatus = getModelStatus(modelDesc.getName(), projectName);
                 boolean isModelStatusMatch = StringUtils.isEmpty(status)
-                        || (modelStatus.name().equalsIgnoreCase(status));
+                        || (modelStatus != null && modelStatus.name().equalsIgnoreCase(status));
 
                 if (isModelStatusMatch) {
                     NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);

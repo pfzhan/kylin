@@ -52,6 +52,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.event.manager.EventManager;
@@ -84,13 +85,14 @@ public class FavoriteQueryService extends BasicService {
             favoriteScheduler.init();
 
             if (!favoriteScheduler.hasStarted()) {
-                throw new RuntimeException("Auto favorite scheduler for " + projectInstance.getName() + " has not been started");
+                throw new RuntimeException(
+                        "Auto favorite scheduler for " + projectInstance.getName() + " has not been started");
             }
         }
     }
 
     @Transaction(project = 1)
-    void insertToDaoAndAccelerateForWhitelistChannel(Set<String> sqlPatterns, String project) throws IOException, PersistentException {
+    void insertToDaoAndAccelerateForWhitelistChannel(Set<String> sqlPatterns, String project, String user) {
         List<String> sqlsToAccelerate = Lists.newArrayList();
         List<FavoriteQuery> favoriteQueriesToInsert = Lists.newArrayList();
 
@@ -111,7 +113,7 @@ public class FavoriteQueryService extends BasicService {
         getFavoriteQueryManager(project).create(favoriteQueriesToInsert);
         // accelerate sqls right now
         if (!sqlsToAccelerate.isEmpty())
-            handleAccelerate(project, sqlsToAccelerate);
+            handleAccelerate(project, sqlsToAccelerate, user);
     }
 
     public void manualFavorite(String project, FavoriteRequest request) throws IOException {
@@ -128,11 +130,15 @@ public class FavoriteQueryService extends BasicService {
 
     public void favoriteForWhitelistChannel(Set<String> sqlPatterns, String project) {
         Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
+        val user = getUsername();
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    insertToDaoAndAccelerateForWhitelistChannel(sqlPatterns, project);
+                    UnitOfWork.doInTransactionWithRetry(() -> {
+                        insertToDaoAndAccelerateForWhitelistChannel(sqlPatterns, project, user);
+                        return 0;
+                    }, project);
                 } catch (Exception ex) {
                     throw new RuntimeException(ex);
                 }
@@ -258,7 +264,7 @@ public class FavoriteQueryService extends BasicService {
             sqlPatterns.add(sqlPattern);
 
             if (count % batchAccelerateSize == 0) {
-                handleAccelerate(project, sqlPatterns);
+                handleAccelerate(project, sqlPatterns, getUsername());
                 sqlPatterns.clear();
             }
 
@@ -266,7 +272,7 @@ public class FavoriteQueryService extends BasicService {
         }
 
         if (!sqlPatterns.isEmpty()) {
-            handleAccelerate(project, sqlPatterns);
+            handleAccelerate(project, sqlPatterns, getUsername());
         }
     }
 
@@ -280,7 +286,7 @@ public class FavoriteQueryService extends BasicService {
         return ignoreCountMap;
     }
 
-    static void handleAccelerate(String project, List<String> sqlList) {
+    static void handleAccelerate(String project, List<String> sqlList, String user) {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         if (CollectionUtils.isEmpty(sqlList)) {
@@ -310,7 +316,7 @@ public class FavoriteQueryService extends BasicService {
                         addCuboidEvent.setModelName(targetCubePlan.getModelName());
                         addCuboidEvent.setCubePlanName(targetCubePlan.getName());
                         addCuboidEvent.setSqlPatterns(sqls);
-                        addCuboidEvent.setOwner(getUsername());
+                        addCuboidEvent.setOwner(user);
 
                         eventManager.post(addCuboidEvent);
 
@@ -319,7 +325,7 @@ public class FavoriteQueryService extends BasicService {
                         postAddCuboidEvent.setProject(project);
                         postAddCuboidEvent.setModelName(targetCubePlan.getModelName());
                         postAddCuboidEvent.setCubePlanName(targetCubePlan.getName());
-                        addCuboidEvent.setOwner(getUsername());
+                        addCuboidEvent.setOwner(user);
                         postAddCuboidEvent.setSqlPatterns(sqls);
 
                         eventManager.post(postAddCuboidEvent);
@@ -358,7 +364,7 @@ public class FavoriteQueryService extends BasicService {
     private static int BLOCKING_CAUSE_MAX_LENGTH = 500;
 
     private static void updateBlockedSqlStatus(Map<String, AccelerateInfo> blockedSqlInfo, KylinConfig kylinConfig,
-                                               String project) {
+            String project) {
         if (blockedSqlInfo == null || blockedSqlInfo.size() == 0) {
             return;
         }
@@ -380,7 +386,8 @@ public class FavoriteQueryService extends BasicService {
         }
     }
 
-    private static void updateFavoriteQueryStatus(List<String> sqlPatterns, String project, FavoriteQueryStatusEnum status) {
+    private static void updateFavoriteQueryStatus(List<String> sqlPatterns, String project,
+            FavoriteQueryStatusEnum status) {
         val favoriteQueryJDBCDao = FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         for (String sqlPattern : sqlPatterns) {
             favoriteQueryJDBCDao.updateStatus(sqlPattern, status, null);
@@ -388,7 +395,7 @@ public class FavoriteQueryService extends BasicService {
     }
 
     private static List<String> getRelatedSqlsFromModelContext(NSmartContext.NModelContext modelContext,
-                                                               Map<String, AccelerateInfo> blockedSqlInfo) {
+            Map<String, AccelerateInfo> blockedSqlInfo) {
         List<String> sqls = Lists.newArrayList();
         if (modelContext == null) {
             return sqls;

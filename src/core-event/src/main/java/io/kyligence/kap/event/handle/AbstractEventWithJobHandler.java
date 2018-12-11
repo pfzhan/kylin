@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.event.handle;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
@@ -42,9 +43,9 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
     protected final void doHandle(EventContext eventContext) {
         Event event = eventContext.getEvent();
         val project = event.getProject();
-        val kylinConfig = eventContext.getConfig();
 
         UnitOfWork.doInTransactionWithRetry(() -> {
+            val kylinConfig = KylinConfig.getInstanceFromEnv();
             val eventId = event.getId();
             EventDao eventDao = getEventDao(project, kylinConfig);
             AbstractExecutable job = createJob(eventContext);

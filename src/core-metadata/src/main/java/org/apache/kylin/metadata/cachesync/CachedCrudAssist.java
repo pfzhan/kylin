@@ -217,7 +217,6 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
 
     abstract protected T initEntityAfterReload(T entity, String resourceName);
 
-    // This will trigger broadcast
     public T save(T entity) {
         Preconditions.checkArgument(entity != null);
         Preconditions.checkArgument(entity.getUuid() != null);

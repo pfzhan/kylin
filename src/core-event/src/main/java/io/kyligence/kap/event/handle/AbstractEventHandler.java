@@ -87,8 +87,8 @@ public abstract class AbstractEventHandler implements EventHandler {
         checkNotNull(project);
         checkNotNull(NProjectManager.getInstance(kylinConfig).getProject(project));
         val execManager = NExecutableManager.getInstance(kylinConfig, project);
-        val runningCount = execManager.countByModelAndStatus(event.getModelName(),
-                Sets.newHashSet(ExecutableState.RUNNING, ExecutableState.READY));
+        val runningCount = execManager.countByModelAndStatus(event.getModelName(), Sets.newHashSet(
+                ExecutableState.RUNNING, ExecutableState.READY, ExecutableState.ERROR, ExecutableState.STOPPED));
         log.debug("model {} has {} running jobs", event.getModelName(), runningCount);
         return runningCount == 0L;
     }

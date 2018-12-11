@@ -371,24 +371,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return byteSize;
     }
 
-    private NDataflow updateDataflowWithRetry(String dfName, NDataflowUpdater updater, int retry) {
-        RuntimeException firstException = null;
-
-        for (; retry >= 0; retry--) {
-            NDataflow cached = getDataflow(dfName);
-            NDataflow copy = copy(cached);
-            updater.modify(copy);
-            try {
-                return crud.save(copy);
-            } catch (IllegalStateException ex) {
-                if (firstException == null)
-                    firstException = ex;
-                logger.error("Write conflict during update NDataflow " + dfName + ", retries left: " + retry, ex);
-            }
-        }
-        throw firstException;
-    }
-
     public NDataflow updateDataflow(final NDataflowUpdate update) {
         NDataflow newDf = updateDataflow(update.getDataflowName(), copyForWrite -> {
             NDataflow df = copyForWrite;

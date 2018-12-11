@@ -256,7 +256,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         createTestFavoriteQuery();
         getTestConfig().setProperty("kylin.server.mode", "query");
         // when sql pattern not exists
-        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add("sql_pattern_not_exists");}}, PROJECT);
+        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add("sql_pattern_not_exists");}}, PROJECT, "ADMIN");
 
         List<FavoriteQuery> favoriteQueries = favoriteQueryService.getFavoriteQueries(PROJECT);
         FavoriteQuery newInsertedRow = favoriteQueries.get(0);
@@ -269,7 +269,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 //        Assert.assertEquals("sql_pattern_not_exists", accelerateEvent.getSqlPatterns().get(0));
 
         // sql pattern exists but not accelerating
-        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add("sql1");}}, PROJECT);
+        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add("sql1");}}, PROJECT, "ADMIN");
         // triggered another accelerate event
         // sql_pattern_not_exists, sql1
         Assert.assertEquals(2, eventDao.getEvents().size());
@@ -279,7 +279,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
             {
                 add("sql3");
             }
-        }, PROJECT);
+        }, PROJECT, "ADMIN");
         // assert this sql pattern did not post out
         Assert.assertEquals(2, eventDao.getEvents().size());
 

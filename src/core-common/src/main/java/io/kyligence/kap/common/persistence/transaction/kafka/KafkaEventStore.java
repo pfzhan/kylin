@@ -26,6 +26,7 @@ package io.kyligence.kap.common.persistence.transaction.kafka;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -35,7 +36,6 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.SetThreadName;
 
 import com.google.common.collect.Lists;
 
@@ -91,6 +91,7 @@ public class KafkaEventStore extends EventStore {
     public void startConsumer(Consumer<Event> eventConsumer) {
         val consumerThread = new Thread(() -> {
             val consumer = getKafkaConsumer();
+            consumer.subscribe(Lists.newArrayList(topic));
             while (true) {
                 val consumerRecords = consumer.poll(1000);
                 if (consumerRecords.isEmpty()) {
@@ -114,27 +115,32 @@ public class KafkaEventStore extends EventStore {
 
     @Override
     public void syncEvents(Consumer<Event> eventConsumer) {
-        try (val ignore = new SetThreadName(CONSUMER_THREAD_NAME)) {
-            val consumer = getKafkaConsumer();
-            val partitions = consumer.partitionsFor(topic);
-            for (PartitionInfo partition : partitions) {
-                val maybeOffset = eventStoreProperties.get("offset" + partition.partition());
-                int offset = 0;
-                if (maybeOffset != null) {
-                    offset = Integer.parseInt(maybeOffset);
-                }
-                consumer.seek(new TopicPartition(topic, partition.partition()), offset);
+        val originName = Thread.currentThread().getName();
+        Thread.currentThread().setName(CONSUMER_THREAD_NAME);
+        val consumer = getKafkaConsumer();
+        consumer.assign(consumer.partitionsFor(topic).stream().map(p -> new TopicPartition(p.topic(), p.partition()))
+                .collect(Collectors.toList()));
+        val partitions = consumer.partitionsFor(topic);
+        for (PartitionInfo partition : partitions) {
+            val maybeOffset = eventStoreProperties.get("offset" + partition.partition());
+            val topicPartition = new TopicPartition(topic, partition.partition());
+            if (maybeOffset != null) {
+                int offset = Integer.parseInt(maybeOffset);
+                consumer.seek(topicPartition, offset);
+            } else {
+                consumer.seekToBeginning(Lists.newArrayList(topicPartition));
             }
-            while (true) {
-                val consumerRecords = consumer.poll(1000);
-                if (consumerRecords.isEmpty()) {
-                    break;
-                }
-                consumerRecords.forEach(record -> eventConsumer.accept(record.value()));
-                consumer.commitSync();
-            }
-            consumer.close();
         }
+        while (true) {
+            val consumerRecords = consumer.poll(5000);
+            if (consumerRecords.isEmpty()) {
+                break;
+            }
+            consumerRecords.forEach(record -> eventConsumer.accept(record.value()));
+            consumer.commitSync();
+        }
+        consumer.close();
+        Thread.currentThread().setName(originName);
     }
 
     private KafkaConsumer<String, Event> getKafkaConsumer() {
@@ -144,9 +150,9 @@ public class KafkaEventStore extends EventStore {
                 "org.apache.kafka.common.serialization.StringDeserializer");
         consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 "io.kyligence.kap.common.persistence.transaction.kafka.EventDeserializer");
+        consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, "transaction-group0");
         kafkaPropeties.forEach(consumerConfig::put);
         val consumer = new KafkaConsumer<String, Event>(consumerConfig);
-        consumer.subscribe(Lists.newArrayList(topic));
         return consumer;
     }
 

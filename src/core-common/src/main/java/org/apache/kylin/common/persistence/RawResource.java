@@ -56,11 +56,13 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 
+import lombok.NoArgsConstructor;
 import lombok.val;
 
 /**
  * overall, RawResource is immutable
  */
+@NoArgsConstructor
 public class RawResource {
 
     private String resPath;

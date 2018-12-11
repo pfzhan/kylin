@@ -107,7 +107,7 @@ public class UnitOfWork {
                     //retry
                 }
             } finally {
-                if (needUnlock) {
+                if (needUnlock && threadLocals.get() != null) {
                     UnitOfWork.get().unlock();
                     clearLocalConfig();
                     if (threadLocals.get().originThreadLocalConfig != null) {
@@ -188,14 +188,14 @@ public class UnitOfWork {
         val originConfig = get().originThreadLocalConfig == null ? KylinConfig.getInstanceFromEnv()
                 : get().originThreadLocalConfig;
         // publish events here
+        packageEvents(eventList, get().project);
+        eventList.forEach(e -> e.setKey(get().project));
         val eventStore = EventStore.getInstance(originConfig);
         eventStore.getEventPublisher().publish(eventList);
 
         try {
             // replay in leader before release lock
             val replayer = EventSynchronization.getInstance(originConfig);
-            packageEvents(eventList, get().project);
-            eventList.forEach(e -> e.setKey(get().project));
             eventList.forEach(e -> replayer.replay(e, true));
         } catch (Exception e) {
             // in theory, this should not happen

@@ -43,11 +43,12 @@ public class MockedMQ extends EventStore {
 
     @Override
     public void startConsumer(Consumer<Event> consumer) {
+        // do nothing here, just mock
     }
 
     @Override
     public void syncEvents(Consumer<Event> consumer) {
-
+        // do nothing here, just mock
     }
 
 }

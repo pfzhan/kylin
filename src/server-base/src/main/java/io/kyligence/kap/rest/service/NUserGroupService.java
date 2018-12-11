@@ -36,6 +36,7 @@ import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.persistence.WriteConflictException;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.ManagedUser;
@@ -45,18 +46,19 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.stereotype.Component;
 
 import com.google.common.collect.Lists;
+import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.metadata.acl.UserGroup;
-import org.springframework.stereotype.Component;
 
 @Component("nUserGroupService")
 public class NUserGroupService extends UserGroupService {
     public static final Logger logger = LoggerFactory.getLogger(NUserGroupService.class);
 
     private ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-    private static final String PATH = "/user_group/";
+    private static final String PATH = "/user_group";
     private static final Serializer<UserGroup> USER_GROUP_SERIALIZER = new JsonSerializer<>(UserGroup.class);
 
     @Autowired
@@ -82,7 +84,10 @@ public class NUserGroupService extends UserGroupService {
             }
 
             try {
-                store.checkAndPutResource(PATH, userGroup, USER_GROUP_SERIALIZER);
+                if (store.getResource(PATH) != null) {
+                    return;
+                }
+                store.putResourceWithoutCheck(PATH, ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(userGroup)), 0);
                 return;
             } catch (WriteConflictException e) {
                 logger.info("Find WriteConflictException, sleep 100 ms.", e);
