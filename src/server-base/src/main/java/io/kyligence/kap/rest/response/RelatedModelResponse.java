@@ -43,6 +43,8 @@ public class RelatedModelResponse extends NDataModel {
     private RealizationStatusEnum status;
     @JsonProperty("segment_ranges")
     private Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
+    @JsonProperty("has_error_jobs")
+    private boolean hasErrorJobs;
 
     public RelatedModelResponse() {
         super();

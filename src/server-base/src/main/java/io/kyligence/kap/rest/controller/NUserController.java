@@ -46,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.env.Environment;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -85,6 +86,11 @@ public class NUserController extends NBasicController {
     @Qualifier("accessService")
     private AccessService accessService;
 
+    @Autowired
+    private Environment env;
+
+    private static String activeProfile;
+
     private static final Message msg = MsgPicker.getMsg();
 
     private static Pattern passwordPattern = Pattern
@@ -97,8 +103,9 @@ public class NUserController extends NBasicController {
     @PostConstruct
     public void init() throws IOException {
         List<ManagedUser> all = userService.listUsers();
+        activeProfile = env.getActiveProfiles()[0];
         logger.info("All " + all.size() + " users");
-        if (all.isEmpty() && "testing".equals(System.getProperty("spring.profiles.active"))) {
+        if (all.isEmpty() && "testing".equals(activeProfile)) {
             createUser(new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.GROUP_ALL_USERS));
             createUser(new ManagedUser("ANALYST", "ANALYST", true, Constant.GROUP_ALL_USERS));
             createUser(new ManagedUser("MODELER", "MODELER", true, Constant.GROUP_ALL_USERS));
@@ -286,7 +293,7 @@ public class NUserController extends NBasicController {
     }
 
     private void checkProfile() {
-        if (!"testing".equals(System.getProperty("spring.profiles.active"))) {
+        if (!"testing".equals(activeProfile)) {
             throw new BadRequestException(msg.getUSER_EDIT_NOT_ALLOWED());
         }
     }

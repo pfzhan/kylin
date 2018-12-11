@@ -99,7 +99,7 @@ public class JobService extends BasicService {
                     if (StringUtils.isEmpty(subject)) {
                         return true;
                     }
-                    return abstractExecutable.getTargetModelAlias().toLowerCase().contains(subject.toLowerCase());
+                    return StringUtils.containsIgnoreCase(abstractExecutable.getTargetModelAlias(), subject);
                 }).and(abstractExecutable -> {
                     List<String> jobNames = jobFilter.getJobNames();
                     if (CollectionUtils.isEmpty(jobNames)) {

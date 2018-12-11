@@ -229,6 +229,17 @@ public class NExecutableManager {
         }
     }
 
+    public List<AbstractExecutable> getExecutablesByStatus(ExecutableState status) {
+
+        val executables = getAllExecutables();
+
+        if (status != null) {
+            return executables.stream().filter(t -> t.getStatus().equals(status)).collect(Collectors.toList());
+        } else {
+            return executables;
+        }
+    }
+
     public List<AbstractExecutable> getAllExecutables(long timeStartInMillis, long timeEndInMillis) {
         List<AbstractExecutable> ret = Lists.newArrayList();
         for (ExecutablePO po : executableDao.getJobs(project, timeStartInMillis, timeEndInMillis)) {

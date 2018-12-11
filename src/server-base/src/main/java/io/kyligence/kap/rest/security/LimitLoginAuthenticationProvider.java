@@ -52,10 +52,9 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 
-
 public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider {
 
-    private static final Logger logger = LoggerFactory.getLogger(LimitLoginAuthenticationProvider.class);
+    private static final Logger limitLoginLogger = LoggerFactory.getLogger(LimitLoginAuthenticationProvider.class);
 
     private final static com.google.common.cache.Cache<String, Authentication> userCache = CacheBuilder.newBuilder()
             .maximumSize(KylinConfig.getInstanceFromEnv().getServerUserCacheMaxEntries())
@@ -63,7 +62,7 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
             .removalListener(new RemovalListener<String, Authentication>() {
                 @Override
                 public void onRemoval(RemovalNotification<String, Authentication> notification) {
-                    LimitLoginAuthenticationProvider.logger.debug("User cache {} is removed due to {}",
+                    LimitLoginAuthenticationProvider.limitLoginLogger.debug("User cache {} is removed due to {}",
                             notification.getKey(), notification.getCause());
                 }
             }).build();
@@ -111,23 +110,8 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
                     managedUser = (ManagedUser) userService.loadUserByUsername(userName);
                     Preconditions.checkNotNull(managedUser);
                 }
-
-                if (managedUser != null && managedUser.isLocked()) {
-                    long lockedTime = managedUser.getLockedTime();
-                    long timeDiff = System.currentTimeMillis() - lockedTime;
-
-                    if (timeDiff > 30000) {
-                        managedUser.setLocked(false);
-                        userService.updateUser(managedUser);
-                    } else {
-                        int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
-                        String msg = String.format(MsgPicker.getMsg().getUSER_IN_LOCKED_STATUS(), userName, leftSeconds);
-                        throw new LockedException(msg, new Throwable(userName));
-                    }
-                }
-
+                updateUserLockStatus(managedUser, userName);
                 auth = super.authenticate(authentication);
-
 
                 if (managedUser != null)
                     managedUser.clearAuthenticateFailedRecord();
@@ -138,18 +122,37 @@ public class LimitLoginAuthenticationProvider extends DaoAuthenticationProvider 
 
                 return auth;
             } catch (BadCredentialsException e) {
-                if (userName != null && managedUser != null) {
-                    managedUser.authenticateFail();
-                    userService.updateUser(managedUser);
-                }
-
+                authenticateFail(managedUser, userName);
                 if (managedUser != null && managedUser.isLocked()) {
-                    logger.error(MsgPicker.getMsg().getUSER_BE_LOCKED(), e);
+                    limitLoginLogger.error(MsgPicker.getMsg().getUSER_BE_LOCKED(), e);
                     throw new BadCredentialsException(MsgPicker.getMsg().getUSER_BE_LOCKED(), e);
                 } else {
-                    logger.error(MsgPicker.getMsg().getUSER_AUTH_FAILED(), e);
+                    limitLoginLogger.error(MsgPicker.getMsg().getUSER_AUTH_FAILED(), e);
                     throw new BadCredentialsException(MsgPicker.getMsg().getUSER_AUTH_FAILED(), e);
                 }
+            }
+        }
+    }
+
+    private void authenticateFail(ManagedUser managedUser, String userName) {
+        if (userName != null && managedUser != null) {
+            managedUser.authenticateFail();
+            userService.updateUser(managedUser);
+        }
+    }
+
+    private void updateUserLockStatus(ManagedUser managedUser, String userName) {
+        if (managedUser != null && managedUser.isLocked()) {
+            long lockedTime = managedUser.getLockedTime();
+            long timeDiff = System.currentTimeMillis() - lockedTime;
+
+            if (timeDiff > 30000) {
+                managedUser.setLocked(false);
+                userService.updateUser(managedUser);
+            } else {
+                int leftSeconds = (30 - timeDiff / 1000) <= 0 ? 1 : (int) (30 - timeDiff / 1000);
+                String msg = String.format(MsgPicker.getMsg().getUSER_IN_LOCKED_STATUS(), userName, leftSeconds);
+                throw new LockedException(msg, new Throwable(userName));
             }
         }
     }

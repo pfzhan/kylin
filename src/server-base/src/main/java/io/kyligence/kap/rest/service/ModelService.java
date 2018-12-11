@@ -41,6 +41,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -297,6 +298,7 @@ public class ModelService extends BasicService {
         NDataModelManager dataModelManager = getDataModelManager(project);
         List<String> models = dataModelManager.getTableOrientedModelsUsingRootTable(tableDesc);
         List<RelatedModelResponse> relatedModel = new ArrayList<>();
+        val errorExecutables = getExecutableManager(project).getExecutablesByStatus(ExecutableState.ERROR);
         for (String model : models) {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
             NDataModel dataModelDesc = dataModelManager.getDataModelDesc(model);
@@ -309,6 +311,11 @@ public class ModelService extends BasicService {
                 }
                 relatedModelResponse.setStatus(getModelStatus(model, project));
                 relatedModelResponse.setSegmentRanges(segmentRanges);
+                val filteredErrorExecutables = errorExecutables.stream()
+                        .filter(abstractExecutable -> StringUtils
+                                .equalsIgnoreCase(abstractExecutable.getTargetModelAlias(), dataModelDesc.getAlias()))
+                        .collect(Collectors.toList());
+                relatedModelResponse.setHasErrorJobs(CollectionUtils.isNotEmpty(filteredErrorExecutables));
                 relatedModel.add(relatedModelResponse);
             }
         }

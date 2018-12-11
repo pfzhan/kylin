@@ -52,6 +52,7 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
@@ -64,12 +65,16 @@ import javax.annotation.Nullable;
 
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
+import io.kyligence.kap.rest.execution.SucceedTestExecutable;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -441,6 +446,28 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         SegmentRange segmentRange2 = modelService.getSegmentRangeByModel("default", "nmodel_basic", "", "");
         Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange
                 && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
+    }
+
+    @Test
+    public void testGetRelatedModels_HasNoErrorJobs() {
+        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
+        Mockito.when(modelService.getExecutableManager("default")).thenReturn(executableManager);
+        Mockito.when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(Lists.newArrayList());
+        List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
+                "nmodel_basic");
+        Assert.assertEquals(2, responses.size());
+        Assert.assertEquals(false, responses.get(0).isHasErrorJobs());
+    }
+
+    @Test
+    public void testGetRelatedModels_HasErrorJobs() {
+        NExecutableManager executableManager = Mockito.mock(NExecutableManager.class);
+        Mockito.when(modelService.getExecutableManager("default")).thenReturn(executableManager);
+        Mockito.when(executableManager.getExecutablesByStatus(ExecutableState.ERROR)).thenReturn(mockJobs());
+        List<RelatedModelResponse> responses = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT",
+                "nmodel_basic_inner");
+        Assert.assertEquals(1, responses.size());
+        Assert.assertEquals(true, responses.get(0).isHasErrorJobs());
     }
 
     @Test
@@ -1821,5 +1848,28 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Model 'nmodel_basic2222' does not exist!");
         modelService.getModelInfo("*", "nmodel_basic2222", "default", 0, 0);
+    }
+
+    private List<AbstractExecutable> mockJobs() {
+        List<AbstractExecutable> jobs = new ArrayList<>();
+        SucceedTestExecutable job1 = new SucceedTestExecutable();
+        job1.setProject("default");
+        job1.initConfig(KylinConfig.getInstanceFromEnv());
+        job1.setName("sparkjob1");
+        job1.setTargetModel("nmodel_basic_inner");
+        SucceedTestExecutable job2 = new SucceedTestExecutable();
+        job2.setProject("default");
+        job2.initConfig(KylinConfig.getInstanceFromEnv());
+        job2.setName("sparkjob2");
+        job2.setTargetModel("model2");
+        SucceedTestExecutable job3 = new SucceedTestExecutable();
+        job3.setProject("default");
+        job3.initConfig(KylinConfig.getInstanceFromEnv());
+        job3.setName("sparkjob3");
+        job3.setTargetModel("model3");
+        jobs.add(job1);
+        jobs.add(job2);
+        jobs.add(job3);
+        return jobs;
     }
 }
