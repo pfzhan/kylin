@@ -22,7 +22,7 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import org.apache.kylin.measure.bitmap.{BitmapCounter, BitmapCounterFactory, RoaringBitmapCounter, RoaringBitmapCounterFactory}
+import org.apache.kylin.measure.bitmap.{BitmapCounter, RoaringBitmapCounterFactory}
 import org.apache.kylin.measure.hllc.HLLCounter
 import org.apache.kylin.metadata.datatype.DataType
 
@@ -39,7 +39,9 @@ class HLLCCountEnc(dataType: DataType) extends MeasureEncoder[Any, HLLCounter](d
   //  TODO: support more args
   override def encoder(value: Any): HLLCounter = {
     val current: HLLCounter = new HLLCounter(dataType.getPrecision)
-    current.add(value.toString)
+    if (value != null) {
+      current.add(value.toString)
+    }
     current
   }
 
@@ -53,7 +55,9 @@ class BitmapCountEnc(dataType: DataType) extends MeasureEncoder[Any, BitmapCount
     val factory = RoaringBitmapCounterFactory.INSTANCE
     val bitmapCounter = factory.newBitmap
     val current: BitmapCounter = bitmapCounter
-    current.add(Integer.parseInt(value.toString))
+    if (value != null) {
+      current.add(Integer.parseInt(value.toString))
+    }
     current
   }
 

@@ -152,9 +152,6 @@ public class DFBuildJob extends NDataflowJob {
             }
         } else {
             Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
-            //            Column[] selectedColumns = NSparkCubingUtil.getColumns(dimIndexes, measures.keySet());
-            //            Dataset<Row> afterPrj = parent.select(selectedColumns);
-            //            Dataset<Row> afterAgg = new NCuboidAggregator(ss, parent, dimIndexes, measures).aggregate().persist();
             Dataset<Row> afterAgg = CuboidAggregator.agg(ss, parent, dimIndexes, measures, seg);
             long cuboidRowCnt = afterAgg.count();
 

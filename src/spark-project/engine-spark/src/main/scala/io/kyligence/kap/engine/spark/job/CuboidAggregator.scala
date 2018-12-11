@@ -31,10 +31,8 @@ import io.kyligence.kap.engine.spark.builder.DFFlatTableEncoder
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.kylin.measure.bitmap.BitmapMeasureType
 import org.apache.kylin.metadata.model.TblColRef
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.StringType
 import org.apache.spark.sql.functions.{col, _}
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.{StringType, _}
 import org.apache.spark.sql.util.SparderTypeUtil.toSparkType
 import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 
@@ -49,7 +47,7 @@ object CuboidAggregator {
           seg: NDataSegment): DataFrame = {
     val flatTableDesc =
       new NCubeJoinedFlatTableDesc(seg.getCubePlan, seg.getSegRange)
-    agg(ss, dataSet, dimensions, measures, flatTableDesc, false)
+    agg(ss, dataSet, dimensions, measures, flatTableDesc, isSparkSql = false)
   }
 
   def agg(ss: SparkSession,
@@ -73,8 +71,8 @@ object CuboidAggregator {
       val measure = measureEntry._2
       val function = measure.getFunction
       val parameters = function.getParameter.getPlainParameters.asScala.toList
+      val columns = new mutable.ListBuffer[Column]
       if (parameters.head.isColumnType) {
-        var columns = new mutable.ListBuffer[Column]
         try {
           if (afterAgg) {
             columns.append(col(measureEntry._1.toString))
@@ -85,61 +83,62 @@ object CuboidAggregator {
           case e: Exception =>
             throw e
         }
-        function.getExpression.toUpperCase match {
-          case "MAX" =>
-            max(columns.head).as(measureEntry._1.toString)
-          case "MIN" =>
-            min(columns.head).as(measureEntry._1.toString)
-          case "SUM" =>
-            sum(columns.head).as(measureEntry._1.toString)
-          case "COUNT" =>
-            if (afterAgg) {
-              sum(columns.head).as(measureEntry._1.toString)
-            } else {
-              count(columns.head).as(measureEntry._1.toString)
-            }
-          case "COUNT_DISTINCT" =>
-            if (isSparkSql) {
-              countDistinct(columns.head).as(measureEntry._1.toString)
-            } else {
-              val udfName = UdfManager.register(function.getReturnDataType,
-                function.getExpression, null, !afterAgg)
-              if (!afterAgg) {
-                var col = columns.head
-                if (function.getReturnDataType.getName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
-                  col = wrapEncodeColumn(parameters.head.getColRef, columns.head)
-                }
-                callUDF(udfName, col.cast(StringType))
-                  .as(measureEntry._1.toString)
-              } else {
-                callUDF(udfName, columns.head).as(measureEntry._1.toString)
-              }
-            }
-          case "TOP_N" =>
-
-            val measure = function.getParameter.getColRef.getColumnDesc
-
-            val schema = StructType(parameters.map(_.getColRef.getColumnDesc).map { col =>
-              val dateType = toSparkType(col.getType)
-              if (col == measure) {
-                StructField(s"MEASURE_${col.getName}", dateType)
-              } else {
-                StructField(s"DIMENSION_${col.getName}", dateType)
-              }
-            })
-
-            val udfName = UdfManager.register(function.getReturnDataType,
-              function.getExpression, schema, !afterAgg)
-            callUDF(udfName, columns: _*).as(measureEntry._1.toString)
-        }
-      } else if (function.isCount) {
-        if (afterAgg) {
-          sum(col(measureEntry._1.toString)).as(measureEntry._1.toString)
-        } else {
-          count(lit(1)).as(measureEntry._1.toString)
-        }
       } else {
-        lit("")
+        if (afterAgg) {
+          columns.append(col(measureEntry._1.toString))
+        } else {
+          columns.append(lit(parameters.head.getValue))
+        }
+      }
+
+      function.getExpression.toUpperCase match {
+        case "MAX" =>
+          max(columns.head).as(measureEntry._1.toString)
+        case "MIN" =>
+          min(columns.head).as(measureEntry._1.toString)
+        case "SUM" =>
+          sum(columns.head).as(measureEntry._1.toString)
+        case "COUNT" =>
+          if (afterAgg) {
+            sum(columns.head).as(measureEntry._1.toString)
+          } else {
+            count(columns.head).as(measureEntry._1.toString)
+          }
+        case "COUNT_DISTINCT" =>
+          if (isSparkSql) {
+            countDistinct(columns.head).as(measureEntry._1.toString)
+          } else {
+            val udfName = UdfManager.register(function.getReturnDataType,
+              function.getExpression,
+              null,
+              !afterAgg)
+            if (!afterAgg) {
+              var col = columns.head
+              if (function.getReturnDataType.getName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
+                col = wrapEncodeColumn(parameters.head.getColRef, columns.head)
+              }
+              callUDF(udfName, col.cast(StringType))
+                .as(measureEntry._1.toString)
+            } else {
+              callUDF(udfName, columns.head).as(measureEntry._1.toString)
+            }
+          }
+        case "TOP_N" =>
+
+          val measure = function.getParameter.getColRef.getColumnDesc
+
+          val schema = StructType(parameters.map(_.getColRef.getColumnDesc).map { col =>
+            val dateType = toSparkType(col.getType)
+            if (col == measure) {
+              StructField(s"MEASURE_${col.getName}", dateType)
+            } else {
+              StructField(s"DIMENSION_${col.getName}", dateType)
+            }
+          })
+
+          val udfName = UdfManager.register(function.getReturnDataType,
+            function.getExpression, schema, !afterAgg)
+          callUDF(udfName, columns: _*).as(measureEntry._1.toString)
       }
     }.toSeq
 
@@ -150,15 +149,9 @@ object CuboidAggregator {
     } else {
       dataSet.agg(agg.head, agg.drop(1): _*)
     }
-
   }
 
   def wrapEncodeColumn(ref: TblColRef, column: Column): Column = {
-    val dataType = ref.getType
-    var col = column
-    if (false == dataType.isIntegerFamily) {
-      col = new Column(column.toString() + DFFlatTableEncoder.ENCODE_SUFFIX)
-    }
-    col
+    new Column(column.toString() + DFFlatTableEncoder.ENCODE_SUFFIX)
   }
 }

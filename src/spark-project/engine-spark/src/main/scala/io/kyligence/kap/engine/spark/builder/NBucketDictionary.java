@@ -35,8 +35,6 @@ public class NBucketDictionary {
 
     protected static final Logger logger = LoggerFactory.getLogger(NGlobalDictionaryV2.class);
 
-    private final static int NULL_ENCODE_VALUE = 0;
-
     private String workingDir;
 
     private Object2IntMap<String> prevObject2IntMap;
@@ -66,9 +64,6 @@ public class NBucketDictionary {
     }
 
     public int encode(Object value) {
-        if (null == value) {
-            return NULL_ENCODE_VALUE;
-        }
         return prevObject2IntMap.getInt(value.toString());
     }
 

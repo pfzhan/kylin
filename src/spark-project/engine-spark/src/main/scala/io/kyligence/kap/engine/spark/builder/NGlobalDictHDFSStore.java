@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,8 +42,9 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import java.io.IOException;
+import java.util.TreeSet;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -56,8 +56,8 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.TreeSet;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 
 public class NGlobalDictHDFSStore extends NGlobalDictStore {
 
@@ -117,7 +117,8 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
     @Override
     public NGlobalDictMetadata getMetadata(long version) throws IOException {
         Path versionDir = getVersionDir(version);
-        FileStatus[] metaFiles = fileSystem.listStatus(versionDir, path -> path.getName().startsWith(DICT_METADATA_NAME));
+        FileStatus[] metaFiles = fileSystem.listStatus(versionDir,
+                path -> path.getName().startsWith(DICT_METADATA_NAME));
 
         if (metaFiles.length == 0) {
             return null;
@@ -125,7 +126,8 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
 
         String metaFile = metaFiles[0].getPath().getName();
         Path metaPath = new Path(versionDir, metaFile);
-        if (!fileSystem.exists(metaPath)) return null;
+        if (!fileSystem.exists(metaPath))
+            return null;
 
         NGlobalDictMetadata metadata;
         try (FSDataInputStream is = fileSystem.open(metaPath)) {
@@ -142,10 +144,11 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
     }
 
     @Override
-    public Object2IntMap<String> getBucketDict(long version, NGlobalDictMetadata metadata, int bucketId) throws IOException {
+    public Object2IntMap<String> getBucketDict(long version, NGlobalDictMetadata metadata, int bucketId)
+            throws IOException {
         Object2IntMap<String> object2IntMap = new Object2IntOpenHashMap<>();
         Path versionDir = getVersionDir(version);
-        FileStatus[] dictCurrFiles = fileSystem.listStatus(versionDir, path -> path.getName().endsWith("_" + String.valueOf(bucketId)));
+        FileStatus[] dictCurrFiles = fileSystem.listStatus(versionDir, path -> path.getName().endsWith("_" + bucketId));
 
         for (FileStatus file : dictCurrFiles) {
             if (file.getPath().getName().startsWith(DICT_CURR_PREFIX)) {
@@ -176,13 +179,15 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
     }
 
     @Override
-    public void writeBucketCurrDict(String workingPath, int bucketId, Object2IntMap<String> openHashMap) throws IOException {
+    public void writeBucketCurrDict(String workingPath, int bucketId, Object2IntMap<String> openHashMap)
+            throws IOException {
         Path dictPath = new Path(workingPath, DICT_CURR_PREFIX + bucketId);
         writeBucketDict(dictPath, openHashMap);
     }
 
     @Override
-    public void writeBucketPrevDict(String workingPath, int bucketId, Object2IntMap<String> openHashMap) throws IOException {
+    public void writeBucketPrevDict(String workingPath, int bucketId, Object2IntMap<String> openHashMap)
+            throws IOException {
         Path dictPath = new Path(workingPath, DICT_PREV_PREFIX + bucketId);
         writeBucketDict(dictPath, openHashMap);
     }
@@ -196,8 +201,9 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
             dos.writeInt(openHashMap.size());
             for (Object2IntMap.Entry<String> entry : openHashMap.object2IntEntrySet()) {
                 dos.writeInt(entry.getIntValue());
-                dos.writeInt(entry.getKey().length());
-                dos.writeBytes(entry.getKey());
+                byte[] bytes = entry.getKey().getBytes();
+                dos.writeInt(bytes.length);
+                dos.write(bytes);
             }
             dos.flush();
         }
@@ -213,8 +219,10 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
         logger.info("write dict meta path: {}", metaPath);
 
         Path workPath = new Path(workingPath);
-        FileStatus[] dictPrevFiles = fileSystem.listStatus(workPath, path -> StringUtils.contains(path.getName(), DICT_PREV_PREFIX));
-        FileStatus[] dictCurrFiles = fileSystem.listStatus(workPath, path -> StringUtils.contains(path.getName(), DICT_CURR_PREFIX));
+        FileStatus[] dictPrevFiles = fileSystem.listStatus(workPath,
+                path -> StringUtils.contains(path.getName(), DICT_PREV_PREFIX));
+        FileStatus[] dictCurrFiles = fileSystem.listStatus(workPath,
+                path -> StringUtils.contains(path.getName(), DICT_CURR_PREFIX));
 
         int dictCount = 1;
         for (FileStatus fileStatus : dictPrevFiles) {

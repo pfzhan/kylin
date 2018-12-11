@@ -69,7 +69,7 @@ public class NProjectManagerTest extends NLocalFileMetadataTestCase {
         method.setAccessible(true);
         Set<String> projectNames = (Set<String>) method.invoke(projectManager);
 
-        Assert.assertEquals(9, projectNames.size());
+        Assert.assertEquals(8, projectNames.size());
         Assert.assertTrue(!projectNames.contains("test"));
 
     }

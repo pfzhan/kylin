@@ -113,6 +113,7 @@ object SparderTypeUtil extends Logging {
       case "float" => FloatType
       case "double" => DoubleType
       case tp if tp.startsWith("varchar") => StringType
+      case tp if tp.startsWith("char") => StringType
       case "dim_dc" => LongType
       case "boolean" => BooleanType
       case tp if tp.startsWith("hllc") => BinaryType

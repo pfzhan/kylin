@@ -25,7 +25,7 @@
 package org.apache.spark.sql.udf
 
 import java.math.BigDecimal
-import java.nio.{BufferOverflowException, ByteBuffer}
+import java.nio.ByteBuffer
 import java.util
 
 import com.google.common.collect.Maps
@@ -37,7 +37,7 @@ import org.apache.kylin.measure.dim.DimCountDistinctCounter
 import org.apache.kylin.measure.hllc.HLLCounter
 import org.apache.kylin.measure.percentile.PercentileCounter
 import org.apache.kylin.measure.topn.TopNCounter
-import org.apache.kylin.metadata.datatype.DataTypeSerializer
+import org.apache.kylin.metadata.datatype.{DataTypeSerializer, DataType => KyDataType}
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.expressions.{MutableAggregationBuffer, UserDefinedAggregateFunction}
@@ -45,7 +45,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.unsafe.types.UTF8String
 
-class SparderAggFun(funcName: String, dataTp: org.apache.kylin.metadata.datatype.DataType)
+class SparderAggFun(funcName: String, dataTp: KyDataType)
   extends UserDefinedAggregateFunction
     with Logging {
 

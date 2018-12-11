@@ -23,9 +23,19 @@
  */
 package io.kyligence.kap.newten;
 
-import java.io.File;
+import static com.google.common.collect.Lists.newArrayList;
+import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_COUNT;
+import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_COUNT_DISTINCT;
+import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_MAX;
+import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_MIN;
+import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_PERCENTILE;
+import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_SUM;
+import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_TOP_N;
+
 import java.util.List;
 
+import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang.math.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.util.Pair;
@@ -34,21 +44,21 @@ import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
+import org.apache.kylin.metadata.model.FunctionDesc;
+import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.spark.SparkContext;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
-import com.google.common.collect.Lists;
-
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.cube.model.NDataSegDetails;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -56,9 +66,11 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
-import io.kyligence.kap.engine.spark.storage.ParquetStorage;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.smart.util.CubeUtils;
 import io.kyligence.kap.spark.KapSparkSession;
-import scala.collection.mutable.WrappedArray;
 
 public class NMeasuresTest extends NLocalWithSparkSessionTest {
     @Before
@@ -80,48 +92,14 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
+    // Need to fill in support for top-n and percentile #8848
     public void testMeasures() throws Exception {
-        final String cubeName = "ncube_full_measure_test";
-        buildCuboid(cubeName);
 
         //validate Cube Data by decode
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
-        NDataSegDetails segCuboids = NDataflowManager.getInstance(config, getProject()).getDataflow(cubeName)
-                .getSegment(1).getSegDetails();
-        NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(segCuboids, 1);
-        ParquetStorage storage = new ParquetStorage();
-        Dataset<Row> ret = storage.getCuboidData(dataCuboid, ss);
-        for (Row row : ret.collectAsList()) {
-            if (row.apply(0).toString().equals("10000000158")) {
-                Assert.assertEquals("4", row.apply(1).toString());// COUNT(*)
-                Assert.assertEquals("40000000632", row.apply(2).toString());// SUM(ID1)
-                Assert.assertEquals(Double.valueOf("2637.703"), Double.valueOf(row.apply(3).toString()), 0.000001);// SUM(PRICE2)
-                Assert.assertEquals("10000000158", row.apply(10).toString());// MIN(ID1)
-                WrappedArray topnArray = (WrappedArray) row.apply(26);
-                Assert.assertEquals("[2044.28,[Auction,bei,2013-06-14]]", topnArray.apply(0).toString());// TOPN
-                Assert.assertEquals("[354.7442,[Auction,jjc,2013-03-22]]", topnArray.apply(1).toString());// TOPN
-                Assert.assertEquals("[172.0344,[Others,hce,2013-11-12]]", topnArray.apply(2).toString());// TOPN
-                Assert.assertEquals("[66.6444,[Auction,jjc,2013-04-06]]", topnArray.apply(3).toString());// TOPN
-                //Assert.assertEquals("3", row.apply(15).toString());// HLL(NAME1)
-                //Assert.assertEquals("4", row.apply(16).toString());
-                //Assert.assertEquals(4, ((PercentileCounter) row.apply(21)).getRegisters().size());// percentile(PRICE1)
-                //Assert.assertEquals("478.63", row.apply(25).toString());// HLL(NAME1, PRICCE1)
-            }
-            // verify the all null value aggregate
-            if (row.apply(0).toString().equals("10000000162")) {
-                Assert.assertEquals("3", row.apply(1).toString());// COUNT(*)
-                Assert.assertNull(row.apply(3));
-                Assert.assertNull(row.apply(4));
-                Assert.assertNull(row.apply(5));
-                Assert.assertEquals("10000000162", row.apply(6).toString());// MIN(ID1)
-                //Assert.assertEquals("0", row.apply(15).toString());// HLL(NAME1)
-                //Assert.assertEquals("0", row.apply(16).toString());// HLL(NAME2)
-                //Assert.assertEquals(0, ((PercentileCounter) row.apply(21)).getRegisters().size());// percentile(PRICE1)
-                //Assert.assertEquals("0.0", row.apply(25).toString());// HLL(NAME1, PRICE1)
-            }
-        }
+        buildCuboid();
 
         //build is done, start to test query
         SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
@@ -130,20 +108,118 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use("default");
         populateSSWithCSVData(config, "default", kapSparkSession);
-        List<Pair<String, String>> queries = NExecAndComp
-                .fetchQueries(KAP_SQL_BASE_DIR + File.separator + "sql_measures");
-        NExecAndComp.execAndCompare(queries, kapSparkSession, NExecAndComp.CompareLevel.SAME, "left");
-        // queries = NExecAndComp.fetchQueries(
-        //         KAP_SQL_BASE_DIR + File.separator + "sql_measures" + File.separator + "inaccurate_sql");
-        // NExecAndComp.execAndCompare(queries, kapSparkSession, NExecAndComp.CompareLevel.NONE, "left");
+
+        String querySql = fetchQuerySql();
+        Assert.assertEquals("select ID1,COUNT(*),SUM(1),SUM(ID1),SUM(ID2),SUM(ID3),SUM(ID4),SUM(PRICE1),SUM(PRICE2),"
+                + "SUM(PRICE3),SUM(PRICE5),SUM(PRICE6),SUM(PRICE7),SUM(NAME4),MAX(ID1),MAX(ID2),MAX(ID3),"
+                + "MAX(ID4),MAX(PRICE1),MAX(PRICE2),MAX(PRICE3),MAX(PRICE5),MAX(PRICE6),MAX(PRICE7),MAX(NAME1),"
+                + "MAX(NAME2),MAX(NAME3),MAX(NAME4),MAX(TIME1),MAX(TIME2),MAX(FLAG),MIN(ID1),MIN(ID2),MIN(ID3),"
+                + "MIN(ID4),MIN(PRICE1),MIN(PRICE2),MIN(PRICE3),MIN(PRICE5),MIN(PRICE6),MIN(PRICE7),MIN(NAME1),"
+                + "MIN(NAME2),MIN(NAME3),MIN(NAME4),MIN(TIME1),MIN(TIME2),MIN(FLAG),COUNT(ID1),COUNT(ID2),"
+                + "COUNT(ID3),COUNT(ID4),COUNT(PRICE1),COUNT(PRICE2),COUNT(PRICE3),COUNT(PRICE5),COUNT(PRICE6),"
+                + "COUNT(PRICE7),COUNT(NAME1),COUNT(NAME2),COUNT(NAME3),COUNT(NAME4),COUNT(TIME1),COUNT(TIME2),"
+                + "COUNT(FLAG),count(distinct ID1),count(distinct ID2),count(distinct ID3),count(distinct ID4),"
+                + "count(distinct PRICE1),count(distinct PRICE2),count(distinct PRICE3),count(distinct PRICE5),"
+                + "count(distinct PRICE6),count(distinct PRICE7),count(distinct NAME1),count(distinct NAME2),"
+                + "count(distinct NAME3),count(distinct NAME4),count(distinct TIME1),count(distinct TIME2),"
+                + "count(distinct FLAG), 1 from TEST_MEASURE  group by ID1", querySql);
+        Pair<String, String> pair = new Pair<>("sql", querySql);
+
+        NExecAndComp.execAndCompare(newArrayList(pair), kapSparkSession, NExecAndComp.CompareLevel.SAME, "left");
     }
 
-    private void buildCuboid(String cubeName) throws Exception {
+    private String fetchQuerySql() {
+        NCubePlanManager cubeMgr = NCubePlanManager.getInstance(getTestConfig(), getProject());
+        NCubePlan cubePlan = cubeMgr.getCubePlan("ncube_full_measure_test");
+        StringBuilder sqlBuilder;
+        sqlBuilder = new StringBuilder("select ");
+        for (TblColRef col : cubePlan.getEffectiveDimCols().values())
+            sqlBuilder.append(col.getColumnDesc().getName()).append(",");
+        for (NDataModel.Measure mea : cubePlan.getEffectiveMeasures().values()) {
+            if (mea.getFunction().getParameter().isColumnType()) {
+                if (mea.getFunction().getExpression().equalsIgnoreCase(FUNC_COUNT_DISTINCT)) {
+                    sqlBuilder.append(String.format("%s(%s)", "count",
+                            "distinct " + mea.getFunction().getParameter().getColRef().getName())).append(",");
+                } else {
+                    sqlBuilder.append(String.format("%s(%s)", mea.getFunction().getExpression(),
+                            mea.getFunction().getParameter().getColRef().getName())).append(",");
+                }
+            } else {
+                sqlBuilder.append(String.format("%s(%s)", mea.getFunction().getExpression(),
+                        mea.getFunction().getParameter().getValue())).append(",");
+            }
+
+        }
+        sqlBuilder.append(" 1 from TEST_MEASURE ");
+
+        sqlBuilder.append(" group by ");
+        for (TblColRef col : cubePlan.getEffectiveDimCols().values()) {
+            sqlBuilder.append(col.getColumnDesc().getName()).append(",");
+        }
+        return StringUtils.removeEnd(sqlBuilder.toString(), ",");
+    }
+
+    private List<NDataModel.Measure> generateMeasList(NDataModel model) {
+        List<String> funList = newArrayList(FUNC_SUM, FUNC_MAX, FUNC_MIN, FUNC_COUNT, FUNC_COUNT_DISTINCT,
+                FUNC_PERCENTILE, FUNC_TOP_N);
+        funList.remove(FUNC_PERCENTILE); //TODO #8848
+        funList.remove(FUNC_TOP_N); //TODO #8848
+        List<String> cdReturnTypeList = newArrayList("hllc(10)", "bitmap");
+        List<TblColRef> columnList = model.getEffectiveColsMap().values().asList();
+
+        int meaStart = 100000;
+        List<NDataModel.Measure> measureList = model.getAllMeasures();
+        for (String fun : funList) {
+            for (TblColRef col : columnList) {
+                // cannot support sum(date) sum(string) sum(boolean)
+                if (fun.equalsIgnoreCase(FUNC_SUM) && (col.getType().isDateTimeFamily()
+                        || col.getType().isStringFamily() || col.getType().isBoolean())) {
+                    continue;
+                }
+
+                String returnType = col.getDatatype();
+                if (fun.equalsIgnoreCase(FUNC_COUNT_DISTINCT)) {
+                    returnType = cdReturnTypeList.get(RandomUtils.nextInt(2));
+                }
+                NDataModel.Measure measure = CubeUtils.newMeasure(
+                        FunctionDesc.newInstance(fun, ParameterDesc.newInstance(col), returnType), meaStart + "_" + fun,
+                        meaStart++);
+                measureList.add(measure);
+            }
+        }
+
+        return measureList;
+    }
+
+    private void buildCuboid() throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+
+        NDataModelManager modelMgr = NDataModelManager.getInstance(config, getProject());
+        NDataModel model = modelMgr.getDataModelDesc("nmodel_full_measure_test");
+        model.setAllMeasures(generateMeasList(model));
+
+        NDataModel modelUpdate = modelMgr.copyForWrite(model);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        modelMgr.updateDataModelDesc(modelUpdate);
+        modelMgr = NDataModelManager.getInstance(config, getProject());
+        model = modelMgr.getDataModelDesc("nmodel_full_measure_test");
+
+        NCubePlanManager cubeMgr = NCubePlanManager.getInstance(config, getProject());
+        NDataModel finalModel = model;
+        cubeMgr.updateCubePlan("ncube_full_measure_test", copyForWrite -> {
+            NCuboidDesc cuboidDesc = copyForWrite.getAllCuboids().get(0);
+            cuboidDesc.setMeasures(finalModel.getEffectiveMeasureMap().inverse().values().asList());
+            NCuboidLayout layout = cuboidDesc.getLayouts().get(0);
+            List<Integer> colList = newArrayList(cuboidDesc.getDimensions());
+            colList.addAll(cuboidDesc.getMeasures());
+            layout.setColOrder(colList);
+            copyForWrite.setCuboids(newArrayList(cuboidDesc));
+        });
+
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
-        NDataflow df = dsMgr.getDataflow(cubeName);
+        NDataflow df = dsMgr.getDataflow("ncube_full_measure_test");
 
         // cleanup all segments first
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
@@ -152,11 +228,11 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
 
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-        List<NCuboidLayout> toBuildLayouts = Lists.newArrayList(df.getCubePlan().getAllCuboidLayouts().get(0));
+        List<NCuboidLayout> toBuildLayouts = newArrayList(df.getCubePlan().getAllCuboidLayouts().get(0));
 
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(toBuildLayouts),
                 "ADMIN");
-        NSparkCubingStep sparkStep = (NSparkCubingStep) job.getSparkCubingStep();
+        NSparkCubingStep sparkStep = job.getSparkCubingStep();
         StorageURL distMetaUrl = StorageURL.valueOf(sparkStep.getDistMetaUrl());
         Assert.assertEquals("hdfs", distMetaUrl.getScheme());
         Assert.assertTrue(distMetaUrl.getParameter("path").startsWith(config.getHdfsWorkingDirectory()));

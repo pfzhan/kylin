@@ -1826,7 +1826,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                 Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryManager();
         val modelInfo = modelService.getModelInfo("*", "*", "*", 0, 0);
-        Assert.assertEquals(15, modelInfo.size());
+        Assert.assertEquals(9, modelInfo.size());
     }
 
     @Test

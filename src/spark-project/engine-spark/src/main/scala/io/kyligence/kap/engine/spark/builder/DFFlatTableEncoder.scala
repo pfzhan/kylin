@@ -75,7 +75,11 @@ object DFFlatTableEncoder extends Logging {
                 for (i <- rowFields.indices) {
                   objects(i) = rowFields.apply(i)
                   if (i == columnIndex) {
-                    objects(rowFields.size) = bucketDict.encode(rowFields.apply(i))
+                    if (rowFields.apply(i) == null) {
+                      objects(rowFields.size) = null
+                    } else {
+                      objects(rowFields.size) = bucketDict.encode(rowFields.apply(i))
+                    }
                   }
                 }
                 list.+=(Row.fromSeq(objects.toSeq))

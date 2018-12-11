@@ -42,7 +42,6 @@ import org.apache.kylin.dict.NDictionaryInfo;
 import org.apache.kylin.dict.NDictionaryManager;
 import org.apache.kylin.dict.NGlobalDictionaryBuilder2;
 import org.apache.kylin.measure.bitmap.BitmapMeasureType;
-import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.source.IReadableTable;
@@ -219,11 +218,7 @@ public class NDictionaryBuilder implements Serializable {
         if (returnDataTypeName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
             List<TblColRef> cols = measure.getFunction().getParameter().getColRefs();
             Preconditions.checkArgument(cols.size() == 1);
-            TblColRef ref = cols.get(0);
-            DataType dataType = ref.getType();
-            if (!dataType.isIntegerFamily()) {
-                return ref;
-            }
+            return cols.get(0);
         }
         return null;
     }

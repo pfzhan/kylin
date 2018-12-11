@@ -25,7 +25,7 @@ package io.kyligence.kap.engine.spark.job
 import java.nio.ByteBuffer
 
 import org.apache.kylin.measure.{MeasureAggregator, MeasureIngester, MeasureTypeFactory}
-import org.apache.kylin.metadata.datatype.DataTypeSerializer
+import org.apache.kylin.metadata.datatype.{DataTypeSerializer, DataType => KyDataType}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.expressions.{MutableAggregationBuffer, UserDefinedAggregateFunction}
 import org.apache.spark.sql.types._
@@ -73,9 +73,9 @@ sealed abstract class MeasureUDAF extends UserDefinedAggregateFunction {
       byteBuffer = ByteBuffer.allocate(serializer.maxLength())
       dataTpName match {
         case tp if tp.startsWith("hllc") =>
-          encoder = new HLLCCountEnc(org.apache.kylin.metadata.datatype.DataType.getType(dataTpName)).asInstanceOf[MeasureEncoder[Any, Any]]
+          encoder = new HLLCCountEnc(KyDataType.getType(dataTpName)).asInstanceOf[MeasureEncoder[Any, Any]]
         case "bitmap" =>
-          encoder = new BitmapCountEnc(org.apache.kylin.metadata.datatype.DataType.getType(dataTpName))
+          encoder = new BitmapCountEnc(KyDataType.getType(dataTpName))
             .asInstanceOf[MeasureEncoder[Any, Any]]
       }
     }
@@ -83,25 +83,23 @@ sealed abstract class MeasureUDAF extends UserDefinedAggregateFunction {
   }
 
   override def update(buffer: MutableAggregationBuffer, input: Row): Unit = {
-    if (!input.isNullAt(0)) {
-      byteBuffer.clear()
-      var inputValue: Any = null
-      if (isFirst) {
-        inputValue = encoder.encoder(input.apply(0))
-      } else {
-        inputValue = serializer.deserialize(ByteBuffer.wrap(input.apply(0).asInstanceOf[Array[Byte]]))
-      }
-      if (buffer.isNullAt(0)) {
-        serializer.serialize(inputValue, byteBuffer)
-        buffer.update(0, byteBuffer.array().slice(0, byteBuffer.position()))
-      } else {
-        measureAggregator.reset()
-        val bufferValue = serializer.deserialize(ByteBuffer.wrap(buffer.apply(0).asInstanceOf[Array[Byte]]))
-        measureAggregator.aggregate(bufferValue)
-        measureAggregator.aggregate(inputValue)
-        serializer.serialize(measureAggregator.getState, byteBuffer)
-        buffer.update(0, byteBuffer.array().slice(0, byteBuffer.position()))
-      }
+    byteBuffer.clear()
+    var inputValue: Any = null
+    if (isFirst) {
+      inputValue = encoder.encoder(input.apply(0))
+    } else {
+      inputValue = serializer.deserialize(ByteBuffer.wrap(input.apply(0).asInstanceOf[Array[Byte]]))
+    }
+    if (buffer.isNullAt(0)) {
+      serializer.serialize(inputValue, byteBuffer)
+      buffer.update(0, byteBuffer.array().slice(0, byteBuffer.position()))
+    } else {
+      measureAggregator.reset()
+      val bufferValue = serializer.deserialize(ByteBuffer.wrap(buffer.apply(0).asInstanceOf[Array[Byte]]))
+      measureAggregator.aggregate(bufferValue)
+      measureAggregator.aggregate(inputValue)
+      serializer.serialize(measureAggregator.getState, byteBuffer)
+      buffer.update(0, byteBuffer.array().slice(0, byteBuffer.position()))
     }
   }
 
@@ -129,7 +127,7 @@ sealed abstract class MeasureUDAF extends UserDefinedAggregateFunction {
 }
 
 
-class FirstUDAF(expression: String, dataTp: org.apache.kylin.metadata.datatype.DataType, isfi: Boolean) extends MeasureUDAF {
+class FirstUDAF(expression: String, dataTp: KyDataType, isfi: Boolean) extends MeasureUDAF {
 
   isFirst = isfi
   dataTpName = dataTp.toString
