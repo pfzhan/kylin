@@ -361,7 +361,7 @@ exports.default = {
     insight: 'Insight',
     monitor: 'Monitor',
     system: 'System',
-    project_setting: 'Setting',
+    setting: 'Setting',
     project: 'Project',
     auto: 'Auto-Modeling',
     overview: 'Overview',

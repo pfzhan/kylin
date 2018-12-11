@@ -50,7 +50,6 @@ export const menusData = [
     path: '/studio',
     icon: 'el-icon-ksd-studio',
     children: [
-      // { name: 'project', path: '/studio/project' },
       { name: 'source', path: '/studio/source' },
       {name: 'favorite_query', path: '/studio/favorite_query'},
       { name: 'model', path: '/studio/model' }
@@ -77,8 +76,8 @@ export const menusData = [
     ]
   },
   {
-    name: 'project_setting',
-    path: '/project_setting',
+    name: 'setting',
+    path: '/setting',
     icon: 'el-icon-ksd-setting'
   }
 ]

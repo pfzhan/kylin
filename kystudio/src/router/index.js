@@ -40,9 +40,9 @@ let routerOptions = {
         path: 'dashboard',
         component: dashboard
       }, {
-        name: 'projectSetting',
-        path: '/project_setting',
-        component: () => import('../components/studio/StudioProject/StudioProject.vue')
+        name: 'Setting',
+        path: '/setting',
+        component: () => import('../components/setting/setting.vue')
       }, {
         name: 'Source',
         path: 'studio/source',
