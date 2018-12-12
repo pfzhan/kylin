@@ -11,7 +11,7 @@
         <SettingAccelerate></SettingAccelerate>
       </el-tab-pane>
       <el-tab-pane :label="$t('storage')" :name="viewTypes.STORAGE">
-        <div></div>
+        <SettingStorage :project="currentProjectData"></SettingStorage>
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -27,6 +27,7 @@ import { viewTypes } from './handler'
 import emptyImg from '../../assets/img/empty.svg'
 import SettingBasic from './SettingBasic/SettingBasic.vue'
 import SettingAccelerate from './SettingAccelerate/SettingAccelerate.vue'
+import SettingStorage from './SettingStorage/SettingStorage.vue'
 
 @Component({
   computed: {
@@ -36,7 +37,8 @@ import SettingAccelerate from './SettingAccelerate/SettingAccelerate.vue'
   },
   components: {
     SettingBasic,
-    SettingAccelerate
+    SettingAccelerate,
+    SettingStorage
   },
   locales
 })
@@ -85,6 +87,7 @@ export default class Setting extends Vue {
   .setting-desc {
     margin: -5px 0 10px 0;
     font-size: 12px;
+    color: @text-description;
   }
   .setting-desc:last-child {
     margin-bottom: 0px;
@@ -92,6 +95,9 @@ export default class Setting extends Vue {
   .hr {
     border-top: 1px solid @grey-3;
     margin-bottom: 10px;
+  }
+  .option-title {
+    color: @text-title-color;
   }
 }
 </style>
