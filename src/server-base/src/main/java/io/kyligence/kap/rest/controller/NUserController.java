@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.controller;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.PagingUtil;
+import io.kyligence.kap.rest.config.AppInitializer;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import lombok.val;
 import org.apache.commons.lang.StringUtils;
@@ -46,6 +47,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -62,7 +64,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.annotation.PostConstruct;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -100,7 +101,7 @@ public class NUserController extends NBasicController {
 
     private static final SimpleGrantedAuthority ALL_USERS_AUTH = new SimpleGrantedAuthority(Constant.GROUP_ALL_USERS);
 
-    @PostConstruct
+    @EventListener(AppInitializer.AppInitializedEvent.class)
     public void init() throws IOException {
         List<ManagedUser> all = userService.listUsers();
         activeProfile = env.getActiveProfiles()[0];

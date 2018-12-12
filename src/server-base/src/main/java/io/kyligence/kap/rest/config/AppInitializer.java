@@ -29,6 +29,8 @@ import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.event.ApplicationContextEvent;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
@@ -69,6 +71,7 @@ public class AppInitializer {
         EventListenerRegistry.getInstance(kylinConfig).register(new GlobalEventListener(), UnitOfWork.GLOBAL_UNIT);
 
         eventStore.startConsumer(replayer::replay);
+        event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
     }
 
     static void initProject(KylinConfig config, String project) {
@@ -115,4 +118,9 @@ public class AppInitializer {
         }
     }
 
+    public static class AppInitializedEvent extends ApplicationContextEvent {
+        public AppInitializedEvent(ApplicationContext source) {
+            super(source);
+        }
+    }
 }
