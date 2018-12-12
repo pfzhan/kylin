@@ -69,12 +69,12 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn" sortable prop="query_time" header-align="center" width="210">
+      <el-table-column :renderHeader="renderColumn" prop="query_time" header-align="center" width="210">
         <template slot-scope="props">
           {{transToGmtTime(props.row.query_time)}}
         </template>
       </el-table-column>
-      <el-table-column :renderHeader="renderColumn2" sortable prop="duration" header-align="center" align="right" width="150">
+      <el-table-column :renderHeader="renderColumn2" prop="duration" header-align="center" align="right" width="150">
         <template slot-scope="props">
           <span v-if="props.row.duration < 1000 && props.row.query_status === 'SUCCEEDED'">&lt; 1s</span>
           <span v-if="props.row.duration >= 1000 && props.row.query_status === 'SUCCEEDED'">{{props.row.duration / 1000 | fixed(2)}}s</span>

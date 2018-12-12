@@ -385,6 +385,9 @@ export default class JobsList extends Vue {
     }
   }
   getJobsList () {
+    // if (!this.filter.jobNames.length) {
+    //   // this.filter.jobNames = null
+    // }
     return this.loadJobsList(this.filter).then((res) => {
       handleSuccess(res, (data) => {
         if (data.size) {
@@ -597,20 +600,13 @@ export default class JobsList extends Vue {
     this.filter.project = this.currentSelectedProject
     return this.getJobsList()
   }
-  sortJobList (column, prop, order) {
-    let _column = column.column
-    if (_column.order === 'ascending') {
+  sortJobList ({ column, prop, order }) {
+    if (order === 'ascending') {
       this.filter.reverse = false
     } else {
       this.filter.reverse = true
     }
-    if (_column.label === this.$t('startTime')) {
-      this.filter.sortby = 'create_time'
-    } else if (_column.label === this.$t('TargetSubject')) {
-      this.filter.sortby = 'target_model_alias'
-    } else if (_column.label === this.$t('Duration')) {
-      this.filter.sortby = 'duration'
-    }
+    this.filter.sortby = prop
     this.getJobsList()
   }
   resume (jobIds) {

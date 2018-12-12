@@ -131,8 +131,8 @@ export default class QueryHistory extends Vue {
       startTimeTo: this.filterData.startTimeTo,
       latencyFrom: this.filterData.latencyFrom,
       latencyTo: this.filterData.latencyTo,
-      'realization[]': this.filterData.realization.length ? this.filterData.realization.join(',') : null,
-      'accelerateStatus[]': this.filterData.accelerateStatus.length ? this.filterData.accelerateStatus.join(',') : null,
+      realization: this.filterData.realization,
+      // accelerateStatus: this.filterData.accelerateStatus,
       sql: this.filterData.sql
     }
     const res = await this.getHistoryList(resData)

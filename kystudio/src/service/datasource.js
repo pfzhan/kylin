@@ -77,10 +77,10 @@ export default {
     return Vue.resource(apiUrl + 'projects/query_accelerate_threshold').update(para)
   },
   getHistoryList: (para) => {
-    return Vue.resource(apiUrl + 'query/history_queries').get(para)
+    return Vue.resource(apiUrl + 'query/history_queries{?realization}').get(para)
   },
   getFavoriteList: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries').get(para)
+    return Vue.resource(apiUrl + 'query/favorite_queries{?status}').get(para)
   },
   loadWhiteList: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/whitelist').get(para)
