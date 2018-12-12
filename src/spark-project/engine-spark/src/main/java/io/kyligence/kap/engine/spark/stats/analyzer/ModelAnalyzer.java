@@ -31,7 +31,7 @@ import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.engine.spark.builder.NDataflowBuildJob;
+import io.kyligence.kap.engine.spark.job.DFBuildJob;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -167,7 +167,7 @@ public class ModelAnalyzer implements Serializable {
     }
 
     private TableAnalyzerResult analysisTable(final Dataset<Row> tableDS, final TableDesc tableDesc) {
-        final int partition = NDataflowBuildJob.estimatePartitions(tableDS, config);
+        final int partition = DFBuildJob.estimatePartitions(tableDS, config);
         logger.info("Analysing table {}, repartition with size {}", tableDesc.getName(), partition);
         return tableDS.toJavaRDD().repartition(partition).mapPartitionsWithIndex((index, rowIterator) -> {
             final TableAnalyzer tableAnalyzer = new TableAnalyzer(tableDesc);

@@ -23,23 +23,7 @@
  */
 package io.kyligence.kap.engine.spark.job;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.commons.cli.Options;
-import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.storage.StorageFactory;
-import org.apache.spark.sql.Column;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.collect.Maps;
-
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
@@ -49,8 +33,21 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.builder.DFLayoutMergeAssist;
-import io.kyligence.kap.engine.spark.builder.NDataflowBuildJob;
 import io.kyligence.kap.engine.spark.builder.NDataflowJob;
+import org.apache.commons.cli.Options;
+import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.storage.StorageFactory;
+import org.apache.spark.sql.Column;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class DFMergeJob extends NDataflowJob {
     protected static final Logger logger = LoggerFactory.getLogger(DFMergeJob.class);
@@ -141,7 +138,7 @@ public class DFMergeJob extends NDataflowJob {
                 Dataset<Row> afterAgg = CuboidAggregator.agg(ss, afterMerge, layout.getOrderedDimensions().keySet(),
                         layout.getOrderedMeasures(), mergedSeg);
                 long count = afterAgg.count();
-                int partition = NDataflowBuildJob.estimatePartitions(afterAgg, config);
+                int partition = DFBuildJob.estimatePartitions(afterAgg, config);
                 Dataset<Row> afterRepartition = DFBuildJob.repartitionDataSet(afterAgg, partition,
                         layout.getShardByColumns());
                 Dataset<Row> afterSort = afterRepartition.sortWithinPartitions(dimsCols);
@@ -151,7 +148,7 @@ public class DFMergeJob extends NDataflowJob {
     }
 
     private void saveAndUpdateCuboid(Dataset<Row> dataset, long cuboidRowCnt, NDataSegment seg, NCuboidLayout layout,
-            DFLayoutMergeAssist assist) throws IOException {
+                                     DFLayoutMergeAssist assist) throws IOException {
         long layoutId = layout.getId();
         long sourceSizeByte = 0L;
         long sourceCount = 0L;
@@ -169,7 +166,7 @@ public class DFMergeJob extends NDataflowJob {
 
         StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
                 .saveCuboidData(dataCuboid, dataset, ss);
-        NDataflowBuildJob.fillCuboid(dataCuboid);
+        DFBuildJob.fillCuboid(dataCuboid);
 
         NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
         update.setToAddOrUpdateCuboids(dataCuboid);

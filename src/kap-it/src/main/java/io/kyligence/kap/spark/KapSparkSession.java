@@ -23,17 +23,20 @@
  */
 package io.kyligence.kap.spark;
 
-import java.io.File;
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.util.List;
-import java.util.Properties;
-import java.util.stream.Collectors;
-
+import com.google.common.base.Preconditions;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.DBUtils;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -52,17 +55,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Sets;
 
-import com.google.common.base.Preconditions;
-
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import lombok.val;
+import java.io.File;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.List;
+import java.util.Properties;
+import java.util.stream.Collectors;
 
 @SuppressWarnings("serial")
 public class KapSparkSession extends SparkSession {
@@ -176,8 +177,19 @@ public class KapSparkSession extends SparkSession {
 
     public Dataset<Row> queryCube(String sql) throws Exception {
         SparderEnv.skipCompute();
-        Connection connection = QueryConnection.getConnection(project);
-        connection.createStatement().execute(sql);
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        try {
+            conn = QueryConnection.getConnection(project);
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(sql);
+        } finally {
+            DBUtils.closeQuietly(rs);
+            DBUtils.closeQuietly(stmt);
+            DBUtils.closeQuietly(conn);
+        }
+
         SparderEnv.cleanCompute();
         return SparderEnv.getDF();
     }

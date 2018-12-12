@@ -22,12 +22,15 @@
 
 package io.kyligence.kap.engine.spark.job
 
-import com.google.common.base.Preconditions
-import com.google.common.collect.Maps
+import java.util
+
+import com.google.common.base.{Preconditions, Predicate}
+import com.google.common.collect.{Collections2, Maps}
 import io.kyligence.kap.cube.cuboid.{NCuboidLayoutChooser, NSpanningTree}
 import io.kyligence.kap.cube.model._
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder._
+import javax.annotation.Nullable
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.storage.StorageFactory
 import org.apache.spark.internal.Logging
@@ -39,7 +42,7 @@ class DFChooser(toBuildTree: NSpanningTree,
                 var seg: NDataSegment,
                 ss: SparkSession,
                 config: KylinConfig)
-    extends Logging {
+  extends Logging {
   var reuseSources: java.util.Map[java.lang.Long, NBuildSourceInfo] =
     Maps.newHashMap[java.lang.Long, NBuildSourceInfo]()
   var flatTableSource: NBuildSourceInfo = _
@@ -53,8 +56,8 @@ class DFChooser(toBuildTree: NSpanningTree,
       .foreach { desc =>
         val layout = NCuboidLayoutChooser
           .selectLayoutForBuild(seg,
-                                desc.getEffectiveDimCols.keySet,
-                                toBuildTree.retrieveAllMeasures(desc))
+            desc.getEffectiveDimCols.keySet,
+            toBuildTree.retrieveAllMeasures(desc))
         if (layout != null) {
           if (map.contains(layout.getId)) {
             map.apply(layout.getId).addCuboid(desc)
@@ -82,7 +85,7 @@ class DFChooser(toBuildTree: NSpanningTree,
     Preconditions.checkState(dataCuboid != null)
     val layoutDs = StorageFactory
       .createEngineAdapter(layout,
-                           classOf[NSparkCubingEngine.NSparkCubingStorage])
+        classOf[NSparkCubingEngine.NSparkCubingStorage])
       .getCuboidData(dataCuboid, ss)
     layoutDs.persist
     buildSource.setDataset(layoutDs)
@@ -142,6 +145,8 @@ class DFChooser(toBuildTree: NSpanningTree,
       "No suitable ready layouts could be reused, generate dataset from flat table.")
     sourceInfo
   }
+
+
 }
 
 object DFChooser {
@@ -150,8 +155,23 @@ object DFChooser {
             ss: SparkSession,
             config: KylinConfig): DFChooser =
     new DFChooser(toBuildTree: NSpanningTree,
-                  seg: NDataSegment,
-                  ss: SparkSession,
-                  config: KylinConfig)
+      seg: NDataSegment,
+      ss: SparkSession,
+      config: KylinConfig)
 
+  def getDataSourceByCuboid(sources: util.List[NBuildSourceInfo], cuboid: NCuboidDesc, seg: NDataSegment): NBuildSourceInfo = {
+    val filterSources: util.List[NBuildSourceInfo] = new util.ArrayList[NBuildSourceInfo]
+    filterSources.addAll(Collections2.filter(sources, new Predicate[NBuildSourceInfo]() {
+      override def apply(@Nullable input: NBuildSourceInfo): Boolean = {
+        for (ncd <- input.getToBuildCuboids.asScala) {
+          if ((ncd == cuboid) && (input.getSegment == seg)) {
+            return true
+          }
+        }
+        false
+      }
+    }))
+    Preconditions.checkState(filterSources.size == 1)
+    filterSources.asScala.head
+  }
 }

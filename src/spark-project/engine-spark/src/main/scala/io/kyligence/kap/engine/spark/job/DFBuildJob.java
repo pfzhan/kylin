@@ -24,33 +24,8 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
-
-import org.apache.commons.cli.Options;
-import org.apache.hadoop.fs.ContentSummary;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.util.StringUtils;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.OptionsHelper;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.storage.StorageFactory;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
-
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.cube.model.NCubePlan;
@@ -63,9 +38,30 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
 import io.kyligence.kap.engine.spark.builder.NDataflowJob;
-import io.kyligence.kap.engine.spark.builder.NDatasetChooser;
 import io.kyligence.kap.engine.spark.builder.NSizeEstimator;
 import io.kyligence.kap.metadata.model.NDataModel;
+import org.apache.commons.cli.Options;
+import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.util.StringUtils;
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.storage.StorageFactory;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class DFBuildJob extends NDataflowJob {
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
@@ -137,7 +133,7 @@ public class DFBuildJob extends NDataflowJob {
     }
 
     private void recursiveBuildCuboid(NDataSegment seg, NCuboidDesc cuboid, Dataset<Row> parent,
-            Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
+                                      Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
         if (cuboid.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
             Preconditions.checkArgument(cuboid.getMeasures().size() == 0);
             Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
@@ -182,7 +178,7 @@ public class DFBuildJob extends NDataflowJob {
         long layoutId = layout.getId();
         NCuboidDesc root = nSpanningTree.getRootCuboidDesc(layout.getCuboidDesc());
 
-        NBuildSourceInfo sourceInfo = NDatasetChooser.getDataSourceByCuboid(sources, root, seg);
+        NBuildSourceInfo sourceInfo = DFChooser.getDataSourceByCuboid(sources, root, seg);
         long sourceByteSize = sourceInfo.getByteSize();
         long sourceCount = sourceInfo.getCount();
 
