@@ -71,7 +71,7 @@ public class HDFSMetadataStore extends MetadataStore {
                 createMetaFolder(rootPath);
             }
 
-            log.info("hdfs root path : {}", rootPath.toString());
+            log.info("The FileSystem location is {}, hdfs root path : {}", fs.getUri().toString(), rootPath.toString());
         } catch (IOException e) {
             throw Throwables.propagate(e);
         }
@@ -98,7 +98,7 @@ public class HDFSMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected NavigableSet<String> list(String resPath) {
+    public NavigableSet<String> list(String resPath) {
         try {
             Path p = getRealHDFSPath(namespace + resPath);
             if (!fs.exists(p) || !fs.isDirectory(p)) {
@@ -114,7 +114,7 @@ public class HDFSMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected RawResource load(String resPath) throws IOException {
+    public RawResource load(String resPath) throws IOException {
         Path p = getRealHDFSPath(namespace + resPath);
         if (fs.exists(p) && fs.isFile(p)) {
             if (fs.getFileStatus(p).getLen() == 0) {

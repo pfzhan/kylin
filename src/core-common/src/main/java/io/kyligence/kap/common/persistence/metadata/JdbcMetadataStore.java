@@ -118,14 +118,14 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected NavigableSet<String> list(String rootPath) {
+    public NavigableSet<String> list(String rootPath) {
         val allPaths = withTransaction(
                 () -> jdbcTemplate.queryForList(String.format(SELECT_ALL_KEY_SQL, table), String.class));
         return Sets.newTreeSet(allPaths);
     }
 
     @Override
-    protected RawResource load(String path) throws IOException {
+    public RawResource load(String path) throws IOException {
         return withTransaction(() -> jdbcTemplate.queryForObject(String.format(SELECT_BY_KEY_SQL, table, path),
                 RAW_RESOURCE_ROW_MAPPER));
     }

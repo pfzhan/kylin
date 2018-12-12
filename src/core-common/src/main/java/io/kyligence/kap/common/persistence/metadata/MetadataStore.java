@@ -26,6 +26,7 @@ package io.kyligence.kap.common.persistence.metadata;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
@@ -38,6 +39,7 @@ import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.JsonUtil;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
@@ -49,7 +51,9 @@ import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import lombok.Data;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public abstract class MetadataStore {
 
     static final Set<String> IMMUTABLE_PREFIX = Sets.newHashSet("/UUID");
@@ -67,9 +71,9 @@ public abstract class MetadataStore {
 
     protected abstract void save(String path, ByteSource bs, long ts, long mvcc) throws Exception;
 
-    protected abstract NavigableSet<String> list(String rootPath);
+    public abstract NavigableSet<String> list(String rootPath);
 
-    protected abstract RawResource load(String path) throws IOException;
+    public abstract RawResource load(String path) throws IOException;
 
     public void batchUpdate(UnitMessages unitMessages) throws Exception {
         for (Event event : unitMessages.getMessages()) {
@@ -107,7 +111,16 @@ public abstract class MetadataStore {
     }
 
     public void dump(ResourceStore store) throws Exception {
-        for (String resPath : store.listResourcesRecursively("/")) {
+        dump(store, "/");
+    }
+
+    public void dump(ResourceStore store, String projectPath) throws Exception {
+        val resources = store.listResourcesRecursively(projectPath);
+        if (resources == null || resources.isEmpty()) {
+            log.info("there is no resources in projectPath ({}),please check the projectPath.", projectPath);
+            return;
+        }
+        for (String resPath : resources) {
             val raw = store.getResource(resPath);
             putResource(raw);
         }
@@ -165,5 +178,87 @@ public abstract class MetadataStore {
     @Data
     public static class MvccWrapper {
         private long mvcc = 0;
+    }
+
+    public VerifyResult verify() {
+        VerifyResult verifyResult = new VerifyResult();
+
+        // The valid metadata image contains at least the following conditions：
+        //     1.may have one UUID file or user_group file
+        //     2.all subdir as a project and must have only one project.json file execept one dir called user
+        val allFiles = list(File.separator);
+        for (val file : allFiles) {
+            //check uuid file
+            if (file.equals(ResourceStore.METASTORE_UUID_TAG)) {
+                verifyResult.existUUIDFile = true;
+                continue;
+            }
+
+            //check user_group file
+            if (file.equals(ResourceStore.USER_GROUP_ROOT)) {
+                verifyResult.existUserGroupFile = true;
+                continue;
+            }
+
+            //check user dir
+            if (file.startsWith(ResourceStore.USER_ROOT)) {
+                verifyResult.existUserDir = true;
+                continue;
+            }
+
+            //check illegal file which locates in metadata dir
+            if (File.separator.equals(Paths.get(file).toFile().getParent())) {
+                verifyResult.illegalFiles.add(file);
+                continue;
+            }
+
+            //check project dir
+            val project = Paths.get(file).getName(0).toString();
+            if (!allFiles.contains(Paths.get(File.separator + project, "project.json").toString())) {
+                verifyResult.illegalProjects.add(project);
+                verifyResult.illegalFiles.add(file);
+            }
+        }
+
+        return verifyResult;
+
+    }
+
+    public class VerifyResult {
+        @VisibleForTesting
+        boolean existUUIDFile = false;
+        boolean existUserDir = false;
+        boolean existUserGroupFile = false;
+        Set<String> illegalProjects = Sets.newHashSet();
+        Set<String> illegalFiles = Sets.newHashSet();
+
+        public boolean isQualified() {
+            return illegalProjects.isEmpty() && illegalFiles.isEmpty();
+        }
+
+        public String getResultMessage() {
+            StringBuilder resultMessage = new StringBuilder();
+
+            resultMessage.append("the uuid file exists : " + existUUIDFile + "\n");
+            resultMessage.append("the user_group file exists : " + existUserGroupFile + "\n");
+            resultMessage.append("the user dir exist : " + existUserDir + "\n");
+
+            if (!illegalProjects.isEmpty()) {
+                resultMessage.append("illegal projects : \n");
+                for (String illegalProject : illegalProjects) {
+                    resultMessage.append("\t" + illegalProject + "\n");
+                }
+            }
+
+            if (!illegalFiles.isEmpty()) {
+                resultMessage.append("illegal files : \n");
+                for (String illegalFile : illegalFiles) {
+                    resultMessage.append("\t" + illegalFile + "\n");
+                }
+            }
+
+            return resultMessage.toString();
+        }
+
     }
 }

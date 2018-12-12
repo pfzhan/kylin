@@ -70,10 +70,14 @@ public class FileMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected NavigableSet<String> list(String subPath) {
-        val scanFolder = new File(root, namespace + subPath);
-        val files = FileUtils.listFiles(scanFolder, null, true);
+    public NavigableSet<String> list(String subPath) {
         TreeSet<String> result = Sets.newTreeSet();
+        val scanFolder = new File(root, namespace + subPath);
+        if (!scanFolder.exists()) {
+            return result;
+        }
+
+        val files = FileUtils.listFiles(scanFolder, null, true);
         for (File file : files) {
             result.add(file.getPath().replace(scanFolder.getPath(), ""));
         }
@@ -81,7 +85,7 @@ public class FileMetadataStore extends MetadataStore {
     }
 
     @Override
-    protected RawResource load(String path) throws IOException {
+    public RawResource load(String path) throws IOException {
         val f = new File(root, namespace + path);
         val resPath = f.getPath().replace(root.getPath() + path, "");
         val bs = ByteStreams.asByteSource(IOUtils.toByteArray(new FileInputStream(f)));

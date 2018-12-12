@@ -26,7 +26,6 @@ package io.kyligence.kap.common.persistence.event;
 public abstract class ResourceRelatedEvent extends Event {
 
     public abstract String getResPath();
-
     @Override
     public String toString() {
         return this.getClass().getName() + "@" + getResPath();
