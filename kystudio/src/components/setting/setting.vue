@@ -99,5 +99,14 @@ export default class Setting extends Vue {
   .option-title {
     color: @text-title-color;
   }
+  .clearfix {
+    .setting-label {
+      float: left;
+      display: block;
+    }
+    .setting-value {
+      display: block;
+    }
+  }
 }
 </style>

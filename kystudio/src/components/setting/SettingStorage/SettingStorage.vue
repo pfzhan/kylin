@@ -1,6 +1,6 @@
 <template>
   <div class="setting-storage">
-    <div class="project-setting project-switch">
+    <div class="project-setting">
       <div class="setting-item clearfix">
         <span class="setting-label font-medium">{{$t('segmentMerge')}}</span>
         <span class="setting-value">

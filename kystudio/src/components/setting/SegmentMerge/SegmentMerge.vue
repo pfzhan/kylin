@@ -36,7 +36,7 @@
           </el-button>
           <el-button
             text
-            type="primary"
+            type="info"
             :disabled="value.autoMergeConfigs.length <= 1"
             @click="handleRemoveConfig('autoMergeConfigs', index)">
             <i class="el-icon-ksd-symbol_type"></i>
@@ -56,7 +56,7 @@
           <i class="el-icon-ksd-what"></i>
         </el-tooltip>
       </el-row>
-      <el-row gutter="5">
+      <el-row :gutter="5">
         <el-col :span="8">
           <el-form-item prop="volatileConfig.value">
             <el-input

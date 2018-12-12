@@ -16,11 +16,11 @@
     </el-popover>
 
     <div class="project-setting project-basic">
-      <div class="setting-item clearfix">
+      <div class="setting-item">
         <span class="setting-label font-medium">{{$t('projectName')}}</span>
         <span class="setting-value">{{projectInfo.name}}</span>
       </div>
-      <div class="setting-item clearfix">
+      <div class="setting-item">
         <span class="setting-label font-medium">{{$t('projectType')}}</span>
         <span class="setting-value">
           <i :class="projectInfo.icon"></i>
@@ -37,7 +37,7 @@
     </div>
 
     <div class="project-setting project-switch">
-      <div class="setting-item clearfix">
+      <div class="setting-item">
         <span class="setting-label font-medium">{{$t('fileBased')}}</span>
         <span class="setting-value">
           <el-switch
@@ -49,7 +49,7 @@
       </div>
       <div class="setting-desc">{{$t('fileBasedDesc')}}</div>
       <div class="hr"></div>
-      <div class="setting-item clearfix">
+      <div class="setting-item">
         <span class="setting-label font-medium">{{$t('sourceSampling')}}</span>
         <span class="setting-value">
           <el-switch
@@ -63,7 +63,7 @@
     </div>
 
     <div class="project-setting project-switch">
-      <div class="setting-item clearfix">
+      <div class="setting-item">
         <span class="setting-label font-medium">{{$t('pushdownEngin')}}</span>
         <span class="setting-value">
           <el-switch
@@ -74,7 +74,7 @@
         </span>
       </div>
       <div class="hr"></div>
-      <div class="setting-item clearfix">
+      <div class="setting-item">
         <span class="setting-label font-medium">{{$t('pushdownRange')}}</span>
         <span class="setting-value">
           <el-switch
@@ -180,6 +180,9 @@ export default class SettingBasic extends Vue {
   }
   .project-switch .setting-label {
     width: 123px;
+  }
+  .clearfix .setting-value {
+    margin-left: 103px;
   }
 }
 
