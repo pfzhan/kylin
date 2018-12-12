@@ -97,10 +97,12 @@ public class FavoriteQueryControllerTest {
 
     @Test
     public void testListAllFavorite() throws Exception {
-        Mockito.when(favoriteQueryService.getFavoriteQueries(PROJECT)).thenReturn(mockedFavoriteQueries());
+        Mockito.when(favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "last_query_time", false, null)).thenReturn(mockedFavoriteQueries());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/query/favorite_queries")
                 .contentType(MediaType.APPLICATION_JSON)
                 .param("project", PROJECT)
+                .param("sortBy", "last_query_time")
+                .param("reverse", "false")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk())
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.size").value(3))
@@ -109,7 +111,7 @@ public class FavoriteQueryControllerTest {
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries[1].sql_pattern").value("sql2"))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data.favorite_queries[2].sql_pattern").value("sql3"));
 
-        Mockito.verify(favoriteQueryController, Mockito.only()).listFavoriteQuery(PROJECT, 0, 10);
+        Mockito.verify(favoriteQueryController, Mockito.only()).listFavoriteQuery(PROJECT, "last_query_time", false, null, 0, 10);
     }
 
     @Test

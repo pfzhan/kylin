@@ -30,6 +30,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Comparator;
 import java.util.List;
 
 public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
@@ -74,12 +75,17 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(favoriteQueryManager.contains("sql6"));
         Assert.assertFalse(favoriteQueryManager.contains("sql7"));
 
+        // case of map size is zero
+        favoriteQueryManager.clearFavoriteQueryMap();
+        Assert.assertNull(favoriteQueryManager.getFavoriteQueryMap());
+        Assert.assertTrue(favoriteQueryManager.contains("sql1"));
+
         // get not exist favorite query
         Assert.assertNull(favoriteQueryManager.get("not_exist_sql_pattern"));
 
-        // desc sort by last query time
         List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
 
+        favoriteQueries.sort(Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed());
         Assert.assertEquals(6, favoriteQueries.size());
         Assert.assertEquals("sql6", favoriteQueries.get(0).getSqlPattern());
         Assert.assertEquals(200, favoriteQueries.get(0).getAverageDuration(), 0.1);

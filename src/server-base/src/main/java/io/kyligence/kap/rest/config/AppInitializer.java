@@ -23,8 +23,12 @@
  */
 package io.kyligence.kap.rest.config;
 
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.RawResource;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
@@ -46,6 +50,11 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -75,6 +84,7 @@ public class AppInitializer {
     }
 
     static void initProject(KylinConfig config, String project, boolean needTransaction) {
+        EventListenerRegistry.getInstance(config).register(new FavoriteQueryUpdateListener(), project);
         val leaderInitiator = LeaderInitiator.getInstance(config);
         if (!leaderInitiator.isLeader()) {
             return;
@@ -122,6 +132,56 @@ public class AppInitializer {
         @Override
         public void onDelete(KylinConfig config, String resPath) {
             /// just implement it
+        }
+    }
+
+    static class FavoriteQueryUpdateListener implements EventListenerRegistry.ResourceEventListener {
+        @Override
+        public void onUpdate(KylinConfig config, RawResource rawResource) {
+            val term = rawResource.getResPath().split("\\/");
+            if (!isFavoriteQueryPath(term))
+                return;
+
+            // deserialize
+            FavoriteQuery favoriteQuery = deserialize(rawResource);
+            if (favoriteQuery == null)
+                return;
+
+            // update favorite query map
+            val project = term[1];
+            FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(config, project);
+            Map<String, FavoriteQuery> favoriteQueryMap = favoriteQueryManager.getFavoriteQueryMap();
+            favoriteQueryMap.put(favoriteQuery.getSqlPattern(), favoriteQuery);
+        }
+
+        @Override
+        public void onDelete(KylinConfig config, String resPath) {
+            val term = resPath.split("\\/");
+            if (!isFavoriteQueryPath(term))
+                return;
+
+            val project = term[1];
+            FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(config, project);
+            favoriteQueryManager.clearFavoriteQueryMap();
+        }
+
+        private boolean isFavoriteQueryPath(String[] term) {
+            if (term.length < 3 || !term[2].equals(ResourceStore.FAVORITE_QUERY_RESOURCE_ROOT.substring(1))) {
+                return false;
+            }
+
+            return true;
+        }
+
+        private FavoriteQuery deserialize(RawResource rawResource) {
+            FavoriteQuery favoriteQuery = null;
+            try (InputStream is = rawResource.getByteSource().openStream(); DataInputStream din = new DataInputStream(is)) {
+                favoriteQuery = new JsonSerializer<>(FavoriteQuery.class).deserialize(din);
+            } catch (IOException e) {
+                log.warn("error when deserializing resource: {}", rawResource.getResPath());
+            }
+
+            return favoriteQuery;
         }
     }
 

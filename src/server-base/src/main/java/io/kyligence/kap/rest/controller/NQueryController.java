@@ -165,8 +165,8 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "latencyFrom", required = false, defaultValue = "0") long latencyFrom,
             @RequestParam(value = "latencyTo", required = false, defaultValue = Integer.MAX_VALUE + "") long latencyTo,
             @RequestParam(value = "sql", required = false) String sql,
-            @RequestParam(value = "realization[]", required = false) List<String> realizations,
-            @RequestParam(value = "accelerateStatus[]", required = false) List<String> accelerateStatuses,
+            @RequestParam(value = "realization", required = false) List<String> realizations,
+            @RequestParam(value = "accelerateStatus", required = false) List<String> accelerateStatuses,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom, latencyTo, sql, realizations, accelerateStatuses);

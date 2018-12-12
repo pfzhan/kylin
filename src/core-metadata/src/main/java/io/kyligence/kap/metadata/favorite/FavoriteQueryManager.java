@@ -30,24 +30,19 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 public class FavoriteQueryManager implements IKeepNames {
 
-    private static final Logger logger = LoggerFactory.getLogger(FavoriteQueryManager.class);
-
     private final String project;
     private final KylinConfig kylinConfig;
 
     private CachedCrudAssist<FavoriteQuery> crud;
 
-    private Map<String, FavoriteQuery> favoriteQueryMap = Maps.newConcurrentMap();
+    private Map<String, FavoriteQuery> favoriteQueryMap;
 
     public static FavoriteQueryManager getInstance(KylinConfig kylinConfig, String project) {
         return kylinConfig.getManager(project, FavoriteQueryManager.class);
@@ -75,26 +70,26 @@ public class FavoriteQueryManager implements IKeepNames {
         };
 
         crud.reloadAll();
-        initializeSqlPatternMap();
+        reloadSqlPatternMap();
     }
 
-    private void initializeSqlPatternMap() {
+    private void reloadSqlPatternMap() {
+        favoriteQueryMap = Maps.newConcurrentMap();
         List<FavoriteQuery> favoriteQueries = crud.listAll();
         for (FavoriteQuery favoriteQuery : favoriteQueries) {
             favoriteQueryMap.put(favoriteQuery.getSqlPattern(), favoriteQuery);
         }
-
-        logger.info("Initialized {} favorite queries", favoriteQueryMap.size());
     }
 
     public boolean contains(String sqlPattern) {
+        if (favoriteQueryMap == null)
+            reloadSqlPatternMap();
         return favoriteQueryMap.containsKey(sqlPattern);
     }
 
     public void create(final List<FavoriteQuery> favoriteQueries) {
         favoriteQueries.forEach(favoriteQuery -> {
-            crud.save(favoriteQuery);
-            favoriteQueryMap.put(favoriteQuery.getSqlPattern(), favoriteQuery);
+            favoriteQueryMap.put(favoriteQuery.getSqlPattern(), crud.save(favoriteQuery));
         });
     }
 
@@ -113,8 +108,7 @@ public class FavoriteQueryManager implements IKeepNames {
                 return;
             FavoriteQuery copyForWrite = crud.copyForWrite(cached);
             copyForWrite.update(favoriteQuery);
-            crud.save(copyForWrite);
-            favoriteQueryMap.put(copyForWrite.getSqlPattern(), copyForWrite);
+            favoriteQueryMap.put(copyForWrite.getSqlPattern(), crud.save(copyForWrite));
         });
     }
 
@@ -125,8 +119,7 @@ public class FavoriteQueryManager implements IKeepNames {
         FavoriteQuery copyForWrite = crud.copyForWrite(cached);
         copyForWrite.setRealizations(realizations);
 
-        crud.save(copyForWrite);
-        favoriteQueryMap.put(sqlPattern, copyForWrite);
+        favoriteQueryMap.put(sqlPattern, crud.save(copyForWrite));
         return copyForWrite;
     }
 
@@ -137,8 +130,7 @@ public class FavoriteQueryManager implements IKeepNames {
         FavoriteQuery copyForWrite = crud.copyForWrite(cached);
 
         copyForWrite.setRealizations(Lists.newArrayList());
-        crud.save(copyForWrite);
-        favoriteQueryMap.put(sqlPattern, copyForWrite);
+        favoriteQueryMap.put(sqlPattern, crud.save(copyForWrite));
     }
 
     public void updateStatus(String sqlPattern, FavoriteQueryStatusEnum status, String comment) {
@@ -147,15 +139,15 @@ public class FavoriteQueryManager implements IKeepNames {
             return;
         FavoriteQuery copyForWrite = crud.copyForWrite(cached);
         copyForWrite.updateStatus(status, comment);
-        crud.save(copyForWrite);
-        favoriteQueryMap.put(sqlPattern, copyForWrite);
+        favoriteQueryMap.put(sqlPattern, crud.save(copyForWrite));
+    }
+
+    public Map<String, FavoriteQuery> getFavoriteQueryMap() {
+        return favoriteQueryMap;
     }
 
     public List<FavoriteQuery> getAll() {
-        List<FavoriteQuery> allFqs = crud.listAll();
-        // sort by last query time
-        allFqs.sort(Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed());
-        return allFqs;
+        return crud.listAll();
     }
 
     public List<String> getUnAcceleratedSqlPattern() {
@@ -166,7 +158,14 @@ public class FavoriteQueryManager implements IKeepNames {
     }
 
     public FavoriteQuery get(String sqlPattern) {
+        if (favoriteQueryMap == null)
+            reloadSqlPatternMap();
         return favoriteQueryMap.get(sqlPattern);
+    }
+
+    // when delete favorite query
+    public void clearFavoriteQueryMap() {
+        favoriteQueryMap = null;
     }
 
     public List<FavoriteQueryRealization> getRealizationsByConditions(String modelId, String cubePlanName,

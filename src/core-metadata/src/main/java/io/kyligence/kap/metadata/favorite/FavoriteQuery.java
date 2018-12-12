@@ -45,7 +45,7 @@ public class FavoriteQuery extends RootPersistentEntity {
     private String sqlPattern;
     @JsonProperty("last_query_time")
     private long lastQueryTime;
-    @JsonProperty("totalCount")
+    @JsonProperty("total_count")
     private int totalCount;
     @JsonProperty("status")
     private FavoriteQueryStatusEnum status;

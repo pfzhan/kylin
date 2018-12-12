@@ -26,11 +26,13 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.UUID;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -76,6 +78,11 @@ public class FavoriteQueryService extends BasicService {
 
     private Map<String, Integer> ignoreCountMap = Maps.newConcurrentMap();
 
+    private static final String LAST_QUERY_TIME = "last_query_time";
+    private static final String SUCCESS_RATE = "success_rate";
+    private static final String TOTAL_COUNT = "total_count";
+    private static final String AVERAGE_DURATION = "average_duration";
+
     @Autowired
     @Qualifier("favoriteRuleService")
     FavoriteRuleService favoriteRuleService;
@@ -105,7 +112,7 @@ public class FavoriteQueryService extends BasicService {
             handleAccelerate(project, sqlsToAccelerate, user);
     }
 
-    public void manualFavorite(String project, FavoriteRequest request) throws IOException {
+    public void manualFavorite(FavoriteRequest request) throws IOException {
         Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
         if (QueryHistory.QUERY_HISTORY_FAILED.equals(request.getQueryStatus()))
             return;
@@ -135,9 +142,48 @@ public class FavoriteQueryService extends BasicService {
         }).start();
     }
 
-    public List<FavoriteQuery> getFavoriteQueries(String project) {
-        Preconditions.checkArgument(project != null && !StringUtils.isEmpty(project));
-        return getFavoriteQueryManager(project).getAll();
+    public List<FavoriteQuery> filterAndSortFavoriteQueries(String project, String sortBy, boolean reverse, List<String> status) {
+        List<FavoriteQuery> favoriteQueries = getFavoriteQueryManager(project).getAll();
+        if (CollectionUtils.isNotEmpty(status)) {
+            favoriteQueries = favoriteQueries.stream()
+                    .filter(favoriteQuery -> status.contains(favoriteQuery.getStatus().toString()))
+                    .collect(Collectors.toList());
+        }
+
+        return sort(sortBy, reverse, favoriteQueries);
+    }
+
+    private List<FavoriteQuery> sort(String sortBy, boolean reverse, List<FavoriteQuery> favoriteQueries) {
+        if (sortBy == null) {
+            favoriteQueries.sort(Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed());
+            return favoriteQueries;
+        }
+
+        Comparator comparator;
+        switch (sortBy) {
+            case LAST_QUERY_TIME:
+                comparator = Comparator.comparingLong(FavoriteQuery::getLastQueryTime);
+                break;
+            case SUCCESS_RATE:
+                comparator = Comparator.comparing(FavoriteQuery::getSuccessRate);
+                break;
+            case TOTAL_COUNT:
+                comparator = Comparator.comparingInt(FavoriteQuery::getTotalCount);
+                break;
+            case AVERAGE_DURATION:
+                comparator = Comparator.comparing(FavoriteQuery::getAverageDuration);
+                break;
+            default:
+                comparator = Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed();
+                favoriteQueries.sort(comparator);
+                return favoriteQueries;
+        }
+
+        if (reverse)
+            comparator = comparator.reversed();
+
+        favoriteQueries.sort(comparator);
+        return favoriteQueries;
     }
 
     private int getOptimizedModelNum(String project, String[] sqls) {
@@ -289,7 +335,7 @@ public class FavoriteQueryService extends BasicService {
                     return;
                 }
                 Map<String, AccelerateInfo> blockedSqlInfo = getBlockedSqlInfo(master.getContext());
-                EventManager eventManager = EventManager.getInstance(kylinConfig, project);
+                EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 for (NSmartContext.NModelContext modelContext : smartContext.getModelContexts()) {
 
                     List<String> sqls = getRelatedSqlsFromModelContext(modelContext, blockedSqlInfo);
@@ -325,7 +371,7 @@ public class FavoriteQueryService extends BasicService {
                 }
 
                 if (blockedSqlInfo.size() > 0) {
-                    updateBlockedSqlStatus(blockedSqlInfo, kylinConfig, project);
+                    updateBlockedSqlStatus(blockedSqlInfo, KylinConfig.getInstanceFromEnv(), project);
                 }
             });
         }

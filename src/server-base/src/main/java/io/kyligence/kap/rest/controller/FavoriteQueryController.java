@@ -67,19 +67,22 @@ public class FavoriteQueryController extends NBasicController {
     @RequestMapping(value = "", method = RequestMethod.POST)
     @ResponseBody
     public EnvelopeResponse manualFavorite(@RequestBody FavoriteRequest request) throws IOException {
-        favoriteQueryService.manualFavorite(request.getProject(), request);
+        favoriteQueryService.manualFavorite(request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     @ResponseBody
     public EnvelopeResponse listFavoriteQuery(@RequestParam(value = "project") String project,
+            @RequestParam(value = "sortBy", required = false, defaultValue = "") String sortBy,
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") boolean reverse,
+            @RequestParam(value = "status", required = false) List<String> status,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         HashMap<String, Object> data = Maps.newHashMap();
-        List<FavoriteQuery> allFavoriteQueries = favoriteQueryService.getFavoriteQueries(project);
-        data.put("favorite_queries", PagingUtil.cutPage(allFavoriteQueries, offset, limit));
-        data.put("size", allFavoriteQueries.size());
+        List<FavoriteQuery> filteredAndSortedFQ = favoriteQueryService.filterAndSortFavoriteQueries(project, sortBy, reverse, status);
+        data.put("favorite_queries", PagingUtil.cutPage(filteredAndSortedFQ, offset, limit));
+        data.put("size", filteredAndSortedFQ.size());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 

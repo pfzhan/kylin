@@ -28,25 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.kylin.job.exception.PersistentException;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.request.FavoriteRequest;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mockito;
-import org.springframework.security.authentication.TestingAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import com.google.common.collect.Lists;
-
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
@@ -57,17 +39,37 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import lombok.var;
+import org.apache.kylin.job.exception.PersistentException;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.request.FavoriteRequest;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mockito;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.lang.reflect.Field;
+import java.util.Comparator;
 
 public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
     private static final String PROJECT_NEWTEN = "newten";
 
-    private final String[] sqlsToAnalyze = new String[] { //
+    private final String[] sqls = new String[] { //
             "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where cal_dt = '2012-01-03' group by cal_dt, lstg_format_name", //
             "select cal_dt, lstg_format_name, sum(price) from test_kylin_fact where lstg_format_name = 'ABIN' group by cal_dt, lstg_format_name", //
             "select sum(price) from test_kylin_fact where cal_dt = '2012-01-03'", //
@@ -87,19 +89,19 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
     private void createTestFavoriteQuery() {
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
-        FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql1");
+        FavoriteQuery favoriteQuery1 = new FavoriteQuery(sqls[0]);
         favoriteQuery1.setTotalCount(1);
         favoriteQuery1.setSuccessCount(1);
         favoriteQuery1.setLastQueryTime(10001);
         favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql2");
+        FavoriteQuery favoriteQuery2 = new FavoriteQuery(sqls[1]);
         favoriteQuery2.setTotalCount(1);
         favoriteQuery2.setSuccessCount(1);
         favoriteQuery2.setLastQueryTime(10002);
         favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        FavoriteQuery favoriteQuery3 = new FavoriteQuery("sql3");
+        FavoriteQuery favoriteQuery3 = new FavoriteQuery(sqls[2]);
         favoriteQuery3.setTotalCount(1);
         favoriteQuery3.setSuccessCount(1);
         favoriteQuery3.setLastQueryTime(10003);
@@ -135,7 +137,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetAccelerateTips() throws IOException {
-        stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqlsToAnalyze), PROJECT_NEWTEN);
+        stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqls), PROJECT_NEWTEN);
 
         // case of not reached threshold
         Map<String, Object> newten_data = favoriteQueryService.getAccelerateTips(PROJECT_NEWTEN);
@@ -151,7 +153,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(true, newten_data.get("reach_threshold"));
         Assert.assertEquals(1, newten_data.get("optimized_model_num"));
 
-        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), PROJECT_NEWTEN, sqlsToAnalyze);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), PROJECT_NEWTEN, sqls);
         smartMaster.runAll();
 
         String[] sqlsForAddCuboidTest = new String[] { "select order_id from test_kylin_fact" };
@@ -162,7 +164,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, newten_data.get("size"));
         Assert.assertEquals(1, newten_data.get("optimized_model_num"));
 
-        stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqlsToAnalyze), PROJECT_NEWTEN);
+        stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqls), PROJECT_NEWTEN);
 
         newten_data = favoriteQueryService.getAccelerateTips("newten");
         Assert.assertEquals(4, newten_data.get("size"));
@@ -185,7 +187,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         manualProject.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         projectManager.updateProject(manualProject);
 
-        stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqlsToAnalyze), PROJECT_NEWTEN);
+        stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqls), PROJECT_NEWTEN);
 
         Map<String, Object> manualProjData = favoriteQueryService.getAccelerateTips(PROJECT_NEWTEN);
         Assert.assertEquals(0, manualProjData.get("optimized_model_num"));
@@ -207,7 +209,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         }
 
         // when there is no origin model
-        stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqlsToAnalyze), PROJECT_NEWTEN);
+        stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqls), PROJECT_NEWTEN);
         favoriteQueryService.acceptAccelerate(PROJECT_NEWTEN, 4);
         EventDao eventDaoOfNewtenProj = EventDao.getInstance(getTestConfig(), PROJECT_NEWTEN);
         var events = eventDaoOfNewtenProj.getEvents();
@@ -216,7 +218,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(4, ((AddCuboidEvent) events.get(0)).getSqlPatterns().size());
 
         // when there is origin model
-        stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqlsToAnalyze), PROJECT);
+        stubUnAcceleratedSqlPatterns(Lists.newArrayList(sqls), PROJECT);
         favoriteQueryService.acceptAccelerate(PROJECT, 4);
         EventDao eventDaoOfDefaultProj = EventDao.getInstance(getTestConfig(), PROJECT);
         events = eventDaoOfNewtenProj.getEvents();
@@ -254,50 +256,71 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    @Ignore("no valid sqls")
-    public void testManualFavorite() throws IOException, PersistentException {
+    public void testManualFavorite() throws NoSuchFieldException, IllegalAccessException, IOException {
         createTestFavoriteQuery();
         getTestConfig().setProperty("kylin.server.mode", "query");
         // when sql pattern not exists
-        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>() {
-            {
-                add("sql_pattern_not_exists");
-            }
-        }, PROJECT, "ADMIN");
+        String sqlPattern = "select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME";
+        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add(sqlPattern);}}, PROJECT, "ADMIN");
 
-        List<FavoriteQuery> favoriteQueries = favoriteQueryService.getFavoriteQueries(PROJECT);
-        FavoriteQuery newInsertedRow = favoriteQueries.get(0);
-        Assert.assertEquals("sql_pattern_not_exists", newInsertedRow.getSqlPattern());
-        Assert.assertEquals(FavoriteQuery.CHANNEL_FROM_WHITE_LIST, newInsertedRow.getChannel());
-        // triggered accelerate event, no new layouts no new event
-        EventDao eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
-        Assert.assertEquals(0, eventDao.getEvents().size());
-        //        AccelerateEvent accelerateEvent = (AccelerateEvent) eventDao.getEvents().get(0);
-        //        Assert.assertEquals("sql_pattern_not_exists", accelerateEvent.getSqlPatterns().get(0));
+        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
+        List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
+        favoriteQueries.sort(Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed());
+        FavoriteQuery newCreated = favoriteQueries.get(0);
+        Assert.assertEquals(sqlPattern, newCreated.getSqlPattern());
+        Assert.assertEquals(FavoriteQuery.CHANNEL_FROM_WHITE_LIST, newCreated.getChannel());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, newCreated.getStatus());
 
         // sql pattern exists but not accelerating
-        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>() {
-            {
-                add("sql1");
-            }
-        }, PROJECT, "ADMIN");
-        // triggered another accelerate event
-        // sql_pattern_not_exists, sql1
-        Assert.assertEquals(2, eventDao.getEvents().size());
+        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add(sqls[0]);}}, PROJECT, "ADMIN");
+        favoriteQueries = favoriteQueryManager.getAll();
+        favoriteQueries.sort(Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed());
+        FavoriteQuery favoriteQueryWithSql0 = favoriteQueries.get(favoriteQueries.size() - 1);
+        Assert.assertEquals(favoriteQueries.size(), favoriteQueries.size());
+        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueryWithSql0.getStatus());
 
         // sql pattern exists and is accelerating
         favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>() {
             {
-                add("sql3");
+                add(sqls[2]);
             }
         }, PROJECT, "ADMIN");
-        // assert this sql pattern did not post out
-        Assert.assertEquals(2, eventDao.getEvents().size());
+
+        // if accelerate sql is blocked
+        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
+        ProjectInstance projectInstance = projectManager.getProject(PROJECT);
+        projectInstance = projectManager.copyForWrite(projectInstance);
+        projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        projectManager.updateProject(projectInstance);
+
+        NDataModel dataModel = NDataModelManager.getInstance(getTestConfig(), PROJECT).getDataModelDesc("all_fixed_length");
+
+        for (NDataModel.NamedColumn namedColumn : dataModel.getAllNamedColumns()) {
+            if (namedColumn.getId() == 16) {
+                Class<?> clazz = namedColumn.getClass();
+                Field field = clazz.getDeclaredField("status");
+                field.setAccessible(true);
+                field.set(namedColumn, NDataModel.ColumnStatus.EXIST);
+            }
+        }
+
+        NDataModelManager.getInstance(getTestConfig(), PROJECT).updateDataModelDesc(dataModel.copy());
+
+
+        String blockedSql = "select CAL_DT, LSTG_FORMAT_NAME, max(SLR_SEGMENT_CD) " +
+                "from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME";
+        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add(blockedSql);}}, PROJECT, "ADMIN");
+        Assert.assertEquals(5, favoriteQueryManager.getAll().size());
+        favoriteQueries = favoriteQueryManager.getAll();
+        favoriteQueries.sort(Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed());
+        newCreated = favoriteQueries.get(0);
+        Assert.assertEquals(blockedSql, newCreated.getSqlPattern());
+        Assert.assertEquals(FavoriteQueryStatusEnum.BLOCKED, newCreated.getStatus());
 
         // when query history is failed
         FavoriteRequest request = new FavoriteRequest(PROJECT, "test_sql", "test_sql_pattern", 1000,
                 QueryHistory.QUERY_HISTORY_FAILED);
-        favoriteQueryService.manualFavorite(PROJECT, request);
+        favoriteQueryService.manualFavorite(request);
         Mockito.verify(favoriteQueryService, Mockito.never()).favoriteForWhitelistChannel(Mockito.anySet(),
                 Mockito.anyString());
 
@@ -306,11 +329,66 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         int originSqlSize = whitelist.getConds().size();
         // when query history is succeeded
         request.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
-        favoriteQueryService.manualFavorite(PROJECT, request);
+        favoriteQueryService.manualFavorite(request);
         // saved to whitelist
         whitelist = favoriteRuleManager.getByName(FavoriteRule.WHITELIST_NAME);
         Assert.assertEquals(originSqlSize + 1, whitelist.getConds().size());
 
         getTestConfig().setProperty("kylin.server.mode", "all");
+    }
+
+    @Test
+    public void testFilterFavoriteQuery() {
+        FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql1");
+        favoriteQuery1.setLastQueryTime(1000);
+        favoriteQuery1.setTotalCount(3);
+        favoriteQuery1.setAverageDuration(100);
+        favoriteQuery1.setSuccessRate(0.2f);
+        favoriteQuery1.setStatus(FavoriteQueryStatusEnum.WAITING);
+
+        FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql2");
+        favoriteQuery2.setLastQueryTime(2000);
+        favoriteQuery2.setTotalCount(2);
+        favoriteQuery2.setAverageDuration(200);
+        favoriteQuery2.setSuccessRate(0.1f);
+        favoriteQuery2.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
+
+        FavoriteQuery favoriteQuery3 = new FavoriteQuery("sql3");
+        favoriteQuery3.setLastQueryTime(3000);
+        favoriteQuery3.setTotalCount(1);
+        favoriteQuery3.setAverageDuration(300);
+        favoriteQuery3.setSuccessRate(0.3f);
+        favoriteQuery3.setStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED);
+
+        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
+        favoriteQueryManager.create(Lists.newArrayList(favoriteQuery1, favoriteQuery2, favoriteQuery3));
+
+        // filter status
+        List<FavoriteQuery> filteredFavoriteQueries = favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, null, false,
+                Lists.newArrayList(FavoriteQueryStatusEnum.WAITING.toString(), FavoriteQueryStatusEnum.ACCELERATING.toString()));
+        Assert.assertEquals(2, filteredFavoriteQueries.size());
+        Assert.assertEquals("sql2", filteredFavoriteQueries.get(0).getSqlPattern());
+        Assert.assertEquals("sql1", filteredFavoriteQueries.get(1).getSqlPattern());
+
+        // sort by frequency
+        filteredFavoriteQueries = favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "total_count", true, null);
+        Assert.assertEquals(3, filteredFavoriteQueries.size());
+        Assert.assertEquals("sql1", filteredFavoriteQueries.get(0).getSqlPattern());
+        Assert.assertEquals("sql2", filteredFavoriteQueries.get(1).getSqlPattern());
+        Assert.assertEquals("sql3", filteredFavoriteQueries.get(2).getSqlPattern());
+
+        // sort by success rate
+        filteredFavoriteQueries = favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "success_rate", true, null);
+        Assert.assertEquals(3, filteredFavoriteQueries.size());
+        Assert.assertEquals("sql3", filteredFavoriteQueries.get(0).getSqlPattern());
+        Assert.assertEquals("sql1", filteredFavoriteQueries.get(1).getSqlPattern());
+        Assert.assertEquals("sql2", filteredFavoriteQueries.get(2).getSqlPattern());
+
+        // sort by average duration
+        filteredFavoriteQueries = favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, "average_duration", true, null);
+        Assert.assertEquals(3, filteredFavoriteQueries.size());
+        Assert.assertEquals("sql3", filteredFavoriteQueries.get(0).getSqlPattern());
+        Assert.assertEquals("sql2", filteredFavoriteQueries.get(1).getSqlPattern());
+        Assert.assertEquals("sql1", filteredFavoriteQueries.get(2).getSqlPattern());
     }
 }
