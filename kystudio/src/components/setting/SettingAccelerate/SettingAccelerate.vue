@@ -82,7 +82,7 @@ export default class SettingAccelerate extends Vue {
 <style lang="less">
 @import '../../../assets/styles/variables.less';
   .accelerate-setting {
-    padding: 5px, 0;
+    padding: 5px 0;
     .ksd-switch {
       transform: scale(0.8);
       margin-left: 5px;

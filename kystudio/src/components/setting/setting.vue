@@ -64,7 +64,9 @@ export default class Setting extends Vue {
     margin-left: 10px;
   }
   .project-setting,
-  .accelerate-setting-block {
+  .accelerate-setting-block,
+  .quota-setting,
+  .snapshot-setting {
     background-color: @aceditor-bg-color;
     border: 1px solid @line-border-color;
     padding: 20px;
