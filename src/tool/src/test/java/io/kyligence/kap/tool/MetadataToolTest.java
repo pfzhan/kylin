@@ -162,6 +162,7 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     private void assertBeforeRestoreTest() {
         val dataModelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
 
+
         val dataModel1 = dataModelMgr.getDataModelDescByAlias("nmodel_basic");
         Assertions.assertThat(dataModel1).isNotNull().hasFieldOrPropertyWithValue("owner", "who")
                 .hasFieldOrPropertyWithValue("mvcc", 1L);

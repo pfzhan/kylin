@@ -161,5 +161,4 @@ public class HDFSMetadataStore extends MetadataStore {
             throw Throwables.propagate(e);
         }
     }
-
 }

@@ -122,7 +122,7 @@ public class NDataModelManager {
         return crud.listAll().stream().filter(model -> Objects.equals(model.getAlias(), alias)).findFirst()
                 .orElse(null);
     }
-    
+
     // within a project, find models that use the specified table
     public List<NDataModel> getModelsUsingTable(TableDesc table) {
         List<NDataModel> models = new ArrayList<>();

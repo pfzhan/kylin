@@ -1650,4 +1650,8 @@ abstract public class KylinConfigBase implements Serializable {
         return Boolean.parseBoolean(getOptional("kylin.job.notification-on-job-error", "true"));
     }
 
+    public int getMetadataBackupCountThreshold() {
+        return Integer.parseInt(getOptional("kylin.metadata.backup-count-threshold", "7"));
+    }
+
 }
