@@ -25,6 +25,7 @@ package io.kyligence.kap.common.persistence.transaction;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -57,6 +58,7 @@ import lombok.extern.slf4j.Slf4j;
 public class UnitOfWork {
     public static final String GLOBAL_UNIT = "@global";
 
+    private static ThreadLocal<Boolean> replaying = new ThreadLocal<>();
     private static ThreadLocal<UnitOfWork> threadLocals = new ThreadLocal<>();
     private static Map<String, ReentrantLock> projectLocks = Maps.newConcurrentMap();
     private static ReentrantLock globalLock = new ReentrantLock();
@@ -195,8 +197,10 @@ public class UnitOfWork {
 
         try {
             // replay in leader before release lock
+            replaying.set(true);
             val replayer = EventSynchronization.getInstance(originConfig);
             eventList.forEach(e -> replayer.replay(e, true));
+            replaying.remove();
         } catch (Exception e) {
             // in theory, this should not happen
             log.error("Unexpected error happened! Aborting right now.", e);
@@ -226,6 +230,11 @@ public class UnitOfWork {
         val uuid = UUID.randomUUID().toString();
         events.add(0, new StartUnit(uuid));
         events.add(new EndUnit(uuid));
+    }
+
+    public static boolean isReplaying() {
+        return Objects.equals(true, replaying.get())
+                || Thread.currentThread().getName().equals(EventStore.CONSUMER_THREAD_NAME);
     }
 
     public static ReentrantLock getLock(String project) {

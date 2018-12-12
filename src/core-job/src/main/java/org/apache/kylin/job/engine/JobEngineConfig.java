@@ -166,6 +166,10 @@ public class JobEngineConfig {
         return config.getSchedulerPollIntervalSecond();
     }
 
+    public String getServerMode() {
+        return config.getServerMode();
+    }
+
     /*
      * (non-Javadoc)
      * 
@@ -200,5 +204,4 @@ public class JobEngineConfig {
             return false;
         return true;
     }
-
 }

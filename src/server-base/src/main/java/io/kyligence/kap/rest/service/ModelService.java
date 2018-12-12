@@ -422,7 +422,7 @@ public class ModelService extends BasicService {
         nDataflow.setStatus(RealizationStatusEnum.OFFLINE);
         nDataflow.setProject(project);
         nDataflow.setCubePlanName(cubePlan.getName());
-        dataflowManager.createDataflow(copy.getName(), project, copy, owner);
+        dataflowManager.createDataflow(copy.getName(), copy, owner);
     }
 
     @Transaction(project = 0)
@@ -571,7 +571,7 @@ public class ModelService extends BasicService {
         nCubePlan.setName(modelRequest.getName() + "_cube");
         nCubePlan.setModelName(modelRequest.getName());
         cubePlanManager.createCubePlan(nCubePlan);
-        dataflowManager.createDataflow(nCubePlan.getName(), nCubePlan.getProject(), nCubePlan, model.getOwner());
+        dataflowManager.createDataflow(nCubePlan.getName(), nCubePlan, model.getOwner());
 
     }
 

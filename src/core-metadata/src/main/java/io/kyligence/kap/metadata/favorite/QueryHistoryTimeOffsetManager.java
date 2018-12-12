@@ -71,7 +71,6 @@ public class QueryHistoryTimeOffsetManager {
         List<QueryHistoryTimeOffset> queryHistoryTimeOffsetList = resourceStore.getAllResources(resourceRootPath, QUERY_HISTORY_TIME_OFFSET_SERIALIZER);
         if (queryHistoryTimeOffsetList.isEmpty()) {
             QueryHistoryTimeOffset queryHistoryTimeOffset = new QueryHistoryTimeOffset(System.currentTimeMillis(), System.currentTimeMillis());
-//            save(queryHistoryTimeOffset);
             return queryHistoryTimeOffset;
         }
 

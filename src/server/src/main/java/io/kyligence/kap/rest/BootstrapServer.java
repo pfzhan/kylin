@@ -32,10 +32,6 @@ import java.sql.SQLException;
 import org.apache.catalina.Context;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.source.jdbc.H2Database;
 import org.apache.spark.sql.SparderEnv;
 import org.slf4j.Logger;
@@ -51,7 +47,6 @@ import org.springframework.context.annotation.ImportResource;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
-import io.kyligence.kap.metadata.project.NProjectManager;
 
 @ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
 @SpringBootApplication
@@ -102,17 +97,6 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         SparderEnv.init();
     }
 
-    private static void initBackend() {
-        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
-        for (ProjectInstance projectInstance : projectManager.listAllProjects()) {
-            NDefaultScheduler scheduler = NDefaultScheduler.getInstance(projectInstance.getName());
-            scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
-            if (!scheduler.hasStarted()) {
-                throw new RuntimeException("Scheduler for " +projectInstance.getName() + " has not been started");
-            }
-        }
-    }
-
     private static void setLocalEnvs() {
         String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
         KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
@@ -156,7 +140,6 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
     }
     @Override
     public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
-        initBackend();
         logger.info("init backend end...");
     }
 }

@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -317,7 +318,7 @@ public class FavoriteQueryService extends BasicService {
                         addCuboidEvent.setCubePlanName(targetCubePlan.getName());
                         addCuboidEvent.setSqlPatterns(sqls);
                         addCuboidEvent.setOwner(user);
-
+                        addCuboidEvent.setJobId(UUID.randomUUID().toString());
                         eventManager.post(addCuboidEvent);
 
                         PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
@@ -325,7 +326,8 @@ public class FavoriteQueryService extends BasicService {
                         postAddCuboidEvent.setProject(project);
                         postAddCuboidEvent.setModelName(targetCubePlan.getModelName());
                         postAddCuboidEvent.setCubePlanName(targetCubePlan.getName());
-                        addCuboidEvent.setOwner(user);
+                        postAddCuboidEvent.setOwner(user);
+                        postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
                         postAddCuboidEvent.setSqlPatterns(sqls);
 
                         eventManager.post(postAddCuboidEvent);

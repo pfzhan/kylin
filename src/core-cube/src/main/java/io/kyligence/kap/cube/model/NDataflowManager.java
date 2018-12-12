@@ -29,9 +29,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -51,6 +54,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeepNames;
+import io.kyligence.kap.metadata.model.ManagementType;
 import lombok.val;
 import lombok.var;
 
@@ -75,7 +79,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     private CachedCrudAssist<NDataflow> crud;
 
     private NDataflowManager(KylinConfig cfg, final String project) {
-        logger.info("Initializing NDataflowManager with config " + cfg);
+        logger.info("Initializing NDataflowManager with config {}", cfg);
         this.config = cfg;
         this.project = project;
         String resourceRootPath = "/" + project + NDataflow.DATAFLOW_RESOURCE_ROOT;
@@ -170,7 +174,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return result;
     }
 
-    public NDataflow createDataflow(String dfName, String projectName, NCubePlan plan, String owner) {
+    public NDataflow createDataflow(String dfName, NCubePlan plan, String owner) {
         NDataflow df = NDataflow.create(dfName, plan);
 
         // save dataflow
@@ -185,23 +189,37 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
     public void fillDf(NDataflow df) {
         // if it's table oriented, create segments at once
-        String tableName = df.getModel().getRootFactTable().getTableIdentity();
-        NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project).getDataLoadingRange(tableName);
-        if (dataLoadingRange != null) {
-            List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
-            if (CollectionUtils.isNotEmpty(segmentRanges)) {
-                Segments<NDataSegment> segs = new Segments<>();
+        if (df.getModel().getManagementType() != ManagementType.TABLE_ORIENTED) {
+            return;
+        }
+        val rootTable = df.getModel().getRootFactTable();
+        // if table is incremental load
+        if (rootTable.getTableDesc().isFact()) {
+            String tableName = df.getModel().getRootFactTable().getTableIdentity();
+            NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager
+                    .getInstance(KylinConfig.getInstanceFromEnv(), project).getDataLoadingRange(tableName);
+            if (dataLoadingRange != null) {
+                List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
+                if (CollectionUtils.isNotEmpty(segmentRanges)) {
+                    Segments<NDataSegment> segs = new Segments<>();
 
-                segmentRanges.forEach(segRange -> {
-                    NDataSegment newSegment = newSegment(df, segRange);
-                    newSegment.setStatus(SegmentStatusEnum.READY);
-                    segs.add(newSegment);
-                });
-                val update = new NDataflowUpdate(df.getName());
-                update.setToAddSegs(segs.toArray(new NDataSegment[0]));
-                updateDataflow(update);
+                    segmentRanges.forEach(segRange -> {
+                        NDataSegment newSegment = newSegment(df, segRange);
+                        newSegment.setStatus(SegmentStatusEnum.READY);
+                        segs.add(newSegment);
+                    });
+                    val update = new NDataflowUpdate(df.getName());
+                    update.setToAddSegs(segs.toArray(new NDataSegment[0]));
+                    updateDataflow(update);
+                }
             }
+        } else {
+            // if table is full load
+            NDataSegment newSegment = newSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
+            newSegment.setStatus(SegmentStatusEnum.READY);
+            val update = new NDataflowUpdate(df.getName());
+            update.setToAddSegs(newSegment);
+            updateDataflow(update);
         }
     }
 
@@ -372,68 +390,56 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataflow updateDataflow(final NDataflowUpdate update) {
-        NDataflow newDf = updateDataflow(update.getDataflowName(), copyForWrite -> {
+        return updateDataflow(update.getDataflowName(), copyForWrite -> {
             NDataflow df = copyForWrite;
             Segments<NDataSegment> newSegs = (Segments<NDataSegment>) df.getSegments().clone();
 
             if (update.getToAddSegs() != null) {
-                for (NDataSegment seg : update.getToAddSegs()) {
+                Arrays.stream(update.getToAddSegs()).forEach(seg -> {
                     seg.setDataflow(df);
                     newSegs.add(seg);
-                }
+                });
             }
 
             if (update.getToUpdateSegs() != null) {
-                for (NDataSegment seg : update.getToUpdateSegs()) {
+                Arrays.stream(update.getToUpdateSegs()).forEach(seg -> {
                     seg.setDataflow(df);
-                    for (int i = 0; i < newSegs.size(); i++) {
-                        if (newSegs.get(i).getId().equals(seg.getId())) {
-                            newSegs.set(i, seg);
-                            break;
-                        }
-                    }
-                }
+                    newSegs.replace(Comparator.comparing(NDataSegment::getId), seg);
+                });
             }
 
             if (update.getToRemoveSegs() != null) {
                 Iterator<NDataSegment> iterator = newSegs.iterator();
+                val toRemoveIds = Arrays.stream(update.getToRemoveSegs()).map(NDataSegment::getId)
+                        .collect(Collectors.toSet());
                 while (iterator.hasNext()) {
                     NDataSegment currentSeg = iterator.next();
-                    for (NDataSegment toRemoveSeg : update.getToRemoveSegs()) {
-                        if (currentSeg.getId().equals(toRemoveSeg.getId())) {
-                            logger.info("Remove segment " + currentSeg.toString());
-                            iterator.remove();
-                            break;
-                        }
+                    if (toRemoveIds.contains(currentSeg.getId())) {
+                        logger.info("Remove segment {}", currentSeg);
+                        iterator.remove();
                     }
                 }
             }
 
             df.setSegments(newSegs);
 
-            if (update.getStatus() != null) {
-                df.setStatus(update.getStatus());
-            }
+            val newStatus = Optional.ofNullable(update.getStatus()).orElse(df.getStatus());
+            df.setStatus(newStatus);
 
-            if (update.getDescription() != null) {
-                df.setDescription(update.getDescription());
-            }
+            val newDesc = Optional.ofNullable(update.getDescription()).orElse(df.getDescription());
+            df.setDescription(newDesc);
 
-            if (update.getOwner() != null) {
-                df.setOwner(update.getOwner());
-            }
+            val newOwner = Optional.ofNullable(update.getOwner()).orElse(df.getOwner());
+            df.setOwner(newOwner);
 
-            if (update.getCost() > 0) {
-                df.setCost(update.getCost());
-            }
+            df.setCost(update.getCost() > 0 ? update.getCost() : df.getCost());
+
             NDataSegDetailsManager.getInstance(df.getConfig(), project).updateDataflow(df, update);
         });
-
-        return newDf;
     }
 
     public NDataflow dropDataflow(String dfName) {
-        logger.info("Dropping NDataflow '" + dfName + "'");
+        logger.info("Dropping NDataflow '{}'", dfName);
 
         NDataflow df = getDataflow(dfName);
 

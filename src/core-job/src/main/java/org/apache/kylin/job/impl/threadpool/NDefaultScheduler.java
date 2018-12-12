@@ -33,11 +33,10 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import io.kyligence.kap.cube.storage.ProjectStorageInfoCollector;
-import io.kyligence.kap.cube.storage.StorageInfoEnum;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.state.ConnectionState;
 import org.apache.curator.framework.state.ConnectionStateListener;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.common.util.NamedThreadFactory;
 import org.apache.kylin.common.util.SetThreadName;
@@ -57,6 +56,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.cube.storage.ProjectStorageInfoCollector;
+import io.kyligence.kap.cube.storage.StorageInfoEnum;
 import lombok.val;
 
 /**
@@ -65,7 +66,6 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
 
     private String project;
     private JobLock jobLock;
-    private NExecutableManager executableManager;
     private FetcherRunner fetcher;
     private ScheduledExecutorService fetcherPool;
     private ExecutorService jobPool;
@@ -107,6 +107,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         @Override
         public synchronized void run() {
             try {
+                val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 Map<String, Executable> runningJobs = context.getRunningJobs();
                 if (isJobPoolFull() || reachStorageQuota()) {
                     return;
@@ -152,15 +153,15 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 }
 
                 logger.info(
-                        "Job Fetcher: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} others",
-                        nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded, nOthers);
+                        "{} Job Fetcher: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} others",
+                        project, nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded, nOthers);
             } catch (Exception e) {
                 logger.warn("Job Fetcher caught a exception ", e);
             }
         }
 
         private boolean reachStorageQuota() {
-            val storageVolumeInfo = collector.getStorageVolumeInfo(jobEngineConfig.getConfig(), project);
+            val storageVolumeInfo = collector.getStorageVolumeInfo(KylinConfig.getInstanceFromEnv(), project);
             val totalSize = storageVolumeInfo.getTotalStorageSize();
             val storageQuotaSize = storageVolumeInfo.getStorageQuotaSize();
             if (totalSize < 0) {
@@ -190,6 +191,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             AbstractExecutable executable = null;
             String jobDesc = null;
             try {
+                val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 executable = executableManager.getJobByPath(path);
                 jobDesc = executable.toString();
                 logger.info("{} prepare to schedule", jobDesc);
@@ -262,7 +264,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
     public synchronized void init(JobEngineConfig jobEngineConfig, JobLock lock) {
         jobLock = lock;
 
-        String serverMode = jobEngineConfig.getConfig().getServerMode();
+        String serverMode = jobEngineConfig.getServerMode();
         if (!("job".equalsIgnoreCase(serverMode) || "all".equalsIgnoreCase(serverMode))) {
             logger.info("server mode: {}, no need to run job scheduler", serverMode);
             return;
@@ -283,14 +285,14 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
         val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.STORAGE_QUOTA, StorageInfoEnum.TOTAL_STORAGE);
         collector = new ProjectStorageInfoCollector(storageInfoEnumList);
 
-        executableManager = NExecutableManager.getInstance(jobEngineConfig.getConfig(), project);
         //load all executable, set them to a consistent status
         fetcherPool = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NDefaultSchedulerFetchPool"));
         int corePoolSize = jobEngineConfig.getMaxConcurrentJobLimit();
         jobPool = new ThreadPoolExecutor(corePoolSize, corePoolSize, Long.MAX_VALUE, TimeUnit.DAYS,
-                new SynchronousQueue<Runnable>(), new NamedThreadFactory("NDefaultSchedulerJobPool"));
-        context = new DefaultContext(Maps.<String, Executable> newConcurrentMap(), jobEngineConfig.getConfig());
+                new SynchronousQueue<>(), new NamedThreadFactory("NDefaultSchedulerJobPool"));
+        context = new DefaultContext(Maps.newConcurrentMap(), jobEngineConfig.getConfig());
 
+        val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         executableManager.resumeAllRunningJobs();
 
         int pollSecond = jobEngineConfig.getPollIntervalSecond();

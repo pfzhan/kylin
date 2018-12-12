@@ -125,9 +125,9 @@ public abstract class ImageStore {
     public static long getMvcc(ByteSource bs) {
         try {
             val wrapper = JsonUtil.readValue(bs.openStream(), MvccWrapper.class);
-            return wrapper.getMvcc();
+            return wrapper.getMvcc() + 1;
         } catch (IOException e) {
-            return -1;
+            return 0;
         }
     }
 

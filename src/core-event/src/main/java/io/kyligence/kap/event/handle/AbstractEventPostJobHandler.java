@@ -45,7 +45,7 @@ public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
         val execManager = getExecutableManager(project, eventContext.getConfig());
         val executable = (ChainedExecutable) execManager.getJob(jobId);
         if (executable == null) {
-            log.info("no job created, abort handler");
+            log.info("no job created, abort handler or job was discard {}", executable);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 eventDao.deleteEvent(id);

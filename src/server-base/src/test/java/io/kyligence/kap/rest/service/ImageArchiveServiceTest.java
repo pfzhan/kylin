@@ -39,7 +39,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 import lombok.val;
@@ -73,8 +72,6 @@ public class ImageArchiveServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testArchive() throws Exception {
-        val eventStore = EventStore.getInstance(getTestConfig());
-        eventStore.getEventStoreProperties().put("prop1", "value");
         imageArchiveService.archive();
         val currentPath = new Path(HadoopUtil.getLatestImagePath(getTestConfig()));
         val rootPath = currentPath.getParent();
@@ -86,6 +83,5 @@ public class ImageArchiveServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("latest", paths.get(paths.size() - 1));
         Assert.assertEquals("archive-2018-10-11", paths.get(0));
         val map = JsonUtil.readValue(new File(new URI(currentPath.toString() + "/events.json")), Map.class);
-        Assert.assertEquals("value", map.get("prop1"));
     }
 }

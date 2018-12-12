@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.common.persistence.transaction.kafka;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.function.Consumer;
@@ -36,6 +37,7 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
 
 import com.google.common.collect.Lists;
 
@@ -49,29 +51,19 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class KafkaEventStore extends EventStore {
 
-    private final KafkaProducer<String, Event> producer;
+    private final StorageURL url;
+    private KafkaProducer<String, Event> producer;
     private final String topic;
     private final Map<String, String> kafkaPropeties;
 
     public KafkaEventStore(KylinConfig config) {
-        val url = config.getMetadataUrl();
+        url = config.getMetadataUrl();
         kafkaPropeties = url.getAllParameters();
         topic = url.getIdentifier();
-
-        val producerConfig = new Properties();
-        producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, "transaction-producer");
-        producerConfig.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-        producerConfig.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "kylin-transactional-id");
-        producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
-                "org.apache.kafka.common.serialization.StringSerializer");
-        producerConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
-                "io.kyligence.kap.common.persistence.transaction.kafka.EventSerializer");
-        url.getAllParameters().forEach(producerConfig::put);
-        producer = new KafkaProducer<>(producerConfig);
-        producer.initTransactions();
     }
 
     public EventPublisher getEventPublisher() {
+        initProducer();
         return events -> {
             try {
                 producer.beginTransaction();
@@ -97,17 +89,11 @@ public class KafkaEventStore extends EventStore {
                 if (consumerRecords.isEmpty()) {
                     continue;
                 }
-                withConsumerLock(() -> {
-                    consumerRecords.forEach(record -> {
-                        eventConsumer.accept(record.value());
-                    });
-                    consumer.commitSync();
-                    val partitions = consumer.partitionsFor(topic);
-                    partitions.forEach(p -> {
-                        long pos = consumer.position(new TopicPartition(topic, p.partition()));
-                        eventStoreProperties.put("offset" + p.partition(), pos + "");
-                    });
+                consumerRecords.forEach(record -> {
+                    eventConsumer.accept(record.value());
                 });
+                consumer.commitSync();
+                updateOffset(consumer);
             }
         }, CONSUMER_THREAD_NAME);
         consumerThread.start();
@@ -131,13 +117,18 @@ public class KafkaEventStore extends EventStore {
                 consumer.seekToBeginning(Lists.newArrayList(topicPartition));
             }
         }
+        int retry = 3;
         while (true) {
-            val consumerRecords = consumer.poll(5000);
+            val consumerRecords = consumer.poll(2000);
             if (consumerRecords.isEmpty()) {
-                break;
+                if (retry == 0) {
+                    break;
+                }
+                retry--;
             }
             consumerRecords.forEach(record -> eventConsumer.accept(record.value()));
             consumer.commitSync();
+            updateOffset(consumer);
         }
         consumer.close();
         Thread.currentThread().setName(originName);
@@ -156,4 +147,35 @@ public class KafkaEventStore extends EventStore {
         return consumer;
     }
 
+    private void updateOffset(KafkaConsumer<String, Event> consumer) {
+        val partitions = consumer.partitionsFor(topic);
+        partitions.forEach(p -> {
+            long pos = consumer.position(new TopicPartition(topic, p.partition()));
+            eventStoreProperties.put("offset" + p.partition(), pos + "");
+        });
+    }
+
+    private synchronized void initProducer() {
+        if (producer != null) {
+            return;
+        }
+        val producerConfig = new Properties();
+        producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, "transaction-producer");
+        producerConfig.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
+        producerConfig.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "kylin-transactional-id");
+        producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                "org.apache.kafka.common.serialization.StringSerializer");
+        producerConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                "io.kyligence.kap.common.persistence.transaction.kafka.EventSerializer");
+        url.getAllParameters().forEach(producerConfig::put);
+        producer = new KafkaProducer<>(producerConfig);
+        producer.initTransactions();
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (producer != null) {
+            producer.close();
+        }
+    }
 }

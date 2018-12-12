@@ -41,10 +41,27 @@
  */
 package io.kyligence.kap.rest.service;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+
+import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.NamedThreadFactory;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
+
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
@@ -57,21 +74,6 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.NamedThreadFactory;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 public class NFavoriteScheduler {
     private static final Logger logger = LoggerFactory.getLogger(NFavoriteScheduler.class);
@@ -118,7 +120,8 @@ public class NFavoriteScheduler {
     }
 
     public void init() {
-        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv()).getProject(project);
+        ProjectInstance projectInstance = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv())
+                .getProject(project);
 
         // init schedulers
         autoFavoriteScheduler = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NFavoriteScheduler"));
@@ -200,8 +203,7 @@ public class NFavoriteScheduler {
 
         // update time offset
         queryHistoryTimeOffset.setAutoMarkTimeOffset(lastTimeOffset);
-        QueryHistoryTimeOffsetManager.getInstance(config, project)
-                .save(queryHistoryTimeOffset);
+        QueryHistoryTimeOffsetManager.getInstance(config, project).save(queryHistoryTimeOffset);
     }
 
     private long scanQueryHistoryByTime(Set<FavoriteQuery> candidates, long autoMarkTimeOffset) {

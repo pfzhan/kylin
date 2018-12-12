@@ -63,6 +63,7 @@ import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
@@ -111,8 +112,9 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         System.setProperty("kylin.job.event.poll-interval-second", "1");
         EventOrchestratorManager.destroyInstance();
         EventOrchestratorManager.getInstance(getTestConfig());
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
+        NDefaultScheduler.destroyInstance();
+        val scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
+        scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
     }
 
     @After
@@ -121,12 +123,14 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         NDefaultScheduler.getInstance(DEFAULT_PROJECT).shutdown();
         System.clearProperty("kylin.job.event.poll-interval-second");
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
+        super.tearDown();
     }
 
     @Test
     public void testSemanticChangedHappy() throws Exception {
         val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         var df = dfManager.getDataflowByModelName(MODEL_NAME);
+
         String tableName = df.getModel().getRootFactTable().getTableIdentity();
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.setUuid(UUID.randomUUID().toString());
@@ -139,6 +143,11 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                         SegmentRange.dateToLong("2012-05-01"))));
         NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT)
                 .createDataLoadingRange(dataLoadingRange);
+
+        val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val table = tableMgr.getTableDesc(tableName);
+        table.setFact(true);
+        tableMgr.updateTableDesc(table);
 
         val update = new NDataflowUpdate(df.getName());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));

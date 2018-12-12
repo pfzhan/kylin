@@ -34,6 +34,8 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -120,7 +122,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         // create
         int cntBeforeCreate = mgr.listAllDataflows().size();
-        NDataflow df = mgr.createDataflow(name, proj.getName(), cube, owner);
+        NDataflow df = mgr.createDataflow(name, cube, owner);
         Assert.assertNotNull(df);
 
         // list
@@ -386,7 +388,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         // create
         for (String dataFlowName : dataFlowNames) {
-            dataflows.add(mgr.createDataflow(dataFlowName, proj.getName(), cube, owner));
+            dataflows.add(mgr.createDataflow(dataFlowName, cube, owner));
         }
 
         final AtomicInteger runningFlag = new AtomicInteger();
@@ -488,11 +490,15 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void testCalculateHoles() throws IOException {
         String dataFlowName = "dataFlowWithHole";
         KylinConfig testConfig = getTestConfig();
+        val modelMgr = NDataModelManager.getInstance(testConfig, projectDefault);
+        modelMgr.updateDataModel("nmodel_basic", copyForWrite -> {
+            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
+        });
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
         NCubePlanManager cubePlanMgr = NCubePlanManager.getInstance(testConfig, projectDefault);
         final NCubePlan cubePlan = cubePlanMgr.getCubePlan("ncube_basic");
 
-        NDataflow df = mgr.createDataflow(dataFlowName, projectDefault, cubePlan, "test_owner");
+        NDataflow df = mgr.createDataflow(dataFlowName, cubePlan, "test_owner");
 
         mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1L));
         mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(10L, 100L));

@@ -27,19 +27,23 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.image.HDFSImageStore;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.persistence.transaction.EventSynchronization;
 import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
-import io.kyligence.kap.metadata.project.UnitOfAllWorks;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -48,20 +52,22 @@ import lombok.extern.slf4j.Slf4j;
 public class ImageArchiveService {
 
     @Scheduled(cron = "${kylin.image.archive-cron:0 0 0 * * *}") // default at 00:00 everyday
-    public void archive() {
+    public void archive() throws Exception {
         val config = KylinConfig.getInstanceFromEnv();
-        val eventStore = EventStore.getInstance(config);
         if (!config.getMetadataUrl().getScheme().equals(HDFSImageStore.HDFS_SCHEME)) {
             log.info("scheme {} is not HDFS", config.getMetadataUrl().getScheme());
             return;
         }
-        UnitOfAllWorks.doInTransaction(() -> {
-            eventStore.withConsumerLock(() -> {
-                backupAndClean(config);
-                dump(config);
-            });
-            return 0;
-        });
+        backupAndClean(config);
+        // use tmp config to replay events from mq
+        val tmpConfig = KylinConfig.createKylinConfig(config);
+        val originUrl = tmpConfig.getMetadataUrl();
+        val params = Maps.newHashMap(originUrl.getAllParameters());
+        params.put("client.id", UUID.randomUUID().toString());
+        params.put("group.id", UUID.randomUUID().toString());
+        val newUrl = new StorageURL(originUrl.getIdentifier(), originUrl.getScheme(), params);
+        tmpConfig.setMetadataUrl(newUrl.toString());
+        dump(tmpConfig);
     }
 
     private void backupAndClean(KylinConfig config) throws IOException {
@@ -85,9 +91,14 @@ public class ImageArchiveService {
 
     private void dump(KylinConfig config) throws Exception {
         val resourceStore = ResourceStore.getKylinMetaStore(config);
-        val snapshotStore = ResourceStore.createImageStore(config);
-        snapshotStore.dump(resourceStore);
-        val eventStore = EventStore.getInstance(config);
-        snapshotStore.dump(eventStore);
+        val imageStore = ResourceStore.createImageStore(config);
+        val replayer = EventSynchronization.getInstance(config);
+
+        try (val eventStore = EventStore.getInstance(config)) {
+            eventStore.syncEvents(e -> replayer.replay(e, true));
+
+            imageStore.dump(eventStore);
+            imageStore.dump(resourceStore);
+        }
     }
 }

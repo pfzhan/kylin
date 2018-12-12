@@ -357,6 +357,15 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         segs.removeAll(volatileSegs);
     }
 
+    public void replace(Comparator<T> comparator, T seg) {
+        for (int i = 0; i < size(); i++) {
+            if (comparator.compare(get(i), seg) == 0) {
+                set(i, seg);
+                break;
+            }
+        }
+    }
+
     public SegmentRange findMergeSegmentsRange(AutoMergeTimeEnum autoMergeTimeEnum) {
         long mergeStart = Long.parseLong(this.getFirst().getSegRange().start.toString());
         SegmentRange rangeToMerge = new SegmentRange.TimePartitionedSegmentRange(mergeStart,
@@ -644,5 +653,4 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         }
 
     }
-
 }

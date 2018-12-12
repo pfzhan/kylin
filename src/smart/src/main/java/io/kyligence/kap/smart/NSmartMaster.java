@@ -143,8 +143,6 @@ public class NSmartMaster {
             try {
                 selectModelAndCubePlan();
                 refreshCubePlan();
-                // TODO #7844 losing milliseconds(always ends with 000) when saving metastore 
-                Thread.sleep(1000);
                 saveCubePlan();
                 saveAccelerateInfo();
                 logger.debug("save successfully after refresh, {}", context.getDraftVersion());
@@ -196,7 +194,7 @@ public class NSmartMaster {
             NCubePlan cubePlan = modelCtx.getTargetCubePlan();
             if (cubePlanManager.getCubePlan(cubePlan.getName()) == null) {
                 cubePlanManager.createCubePlan(cubePlan);
-                dataflowManager.createDataflow(cubePlan.getName(), context.getProject(), cubePlan,
+                dataflowManager.createDataflow(cubePlan.getName(), cubePlan,
                         cubePlan.getModel().getOwner());
                 continue;
             }

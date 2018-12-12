@@ -23,17 +23,16 @@
  */
 package io.kyligence.kap.common.persistence.transaction.mq;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.event.Event;
@@ -43,7 +42,7 @@ import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public abstract class EventStore {
+public abstract class EventStore implements Closeable {
 
     public static EventStore getInstance(KylinConfig kylinConfig) {
         return kylinConfig.getManager(EventStore.class);
@@ -79,26 +78,14 @@ public abstract class EventStore {
     @Getter
     protected Map<String, String> eventStoreProperties = Maps.newHashMap();
 
-    private ReentrantLock consumerLock = new ReentrantLock();
-
-    public void withConsumerLock(Callback callback) {
-        try {
-            consumerLock.lock();
-            callback.process();
-        } catch (Exception e) {
-            Throwables.propagate(e);
-        } finally {
-            consumerLock.unlock();
-        }
-    }
-
     public abstract EventPublisher getEventPublisher();
 
     public abstract void startConsumer(Consumer<Event> consumer);
 
     public abstract void syncEvents(Consumer<Event> consumer);
 
-    public interface Callback {
-        void process() throws Exception;
+    @Override
+    public void close() throws IOException {
+        // ignore it;
     }
 }

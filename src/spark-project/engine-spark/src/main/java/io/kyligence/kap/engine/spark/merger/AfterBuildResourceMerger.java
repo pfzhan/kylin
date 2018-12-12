@@ -104,6 +104,7 @@ public class AfterBuildResourceMerger {
                 Preconditions.checkNotNull(dataCuboid);
                 addCuboids.add(dataCuboid);
             }
+            dfUpdate.setToUpdateSegs(remoteSeg);
         }
         dfUpdate.setToAddOrUpdateCuboids(addCuboids.toArray(new NDataCuboid[0]));
 

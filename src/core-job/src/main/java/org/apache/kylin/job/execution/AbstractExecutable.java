@@ -190,7 +190,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     }
 
     protected NExecutableManager getManager() {
-        return NExecutableManager.getInstance(config, getProject());
+        return getExecutableManager(project);
     }
 
     protected void onExecuteStart(ExecutableContext executableContext) {

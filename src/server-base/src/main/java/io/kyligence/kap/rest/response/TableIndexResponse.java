@@ -24,13 +24,12 @@
 package io.kyligence.kap.rest.response;
 
 import java.util.List;
-import java.util.Map;
+
+import org.apache.kylin.metadata.model.IStorageAware;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Maps;
 
 import lombok.Data;
-import org.apache.kylin.metadata.model.IStorageAware;
 
 @Data
 public class TableIndexResponse {
@@ -55,9 +54,6 @@ public class TableIndexResponse {
 
     @JsonProperty("col_order")
     private List<String> colOrder;
-
-    @JsonProperty("layout_override_indices")
-    private Map<String, String> layoutOverrideIndices = Maps.newHashMap();
 
     @JsonProperty("shard_by_columns")
     private List<String> shardByColumns;

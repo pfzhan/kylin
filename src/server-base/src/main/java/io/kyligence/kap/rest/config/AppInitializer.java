@@ -65,7 +65,7 @@ public class AppInitializer {
         if (leaderInitiator.isLeader()) {
             val projectManager = NProjectManager.getInstance(kylinConfig);
             for (ProjectInstance project : projectManager.listAllProjects()) {
-                initProject(kylinConfig, project.getName());
+                initProject(kylinConfig, project.getName(), true);
             }
         }
         EventListenerRegistry.getInstance(kylinConfig).register(new GlobalEventListener(), UnitOfWork.GLOBAL_UNIT);
@@ -74,27 +74,37 @@ public class AppInitializer {
         event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
     }
 
-    static void initProject(KylinConfig config, String project) {
-        if (UnitOfWork.containsLock(project)) {
-            log.info("already contains project {}", project);
+    static void initProject(KylinConfig config, String project, boolean needTransaction) {
+        if (!UnitOfWork.containsLock(project)) {
+            UnitOfWork.newLock(project);
+        }
+        val leaderInitiator = LeaderInitiator.getInstance(config);
+        if (!leaderInitiator.isLeader()) {
             return;
         }
-        UnitOfWork.newLock(project);
-        val leaderInitiator = LeaderInitiator.getInstance(config);
-        if (leaderInitiator.isLeader()) {
-            EventOrchestratorManager.getInstance(config).addProject(project);
-            NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
-            scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
-            if (!scheduler.hasStarted()) {
-                throw new RuntimeException("Scheduler for " + project + " has not been started");
-            }
+        if (needTransaction) {
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                initProjectSchedulers(config, project);
+                return 0;
+            }, project);
+        } else {
+            initProjectSchedulers(config, project);
+        }
+    }
 
-            NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
-            favoriteScheduler.init();
+    static void initProjectSchedulers(KylinConfig config, String project) {
+        EventOrchestratorManager.getInstance(config).addProject(project);
+        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(project);
+        scheduler.init(new JobEngineConfig(config), new MockJobLock());
+        if (!scheduler.hasStarted()) {
+            throw new RuntimeException("Scheduler for " + project + " has not been started");
+        }
 
-            if (!favoriteScheduler.hasStarted()) {
-                throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
-            }
+        NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(project);
+        favoriteScheduler.init();
+
+        if (!favoriteScheduler.hasStarted()) {
+            throw new RuntimeException("Auto favorite scheduler for " + project + " has not been started");
         }
 
     }
@@ -109,7 +119,7 @@ public class AppInitializer {
             }
             val project = term[1];
             log.debug("try to init project {}", project);
-            initProject(config, project);
+            initProject(config, project, false);
         }
 
         @Override

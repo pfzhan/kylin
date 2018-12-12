@@ -28,6 +28,7 @@ import java.util.Comparator;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -78,6 +79,12 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         EventOrchestratorManager.getInstance(getTestConfig());
         scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
         scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
+
+        val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val table = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
+        table.setFact(true);
+        tableMgr.updateTableDesc(table);
+
     }
 
     @After
@@ -120,9 +127,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
 
-        while (eventDao.getEvent(event.getId()) != null) {
-            Thread.sleep(1000);
-        }
+        waitEventFinish(event.getId(), 120 * 1000);
         // after create spark job remove some layouts
         val allLayouts = df.getCubePlan().getAllCuboidLayouts().stream().map(NCuboidLayout::getId)
                 .collect(Collectors.toSet());
@@ -131,9 +136,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         }).getAllCuboidLayouts().stream().map(NCuboidLayout::getId).collect(Collectors.toSet());
         allLayouts.removeAll(livedLayouts);
         dataflowManager.removeLayouts(df2, allLayouts);
-        while (eventDao.getEvent(postEvent.getId()) != null) {
-            Thread.sleep(1000);
-        }
+        waitEventFinish(postEvent.getId(), 120 * 1000);
 
         val df3 = dataflowManager.getDataflow(df.getName());
         val cuboidsMap3 = df3.getLastSegment().getCuboidsMap();
@@ -190,10 +193,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
 
-        val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        while (eventDao.getEvent(postEvent.getId()) != null) {
-            Thread.sleep(1000);
-        }
+        waitEventFinish(postEvent.getId(), 120 * 1000);
 
         val df2 = dataflowManager.getDataflow(df.getName());
         val cuboidsMap2 = df2.getLastSegment().getCuboidsMap();
@@ -234,11 +234,8 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
 
-        val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        waitEventFinish(event.getId(), 120 * 1000);
 
-        while (eventDao.getEvent(event.getId()) != null) {
-            Thread.sleep(1000);
-        }
         // after create spark job remove some layouts
         val removeIds = Sets.newHashSet(1L);
         cubeManager.updateCubePlan(df.getCubePlanName(), copyForWrite -> {
@@ -247,9 +244,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         df = dataflowManager.getDataflow("ncube_basic");
         dataflowManager.removeLayouts(df, removeIds);
 
-        while (eventDao.getEvent(postEvent.getId()) != null) {
-            Thread.sleep(1000);
-        }
+        waitEventFinish(postEvent.getId(), 120 * 1000);
 
         val df2 = dataflowManager.getDataflow(df.getName());
         Assert.assertEquals(1, df2.getSegments().size());
@@ -292,10 +287,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
 
-        val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        while (eventDao.getEvent(postEvent.getId()) != null) {
-            Thread.sleep(1000);
-        }
+        waitEventFinish(postEvent.getId(), 120 * 1000);
 
         val df2 = dataflowManager.getDataflow(df.getName());
         val cuboidsMap2 = df2.getLastSegment().getCuboidsMap();
@@ -309,5 +301,13 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
 
     private void prepareFirstSegment(String dfName) throws InterruptedException {
         prepareSegment(dfName, "2012-01-01", "2012-06-01", true);
+    }
+
+    private void waitEventFinish(String id, long maxMs) throws InterruptedException {
+        val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val start = System.currentTimeMillis();
+        while (eventDao.getEvent(id) != null && (System.currentTimeMillis() - start) < maxMs) {
+            Thread.sleep(1000);
+        }
     }
 }

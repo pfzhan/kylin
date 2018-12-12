@@ -37,10 +37,11 @@ import org.slf4j.LoggerFactory;
 import com.google.common.io.ByteSource;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
 import lombok.Getter;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class InMemResourceStore extends ResourceStore {
 
     private static final Logger logger = LoggerFactory.getLogger(InMemResourceStore.class);
@@ -165,10 +166,9 @@ public class InMemResourceStore extends ResourceStore {
 
     private void checkEnv() {
         // UT env or replay thread can ignore transactional lock
-        if (!kylinConfig.isSystemConfig() || kylinConfig.isUTEnv()
-                || Thread.currentThread().getName().equals(EventStore.CONSUMER_THREAD_NAME)) {
+        if (!kylinConfig.isSystemConfig() || kylinConfig.isUTEnv() || UnitOfWork.isReplaying()) {
             return;
         }
-        UnitOfWork.get();
+        throw new IllegalStateException("cannot update or delete resource");
     }
 }

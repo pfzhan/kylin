@@ -100,13 +100,13 @@ public class EventSynchronization {
     }
 
     private void replayDelete(ResourceDeleteEvent event) {
-        val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+        val resourceStore = ResourceStore.getKylinMetaStore(config);
         log.debug("replay delete {}", event.getResPath());
         resourceStore.deleteResource(event.getResPath());
     }
 
     private void replayUpdate(ResourceCreateOrUpdateEvent event) {
-        val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+        val resourceStore = ResourceStore.getKylinMetaStore(config);
         log.debug("replay update {}, {}", event.getResPath(), event.getCreatedOrUpdated().getMvcc());
         val raw = event.getCreatedOrUpdated();
         resourceStore.checkAndPutResource(raw.getResPath(), raw.getByteSource(), raw.getMvcc());

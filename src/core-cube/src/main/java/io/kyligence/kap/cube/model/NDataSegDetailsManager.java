@@ -25,6 +25,7 @@
 package io.kyligence.kap.cube.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -71,7 +72,7 @@ class NDataSegDetailsManager implements IKeepNames {
     private String project;
 
     private NDataSegDetailsManager(KylinConfig config, String project) {
-        logger.info("Initializing NDataSegDetailsManager with config " + config);
+        logger.info("Initializing NDataSegDetailsManager with config {}", config);
         this.kylinConfig = config;
         this.project = project;
     }
@@ -105,29 +106,23 @@ class NDataSegDetailsManager implements IKeepNames {
         Map<String, List<NDataCuboid>> toUpsert = new TreeMap<>();
         Map<String, List<NDataCuboid>> toRemove = new TreeMap<>();
         if (update.getToAddOrUpdateCuboids() != null) {
-            for (NDataCuboid c : update.getToAddOrUpdateCuboids()) {
+            Arrays.stream(update.getToAddOrUpdateCuboids()).forEach(c -> {
                 val segId = c.getSegDetails().getUuid();
                 allSegIds.add(segId);
-                List<NDataCuboid> list = toUpsert.get(segId);
-                if (list == null)
-                    toUpsert.put(segId, list = new ArrayList<>());
+                List<NDataCuboid> list = toUpsert.computeIfAbsent(segId, k -> new ArrayList<>());
                 list.add(c);
-            }
+            });
         }
         if (update.getToRemoveCuboids() != null) {
-            for (NDataCuboid c : update.getToRemoveCuboids()) {
+            Arrays.stream(update.getToRemoveCuboids()).forEach(c -> {
                 val segId = c.getSegDetails().getUuid();
                 allSegIds.add(segId);
-                List<NDataCuboid> list = toRemove.get(segId);
-                if (list == null)
-                    toRemove.put(segId, list = new ArrayList<>());
+                List<NDataCuboid> list = toRemove.computeIfAbsent(segId, k -> new ArrayList<>());
                 list.add(c);
-            }
+            });
         }
         if (update.getToAddSegs() != null) {
-            for (NDataSegment s : update.getToAddSegs()) {
-                allSegIds.add(s.getId());
-            }
+            Arrays.stream(update.getToAddSegs()).map(NDataSegment::getId).forEach(allSegIds::add);
         }
 
         // upsert for each segment
