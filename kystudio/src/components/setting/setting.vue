@@ -8,7 +8,7 @@
         <SettingBasic :project="currentProjectData"></SettingBasic>
       </el-tab-pane>
       <el-tab-pane :label="$t('acceleration')" :name="viewTypes.ACCELERATION">
-        <div></div>
+        <SettingAccelerate></SettingAccelerate>
       </el-tab-pane>
       <el-tab-pane :label="$t('storage')" :name="viewTypes.STORAGE">
         <div></div>
@@ -26,6 +26,7 @@ import locales from './locales'
 import { viewTypes } from './handler'
 import emptyImg from '../../assets/img/empty.svg'
 import SettingBasic from './SettingBasic/SettingBasic.vue'
+import SettingAccelerate from './SettingAccelerate/SettingAccelerate.vue'
 
 @Component({
   computed: {
@@ -34,7 +35,8 @@ import SettingBasic from './SettingBasic/SettingBasic.vue'
     ])
   },
   components: {
-    SettingBasic
+    SettingBasic,
+    SettingAccelerate
   },
   locales
 })
@@ -59,7 +61,8 @@ export default class Setting extends Vue {
   .el-tabs__nav {
     margin-left: 10px;
   }
-  .project-setting {
+  .project-setting,
+  .accelerate-setting-block {
     background-color: @aceditor-bg-color;
     border: 1px solid @line-border-color;
     padding: 20px;

@@ -174,7 +174,7 @@ export default class SettingBasic extends Vue {
 @import '../../../assets/styles/variables.less';
 
 .basic-setting {
-  padding: 20px 0;
+  padding: 5px 0;
   .project-basic .setting-label {
     width: 93px;
   }
