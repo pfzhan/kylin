@@ -38,7 +38,8 @@ export default {
     loginKyaccountDialog: false,
     allOptionMaps: [],
     enableOptionMaps: {},
-    disableOptionMaps: {}
+    disableOptionMaps: {},
+    cachedHistory: ''
   },
   mutations: {
     [types.SAVE_DEFAULT_CONFIG]: function (state, { list, type }) {
@@ -55,6 +56,9 @@ export default {
       state.allOptionMaps = spec.allOptionMaps
       state.enableOptionMaps = spec.enableOptionMaps
       state.disableOptionMaps = spec.disableOptionMaps
+    },
+    [types.CACHE_HISTORY]: function (state, cachedHistory) {
+      state.cachedHistory = cachedHistory
     }
   },
   actions: {
@@ -77,8 +81,9 @@ export default {
     availableMenus (state, getters, rootState, rootGetters) {
       const groupRole = rootGetters.userAuthorities
       const projectRole = rootState.user.currentUserAccess
+      const menu = rootState.route.name.toLowerCase()
 
-      return getAvailableOptions('menu', { groupRole, projectRole })
+      return getAvailableOptions('menu', { groupRole, projectRole, menu })
     }
   }
 }

@@ -18,7 +18,8 @@ export default {
       { "id": "modelEdit", "value": "modelEdit", "title": "Model Edit" },
       { "id": "monitor", "value": "monitor", "title": "Monitor" },
       { "id": "job", "value": "job", "title": "Job" },
-      { "id": "security", "value": "security", "title": "Security" },
+      { "id": "admin", "value": "admin", "title": "Admin" },
+      { "id": "project", "value": "project", "title": "Project" },
       { "id": "user", "value": "user", "title": "User" },
       { "id": "group", "value": "group", "title": "Group" }
     ],
@@ -32,6 +33,10 @@ export default {
       { "id": "manualMaintain", "value": "MANUAL_MAINTAIN", "title": "Manual Maintain" },
       { "id": "autoMaintain", "value": "AUTO_MAINTAIN", "title": "Auto Maintain" }
     ],
+    "modelType": [
+      { "id": "tableOriented", "value": "TABLE_ORIENTED", "title": "Table Oriented" },
+      { "id": "modelBased", "value": "MODEL_BASED", "title": "Model Based" }
+    ],
     // 项目内权限
     "projectRole": [
       { "id": "admin", "value": "ADMINISTRATION", "title": "Admin" },
@@ -41,10 +46,6 @@ export default {
     "groupRole": [
       { "id": "systemAdmin", "value": "ROLE_ADMIN", "title": "Admin" },
       { "id": "systemUser", "value": "ALL_USERS", "title": "User" }
-    ],
-    "modelType": [
-      { "id": "tableOriented", "value": "TABLE_ORIENTED", "title": "Table Oriented" },
-      { "id": "modelBased", "value": "MODEL_BASED", "title": "Model Based" }
     ],
     /**
      * ACL权限配置
@@ -84,10 +85,11 @@ export default {
   "disableOptionMaps": {
     // 菜单权限
     "menu": {
-      "keyPattern": "groupRole-projectRole",
+      "keyPattern": "groupRole-projectRole-menu",
       "entries": [
-        { "key": "systemAdmin-*", "value": "none" },
-        { "key": "systemUser-*", "value": "group" }
+        { "key": "systemAdmin-*-[project,user,group]", "value": "dashboard,query,insight,queryHistory,favoriteQuery,studio,setting,source,model,index,modelEdit,monitor,job" },
+        { "key": "systemAdmin-*-*", "value": "project,user,group" },
+        { "key": "systemUser-*-*", "value": "admin,project,group,user" }
       ]
     },
     "modelActions": {

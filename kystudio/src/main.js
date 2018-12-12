@@ -12,6 +12,7 @@ import router from './router'
 import mock from '../mock'
 import filters from './filter'
 import directive from './directive'
+import { sync } from './util/vuex-router-sync'
 // common module register
 import confirmBtn from 'components/common/confirm_btn'
 import iconBtn from 'components/common/icon_button'
@@ -119,6 +120,8 @@ Vue.http.interceptors.push(function (request, next) {
     }
   })
 })
+
+sync(store, router)
 /* eslint-disable no-new */
 window.kapVm = new Vue({
   el: '#app',

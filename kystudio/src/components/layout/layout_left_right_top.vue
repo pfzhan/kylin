@@ -32,16 +32,27 @@
         </aside>
         <div class="topbar">
           <i class="ksd-fs-14" :class="[!briefMenuGet ? 'el-icon-ksd-grid_01' : 'el-icon-ksd-grid_02']" @click="toggleLeftMenu"></i>
-          <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
-          <el-button v-show='gloalProjectSelectShow' :title="$t('kylinLang.project.projectList')" :class="{'project-page':defaultActive==='projectActive'}" @click="goToProjectList" size="medium">
-            <i class="el-icon-ksd-project_list"></i>
-          </el-button>
-          <el-button :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="medium">
-            <i class="el-icon-plus"></i>
-          </el-button>
+          <template v-if="!isAdminView">
+            <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
+            <el-button v-show='gloalProjectSelectShow' :title="$t('kylinLang.project.projectList')" :class="{'project-page':defaultActive==='projectActive'}" @click="goToProjectList" size="medium">
+              <i class="el-icon-ksd-project_list"></i>
+            </el-button>
+            <el-button :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="medium">
+              <i class="el-icon-plus"></i>
+            </el-button>
+          </template>
 
           <ul class="top-ul ksd-fright">
             <li v-if="isAdmin"><canary></canary></li>
+            <li v-if="showMenuByRole('admin')">
+              <el-button
+                text
+                type="primary"
+                class="entry-admin"
+                @click="handleSwitchAdmin">
+                <span>{{$t('kylinLang.menu.admin')}}</span>
+              </el-button>
+            </li>
             <li><help></help></li>
             <li><change_lang ref="changeLangCom"></change_lang></li>
             <li>
@@ -124,7 +135,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { handleError, kapConfirm, hasRole, hasPermission } from '../../util/business'
 import { objectClone, getQueryString, cacheSessionStorage, cacheLocalStorage } from '../../util/index'
 import { permissions, menusData, speedInfoTimer } from '../../config'
-import { mapActions, mapMutations, mapGetters } from 'vuex'
+import { mapState, mapActions, mapMutations, mapGetters } from 'vuex'
 import projectSelect from '../project/project_select'
 import changeLang from '../common/change_lang'
 import help from '../common/help'
@@ -156,7 +167,8 @@ let MessageBox = ElementUI.MessageBox
       setCurUser: 'SAVE_CURRENT_LOGIN_USER',
       resetProjectState: 'RESET_PROJECT_STATE',
       resetMonitorState: 'RESET_MONITOR_STATE',
-      toggleMenu: 'TOGGLE_MENU'
+      toggleMenu: 'TOGGLE_MENU',
+      cacheHistory: 'CACHE_HISTORY'
     }),
     ...mapActions('UserEditModal', {
       callUserEditModal: 'CALL_MODAL'
@@ -169,6 +181,9 @@ let MessageBox = ElementUI.MessageBox
     canary
   },
   computed: {
+    ...mapState({
+      cachedHistory: state => state.config.cachedHistory
+    }),
     ...mapGetters([
       'currentPathNameGet',
       'isFullScreen',
@@ -227,6 +242,11 @@ export default class LayoutLeftRightTop extends Vue {
   btnLoadingCancel = false
   rotateVisibel = false
 
+  get isAdminView () {
+    const adminRegex = /^\/admin/
+    return adminRegex.test(this.$route.fullPath)
+  }
+
   @Watch('reachThreshold', {immediate: true})
   onReachThreshold (val) {
     if (val) {
@@ -242,7 +262,15 @@ export default class LayoutLeftRightTop extends Vue {
       this.manualClose = true
     }
   }
-
+  handleSwitchAdmin () {
+    if (this.isAdminView) {
+      const nextLocation = this.cachedHistory ? this.cachedHistory : '/'
+      this.$router.push(nextLocation)
+    } else {
+      this.cacheHistory(this.$route.fullPath)
+      this.$router.push('/admin/project')
+    }
+  }
   loadSpeedInfo (loadingname) {
     if (!this.currentSelectedProject) {
       return
@@ -816,6 +844,9 @@ export default class LayoutLeftRightTop extends Vue {
           }
         }
       }
+    }
+    .entry-admin {
+      padding: 0;
     }
   }
   .round-icon (@width, @height) {

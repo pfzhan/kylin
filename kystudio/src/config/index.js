@@ -66,19 +66,24 @@ export const menusData = [
     ]
   },
   {
-    name: 'security',
-    path: '/security',
-    icon: 'el-icon-ksd-system',
-    children: [
-      {name: 'project', path: '/security/project'},
-      {name: 'user', path: '/security/user'},
-      {name: 'group', path: '/security/group'}
-    ]
-  },
-  {
     name: 'setting',
     path: '/setting',
     icon: 'el-icon-ksd-setting'
+  },
+  {
+    name: 'project',
+    path: '/admin/project',
+    icon: 'el-icon-ksd-project_list'
+  },
+  {
+    name: 'user',
+    path: '/admin/user',
+    icon: 'el-icon-ksd-table_admin'
+  },
+  {
+    name: 'group',
+    path: '/admin/group',
+    icon: 'el-icon-ksd-table_group'
   }
 ]
 export const modelHealthStatus = {

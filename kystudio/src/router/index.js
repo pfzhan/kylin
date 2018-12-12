@@ -66,23 +66,23 @@ let routerOptions = {
         component: () => import('../components/studio/StudioModel/ModelTabs/index.vue')
       }, {
         name: 'Project',
-        path: 'security/project',
+        path: 'admin/project',
         component: projectList
       },
       {
         name: 'User',
-        path: 'security/user',
-        component: () => import('../components/security/SecurityUser/index.vue')
+        path: 'admin/user',
+        component: () => import('../components/admin/User/index.vue')
       },
       {
         name: 'Group',
-        path: 'security/group',
-        component: () => import('../components/security/SecurityGroup/index.vue')
+        path: 'admin/group',
+        component: () => import('../components/admin/Group/index.vue')
       },
       {
         name: 'GroupDetail',
-        path: 'security/group/:groupName',
-        component: () => import('../components/security/SecurityUser/index.vue')
+        path: 'admin/group/:groupName',
+        component: () => import('../components/admin/Group/index.vue')
       },
       {
         name: 'Job',

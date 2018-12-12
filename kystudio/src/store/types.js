@@ -215,6 +215,7 @@ export const SAVE_DEFAULT_CONFIG = 'SAVE_DEFAULT_CONFIG'
 export const SAVE_HIDDEN_FEATURE = 'SAVE_HIDDEN_FEATURE'
 export const TOGGLE_SCREEN = 'TOGGLE_SCREEN'
 export const TOGGLE_MENU = 'TOGGLE_MENU'
+export const CACHE_HISTORY = 'CACHE_HISTORY'
 
 // kafka actions mutations
 export const GET_CLUSTER_INFO = 'GET_CLUSTER_INFO'
