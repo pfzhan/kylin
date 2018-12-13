@@ -31,6 +31,7 @@ import java.util.List;
 
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.rest.transaction.Transaction;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -124,6 +125,7 @@ public class NUserGroupService extends UserGroupService {
     }
 
     @Override
+    @Transaction
     public void addGroup(String name) throws IOException {
         aclEvaluate.checkIsGlobalAdmin();
         UserGroup userGroup = getUserGroup();
@@ -131,6 +133,7 @@ public class NUserGroupService extends UserGroupService {
     }
 
     @Override
+    @Transaction
     public void deleteGroup(String name) throws IOException {
         aclEvaluate.checkIsGlobalAdmin();
         // remove retained user group in all users
@@ -149,6 +152,7 @@ public class NUserGroupService extends UserGroupService {
 
     //user's group information is stored by user its own.Object user group does not hold user's ref.
     @Override
+    @Transaction
     public void modifyGroupUsers(String groupName, List<String> users) throws IOException {
         aclEvaluate.checkIsGlobalAdmin();
         List<String> groupUsers = new ArrayList<>();

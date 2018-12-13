@@ -127,6 +127,7 @@ public class KylinUserService implements UserService {
     }
 
     @Override
+    @Transaction
     public void deleteUser(String userName) {
         if (userName.equals(SUPER_ADMIN)) {
             throw new InternalErrorException("User " + userName + " is not allowed to be deleted.");

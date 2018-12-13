@@ -102,7 +102,6 @@ public class TableService extends BasicService {
     @Autowired
     private ModelService modelService;
 
-    @Transaction(project = 0)
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
             boolean isFuzzy) {
         NTableMetadataManager nTableMetadataManager = getTableManager(project);
@@ -186,7 +185,6 @@ public class TableService extends BasicService {
         return result;
     }
 
-    @Transaction(project = 1)
     public List<Pair<TableDesc, TableExtDesc>> extractTableMeta(String[] tables, String project, int sourceType)
             throws Exception {
         // de-dup
