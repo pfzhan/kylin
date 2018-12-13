@@ -60,8 +60,10 @@ public class RemoveUncapableRealizationsRule extends RoutingRule {
 
             CapabilityResult capability = candidate.getRealization().isCapable(candidate.getSqlDigest());
             candidate.setCapability(capability);
-            if (!capability.capable)
+            if (!capability.capable) {
                 iterator.remove();
+            }
+
         }
     }
 

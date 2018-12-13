@@ -73,10 +73,10 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
     public EnumerableJoin copy(RelTraitSet traitSet, RexNode conditionExpr, RelNode left, RelNode right, //
             JoinRelType joinType, boolean semiJoinDone) {
 
-        final JoinInfo joinInfo = JoinInfo.of(left, right, condition);
+        final JoinInfo joinInfo = JoinInfo.of(left, right, conditionExpr);
         assert joinInfo.isEqui();
         try {
-            return new KapJoinRel(getCluster(), traitSet, left, right, condition, joinInfo.leftKeys, joinInfo.rightKeys,
+            return new KapJoinRel(getCluster(), traitSet, left, right, conditionExpr, joinInfo.leftKeys, joinInfo.rightKeys,
                     variablesSet, joinType);
         } catch (InvalidRelException e) {
             // Semantic error not possible. Must be a bug. Convert to internal error.

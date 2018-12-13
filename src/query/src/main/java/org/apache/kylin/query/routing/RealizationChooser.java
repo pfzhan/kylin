@@ -43,47 +43,42 @@
 package org.apache.kylin.query.routing;
 
 import java.util.Collection;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
+import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.debug.BackdoorToggles;
-import org.apache.kylin.measure.MeasureType;
-import org.apache.kylin.metadata.filter.TupleFilter;
-import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.measure.bitmap.BitmapMeasureType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.query.relnode.OLAPContext;
-import org.apache.kylin.query.routing.rules.RemoveBlackoutRealizationsRule;
 import org.apache.kylin.storage.StorageContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Multimap;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.cube.cuboid.NLookupCandidate;
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -95,7 +90,6 @@ public class RealizationChooser {
     // select models for given contexts, return realization candidates for each context
     public static void selectLayoutCandidate(List<OLAPContext> contexts) {
         // try different model for different context
-
         for (OLAPContext ctx : contexts) {
             ctx.realizationCheck = new RealizationCheck();
             attemptSelectCandidate(ctx);
@@ -105,120 +99,120 @@ public class RealizationChooser {
 
     private static void attemptSelectCandidate(OLAPContext context) {
         context.setHasSelected(true);
-        Map<NDataModel, Set<IRealization>> modelMap = makeOrderedModelMap(context);
+        // Step 1. match Model,  joins
+        Multimap<NDataModel, IRealization> modelMap = makeOrderedModelMap(context);
         if (modelMap.size() == 0) {
             throw new NoRealizationFoundException("No model found for " + toErrorMsg(context));
         }
-
-        //check all models to collect error message, just for check
-        if (BackdoorToggles.getCheckAllModels()) {
-            for (Map.Entry<NDataModel, Set<IRealization>> entry : modelMap.entrySet()) {
-                final NDataModel model = entry.getKey();
-                final Map<String, String> aliasMap = matches(model, context);
-                if (aliasMap != null) {
-                    context.fixModel(model, aliasMap);
-                    QueryRouter.selectRealization(context, entry.getValue());
-                    context.unfixModel();
-                }
+        List<Candidate> candidates = Lists.newArrayList();
+        Map<NDataModel, Map<String, String>> model2AliasMap = Maps.newHashMap();
+        for (NDataModel model : modelMap.keySet()) {
+            final Map<String, String> map = matchJoins(model, context);
+            if (map == null) {
+                continue;
             }
+            context.fixModel(model, map);
+            model2AliasMap.put(model, map);
+
+            // Step 2. select realizations
+            preprocessOlapCtx(context);
+            Candidate candidate = QueryRouter.selectRealization(context, Sets.newHashSet(modelMap.get(model)));
+            if (candidate != null)
+                candidates.add(candidate);
+
+            context.unfixModel();
         }
 
-        for (Map.Entry<NDataModel, Set<IRealization>> entry : modelMap.entrySet()) {
-            final NDataModel model = entry.getKey();
-            final Map<String, String> aliasMap = matches(model, context);
-            if (aliasMap != null) {
-                context.fixModel(model, aliasMap);
+        // Step 3. find the lowest-cost candidate
+        Collections.sort(candidates);
+        if (!candidates.isEmpty()) {
+            Candidate selectedCandidate = candidates.get(0);
+            context.fixModel(selectedCandidate.getRealization().getModel(),
+                    model2AliasMap.get(selectedCandidate.getRealization().getModel()));
+            adjustForCapabilityInfluence(selectedCandidate, context);
 
-                IRealization realization = QueryRouter.selectRealization(context, entry.getValue());
-                if (realization == null) {
-                    logger.info("Give up on model {} because no suitable realization is found", model);
-                    context.unfixModel();
-                    continue;
-                }
-
-                context.realization = realization;
-                context.storageContext.setUseSnapshot(context.isFirstTableLookupTableInModel(realization.getModel()));
-                if (!context.storageContext.isUseSnapshot() && !chooseLayout(context)) {
-                    context.realization = null;
-                    context.unfixModel();
-                    logger.info(
-                            "Give up on realization {} because no suitable table snapshot or layout candidate is found.",
-                            realization);
-                    continue;
-                }
-                return; // success
+            context.realization = selectedCandidate.realization;
+            if (selectedCandidate.capability.selectedCandidate instanceof NLookupCandidate) {
+                context.storageContext
+                        .setUseSnapshot(context.isFirstTableLookupTableInModel(context.realization.getModel()));
+            } else {
+                Set<TblColRef> dimensions = Sets.newHashSet();
+                Set<FunctionDesc> metrics = Sets.newHashSet();
+                buildDimensionsAndMetrics(context.getSQLDigest(), dimensions, metrics, (NDataflow) context.realization);
+                buildStorageContext(context.storageContext, dimensions, metrics,
+                        (NLayoutCandidate) selectedCandidate.capability.selectedCandidate);
             }
+            return;
         }
 
         throw new NoRealizationFoundException("No realization found for " + toErrorMsg(context));
-
     }
 
-    private static boolean chooseLayout(OLAPContext context) {
-        context.resetSQLDigest();
-        SQLDigest sqlDigest = context.getSQLDigest();
-        NDataflow dataflow = (NDataflow) context.realization;
-        // Customized measure taking effect: e.g. allow custom measures to help raw queries
-        adjustSqlDigestForAdvanceMeasure(sqlDigest, dataflow);
-        // build dimension & metrics
-        Set<TblColRef> dimensions = new LinkedHashSet<>();
-        Set<FunctionDesc> metrics = new LinkedHashSet<>();
-        buildDimensionsAndMetrics(sqlDigest, dimensions, metrics, dataflow);
-        Set<TblColRef> filterColumns = Sets.newHashSet();
-        TupleFilter.collectColumns(sqlDigest.filter, filterColumns);
-
-        NDataSegment firstDataSegment = dataflow.getSegments(SegmentStatusEnum.READY).get(0);
-        // TODO: in future, segment's cuboid may differ
-        NLayoutCandidate layoutCandidate = NCuboidLayoutChooser.selectLayoutForQuery(//
-                firstDataSegment //
-                , ImmutableSet.copyOf(sqlDigest.allColumns) //
-                , ImmutableSet.copyOf(dimensions) //
-                , ImmutableSet.copyOf(filterColumns) //
-                , ImmutableSet.copyOf(metrics) //
-                , sqlDigest.isRawQuery); //
-        if (layoutCandidate != null) {
-            StorageContext storageContext = context.storageContext;
-            NCuboidLayout cuboidLayout = layoutCandidate.getCuboidLayout();
-            storageContext.setCandidate(layoutCandidate);
-            storageContext.setDimensions(dimensions);
-            storageContext.setMetrics(metrics);
-            storageContext.setCuboidId(cuboidLayout.getId());
-            logger.info("Choose model name: {}", cuboidLayout.getCuboidDesc().getModel().getName());
-            logger.info("Choose cubePlan name: {}", cuboidLayout.getCuboidDesc().getCubePlan().getName());
-            logger.info("Choose cuboid layout ID: {} dimensions: {}, measures: {}", cuboidLayout.getId(),
-                    cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures());
-            return true;
-        }
-        return false;
-    }
-
-    private static void adjustSqlDigestForAdvanceMeasure(SQLDigest sqlDigest, NDataflow selectedDataflow) {
-        Map<String, List<MeasureDesc>> clazzToMeasuresMap = Maps.newHashMap();
-        for (MeasureDesc measure : selectedDataflow.getMeasures()) {
-            MeasureType<?> measureType = measure.getFunction().getMeasureType();
-            String key = measureType.getClass().getCanonicalName();
-            List<MeasureDesc> temp;
-            if ((temp = clazzToMeasuresMap.get(key)) != null) {
-                temp.add(measure);
+    private static void adjustForCapabilityInfluence(Candidate chosen, OLAPContext olapContext) {
+        CapabilityResult capability = chosen.getCapability();
+        for (CapabilityResult.CapabilityInfluence inf : capability.influences) {
+            // convert the metric to dimension
+            if (inf instanceof CapabilityResult.DimensionAsMeasure) {
+                FunctionDesc functionDesc = ((CapabilityResult.DimensionAsMeasure) inf).getMeasureFunction();
+                functionDesc.setDimensionAsMetric(true);
+                addToContextGroupBy(functionDesc.getParameter().getColRefs(), olapContext);
+                olapContext.resetSQLDigest();
+                olapContext.getSQLDigest();
+                logger.info("Adjust DimensionAsMeasure for " + functionDesc);
             } else {
-                clazzToMeasuresMap.put(key, Lists.newArrayList(measure));
+                MeasureDesc involvedMeasure = inf.getInvolvedMeasure();
+                if (involvedMeasure == null)
+                    continue;
+                involvedMeasure.getFunction().getMeasureType().adjustSqlDigest(involvedMeasure,
+                        olapContext.getSQLDigest());
             }
         }
+    }
 
-        for (List<MeasureDesc> sublist : clazzToMeasuresMap.values()) {
-            sublist.get(0).getFunction().getMeasureType().adjustSqlDigest(sublist, sqlDigest);
+    private static void addToContextGroupBy(List<TblColRef> colRefs, OLAPContext context) {
+        for (TblColRef col : colRefs) {
+            if (col.isInnerColumn() == false && context.belongToContextTables(col))
+                context.groupByColumns.add(col);
         }
+    }
+
+    private static void preprocessOlapCtx(OLAPContext context) {
+        if (CollectionUtils.isEmpty(context.aggregations))
+            return;
+        Iterator<FunctionDesc> it = context.aggregations.iterator();
+        while (it.hasNext()) {
+            FunctionDesc func = it.next();
+            if (FunctionDesc.FUNC_GROUPING.equalsIgnoreCase(func.getExpression())) {
+                it.remove();
+            } else if (BitmapMeasureType.FUNC_INTERSECT_COUNT_DISTINCT.equalsIgnoreCase(func.getExpression())) {
+                TblColRef col = func.getParameter().getColRefs().get(1);
+                context.groupByColumns.add(col);
+            }
+        }
+    }
+
+    private static void buildStorageContext(StorageContext context, Set<TblColRef> dimensions,
+            Set<FunctionDesc> metrics, NLayoutCandidate selectedCandidate) {
+        NCuboidLayout cuboidLayout = selectedCandidate.getCuboidLayout();
+        context.setCandidate(selectedCandidate);
+        context.setDimensions(dimensions);
+        context.setMetrics(metrics);
+        context.setCuboidId(cuboidLayout.getId());
+        logger.info("Choose model name: {} joins: {}", cuboidLayout.getModel().getName(),
+                cuboidLayout.getModel().getJoinsGraph().toString());
+        logger.info("Choose cubePlan name: {} for context: {}", cuboidLayout.getCuboidDesc().getCubePlan().getName(),
+                context.getCtxId());
+        logger.info("Choose cuboid layout ID: {} dimensions: {}, measures: {}", cuboidLayout.getId(),
+                cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures());
     }
 
     private static void buildDimensionsAndMetrics(SQLDigest sqlDigest, Collection<TblColRef> dimensions,
             Collection<FunctionDesc> metrics, NDataflow dataflow) {
-        Set<TblColRef> metricColumns = new HashSet<>();
         for (FunctionDesc func : sqlDigest.aggregations) {
             if (!func.isDimensionAsMetric() && !func.isGrouping()) {
                 // use the FunctionDesc from cube desc as much as possible, that has more info such as HLLC precision
-                FunctionDesc aggrFuncFromDataflowDesc = findAggrFuncFromDataflowDesc(func, dataflow);
+                FunctionDesc aggrFuncFromDataflowDesc = dataflow.findAggrFuncFromDataflowDesc(func);
                 metrics.add(aggrFuncFromDataflowDesc);
-                metricColumns.addAll(aggrFuncFromDataflowDesc.getParameter().getColRefs());
             } else if (func.isDimensionAsMetric()) {
                 FunctionDesc funcUsedDimenAsMetric = findAggrFuncFromDataflowDesc(func, dataflow);
                 dimensions.addAll(funcUsedDimenAsMetric.getParameter().getColRefs());
@@ -228,13 +222,12 @@ public class RealizationChooser {
                 sqlDigest.groupbyColumns = Lists.newArrayList(groupbyCols);
             }
         }
-        for (TblColRef column : sqlDigest.allColumns) {
-            // skip measure columns
-            if (metricColumns.contains(column)
-                    && !(sqlDigest.groupbyColumns.contains(column) || sqlDigest.filterColumns.contains(column))) {
-                continue;
-            }
-            dimensions.add(column);
+
+        if (sqlDigest.isRawQuery) {
+            dimensions.addAll(sqlDigest.allColumns);
+        } else {
+            dimensions.addAll(sqlDigest.groupbyColumns);
+            dimensions.addAll(sqlDigest.filterColumns);
         }
     }
 
@@ -263,7 +256,7 @@ public class RealizationChooser {
         return buf.toString();
     }
 
-    public static Map<String, String> matches(NDataModel model, OLAPContext ctx) {
+    public static Map<String, String> matchJoins(NDataModel model, OLAPContext ctx) {
         Map<String, String> matchUp = Maps.newHashMap();
         TableRef firstTable = ctx.firstTableScan.getTableRef();
         boolean matched;
@@ -277,7 +270,8 @@ public class RealizationChooser {
             // has hanging tables
             ctx.realizationCheck.addModelIncapableReason(model,
                     RealizationCheck.IncapableReason.create(RealizationCheck.IncapableType.MODEL_BAD_JOIN_SEQUENCE));
-            throw new IllegalStateException("Please adjust the sequence of join tables. " + toErrorMsg(ctx));
+            //            throw new IllegalStateException("Please adjust the sequence of join tables. " + toErrorMsg(ctx));
+            return null;
         } else {
             // normal big joins
             if (ctx.getJoinsGraph() == null) {
@@ -295,7 +289,7 @@ public class RealizationChooser {
         return matchUp;
     }
 
-    private static Map<NDataModel, Set<IRealization>> makeOrderedModelMap(OLAPContext context) {
+    private static Multimap<NDataModel, IRealization> makeOrderedModelMap(OLAPContext context) {
         OLAPContext first = context;
         KylinConfig kylinConfig = first.olapSchema.getConfig();
         String projectName = first.olapSchema.getProjectName();
@@ -303,74 +297,17 @@ public class RealizationChooser {
         Set<IRealization> realizations = NProjectManager.getInstance(kylinConfig).getRealizationsByTable(projectName,
                 factTableName);
 
-        final Map<NDataModel, Set<IRealization>> models = Maps.newHashMap();
-        final Map<NDataModel, RealizationCost> costs = Maps.newHashMap();
-
+        final Multimap<NDataModel, IRealization> mapModelToRealizations = HashMultimap.create();
         for (IRealization real : realizations) {
-            if (real.isReady() == false) {
+            if (!real.isReady()) {
                 context.realizationCheck.addIncapableCube(real,
                         RealizationCheck.IncapableReason.create(RealizationCheck.IncapableType.CUBE_NOT_READY));
                 continue;
             }
-            if (containsAll(real.getAllColumnDescs(), first.allColumns) == false) {
-                context.realizationCheck.addIncapableCube(real, RealizationCheck.IncapableReason
-                        .notContainAllColumn(notContain(real.getAllColumnDescs(), first.allColumns)));
-                continue;
-            }
-            if (RemoveBlackoutRealizationsRule.accept(real) == false) {
-                context.realizationCheck.addIncapableCube(real, RealizationCheck.IncapableReason
-                        .create(RealizationCheck.IncapableType.CUBE_BLACK_OUT_REALIZATION));
-                continue;
-            }
-
-            RealizationCost cost = new RealizationCost(real);
-            NDataModel m = real.getModel();
-            Set<IRealization> set = models.get(m);
-            if (set == null) {
-                set = Sets.newHashSet();
-                set.add(real);
-                models.put(m, set);
-                costs.put(m, cost);
-            } else {
-                set.add(real);
-                RealizationCost curCost = costs.get(m);
-                if (cost.compareTo(curCost) < 0)
-                    costs.put(m, cost);
-            }
+            mapModelToRealizations.put(real.getModel(), real);
         }
 
-        // order model by cheapest realization cost
-        TreeMap<NDataModel, Set<IRealization>> result = Maps.newTreeMap(new Comparator<NDataModel>() {
-            @Override
-            public int compare(NDataModel o1, NDataModel o2) {
-                RealizationCost c1 = costs.get(o1);
-                RealizationCost c2 = costs.get(o2);
-                int comp = c1.compareTo(c2);
-                if (comp == 0)
-                    comp = o1.getName().compareTo(o2.getName());
-                return comp;
-            }
-        });
-        result.putAll(models);
-
-        return result;
-    }
-
-    private static boolean containsAll(Set<ColumnDesc> allColumnDescs, Set<TblColRef> allColumns) {
-        for (TblColRef col : allColumns) {
-            if (allColumnDescs.contains(col.getColumnDesc()) == false)
-                return false;
-        }
-        return true;
-    }
-
-    private static List<TblColRef> notContain(Set<ColumnDesc> allColumnDescs, Set<TblColRef> allColumns) {
-        List<TblColRef> notContainCols = Lists.newArrayList();
-        for (TblColRef col : allColumns) {
-            if (!allColumnDescs.contains(col.getColumnDesc()))
-                notContainCols.add(col);
-        }
-        return notContainCols;
+        return mapModelToRealizations;
     }
 
     private static class RealizationCost implements Comparable<RealizationCost> {
@@ -379,12 +316,9 @@ public class RealizationChooser {
         public static final int COST_WEIGHT_DIMENSION = 10;
         public static final int COST_WEIGHT_INNER_JOIN = 100;
 
-        final public int priority;
         final public int cost;
 
         public RealizationCost(IRealization real) {
-            // ref Candidate.PRIORITIES
-            this.priority = Candidate.PRIORITIES.get(real.getType());
 
             // ref CubeInstance.getCost()
             int countedDimensionNum;
@@ -403,10 +337,6 @@ public class RealizationChooser {
 
         @Override
         public int compareTo(RealizationCost o) {
-            int comp = this.priority - o.priority;
-            if (comp != 0)
-                return comp;
-            else
                 return this.cost - o.cost;
         }
     }

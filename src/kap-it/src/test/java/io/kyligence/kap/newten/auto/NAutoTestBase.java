@@ -40,7 +40,6 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.query.KylinTestBase;
-import org.apache.kylin.query.routing.Candidate;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.SparkContext;
 import org.junit.After;
@@ -102,7 +101,6 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         ResourceStore.clearCache(kylinConfig);
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
 
-        Candidate.restorePriorities();
         FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
         restoreAllSystemProp();
     }

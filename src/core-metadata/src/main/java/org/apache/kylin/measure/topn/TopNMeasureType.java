@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -356,41 +355,35 @@ public class TopNMeasureType extends MeasureType<TopNCounter<ByteArray>> {
     }
 
     @Override
-    public void adjustSqlDigest(List<MeasureDesc> measureDescs, SQLDigest sqlDigest) {
+    public void adjustSqlDigest(MeasureDesc involvedMeasure, SQLDigest sqlDigest) {
         if (sqlDigest.aggregations.size() > 1) {
             return;
         }
 
-        for (MeasureDesc measureDesc : measureDescs) {
-            if (!sqlDigest.involvedMeasure.contains(measureDesc)) {
-                continue;
-            }
-            FunctionDesc topnFunc = measureDesc.getFunction();
-            List<TblColRef> topnLiteralCol = getTopNLiteralColumn(topnFunc);
+        FunctionDesc topnFunc = involvedMeasure.getFunction();
+        List<TblColRef> topnLiteralCol = getTopNLiteralColumn(topnFunc);
 
-            if (sqlDigest.groupbyColumns.containsAll(topnLiteralCol) == false) {
-                continue;
-            }
-
-            if (sqlDigest.aggregations.size() > 0) {
-                FunctionDesc origFunc = sqlDigest.aggregations.iterator().next();
-                if (origFunc.isSum() == false && origFunc.isCount() == false) {
-                    logger.warn("When query with topN, only SUM/Count function is allowed.");
-                    return;
-                }
-
-                if (isTopNCompatibleSum(measureDesc.getFunction(), origFunc) == false) {
-                    continue;
-                }
-
-                logger.info("Rewrite function " + origFunc + " to " + topnFunc);
-            }
-
-            sqlDigest.aggregations = Lists.newArrayList(topnFunc);
-            sqlDigest.groupbyColumns.removeAll(topnLiteralCol);
-            sqlDigest.metricColumns.addAll(topnLiteralCol);
-            break;
+        if (sqlDigest.groupbyColumns.containsAll(topnLiteralCol) == false) {
+            return;
         }
+
+        if (sqlDigest.aggregations.size() > 0) {
+            FunctionDesc origFunc = sqlDigest.aggregations.iterator().next();
+            if (origFunc.isSum() == false && origFunc.isCount() == false) {
+                logger.warn("When query with topN, only SUM/Count function is allowed.");
+                return;
+            }
+
+            if (isTopNCompatibleSum(involvedMeasure.getFunction(), origFunc) == false) {
+                return;
+            }
+
+            logger.info("Rewrite function " + origFunc + " to " + topnFunc);
+        }
+
+        sqlDigest.aggregations = Lists.newArrayList(topnFunc);
+        sqlDigest.groupbyColumns.removeAll(topnLiteralCol);
+        sqlDigest.metricColumns.addAll(topnLiteralCol);
     }
 
     @Override

@@ -34,13 +34,17 @@ import org.apache.kylin.common.util.Array;
 import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.kylin.metadata.realization.IRealizationCandidate;
 
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import lombok.Setter;
 
-public class NLayoutCandidate {
+public class NLayoutCandidate implements IRealizationCandidate  {
     private @Nonnull NCuboidLayout cuboidLayout;
+    @Setter
+    private double cost;
 
     // derived
     private @Nonnull Map<TblColRef, DeriveInfo> derivedToHostMap = Maps.newHashMap();
@@ -106,4 +110,8 @@ public class NLayoutCandidate {
         return hostToDerivedMap;
     }
 
+    @Override
+    public double getCost() {
+        return this.cost;
+    }
 }

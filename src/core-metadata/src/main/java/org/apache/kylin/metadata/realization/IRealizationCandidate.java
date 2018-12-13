@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -40,30 +39,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.apache.kylin.metadata.realization;
 
-package org.apache.kylin.query.routing.rules;
-
-import java.util.Collections;
-import java.util.List;
-
-import org.apache.kylin.query.routing.Candidate;
-import org.apache.kylin.query.routing.RoutingRule;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-/**
- */
-public class RealizationSortRule extends RoutingRule {
-    private static final Logger logger = LoggerFactory.getLogger(RealizationSortRule.class);
-
-    @Override
-    public void apply(List<Candidate> candidates) {
-        StringBuilder sb = new StringBuilder();
-        for (Candidate candidate : candidates) {
-            sb.append(candidate.getRealization().getCanonicalName() + " cost " + candidate.getCapability().cost + ". ");
-        }
-        logger.info(sb.toString());
-
-        Collections.sort(candidates);
-    }
+public interface IRealizationCandidate {
+    public double getCost();
 }

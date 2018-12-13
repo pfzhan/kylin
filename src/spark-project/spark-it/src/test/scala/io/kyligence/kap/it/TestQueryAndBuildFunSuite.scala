@@ -28,9 +28,8 @@ import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSour
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import io.netty.util.internal.ThrowableUtil
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 import org.apache.spark.sql.SparderEnv
-import org.apache.spark.sql.common.SparderBaseFunSuite
+import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 
 class TestQueryAndBuildFunSuite
     extends SparderBaseFunSuite
@@ -79,7 +78,8 @@ class TestQueryAndBuildFunSuite
     FloderInfo("sql_distinct")
   )
   val tempQuery = List(
-    FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql"))
+//    FloderInfo("sql_tableau", List("query00.sql", "query24.sql", "query25.sql")),
+    FloderInfo("temp")
   )
 
   val joinTypes = List(
@@ -106,6 +106,7 @@ class TestQueryAndBuildFunSuite
       print(result)
     }
     assert(result.isEmpty)
+
     result = noneCompare
       .flatMap { folder =>
         queryFolderWithoutCompare(folder)
@@ -166,5 +167,6 @@ class TestQueryAndBuildFunSuite
       buildFourSegementAndMerge("ncube_basic")
       buildFourSegementAndMerge("ncube_basic_inner")
     }
+
   }
 }

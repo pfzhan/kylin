@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,46 +42,27 @@
 
 package org.apache.kylin.query.routing;
 
-import java.util.Collections;
-import java.util.Map;
-
 import org.apache.kylin.metadata.realization.CapabilityResult;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.SQLDigest;
+import org.apache.kylin.query.relnode.OLAPContext;
 
-import com.google.common.collect.Maps;
+import lombok.Getter;
 
 public class Candidate implements Comparable<Candidate> {
-
-    static Map<String, Integer> DEFAULT_PRIORITIES = Maps.newHashMap();
-    static Map<String, Integer> PRIORITIES = DEFAULT_PRIORITIES;
-
-    static {
-        DEFAULT_PRIORITIES.put("INVERTED_INDEX", 1);
-        DEFAULT_PRIORITIES.put("NCUBE", 1);
-    }
-
-    /** for test only */
-    public static void setPriorities(Map<String, Integer> priorities) {
-        PRIORITIES = Collections.unmodifiableMap(priorities);
-    }
-
-    /** for test only */
-    public static void restorePriorities() {
-        PRIORITIES = Collections.unmodifiableMap(DEFAULT_PRIORITIES);
-    }
 
     // ============================================================================
 
     IRealization realization;
+    @Getter
+    OLAPContext ctx;
     SQLDigest sqlDigest;
-    int priority;
     CapabilityResult capability;
 
-    public Candidate(IRealization realization, SQLDigest sqlDigest) {
+    public Candidate(IRealization realization, SQLDigest sqlDigest, OLAPContext ctx) {
         this.realization = realization;
         this.sqlDigest = sqlDigest;
-        this.priority = PRIORITIES.get(realization.getType());
+        this.ctx = ctx;
     }
 
     public IRealization getRealization() {
@@ -91,10 +71,6 @@ public class Candidate implements Comparable<Candidate> {
 
     public SQLDigest getSqlDigest() {
         return sqlDigest;
-    }
-
-    public int getPriority() {
-        return priority;
     }
 
     public CapabilityResult getCapability() {
@@ -107,15 +83,13 @@ public class Candidate implements Comparable<Candidate> {
 
     @Override
     public int compareTo(Candidate o) {
-        int comp = this.priority - o.priority;
-        if (comp != 0) {
+        int comp = o.realization.getCost() - this.realization.getCost();
+        if (comp != 0)
             return comp;
-        }
 
-        comp = this.capability.cost - o.capability.cost;
-        if (comp != 0) {
+        comp = Double.compare(o.capability.selectedCandidate.getCost(), this.capability.selectedCandidate.getCost());
+        if (comp != 0)
             return comp;
-        }
 
         return 0;
     }

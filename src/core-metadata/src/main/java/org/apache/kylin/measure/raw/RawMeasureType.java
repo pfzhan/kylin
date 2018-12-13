@@ -223,7 +223,6 @@ public class RawMeasureType extends MeasureType<List<ByteArray>> {
         return false;
     }
 
-    @Override
     public void adjustSqlDigest(List<MeasureDesc> measureDescs, SQLDigest sqlDigest) {
 
         if (sqlDigest.isRawQuery) {

@@ -43,6 +43,11 @@
 
 package org.apache.kylin.measure;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -51,11 +56,6 @@ import org.apache.kylin.metadata.realization.CapabilityResult.CapabilityInfluenc
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.apache.kylin.metadata.tuple.Tuple;
 import org.apache.kylin.metadata.tuple.TupleInfo;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
 /**
  * MeasureType captures how a kind of aggregation is defined, how it is calculated 
@@ -153,7 +153,7 @@ abstract public class MeasureType<T> implements java.io.Serializable {
      * They need to adjust dimensions and measures in <code>sqlDigest</code> before scanning,
      * such that correct cuboid and measures can be selected by storage.
      */
-    public void adjustSqlDigest(List<MeasureDesc> measureDescs, SQLDigest sqlDigest) {
+    public void adjustSqlDigest(MeasureDesc involvedMeasure, SQLDigest sqlDigest) {
     }
 
     /** Return true if one storage record maps to multiple tuples, or false otherwise. */

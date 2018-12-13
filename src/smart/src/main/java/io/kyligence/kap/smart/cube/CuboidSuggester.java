@@ -146,7 +146,7 @@ class CuboidSuggester {
             }
 
             try {
-                Map<String, String> aliasMap = RealizationChooser.matches(model, ctx);
+                Map<String, String> aliasMap = RealizationChooser.matchJoins(model, ctx);
                 Preconditions.checkState(aliasMap != null, getMsgTemplateByModelMaintainType(TABLE_NOT_MATCHED),
                         model.getAlias());
                 ctx.fixModel(model, aliasMap);

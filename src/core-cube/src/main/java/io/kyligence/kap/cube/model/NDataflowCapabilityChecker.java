@@ -25,214 +25,86 @@
 package io.kyligence.kap.cube.model;
 
 import java.util.Collection;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.collections.CollectionUtils;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.measure.MeasureType;
-import org.apache.kylin.measure.basic.BasicMeasureType;
-import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.CapabilityResult;
+import org.apache.kylin.metadata.realization.IRealizationCandidate;
 import org.apache.kylin.metadata.realization.SQLDigest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.cube.cuboid.NLookupCandidate;
+import io.kyligence.kap.cube.cuboid.NQueryLayoutChooser;
 
 public class NDataflowCapabilityChecker {
     private static final Logger logger = LoggerFactory.getLogger(NDataflowCapabilityChecker.class);
 
     public static CapabilityResult check(NDataflow dataflow, SQLDigest digest) {
         CapabilityResult result = new CapabilityResult();
-        result.capable = false;
-
-        // 1. match joins is ensured at model select
-
-        // 2. ensure all dimensions and measures included in dataflow
-        Collection<TblColRef> dimensionColumns = getDimensionColumns(digest);
-        Collection<FunctionDesc> aggrFunctions = digest.aggregations;
-        Collection<TblColRef> unmatchedDimensions = unmatchedDimensions(dimensionColumns, dataflow);
-        Collection<FunctionDesc> unmatchedAggregations = unmatchedAggregations(aggrFunctions, dataflow);
-
-        // try custom measure types
-        tryCustomMeasureTypes(unmatchedDimensions, unmatchedAggregations, digest, dataflow, result);
-        removeUnmatchedGroupingAgg(unmatchedAggregations);
-
-        //more tricks
-        String rootFactTable = dataflow.getModel().getRootFactTableName();
-        if (rootFactTable.equals(digest.factTable)) {
-            //for query-on-facttable
-            //1. dimension as measure
-
-            if (!unmatchedAggregations.isEmpty()) {
-                tryDimensionAsMeasures(unmatchedAggregations, result,
-                        dataflow.getCubePlan().listDimensionColumnsIncludingDerived(null), true);
-            }
-        } else {
-            //for non query-on-facttable
-            if (dataflow.getSegments().get(0).getSnapshots().containsKey(digest.factTable)) {
-
-                Set<TblColRef> dimCols = Sets
-                        .newHashSet(dataflow.getModel().findFirstTable(digest.factTable).getColumns());
-
-                //1. all aggregations on lookup table can be done. For distinct count, mark them all DimensionAsMeasures
-                // so that the measure has a chance to be upgraded to DimCountDistinctMeasureType in org.apache.kylin.metadata.model.FunctionDesc#reInitMeasureType
-                if (!unmatchedAggregations.isEmpty()) {
-                    Iterator<FunctionDesc> itr = unmatchedAggregations.iterator();
-                    while (itr.hasNext()) {
-                        FunctionDesc functionDesc = itr.next();
-                        if (dimCols.containsAll(functionDesc.getParameter().getColRefs())) {
-                            itr.remove();
-                        }
-                    }
-                }
-                tryDimensionAsMeasures(Lists.newArrayList(aggrFunctions), result, dimCols, false);
-
-                //2. more "dimensions" contributed by snapshot
-                if (!unmatchedDimensions.isEmpty()) {
-                    unmatchedDimensions.removeAll(dimCols);
-                }
-            } else {
-                logger.info("NDataflow {} does not touch lookup table {} at all", dataflow.getName(), digest.factTable);
-                return result;
-            }
-        }
-
-        if (!unmatchedDimensions.isEmpty()) {
-            logger.info("Exclude NDataflow " + dataflow.getName() + " because unmatched dimensions: "
-                    + unmatchedDimensions);
-            result.incapableCause = CapabilityResult.IncapableCause.unmatchedDimensions(unmatchedDimensions);
-            return result;
-        }
-
-        if (!unmatchedAggregations.isEmpty()) {
-            logger.info("Exclude NDataflow " + dataflow.getName() + " because unmatched aggregations: "
-                    + unmatchedAggregations);
-            result.incapableCause = CapabilityResult.IncapableCause.unmatchedAggregations(unmatchedAggregations);
-            return result;
-        }
-
         if (digest.limitPrecedesAggr) {
-            logger.info("Exclude NDataflow " + dataflow.getName() + " because there's limit preceding aggregation");
+            logger.info("Exclude NDataflow {} because there's limit preceding aggregation", dataflow.getName());
             result.incapableCause = CapabilityResult.IncapableCause
                     .create(CapabilityResult.IncapableType.LIMIT_PRECEDE_AGGR);
             return result;
         }
 
-        if (digest.isRawQuery && rootFactTable.equals(digest.factTable)) {
-            if (dataflow.getConfig().isDisableCubeNoAggSQL()) {
-                result.incapableCause = CapabilityResult.IncapableCause
-                        .create(CapabilityResult.IncapableType.UNSUPPORT_RAWQUERY);
-                return result;
-            } else {
-                result.influences.add(new CapabilityResult.CapabilityInfluence() {
-                    @Override
-                    public double suggestCostMultiplier() {
-                        return 100;
-                    }
+        // 1. match joins is ensured at model select
+        String rootFactTable = dataflow.getModel().getRootFactTableName();
+        IRealizationCandidate chosenCandidate = null;
+        if (digest.joinDescs.isEmpty() && !rootFactTable.equals(digest.factTable)) {
+            chosenCandidate = tryMatchLookup(dataflow, digest, result);
 
-                    @Override
-                    public MeasureDesc getInvolvedMeasure() {
-                        return null;
-                    }
-                });
+        } else {
+            // for query-on-facttable
+            Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> candidateAndInfluence = NQueryLayoutChooser
+                    .selectCuboidLayout(//
+                            dataflow.getLatestReadySegment(), digest);
+            if (candidateAndInfluence != null) {
+                chosenCandidate = candidateAndInfluence.getFirst();
+                result.influences.addAll(candidateAndInfluence.getSecond());
             }
         }
-
-        // cost will be minded by caller
-        result.capable = true;
+        if (chosenCandidate != null) {
+            result.capable = true;
+            result.selectedCandidate = chosenCandidate;
+        } else {
+            result.capable = false;
+        }
         return result;
     }
 
-    private static Collection<TblColRef> getDimensionColumns(SQLDigest sqlDigest) {
-        Collection<TblColRef> groupByColumns = sqlDigest.groupbyColumns;
-        Collection<TblColRef> filterColumns = sqlDigest.filterColumns;
-
-        Collection<TblColRef> dimensionColumns = new HashSet<TblColRef>();
-        dimensionColumns.addAll(groupByColumns);
-        dimensionColumns.addAll(filterColumns);
-        return dimensionColumns;
-    }
-
-    private static Set<TblColRef> unmatchedDimensions(Collection<TblColRef> dimensionColumns, NDataflow dataflow) {
-        HashSet<TblColRef> result = Sets.newHashSet(dimensionColumns);
-        result.removeAll(dataflow.getCubePlan().listDimensionColumnsIncludingDerived(null));
-        return result;
-    }
-
-    private static Set<FunctionDesc> unmatchedAggregations(Collection<FunctionDesc> aggregations, NDataflow dataflow) {
-        HashSet<FunctionDesc> result = Sets.newHashSet(aggregations);
-        result.removeAll(dataflow.getCubePlan().listAllFunctions());
-        return result;
-    }
-
-    private static void tryDimensionAsMeasures(Collection<FunctionDesc> unmatchedAggregations, CapabilityResult result,
-            Set<TblColRef> dimCols, boolean queryOnFactTable) {
-        Iterator<FunctionDesc> it = unmatchedAggregations.iterator();
-        while (it.hasNext()) {
-            FunctionDesc functionDesc = it.next();
-            if (!queryOnFactTable && functionDesc.isCount()) {
-                it.remove();
-                continue;
-            }
-
-            // calcite can do aggregation from columns on-the-fly
-            ParameterDesc parameterDesc = functionDesc.getParameter();
-            if (parameterDesc == null)
-                continue;
-
-            Set<String> buildAggregations = queryOnFactTable ? FunctionDesc.DIMENSION_AS_MEASURES
-                    : FunctionDesc.BUILT_IN_AGGREGATIONS;
-            List<TblColRef> neededCols = parameterDesc.getColRefs();
-            if (neededCols.size() <= 0 || !dimCols.containsAll(neededCols)) {
-                continue;
-            }
-
-            if (buildAggregations.contains(functionDesc.getExpression())) {
-                result.influences.add(new CapabilityResult.DimensionAsMeasure(functionDesc));
-                it.remove();
-                continue;
-            }
+    private static IRealizationCandidate tryMatchLookup(NDataflow dataflow, SQLDigest digest, CapabilityResult result) {
+        // query from snapShot table
+        if (!dataflow.getLatestReadySegment().getSnapshots().containsKey(digest.factTable)) {
+            logger.info("Exclude NDataflow {} because snapshot of table {} does not exist", dataflow.getName(),
+                    digest.factTable);
+            result.incapableCause = CapabilityResult.IncapableCause
+                    .create(CapabilityResult.IncapableType.NOT_EXIST_SNAPSHOT);
+            result.capable = false;
+            return null;
         }
-    }
 
-    // custom measure types can cover unmatched dimensions or measures
-    private static void tryCustomMeasureTypes(Collection<TblColRef> unmatchedDimensions,
-            Collection<FunctionDesc> unmatchedAggregations, SQLDigest digest, NDataflow dataflow,
-            CapabilityResult result) {
-        List<String> influencingMeasures = Lists.newArrayList();
-        for (MeasureDesc measure : dataflow.getMeasures()) {
-            //            if (unmatchedDimensions.isEmpty() && unmatchedAggregations.isEmpty())
-            //                break;
-
-            MeasureType<?> measureType = measure.getFunction().getMeasureType();
-            if (measureType instanceof BasicMeasureType)
-                continue;
-
-            CapabilityResult.CapabilityInfluence inf = measureType.influenceCapabilityCheck(unmatchedDimensions,
-                    unmatchedAggregations, digest, measure);
-            if (inf != null) {
-                result.influences.add(inf);
-                influencingMeasures.add(measure.getName() + "@" + measureType.getClass());
-            }
+        //1. all aggregations on lookup table can be done
+        Set<TblColRef> colsOfSnapShot = Sets
+                .newHashSet(dataflow.getModel().findFirstTable(digest.factTable).getColumns());
+        Collection<TblColRef> unmatchedCols = digest.allColumns;
+        if (!unmatchedCols.isEmpty()) {
+            unmatchedCols.removeAll(colsOfSnapShot);
         }
-        if (influencingMeasures.size() != 0)
-            logger.info("NDataflow {} CapabilityInfluences: {}", dataflow.getCanonicalName(),
-                    StringUtils.join(influencingMeasures, ","));
-    }
 
-    private static void removeUnmatchedGroupingAgg(Collection<FunctionDesc> unmatchedAggregations) {
-        if (CollectionUtils.isEmpty(unmatchedAggregations))
-            return;
-
-        unmatchedAggregations
-                .removeIf(functionDesc -> FunctionDesc.FUNC_GROUPING.equalsIgnoreCase(functionDesc.getExpression()));
+        if (!unmatchedCols.isEmpty()) {
+            logger.info("Exclude NDataflow {} because unmatched dimensions [{}] in Snapshot", dataflow.getName(),
+                    unmatchedCols);
+            result.incapableCause = CapabilityResult.IncapableCause.unmatchedDimensions(unmatchedCols);
+            return null;
+        } else {
+            return new NLookupCandidate(digest.factTable, true);
+        }
     }
 }

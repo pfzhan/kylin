@@ -117,7 +117,6 @@ public class ExtendedColumnMeasureType extends MeasureType<ByteArray> {
         return params.get(params.size() - 1);
     }
 
-    @Override
     public void adjustSqlDigest(List<MeasureDesc> measureDescs, SQLDigest sqlDigest) {
         for (MeasureDesc measureDesc : measureDescs) {
             if (!sqlDigest.involvedMeasure.contains(measureDesc)) {

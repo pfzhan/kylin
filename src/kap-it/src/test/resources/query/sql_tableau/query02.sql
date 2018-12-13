@@ -27,4 +27,4 @@ SELECT *
  group by test_kylin_fact.lstg_format_name, test_cal_dt.week_beg_dt 
  having sum(price)>500 
  ) "TableauSQL" 
- LIMIT 1 
+--  LIMIT 1

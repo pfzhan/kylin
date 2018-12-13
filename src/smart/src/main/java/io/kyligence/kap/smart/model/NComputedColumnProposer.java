@@ -135,7 +135,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         // Load from context
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
             // fix models to update alias
-            Map<String, String> matchingAlias = RealizationChooser.matches(nDataModel, ctx);
+            Map<String, String> matchingAlias = RealizationChooser.matchJoins(nDataModel, ctx);
             ctx.fixModel(nDataModel, matchingAlias);
             ccSuggestions.addAll(collectInnerColumnCandidate(ctx, matchingAlias));
             ctx.unfixModel();

@@ -60,8 +60,6 @@ import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.realization.SQLDigest;
-import org.apache.kylin.metadata.realization.SQLDigest.SQLCall;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -199,14 +197,4 @@ public class BitmapMeasureType extends MeasureType<BitmapCounter> {
         return UDAF_MAP;
     }
 
-    @Override
-    public void adjustSqlDigest(List<MeasureDesc> measureDescs, SQLDigest sqlDigest) {
-        for (SQLCall call : sqlDigest.aggrSqlCalls) {
-            if (FUNC_INTERSECT_COUNT_DISTINCT.equals(call.function)) {
-                TblColRef col = (TblColRef) call.args.get(1);
-                if (!sqlDigest.groupbyColumns.contains(col))
-                    sqlDigest.groupbyColumns.add(col);
-            }
-        }
-    }
 }

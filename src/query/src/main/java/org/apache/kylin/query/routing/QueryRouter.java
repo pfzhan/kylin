@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,11 +46,6 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.kylin.metadata.model.FunctionDesc;
-import org.apache.kylin.metadata.model.TblColRef;
-import org.apache.kylin.metadata.realization.CapabilityResult;
-import org.apache.kylin.metadata.realization.CapabilityResult.CapabilityInfluence;
-import org.apache.kylin.metadata.realization.CapabilityResult.DimensionAsMeasure;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.SQLDigest;
@@ -68,72 +62,45 @@ public class QueryRouter {
 
     private static final Logger logger = LoggerFactory.getLogger(QueryRouter.class);
 
-    public static IRealization selectRealization(OLAPContext olapContext, Set<IRealization> realizations)
+    public static Candidate selectRealization(OLAPContext olapContext, Set<IRealization> realizations)
             throws NoRealizationFoundException {
         String factTableName = olapContext.firstTableScan.getTableName();
         String projectName = olapContext.olapSchema.getProjectName();
         SQLDigest sqlDigest = olapContext.getSQLDigest();
         List<Candidate> candidates = Lists.newArrayListWithCapacity(realizations.size());
         for (IRealization real : realizations) {
-            if (real.isReady())
-                candidates.add(new Candidate(real, sqlDigest));
+            if (real.isReady()) {
+                candidates.add(new Candidate(real, sqlDigest, olapContext));
+            }
         }
-        logger.info("Find candidates by table " + factTableName + " and project=" + projectName + " : "
-                + StringUtils.join(candidates, ","));
+        logger.info("Find candidates by table {} and project={} : {}", factTableName, projectName,
+                StringUtils.join(candidates, ","));
 
         List<Candidate> originCandidates = Lists.newArrayList(candidates);
         // rule based realization selection, rules might reorder realizations or remove specific realization
         RoutingRule.applyRules(candidates);
+
         collectIncapableReason(olapContext, originCandidates);
-        if (candidates.size() == 0) {
+        if (candidates.isEmpty()) {
             return null;
         }
 
         Candidate chosen = candidates.get(0);
-        adjustForDimensionAsMeasure(chosen, olapContext);
-        for (CapabilityInfluence influence : chosen.getCapability().influences) {
-            if (influence.getInvolvedMeasure() != null) {
-                olapContext.involvedMeasure.add(influence.getInvolvedMeasure());
-            }
-        }
-
-        logger.info("The realizations remaining: " + RoutingRule.getPrintableText(candidates)
-                + ",and the final chosen one for current olap context " + olapContext.id + " is "
-                + chosen.realization.getCanonicalName());
-        return chosen.realization;
-    }
-
-    private static void adjustForDimensionAsMeasure(Candidate chosen, OLAPContext olapContext) {
-        CapabilityResult capability = chosen.getCapability();
-        for (CapabilityInfluence inf : capability.influences) {
-            // convert the metric to dimension
-            if (inf instanceof DimensionAsMeasure) {
-                FunctionDesc functionDesc = ((DimensionAsMeasure) inf).getMeasureFunction();
-                functionDesc.setDimensionAsMetric(true);
-                addToContextGroupBy(functionDesc.getParameter().getColRefs(), olapContext);
-                logger.info("Adjust DimensionAsMeasure for " + functionDesc);
-            }
-        }
-    }
-
-    private static void addToContextGroupBy(List<TblColRef> colRefs, OLAPContext context) {
-        for (TblColRef col : colRefs) {
-            if (col.isInnerColumn() == false && context.belongToContextTables(col))
-                context.groupByColumns.add(col);
-        }
+        logger.info("The realizations remaining: {}, and the final chosen one for current olap context {} is {}",
+                RoutingRule.getPrintableText(candidates), olapContext.id, chosen.realization.getCanonicalName());
+        return chosen;
     }
 
     private static void collectIncapableReason(OLAPContext olapContext, List<Candidate> candidates) {
-        //TODO
-//        for (Candidate candidate : candidates) {
-//            if (!candidate.getCapability().capable) {
-//                RealizationCheck.IncapableReason reason = RealizationCheck.IncapableReason
-//                        .create(candidate.getCapability().incapableCause);
-//                if (reason != null)
-//                    olapContext.realizationCheck.addIncapableCube(candidate.getRealization(), reason);
-//            } else {
-//                olapContext.realizationCheck.addCapableCube(candidate.getRealization());
-//            }
-//        }
+        for (Candidate candidate : candidates) {
+            if (!candidate.getCapability().capable) {
+                RealizationCheck.IncapableReason reason = RealizationCheck.IncapableReason
+                        .create(candidate.getCapability().incapableCause);
+                if (reason != null)
+                    olapContext.realizationCheck.addIncapableCube(candidate.getRealization(), reason);
+            } else {
+                olapContext.realizationCheck.addCapableCube(candidate.getRealization());
+            }
+        }
     }
 }

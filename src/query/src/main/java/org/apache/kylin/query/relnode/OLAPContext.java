@@ -46,6 +46,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -188,13 +189,13 @@ public class OLAPContext {
     @Setter
     private boolean hasSelected = false;
     public Set<TblColRef> allColumns = new HashSet<>();
-    public final List<TblColRef> groupByColumns = new ArrayList<>();
-    public final Set<TblColRef> subqueryJoinParticipants = new HashSet<>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
+    public Set<TblColRef> groupByColumns = Sets.newLinkedHashSet();
+    public Set<TblColRef> subqueryJoinParticipants = new HashSet<TblColRef>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
     public Set<TblColRef> metricsColumns = new HashSet<>();
     public List<FunctionDesc> aggregations = new ArrayList<>(); // storage level measure type, on top of which various sql aggr function may apply
     public List<TblColRef> aggrOutCols = new ArrayList<>(); // aggregation output (inner) columns
     public List<SQLCall> aggrSqlCalls = new ArrayList<>(); // sql level aggregation function call
-    public Set<TblColRef> filterColumns = new HashSet<>();
+    public Set<TblColRef> filterColumns = new LinkedHashSet<>();
     public TupleFilter filter;
     public TupleFilter havingFilter;
     public List<JoinDesc> joins = new LinkedList<>();
@@ -226,7 +227,7 @@ public class OLAPContext {
                     Lists.newLinkedList(joins), // model
                     Lists.newArrayList(groupByColumns), Sets.newHashSet(subqueryJoinParticipants), // group by
                     Sets.newHashSet(metricsColumns), Lists.newArrayList(aggregations), Lists.newArrayList(aggrSqlCalls), // aggregation
-                    Sets.newHashSet(filterColumns), filter, havingFilter, // filter
+                    Sets.newLinkedHashSet(filterColumns), filter, havingFilter, // filter
                     Lists.newArrayList(sortColumns), Lists.newArrayList(sortOrders), limitPrecedesAggr, // sort & limit
                     Sets.newHashSet(involvedMeasure));
         return sqlDigest;

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -55,6 +54,7 @@ import org.apache.kylin.metadata.tuple.IEvaluatableTuple;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
 
 /**
@@ -67,7 +67,9 @@ public abstract class TupleFilter {
     static final Logger logger = LoggerFactory.getLogger(TupleFilter.class);
 
     public enum FilterOperatorEnum {
-        EQ(1), NEQ(2), GT(3), LT(4), GTE(5), LTE(6), ISNULL(7), ISNOTNULL(8), IN(9), NOTIN(10), AND(20), OR(21), NOT(22), COLUMN(30), CONSTANT(31), DYNAMIC(32), EXTRACT(33), CASE(34), FUNCTION(35), MASSIN(36), EVAL_FUNC(37), UNSUPPORTED(38);
+        EQ(1), NEQ(2), GT(3), LT(4), GTE(5), LTE(6), ISNULL(7), ISNOTNULL(8), IN(9), NOTIN(10), AND(20), OR(21), NOT(
+                22), COLUMN(30), CONSTANT(31), DYNAMIC(
+                        32), EXTRACT(33), CASE(34), FUNCTION(35), MASSIN(36), EVAL_FUNC(37), UNSUPPORTED(38);
 
         private final int value;
 
@@ -79,6 +81,9 @@ public abstract class TupleFilter {
             return this.value;
         }
     }
+
+    static List<FilterOperatorEnum> NON_RANGE_FILTER = ImmutableList.<FilterOperatorEnum> builder()
+            .add(FilterOperatorEnum.EQ, FilterOperatorEnum.IN, FilterOperatorEnum.ISNULL).build();
 
     public static final int BUFFER_SIZE = 10240;
 
@@ -253,16 +258,23 @@ public abstract class TupleFilter {
     }
 
     public static void collectColumns(TupleFilter filter, Set<TblColRef> collector) {
+        collectColumns(filter, collector, filter != null && !NON_RANGE_FILTER.contains(filter.operator));
+    }
+
+    private static void collectColumns(TupleFilter filter, Set<TblColRef> collector, boolean isRangeFilter) {
         if (filter == null || collector == null)
             return;
 
         if (filter instanceof ColumnTupleFilter) {
             ColumnTupleFilter columnTupleFilter = (ColumnTupleFilter) filter;
-            collector.add(columnTupleFilter.getColumn());
+            TblColRef filtercol = columnTupleFilter.getColumn();
+            filtercol.setFilterLevel(
+                    isRangeFilter ? TblColRef.FilterColEnum.RANGE_FILTER : TblColRef.FilterColEnum.EQUALS_FILTER);
+            collector.add(filtercol);
         }
 
         for (TupleFilter child : filter.getChildren()) {
-            collectColumns(child, collector);
+            collectColumns(child, collector, !NON_RANGE_FILTER.contains(filter.operator));
         }
     }
 

@@ -37,6 +37,7 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ColumnDesc;
+import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -166,6 +167,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @Override
     public CapabilityResult isCapable(SQLDigest digest) {
+
         return NDataflowCapabilityChecker.check(this, digest);
     }
 
@@ -210,6 +212,14 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         List<MeasureDesc> result = Lists.newArrayListWithExpectedSize(measures.size());
         result.addAll(measures);
         return result;
+    }
+
+    public FunctionDesc findAggrFuncFromDataflowDesc(FunctionDesc aggrFunc) {
+        for (MeasureDesc measure : this.getMeasures()) {
+            if (measure.getFunction().equals(aggrFunc))
+                return measure.getFunction();
+        }
+        return aggrFunc;
     }
 
     @Override
@@ -265,21 +275,21 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         }
     }
 
-    public NDataSegment getLastSegment() {
-        List<NDataSegment> existing = getSegments();
-        if (existing.isEmpty()) {
-            return null;
-        } else {
-            return existing.get(existing.size() - 1);
-        }
-    }
-
     public NDataSegment getLatestReadySegment() {
         Segments<NDataSegment> readySegment = getSegments(SegmentStatusEnum.READY);
         if (readySegment.isEmpty()) {
             return null;
         } else {
             return readySegment.get(readySegment.size() - 1);
+        }
+    }
+
+    public NDataSegment getLastSegment() {
+        List<NDataSegment> existing = getSegments();
+        if (existing.isEmpty()) {
+            return null;
+        } else {
+            return existing.get(existing.size() - 1);
         }
     }
 

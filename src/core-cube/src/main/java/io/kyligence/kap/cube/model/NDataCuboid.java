@@ -177,6 +177,10 @@ public class NDataCuboid implements Serializable {
             throw new IllegalStateException();
     }
 
+    public long getCuboidDescId() {
+        return (this.getCuboidLayoutId() / NCuboidDesc.CUBOID_DESC_ID_STEP) * NCuboidDesc.CUBOID_DESC_ID_STEP;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -207,7 +211,6 @@ public class NDataCuboid implements Serializable {
 
     @Override
     public String toString() {
-        return "NDataCuboid [" + segDetails.getDataflowName() + "." + segDetails.getUuid() + "." + cuboidLayoutId
-                + "]";
+        return "NDataCuboid [" + segDetails.getDataflowName() + "." + segDetails.getUuid() + "." + cuboidLayoutId + "]";
     }
 }

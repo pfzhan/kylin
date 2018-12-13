@@ -136,6 +136,7 @@ public class RealizationCheck {
         CUBE_LIMIT_PRECEDE_AGGR, //
         CUBE_UNMATCHED_AGGREGATION, // 
         CUBE_OTHER_CUBE_INCAPABLE, //
+        TABLE_INDEX_NOT_CONTAIN_ALL_COLUMN, //
         // model
         MODEL_UNMATCHED_JOIN, //
         MODEL_JOIN_TYPE_UNMATCHED, // 
@@ -144,7 +145,8 @@ public class RealizationCheck {
         MODEL_BAD_JOIN_SEQUENCE, // 
         MODEL_FACT_TABLE_NOT_FOUND, // 
         MODEL_OTHER_MODEL_INCAPABLE, //
-        FACT_TABLE_NOT_CONSISTENT_IN_MODEL_AND_QUERY
+        FACT_TABLE_NOT_CONSISTENT_IN_MODEL_AND_QUERY,
+        MODEL_NOT_CONTAIN_ALL_COLUMN
     }
 
     public static class IncapableReason {
@@ -188,8 +190,8 @@ public class RealizationCheck {
             case II_UNMATCHED_FACT_TABLE:
                 incapableType = IncapableType.MODEL_FACT_TABLE_NOT_FOUND;
                 break;
-            case II_MISSING_COLS:
-                incapableType = IncapableType.CUBE_NOT_CONTAIN_ALL_COLUMN;
+            case TABLE_INDEX_MISSING_COLS:
+                incapableType = IncapableType.TABLE_INDEX_NOT_CONTAIN_ALL_COLUMN;
                 break;
             default:
                 break;
@@ -202,22 +204,8 @@ public class RealizationCheck {
 
         public static IncapableReason notContainAllColumn(Collection<TblColRef> notFoundColumns) {
             IncapableReason incapableReason = new IncapableReason();
-            incapableReason.setIncapableType(IncapableType.CUBE_NOT_CONTAIN_ALL_COLUMN);
+            incapableReason.setIncapableType(IncapableType.MODEL_NOT_CONTAIN_ALL_COLUMN);
             incapableReason.setNotFoundColumns(notFoundColumns);
-            return incapableReason;
-        }
-
-        public static IncapableReason notContainAllDimension(Collection<TblColRef> notFoundDimensions) {
-            IncapableReason incapableReason = new IncapableReason();
-            incapableReason.setIncapableType(IncapableType.CUBE_NOT_CONTAIN_ALL_DIMENSION);
-            incapableReason.setNotFoundDimensions(notFoundDimensions);
-            return incapableReason;
-        }
-
-        public static IncapableReason notContainAllMeasures(Collection<FunctionDesc> notFoundMeasures) {
-            IncapableReason incapableReason = new IncapableReason();
-            incapableReason.setIncapableType(IncapableType.CUBE_NOT_CONTAIN_ALL_MEASURE);
-            incapableReason.setNotFoundMeasures(notFoundMeasures);
             return incapableReason;
         }
 

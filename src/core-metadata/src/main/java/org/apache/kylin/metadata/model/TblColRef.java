@@ -47,9 +47,12 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.Serializable;
 
-import io.kyligence.kap.metadata.model.NDataModel;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.datatype.DataType;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  */
@@ -76,6 +79,22 @@ public class TblColRef implements Serializable {
         public static boolean contains(String name) {
             return LITERAL.getDataType().equals(name) || DERIVED.getDataType().equals(name);
         }
+    }
+
+    public enum FilterColEnum {
+        NONE("none", 0), RANGE_FILTER("range_filter", 1), EQUALS_FILTER("dimension_filter", 2);
+        private final String filterLevel;
+        private final int priority;
+
+        private FilterColEnum(String filterLevel, int cost) {
+            this.filterLevel = filterLevel;
+            this.priority = cost;
+        }
+
+        public int getPriority() {
+            return this.priority;
+        }
+
     }
 
     // used by projection rewrite, see OLAPProjectRel
@@ -138,6 +157,9 @@ public class TblColRef implements Serializable {
     private ColumnDesc column;
     private String identity;
     private String parserDescription;
+    @Getter
+    @Setter
+    private FilterColEnum filterLevel = FilterColEnum.NONE;
 
     TblColRef(ColumnDesc column) {
         this.column = column;

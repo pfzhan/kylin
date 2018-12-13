@@ -26,31 +26,33 @@ package io.kyligence.kap.cube.cuboid;
 
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
 import java.util.SortedSet;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.DeriveInfo;
+import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NLayoutCandidateComparators {
 
     private static final Logger logger = LoggerFactory.getLogger(NLayoutCandidateComparators.class);
 
     public static Comparator<NLayoutCandidate> simple() {
-        return new Comparator<NLayoutCandidate>() {
-            @Override
-            public int compare(NLayoutCandidate o1, NLayoutCandidate o2) {
-                return o2.getCuboidLayout().getOrderedDimensions().size()
-                        - o1.getCuboidLayout().getOrderedDimensions().size();
-            }
-        };
+        return (o1, o2) -> o2.getCuboidLayout().getOrderedDimensions().size()
+                - o1.getCuboidLayout().getOrderedDimensions().size();
     }
 
-    public static Comparator<NLayoutCandidate> matchQueryPattern(final ImmutableSet<TblColRef> filters) {
+    public static Comparator<NLayoutCandidate> matchQueryPattern(final ImmutableSet<TblColRef> filters,
+            KylinConfig config) {
         return new Comparator<NLayoutCandidate>() {
 
             @Override
@@ -75,32 +77,49 @@ public class NLayoutCandidateComparators {
 
             private SortedSet<Integer> getFilterPositionSet(final NLayoutCandidate candidate) {
                 SortedSet<Integer> positions = Sets.newTreeSet();
+                List<TblColRef> sortedFilterCols = Lists.newArrayList(filters);
+                sortedFilterCols.sort(new Comparator<TblColRef>() {
+                    @Override
+                    public int compare(TblColRef o1, TblColRef o2) {
+                        // priority desc
+                        int res = o2.getFilterLevel().getPriority() - o1.getFilterLevel().getPriority();
+                        if (res == 0) {
+                            NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config,
+                                    candidate.getCuboidLayout().getModel().getProject());
+                            TableExtDesc tableExtDesc1 = tableMetadataManager
+                                    .getOrCreateTableExt(o1.getTableRef().getTableDesc());
+                            TableExtDesc.ColumnStats ret1 = tableExtDesc1.getColumnStats()
+                                    .get(o1.getColumnDesc().getZeroBasedIndex());
+                            TableExtDesc tableExtDesc2 = tableMetadataManager
+                                    .getOrCreateTableExt(o2.getTableRef().getTableDesc());
+                            TableExtDesc.ColumnStats ret2 = tableExtDesc2.getColumnStats()
+                                    .get(o2.getColumnDesc().getZeroBasedIndex());
 
-                for (TblColRef filterCol : filters) {
+                            //null last
+                            if (ret2 == null)
+                                return (ret1 == null) ? 0 : -1;
+                            if (ret1 == null)
+                                return 1;
+                            // getCardinality desc
+                            res = Long.compare(ret2.getCardinality(), ret1.getCardinality());
+                        }
+                        return res;
+                    }
+                });
+
+                for (TblColRef filterCol : sortedFilterCols) {
                     DeriveInfo deriveInfo = candidate.getDerivedToHostMap().get(filterCol);
                     if (deriveInfo == null) {
-                        addPosition(candidate, positions, filterCol);
+                        positions.add(candidate.getCuboidLayout().getDimensionPos(filterCol));
                     } else {
                         TblColRef[] hostCols = deriveInfo.columns;
                         for (TblColRef hostCol : hostCols) {
-                            addPosition(candidate, positions, hostCol);
+                            positions.add(candidate.getCuboidLayout().getDimensionPos(hostCol));
                         }
                     }
                 }
                 return positions;
             }
-
-            private void addPosition(NLayoutCandidate candidate, SortedSet<Integer> positions, TblColRef filterCol) {
-                Integer p1 = candidate.getCuboidLayout().getDimensionPos(filterCol);
-                if (p1 == null) {
-                    // e.g. kylin-it/src/test/resources/query/sql_subquery/query12.sql
-                    logger.info("Filter column " + filterCol + " not found in cuboid layout "
-                            + candidate.getCuboidLayout() + "'s dimensions, skip to use it for cuboid comparison");
-                    return;
-                }
-                positions.add(p1);
-            }
-
         };
     }
 }

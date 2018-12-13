@@ -57,7 +57,12 @@ public class CapabilityResult {
     /**
      * Is capable or not
      */
-    public boolean capable;
+    public boolean capable = false;
+
+    /**
+     * selected capable candidate, like Lookup or layout
+     */
+    public IRealizationCandidate selectedCandidate;
 
     /**
      * The smaller the cost, the more capable the realization
@@ -108,7 +113,7 @@ public class CapabilityResult {
     }
 
     public static enum IncapableType {
-        UNMATCHED_DIMENSION, UNMATCHED_AGGREGATION, UNSUPPORT_MASSIN, UNSUPPORT_RAWQUERY, LIMIT_PRECEDE_AGGR, II_UNMATCHED_FACT_TABLE, II_MISSING_COLS
+        UNMATCHED_DIMENSION, UNMATCHED_AGGREGATION, UNSUPPORT_MASSIN, UNSUPPORT_RAWQUERY, LIMIT_PRECEDE_AGGR, II_UNMATCHED_FACT_TABLE, TABLE_INDEX_MISSING_COLS, NOT_EXIST_SNAPSHOT
     }
 
     public static class IncapableCause {

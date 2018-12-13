@@ -68,7 +68,7 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         ModelTree modelTree = modelContext.getModelTree();
         // Load from context
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
-            Map<String, String> matchingAlias = RealizationChooser.matches(dataModel, ctx);
+            Map<String, String> matchingAlias = RealizationChooser.matchJoins(dataModel, ctx);
             ctx.fixModel(dataModel, matchingAlias);
 
             scopeBuilder.injectCandidateMeasure(ctx);
