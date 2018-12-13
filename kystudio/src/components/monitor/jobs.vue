@@ -81,6 +81,7 @@
         :width="230"
         :label="$t('startTime')"
         show-overflow-tooltip
+        prop="create_time"
         sortable>
         <template slot-scope="scope">
           {{transToGmtTime(scope.row.create_time)}}
@@ -89,6 +90,7 @@
       <el-table-column
         :width="140"
         sortable
+        prop="duration"
         :label="$t('Duration')">
         <template slot-scope="scope">
           {{scope.row.duration/60 | number(2) }}  mins
@@ -385,9 +387,6 @@ export default class JobsList extends Vue {
     }
   }
   getJobsList () {
-    // if (!this.filter.jobNames.length) {
-    //   // this.filter.jobNames = null
-    // }
     return this.loadJobsList(this.filter).then((res) => {
       handleSuccess(res, (data) => {
         if (data.size) {
@@ -571,7 +570,7 @@ export default class JobsList extends Vue {
     }
   }
   currentChange (val) {
-    this.filter.pageOffset = val - 1
+    this.filter.pageOffset = val
     this.refreshJobs()
   }
   closeIt () {
@@ -606,7 +605,7 @@ export default class JobsList extends Vue {
     } else {
       this.filter.reverse = true
     }
-    this.filter.sortby = prop
+    this.filter.sortBy = prop
     this.getJobsList()
   }
   resume (jobIds) {
