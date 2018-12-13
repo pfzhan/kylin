@@ -80,13 +80,11 @@ public class NFavoriteScheduler {
     private ScheduledExecutorService updateFavoriteScheduler;
     private String project;
 
-    private QueryHistoryTimeOffset queryHistoryTimeOffset;
     private TreeSet<FrequencyStatus> frequencyStatuses = new TreeSet<>();
     private FrequencyStatus overAllStatus = new FrequencyStatus();
 
     private static int frequencyTimeWindow = 24;
     private static int overAllFreqStatusSize = frequencyTimeWindow * 60;
-    private long fetchQueryHistoryGapTime;
     // handles the case when the actual time of inserting to influx database is later than recorded time
     private int backwardShiftTime;
     private boolean hasStarted;
@@ -97,12 +95,7 @@ public class NFavoriteScheduler {
         Preconditions.checkNotNull(project);
 
         this.project = project;
-
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(project);
-        fetchQueryHistoryGapTime = projectInstance.getConfig().getQueryHistoryScanPeriod();
         backwardShiftTime = KapConfig.getInstanceFromEnv().getInfluxDBFlushDuration() * 2;
-        queryHistoryTimeOffset = QueryHistoryTimeOffsetManager.getInstance(config, project).get();
 
         logger.debug("New NFavoriteScheduler created by project '{}': {}", project,
                 System.identityHashCode(NFavoriteScheduler.this));
@@ -145,6 +138,11 @@ public class NFavoriteScheduler {
     }
 
     void initFrequencyStatus() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        QueryHistoryTimeOffset queryHistoryTimeOffset = QueryHistoryTimeOffsetManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
+        ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(project);
+        long fetchQueryHistoryGapTime = projectInstance.getConfig().getQueryHistoryScanPeriod();
         long lastAutoMarkTime = queryHistoryTimeOffset.getAutoMarkTimeOffset();
         long startTime = lastAutoMarkTime - overAllFreqStatusSize * fetchQueryHistoryGapTime;
         long endTime = startTime + fetchQueryHistoryGapTime;
@@ -186,10 +184,13 @@ public class NFavoriteScheduler {
     }
 
     private void autoFavorite() {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        QueryHistoryTimeOffset queryHistoryTimeOffset = QueryHistoryTimeOffsetManager.getInstance(config, project)
+                .get();
         Set<FavoriteQuery> candidates = new HashSet<>();
 
         // scan query history
-        long lastTimeOffset = scanQueryHistoryByTime(candidates);
+        long lastTimeOffset = scanQueryHistoryByTime(candidates, queryHistoryTimeOffset.getAutoMarkTimeOffset());
 
         // filter by frequency rule
         addCandidatesByFrequencyRule(candidates);
@@ -199,13 +200,19 @@ public class NFavoriteScheduler {
 
         // update time offset
         queryHistoryTimeOffset.setAutoMarkTimeOffset(lastTimeOffset);
-        QueryHistoryTimeOffsetManager.getInstance(KylinConfig.getInstanceFromEnv(), project).save(queryHistoryTimeOffset);
+        QueryHistoryTimeOffsetManager.getInstance(config, project)
+                .save(queryHistoryTimeOffset);
     }
 
-    private long scanQueryHistoryByTime(Set<FavoriteQuery> candidates) {
-        long startTime = queryHistoryTimeOffset.getAutoMarkTimeOffset();
+    private long scanQueryHistoryByTime(Set<FavoriteQuery> candidates, long autoMarkTimeOffset) {
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(project);
+
+        long fetchQueryHistoryGapTime = projectInstance.getConfig().getQueryHistoryScanPeriod();
+        long startTime = autoMarkTimeOffset;
         long endTime = startTime + fetchQueryHistoryGapTime;
         long maxTime = getSystemTime() - backwardShiftTime;
+
         while (endTime <= maxTime) {
             List<QueryHistory> queryHistories = getQueryHistoryDao().getQueryHistoriesByTime(startTime, endTime);
 
@@ -218,7 +225,7 @@ public class NFavoriteScheduler {
                     continue;
 
                 int sqlPatternHash = sqlPattern.hashCode();
-                if (FavoriteQueryManager.getInstance(KylinConfig.getInstanceFromEnv(), project).contains(sqlPattern))
+                if (FavoriteQueryManager.getInstance(config, project).contains(sqlPattern))
                     continue;
 
                 if (isInBlacklist(sqlPatternHash, project))
@@ -330,7 +337,8 @@ public class NFavoriteScheduler {
     }
 
     boolean matchRuleBySingleRecord(QueryHistory queryHistory) {
-        List<FavoriteRule> rules = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getAllEnabled();
+        List<FavoriteRule> rules = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getAllEnabled();
 
         for (FavoriteRule rule : rules) {
             if (rule.getName().equals(FavoriteRule.SUBMITTER_RULE_NAME)) {
@@ -385,11 +393,13 @@ public class NFavoriteScheduler {
     }
 
     private void updateFavoriteStatistics() {
+        QueryHistoryTimeOffset timeOffset = QueryHistoryTimeOffsetManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project).get();
         long endTime = getSystemTime() - backwardShiftTime;
         Map<String, FavoriteQuery> favoritesAboutToUpdate = Maps.newHashMap();
 
         List<QueryHistory> queryHistories = getQueryHistoryDao()
-                .getQueryHistoriesByTime(queryHistoryTimeOffset.getFavoriteQueryUpdateTimeOffset(), endTime);
+                .getQueryHistoriesByTime(timeOffset.getFavoriteQueryUpdateTimeOffset(), endTime);
 
         for (QueryHistory queryHistory : queryHistories) {
             updateFavoriteQuery(queryHistory, favoritesAboutToUpdate);
@@ -402,8 +412,8 @@ public class NFavoriteScheduler {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         FavoriteQueryManager.getInstance(config, project).updateStatistics(favoriteQueries);
-        queryHistoryTimeOffset.setFavoriteQueryUpdateTimeOffset(endTime);
-        QueryHistoryTimeOffsetManager.getInstance(config, project).save(queryHistoryTimeOffset);
+        timeOffset.setFavoriteQueryUpdateTimeOffset(endTime);
+        QueryHistoryTimeOffsetManager.getInstance(config, project).save(timeOffset);
     }
 
     private void updateFavoriteQuery(QueryHistory queryHistory, Map<String, FavoriteQuery> favoritesAboutToUpdate) {
