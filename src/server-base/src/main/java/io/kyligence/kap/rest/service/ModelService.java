@@ -170,6 +170,11 @@ public class ModelService extends BasicService {
                 }
             }
         }
+        return sortModelResponses(sortBy, reverse, filterModels);
+    }
+
+    private List<NDataModelResponse> sortModelResponses(String sortBy, boolean reverse,
+            List<NDataModelResponse> filterModels) {
         var comp = Comparator.<NDataModelResponse> comparingLong(r -> -r.getLastModified());
         if (sortBy.equals(LAST_MODIFY) && reverse) {
             Collections.sort(filterModels, comp);
