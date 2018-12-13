@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.kylin.rest.security.ManagedUser;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.apache.kylin.rest.service.UserService;
 import org.junit.Assert;
@@ -45,7 +46,7 @@ public class NUserGroupServiceTest extends ServiceTestBase {
 
     @Autowired
     @Qualifier("nUserGroupService")
-    private UserGroupService userGroupService;
+    private IUserGroupService userGroupService;
 
     @Autowired
     @Qualifier("userService")

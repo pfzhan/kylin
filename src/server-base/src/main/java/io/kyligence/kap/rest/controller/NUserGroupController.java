@@ -33,12 +33,12 @@ import java.util.Set;
 import java.util.TreeSet;
 
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
-import io.kyligence.kap.rest.service.UserGroupService;
 import lombok.val;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.security.ManagedUser;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.PagingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,7 +57,7 @@ public class NUserGroupController extends NBasicController {
 
     @Autowired
     @Qualifier("nUserGroupService")
-    private UserGroupService userGroupService;
+    private IUserGroupService userGroupService;
 
     @Autowired
     @Qualifier("userService")

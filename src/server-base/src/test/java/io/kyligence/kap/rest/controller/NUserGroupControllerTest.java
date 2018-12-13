@@ -46,7 +46,7 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.request.UpdateGroupRequest;
-import io.kyligence.kap.rest.service.UserGroupService;
+import io.kyligence.kap.rest.service.NUserGroupService;
 import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.rest.constant.Constant;
@@ -73,7 +73,7 @@ public class NUserGroupControllerTest {
     private MockMvc mockMvc;
 
     @Mock
-    private UserGroupService userGroupService;
+    private NUserGroupService userGroupService;
 
     @Mock
     private UserService userService;

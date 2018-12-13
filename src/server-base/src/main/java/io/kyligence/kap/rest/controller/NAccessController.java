@@ -27,7 +27,6 @@ package io.kyligence.kap.rest.controller;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.request.AccessRequest;
-import io.kyligence.kap.rest.service.UserGroupService;
 import lombok.val;
 import org.apache.kylin.common.persistence.AclEntity;
 import org.apache.kylin.metadata.MetadataConstants;
@@ -38,6 +37,7 @@ import org.apache.kylin.rest.security.AclEntityType;
 import org.apache.kylin.rest.security.AclPermissionFactory;
 import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -68,8 +68,8 @@ public class NAccessController extends NBasicController {
     protected UserService userService;
 
     @Autowired
-    @Qualifier("userGroupService")
-    private UserGroupService userGroupService;
+    @Qualifier("nUserGroupService")
+    private IUserGroupService userGroupService;
 
     /**
      * Get current user's permission in the project

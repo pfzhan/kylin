@@ -90,7 +90,7 @@ public class NUserController extends NBasicController {
     @Autowired
     private Environment env;
 
-    private String activeProfile;
+    private String activeProfile = "testing";
 
     private static final Message msg = MsgPicker.getMsg();
 

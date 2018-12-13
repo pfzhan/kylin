@@ -70,7 +70,7 @@
 
     <bean id="userService" class="org.apache.kylin.rest.service.KylinUserService" />
 
-    <bean id="userGroupService" class="org.apache.kylin.rest.service.KylinUserGroupService" />
+    <bean id="userGroupService" class="io.kyligence.kap.rest.service.NUserGroupService" />
 
     <beans profile="ldap,saml">
         <bean id="ldapSource"

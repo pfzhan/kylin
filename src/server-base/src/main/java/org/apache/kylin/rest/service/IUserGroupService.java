@@ -42,6 +42,8 @@
 
 package org.apache.kylin.rest.service;
 
+import org.apache.kylin.rest.security.ManagedUser;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -51,4 +53,13 @@ public interface IUserGroupService {
 
     boolean exists(String name) throws IOException;
 
+    List<ManagedUser> getGroupMembersByName(String name) throws IOException;
+
+    List<String> getAllUserGroups() throws IOException;
+
+    void addGroup(String name) throws IOException;
+
+    void deleteGroup(String name) throws IOException;
+
+    void modifyGroupUsers(String groupName, List<String> users) throws IOException;
 }

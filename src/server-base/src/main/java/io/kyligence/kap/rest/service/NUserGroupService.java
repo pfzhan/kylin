@@ -32,6 +32,7 @@ import java.util.List;
 import javax.annotation.PostConstruct;
 
 import io.kyligence.kap.rest.transaction.Transaction;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -42,6 +43,9 @@ import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
+import org.apache.kylin.rest.service.IUserGroupService;
+import org.apache.kylin.rest.service.UserService;
+import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -55,7 +59,7 @@ import com.google.common.io.ByteStreams;
 import io.kyligence.kap.metadata.acl.UserGroup;
 
 @Component("nUserGroupService")
-public class NUserGroupService extends UserGroupService {
+public class NUserGroupService implements IUserGroupService {
     public static final Logger logger = LoggerFactory.getLogger(NUserGroupService.class);
 
     private ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
@@ -65,6 +69,13 @@ public class NUserGroupService extends UserGroupService {
     @Autowired
     @Qualifier("accessService")
     private AccessService accessService;
+
+    @Autowired
+    AclEvaluate aclEvaluate;
+
+    @Autowired
+    @Qualifier("userService")
+    UserService userService;
 
     @PostConstruct
     public void init() throws IOException, InterruptedException {
@@ -108,7 +119,7 @@ public class NUserGroupService extends UserGroupService {
     }
 
     @Override
-    protected List<String> getAllUserGroups() throws IOException {
+    public List<String> getAllUserGroups() throws IOException {
         return getUserGroup().getAllGroups();
     }
 
@@ -176,4 +187,19 @@ public class NUserGroupService extends UserGroupService {
             userService.updateUser(managedUser);
         }
     }
+
+    // add param project to check user's permission
+    public List<String> listAllAuthorities(String project) throws IOException {
+        if (StringUtils.isEmpty(project)) {
+            aclEvaluate.checkIsGlobalAdmin();
+        } else {
+            aclEvaluate.checkProjectAdminPermission(project);
+        }
+        return getAllUserGroups();
+    }
+
+    public boolean exists(String name) throws IOException {
+        return getAllUserGroups().contains(name);
+    }
+
 }
