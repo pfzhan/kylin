@@ -16,6 +16,7 @@
             type="datetime"
             size="medium"
             v-model="filter.startDate"
+            :is-auto-complete="true"
             :picker-options="{ disabledDate: getStartDateLimit }"
             :placeholder="$t('chooseStartDate')">
           </el-date-picker>
@@ -25,6 +26,7 @@
             type="datetime"
             size="medium"
             v-model="filter.endDate"
+            :is-auto-complete="true"
             :picker-options="{ disabledDate: getEndDateLimit }"
             :placeholder="$t('chooseEndDate')">
           </el-date-picker>

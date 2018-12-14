@@ -183,7 +183,9 @@ export default {
       return api.model.fetchAggregates(params.modelName, params.projectName)
     },
     [types.FETCH_SEGMENTS] ({ commit }, params) {
-      return api.model.fetchSegments(params.modelName, params.projectName, String(params.startTime), String(params.endTime), params.pageOffset, params.pageSize)
+      const startTime = !isNaN(parseInt(params.startTime)) ? String(params.startTime) : null
+      const endTime = !isNaN(parseInt(params.endTime)) ? String(params.endTime) : null
+      return api.model.fetchSegments(params.modelName, params.projectName, startTime, endTime, params.pageOffset, params.pageSize)
     },
     [types.FETCH_CUBOID] ({ commit }, params) {
       return api.model.fetchCuboid(params.modelName, params.projectName, params.cuboidId)
