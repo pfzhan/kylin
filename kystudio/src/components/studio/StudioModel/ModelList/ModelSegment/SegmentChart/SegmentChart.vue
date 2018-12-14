@@ -36,6 +36,7 @@ import Vue from 'vue'
 import dayjs from 'dayjs'
 import { Component, Watch } from 'vue-property-decorator'
 import locales from './locales'
+import { getGmtDateFromUtcLike } from '../../../../../../util'
 import { scaleTypes, formatTypes, isFilteredSegmentsContinue } from './handler'
 const { MINUTE, HOUR, DAY, MONTH, YEAR } = scaleTypes
 
@@ -88,23 +89,26 @@ export default class SegmentChart extends Vue {
     const segmentCount = segments.length - 1
     const startTime = segments[0] && segments[0].startTime
     const endTime = segments[segmentCount] && segments[segmentCount].endTime
-    const startTick = dayjs(startTime).startOf(scaleType)
-    const endTick = dayjs(endTime).add(1, DAY).startOf(scaleType)
+    const startDate = startTime && getGmtDateFromUtcLike(startTime)
+    const endDate = endTime && getGmtDateFromUtcLike(endTime)
+    const startTick = dayjs(startDate).startOf(scaleType)
+    const endTick = dayjs(endDate).add(1, DAY).startOf(scaleType)
     const diff = endTick.diff(startTick, scaleType)
     const isTickFull = diff * gridWidth > containerWidth
     const xTicks = []
     const tickCount = isTickFull ? diff : Math.ceil(containerWidth / gridWidth)
+    const offsetGMT = new Date().getTimezoneOffset()
 
     let currentTick = startTick
     for (let i = 0; i < tickCount; i++) {
       const isStartOfYear = currentTick.valueOf() === currentTick.startOf(YEAR).valueOf()
       const data = currentTick
-      const timestamp = currentTick.valueOf()
+      const timestamp = currentTick.valueOf() - offsetGMT * 60 * 1000
       const name = !isStartOfYear
         ? currentTick.format(formatType)
         : currentTick.startOf(YEAR).format(formatTypes[YEAR])
 
-      xTicks.push({ name, data, timestamp })
+      xTicks.push({ name, data, timestamp, offsetGMT })
       currentTick = currentTick.add(1, scaleType)
     }
     return xTicks
@@ -229,8 +233,9 @@ export default class SegmentChart extends Vue {
   }
   handleMouseMove (event, segment) {
     const { id, startTime, endTime, storage } = segment
-    const startDate = startTime !== 0 ? dayjs(startTime).format('YYYY-MM-DD HH:mm:ss') : this.$t('fullLoad')
-    const endDate = endTime !== 7258089600000 ? dayjs(endTime).format('YYYY-MM-DD HH:mm:ss') : this.$t('fullLoad')
+    const isFullLoading = endTime === 7258089600000
+    const startDate = !isFullLoading ? dayjs(getGmtDateFromUtcLike(startTime)).format('YYYY-MM-DD HH:mm:ss') : this.$t('fullLoad')
+    const endDate = !isFullLoading ? dayjs(getGmtDateFromUtcLike(endTime)).format('YYYY-MM-DD HH:mm:ss') : this.$t('fullLoad')
     const style = {
       left: `${event.offsetX + event.target.offsetLeft - this.scrollLeft}px`
     }

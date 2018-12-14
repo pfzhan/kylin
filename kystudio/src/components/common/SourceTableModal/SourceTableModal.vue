@@ -220,7 +220,7 @@ import vuex from '../../../store'
 import locales from './locales'
 import store, { types } from './store'
 import { set } from '../../../util/object'
-import { handleError, handleSuccessAsync } from '../../../util'
+import { handleError, handleSuccessAsync, transToUTCMs } from '../../../util'
 import { fieldVisiableMaps, titleMaps, editTypes, autoMergeTypes, volatileTypes, validate, validateTypes } from './handler'
 
 const {
@@ -374,8 +374,8 @@ export default class SourceTableModal extends Vue {
 
     switch (editType) {
       case INCREMENTAL_SETTING: {
-        const startTime = form.newDataRange[0].getTime()
-        const endTime = form.newDataRange[1].getTime()
+        const startTime = transToUTCMs(form.newDataRange[0])
+        const endTime = transToUTCMs(form.newDataRange[1])
         const column = form.partitionColumn
         const format = form.partitionFormat
         const isIncremental = true
@@ -385,13 +385,13 @@ export default class SourceTableModal extends Vue {
         }
       }
       case INCREMENTAL_LOADING: {
-        const startTime = form.newDataRange[0].getTime()
-        const endTime = form.newDataRange[1].getTime()
+        const startTime = transToUTCMs(form.newDataRange[0])
+        const endTime = transToUTCMs(form.newDataRange[1])
         return { projectName, tableFullName, startTime, endTime }
       }
       case REFRESH_RANGE: {
-        const startTime = form.freshDataRange[0].getTime()
-        const endTime = form.freshDataRange[1].getTime()
+        const startTime = transToUTCMs(form.freshDataRange[0])
+        const endTime = transToUTCMs(form.freshDataRange[1])
         return { projectName, tableFullName, startTime, endTime }
       }
       case DATA_MERGE: {

@@ -1,5 +1,6 @@
 import dayjs from 'dayjs'
 import { sourceTypes, sourceNameMapping, pageSizeMapping } from '../../../config'
+import { getGmtDateFromUtcLike } from '../../../util'
 import { getUserRange, getAllSegmentsRange } from '../../../util/UtilTable'
 
 export const render = {
@@ -226,9 +227,11 @@ export function getFirstTableData (datasourceTree) {
 
 function getDateRangeStr (that, userRange) {
   const [ startTime, endTime ] = userRange
-  const startStr = dayjs(startTime).format('YYYY-MM-DD')
-  const endStr = dayjs(endTime).format('YYYY-MM-DD')
-  return startTime && endTime && `${startStr} ${that.$t('to')} ${endStr}`
+  const startStr = dayjs(getGmtDateFromUtcLike(startTime)).format('YYYY-MM-DD')
+  const endStr = dayjs(getGmtDateFromUtcLike(endTime)).format('YYYY-MM-DD')
+  return startStr !== 'NaN-NaN-NaN' &&
+    endStr !== 'NaN-NaN-NaN' &&
+    `${startStr} ${that.$t('to')} ${endStr}`
 }
 
 export function freshTreeOrder (that) {

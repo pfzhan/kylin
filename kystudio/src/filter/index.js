@@ -1,6 +1,13 @@
 import Vue from 'vue'
+import { getGmtDateFromUtcLike } from '../util'
 Vue.filter('nullValFilter', function (value) {
   return value == null ? 'null' : value
+})
+
+Vue.filter('utcDate', function (value) {
+  return value instanceof Array
+    ? value.map(item => getGmtDateFromUtcLike(item))
+    : getGmtDateFromUtcLike(value)
 })
 
 Vue.filter('utcTime', function (value) {

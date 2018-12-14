@@ -77,10 +77,10 @@ import locales from './locales'
 import SegmentChart from './SegmentChart/SegmentChart'
 import Waypoint from '../../../../common/Waypoint/Waypoint'
 import { pageSizeMapping } from '../../../../../config'
-import { handleSuccessAsync, handleError } from '../../../../../util'
+import { handleSuccessAsync, handleError, transToUTCMs } from '../../../../../util'
 import iconAdd from './icon_add.svg'
 import iconReduce from './icon_reduce.svg'
-import { formatSegments } from './handle'
+import { formatSegments } from './handler'
 // import { getMockSegments } from './mock'
 
 @Component({
@@ -170,15 +170,18 @@ export default class ModelSegment extends Vue {
       const { startDate, endDate } = this.filter
       const projectName = this.currentSelectedProject
       const modelName = this.model.name
-      const startTime = startDate && startDate.getTime()
-      const endTime = endDate && endDate.getTime()
+      const startTime = startDate && transToUTCMs(startDate)
+      const endTime = endDate && transToUTCMs(endDate)
 
       this.isSegmentLoading = true
       isReset && this.clearPagination()
       const res = await this.fetchSegments({ projectName, modelName, startTime, endTime, ...this.pagination })
       const { size, segments } = await handleSuccessAsync(res)
       const formatedSegments = formatSegments(segments)
-      if (size > this.segments.length) {
+      if (isReset) {
+        this.segments = formatedSegments
+        this.addPagination()
+      } else if (size > this.segments.length) {
         this.segments = isReset ? formatedSegments : this.segments.concat(formatedSegments)
         this.addPagination()
       }

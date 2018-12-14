@@ -338,3 +338,15 @@ export function isDatePartitionType (type) {
 export function isTimePartitionType (type) {
   return TimePartitionRule.some(rule => rule.test(type))
 }
+
+export function getGmtDateFromUtcLike (value) {
+  const isDate = value instanceof Date
+  var dateObj = isDate ? value : new Date(value)
+  var year = dateObj.getUTCFullYear()
+  var month = dateObj.getUTCMonth()
+  var date = dateObj.getUTCDate()
+  var hour = dateObj.getUTCHours()
+  var mins = dateObj.getUTCMinutes()
+  var seconds = dateObj.getUTCSeconds()
+  return new Date(year, month, date, hour, mins, seconds)
+}

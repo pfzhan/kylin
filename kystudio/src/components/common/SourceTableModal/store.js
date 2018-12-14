@@ -1,3 +1,4 @@
+import Vue from 'vue'
 import dayjs from 'dayjs'
 import { editTypes, volatileTypes } from './handler'
 import { handleSuccessAsync, isDatePartitionType } from '../../../util'
@@ -90,10 +91,13 @@ export default {
       const tableRange = state.table && state.table.userRange || []
       const inputDateRange = payload && payload.newDataRange || []
       state.form.newDataRange = state.form.newDataRange.map((date, index) => {
-        const newDate = inputDateRange[index] || tableRange[index]
-        return newDate ? new Date(newDate) : ''
+        const newDate = !isNaN(+inputDateRange[index]) ? inputDateRange[index] : tableRange[index]
+        return !isNaN(+newDate) ? new Date(newDate) : ''
       })
       state.form.freshDataRange = [ new Date(tableRange[0]), new Date(tableRange[1]) ]
+
+      state.form.newDataRange = Vue.filter('utcDate')(state.form.newDataRange)
+      state.form.freshDataRange = Vue.filter('utcDate')(state.form.freshDataRange)
     }
   },
   actions: {

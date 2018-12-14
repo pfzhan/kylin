@@ -1,3 +1,5 @@
+import { transToUTCMs } from '../../../util'
+
 export const editTypes = {
   INCREMENTAL_SETTING: 'changeTableType',
   INCREMENTAL_LOADING: 'changeDataRange',
@@ -53,9 +55,9 @@ export const validate = {
 
     if (!minValue && !maxValue) {
       callback(new Error(this.$t('emptyInput')))
-    } else if (isMinRangeDisabled && minValue > minUserRange) {
+    } else if (isMinRangeDisabled && transToUTCMs(minValue) > minUserRange) {
       callback(new Error(this.$t('minValueInvaild')))
-    } else if (isMaxRangeDisabled && maxValue < maxUserRange) {
+    } else if (isMaxRangeDisabled && transToUTCMs(maxValue) < maxUserRange) {
       callback(new Error(this.$t('maxValueInvaild')))
     } else {
       callback()

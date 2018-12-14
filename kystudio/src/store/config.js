@@ -79,11 +79,15 @@ export default {
       return state.layoutConfig.fullScreen
     },
     availableMenus (state, getters, rootState, rootGetters) {
-      const groupRole = rootGetters.userAuthorities
-      const projectRole = rootState.user.currentUserAccess
-      const menu = rootState.route.name.toLowerCase()
+      if (rootState.route.name) {
+        const groupRole = rootGetters.userAuthorities
+        const projectRole = rootState.user.currentUserAccess
+        const menu = rootState.route.name.toLowerCase()
 
-      return getAvailableOptions('menu', { groupRole, projectRole, menu })
+        return getAvailableOptions('menu', { groupRole, projectRole, menu })
+      } else {
+        return []
+      }
     }
   }
 }
