@@ -91,7 +91,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         this.resRootPath = resourceRootPath;
         this.resPathSuffix = resourcePathSuffix;
         this.serializer = new JsonSerializer<>(entityType);
-        this.cache = new ConcurrentSkipListMap<>(String.CASE_INSENSITIVE_ORDER);
+        this.cache = new ConcurrentSkipListMap<>();
 
         this.checkCopyOnWrite = store.getConfig().isCheckCopyOnWrite();
 
