@@ -202,7 +202,17 @@ export default class AggregateModal extends Vue {
         return false
       }
     }
+
     return true
+  }
+  get usedDimensions () {
+    const dimensionMaps = {}
+    this.form.aggregateArray.forEach(aggregate => {
+      aggregate.includes.forEach(include => {
+        dimensionMaps[include] = 1
+      })
+    })
+    return Object.keys(dimensionMaps)
   }
   getUnusedDimensions (aggregateIdx) {
     const aggregate = this.form.aggregateArray[aggregateIdx]
@@ -347,6 +357,10 @@ export default class AggregateModal extends Vue {
   checkFormVaild () {
     if (!this.isFormVaild) {
       this.$message(this.$t('includesEmpty'))
+      return false
+    } else if (this.usedDimensions.length >= 62) {
+      this.$message(this.$t('tooManyDimensions'))
+      return false
     }
     return this.isFormVaild
   }
@@ -357,7 +371,7 @@ export default class AggregateModal extends Vue {
     }
   }
   getSubmitData () {
-    const { editType, form, dimensions, dimensionIdMapping, projectName, model } = this
+    const { editType, form, usedDimensions, dimensionIdMapping, projectName, model } = this
 
     switch (editType) {
       case EDIT: {
@@ -366,7 +380,7 @@ export default class AggregateModal extends Vue {
           projectName,
           modelName: model.name,
           isCatchUp,
-          dimensions: dimensions.map(dimension => dimension.id),
+          dimensions: usedDimensions.map(dimensionItem => dimensionIdMapping[dimensionItem]),
           aggregationGroups: aggregateArray.map(aggregate => ({
             includes: aggregate.includes.map(includeItem => dimensionIdMapping[includeItem]),
             select_rule: {
