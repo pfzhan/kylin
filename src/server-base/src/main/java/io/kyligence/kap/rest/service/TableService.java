@@ -462,8 +462,8 @@ public class TableService extends BasicService {
 
         List<SegmentRange> segmentRanges = getNewSegmentRanges(rangeManager.getDataLoadingRange(table), segmentRange);
         for (SegmentRange seg : segmentRanges) {
-            handleLoadingRangeUpdate(project, table, seg);
             dataLoadingRange = rangeManager.appendSegmentRange(dataLoadingRange, seg);
+            handleLoadingRangeUpdate(project, table, seg);
         }
 
         if (readyRange == null) {

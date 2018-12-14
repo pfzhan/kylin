@@ -123,7 +123,7 @@
   "last_modified": 1422435345352,
   "filter_condition": null,
   "partition_desc": {
-    "partition_date_column": "DEFAULT.TEST_MEASURE.time1",
+    "partition_date_column": "DEFAULT.TEST_MEASURE.TIME1",
     "partition_date_start": 0,
     "partition_type": "APPEND"
   }

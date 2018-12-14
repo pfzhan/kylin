@@ -76,6 +76,8 @@ public class NUserController extends NBasicController {
 
     private static final Logger logger = LoggerFactory.getLogger(NUserController.class);
 
+    private static final String PROFILE = "testing";
+
     @Autowired
     @Qualifier("userService")
     private UserService userService;
@@ -90,7 +92,7 @@ public class NUserController extends NBasicController {
     @Autowired
     private Environment env;
 
-    private String activeProfile = "testing";
+    private String activeProfile = PROFILE;
 
     private static final Message msg = MsgPicker.getMsg();
 
@@ -106,7 +108,7 @@ public class NUserController extends NBasicController {
         List<ManagedUser> all = userService.listUsers();
         activeProfile = env.getActiveProfiles()[0];
         logger.info("All " + all.size() + " users");
-        if (all.isEmpty() && "testing".equals(activeProfile)) {
+        if (all.isEmpty() && PROFILE.equals(activeProfile)) {
             createUser(new ManagedUser("ADMIN", "KYLIN", true, Constant.ROLE_ADMIN, Constant.GROUP_ALL_USERS));
             createUser(new ManagedUser("ANALYST", "ANALYST", true, Constant.GROUP_ALL_USERS));
             createUser(new ManagedUser("MODELER", "MODELER", true, Constant.GROUP_ALL_USERS));
@@ -294,7 +296,7 @@ public class NUserController extends NBasicController {
     }
 
     private void checkProfile() {
-        if (!"testing".equals(activeProfile)) {
+        if (!PROFILE.equals(activeProfile)) {
             throw new BadRequestException(msg.getUSER_EDIT_NOT_ALLOWED());
         }
     }
