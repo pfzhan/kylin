@@ -227,11 +227,15 @@ export function getFirstTableData (datasourceTree) {
 
 function getDateRangeStr (that, userRange) {
   const [ startTime, endTime ] = userRange
-  const startStr = dayjs(getGmtDateFromUtcLike(startTime)).format('YYYY-MM-DD')
-  const endStr = dayjs(getGmtDateFromUtcLike(endTime)).format('YYYY-MM-DD')
-  return startStr !== 'NaN-NaN-NaN' &&
-    endStr !== 'NaN-NaN-NaN' &&
-    `${startStr} ${that.$t('to')} ${endStr}`
+  if (startTime !== undefined || endTime !== undefined) {
+    const startStr = dayjs(getGmtDateFromUtcLike(startTime)).format('YYYY-MM-DD')
+    const endStr = dayjs(getGmtDateFromUtcLike(endTime)).format('YYYY-MM-DD')
+    return startStr !== 'NaN-NaN-NaN' &&
+      endStr !== 'NaN-NaN-NaN' &&
+      `${startStr} ${that.$t('to')} ${endStr}`
+  } else {
+    return ''
+  }
 }
 
 export function freshTreeOrder (that) {
