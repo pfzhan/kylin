@@ -1,5 +1,5 @@
 export const viewTypes = {
   BASIC: 'basic',
-  ACCELERATION: 'acceleration',
-  STORAGE: 'storage'
+  ADVANCED: 'advanced',
+  MODEL: 'model'
 }

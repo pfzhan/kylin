@@ -1,71 +1,60 @@
 <template>
   <div class="basic-setting">
-    <el-popover
-      trigger="hover"
-      ref="description"
-      placement="bottom"
-      popper-class="project-edit-description"
-      v-model="popover['description']"
-      :title="$t('description')"
-      @after-leave="handleHidePopover('description')">
-      <el-input class="popover-input" size="small" v-model="form.description" type="textarea"></el-input>
-      <div style="text-align: right;">
-        <el-button type="info" size="mini" text @click="handleHidePopover('description')" :disabled="isLoading">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" size="mini" text @click="handleSubmit('description')" :loading="isLoading">{{$t('kylinLang.common.submit')}}</el-button>
-      </div>
-    </el-popover>
-
-    <div class="project-setting project-basic">
+    <EditableBlock
+      :headerContent="$t('basicInfo')"
+      @submit="handleSubmitBasic"
+      @cancel="handleCancelBasic">
       <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('projectName')}}</span>
-        <span class="setting-value">{{projectInfo.name}}</span>
+        <div class="setting-label font-medium">{{$t('projectName')}}</div>
+        <div class="setting-value">{{form.name}}</div>
+        <el-input class="setting-input" size="small" style="width: 250px;" v-model="form.name"></el-input>
       </div>
       <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('projectType')}}</span>
-        <span class="setting-value">
-          <i :class="projectInfo.icon"></i>
-          {{projectInfo.type}}
-        </span>
+        <div class="setting-label font-medium">{{$t('projectType')}}</div>
+        <div class="setting-value fixed"><i :class="projectInfo.icon"></i>{{projectInfo.type}}</div>
       </div>
       <div class="setting-item clearfix">
-        <span class="setting-label font-medium">{{$t('description')}}</span>
-        <span class="setting-value">
-          {{projectInfo.description}}
-          <i class="value-action el-icon-ksd-table_edit" v-popover:description></i>
-        </span>
+        <div class="setting-label font-medium">{{$t('description')}}</div>
+        <div class="setting-value">{{form.description}}</div>
+        <el-input class="setting-input" type="textarea" size="small" v-model="form.description"></el-input>
       </div>
-    </div>
+    </EditableBlock>
 
-    <div class="project-setting project-switch">
+    <!-- <EditableBlock
+      :headerContent="$t('basicInfo')"
+      @submit="handleSubmitBasic"
+      @cancel="handleCancelBasic">
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('fileBased')}}</span>
-        <span class="setting-value">
+        <span class="setting-value fixed">
           <el-switch
             v-model="form.isFileBased"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')">
           </el-switch>
         </span>
+        <div class="setting-desc">{{$t('fileBasedDesc')}}</div>
       </div>
-      <div class="setting-desc">{{$t('fileBasedDesc')}}</div>
-      <div class="hr"></div>
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('sourceSampling')}}</span>
-        <span class="setting-value">
+        <span class="setting-value fixed">
           <el-switch
             v-model="form.isSourceSampling"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')">
           </el-switch>
         </span>
+        <div class="setting-desc">{{$t('sourceSamplingDesc')}}</div>
       </div>
-      <div class="setting-desc">{{$t('sourceSamplingDesc')}}</div>
-    </div>
+    </EditableBlock> -->
 
-    <div class="project-setting project-switch">
+    <EditableBlock
+      :headerContent="$t('pushdownSettings')"
+      @submit="handleSubmitBasic"
+      @cancel="handleCancelBasic">
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('pushdownEngin')}}</span>
-        <span class="setting-value">
+        <span class="setting-value fixed">
           <el-switch
             v-model="form.isPushdownEngine"
             :active-text="$t('kylinLang.common.OFF')"
@@ -73,19 +62,36 @@
           </el-switch>
         </span>
       </div>
-      <div class="hr"></div>
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('pushdownRange')}}</span>
-        <span class="setting-value">
+        <span class="setting-value fixed">
           <el-switch
             v-model="form.isPushdownRange"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')">
           </el-switch>
         </span>
+        <div class="setting-desc">{{$t('pushdownRangeDesc')}}</div>
       </div>
-      <div class="setting-desc">{{$t('pushdownRangeDesc')}}</div>
-    </div>
+    </EditableBlock>
+
+    <EditableBlock
+      :headerContent="$t('segmentSettings')"
+      @submit="handleSubmitBasic"
+      @cancel="handleCancelBasic">
+      <div class="setting-item">
+        <span class="setting-label font-medium">{{$t('segmentMerge')}}</span>
+        <span class="setting-value fixed">
+          <el-switch
+            v-model="form.isSegmentMerge"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')">
+          </el-switch>
+        </span>
+        <div class="setting-desc">{{$t('segmentMergeDesc')}}</div>
+        <SegmentMerge v-model="form"></SegmentMerge>
+      </div>
+    </EditableBlock>
   </div>
 </template>
 
@@ -97,6 +103,8 @@ import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import { handleError } from '../../../util'
 import { projectTypeIcons } from './handler'
+import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
+import SegmentMerge from '../SegmentMerge/SegmentMerge.vue'
 
 @Component({
   props: {
@@ -104,6 +112,10 @@ import { projectTypeIcons } from './handler'
       type: Object,
       default: () => ({})
     }
+  },
+  components: {
+    EditableBlock,
+    SegmentMerge
   },
   methods: {
     ...mapActions({
@@ -113,18 +125,19 @@ import { projectTypeIcons } from './handler'
   locales
 })
 export default class SettingBasic extends Vue {
-  isLoading = false
   form = {
     isFileBased: true,
     isSourceSampling: true,
     isPushdownEngine: true,
     isPushdownRange: true,
+    isSegmentMerge: true,
+    autoMergeConfigs: [ 'WEEK', 'MONTH' ],
+    volatileConfig: {
+      value: 0,
+      type: 'DAY'
+    },
     name: '',
     description: ''
-  }
-  popover = {
-    name: false,
-    description: false
   }
   get projectInfo () {
     const name = this.project.name
@@ -133,6 +146,16 @@ export default class SettingBasic extends Vue {
     const icon = projectTypeIcons[this.project.maintain_model_type]
     return { name, type, description, icon }
   }
+
+  handleSubmitBasic (successCallback) {
+    setTimeout(() => {
+      successCallback()
+    }, 5000)
+  }
+  handleCancelBasic () {
+    this.initForm()
+  }
+
   get submitData () {
     const { form } = this
     const projectString = JSON.stringify(this.project)
@@ -174,29 +197,9 @@ export default class SettingBasic extends Vue {
 @import '../../../assets/styles/variables.less';
 
 .basic-setting {
-  padding: 5px 0;
-  .project-basic .setting-label {
-    width: 93px;
-  }
-  .project-switch .setting-label {
-    width: 123px;
-  }
-  .clearfix .setting-value {
-    margin-left: 103px;
-  }
-}
-
-.project-edit-description {
-  width: auto !important;
-  .popover-input {
-    margin-bottom: 13px;
-    textarea {
-      min-height: 80px !important;
-      width: 300px;
-    }
-  }
-  .el-popover__title {
-    font-weight: 500;
+  .clearfix .setting-value,
+  .clearfix .setting-input {
+    width: calc(~'100% - 92px');
   }
 }
 </style>

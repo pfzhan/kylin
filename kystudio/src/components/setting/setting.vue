@@ -7,11 +7,11 @@
       <el-tab-pane :label="$t('basic')" :name="viewTypes.BASIC">
         <SettingBasic :project="currentProjectData"></SettingBasic>
       </el-tab-pane>
-      <el-tab-pane :label="$t('acceleration')" :name="viewTypes.ACCELERATION">
+      <el-tab-pane :label="$t('advanced')" :name="viewTypes.ADVANCED">
         <SettingAccelerate></SettingAccelerate>
       </el-tab-pane>
-      <el-tab-pane :label="$t('storage')" :name="viewTypes.STORAGE">
-        <SettingStorage :project="currentProjectData"></SettingStorage>
+      <el-tab-pane :label="$t('model')" :name="viewTypes.MODEL">
+        <SettingModel :project="currentProjectData"></SettingModel>
       </el-tab-pane>
     </el-tabs>
   </div>
@@ -27,7 +27,7 @@ import { viewTypes } from './handler'
 import emptyImg from '../../assets/img/empty.svg'
 import SettingBasic from './SettingBasic/SettingBasic.vue'
 import SettingAccelerate from './SettingAccelerate/SettingAccelerate.vue'
-import SettingStorage from './SettingStorage/SettingStorage.vue'
+import SettingModel from './SettingModel/SettingModel.vue'
 
 @Component({
   computed: {
@@ -38,7 +38,7 @@ import SettingStorage from './SettingStorage/SettingStorage.vue'
   components: {
     SettingBasic,
     SettingAccelerate,
-    SettingStorage
+    SettingModel
   },
   locales
 })
@@ -74,41 +74,69 @@ export default class Setting extends Vue {
   .project-setting:not(:last-child) {
     margin-bottom: 20px;
   }
-  .setting-item:not(:last-child) {
-    margin-bottom: 10px;
+  // editable-block style
+  .editable-block {
+    margin-bottom: 20px;
+  }
+  // setting-item 通用style
+  .setting-item {
+    border-bottom: 1px solid @line-border-color;
+    padding: 15px 20px;
+  }
+  .setting-item:last-child {
+    border: none;
   }
   .setting-label {
-    margin-right: 7px;
-    display: inline-block;
-    white-space: nowrap;
+    margin-right: 10px;
+  }
+  .setting-input {
+    display: none;
   }
   .setting-label,
   .setting-value {
+    display: inline-block;
     color: @text-title-color;
   }
+  .is-edit .setting-input {
+    display: inline-block;
+  }
+  .is-edit .setting-value {
+    display: none;
+    &.fixed {
+      display: inline-block;
+    }
+  }
+  .is-edit .setting-input {
+    display: inline-block;
+  }
+  .is-edit .clearfix .setting-value {
+    display: none;
+  }
+  .is-edit .clearfix .setting-input {
+    display: block;
+  }
+  .clearfix {
+    .setting-label,
+    .setting-value {
+      display: block;
+      float: left;
+    }
+    .setting-input {
+      display: none;
+      float: left;
+    }
+  }
   .setting-desc {
-    margin: -5px 0 10px 0;
+    margin-top: 5px;
     font-size: 12px;
+    line-height: 16px;
     color: @text-description;
   }
   .setting-desc:last-child {
     margin-bottom: 0px;
   }
-  .hr {
-    border-top: 1px solid @grey-3;
-    margin-bottom: 10px;
-  }
   .option-title {
     color: @text-title-color;
-  }
-  .clearfix {
-    .setting-label {
-      float: left;
-      display: block;
-    }
-    .setting-value {
-      display: block;
-    }
   }
 }
 </style>
