@@ -432,6 +432,7 @@ public abstract class ResourceStore {
         long startTime = System.currentTimeMillis();
 
         val metaDir = new File(dir, ImageStore.METADATA_DIR);
+        metaDir.mkdirs();
         ResourceStore from = ResourceStore.getKylinMetaStore(kylinConfig);
         for (String path : dumpList) {
             RawResource res = from.getResource(path);

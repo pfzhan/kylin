@@ -115,6 +115,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         ReflectionTestUtils.setField(favoriteQueryService, "favoriteRuleService", Mockito.spy(new FavoriteRuleService()));
         for (ProjectInstance projectInstance : NProjectManager.getInstance(getTestConfig()).listAllProjects()) {
             NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(projectInstance.getName());
+            favoriteScheduler.init();
             Assert.assertTrue(favoriteScheduler.hasStarted());
         }
     }

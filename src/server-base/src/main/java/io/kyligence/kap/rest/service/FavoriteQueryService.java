@@ -80,18 +80,6 @@ public class FavoriteQueryService extends BasicService {
     @Qualifier("favoriteRuleService")
     FavoriteRuleService favoriteRuleService;
 
-    public FavoriteQueryService() {
-        for (ProjectInstance projectInstance : getProjectManager().listAllProjects()) {
-            NFavoriteScheduler favoriteScheduler = getFavoriteScheduler(projectInstance.getName());
-            favoriteScheduler.init();
-
-            if (!favoriteScheduler.hasStarted()) {
-                throw new RuntimeException(
-                        "Auto favorite scheduler for " + projectInstance.getName() + " has not been started");
-            }
-        }
-    }
-
     @Transaction(project = 1)
     void insertToDaoAndAccelerateForWhitelistChannel(Set<String> sqlPatterns, String project, String user) {
         List<String> sqlsToAccelerate = Lists.newArrayList();

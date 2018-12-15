@@ -160,9 +160,9 @@ public class KafkaEventStore extends EventStore {
             return;
         }
         val producerConfig = new Properties();
-        producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, "transaction-producer");
+        producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, topic + "-producer");
         producerConfig.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-        producerConfig.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "kylin-transactional-id");
+        producerConfig.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "kylin-transactional-" + topic);
         producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
                 "org.apache.kafka.common.serialization.StringSerializer");
         producerConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,

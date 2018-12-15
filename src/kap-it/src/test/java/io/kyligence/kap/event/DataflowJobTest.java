@@ -77,6 +77,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         EventOrchestratorManager.destroyInstance();
         NDefaultScheduler.destroyInstance();
         EventOrchestratorManager.getInstance(getTestConfig());
+        NDefaultScheduler.destroyInstance();
         scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
         scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
 
@@ -127,7 +128,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
 
-        waitEventFinish(event.getId(), 120 * 1000);
+        waitEventFinish(event.getId(), 240 * 1000);
         // after create spark job remove some layouts
         val allLayouts = df.getCubePlan().getAllCuboidLayouts().stream().map(NCuboidLayout::getId)
                 .collect(Collectors.toSet());
@@ -136,7 +137,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         }).getAllCuboidLayouts().stream().map(NCuboidLayout::getId).collect(Collectors.toSet());
         allLayouts.removeAll(livedLayouts);
         dataflowManager.removeLayouts(df2, allLayouts);
-        waitEventFinish(postEvent.getId(), 120 * 1000);
+        waitEventFinish(postEvent.getId(), 240 * 1000);
 
         val df3 = dataflowManager.getDataflow(df.getName());
         val cuboidsMap3 = df3.getLastSegment().getCuboidsMap();
@@ -193,7 +194,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
 
-        waitEventFinish(postEvent.getId(), 120 * 1000);
+        waitEventFinish(postEvent.getId(), 240 * 1000);
 
         val df2 = dataflowManager.getDataflow(df.getName());
         val cuboidsMap2 = df2.getLastSegment().getCuboidsMap();
@@ -234,7 +235,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
 
-        waitEventFinish(event.getId(), 120 * 1000);
+        waitEventFinish(event.getId(), 240 * 1000);
 
         // after create spark job remove some layouts
         val removeIds = Sets.newHashSet(1L);
@@ -244,7 +245,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         df = dataflowManager.getDataflow("ncube_basic");
         dataflowManager.removeLayouts(df, removeIds);
 
-        waitEventFinish(postEvent.getId(), 120 * 1000);
+        waitEventFinish(postEvent.getId(), 240 * 1000);
 
         val df2 = dataflowManager.getDataflow(df.getName());
         Assert.assertEquals(1, df2.getSegments().size());
@@ -287,7 +288,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
 
-        waitEventFinish(postEvent.getId(), 120 * 1000);
+        waitEventFinish(postEvent.getId(), 240 * 1000);
 
         val df2 = dataflowManager.getDataflow(df.getName());
         val cuboidsMap2 = df2.getLastSegment().getCuboidsMap();
