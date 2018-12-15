@@ -100,7 +100,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
             Map<String, NDataModel> dataModelDescs = new LinkedHashMap<>();
 
             NDataModelManager metadataManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            for(NDataModel modelDesc: metadataManager.getDataModels()){
+            for (NDataModel modelDesc: metadataManager.getDataModels()) {
                 dataModelDescs.put(modelDesc.getName(), modelDesc);
             }
 

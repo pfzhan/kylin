@@ -58,6 +58,8 @@ public class DefaultQueryTransformer implements IQueryTransformer {
     private static final Pattern PTN_HAVING_COUNT_GREATER_THAN_ZERO = Pattern.compile(S1 + "HAVING" + SM + "[(]?" + S0
             + "COUNT" + S0 + "[(]" + S0 + "1" + S0 + "[)]" + S0 + ">" + S0 + "0" + S0 + "[)]?",
             Pattern.CASE_INSENSITIVE);
+    private static final Pattern PTN_SUM = Pattern
+            .compile(S0 + "SUM" + S0 + "[(]" + S0 + "\\d+(\\.\\d+)?" + S0 + "[)]" + S0, Pattern.CASE_INSENSITIVE);
     private static final Pattern PTN_SUM_1 = Pattern.compile(S0 + "SUM" + S0 + "[(]" + S0 + "[1]" + S0 + "[)]" + S0,
             Pattern.CASE_INSENSITIVE);
     private static final Pattern PTN_MIN_1 = Pattern.compile(S0 + "MIN" + S0 + "[(]" + S0 + "[1]" + S0 + "[)]" + S0,
@@ -74,7 +76,9 @@ public class DefaultQueryTransformer implements IQueryTransformer {
             + S0 + "([^\\s,]+)" + S0 + "AS" + SM + "DOUBLE" + S0 + "\\)" + S0 + "\\)", Pattern.CASE_INSENSITIVE);
     private static final Pattern PIN_SUM_OF_FN_CONVERT = Pattern
             .compile(S0 + "SUM" + S0 + "\\(" + S0 + "\\{\\s*fn" + SM + "convert" + S0 + "\\(" + S0 + "([^\\s,]+)" + S0
-                    + "," + S0 + "SQL_DOUBLE" + S0 + "\\)" + S0 + "\\}" + S0 + "\\)", Pattern.CASE_INSENSITIVE);
+                    + "," + S0 + "(SQL_DOUBLE|DOUBLE|SQL_BIGINT|BIGINT|INT|SMALLINT|SQL_SMALLINT" +
+                    "|TINYINT|SQL_TINYINT|INTEGER|SQL_INTEGER|FLOAT|SQL_FLOAT)" + S0 + "\\)"
+                    + S0 + "\\}" + S0 + "\\)", Pattern.CASE_INSENSITIVE);
 
     @Override
     public String transform(String sql, String project, String defaultSchema) {
@@ -126,6 +130,16 @@ public class DefaultQueryTransformer implements IQueryTransformer {
             if (!m.find())
                 break;
             sql = sql.substring(0, m.start()) + " COUNT(1) " + sql.substring(m.end());
+        }
+
+        // Case: SUM(N)
+        // Replace it with N * COUNT(1)
+        while (true) {
+            m = PTN_SUM.matcher(sql);
+            if (!m.find())
+                break;
+            String val = m.group().toUpperCase().replace("SUM(", "").replace(")", "");
+            sql = sql.substring(0, m.start()) + " " + val.trim() + " * COUNT(1) " + sql.substring(m.end());
         }
 
         // Case: MIN(1) or MAX(1)

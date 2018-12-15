@@ -292,7 +292,7 @@ public class OLAPProjectRel extends Project implements OLAPRel {
                 String colExpr = colRef.isInnerColumn() && colRef.getParserDescription() != null
                         ? colRef.getParserDescription() : colRef.getIdentity();
                 try {
-                    return CalciteParser.getExpNode("\"" + colExpr + "\"");
+                    return CalciteParser.getExpNode(colExpr);
                 } catch (Exception e) {
                     return super.convertInputRef(ref); // i.e. return null
                 }

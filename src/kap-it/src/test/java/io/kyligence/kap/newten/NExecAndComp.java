@@ -139,7 +139,7 @@ public class NExecAndComp {
                 Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
                 List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
                 List<Row> sparkRows = sparkResult.toJavaRDD().collect();
-                if (!compareResults(kapRows, sparkRows, compareLevel)) {
+                if (!compareResults(sparkRows, kapRows, compareLevel)) {
                     logger.error("Failed on compare query (" + joinType + ") :" + query);
                     throw new IllegalArgumentException("query (" + joinType + ") :" + query + " result not match");
                 }
@@ -200,7 +200,7 @@ public class NExecAndComp {
     }
 
     private static Dataset<Row> queryWithSpark(KapSparkSession kapSparkSession, String sql) {
-        String afterConvert = QueryUtil.massagePushdownSql(sql, kapSparkSession.project(), "default", false);
+        String afterConvert = QueryUtil.massagePushDownSql(sql, kapSparkSession.project(), "default", false);
         // Table schema comes from csv and DATABASE.TABLE is not supported.
         String sqlForSpark = afterConvert.replaceAll("edw\\.", "")
                 .replaceAll("`edw`\\.", "")
@@ -218,7 +218,9 @@ public class NExecAndComp {
                 .replaceAll("`tpch`\\.", "")
                 .replaceAll("TDVT\\.", "")
                 .replaceAll("\"TDVT\"\\.", "")
-                .replaceAll("`TDVT`\\.", "");
+                .replaceAll("`TDVT`\\.", "")
+                .replaceAll("\"POPHEALTH_ANALYTICS\"\\.", "")
+                .replaceAll("`POPHEALTH_ANALYTICS`\\.", "");
         return kapSparkSession.querySparkSql(sqlForSpark);
     }
 

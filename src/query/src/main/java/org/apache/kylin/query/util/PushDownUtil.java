@@ -76,7 +76,6 @@ import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.metadata.realization.RoutingIndicatorException;
-import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.apache.kylin.source.adhocquery.IPushDownRunner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,14 +135,7 @@ public class PushDownUtil {
             }
         }
 
-        for (String converterName : kylinConfig.getPushDownConverterClassNames()) {
-            IPushDownConverter converter = (IPushDownConverter) ClassUtil.newInstance(converterName);
-            String converted = converter.convert(sql, project, defaultSchema, isPrepare);
-            if (!sql.equals(converted)) {
-                logger.info("the query is converted to {} after applying converter {}", converted, converterName);
-                sql = converted;
-            }
-        }
+        QueryUtil.massagePushDownSql(kylinConfig, sql, project, defaultSchema, isPrepare);
 
         List<List<String>> returnRows = Lists.newArrayList();
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();

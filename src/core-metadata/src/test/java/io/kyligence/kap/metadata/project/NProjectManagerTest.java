@@ -64,7 +64,7 @@ public class NProjectManagerTest extends NLocalFileMetadataTestCase {
         }
 
         val projects = projectManager.listAllProjects();
-        Assert.assertEquals(8, projects.size());
+        Assert.assertEquals(9, projects.size());
         Assert.assertTrue(projects.stream().noneMatch(p -> p.getName().equals("test")));
     }
 }

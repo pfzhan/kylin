@@ -169,11 +169,11 @@ object SparderQueryTest {
 
   def castDataType(sparkResult: DataFrame, cubeResult: DataFrame): DataFrame = {
     val columns = sparkResult.schema.zip(cubeResult.schema).map {
-      case (sparkFiled, kylinFiled) =>
-        if (!sparkFiled.dataType.sameType(kylinFiled.dataType)) {
-          col(sparkFiled.name).cast(kylinFiled.dataType)
+      case (sparkField, kylinField) =>
+        if (!sparkField.dataType.sameType(kylinField.dataType)) {
+          col(sparkField.name).cast(kylinField.dataType)
         } else {
-          col(sparkFiled.name)
+          col(sparkField.name)
         }
     }
     sparkResult.select(columns: _*)

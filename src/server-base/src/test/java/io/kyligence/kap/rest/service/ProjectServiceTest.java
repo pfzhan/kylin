@@ -157,7 +157,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     public void testGetReadableProjects() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("");
-        Assert.assertEquals(8, projectInstances.size());
+        Assert.assertEquals(9, projectInstances.size());
 
     }
 
@@ -173,7 +173,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
     public void testGetReadableProjects_hasNoPermissionProject() throws Exception {
         Mockito.doReturn(true).when(aclEvaluate).hasProjectAdminPermission(Mockito.any(ProjectInstance.class));
         List<ProjectInstance> projectInstances = projectService.getReadableProjects("");
-        Assert.assertEquals(8, projectInstances.size());
+        Assert.assertEquals(9, projectInstances.size());
 
     }
 

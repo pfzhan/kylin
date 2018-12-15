@@ -32,6 +32,7 @@ import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.Getter;
 import lombok.val;
 import org.apache.calcite.jdbc.Driver;
 import org.apache.kylin.common.KapConfig;
@@ -72,6 +73,7 @@ public class KapSparkSession extends SparkSession {
     private static Boolean isRegister = false;
 
     private Properties prop;
+    @Getter
     private String project;
 
     public KapSparkSession(SparkContext sc) {

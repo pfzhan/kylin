@@ -45,6 +45,7 @@ package org.apache.kylin.query.util;
 
 import java.util.Properties;
 
+import io.kyligence.kap.query.util.SparkSQLFunctionConverter;
 import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Test;
@@ -60,6 +61,26 @@ public class QueryUtilTest {
         String sql = "SELECT * FROM TABLE";
         String newSql = QueryUtil.massageSql(config, sql, "", 100, 20, "");
         Assert.assertEquals("SELECT * FROM TABLE\nLIMIT 100\nOFFSET 20", newSql);
+
+        String sql2 = "SELECT SUM({fn convert(0, INT)}) from TABLE";
+        String newSql2 = QueryUtil.massageSql(config, sql2, "", 0, 0, "");
+        // SUM({fn convert(0, INT)}) -> SUM(0) -> 0 * COUNT(1)
+        Assert.assertEquals("SELECT 0 * COUNT(1) from TABLE", newSql2);
+    }
+
+    @Test
+    public void testMassagePushDownSql() {
+        KylinConfig config = KylinConfig.createKylinConfig(new Properties());
+        KylinConfig.setKylinConfigThreadLocal(config);
+        config.setProperty("kylin.query.pushdown.converter-class-names", SparkSQLFunctionConverter.class.getCanonicalName());
+        String sql = "SELECT \"Z_PROVDASH_UM_ED\".\"GENDER\" AS \"GENDER\",\n" +
+                "SUM({fn CONVERT(0, SQL_BIGINT)}) AS \"sum_Calculation_336925569152049156_ok\"\n" +
+                "FROM \"POPHEALTH_ANALYTICS\".\"Z_PROVDASH_UM_ED\" \"Z_PROVDASH_UM_ED\"";
+        String massagedSql = QueryUtil.massagePushDownSql(config, sql, "", "default", false);
+        String expectedSql = "SELECT \"Z_PROVDASH_UM_ED\".\"GENDER\" AS \"GENDER\",\n" +
+                "SUM(CAST(0 AS BIGINT)) AS \"sum_Calculation_336925569152049156_ok\"\n" +
+                "FROM \"POPHEALTH_ANALYTICS\".\"Z_PROVDASH_UM_ED\" \"Z_PROVDASH_UM_ED\"";
+        Assert.assertEquals(expectedSql, massagedSql);
     }
 
     @Test

@@ -105,6 +105,8 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         sparkConf.set("spark.serializer", "org.apache.spark.serializer.JavaSerializer");
         sparkConf.set(StaticSQLConf.CATALOG_IMPLEMENTATION().key(), "in-memory");
         sparkConf.set("spark.sql.shuffle.partitions", "1");
+        // For sinai_poc/query03, enable implicit cross join conversion
+        sparkConf.set("spark.sql.crossJoin.enabled", "true");
 
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         SparderEnv.setSparkSession(ss);

@@ -67,6 +67,7 @@ public class QueryUtil {
     protected static final Logger logger = LoggerFactory.getLogger(QueryUtil.class);
 
     static List<IQueryTransformer> queryTransformers = Collections.emptyList();
+    static List<IPushDownConverter> pushDownConverters = Collections.emptyList();
 
     public interface IQueryTransformer {
         String transform(String sql, String project, String defaultSchema);
@@ -131,6 +132,43 @@ public class QueryUtil {
         queryTransformers = Collections.unmodifiableList(transformers);
     }
 
+    public static String massagePushDownSql(String sql, String project, String defaultSchema, boolean isPrepare) {
+        NProjectManager projectManager = NProjectManager.getInstance(KylinConfig.getInstanceFromEnv());
+        ProjectInstance projectInstance = projectManager.getProject(project);
+        KylinConfig kylinConfig = projectInstance.getConfig();
+        return massagePushDownSql(kylinConfig, sql, project, defaultSchema, isPrepare);
+    }
+
+    static String massagePushDownSql(KylinConfig kylinConfig, String sql, String project, String defaultSchema, boolean isPrepare) {
+        initPushDownConvertersIfNeeded(kylinConfig);
+        for (IPushDownConverter converter : pushDownConverters) {
+            sql = converter.convert(sql, project, defaultSchema, isPrepare);
+        }
+        return sql;
+    }
+
+    static void initPushDownConvertersIfNeeded(KylinConfig kylinConfig) {
+        String[] currentConverters = pushDownConverters.stream().map(Object::getClass).map(Class::getCanonicalName)
+                .toArray(String[]::new);
+        String[] configConverters = kylinConfig.getPushDownConverterClassNames();
+        boolean skipInit = Objects.deepEquals(currentConverters, configConverters);
+
+        if (skipInit) {
+            return;
+        }
+
+        List<IPushDownConverter> converters = Lists.newArrayList();
+        for (String clz : configConverters) {
+            try {
+                IPushDownConverter converter = (IPushDownConverter) ClassUtil.newInstance(clz);
+                converters.add(converter);
+            } catch (Exception e) {
+                throw new IllegalStateException("Failed to init pushdown converter", e);
+            }
+        }
+        pushDownConverters = Collections.unmodifiableList(converters);
+    }
+
     public static String makeErrorMsgUserFriendly(Throwable e) {
         String msg = e.getMessage();
 
@@ -150,19 +188,6 @@ public class QueryUtil {
         }
 
         return makeErrorMsgUserFriendly(msg);
-    }
-
-    public static String massagePushdownSql(String sql, String project, String defaultSchema, boolean isPrepare) {
-        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-        for (String converterName : kylinConfig.getPushDownConverterClassNames()) {
-            IPushDownConverter converter = (IPushDownConverter) ClassUtil.newInstance(converterName);
-            String convertedSql = converter.convert(sql, project, defaultSchema, isPrepare);
-            if (!sql.equals(convertedSql)) {
-                logger.info("The query is converted to {} after applying converter {}", convertedSql, converterName);
-                sql = convertedSql;
-            }
-        }
-        return sql;
     }
 
     public static String makeErrorMsgUserFriendly(String errorMsg) {
