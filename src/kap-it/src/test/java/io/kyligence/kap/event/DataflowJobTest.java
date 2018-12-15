@@ -215,6 +215,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         prepareSegment(df.getName(), "2012-01-01", "2012-06-01", true);
         prepareSegment(df.getName(), "2012-06-01", "2012-09-01", false);
 
+        df = dataflowManager.getDataflow(df.getName());
         val sg = new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-01-01"),
                 SegmentRange.dateToLong("2012-09-01"));
         NDataSegment newSeg = dataflowManager.mergeSegments(df, sg, false);

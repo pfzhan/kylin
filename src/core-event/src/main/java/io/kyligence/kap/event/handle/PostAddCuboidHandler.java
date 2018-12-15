@@ -52,7 +52,7 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
 
     @Override
     protected void doHandle(EventContext eventContext, ChainedExecutable executable) {
-
+        String project = eventContext.getProject();
         if (executable == null) {
             log.debug("executable is null when handling event {}", eventContext.getEvent());
             // in case the job is skipped
@@ -60,12 +60,14 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
             return;
         } else if (executable.getStatus() == ExecutableState.DISCARDED) {
             log.debug("previous job suicide, current event:{} will be ignored", eventContext.getEvent());
-            finishEvent(eventContext.getProject(), eventContext.getEvent().getId());
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                finishEvent(eventContext.getProject(), eventContext.getEvent().getId());
+                return null;
+            }, project);
             return;
         }
 
         PostAddCuboidEvent event = (PostAddCuboidEvent) eventContext.getEvent();
-        String project = eventContext.getProject();
         List<String> sqlList = event.getSqlPatterns();
         val jobId = event.getJobId();
 

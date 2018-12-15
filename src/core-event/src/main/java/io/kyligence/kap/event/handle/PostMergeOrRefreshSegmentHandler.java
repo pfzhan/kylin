@@ -59,7 +59,10 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
             return;
         } else if (executable.getStatus() == ExecutableState.DISCARDED) {
             log.debug("previous job suicide, current event:{} will be ignored", eventContext.getEvent());
-            finishEvent(eventContext.getProject(), eventContext.getEvent().getId());
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                finishEvent(eventContext.getProject(), eventContext.getEvent().getId());
+                return null;
+            }, project);
             return;
         }
 

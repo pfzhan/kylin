@@ -462,12 +462,9 @@ public class KylinConfig extends KylinConfigBase {
         logger.info("Ready to load KylinConfig from uri: {}", uri);
         StorageURL url = StorageURL.valueOf(uri);
         String metaDir = url.getParameter("path") + "/" + KylinConfig.KYLIN_CONF_PROPERTIES_FILE;
-        try {
-            FileSystem fs = HadoopUtil.getFileSystem(metaDir);
-            InputStream is = fs.open(new Path(metaDir));
+        try (FileSystem fs = HadoopUtil.getFileSystem(metaDir); InputStream is = fs.open(new Path(metaDir))) {
             Properties prop = KylinConfig.streamToProps(is);
-            KylinConfig config = KylinConfig.createKylinConfig(prop);
-            return config;
+            return KylinConfig.createKylinConfig(prop);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

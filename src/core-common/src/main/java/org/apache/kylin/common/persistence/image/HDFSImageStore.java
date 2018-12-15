@@ -117,9 +117,11 @@ public class HDFSImageStore extends ImageStore {
             if (fs.getFileStatus(p).getLen() == 0) {
                 log.warn("Zero length file: " + p.toString());
             }
-            val bs = ByteStreams.asByteSource(IOUtils.toByteArray(fs.open(p)));
-            long t = fs.getFileStatus(p).getModificationTime();
-            return new RawResource(filepath, bs, t, getMvcc(bs));
+            try (val in = fs.open(p)) {
+                val bs = ByteStreams.asByteSource(IOUtils.toByteArray(in));
+                long t = fs.getFileStatus(p).getModificationTime();
+                return new RawResource(filepath, bs, t, getMvcc(bs));
+            }
         } else {
             throw new IOException("path " + p + " not found");
         }
