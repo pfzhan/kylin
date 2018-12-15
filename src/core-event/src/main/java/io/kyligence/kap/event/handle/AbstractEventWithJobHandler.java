@@ -30,7 +30,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import lombok.val;
@@ -41,17 +40,17 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
 
     @Override
     protected final void doHandle(EventContext eventContext) {
-        Event event = eventContext.getEvent();
-        val project = event.getProject();
+        super.doHandle(eventContext);
 
+        Event event = eventContext.getEvent();
+        val project = eventContext.getProject();
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val kylinConfig = KylinConfig.getInstanceFromEnv();
+            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
             val eventId = event.getId();
-            EventDao eventDao = getEventDao(project, kylinConfig);
-            AbstractExecutable job = createJob(eventContext);
+            AbstractExecutable job = createJob(eventContext.getEvent(), project);
             if (job == null) {
                 logger.info("No job is required by event {}, aborting handler...", event);
-                eventDao.deleteEvent(eventId);
+                finishEvent(project, eventId);
                 return null;
             }
 
@@ -61,12 +60,15 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
             NExecutableManager executableManager = getExecutableManager(project, kylinConfig);
             executableManager.addJob(po);
 
-            eventDao.deleteEvent(eventId);
+            finishEvent(project, eventId);
 
             return null;
         }, project);
     }
 
-    protected abstract AbstractExecutable createJob(EventContext eventContext);
+    /**
+     * createJob is wrapped by UnitOfWork
+     */
+    protected abstract AbstractExecutable createJob(Event event, String project);
 
 }

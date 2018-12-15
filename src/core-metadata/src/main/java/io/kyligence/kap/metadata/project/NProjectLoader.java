@@ -190,7 +190,8 @@ class NProjectLoader {
         Set<TblColRef> allColumns = realization.getAllColumns();
 
         if (allColumns.isEmpty() && realization.getMeasures().isEmpty()) {
-            logger.error("Realization '{}' does not report any columns or measures.", realization.getCanonicalName());
+            // empty model is allowed in newten
+            logger.trace("Realization '{}' does not report any columns or measures.", realization.getCanonicalName());
             return false;
             // cuboid which only contains measure on (*) should return true
         }

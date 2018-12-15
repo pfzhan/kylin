@@ -59,7 +59,7 @@ import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import io.kyligence.kap.event.model.PostMergeSegmentEvent;
+import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 import lombok.var;
@@ -73,6 +73,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
     public void setUp() throws Exception {
         System.setProperty("kylin.job.event.poll-interval-second", "1");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "2");
+        //System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
         this.createTestMetadata();
         EventOrchestratorManager.destroyInstance();
         NDefaultScheduler.destroyInstance();
@@ -95,6 +96,8 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         this.cleanupTestMetadata();
         System.clearProperty("kylin.job.event.poll-interval-second");
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
+        //System.clearProperty("kylin.engine.spark.build-class-name");
+
     }
 
     @Test
@@ -112,7 +115,6 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
                 SegmentRange.dateToLong("2012-06-01"), SegmentRange.dateToLong("2012-12-01")));
 
         val event = new AddSegmentEvent();
-        event.setProject(DEFAULT_PROJECT);
         event.setSegmentId(newSeg2.getId());
         event.setModelName(df.getModel().getName());
         event.setCubePlanName(df.getCubePlanName());
@@ -121,7 +123,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         eventManager.post(event);
 
         val postEvent = new PostAddSegmentEvent();
-        postEvent.setProject(DEFAULT_PROJECT);
+        postEvent.setSegmentId(newSeg2.getId());
         postEvent.setModelName(df.getModel().getName());
         postEvent.setCubePlanName(df.getCubePlanName());
         postEvent.setJobId(event.getJobId());
@@ -158,8 +160,8 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         val df = dataflowManager.getDataflow("ncube_basic");
         prepareFirstSegment(df.getName());
         modelManager.updateDataModel(df.getModel().getName(), copyForWrite -> {
-            copyForWrite.setAllMeasures(copyForWrite.getAllMeasures().stream().filter(m -> m.id != 1011)
-                    .collect(Collectors.toList()));
+            copyForWrite.setAllMeasures(
+                    copyForWrite.getAllMeasures().stream().filter(m -> m.id != 1011).collect(Collectors.toList()));
         });
         cubeManager.updateCubePlan(df.getCubePlanName(), copyForWrite -> {
             try {
@@ -179,7 +181,6 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         });
 
         AddCuboidEvent event = new AddCuboidEvent();
-        event.setProject(DEFAULT_PROJECT);
         event.setModelName(df.getModel().getName());
         event.setCubePlanName(df.getCubePlanName());
         event.setJobId(UUID.randomUUID().toString());
@@ -187,7 +188,6 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         eventManager.post(event);
 
         val postEvent = new PostAddCuboidEvent();
-        postEvent.setProject(DEFAULT_PROJECT);
         postEvent.setModelName(df.getModel().getName());
         postEvent.setCubePlanName(df.getCubePlanName());
         postEvent.setJobId(event.getJobId());
@@ -215,23 +215,24 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         prepareSegment(df.getName(), "2012-01-01", "2012-06-01", true);
         prepareSegment(df.getName(), "2012-06-01", "2012-09-01", false);
 
-        MergeSegmentEvent event = new MergeSegmentEvent();
+        df = dataflowManager.getDataflow("ncube_basic");
         val sg = new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-01-01"),
                 SegmentRange.dateToLong("2012-09-01"));
-        event.setProject(DEFAULT_PROJECT);
+        NDataSegment newSeg = dataflowManager.mergeSegments(df, sg, false);
+        MergeSegmentEvent event = new MergeSegmentEvent();
+
         event.setModelName(df.getModel().getName());
         event.setCubePlanName(df.getCubePlanName());
         event.setJobId(UUID.randomUUID().toString());
-        event.setSegmentRange(sg);
+        event.setSegmentId(newSeg.getId());
         event.setOwner("ADMIN");
         eventManager.post(event);
 
-        val postEvent = new PostMergeSegmentEvent();
-        postEvent.setProject(DEFAULT_PROJECT);
+        val postEvent = new PostMergeOrRefreshSegmentEvent();
         postEvent.setModelName(df.getModel().getName());
         postEvent.setCubePlanName(df.getCubePlanName());
         postEvent.setJobId(event.getJobId());
-        postEvent.setSegmentRange(sg);
+        postEvent.setSegmentId(newSeg.getId());
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
 
@@ -272,7 +273,6 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
 
         // add first segment
         AddSegmentEvent event = new AddSegmentEvent();
-        event.setProject(DEFAULT_PROJECT);
         event.setSegmentId(newSeg.getId());
         event.setModelName(df.getModel().getName());
         event.setCubePlanName(df.getCubePlanName());
@@ -281,7 +281,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         eventManager.post(event);
 
         PostAddSegmentEvent postEvent = new PostAddSegmentEvent();
-        postEvent.setProject(DEFAULT_PROJECT);
+        postEvent.setSegmentId(newSeg.getId());
         postEvent.setModelName(df.getModel().getName());
         postEvent.setCubePlanName(df.getCubePlanName());
         postEvent.setJobId(event.getJobId());

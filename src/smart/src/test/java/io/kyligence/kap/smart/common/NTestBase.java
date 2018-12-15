@@ -30,13 +30,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.common.persistence.image.ImageStore;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
@@ -49,6 +47,8 @@ import com.google.common.io.Files;
 
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.query.Utils;
@@ -69,7 +69,7 @@ public abstract class NTestBase {
         tmpMeta = Files.createTempDir();
         FileUtils.copyDirectory(new File(metaDir), new File(tmpMeta, ImageStore.METADATA_DIR));
 
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath() + ",mq=mock");
+        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
         kylinConfig.setProperty("kylin.env", "UT");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
         favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
@@ -118,6 +118,7 @@ public abstract class NTestBase {
 
         return olapContexts;
     }
+
     protected void initFQData(String[] sqls) {
         List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
         for (String sql : sqls) {

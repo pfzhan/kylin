@@ -116,7 +116,7 @@ public class AclService implements MutableAclService {
     public List<ObjectIdentity> findChildren(ObjectIdentity parentIdentity) {
         List<ObjectIdentity> oids = new ArrayList<>();
         Collection<AclRecord> allAclRecords;
-        allAclRecords = crud.getAll();
+        allAclRecords = crud.listAll();
         for (AclRecord record : allAclRecords) {
             ObjectIdentityImpl parent = record.getParentDomainObjectInfo();
             if (parent != null && parent.equals(parentIdentity)) {

@@ -38,7 +38,6 @@ import com.google.common.collect.Maps;
 import io.kyligence.kap.common.persistence.event.Event;
 import lombok.Getter;
 import lombok.val;
-import lombok.var;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -57,8 +56,7 @@ public abstract class EventStore implements Closeable {
     public static final String CONSUMER_THREAD_NAME = "consumer";
 
     static EventStore newInstance(KylinConfig config) {
-        var schema = config.getMetadataUrl().getParameter("mq");
-        schema = schema == null ? "kafka" : schema;
+        String schema = config.getMQType();
         val clazz = MQ_PROVIDERS.get(schema);
         try {
             val cls = ClassUtil.forName(clazz, EventStore.class);

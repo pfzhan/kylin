@@ -115,7 +115,7 @@ public class NModelController extends NBasicController {
 
     @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse createModel(@RequestBody ModelRequest modelRequest) throws IOException {
+    public EnvelopeResponse createModel(@RequestBody ModelRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
         modelService.createModel(modelRequest.getProject(), modelRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
@@ -139,7 +139,8 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/model_info", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelInfo(@RequestParam(value = "model", required = false, defaultValue = "*") String model,
+    public EnvelopeResponse getModelInfo(
+            @RequestParam(value = "model", required = false, defaultValue = "*") String model,
             @RequestParam(value = "project", required = false, defaultValue = "*") String project,
             @RequestParam(value = "suite", required = false, defaultValue = "*") String suite,
             @RequestParam(value = "start", required = false, defaultValue = "0") long start,

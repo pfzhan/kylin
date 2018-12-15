@@ -383,7 +383,6 @@ public class ModelSemanticHelper extends BasicService {
         EventManager eventManager = EventManager.getInstance(config, project);
 
         AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-        addCuboidEvent.setProject(project);
         addCuboidEvent.setModelName(model.getName());
         addCuboidEvent.setCubePlanName(df.getCubePlanName());
         addCuboidEvent.setJobId(UUID.randomUUID().toString());
@@ -391,7 +390,6 @@ public class ModelSemanticHelper extends BasicService {
         eventManager.post(addCuboidEvent);
 
         PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-        postAddCuboidEvent.setProject(project);
         postAddCuboidEvent.setModelName(model.getName());
         postAddCuboidEvent.setCubePlanName(df.getCubePlanName());
         postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
@@ -425,7 +423,6 @@ public class ModelSemanticHelper extends BasicService {
                 addCuboidEvent.setModelName(model);
                 addCuboidEvent.setJobId(UUID.randomUUID().toString());
                 addCuboidEvent.setOwner(getUsername());
-                addCuboidEvent.setProject(project);
                 eventManager.post(addCuboidEvent);
 
                 PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
@@ -433,7 +430,6 @@ public class ModelSemanticHelper extends BasicService {
                 postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
                 postAddCuboidEvent.setModelName(model);
                 postAddCuboidEvent.setOwner(getUsername());
-                postAddCuboidEvent.setProject(project);
                 eventManager.post(postAddCuboidEvent);
             }
 

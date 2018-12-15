@@ -79,7 +79,7 @@ public class FavoriteQueryManager implements IKeepNames {
     }
 
     private void initializeSqlPatternMap() {
-        List<FavoriteQuery> favoriteQueries = crud.getAll();
+        List<FavoriteQuery> favoriteQueries = crud.listAll();
         for (FavoriteQuery favoriteQuery : favoriteQueries) {
             favoriteQueryMap.put(favoriteQuery.getSqlPattern(), favoriteQuery);
         }
@@ -152,19 +152,19 @@ public class FavoriteQueryManager implements IKeepNames {
     }
 
     public List<FavoriteQuery> getAll() {
-        List<FavoriteQuery> allFqs = crud.getAll();
+        List<FavoriteQuery> allFqs = crud.listAll();
         // sort by last query time
         allFqs.sort(Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed());
         return allFqs;
     }
 
     public int getRuleBasedSize() {
-        return crud.getAll().stream().filter(input -> input.getChannel().equals(FavoriteQuery.CHANNEL_FROM_RULE))
+        return crud.listAll().stream().filter(input -> input.getChannel().equals(FavoriteQuery.CHANNEL_FROM_RULE))
                 .collect(Collectors.toList()).size();
     }
 
     public List<String> getUnAcceleratedSqlPattern() {
-        List<FavoriteQuery> favoriteQueries = crud.getAll().stream()
+        List<FavoriteQuery> favoriteQueries = crud.listAll().stream()
                 .filter(input -> input.getStatus().equals(FavoriteQueryStatusEnum.WAITING))
                 .collect(Collectors.toList());
         return favoriteQueries.stream().map(FavoriteQuery::getSqlPattern).collect(Collectors.toList());
@@ -177,7 +177,7 @@ public class FavoriteQueryManager implements IKeepNames {
     public List<FavoriteQueryRealization> getRealizationsByConditions(String modelId, String cubePlanName,
             Long cuboidLayoutId) {
         List<FavoriteQueryRealization> realizations = Lists.newArrayList();
-        List<FavoriteQuery> favoriteQueries = crud.getAll();
+        List<FavoriteQuery> favoriteQueries = crud.listAll();
         favoriteQueries.forEach(fq -> {
             List<FavoriteQueryRealization> fqRealizations = fq.getRealizations();
             for (FavoriteQueryRealization fqr : fqRealizations) {

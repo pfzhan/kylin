@@ -99,7 +99,7 @@ public class KylinUserManager {
     }
 
     public List<ManagedUser> list() {
-        List<ManagedUser> users = new ArrayList<>(crud.getAll());
+        List<ManagedUser> users = new ArrayList<>(crud.listAll());
         users.sort((o1, o2) -> o1.getUsername().compareToIgnoreCase(o2.getUsername()));
         return users;
     }

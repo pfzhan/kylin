@@ -125,11 +125,9 @@ public class TableExtServiceTest extends NLocalFileMetadataTestCase {
     public void testRemoveJobIdFromTableExt() throws Exception {
         NTableExtDesc tableExtDesc = new NTableExtDesc();
         tableExtDesc.setUuid(UUID.randomUUID().toString());
-        tableExtDesc.setProject("default");
         tableExtDesc.setIdentity("DEFAULT.TEST_REMOVE");
         tableExtDesc.setJodID("test");
         TableDesc tableDesc = new TableDesc();
-        tableDesc.setProject("default");
         tableDesc.setName("TEST_REMOVE");
         tableDesc.setDatabase("DEFAULT");
         tableDesc.setUuid(UUID.randomUUID().toString());

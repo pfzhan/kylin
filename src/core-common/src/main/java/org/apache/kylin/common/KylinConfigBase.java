@@ -243,9 +243,6 @@ abstract public class KylinConfigBase implements Serializable {
         return result;
     }
 
-    public String toString() {
-        return getMetadataUrl().toString();
-    }
 
     // ============================================================================
     // ENV
@@ -370,7 +367,15 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public StorageURL getMetadataUrl() {
-        return StorageURL.valueOf(getOptional("kylin.metadata.url", "kylin_metadata@hdfs,mq=kafka"));
+        return StorageURL.valueOf(getOptional("kylin.metadata.url", "kylin_metadata@hdfs"));
+    }
+
+    public int getImageCountThreshold() {
+        return Integer.parseInt(getOptional("kylin.metadata.image.count-threshold", "5"));
+    }
+
+    public String getMQType() {
+        return getOptional("kylin.metadata.mq-type", "kafka");
     }
 
     public int getCacheSyncRetrys() {
@@ -1610,7 +1615,4 @@ abstract public class KylinConfigBase implements Serializable {
                 TimeUnit.MILLISECONDS);
     }
 
-    public int getImageCountThreshold() {
-        return Integer.parseInt(getOptional("kylin.image.count-threshold", "5"));
-    }
 }

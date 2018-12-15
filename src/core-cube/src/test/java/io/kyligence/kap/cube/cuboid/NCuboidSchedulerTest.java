@@ -141,12 +141,11 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
         NCubePlan cube = mgr.getCubePlan("ut_inner_join_cube_partial");
         cube = JsonUtil.deepCopy(cube, NCubePlan.class);
         cube.setCuboids(Lists.<NCuboidDesc> newArrayList());
-        cube.setProject(DEFAULT_PROJECT);
         cube.setModelName("nmodel_basic");
-        cube.initAfterReload(getTestConfig());
+        cube.initAfterReload(getTestConfig(), DEFAULT_PROJECT);
         val rule = new NRuleBasedCuboidsDesc();
-        rule.setDimensions(Lists.<Integer>newArrayList());
-        rule.setMeasures(Lists.<Integer>newArrayList());
+        rule.setDimensions(Lists.<Integer> newArrayList());
+        rule.setMeasures(Lists.<Integer> newArrayList());
         rule.setCubePlan(cube);
         cube.setRuleBasedCuboidsDesc(rule);
         val scheduler = (NKapCuboidScheduler243) cube.getRuleBasedCuboidsDesc().getInitialCuboidScheduler();
@@ -164,9 +163,7 @@ public class NCuboidSchedulerTest extends NLocalFileMetadataTestCase {
             for (NAggregationGroup g : cube.getRuleBasedCuboidsDesc().getAggregationGroups())
                 g.getSelectRule().dimCap = resetDimCap;
         }
-
-        cube.setProject(DEFAULT_PROJECT);
-        cube.initAfterReload(getTestConfig());
+        cube.initAfterReload(getTestConfig(), DEFAULT_PROJECT);
         return cube;
     }
 }

@@ -117,7 +117,12 @@ public class InMemResourceStore extends ResourceStore {
         }
         VersionedRawResource versionedRawResource = data.get(resPath);
         RawResource r = new RawResource(resPath, byteSource, System.currentTimeMillis(), oldMvcc + 1);
-        versionedRawResource.update(r);
+        try {
+            versionedRawResource.update(r);
+        } catch (VersionConflictException e) {
+            logger.info("current RS: {}", this.toString());
+            throw e;
+        }
 
         return r;
     }
@@ -149,7 +154,8 @@ public class InMemResourceStore extends ResourceStore {
 
     @Override
     public String toString() {
-        return "<in memory metastore@" + System.identityHashCode(this) + ">";
+        return "<in memory metastore@" + System.identityHashCode(this) + ":kylin config@"
+                + System.identityHashCode(kylinConfig.base()) + ">";
     }
 
     @Override

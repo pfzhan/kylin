@@ -28,7 +28,7 @@ import com.google.common.collect.{Lists, Maps, Sets}
 import io.kyligence.kap.cube.model.{NCuboidLayout, NDataSegment, NDataflow, NDataflowManager, NDataflowUpdate}
 import io.kyligence.kap.engine.spark.ExecutableUtils
 import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob}
-import io.kyligence.kap.engine.spark.merger.{AfterBuildResourceMerger, AfterMergeResourceMerger}
+import io.kyligence.kap.engine.spark.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
 import org.apache.kylin.common.persistence.ResourceStore
 import org.apache.kylin.common.{KylinConfig, StorageURL}
 import org.apache.kylin.job.engine.JobEngineConfig
@@ -220,7 +220,7 @@ trait JobSupport
     execMgr.addJob(firstMergeJob)
     // wait job done
     Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob))
-    val merger = new AfterMergeResourceMerger(config, prj)
+    val merger = new AfterMergeOrRefreshResourceMerger(config, prj)
     var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkCubingStep)
     merger.mergeAfterJob(df.getName, firstMergeSeg.getId, mergeStore)
 
@@ -305,7 +305,7 @@ trait JobSupport
     execMgr.addJob(firstMergeJob)
     // wait job done
     Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob))
-    val merger = new AfterMergeResourceMerger(config, prj)
+    val merger = new AfterMergeOrRefreshResourceMerger(config, prj)
     val mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkCubingStep)
     merger.mergeAfterJob(df.getName, firstMergeSeg.getId, mergeStore)
 

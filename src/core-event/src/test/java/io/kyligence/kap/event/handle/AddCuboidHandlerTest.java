@@ -76,11 +76,10 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         master.runAll();
 
         AddCuboidEvent event = new AddCuboidEvent();
-        event.setProject(DEFAULT_PROJECT);
         event.setModelName("nmodel_basic");
         event.setCubePlanName("ncube_basic");
         event.setOwner("ADMIN");
-        EventContext eventContext = new EventContext(event, getTestConfig());
+        EventContext eventContext = new EventContext(event, getTestConfig(), DEFAULT_PROJECT);
         val handler = Mockito.spy(new AddCuboidHandler());
         handler.handle(eventContext);
 
@@ -106,12 +105,11 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
 
         AddCuboidEvent event = new AddCuboidEvent();
-        event.setProject(DEFAULT_PROJECT);
         event.setModelName("nmodel_basic");
         event.setCubePlanName("ncube_basic");
         event.setJobId(UUID.randomUUID().toString());
         event.setOwner("ADMIN");
-        EventContext eventContext = new EventContext(event, getTestConfig());
+        EventContext eventContext = new EventContext(event, getTestConfig(), DEFAULT_PROJECT);
         val handler = Mockito.spy(new AddCuboidHandler());
         handler.handle(eventContext);
 
@@ -123,7 +121,6 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         AbstractExecutable job = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getJob(jobId);
         Assert.assertNotNull(job);
     }
-
 
     private List<Long> calcAddedCuboidLayoutIds(List<NSmartContext.NModelContext> contexts) {
         List<Long> originLayoutIds = new ArrayList<>();

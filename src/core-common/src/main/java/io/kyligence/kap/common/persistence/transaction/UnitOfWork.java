@@ -73,49 +73,59 @@ public class UnitOfWork {
 
     public static <T> T doInTransactionWithRetry(Callback<T> f, String unitName, int maxRetry) {
         int retry = 0;
-        boolean needUnlock = true;
+        boolean isIndependentTransaction = true;
+        long startTime = 0;
         while (retry++ < maxRetry) {
             try {
                 T ret;
-                log.debug("start unit of work for {}", unitName);
+                log.debug("start unit of work for project {}", unitName);
 
-                if (threadLocals.get() != null && threadLocals.get().project.equals(unitName)) {
+                if (threadLocals.get() != null) {
+
+                    if (!threadLocals.get().project.equals(unitName)) {
+                        throw new IllegalStateException(
+                                String.format("re-entry of UnitOfWork with different unit name? existing: %s, new: %s",
+                                        threadLocals.get().project, unitName));
+                    }
+
+                    isIndependentTransaction = false;
+                    retry = 100; // don't retry even sth go wrong
                     ret = f.process();
-                    needUnlock = false;
+
                 } else {
+                    startTime = System.currentTimeMillis();
                     UnitOfWork.startTransaction(unitName, true);
                     ret = f.process();
                     UnitOfWork.endTransaction();
+                    long duration = System.currentTimeMillis() - startTime;
+                    if (duration > 3000) {
+                        log.warn("a UnitOfWork takes too long time: {}", duration);
+                    }
                 }
                 return ret;
             } catch (MQPublishFailureException mqe) {
                 throw new TransactionException("transaction failed due to Message Queue problem", mqe);
             } catch (Throwable throwable) {
                 if (retry >= maxRetry) {
-                    log.warn(retry + "th time failed", throwable);
-                    throw new TransactionException("transaction failed due to inconsistent state", throwable);
-                } else {
-                    if (retry > 7) { // by default max retry = 10, so this is last two retries sleeping 5s for each, total sleep about 10s
-                        log.warn(
-                                "retrying {}th time after sleeping 5s, huge number of retry is a sign of system disfunction, try reboot?",
-                                retry);
-                        try {
-                            Thread.sleep(5000);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                            throw new RuntimeException(e);
-                        }
-                    }
-                    //retry
+                    throw new TransactionException(
+                            "exhausted max retry times, transaction failed due to inconsistent state", throwable);
                 }
+                //else proceed retry
             } finally {
-                if (needUnlock && threadLocals.get() != null) {
-                    UnitOfWork.get().unlock();
-                    clearLocalConfig();
-                    if (threadLocals.get().originThreadLocalConfig != null) {
-                        KylinConfig.setKylinConfigThreadLocal(threadLocals.get().originThreadLocalConfig);
+                if (isIndependentTransaction) {
+                    try {
+                        UnitOfWork.get().unlock();
+                    } catch (IllegalMonitorStateException e) {
+                        //has not hold the lock yet, it's ok
                     }
-                    threadLocals.remove();
+
+                    if (threadLocals.get() != null) {
+                        clearLocalConfig();
+                        if (threadLocals.get().originThreadLocalConfig != null) {
+                            KylinConfig.setKylinConfigThreadLocal(threadLocals.get().originThreadLocalConfig);
+                        }
+                        threadLocals.remove();
+                    }
                 }
             }
         }
@@ -138,15 +148,27 @@ public class UnitOfWork {
         if (useSandboxStore) {
             //put a sandbox meta store on top of base meta store for isolation
             KylinConfig config = KylinConfig.getInstanceFromEnv();
+            //only for UT
+            if (KylinConfig.isKylinConfigThreadLocal()) {
+                unitOfWork.originThreadLocalConfig = config;
+                log.warn("unitOfWork.originThreadLocalConfig is set to {}", config);
+
+                if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
+                    throw new IllegalStateException(
+                            "No thread local KylinConfig is expected when starting a UnitOfWork, current KylinConfig: "
+                                    + KylinConfig.getInstanceFromEnv());
+                }
+            }
+
             ResourceStore underlying = ResourceStore.getKylinMetaStore(config);
             KylinConfig threadLocalConfig = KylinConfig.createKylinConfig(config);
             //TODO check uderlying rs is never changed since here
-            ResourceStore.setRS(threadLocalConfig,
-                    new ThreadViewResourceStore((InMemResourceStore) underlying, threadLocalConfig));
-            if (KylinConfig.isKylinConfigThreadLocal()) {
-                unitOfWork.originThreadLocalConfig = config;
-            }
+            ThreadViewResourceStore rs = new ThreadViewResourceStore((InMemResourceStore) underlying,
+                    threadLocalConfig);
+            ResourceStore.setRS(threadLocalConfig, rs);
+
             KylinConfig.setKylinConfigThreadLocal(threadLocalConfig);
+            log.info("sandbox RS {} now takes place for main RS {}", rs, underlying);
         }
 
         return unitOfWork;

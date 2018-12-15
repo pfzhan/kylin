@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -56,21 +55,12 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
     public NSparkCubingJob() {
     }
 
+    // for test use only
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<NCuboidLayout> layouts, String submitter) {
         return create(segments, layouts, submitter, JobTypeEnum.INDEX_BUILD, UUID.randomUUID().toString());
     }
 
     public static NSparkCubingJob create(Set<NDataSegment> segments, Set<NCuboidLayout> layouts, String submitter,
-            JobTypeEnum jobType) {
-        return create(segments, layouts, submitter, jobType, UUID.randomUUID().toString());
-    }
-
-    public static NSparkCubingJob create(Set<NDataSegment> segments, Set<NCuboidLayout> layouts, String submitter,
-            String jobId) {
-        return create(segments, layouts, submitter, JobTypeEnum.INDEX_BUILD, jobId);
-    }
-
-    private static NSparkCubingJob create(Set<NDataSegment> segments, Set<NCuboidLayout> layouts, String submitter,
             JobTypeEnum jobType, String jobId) {
         Preconditions.checkArgument(segments.size() > 0);
         Preconditions.checkArgument(layouts.size() > 0);
@@ -118,8 +108,9 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         step.setDataflowName(df.getName());
         step.setSegmentIds(NSparkCubingUtil.toSegmentIds(segments));
         step.setCuboidLayoutIds(NSparkCubingUtil.toCuboidLayoutIds(layouts));
-        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(step.getId()).toString());
         this.addTask(step);
+        //after addTask, step's id is changed
+        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(step.getId()).toString());
     }
 
     private void addSparkCubingStep(Set<NDataSegment> segments, Set<NCuboidLayout> layouts) {
@@ -134,13 +125,14 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         step.setDataflowName(df.getName());
         step.setSegmentIds(NSparkCubingUtil.toSegmentIds(segments));
         step.setCuboidLayoutIds(NSparkCubingUtil.toCuboidLayoutIds(layouts));
-        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(step.getId()).toString());
         step.setJobId(getId());
         this.addTask(step);
+        //after addTask, step's id is changed
+        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(step.getId()).toString());
     }
 
     @Override
-    public void cancelJob() throws IOException {
+    public void cancelJob() {
         NDataflowManager nDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
         NDataflow dataflow = nDataflowManager.getDataflow(getSparkCubingStep().getDataflowName());
         List<NDataSegment> segments = new ArrayList<>();

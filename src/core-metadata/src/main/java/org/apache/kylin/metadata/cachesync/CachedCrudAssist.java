@@ -48,8 +48,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -60,6 +59,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
 import lombok.AccessLevel;
@@ -70,13 +71,13 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
 
     private static final Logger logger = LoggerFactory.getLogger(CachedCrudAssist.class);
 
-    final private ResourceStore store;
-    final private Class<T> entityType;
-    final private String resRootPath;
-    final private String resPathSuffix;
-    final private Serializer<T> serializer;
+    private final ResourceStore store;
+    private final Class<T> entityType;
+    private final String resRootPath;
+    private final String resPathSuffix;
+    private final Serializer<T> serializer;
     @Getter(AccessLevel.PROTECTED)
-    final private Map<String, T> cache;
+    private final Cache<String, T> cache;
 
     private boolean checkCopyOnWrite;
 
@@ -91,7 +92,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         this.resRootPath = resourceRootPath;
         this.resPathSuffix = resourcePathSuffix;
         this.serializer = new JsonSerializer<>(entityType);
-        this.cache = new ConcurrentSkipListMap<>();
+        this.cache = CacheBuilder.newBuilder().expireAfterAccess(10, TimeUnit.MINUTES).build();
 
         this.checkCopyOnWrite = store.getConfig().isCheckCopyOnWrite();
 
@@ -150,9 +151,9 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     }
 
     public void reloadAll() {
-        logger.debug("Reloading " + entityType.getSimpleName() + " from " + store.getReadableResourcePath(resRootPath));
+        logger.trace("Reloading " + entityType.getSimpleName() + " from " + store.getReadableResourcePath(resRootPath));
 
-        cache.clear();
+        cache.invalidateAll();
 
         List<String> paths = store.collectResourceRecursively(resRootPath, resPathSuffix);
         for (String path : paths) {
@@ -160,7 +161,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         }
 
         logger.debug("Loaded " + cache.size() + " " + entityType.getSimpleName() + "(s) out of " + paths.size()
-                + " resource");
+                + " resource from " + store.getReadableResourcePath(resRootPath));
     }
 
     private T reload(String resourceName) {
@@ -181,7 +182,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
             T entity = store.getResource(path, serializer);
             if (entity == null) {
                 logger.warn("No " + entityType.getSimpleName() + " found at " + path + ", returning null");
-                cache.remove(resourceName(path));
+                cache.invalidate(resourceName(path));
                 return null;
             }
 
@@ -200,19 +201,25 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         }
     }
 
+    public boolean exists(String resourceName) {
+        return store.getResource(resourcePath(resourceName)) != null;
+    }
+
     public T get(String resourceName) {
         val raw = store.getResource(resourcePath(resourceName));
-        val entity = cache.get(resourceName);
-        if (entity == null) {
+        val entity = cache.getIfPresent(resourceName);
+        if (raw == null) {
+            return null;
+        } else if (entity == null) {
             reloadAt(resourcePath(resourceName));
         } else if (raw.getMvcc() == entity.getMvcc()) {
             return entity;
-        } else if (raw.getMvcc() < entity.getMvcc()) {
-            throw new IllegalStateException("resource " + raw.getResPath() + " version is less than cache");
+            //        } else if (raw.getMvcc() < entity.getMvcc()) {
+            //            throw new IllegalStateException("resource " + raw.getResPath() + " version is less than cache");
         } else {
             reloadAt(resourcePath(resourceName));
         }
-        return cache.get(resourceName);
+        return cache.getIfPresent(resourceName);
     }
 
     abstract protected T initEntityAfterReload(T entity, String resourceName);
@@ -226,7 +233,7 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         Preconditions.checkArgument(resName != null && resName.length() > 0);
 
         if (checkCopyOnWrite) {
-            if (entity.isCachedAndShared() || cache.get(resName) == entity) {
+            if (entity.isCachedAndShared() || cache.getIfPresent(resName) == entity) {
                 throw new IllegalStateException("Copy-on-write violation! The updating entity " + entity
                         + " is a shared object in " + entityType.getSimpleName() + " cache, which should not be.");
             }
@@ -253,14 +260,26 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
         logger.debug("Deleting {} at {}", entityType.getSimpleName(), path);
 
         store.deleteResource(path);
-        cache.remove(resName);
+        cache.invalidate(resName);
     }
 
-    public List<T> getAll() {
+    public List<T> listAll() {
         val all = Lists.<T> newArrayList();
         for (String path : store.collectResourceRecursively(resRootPath, resPathSuffix)) {
             T value = get(resourceName(path));
             all.add(value);
+        }
+        return all;
+    }
+
+    /**
+     * some cache entries may be outdated, because deletion might not touch CachedCrudAssist
+     */
+    public List<T> listAllValidCache() {
+        val all = Lists.<T> newArrayList();
+        for (val e : cache.asMap().entrySet()) {
+            if (exists(e.getKey()))
+                all.add(e.getValue());
         }
         return all;
     }

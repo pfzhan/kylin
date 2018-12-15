@@ -417,7 +417,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         });
         semanticService.handleSemanticUpdate("default", MODEL_NAME, originModel);
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
+        events.sort(Event::compareTo);
+
         log.debug("events are {}", events);
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
     }
@@ -437,7 +438,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         semanticService.handleSemanticUpdate("default", originModel.getName(), originModel);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
+        events.sort(Event::compareTo);
+
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
         //        val savedIds = ((AddCuboidEvent) events.get(1)).getLayoutIds();
         //        Assert.assertTrue(CollectionUtils.isEqualCollection(savedIds,
@@ -452,7 +454,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 .peek(c -> c.setStatus(NDataModel.ColumnStatus.DIMENSION)).collect(Collectors.toList())));
         semanticService.handleSemanticUpdate("default", MODEL_NAME, originModel);
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
+        events.sort(Event::compareTo);
+
         Assert.assertEquals(0, events.size());
 
     }
@@ -541,7 +544,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         semanticService.handleSemanticUpdate("default", originModel.getName(), originModel);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparing(Event::getCreateTimeNanosecond));
+        events.sort(Event::compareTo);
+
         Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
 
@@ -580,7 +584,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         semanticService.handleCubeUpdateRule("default", cubePlan.getModelName(), cubePlan.getName());
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparing(Event::getCreateTimeNanosecond));
+        events.sort(Event::compareTo);
+
         Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
         val df2 = NDataflowManager.getInstance(getTestConfig(), "default").getDataflow(cubePlan.getName());
@@ -599,7 +604,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         });
         semanticService.handleCubeUpdateRule("default", cubePlan.getModelName(), cubePlan.getName());
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-        events.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
+        events.sort(Event::compareTo);
+
         Assert.assertEquals(0, events.size());
 
     }

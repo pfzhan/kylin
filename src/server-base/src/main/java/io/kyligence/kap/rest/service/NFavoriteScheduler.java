@@ -181,7 +181,7 @@ public class NFavoriteScheduler {
                     return 0;
                 }, project);
             } catch (Exception e) {
-                logger.error("Error caught when doing auto favorite {} ", e.getMessage());
+                logger.error("Error caught when doing auto favorite: {} ", e.getMessage());
             }
         }
     }

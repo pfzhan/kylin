@@ -23,25 +23,21 @@
  */
 package io.kyligence.kap.event.handle;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
-import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import lombok.extern.slf4j.Slf4j;
 
@@ -49,29 +45,28 @@ import lombok.extern.slf4j.Slf4j;
 public class MergeSegmentHandler extends AbstractEventWithJobHandler {
 
     @Override
-    public AbstractExecutable createJob(EventContext eventContext) {
-        MergeSegmentEvent event = (MergeSegmentEvent) eventContext.getEvent();
-        String project = event.getProject();
-        KylinConfig kylinConfig = eventContext.getConfig();
+    public AbstractExecutable createJob(Event e, String project) {
+        MergeSegmentEvent event = (MergeSegmentEvent) e;
 
-        NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-
-        NDataflow df = dfMgr.getDataflow(event.getCubePlanName());
-        AbstractExecutable job;
-        List<NCuboidLayout> layouts = new ArrayList<>();
-        Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
-        if (CollectionUtils.isEmpty(readySegments) || readySegments.size() <= 1) {
-            throw new IllegalArgumentException("DataFlow : " + df + " Range " + event.getSegmentRange()
-                    + " must contain at least 2 ready segments, but there is " + readySegments.size());
+        if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+            return null;
         }
-        for (Map.Entry<Long, NDataCuboid> cuboid : readySegments.getLatestReadySegment().getCuboidsMap().entrySet()) {
+
+        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataflow(event.getCubePlanName());
+        List<NCuboidLayout> layouts = Lists.newArrayList();
+        for (Map.Entry<Long, NDataCuboid> cuboid : df.getSegments().getLatestReadySegment().getCuboidsMap()
+                .entrySet()) {
             layouts.add(cuboid.getValue().getCuboidLayout());
         }
+        if (layouts.isEmpty()) {
+            log.info("event {} is no longer valid because no layout awaits building", event);
+            return null;
+        }
 
-        NDataSegment mergeSeg = dfMgr.mergeSegments(df, event.getSegmentRange(), false);
-        job = NSparkMergingJob.merge(mergeSeg, Sets.newLinkedHashSet(layouts), event.getOwner(), event.getJobId());
+        return NSparkMergingJob.merge(df.getSegment(event.getSegmentId()), Sets.newLinkedHashSet(layouts),
+                event.getOwner(), event.getJobId());
 
-        return job;
     }
 
 }

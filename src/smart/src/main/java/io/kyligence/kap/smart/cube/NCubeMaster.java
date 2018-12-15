@@ -47,7 +47,7 @@ public class NCubeMaster {
         NCubePlan cubePlan = new NCubePlan();
         cubePlan.updateRandomUuid();
         cubePlan.setName(cubePlan.getUuid());
-        cubePlan.setProject(context.getSmartContext().getProject());
+        //cubePlan.setProject(context.getSmartContext().getProject());
         cubePlan.setModelName(context.getTargetModel().getName());
         cubePlan.setDescription(StringUtils.EMPTY);
         return cubePlan;

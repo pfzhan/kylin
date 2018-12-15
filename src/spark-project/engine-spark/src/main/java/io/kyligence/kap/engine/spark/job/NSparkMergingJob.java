@@ -120,9 +120,10 @@ public class NSparkMergingJob extends DefaultChainedExecutable {
         step.setDataflowName(df.getName());
         step.setSegmentId(mergedSegment.getId());
         step.setCuboidLayoutIds(NSparkCubingUtil.toCuboidLayoutIds(layouts));
-        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(step.getId()).toString());
         step.setJobId(getId());
         this.addTask(step);
+        //after addTask, step's id is changed
+        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(step.getId()).toString());
     }
 
     private void addCleanupStep(NDataSegment mergedSegment) {

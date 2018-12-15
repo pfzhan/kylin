@@ -395,6 +395,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     @Override
     public String toString() {
-        return "NDataSegment [" + dataflow.getName() + "." + id + segmentRange + "]";
+        return "NDataSegment [" + dataflow.getName() + "," + id + "," + segmentRange + "]";
     }
 }

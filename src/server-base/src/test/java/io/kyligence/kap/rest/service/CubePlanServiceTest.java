@@ -24,7 +24,6 @@
 package io.kyligence.kap.rest.service;
 
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.HashMap;
 
 import org.apache.kylin.common.KylinConfig;
@@ -147,7 +146,8 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
 
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
         val allEvents = eventDao.getEvents();
-        allEvents.sort(Comparator.comparing(Event::getCreateTimeNanosecond));
+        allEvents.sort(Event::compareTo);
+
         Assert.assertEquals(2, allEvents.size());
         val newLayoutEvent = allEvents.get(0);
         Assert.assertTrue(newLayoutEvent instanceof AddCuboidEvent);
@@ -236,11 +236,12 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertFalse(cubePlanService.getCubePlanManager("default").getCubePlan("ncube_basic")
                 .getAllCuboidLayouts().stream().anyMatch(l -> l.getId() == 20000003001L));
-        Assert.assertTrue(cubePlanService.getCubePlanManager("default").getCubePlan("ncube_basic")
-                .getAllCuboidLayouts().stream().anyMatch(l -> l.getId() == 20000004001L));
+        Assert.assertTrue(cubePlanService.getCubePlanManager("default").getCubePlan("ncube_basic").getAllCuboidLayouts()
+                .stream().anyMatch(l -> l.getId() == 20000004001L));
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
         val allEvents = eventDao.getEvents();
-        allEvents.sort(Comparator.comparingLong(Event::getCreateTimeNanosecond));
+        allEvents.sort(Event::compareTo);
+
         Assert.assertEquals(4, allEvents.size());
     }
 

@@ -41,7 +41,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SegmentUtils {
 
-    public static Set<NCuboidLayout> lastReadySegmentLayouts(NDataflow df) {
+    public static Set<NCuboidLayout> getToBuildLayouts(NDataflow df) {
         Set<NCuboidLayout> layouts = Sets.newHashSet();
         Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
 

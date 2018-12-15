@@ -99,7 +99,7 @@ public class StreamingManager {
     }
 
     public List<StreamingConfig> listAllStreaming() {
-        return crud.getAll();
+        return crud.listAll();
     }
 
     // for test

@@ -44,7 +44,7 @@ public class ColumnACLManager {
     }
 
     // called by reflection
-    static ColumnACLManager newInstance(KylinConfig config) throws IOException {
+    static ColumnACLManager newInstance(KylinConfig config) {
         return new ColumnACLManager(config);
     }
 
@@ -54,7 +54,7 @@ public class ColumnACLManager {
     // user ==> TableACL
     private CachedCrudAssist<ColumnACL> crud;
 
-    public ColumnACLManager(KylinConfig config) throws IOException {
+    public ColumnACLManager(KylinConfig config) {
         logger.info("Initializing ColumnACLManager with config " + config);
         this.config = config;
         this.crud = new CachedCrudAssist<ColumnACL>(getStore(), "/column_acl", "", ColumnACL.class) {

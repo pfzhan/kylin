@@ -28,57 +28,44 @@ import java.util.Set;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.engine.spark.SegmentUtils;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.engine.spark.SegmentUtils;
+import io.kyligence.kap.event.model.Event;
 
 public class AddSegmentHandler extends AbstractEventWithJobHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(AddSegmentHandler.class);
 
     @Override
-    public AbstractExecutable createJob(EventContext eventContext) {
-        AddSegmentEvent event = (AddSegmentEvent) eventContext.getEvent();
+    public AbstractExecutable createJob(Event e, String project) {
+        AddSegmentEvent event = (AddSegmentEvent) e;
 
-        String project = event.getProject();
-        KylinConfig kylinConfig = eventContext.getConfig();
-
-        NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-
-        NDataflow df = dfMgr.getDataflow(event.getCubePlanName());
         AbstractExecutable job;
-        Set<NCuboidLayout> layouts = SegmentUtils.lastReadySegmentLayouts(df);
+
+        if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+            return null;
+        }
+
+        NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getDataflow(event.getCubePlanName());
+        Set<NCuboidLayout> layouts = SegmentUtils.getToBuildLayouts(df);
         if (CollectionUtils.isEmpty(layouts)) {
-            logger.trace("no job will be created for event {} because no layout awaits building", event);
+            logger.info("event {} is no longer valid because no layout awaits building", event);
             return null;
         }
 
-        Set<NDataSegment> segments = Sets.newHashSet();
-
-        NDataSegment dataSegment = df.getSegment(event.getSegmentId());
-        if (dataSegment != null) {
-            segments.add(dataSegment);
-        } else {
-            logger.debug("segment {} no longer exists when creating job", event.getSegmentId());
-        }
-
-        if (CollectionUtils.isEmpty(segments)) {
-            logger.debug("no job will be created for event {} because its target segment {} does not exist", event,
-                    event.getSegmentId());
-            return null;
-        }
-
-        job = NSparkCubingJob.create(segments, Sets.newLinkedHashSet(layouts), event.getOwner(), event.getJobId());
+        job = NSparkCubingJob.create(Sets.newHashSet(df.getSegment(event.getSegmentId())),
+                Sets.newLinkedHashSet(layouts), event.getOwner(), JobTypeEnum.INC_BUILD, event.getJobId());
 
         return job;
     }

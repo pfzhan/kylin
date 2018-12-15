@@ -95,22 +95,20 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
         dataflowManager.updateDataflow(update);
 
         AddSegmentEvent event = new AddSegmentEvent();
-        event.setProject(DEFAULT_PROJECT);
         event.setModelName("nmodel_basic");
         event.setCubePlanName("ncube_basic");
         event.setOwner("ADMIN");
         event.setJobId(UUID.randomUUID().toString());
         event.setSegmentId(dataSegment2.getId());
 
-        EventContext eventContext = new EventContext(event, getTestConfig());
+        EventContext eventContext = new EventContext(event, getTestConfig(), DEFAULT_PROJECT);
         AddSegmentHandler handler = new AddSegmentHandler();
         handler.handle(eventContext);
 
         String jobId = ((AddSegmentEvent) eventContext.getEvent()).getJobId();
         AbstractExecutable job = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getJob(jobId);
         Assert.assertNotNull(job);
-        Assert.assertEquals(dataSegment2.getId(),
-                ((ChainedExecutable) job).getTasks().get(1).getParam("segmentIds"));
+        Assert.assertEquals(dataSegment2.getId(), ((ChainedExecutable) job).getTasks().get(1).getParam("segmentIds"));
         Assert.assertEquals(Joiner.on(",")
                 .join(Stream.of(((ChainedExecutable) job).getTasks().get(1).getParam("cuboidLayoutIds").split(","))
                         .sorted(Comparator.comparing(a -> Long.parseLong(a))).collect(Collectors.toList())),
@@ -123,13 +121,12 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
     public void testAddSegment_WrongSegmentId() {
 
         AddSegmentEvent event2 = new AddSegmentEvent();
-        event2.setProject(DEFAULT_PROJECT);
         event2.setModelName("nmodel_basic");
         event2.setCubePlanName("ncube_basic");
         event2.setOwner("ADMIN");
         event2.setJobId(UUID.randomUUID().toString());
         event2.setSegmentId(UUID.randomUUID().toString());
-        EventContext eventContext2 = new EventContext(event2, getTestConfig());
+        EventContext eventContext2 = new EventContext(event2, getTestConfig(), DEFAULT_PROJECT);
         event2.getEventHandler().handle(eventContext2);
         String jobId2 = ((AddSegmentEvent) eventContext2.getEvent()).getJobId();
         AbstractExecutable job2 = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getJob(jobId2);
@@ -157,14 +154,13 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
         NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
 
         AddSegmentEvent event = new AddSegmentEvent();
-        event.setProject(DEFAULT_PROJECT);
         event.setModelName("nmodel_basic");
         event.setCubePlanName("ncube_basic");
         event.setOwner("ADMIN");
         event.setJobId(UUID.randomUUID().toString());
         event.setSegmentId(dataSegment.getId());
 
-        EventContext eventContext = new EventContext(event, getTestConfig());
+        EventContext eventContext = new EventContext(event, getTestConfig(), DEFAULT_PROJECT);
         AddSegmentHandler handler = new AddSegmentHandler();
 
         handler.handle(eventContext);

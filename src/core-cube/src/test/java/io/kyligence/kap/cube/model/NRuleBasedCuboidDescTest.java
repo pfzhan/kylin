@@ -63,7 +63,6 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
     public void testGenCuboids() throws IOException {
         val cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), "default");
         var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), NCubePlan.class);
-        newPlan.setProject("default");
         newPlan.setLastModified(0L);
 
         newPlan = cubePlanManager.createCubePlan(newPlan);
@@ -114,7 +113,6 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
     public void testGenCuboidsWithAuto() throws Exception {
         val cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), "default");
         var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_mixed.json"), NCubePlan.class);
-        newPlan.setProject("default");
         newPlan.setLastModified(0L);
 
         newPlan = cubePlanManager.createCubePlan(newPlan);
@@ -165,7 +163,6 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
     public void testGenCuboidsPartialEqual() throws IOException {
         val cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), "default");
         var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), NCubePlan.class);
-        newPlan.setProject("default");
         newPlan.setLastModified(0L);
 
         newPlan = cubePlanManager.createCubePlan(newPlan);

@@ -43,7 +43,6 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -90,7 +89,6 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
-import lombok.var;
 
 @Component("tableService")
 public class TableService extends BasicService {
@@ -366,7 +364,6 @@ public class TableService extends BasicService {
             modelService.checkSingleIncrementingLoadingTable(project, table);
             NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
             dataLoadingRange.updateRandomUuid();
-            dataLoadingRange.setProject(project);
             dataLoadingRange.setTableName(table);
             dataLoadingRange.setColumnName(columnIdentity);
             dataLoadingRange.setPartitionDateFormat(dateFormat);
@@ -385,35 +382,13 @@ public class TableService extends BasicService {
         for (val model : models) {
             //follow semanticVersion,#8196
             modelService.purgeModel(model, project);
-            syncPartitionDesc(model, project, columnIdentity, dateFormat);
+            modelService.syncPartitionDesc(model, project);
             if (!fact) {
                 buildFullSegment(model, project);
+            } else {
+                //await table's range being set in next REST call
             }
-            // else: await table's range being set
         }
-    }
-
-    private void syncPartitionDesc(String model, String project, String column, String dateFormat) {
-        val dataloadingManager = getDataLoadingRangeManager(project);
-        val datamodelManager = getDataModelManager(project);
-        val modelDesc = datamodelManager.getDataModelDesc(model);
-        val dataloadingRange = dataloadingManager.getDataLoadingRange(modelDesc.getRootFactTableName());
-        val modelUpdate = datamodelManager.copyForWrite(modelDesc);
-        //full load
-        if (dataloadingRange == null) {
-            modelUpdate.setPartitionDesc(null);
-        } else {
-            var partition = modelUpdate.getPartitionDesc();
-            if (partition == null) {
-                partition = new PartitionDesc();
-            }
-            partition.setPartitionDateColumn(column);
-            if (StringUtils.isNotEmpty(dateFormat)) {
-                partition.setPartitionDateFormat(dateFormat);
-            }
-            modelUpdate.setPartitionDesc(partition);
-        }
-        datamodelManager.updateDataModelDesc(modelUpdate);
     }
 
     private void buildFullSegment(String model, String project) {
@@ -429,15 +404,14 @@ public class TableService extends BasicService {
         addSegmentEvent.setSegmentId(newSegment.getId());
         addSegmentEvent.setCubePlanName(cubePlan.getName());
         addSegmentEvent.setModelName(model);
-        addSegmentEvent.setProject(project);
         addSegmentEvent.setJobId(UUID.randomUUID().toString());
         addSegmentEvent.setOwner(getUsername());
         eventManager.post(addSegmentEvent);
 
         PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
+        postAddSegmentEvent.setSegmentId(newSegment.getId());
         postAddSegmentEvent.setCubePlanName(cubePlan.getName());
         postAddSegmentEvent.setModelName(model);
-        postAddSegmentEvent.setProject(project);
         postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
         postAddSegmentEvent.setOwner(getUsername());
         eventManager.post(postAddSegmentEvent);
@@ -503,7 +477,6 @@ public class TableService extends BasicService {
                 NDataflow df = dataflowManager.getDataflow(cubePlan.getName());
                 NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
                 AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
-                addSegmentEvent.setProject(project);
                 addSegmentEvent.setModelName(modelName);
                 addSegmentEvent.setCubePlanName(cubePlan.getName());
                 addSegmentEvent.setSegmentId((dataSegment.getId()));
@@ -514,14 +487,14 @@ public class TableService extends BasicService {
                 PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
                 postAddSegmentEvent.setCubePlanName(cubePlan.getName());
                 postAddSegmentEvent.setModelName(modelName);
-                postAddSegmentEvent.setProject(project);
                 postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
+                postAddSegmentEvent.setSegmentId((dataSegment.getId()));
                 postAddSegmentEvent.setOwner(getUsername());
                 eventManager.post(postAddSegmentEvent);
 
                 logger.info(
-                        "LoadingRangeUpdateHandler produce AddSegmentEvent project : {}, model : {}, cubePlan : {}, segmentRange : {}",
-                        project, modelName, cubePlan.getName(), segmentRange);
+                        "LoadingRangeUpdateHandler produce AddSegmentEvent project : {}, model : {}, segmentRange : {}",
+                        project, modelName, segmentRange);
             }
         } else {
             // there is no models, just update the dataLoadingRange waterMark

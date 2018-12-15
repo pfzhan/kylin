@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.event.handle;
 
-import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -31,9 +30,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.event.model.EventContext;
-import io.kyligence.kap.event.model.MergeSegmentEvent;
-import lombok.val;
 
 public class MergeSegmentHandlerTest extends NLocalFileMetadataTestCase {
 
@@ -53,25 +49,9 @@ public class MergeSegmentHandlerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testHandlerIdempotent() {
-        getTestConfig().setProperty("kylin.server.mode", "query");
-        thrown.expectMessage("transaction failed due to inconsistent state");
-//        thrown.expectMessage("must contain at least 2 ready segments");
-
-        val event = new MergeSegmentEvent();
-        event.setProject(DEFAULT_PROJECT);
-        event.setModelName("nmodel_basic");
-        event.setCubePlanName("ncube_basic");
-        event.setOwner("ADMIN");
-        event.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
-                SegmentRange.dateToLong("2013-01-01")));
-        EventContext eventContext = new EventContext(event, getTestConfig());
-
-        MergeSegmentHandler handler = new MergeSegmentHandler();
-        handler.handle(eventContext);
-
-        getTestConfig().setProperty("kylin.server.mode", "all");
+    public void foo() {
 
     }
 
+    //moved the only one to io.kyligence.kap.cube.model.NDataflowManagerTest.testInvalidMerge()
 }

@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 
-import io.kyligence.kap.common.util.KylinConfigUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.image.ImageStore;
@@ -43,10 +42,13 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
+import io.kyligence.kap.common.util.KylinConfigUtils;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.query.Utils;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NSmartDemoTest {
     private static String TEST_META_BASE = "src/test/resources/nsmart/";
 
@@ -114,7 +116,10 @@ public class NSmartDemoTest {
 
         File tmpMeta = Files.createTempDir();
         FileUtils.copyDirectory(new File(metaDir), new File(tmpMeta, ImageStore.METADATA_DIR));
-        KylinConfig kylinConfig = Utils.newKylinConfig(tmpMeta.getAbsolutePath() + ",mq=mock");
+        KylinConfig kylinConfig = Utils.newKylinConfig(tmpMeta.getAbsolutePath());
+        kylinConfig.setProperty("kylin.env", "UT");
+        kylinConfig.setProperty("kylin.metadata.mq-type", "mock");
+
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqls);
@@ -122,11 +127,11 @@ public class NSmartDemoTest {
 
         NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig, projectName);
         Assert.assertFalse(dataModelManager.getDataModels().isEmpty());
-        System.out.println("Number of models: " + dataModelManager.getDataModels().size());
+        log.info("Number of models: " + dataModelManager.getDataModels().size());
 
         NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig, projectName);
         Assert.assertFalse(cubePlanManager.listAllCubePlans().isEmpty());
-        System.out.println("Number of cubes: " + cubePlanManager.listAllCubePlans().size());
+        log.info("Number of cubes: " + cubePlanManager.listAllCubePlans().size());
 
         FileUtils.forceDelete(tmpMeta);
     }

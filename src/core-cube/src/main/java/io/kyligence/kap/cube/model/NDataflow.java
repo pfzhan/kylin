@@ -68,7 +68,6 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
         df.config = (KylinConfigExt) plan.getConfig();
         df.setName(name);
-        df.setProject(plan.getProject());
         df.setCubePlanName(plan.getName());
         df.setCreateTimeUTC(System.currentTimeMillis());
         df.setSegments(new Segments<NDataSegment>());
@@ -114,7 +113,8 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     // ================================================================
 
-    public void initAfterReload(KylinConfigExt config) {
+    public void initAfterReload(KylinConfigExt config, String project) {
+        this.project = project;
         this.config = config;
         for (NDataSegment seg : segments) {
             seg.initAfterReload();
@@ -219,7 +219,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @Override
     public String getCanonicalName() {
-        return getType() + "[name=" + name + "]";
+        return getType() + "[name=" + getModel().getAlias() + "]";
     }
 
     @Override
@@ -304,10 +304,6 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     public String getProject() {
         return project;
-    }
-
-    public void setProject(String project) {
-        this.project = project;
     }
 
     public String getDescription() {

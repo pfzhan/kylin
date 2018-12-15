@@ -196,7 +196,6 @@ public class NModelMasterTest extends NTestBase {
         String columnName = "KYLIN_SALES.PART_DT";
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.updateRandomUuid();
-        dataLoadingRange.setProject(proj);
         dataLoadingRange.setTableName(tableName);
         dataLoadingRange.setColumnName(columnName);
         long start = SegmentRange.dateToLong("2010-01-01");

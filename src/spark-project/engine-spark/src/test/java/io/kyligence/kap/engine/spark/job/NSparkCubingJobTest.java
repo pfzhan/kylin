@@ -90,6 +90,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        NDefaultScheduler.destroyInstance();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
         if (!scheduler.hasStarted()) {

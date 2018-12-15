@@ -44,5 +44,5 @@
 package org.apache.kylin.job.execution;
 
 public enum JobTypeEnum {
-    INDEX_REFRESH, INDEX_MERGE, INDEX_BUILD, INDEX_RECONSTRUCT
+    INDEX_REFRESH, INDEX_MERGE, INDEX_BUILD, INC_BUILD
 }

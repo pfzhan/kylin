@@ -77,9 +77,6 @@ public class ExecutablePO extends RootPersistentEntity {
     @JsonProperty("params")
     private Map<String, String> params = Maps.newHashMap();
 
-    @JsonProperty("project")
-    private String project;
-
     @JsonProperty("segments")
     private Set<NDataSegment> segments = Sets.newHashSet();
 

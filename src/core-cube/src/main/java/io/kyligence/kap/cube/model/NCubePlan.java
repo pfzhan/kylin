@@ -141,7 +141,6 @@ public class NCubePlan extends RootPersistentEntity implements Serializable, IEn
     private List<NDictionaryDesc> dictionaries;
 
     // computed fields below
-    @JsonProperty("project")
     private String project;
     private KylinConfigExt config = null;
     private NDataModel model = null;
@@ -162,7 +161,9 @@ public class NCubePlan extends RootPersistentEntity implements Serializable, IEn
      */
     private List<String> errors = Lists.newLinkedList();
 
-    public void initAfterReload(KylinConfig config) {
+    public void initAfterReload(KylinConfig config, String p) {
+        this.project = p;
+
         checkArgument(StringUtils.isNotBlank(name), "NCubePlan name is blank");
         checkArgument(StringUtils.isNotBlank(modelName), "NCubePlan (%s) has blank model name", name);
 
@@ -323,10 +324,6 @@ public class NCubePlan extends RootPersistentEntity implements Serializable, IEn
 
     public String getProject() {
         return project;
-    }
-
-    public void setProject(String projectName) {
-        this.project = projectName;
     }
 
     public NDataModel getModel() {

@@ -45,11 +45,16 @@ package io.kyligence.kap.event.handle;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
@@ -67,9 +72,10 @@ public abstract class AbstractEventHandler implements EventHandler {
     public final void handle(EventContext eventContext) {
 
         try {
+            //TODO: put them all to transaction!!!!!
             boolean valid = checkBeforeHandle(eventContext);
             if (!valid) {
-                log.info("handle {} later", eventContext);
+                log.info("handle {} later", eventContext.getEvent());
                 return;
             }
             doHandle(eventContext);
@@ -83,7 +89,7 @@ public abstract class AbstractEventHandler implements EventHandler {
         Event event = eventContext.getEvent();
         checkNotNull(event);
         KylinConfig kylinConfig = eventContext.getConfig();
-        String project = event.getProject();
+        String project = eventContext.getProject();
         checkNotNull(project);
         checkNotNull(NProjectManager.getInstance(kylinConfig).getProject(project));
         val execManager = NExecutableManager.getInstance(kylinConfig, project);
@@ -93,14 +99,50 @@ public abstract class AbstractEventHandler implements EventHandler {
         return runningCount == 0L;
     }
 
-    protected EventDao getEventDao(String project, KylinConfig config) {
-        return EventDao.getInstance(config, project);
+    /**
+     * must call this within a UnitOfWork!!
+     * @return true if need continue
+     */
+    protected boolean checkSubjectExists(String project, String cubePlanName, String segmentId, Event event) {
+
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        NDataflow df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(cubePlanName);
+        if (df == null) {
+            log.info("event {} is no longer valid because its target cubeplan {} does not exist", event, cubePlanName);
+            return false;
+        }
+
+        if (segmentId != null) {
+            NDataSegment dataSegment = df.getSegment(segmentId);
+            if (dataSegment == null) {
+                log.info("event {} is no longer valid because its target segment {} does not exist", event, segmentId);
+                return false;
+            }
+        }
+
+        return true;
+
+    }
+
+    protected static void finishEvent(String project, String eventId) {
+        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        eventDao.deleteEvent(eventId);
     }
 
     protected NExecutableManager getExecutableManager(String project, KylinConfig config) {
         return NExecutableManager.getInstance(config, project);
     }
 
-    protected abstract void doHandle(EventContext eventContext);
+    protected void doHandle(EventContext eventContext) {
+        Event event = eventContext.getEvent();
+        try {
+            String formatted = JsonUtil.writeValueAsIndentString(event);
+            log.info("handling event: \n {}", formatted);
+        } catch (JsonProcessingException e) {
+            log.info("handling event: {}", event);
+        }
+
+    }
 
 }

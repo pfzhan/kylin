@@ -40,6 +40,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
@@ -87,6 +88,7 @@ import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
+import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
@@ -420,7 +422,6 @@ public class ModelService extends BasicService {
         cubePlanManager.createCubePlan(copy);
         NDataflow nDataflow = new NDataflow();
         nDataflow.setStatus(RealizationStatusEnum.OFFLINE);
-        nDataflow.setProject(project);
         nDataflow.setCubePlanName(cubePlan.getName());
         dataflowManager.createDataflow(copy.getName(), copy, owner);
     }
@@ -532,20 +533,22 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public void refreshSegments(String project, String table, String refreshStart, String refreshEnd,
             String affectedStart, String affectedEnd) {
+
         RefreshAffectedSegmentsResponse response = getAffectedSegmentsResponse(project, table, refreshStart, refreshEnd,
                 ManagementType.TABLE_ORIENTED);
         if (!response.getAffectedStart().equals(affectedStart) || !response.getAffectedEnd().equals(affectedEnd)) {
-            throw new BadRequestException("Can not refersh, please try again and confirm affected storage!");
+            throw new BadRequestException("Can not refresh, please try again and confirm affected storage!");
         }
+
         List<RelatedModelResponse> models = getRelateModels(project, table, "");
         for (NDataModel model : models) {
             Segments<NDataSegment> segments = getSegments(model.getName(), project, refreshStart, refreshEnd);
             if (segments.getBuildingSegments().size() > 0) {
                 throw new BadRequestException(
-                        "Can not refresh, some segments is building during the range you want to refresh!");
-
+                        "Can not refresh, some segments is building within the range you want to refresh!");
             }
         }
+
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         SegmentRange segmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(refreshStart, refreshEnd);
         segmentHelper.refreshLoadingRange(project, table, segmentRange);
@@ -561,11 +564,11 @@ public class ModelService extends BasicService {
         //remove some attributes in modelResponse to fit NDataModel
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
         val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
+        syncPartitionDesc(model.getName(), project);
 
         val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val nCubePlan = new NCubePlan();
-        nCubePlan.setProject(modelRequest.getProject());
         nCubePlan.setUuid(UUID.randomUUID().toString());
         nCubePlan.setModelName(modelRequest.getName());
         nCubePlan.setName(modelRequest.getName() + "_cube");
@@ -595,7 +598,6 @@ public class ModelService extends BasicService {
 
         NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
         NDataSegment newSegment = dataflowManager.appendSegment(dataflow, segmentRangeToBuild);
-        Set<String> segmentIds = Sets.newHashSet(newSegment.getId());
 
         AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
         addSegmentEvent.setSegmentId(newSegment.getId());
@@ -603,17 +605,37 @@ public class ModelService extends BasicService {
         addSegmentEvent.setModelName(model);
         addSegmentEvent.setJobId(UUID.randomUUID().toString());
         addSegmentEvent.setOwner(getUsername());
-        addSegmentEvent.setProject(project);
         eventManager.post(addSegmentEvent);
 
         PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
         postAddSegmentEvent.setCubePlanName(cubePlan.getName());
+        postAddSegmentEvent.setSegmentId(newSegment.getId());
         postAddSegmentEvent.setModelName(model);
-        postAddSegmentEvent.setProject(project);
         postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
         postAddSegmentEvent.setOwner(getUsername());
         eventManager.post(postAddSegmentEvent);
 
+    }
+
+    void syncPartitionDesc(String model, String project) {
+        val dataloadingManager = getDataLoadingRangeManager(project);
+        val datamodelManager = getDataModelManager(project);
+        val modelDesc = datamodelManager.getDataModelDesc(model);
+        val dataloadingRange = dataloadingManager.getDataLoadingRange(modelDesc.getRootFactTableName());
+        val modelUpdate = datamodelManager.copyForWrite(modelDesc);
+        //full load
+        if (dataloadingRange == null) {
+            modelUpdate.setPartitionDesc(null);
+        } else {
+            var partition = modelUpdate.getPartitionDesc();
+            if (partition == null) {
+                partition = new PartitionDesc();
+            }
+            partition.setPartitionDateColumn(dataloadingRange.getColumnName());
+            partition.setPartitionDateFormat(dataloadingRange.getPartitionDateFormat());
+            modelUpdate.setPartitionDesc(partition);
+        }
+        datamodelManager.updateDataModelDesc(modelUpdate);
     }
 
     private void checkSegmentToBuildOverlapsBuilt(String project, String model, SegmentRange segmentRangeToBuild) {
@@ -674,7 +696,7 @@ public class ModelService extends BasicService {
             dataModelDesc.updateRandomUuid();
 
         dataModelDesc.init(getConfig(), getTableManager(project).getAllTablesMap(),
-                getDataModelManager(project).getDataModels(), false);
+                getDataModelManager(project).getDataModels(), false, project);
 
         if (dataModelDesc.isSeekingCCAdvice()) {
             // if it's seeking for advise, it should have thrown exceptions by far
@@ -718,7 +740,7 @@ public class ModelService extends BasicService {
     public void preProcessBeforeModelSave(NDataModel model, String project) {
 
         model.init(getConfig(), getTableManager(project).getAllTablesMap(),
-                getDataModelManager(project).getDataModels(), false);
+                getDataModelManager(project).getDataModels(), false, project);
 
         // Update CC expression from query transformers
         for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
@@ -755,10 +777,10 @@ public class ModelService extends BasicService {
         for (String id : ids) {
             if (dataflow.getSegment(id) != null) {
                 idsToDelete.add(id);
+            } else {
+                throw new IllegalArgumentException(
+                        String.format("segment %s not found on model %s", id, dataflow.getModelAlias()));
             }
-        }
-        if (CollectionUtils.isEmpty(idsToDelete)) {
-            return;
         }
         segmentHelper.removeSegment(project, dataflow.getName(), idsToDelete);
     }
@@ -810,23 +832,38 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public void refreshSegmentById(String modelName, String project, String[] ids) {
-        NDataflowManager dataflowManager = getDataflowManager(project);
+        NDataflowManager dfMgr = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);
-        checkSegmentsOverlapWithBuilding(modelName, project, ids);
         NCubePlan cubePlan = getCubePlan(modelName, project);
-        NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+        NDataflow df = dfMgr.getDataflow(cubePlan.getName());
+
+        checkSegmentsOverlapWithBuilding(modelName, project, ids);
 
         for (String id : ids) {
-            NDataSegment segment = dataflow.getSegment(id);
-            if (dataflow.getSegment(id) != null) {
-                val event = new RefreshSegmentEvent();
-                event.setSegmentRange(segment.getSegRange());
-                event.setProject(project);
-                event.setModelName(modelName);
-                event.setCubePlanName(segment.getCubePlan().getName());
-                event.setOwner(getUsername());
-                eventManager.post(event);
+            NDataSegment segment = df.getSegment(id);
+            if (segment == null) {
+                throw new IllegalArgumentException(
+                        String.format("segment %s not found on model %s", id, df.getModelAlias()));
             }
+
+            NDataSegment newSeg = dfMgr.refreshSegment(df, segment.getSegRange());
+
+            val event = new RefreshSegmentEvent();
+            event.setSegmentId(newSeg.getId());
+            event.setModelName(modelName);
+            event.setCubePlanName(segment.getCubePlan().getName());
+            event.setOwner(getUsername());
+            event.setJobId(UUID.randomUUID().toString());
+            eventManager.post(event);
+
+            val event2 = new PostMergeOrRefreshSegmentEvent();
+            event2.setSegmentId(newSeg.getId());
+            event2.setModelName(modelName);
+            event2.setCubePlanName(segment.getCubePlan().getName());
+            event2.setOwner(getUsername());
+            event2.setJobId(event.getJobId());
+            eventManager.post(event2);
+
         }
     }
 
@@ -842,7 +879,7 @@ public class ModelService extends BasicService {
         semanticUpdater.updateModelColumns(copyModel, request);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
-        copyModel.init(modelManager.getConfig(), allTables, modelManager.getDataModels(), false);
+        copyModel.init(modelManager.getConfig(), allTables, modelManager.getDataModels(), false, project);
 
         val cubePlan = cubeManager.findMatchingCubePlan(request.getName(), request.getProject(),
                 KylinConfig.getInstanceFromEnv());

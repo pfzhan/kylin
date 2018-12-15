@@ -50,7 +50,7 @@ public class TransactionAspect {
         if (transaction.project() != -1) {
             unitName = pjp.getArgs()[transaction.project()].toString();
         }
-        log.debug("start unit of work for {}", unitName);
+        log.trace("start unit of work for project: {}", unitName);
         return UnitOfWork.doInTransactionWithRetry(() -> {
             try {
                 return pjp.proceed();

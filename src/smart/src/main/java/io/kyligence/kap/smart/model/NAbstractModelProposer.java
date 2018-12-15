@@ -63,7 +63,7 @@ public abstract class NAbstractModelProposer {
 
     void initModel(NDataModel modelDesc) {
         final NTableMetadataManager manager = NTableMetadataManager.getInstance(kylinConfig, project);
-        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), false);
+        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), false, project);
     }
 
     protected abstract void doPropose(NDataModel modelDesc);

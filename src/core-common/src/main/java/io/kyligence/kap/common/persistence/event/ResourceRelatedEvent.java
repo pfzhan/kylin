@@ -43,4 +43,9 @@ public abstract class ResourceRelatedEvent extends Event {
         }
         return VITAL_ENTITY_SET.contains(term[1]);
     }
+
+    @Override
+    public String toString() {
+        return this.getClass().getName() + "@" + getResPath();
+    }
 }

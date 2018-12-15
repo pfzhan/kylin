@@ -24,7 +24,6 @@
 
 package org.apache.kylin.job.dao;
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.NavigableSet;
@@ -44,39 +43,40 @@ import lombok.val;
  */
 public class NExecutableDao {
 
-    private static final Serializer<ExecutablePO> JOB_SERIALIZER = new JsonSerializer<ExecutablePO>(ExecutablePO.class);
-    private static final Serializer<ExecutableOutputPO> JOB_OUTPUT_SERIALIZER = new JsonSerializer<ExecutableOutputPO>(
+    private static final Serializer<ExecutablePO> JOB_SERIALIZER = new JsonSerializer<>(ExecutablePO.class);
+    private static final Serializer<ExecutableOutputPO> JOB_OUTPUT_SERIALIZER = new JsonSerializer<>(
             ExecutableOutputPO.class);
     private static final Logger logger = LoggerFactory.getLogger(NExecutableDao.class);
     private static final String CREATE_TIME = "createTime";
 
-    public static NExecutableDao getInstance(KylinConfig config) {
-        return config.getManager(NExecutableDao.class);
+    public static NExecutableDao getInstance(KylinConfig config, String project) {
+        return config.getManager(project, NExecutableDao.class);
     }
 
     // called by reflection
-    static NExecutableDao newInstance(KylinConfig config) throws IOException {
-        return new NExecutableDao(config);
+    static NExecutableDao newInstance(KylinConfig config, String project) {
+        return new NExecutableDao(config, project);
     }
-
     // ============================================================================
 
     private ResourceStore store;
+    private String project;
 
-    private NExecutableDao(KylinConfig config) {
-        logger.info("Using metadata url: " + config);
+    private NExecutableDao(KylinConfig config, String project) {
+        logger.trace("Using metadata url: {}", config);
         this.store = ResourceStore.getKylinMetaStore(config);
+        this.project = project;
     }
 
     private String pathOfJob(ExecutablePO job) {
-        return pathOfJob(job.getUuid(), job.getProject());
+        return pathOfJob(job.getUuid());
     }
 
-    private static String pathOfJob(String uuid, String project) {
+    private String pathOfJob(String uuid) {
         return "/" + project + ResourceStore.EXECUTE_RESOURCE_ROOT + "/" + uuid;
     }
 
-    private static String pathOfOutput(String uuid, String project) {
+    private String pathOfOutput(String uuid) {
         return "/" + project + ResourceStore.EXECUTE_OUTPUT_RESOURCE_ROOT + "/" + uuid;
     }
 
@@ -96,22 +96,20 @@ public class NExecutableDao {
         store.checkAndPutResource(path, output, JOB_OUTPUT_SERIALIZER);
     }
 
-    public List<ExecutableOutputPO> getJobOutputs(String project) {
-        return store.getAllResources("/" + project + ResourceStore.EXECUTE_OUTPUT_RESOURCE_ROOT,
-                JOB_OUTPUT_SERIALIZER);
+    public List<ExecutableOutputPO> getJobOutputs() {
+        return store.getAllResources("/" + project + ResourceStore.EXECUTE_OUTPUT_RESOURCE_ROOT, JOB_OUTPUT_SERIALIZER);
     }
 
-    public List<ExecutablePO> getJobs(String project) {
-        return store.getAllResources("/" + project + ResourceStore.EXECUTE_RESOURCE_ROOT,
-                JOB_SERIALIZER);
+    public List<ExecutablePO> getJobs() {
+        return store.getAllResources("/" + project + ResourceStore.EXECUTE_RESOURCE_ROOT, JOB_SERIALIZER);
     }
 
-    public List<ExecutablePO> getJobs(String project, long timeStart, long timeEndExclusive) {
+    public List<ExecutablePO> getJobs(long timeStart, long timeEndExclusive) {
         return store.getAllResources("/" + project + ResourceStore.EXECUTE_RESOURCE_ROOT, timeStart, timeEndExclusive,
                 JOB_SERIALIZER);
     }
 
-    public List<String> getJobPathes(String project) {
+    public List<String> getJobPathes() {
         NavigableSet<String> resources = store.listResources("/" + project + ResourceStore.EXECUTE_RESOURCE_ROOT);
         if (resources == null) {
             return Collections.emptyList();
@@ -123,20 +121,20 @@ public class NExecutableDao {
         return readJobResource(path);
     }
 
-    public ExecutablePO getJob(String uuid, String project) {
-        return readJobResource(pathOfJob(uuid, project));
+    public ExecutablePO getJobByUuid(String uuid) {
+        return readJobResource(pathOfJob(uuid));
     }
 
     public ExecutablePO addJob(ExecutablePO job) {
-        if (getJob(job.getUuid(), job.getProject()) != null) {
+        if (getJobByUuid(job.getUuid()) != null) {
             throw new IllegalArgumentException("job id:" + job.getUuid() + " already exists");
         }
         writeJobResource(pathOfJob(job), job);
         return job;
     }
 
-    public void deleteJob(String uuid, String project) {
-        store.deleteResource(pathOfJob(uuid, project));
+    public void deleteJob(String uuid) {
+        store.deleteResource(pathOfJob(uuid));
     }
 
     public ExecutableOutputPO getOutputPO(String path) {
@@ -149,19 +147,19 @@ public class NExecutableDao {
         return result;
     }
 
-    public void addOutputPO(ExecutableOutputPO output, String project) {
+    public void addOutputPO(ExecutableOutputPO output) {
         output.setLastModified(0);
         val info = output.getInfo();
         info.put(CREATE_TIME, "" + System.currentTimeMillis());
-        writeOutputResource(pathOfOutput(output.getUuid(), project), output);
+        writeOutputResource(pathOfOutput(output.getUuid()), output);
     }
 
-    public void updateOutputPO(ExecutableOutputPO output, String project) {
-        writeOutputResource(pathOfOutput(output.getUuid(), project), output);
+    public void updateOutputPO(ExecutableOutputPO output) {
+        writeOutputResource(pathOfOutput(output.getUuid()), output);
     }
 
     //TODO why no one call this?
-    public void deleteOutputPO(String uuid, String project) {
-        store.deleteResource(pathOfOutput(uuid, project));
+    public void deleteOutputPO(String uuid) {
+        store.deleteResource(pathOfOutput(uuid));
     }
 }

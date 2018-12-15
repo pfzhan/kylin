@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,23 +42,27 @@
 
 package io.kyligence.kap.cube.model;
 
-import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.VolatileRange;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import static org.apache.kylin.common.persistence.ResourceStore.DATA_LOADING_RANGE_RESOURCE_ROOT;
+
+import java.util.List;
+
+import lombok.AccessLevel;
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.SegmentRange;
 
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Lists;
 
-import static org.apache.kylin.common.persistence.ResourceStore.DATA_LOADING_RANGE_RESOURCE_ROOT;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.VolatileRange;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @SuppressWarnings("serial")
 @Setter
@@ -68,7 +71,6 @@ import static org.apache.kylin.common.persistence.ResourceStore.DATA_LOADING_RAN
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 public class NDataLoadingRange extends RootPersistentEntity {
 
-    private String project;
     @JsonProperty("table_name")
     private String tableName;
     @JsonProperty("column_name")
@@ -96,11 +98,20 @@ public class NDataLoadingRange extends RootPersistentEntity {
     private boolean autoMergeEnabled = true;
 
     @JsonProperty("auto_merge_time_ranges")
-    private List<AutoMergeTimeEnum> autoMergeTimeRanges = Lists.newArrayList(AutoMergeTimeEnum.WEEK, AutoMergeTimeEnum.MONTH);
+    private List<AutoMergeTimeEnum> autoMergeTimeRanges = Lists.newArrayList(AutoMergeTimeEnum.WEEK,
+            AutoMergeTimeEnum.MONTH);
 
     @JsonProperty("volatile_range")
     private VolatileRange volatileRange = new VolatileRange();
 
+
+
+    @Setter(AccessLevel.NONE)
+    private String project;
+
+    public void initAfterReload(KylinConfig config, String p) {
+        this.project = p;
+    }
 
     public SegmentRange getCoveredSegmentRange() {
         SegmentRange readySegmentRange = null;

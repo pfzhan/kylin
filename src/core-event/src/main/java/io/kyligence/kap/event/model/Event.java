@@ -42,6 +42,7 @@
 
 package io.kyligence.kap.event.model;
 
+import java.util.Comparator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -52,41 +53,38 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Ordering;
 
 import io.kyligence.kap.event.handle.EventHandler;
 import lombok.Getter;
 import lombok.Setter;
 
-/**
- */
 @SuppressWarnings("serial")
 @Setter
 @Getter
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
-abstract public class Event extends RootPersistentEntity {
+abstract public class Event extends RootPersistentEntity implements Comparable<Event> {
 
-    @JsonProperty("project")
-    private String project;
     @JsonProperty("modelName")
     private String modelName;
     @JsonProperty("cubePlanName")
     private String cubePlanName;
     @JsonProperty("isGlobal")
-    private boolean isGlobal = false;//TODO:
+    private boolean isGlobal = false; //TODO:
     @JsonProperty("params")
     private Map<String, Object> addedInfo = Maps.newHashMap();
     @JsonProperty("msg")
     private String msg;
-    @JsonProperty("create_time_nanosecond")
-    protected long createTimeNanosecond;
     @JsonProperty("sequence_id")
-    protected int sequenceId;//in case two event happend in same nano second
+    protected long sequenceId;//in case two event happend in same nano second
     @JsonProperty("owner")
     protected String owner;
 
+    private static Ordering<Event> comparator = Ordering.natural().onResultOf(Event::getLastModified)
+            .compound(Comparator.comparing(Event::getSequenceId));
+
     public Event() {
-        createTimeNanosecond = System.nanoTime();
         sequenceId = sequenceGenerate();
         uuid = UUID.randomUUID().toString();
     }
@@ -96,6 +94,11 @@ abstract public class Event extends RootPersistentEntity {
     static AtomicInteger sequence = new AtomicInteger(0);
 
     private static int sequenceGenerate() {
-        return sequence.getAndUpdate(operand -> (operand + 1) % 65536);
+        return sequence.getAndUpdate(operand -> (operand + 1));
+    }
+
+    @Override
+    public int compareTo(Event o) {
+        return comparator.compare(this, o);
     }
 }

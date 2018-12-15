@@ -21,6 +21,7 @@ release.properties
 
 # Locally stored "Eclipse launch configurations"
 *.launch
+*.factorypath
 
 # CDT-specific
 .cproject

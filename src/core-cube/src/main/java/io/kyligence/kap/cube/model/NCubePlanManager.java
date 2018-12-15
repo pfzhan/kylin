@@ -70,8 +70,7 @@ public class NCubePlanManager implements IKeepNames {
             @Override
             protected NCubePlan initEntityAfterReload(NCubePlan cubePlan, String resourceName) {
                 try {
-                    cubePlan.setProject(project);
-                    cubePlan.initAfterReload(config);
+                    cubePlan.initAfterReload(config, project);
                 } catch (Exception e) {
                     logger.warn("Broken NCubePlan " + resourceName, e);
                     cubePlan.addError(e.getMessage());
@@ -107,7 +106,7 @@ public class NCubePlanManager implements IKeepNames {
     }
 
     public List<NCubePlan> listAllCubePlans() {
-        return Lists.newArrayList(crud.getAll());
+        return Lists.newArrayList(crud.listAll());
     }
 
     public NCubePlan createCubePlan(NCubePlan cubePlan) {
@@ -119,7 +118,7 @@ public class NCubePlanManager implements IKeepNames {
         try {
             // init the cube plan if not yet
             if (cubePlan.getConfig() == null)
-                cubePlan.initAfterReload(config);
+                cubePlan.initAfterReload(config, project);
         } catch (Exception e) {
             logger.warn("Broken cube plan " + cubePlan, e);
             cubePlan.addError(e.getMessage());
@@ -166,7 +165,7 @@ public class NCubePlanManager implements IKeepNames {
         try {
             // init the cube plan if not yet
             if (cubePlan.getConfig() == null)
-                cubePlan.initAfterReload(config);
+                cubePlan.initAfterReload(config, project);
         } catch (Exception e) {
             logger.warn("Broken cube desc " + cubePlan, e);
             cubePlan.addError(e.getMessage());

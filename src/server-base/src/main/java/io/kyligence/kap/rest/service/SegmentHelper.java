@@ -25,14 +25,18 @@ package io.kyligence.kap.rest.service;
 
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
+import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.rest.service.BasicService;
 import org.springframework.stereotype.Component;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.model.NCubePlan;
@@ -44,6 +48,7 @@ import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -73,24 +78,50 @@ public class SegmentHelper extends BasicService {
 
         List<String> modelNames = NDataModelManager.getInstance(kylinConfig, project)
                 .getTableOrientedModelsUsingRootTable(tableDesc);
+        boolean first = true;
+        List<SegmentRange> firstRanges = Lists.newArrayList();
+
         if (CollectionUtils.isNotEmpty(modelNames)) {
+
             EventManager eventManager = EventManager.getInstance(kylinConfig, project);
             for (String modelName : modelNames) {
                 NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName,
                         project, kylinConfig);
-                if (cubePlan == null) {
-                    continue;
+                NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
+                NDataflow df = dfMgr.getDataflow(cubePlan.getName());
+                Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY);
+                List<SegmentRange> ranges = Lists.newArrayList();
+                for (NDataSegment seg : segments) {
+                    if (!toBeRefreshSegmentRange.contains(seg.getSegRange())) {
+                        continue;
+                    }
+                    NDataSegment newSeg = dfMgr.refreshSegment(df, seg.getSegRange());
+
+                    RefreshSegmentEvent refreshSegmentEvent = new RefreshSegmentEvent();
+                    refreshSegmentEvent.setModelName(modelName);
+                    refreshSegmentEvent.setCubePlanName(cubePlan.getName());
+                    refreshSegmentEvent.setSegmentId(newSeg.getId());
+                    refreshSegmentEvent.setJobId(UUID.randomUUID().toString());
+                    refreshSegmentEvent.setOwner(getUsername());
+                    eventManager.post(refreshSegmentEvent);
+
+                    PostMergeOrRefreshSegmentEvent postE = new PostMergeOrRefreshSegmentEvent();
+                    postE.setModelName(modelName);
+                    postE.setCubePlanName(cubePlan.getName());
+                    postE.setSegmentId(newSeg.getId());
+                    postE.setJobId(refreshSegmentEvent.getJobId());
+                    postE.setOwner(getUsername());
+                    eventManager.post(postE);
+
+                    ranges.add(seg.getSegRange());
                 }
-                RefreshSegmentEvent refreshSegmentEvent = new RefreshSegmentEvent();
-                refreshSegmentEvent.setProject(project);
-                refreshSegmentEvent.setModelName(modelName);
-                refreshSegmentEvent.setCubePlanName(cubePlan.getName());
-                refreshSegmentEvent.setSegmentRange(toBeRefreshSegmentRange);
-                refreshSegmentEvent.setOwner(getUsername());
-                eventManager.post(refreshSegmentEvent);
-                log.info(
-                        "LoadingRangeRefreshHandler produce AddSegmentEvent project : {}, model : {}, cubePlan : {}, segmentRange : {}",
-                        project, modelName, cubePlan.getName(), toBeRefreshSegmentRange);
+
+                if (first) {
+                    firstRanges = ranges;
+                    first = false;
+                } else {
+                    Preconditions.checkState(firstRanges.equals(ranges));
+                }
             }
         }
     }
@@ -103,7 +134,6 @@ public class SegmentHelper extends BasicService {
         if (CollectionUtils.isEmpty(tobeRemoveSegmentIds)) {
             return;
         }
-
 
         List<NDataSegment> dataSegments = Lists.newArrayList();
         for (String tobeRemoveSegmentId : tobeRemoveSegmentIds) {

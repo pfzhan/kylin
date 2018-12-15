@@ -112,7 +112,7 @@ public class NTableMetadataManager {
     }
 
     public List<TableDesc> listAllTables() {
-        return srcTableCrud.getAll();
+        return srcTableCrud.listAll();
     }
 
     public Map<String, TableDesc> getAllTablesMap() {
@@ -296,7 +296,7 @@ public class NTableMetadataManager {
     }
 
     public List<ExternalFilterDesc> listAllExternalFilters() {
-        return extFilterCrud.getAll();
+        return extFilterCrud.listAll();
     }
 
     public ExternalFilterDesc getExtFilterDesc(String filterTableName) {

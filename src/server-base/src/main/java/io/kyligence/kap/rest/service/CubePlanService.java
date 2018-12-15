@@ -160,7 +160,6 @@ public class CubePlanService extends BasicService {
             });
             if (request.isLoadData()) {
                 val addEvent = new AddCuboidEvent();
-                addEvent.setProject(request.getProject());
                 addEvent.setModelName(cubePlan.getModelName());
                 addEvent.setCubePlanName(cubePlan.getName());
                 addEvent.setOwner(getUsername());
@@ -168,7 +167,6 @@ public class CubePlanService extends BasicService {
                 eventManager.post(addEvent);
 
                 val postAddEvent = new PostAddCuboidEvent();
-                postAddEvent.setProject(request.getProject());
                 postAddEvent.setModelName(cubePlan.getModelName());
                 postAddEvent.setCubePlanName(cubePlan.getName());
                 postAddEvent.setJobId(addEvent.getJobId());

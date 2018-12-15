@@ -28,16 +28,16 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
 
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
-import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import lombok.val;
@@ -52,10 +52,21 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
 
     @Override
     protected void doHandle(EventContext eventContext, ChainedExecutable executable) {
+
+        if (executable == null) {
+            log.debug("executable is null when handling event {}", eventContext.getEvent());
+            // in case the job is skipped
+            doHandleWithNullJob(eventContext);
+            return;
+        } else if (executable.getStatus() == ExecutableState.DISCARDED) {
+            log.debug("previous job suicide, current event:{} will be ignored", eventContext.getEvent());
+            finishEvent(eventContext.getProject(), eventContext.getEvent().getId());
+            return;
+        }
+
         PostAddCuboidEvent event = (PostAddCuboidEvent) eventContext.getEvent();
-        String project = event.getProject();
+        String project = eventContext.getProject();
         List<String> sqlList = event.getSqlPatterns();
-        val id = event.getId();
         val jobId = event.getJobId();
 
         val tasks = executable.getTasks();
@@ -69,19 +80,45 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
         val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
+            if (!checkSubjectExists(project, event.getCubePlanName(), null, event)) {
+                finishEvent(project, event.getId());
+                return null;
+            }
+
             val kylinConfig = KylinConfig.getInstanceFromEnv();
             val merger = new AfterBuildResourceMerger(kylinConfig, project);
             merger.mergeAfterCatchup(dataflowName, segmentIds, layoutIds, buildResourceStore);
             merger.mergeAnalysis(dataflowName, analysisResourceStore);
+
             handleFavoriteQuery(project, sqlList);
             handleCubePlan(project, event.getCubePlanName());
-            EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            eventDao.deleteEvent(id);
+
+            finishEvent(project, event.getId());
+            return null;
+        }, project);
+    }
+
+    private void doHandleWithNullJob(EventContext eventContext) {
+
+        PostAddCuboidEvent event = (PostAddCuboidEvent) eventContext.getEvent();
+        String project = eventContext.getProject();
+        List<String> sqlList = event.getSqlPatterns();
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            if (!checkSubjectExists(project, event.getCubePlanName(), null, event)) {
+                finishEvent(project, event.getId());
+                return null;
+            }
+
+            handleFavoriteQuery(project, sqlList);
+            handleCubePlan(project, event.getCubePlanName());
+
+            finishEvent(project, event.getId());
 
             return null;
         }, project);
-
     }
+
     private void handleCubePlan(String project, String cubePlanName) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
 

@@ -120,7 +120,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 int nError = 0;
                 int nDiscarded = 0;
                 int nSucceed = 0;
-                for (final String path : executableManager.getJobPathes(project)) {
+                for (final String path : executableManager.getJobPathes()) {
                     if (isJobPoolFull()) {
                         return;
                     }

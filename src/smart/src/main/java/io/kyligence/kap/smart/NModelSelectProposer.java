@@ -94,7 +94,7 @@ public class NModelSelectProposer extends NAbstractProposer {
 
     private void initModel(NDataModel modelDesc) {
         final NTableMetadataManager manager = NTableMetadataManager.getInstance(kylinConfig, project);
-        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), false);
+        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), false, project);
     }
 
     private NDataModel compareWithFactTable(ModelTree modelTree) {

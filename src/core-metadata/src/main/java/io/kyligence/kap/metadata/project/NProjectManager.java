@@ -89,7 +89,7 @@ public class NProjectManager {
     }
 
     public List<ProjectInstance> listAllProjects() {
-        return crud.getAll();
+        return crud.listAll();
     }
 
     public ProjectInstance getProject(String projectName) {

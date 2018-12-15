@@ -86,10 +86,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         this.crud = new CachedCrudAssist<NDataflow>(getStore(), resourceRootPath, NDataflow.class) {
             @Override
             protected NDataflow initEntityAfterReload(NDataflow df, String resourceName) {
-                NCubePlan plan = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                        .getCubePlan(df.getCubePlanName());
-                df.setProject(project);
-                df.initAfterReload((KylinConfigExt) plan.getConfig());
+                NCubePlan plan = NCubePlanManager.getInstance(config, project).getCubePlan(df.getCubePlanName());
+                df.initAfterReload((KylinConfigExt) plan.getConfig(), project);
                 return df;
             }
         };
@@ -135,7 +133,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public List<NDataflow> listAllDataflows() {
-        return crud.getAll();
+        return crud.listAll();
     }
 
     public NDataflow getDataflow(String name) {
@@ -143,7 +141,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataflow getDataflowByUuid(String uuid) {
-        Collection<NDataflow> copy = crud.getAll();
+        Collection<NDataflow> copy = crud.listAll();
         for (NDataflow df : copy) {
             if (uuid.equals(df.getUuid()))
                 return df;
@@ -176,6 +174,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
     public NDataflow createDataflow(String dfName, NCubePlan plan, String owner) {
         NDataflow df = NDataflow.create(dfName, plan);
+        df.initAfterReload((KylinConfigExt) plan.getConfig(), project);
 
         // save dataflow
         df.setOwner(owner);
@@ -224,7 +223,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataSegment appendSegment(NDataflow df, SegmentRange segRange) {
-        checkBuildingSegment(df);
 
         NDataSegment newSegment = newSegment(df, segRange);
         validateNewSegments(df, newSegment);
@@ -236,7 +234,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataSegment refreshSegment(NDataflow df, SegmentRange segRange) {
-        checkBuildingSegment(df);
 
         NDataSegment newSegment = newSegment(df, segRange);
 
@@ -249,8 +246,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
 
         if (toRefreshSeg == null) {
-            throw new IllegalArgumentException(
-                    "For streaming NDataflow, only one segment can be refreshed at one time");
+            throw new IllegalArgumentException(String.format("no ready segment with range %s exists on model %s",
+                    segRange.toString(), df.getModelAlias()));
         }
 
         newSegment.setSegmentRange(toRefreshSeg.getSegRange());
@@ -268,7 +265,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             throw new IllegalArgumentException(dataflow + " has no segments");
         Preconditions.checkArgument(segRange != null);
 
-        checkBuildingSegment(dataflowCopy);
         checkCubeIsPartitioned(dataflowCopy);
 
         NDataSegment newSegment = newSegment(dataflowCopy, segRange);
@@ -324,14 +320,6 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
     }
 
-    private void checkBuildingSegment(NDataflow df) {
-        int maxBuldingSeg = df.getConfig().getMaxBuildingSegments();
-        if (df.getBuildingSegments().size() >= maxBuldingSeg) {
-            throw new IllegalStateException(
-                    "There is already " + df.getBuildingSegments().size() + " building segment; ");
-        }
-    }
-
     private NDataSegment newSegment(NDataflow df, SegmentRange segRange) {
         // BREAKING CHANGE: remove legacy caring as in org.apache.kylin.cube.CubeManager.SegmentAssist.newSegment()
         Preconditions.checkNotNull(segRange);
@@ -354,6 +342,28 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             throw new IllegalStateException("For NDataflow " + df.getName() + ", the new segments " + newList
                     + " do not fit in its current " + df.getSegments() + "; the resulted tobe is " + tobe);
         }
+    }
+
+    public List<NDataSegment> getToRemoveSegs(NDataflow dataflow, NDataSegment segment) {
+        Segments tobe = dataflow.calculateToBeSegments(segment);
+
+        if (!tobe.contains(segment))
+            throw new IllegalStateException(
+                    "For NDataflow " + dataflow + ", segment " + segment + " is expected but not in the tobe " + tobe);
+
+        if (segment.getStatus() == SegmentStatusEnum.NEW)
+            segment.setStatus(SegmentStatusEnum.READY);
+
+        List<NDataSegment> toRemoveSegs = Lists.newArrayList();
+        for (NDataSegment s : dataflow.getSegments()) {
+            if (!tobe.contains(s))
+                toRemoveSegs.add(s);
+        }
+
+        logger.info("promoting new ready segment {} in dataflow {}, segments to removed: {}", segment, dataflow,
+                toRemoveSegs);
+
+        return toRemoveSegs;
     }
 
     public NDataflow copy(NDataflow df) {

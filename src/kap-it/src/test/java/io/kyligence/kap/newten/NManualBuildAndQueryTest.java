@@ -31,7 +31,7 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
-import io.kyligence.kap.engine.spark.merger.AfterMergeResourceMerger;
+import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 import io.kyligence.kap.spark.KapSparkSession;
@@ -318,7 +318,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(firstMergeJob);
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
-        val merger = new AfterMergeResourceMerger(config, getProject());
+        val merger = new AfterMergeOrRefreshResourceMerger(config, getProject());
         var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkCubingStep());
         merger.mergeAfterJob(df.getName(), firstMergeSeg.getId(), mergeStore);
 
@@ -378,7 +378,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         execMgr.addJob(firstMergeJob);
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
-        val merger = new AfterMergeResourceMerger(config, getProject());
+        val merger = new AfterMergeOrRefreshResourceMerger(config, getProject());
         var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkCubingStep());
         merger.mergeAfterJob(df.getName(), firstMergeSeg.getId(), mergeStore);
 

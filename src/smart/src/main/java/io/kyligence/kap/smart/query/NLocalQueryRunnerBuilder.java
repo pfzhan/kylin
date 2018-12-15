@@ -69,7 +69,6 @@ class NLocalQueryRunnerBuilder {
     private void prepareResources(String projectName, Set<String> dumpResources,
             Map<String, RootPersistentEntity> mockupResources, List<NDataModel> dataModels) {
         NProjectManager projectManager = NProjectManager.getInstance(srcKylinConfig);
-        ProjectInstance srcProj = projectManager.getProject(projectName);
 
         ProjectInstance dumpProj = new ProjectInstance();
         dumpProj.setName(projectName);
@@ -80,7 +79,6 @@ class NLocalQueryRunnerBuilder {
         metadataManager.listAllTables().forEach(tableDesc -> dumpResources.add(tableDesc.getResourcePath()));
 
         dataModels.forEach(dataModel -> {
-            dataModel.setProject(projectName);
             mockupResources.put(dataModel.getResourcePath(), dataModel);
         });
     }

@@ -299,7 +299,7 @@ object TableScanPlan extends Logging {
 
     val lookupTableName = olapContext.firstTableScan.getTableName
     val snapshotResPath =
-      instance.getLastSegment.getSnapshots.get(lookupTableName)
+      instance.getSegments().getLatestReadySegment.getSnapshots.get(lookupTableName)
     val config = instance.getConfig
     val dataFrameTableName = instance.getProject + "@" + lookupTableName
     val lookupDf = SparderLookupManager.getOrCreate(dataFrameTableName,

@@ -77,6 +77,11 @@ public class TempMetadataBuilder {
     }
 
     public String build() {
+
+        if ("true".equals(System.getProperty("skipMetaPrep"))) {
+            return TEMP_TEST_METADATA;
+        }
+
         try {
             if (debug) {
                 logger.info("Preparing local temp metadata");

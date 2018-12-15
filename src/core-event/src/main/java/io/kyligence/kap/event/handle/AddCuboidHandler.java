@@ -23,13 +23,12 @@
  */
 package io.kyligence.kap.event.handle;
 
-import static com.google.common.base.Preconditions.checkNotNull;
-
 import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +43,7 @@ import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.Event;
 import lombok.val;
 
 public class AddCuboidHandler extends AbstractEventWithJobHandler {
@@ -52,20 +51,22 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
     private static final Logger logger = LoggerFactory.getLogger(AddCuboidHandler.class);
 
     @Override
-    public AbstractExecutable createJob(EventContext eventContext) {
-        AddCuboidEvent event = (AddCuboidEvent) eventContext.getEvent();
-        String project = event.getProject();
-        KylinConfig kylinConfig = eventContext.getConfig();
-
+    public AbstractExecutable createJob(Event e, String project) {
+        AddCuboidEvent event = (AddCuboidEvent) e;
         String cubePlanName = event.getCubePlanName();
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+
+        if (!checkSubjectExists(project, cubePlanName, null, event)) {
+            return null;
+        }
+
+        NDataflow df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(cubePlanName);
         NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).getCubePlan(cubePlanName);
-        checkNotNull(cubePlan);
-        NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-        NDataflow df = dfMgr.getDataflow(cubePlanName);
 
         val readySegs = df.getSegments(SegmentStatusEnum.READY);
         if (readySegs.isEmpty()) {
-            logger.trace("no job will run for event {} because no ready segment is found", event);
+            logger.info("event {} is no longer valid because no ready segment exists in target cubeplan {}", event,
+                    cubePlanName);
             return null;
         }
 
@@ -80,11 +81,12 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
         }
 
         if (CollectionUtils.isEmpty(toBeProcessedLayouts)) {
-            logger.trace("no job will run for event {} because no layout awaits building", event);
+            logger.info("event {} is no longer valid because no layout awaits building", event);
             return null;
         }
 
-        return NSparkCubingJob.create(Sets.newLinkedHashSet(readySegs), toBeProcessedLayouts, event.getOwner(), event.getJobId());
+        return NSparkCubingJob.create(Sets.newLinkedHashSet(readySegs), toBeProcessedLayouts, event.getOwner(),
+                JobTypeEnum.INDEX_BUILD, event.getJobId());
     }
 
 }

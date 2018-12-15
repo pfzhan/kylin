@@ -24,6 +24,8 @@
 
 package io.kyligence.kap.event.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import io.kyligence.kap.event.handle.EventHandler;
 import io.kyligence.kap.event.handle.PostAddSegmentHandler;
 import lombok.Getter;
@@ -32,6 +34,9 @@ import lombok.Setter;
 @Getter
 @Setter
 public class PostAddSegmentEvent extends JobRelatedEvent {
+
+    @JsonProperty("segment_id")
+    private String segmentId;
 
     @Override
     public EventHandler getEventHandler() {

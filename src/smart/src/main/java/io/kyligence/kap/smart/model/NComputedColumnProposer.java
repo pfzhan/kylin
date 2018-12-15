@@ -175,7 +175,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             try {
                 // Init model to check CC availability
                 nDataModel.init(config, NTableMetadataManager.getInstance(config, project).getAllTablesMap(),
-                        otherModels, false);
+                        otherModels, false, project);
                 // No exception, check passed
                 return true;
             } catch (BadModelException e) {

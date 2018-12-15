@@ -69,7 +69,6 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         String columnName = "TEST_KYLIN_FACT.CAL_DT";
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.updateRandomUuid();
-        dataLoadingRange.setProject(DEFAULT_PROJECT);
         dataLoadingRange.setTableName(tableName);
         dataLoadingRange.setColumnName(columnName);
         long start = 1505277121000L;
@@ -100,7 +99,6 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         String columnName = "TEST_KYLIN_FACT.CAL_DT";
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.updateRandomUuid();
-        dataLoadingRange.setProject(DEFAULT_PROJECT);
         dataLoadingRange.setTableName(tableName);
         dataLoadingRange.setColumnName(columnName);
         long start = 1505277121000L;
@@ -178,7 +176,6 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         String columnName = "TEST_KYLIN_FACT.LSTG_FORMAT_NAME";
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.updateRandomUuid();
-        dataLoadingRange.setProject(DEFAULT_PROJECT);
         dataLoadingRange.setTableName(tableName);
         dataLoadingRange.setPartitionDateFormat("YYYY");
         dataLoadingRange.setColumnName(columnName);
@@ -198,7 +195,6 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         String columnName = "TEST_KYLIN_FACT.LEAF_CATEG_ID";
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.updateRandomUuid();
-        dataLoadingRange.setProject(DEFAULT_PROJECT);
         dataLoadingRange.setTableName(tableName);
         dataLoadingRange.setPartitionDateFormat("YYYY");
         dataLoadingRange.setColumnName(columnName);

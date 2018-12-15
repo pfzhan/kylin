@@ -62,15 +62,15 @@ public class FavoriteRuleManager {
         return new FavoriteRuleManager(config, project);
     }
 
-    private FavoriteRuleManager(KylinConfig kylinConfig, String project) throws IOException {
-        logger.info("Initializing FavoriteRuleManager with config " + kylinConfig);
+    private FavoriteRuleManager(KylinConfig kylinConfig, String project) {
+        logger.info("Initializing FavoriteRuleManager with config {} for project {}", kylinConfig, project);
 
         this.kylinConfig = kylinConfig;
         this.project = project;
         init();
     }
 
-    private void init() throws IOException {
+    private void init() {
 
         final ResourceStore store = ResourceStore.getKylinMetaStore(this.kylinConfig);
         final String resourceRootPath = "/" + this.project + ResourceStore.QUERY_FILTER_RULE_RESOURCE_ROOT;
@@ -116,7 +116,7 @@ public class FavoriteRuleManager {
         }
     }
 
-    public void removeSqlCondition(String id, String ruleName) throws IOException {
+    public void removeSqlCondition(String id, String ruleName) {
         FavoriteRule rule = crud.copyBySerialization(getByName(ruleName));
         List<FavoriteRule.AbstractCondition> conditions = rule.getConds();
 
@@ -181,9 +181,9 @@ public class FavoriteRuleManager {
     public List<FavoriteRule> getAll() {
         List<FavoriteRule> favoriteRules = Lists.newArrayList();
 
-        favoriteRules.addAll(crud.getAll());
+        favoriteRules.addAll(crud.listAll());
 
-        logger.debug("Loaded " + favoriteRules.size() + " rules");
+        logger.trace("Loaded " + favoriteRules.size() + " rules");
         return favoriteRules;
     }
 

@@ -86,7 +86,6 @@ public class NCubePlanManagerTest {
         cube.setModelName(TEST_MODEL_NAME);
         cube.setUuid(UUID.randomUUID().toString());
         cube.setDescription(TEST_DESCRIPTION);
-        cube.setProject(DEFAULT_PROJECT);
         Assert.assertNotNull(manager.createCubePlan(cube));
 
         // list

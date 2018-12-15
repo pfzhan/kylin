@@ -54,15 +54,15 @@ public class ColumnACL extends RootPersistentEntity implements IKeep {
     @JsonProperty()
     private ColumnACLEntry groupColumnBlackList = new ColumnACLEntry();
 
-    private String project;
+    private String resourceName;
     
-    void init(String project) {
-        this.project = project;
+    void init(String resourceName) {
+        this.resourceName = resourceName;
     }
     
     @Override
     public String resourceName() {
-        return project;
+        return resourceName;
     }
     
     private ColumnACLEntry currentEntry(String type) {

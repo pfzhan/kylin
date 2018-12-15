@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
@@ -44,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -86,9 +84,8 @@ public class NDataModelManager {
         this.crud = new CachedCrudAssist<NDataModel>(getStore(), resourceRootPath, NDataModel.class) {
             @Override
             protected NDataModel initEntityAfterReload(NDataModel model, String resourceName) {
-                model.setProject(project);
                 if (!model.isDraft()) {
-                    model.init(config, getAllTablesMap(), Lists.newArrayList(getCache().values()), true);
+                    model.init(config, getAllTablesMap(), listAllValidCache(), true, project);
                 }
                 return model;
             }
@@ -113,7 +110,7 @@ public class NDataModelManager {
     }
 
     public List<NDataModel> getDataModels() {
-        return crud.getAll();
+        return crud.listAll();
     }
 
     public NDataModel getDataModelDesc(String name) {
@@ -169,12 +166,9 @@ public class NDataModelManager {
     }
 
     public NDataModel createDataModelDesc(NDataModel desc, String owner) {
-        if (StringUtils.isEmpty(desc.getProject())) {
-            desc.setProject(project);
-        }
         String name = desc.getName();
-        Preconditions.checkArgument(desc.getProject().equals(project), "Model %s belongs to project %s, not %s", name,
-                desc.getProject(), project);
+        //        Preconditions.checkArgument(desc.getProject().equals(project), "Model %s belongs to project %s, not %s", name,
+        //                desc.getProject(), project);
         if (crud.contains(name))
             throw new IllegalArgumentException("DataModelDesc '" + name + "' already exists");
 
@@ -207,7 +201,7 @@ public class NDataModelManager {
     private NDataModel saveDataModelDesc(NDataModel dataModelDesc) {
         dataModelDesc.checkSingleIncrementingLoadingTable();
         if (!dataModelDesc.isDraft())
-            dataModelDesc.init(config, this.getAllTablesMap(), getDataModels(), true);
+            dataModelDesc.init(config, this.getAllTablesMap(), getDataModels(), true, project);
 
         crud.save(dataModelDesc);
 

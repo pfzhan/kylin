@@ -30,7 +30,6 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.event.model.MergeSegmentEvent;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -49,16 +48,17 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.event.handle.AddSegmentHandler;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.VolatileRange;
 
 @Ignore
 public class AutoMergeTest extends NLocalFileMetadataTestCase {
@@ -90,17 +90,15 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Method method = clazz.getDeclaredMethod("onJobSuccess", EventContext.class);
         method.setAccessible(true);
         Event addEvent = new AddSegmentEvent();
-        addEvent.setProject(DEFAULT_PROJECT);
         addEvent.setCubePlanName("ncube_basic");
         addEvent.setModelName("nmodel_basic");
-        EventContext eventContext = new EventContext(addEvent, getTestConfig());
+        EventContext eventContext = new EventContext(addEvent, getTestConfig(), DEFAULT_PROJECT);
         method.invoke(new AddSegmentHandler(), eventContext);
     }
 
     private void createDataloadingRange() throws IOException {
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.updateRandomUuid();
-        dataLoadingRange.setProject(DEFAULT_PROJECT);
         dataLoadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
         dataLoadingRange.setColumnName("TEST_KYLIN_FACT.CAL_DT");
         NDataLoadingRangeManager.getInstance(getTestConfig(), DEFAULT_PROJECT).createDataLoadingRange(dataLoadingRange);
@@ -168,8 +166,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(1, events.size());
         //merge 2010/01/01 00:00 - 2010/01/04 00:00
-        Assert.assertEquals(1262304000000L, ((MergeSegmentEvent) events.get(0)).getSegmentRange().getStart());
-        Assert.assertEquals(1262563200000L, ((MergeSegmentEvent) events.get(0)).getSegmentRange().getEnd());
+        Assert.assertEquals(1262304000000L, dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart());
+        Assert.assertEquals(1262563200000L, dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd());
     }
 
     @Test
@@ -213,8 +213,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         mockAddSegmentSuccess();
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(1, events.size());
-        Assert.assertEquals(1262304000000L, ((MergeSegmentEvent) events.get(0)).getSegmentRange().getStart());
-        Assert.assertEquals(1262563200000L, ((MergeSegmentEvent) events.get(0)).getSegmentRange().getEnd());
+        Assert.assertEquals(1262304000000L, dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart());
+        Assert.assertEquals(1262563200000L, dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd());
     }
 
     @Test
@@ -259,8 +261,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         List<Event> events = eventDao.getEvents();
         //merge 1/4/-1/10
         Assert.assertEquals(1, events.size());
-//        Assert.assertEquals(1262563200000L, events.get(0).getSegmentRange().getStart());
-//        Assert.assertEquals(1263168000000L, events.get(0).getSegmentRange().getEnd());
+        //        Assert.assertEquals(1262563200000L, events.get(0).getSegmentRange().getStart());
+        //        Assert.assertEquals(1263168000000L, events.get(0).getSegmentRange().getEnd());
     }
 
     @Test
@@ -301,8 +303,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         mockAddSegmentSuccess();
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(events.size(), 1);
-        start = Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getStart().toString());
-        end = Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getEnd().toString());
+        start = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart().toString());
+        end = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd().toString());
         Assert.assertEquals(1262563200000L, start);
         Assert.assertEquals(1263168000000L, end);
     }
@@ -340,8 +344,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         mockAddSegmentSuccess();
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(events.size(), 1);
-        start = Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getStart().toString());
-        end = Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getEnd().toString());
+        start = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart().toString());
+        end = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd().toString());
         Assert.assertEquals(1262563200000L, start);
         Assert.assertEquals(1263168000000L, end);
     }
@@ -384,8 +390,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         mockAddSegmentSuccess();
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(events.size(), 1);
-        start = Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getStart().toString());
-        end = Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getEnd().toString());
+        start = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart().toString());
+        end = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd().toString());
         Assert.assertEquals(1262304000000L, start);
         Assert.assertEquals(1262476800000L, end);
     }
@@ -421,8 +429,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         mockAddSegmentSuccess();
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(events.size(), 1);
-        start = Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getStart().toString());
-        end = Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getEnd().toString());
+        start = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart().toString());
+        end = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd().toString());
         //2010/1/3 sunday - 2010/1/10 sunday
         Assert.assertEquals(1262476800000L, start);
         Assert.assertEquals(1263081600000L, end);
@@ -466,8 +476,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         mockAddSegmentSuccess();
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(1, events.size());
-        Assert.assertEquals(1262304000000L, Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getStart().toString()));
-        Assert.assertEquals(1262307120000L, Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getEnd().toString()));
+        Assert.assertEquals(1262304000000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart().toString()));
+        Assert.assertEquals(1262307120000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd().toString()));
 
     }
 
@@ -521,8 +533,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         mockAddSegmentSuccess();
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(1, events.size());
-        Assert.assertEquals(1291161600000L, Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getStart().toString()));
-        Assert.assertEquals(1293840000000L, Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getEnd().toString()));
+        Assert.assertEquals(1291161600000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart().toString()));
+        Assert.assertEquals(1293840000000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd().toString()));
 
     }
 
@@ -563,8 +577,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         mockAddSegmentSuccess();
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(1, events.size());
-        Assert.assertEquals(1285891200000L, Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getStart().toString()));
-        Assert.assertEquals(1293667200000L, Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getEnd().toString()));
+        Assert.assertEquals(1285891200000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart().toString()));
+        Assert.assertEquals(1293667200000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd().toString()));
 
     }
 
@@ -606,8 +622,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         mockAddSegmentSuccess();
         List<Event> events = eventDao.getEvents();
         Assert.assertEquals(1, events.size());
-        Assert.assertEquals(1285920000000L, Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getStart().toString()));
-        Assert.assertEquals(1285976700000L, Long.parseLong(((MergeSegmentEvent) events.get(0)).getSegmentRange().getEnd().toString()));
+        Assert.assertEquals(1285920000000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getStart().toString()));
+        Assert.assertEquals(1285976700000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                .getSegment(((MergeSegmentEvent) events.get(0)).getSegmentId()).getSegRange().getEnd().toString()));
 
     }
 
@@ -751,8 +769,11 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             if (eventDao.getEvents().size() > 0) {
                 allEvent++;
                 Event event = eventDao.getEvents().get(0);
-                mergeStart = Long.parseLong(((MergeSegmentEvent) event).getSegmentRange().getStart().toString());
-                mergeEnd = Long.parseLong(((MergeSegmentEvent) event).getSegmentRange().getEnd().toString());
+
+                mergeStart = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                        .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString());
+                mergeEnd = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                        .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
                 if (mergeEnd - mergeStart > 2678400000L) {
                     eventsMergeYear++;
                 } else if (mergeEnd - mergeStart > 604800000L) {
@@ -763,8 +784,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                 } else {
                     eventsMergeDay++;
                 }
-                //events.put(end, eventDao.getEvents().get(0));
-                mockMergeSegments(i, ((MergeSegmentEvent) eventDao.getEvents().get(0)).getSegmentRange());
+
+                mockMergeSegments(i, dataflowManager.getDataflow("ncube_basic")
+                        .getSegment(((MergeSegmentEvent) eventDao.getEvents().get(0)).getSegmentId()).getSegRange());
                 i += 2;
             } else {
                 i++;

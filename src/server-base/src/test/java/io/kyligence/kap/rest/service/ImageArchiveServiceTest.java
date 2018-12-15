@@ -50,7 +50,9 @@ public class ImageArchiveServiceTest extends NLocalFileMetadataTestCase {
     @Before
     public void init() throws Exception {
         staticCreateTestMetadata();
-        getTestConfig().setProperty("kylin.metadata.url", "test_meta@hdfs,mq=mock");
+        getTestConfig().setProperty("kylin.metadata.url", "test_meta@hdfs");
+        getTestConfig().setProperty("kylin.metadata.mq-type", "mock");
+
         val currentImagePath = new Path(HadoopUtil.getLatestImagePath(getTestConfig()));
         val rootPath = currentImagePath.getParent();
         val fs = HadoopUtil.getFileSystem(rootPath);

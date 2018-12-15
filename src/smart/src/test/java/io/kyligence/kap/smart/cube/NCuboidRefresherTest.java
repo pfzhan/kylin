@@ -35,7 +35,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -52,6 +51,7 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -1144,7 +1144,7 @@ public class NCuboidRefresherTest extends NTestBase {
         val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
         ResourceStore.dumpResources(kylinConfig, tmpMeta, resourceStore.listResourcesRecursively("/"));
         reAddMetadataTableExd();
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath() + ",mq=mock");
+        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
         kylinConfig.setProperty("kylin.env", "UT");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
         favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
@@ -1152,7 +1152,8 @@ public class NCuboidRefresherTest extends NTestBase {
 
     private void hideTableExdInfo() throws IOException {
         deleteMetadataTableExd();
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath() + ",mq=mock");
+        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
+
         kylinConfig.setProperty("kylin.env", "UT");
         KylinConfig.setKylinConfigThreadLocal(kylinConfig);
         favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);

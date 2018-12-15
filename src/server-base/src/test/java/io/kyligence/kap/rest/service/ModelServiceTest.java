@@ -55,7 +55,6 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.regex.Pattern;
@@ -63,9 +62,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
-import io.kyligence.kap.metadata.query.QueryTimesResponse;
-import io.kyligence.kap.rest.execution.SucceedTestExecutable;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -124,6 +120,9 @@ import io.kyligence.kap.metadata.model.DataCheckDesc;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.QueryTimesResponse;
+import io.kyligence.kap.rest.execution.SucceedTestExecutable;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.CuboidDescResponse;
@@ -527,7 +526,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRefreshSegments_AffectedSegmentRangeChanged_Exception() {
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Can not refersh, please try again and confirm affected storage!");
+        thrown.expectMessage("Can not refresh, please try again and confirm affected storage!");
         RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
         response.setAffectedStart("12");
         response.setAffectedEnd("120");
@@ -1747,7 +1746,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelManager.updateDataModelDesc(modelUpdate);
 
         val events = eventDao.getEvents();
-        events.sort(Comparator.comparing(Event::getCreateTimeNanosecond));
+        events.sort(Event::compareTo);
+
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
     }
 
@@ -1782,7 +1782,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                 "Can not set table 'DEFAULT.TEST_KYLIN_FACT' incrementing loading, due to another incrementing loading table existed in model 'nmodel_basic'!");
         modelService.checkSingleIncrementingLoadingTable("default", "DEFAULT.TEST_KYLIN_FACT");
     }
-    
+
     @Test
     public void testGetModelInfoByModel() throws IOException {
         val result1 = new QueryTimesResponse();

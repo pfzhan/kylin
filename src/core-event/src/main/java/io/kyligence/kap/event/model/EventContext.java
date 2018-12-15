@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,10 +42,10 @@
 
 package io.kyligence.kap.event.model;
 
+import org.apache.kylin.common.KylinConfig;
+
 import lombok.Getter;
 import lombok.Setter;
-import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.execution.ExecutableState;
 
 @Setter
 @Getter
@@ -54,12 +53,11 @@ public class EventContext {
 
     private Event event;
     private KylinConfig config;
-    private ExecutableState jobStatus;
-    private Throwable exception;
+    private String project;
 
-    public EventContext(Event event, KylinConfig config) {
+    public EventContext(Event event, KylinConfig config, String project) {
         this.event = event;
         this.config = config;
+        this.project = project;
     }
 }
-

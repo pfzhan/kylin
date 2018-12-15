@@ -147,7 +147,8 @@ public class KylinConfig extends KylinConfigBase {
             System.setProperty(KylinConfig.KYLIN_CONF, localMetaDir);
 
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            config.setMetadataUrl(localMetaDir + ",mq=mock");
+            config.setProperty("kylin.metadata.mq-type", "mock");
+            config.setMetadataUrl(localMetaDir);
 
             // make sure a local working directory
             File workingDir = new File(localMetaDir, "working-dir");
@@ -301,8 +302,12 @@ public class KylinConfig extends KylinConfigBase {
 
     public static void setKylinConfigThreadLocal(KylinConfig config) {
         if (THREAD_ENV_INSTANCE.get() != null) {
-            logger.warn("current thread already has a thread local config {}", config);
+            logger.warn("current thread already has a thread local KylinConfig, existing: {}, new: {}",
+                    THREAD_ENV_INSTANCE.get(), config);
+        } else {
+            logger.info("current thread local KylinConfig is set to: {}", config);
         }
+
         THREAD_ENV_INSTANCE.set(config);
     }
 
@@ -462,7 +467,6 @@ public class KylinConfig extends KylinConfigBase {
             InputStream is = fs.open(new Path(metaDir));
             Properties prop = KylinConfig.streamToProps(is);
             KylinConfig config = KylinConfig.createKylinConfig(prop);
-            KylinConfig.setKylinConfigThreadLocal(config);
             return config;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -511,10 +515,12 @@ public class KylinConfig extends KylinConfigBase {
 
     private KylinConfig() {
         super();
+        logger.debug("a new KylinConfig is created {}", System.identityHashCode(this));
     }
 
     protected KylinConfig(Properties props, boolean force) {
         super(props, force);
+        logger.debug("a new KylinConfig is created {}", System.identityHashCode(this));
     }
 
     public <T> T getManager(Class<T> clz) {
@@ -683,6 +689,10 @@ public class KylinConfig extends KylinConfigBase {
             return false;
         else
             return this.base() == ((KylinConfig) another).base();
+    }
+
+    public String toString() {
+        return getMetadataUrl().toString() + "@base:" + System.identityHashCode(base());
     }
 
     public static SetAndUnsetThreadLocalConfig setAndUnsetThreadLocalConfig(KylinConfig config) {

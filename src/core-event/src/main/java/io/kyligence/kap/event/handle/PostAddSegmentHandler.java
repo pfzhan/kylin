@@ -26,11 +26,11 @@ package io.kyligence.kap.event.handle;
 import java.io.IOException;
 import java.util.UUID;
 
-import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
-import io.kyligence.kap.event.model.PostMergeSegmentEvent;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 
 import com.google.common.base.Preconditions;
@@ -38,14 +38,17 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -57,9 +60,20 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
 
     @Override
     protected void doHandle(EventContext eventContext, ChainedExecutable executable) {
+
+        if (executable == null) {
+            log.debug("executable is null when handling event {}", eventContext.getEvent());
+            // in case the job is skipped
+            doHandleWithNullJob(eventContext);
+            return;
+        } else if (executable.getStatus() == ExecutableState.DISCARDED) {
+            log.debug("previous job suicide, current event:{} will be ignored", eventContext.getEvent());
+            finishEvent(eventContext.getProject(), eventContext.getEvent().getId());
+            return;
+        }
+
         PostAddSegmentEvent event = (PostAddSegmentEvent) eventContext.getEvent();
-        String project = event.getProject();
-        val id = event.getId();
+        String project = eventContext.getProject();
         val jobId = event.getJobId();
 
         val tasks = executable.getTasks();
@@ -73,6 +87,12 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask);
 
         UnitOfWork.doInTransactionWithRetry(() -> {
+
+            if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+                finishEvent(project, event.getId());
+                return null;
+            }
+
             val kylinConfig = KylinConfig.getInstanceFromEnv();
             String cubePlanName = event.getCubePlanName();
 
@@ -82,14 +102,48 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
 
             NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
             NDataflow df = dfMgr.getDataflow(cubePlanName);
+
             updateDataLoadingRange(df);
 
             //TODO: take care of this
             autoMergeSegments(df, project, event.getModelName(), event.getOwner());
 
-            EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            eventDao.deleteEvent(id);
+            finishEvent(project, event.getId());
+            return null;
+        }, project);
+    }
 
+    private void doHandleWithNullJob(EventContext eventContext) {
+        PostAddSegmentEvent event = (PostAddSegmentEvent) eventContext.getEvent();
+        String project = eventContext.getProject();
+
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+                finishEvent(project, event.getId());
+                return null;
+            }
+
+            val kylinConfig = KylinConfig.getInstanceFromEnv();
+            val cubePlanName = event.getCubePlanName();
+            val segmentId = event.getSegmentId();
+
+            NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
+            NDataflow df = dfMgr.getDataflow(cubePlanName);
+
+            //update target seg's status
+            val dfUpdate = new NDataflowUpdate(cubePlanName);
+            val seg = df.copy().getSegment(segmentId);
+            seg.setStatus(SegmentStatusEnum.READY);
+            dfUpdate.setToUpdateSegs(seg);
+            NDataflow df2 = dfMgr.updateDataflow(dfUpdate);
+
+            //update loading range
+            updateDataLoadingRange(df);
+
+            //TODO: take care of this
+            autoMergeSegments(df2, project, event.getModelName(), event.getOwner());
+
+            finishEvent(project, event.getId());
             return null;
         }, project);
     }
@@ -126,23 +180,24 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         if (rangeToMerge == null) {
             return;
         } else {
+            NDataSegment mergeSeg = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                    .mergeSegments(df, rangeToMerge, true);
+
             val mergeEvent = new MergeSegmentEvent();
             mergeEvent.setCubePlanName(df.getCubePlanName());
             mergeEvent.setModelName(model.getName());
-            mergeEvent.setProject(project);
-            mergeEvent.setSegmentRange(rangeToMerge);
+            mergeEvent.setSegmentId(mergeSeg.getId());
             mergeEvent.setJobId(UUID.randomUUID().toString());
             mergeEvent.setOwner(owner);
             eventManager.post(mergeEvent);
 
-            val postMergeEvent = new PostMergeSegmentEvent();
+            val postMergeEvent = new PostMergeOrRefreshSegmentEvent();
             postMergeEvent.setCubePlanName(df.getCubePlanName());
             postMergeEvent.setModelName(model.getName());
-            postMergeEvent.setProject(project);
-            postMergeEvent.setSegmentRange(rangeToMerge);
+            postMergeEvent.setSegmentId(mergeSeg.getId());
             postMergeEvent.setJobId(mergeEvent.getJobId());
             postMergeEvent.setOwner(owner);
-            eventManager.post(mergeEvent);
+            eventManager.post(postMergeEvent);
         }
 
     }

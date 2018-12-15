@@ -254,10 +254,6 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         return project;
     }
 
-    public void setProject(String project) {
-        this.project = project;
-    }
-
     public String getName() {
         return this.name;
     }

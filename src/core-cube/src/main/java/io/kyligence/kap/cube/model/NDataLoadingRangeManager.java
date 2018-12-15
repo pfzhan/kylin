@@ -76,15 +76,14 @@ public class NDataLoadingRangeManager {
         init(config, project);
     }
 
-    protected void init(KylinConfig cfg, final String project) throws IOException {
+    protected void init(KylinConfig cfg, final String project) {
         this.config = cfg;
         this.project = project;
         String resourceRootPath = "/" + project + ResourceStore.DATA_LOADING_RANGE_RESOURCE_ROOT;
         this.crud = new CachedCrudAssist<NDataLoadingRange>(getStore(), resourceRootPath, NDataLoadingRange.class) {
             @Override
             protected NDataLoadingRange initEntityAfterReload(NDataLoadingRange dataLoadingRange, String resourceName) {
-                // do nothing
-                dataLoadingRange.setProject(project);
+                dataLoadingRange.initAfterReload(config, project);
                 return dataLoadingRange;
             }
         };
@@ -106,7 +105,7 @@ public class NDataLoadingRangeManager {
     }
 
     public List<NDataLoadingRange> getDataLoadingRanges() {
-        return crud.getAll();
+        return crud.listAll();
     }
 
     public NDataLoadingRange getDataLoadingRange(String name) {

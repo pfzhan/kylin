@@ -193,7 +193,7 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         public boolean startEndMatch(SegmentRange o) {
             checkSameType(o);
             BasicSegmentRange t = convert(o);
-            return this.start.equals(this.end);
+            return this.start.equals(t.end);
         }
 
         @Override

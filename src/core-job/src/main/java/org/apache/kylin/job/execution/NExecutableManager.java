@@ -26,7 +26,6 @@ package org.apache.kylin.job.execution;
 
 import static org.apache.kylin.job.execution.AbstractExecutable.RUNTIME_INFO;
 
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -44,7 +43,6 @@ import org.apache.kylin.job.dao.ExecutableOutputPO;
 import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.NExecutableDao;
 import org.apache.kylin.job.exception.IllegalStateTranferException;
-import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +51,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
 /**
@@ -70,12 +67,11 @@ public class NExecutableManager {
     }
 
     // called by reflection
-    static NExecutableManager newInstance(KylinConfig config, String project) throws IOException {
-        System.out.println();
+    static NExecutableManager newInstance(KylinConfig config, String project) {
         return new NExecutableManager(config, project);
     }
 
-    static NExecutableManager newInstance(KylinConfig config) throws IOException {
+    static NExecutableManager newInstance(KylinConfig config) {
         return new NExecutableManager(config, null);
     }
 
@@ -86,15 +82,14 @@ public class NExecutableManager {
     private final NExecutableDao executableDao;
 
     private NExecutableManager(KylinConfig config, String project) {
-        logger.info("Using metadata url: " + config);
+        logger.trace("Using metadata url: {}", config);
         this.config = config;
         this.project = project;
-        this.executableDao = NExecutableDao.getInstance(config);
+        this.executableDao = NExecutableDao.getInstance(config, project);
     }
 
     public static ExecutablePO toPO(AbstractExecutable executable, String project) {
         ExecutablePO result = new ExecutablePO();
-        result.setProject(project);
         result.setName(executable.getName());
         result.setUuid(executable.getId());
         result.setType(executable.getClass().getName());
@@ -135,7 +130,7 @@ public class NExecutableManager {
     private void addJobOutput(ExecutablePO executable) {
         ExecutableOutputPO executableOutputPO = new ExecutableOutputPO();
         executableOutputPO.setUuid(executable.getId());
-        executableDao.addOutputPO(executableOutputPO, project);
+        executableDao.addOutputPO(executableOutputPO);
         if (CollectionUtils.isEmpty(executable.getTasks())) {
             return;
         }
@@ -152,7 +147,7 @@ public class NExecutableManager {
             throw new IllegalStateException(
                     "Cannot drop running job " + executable.getName() + ", please discard it first.");
         }
-        executableDao.deleteJob(jobId, project);
+        executableDao.deleteJob(jobId);
     }
 
     public AbstractExecutable getJobByPath(String path) {
@@ -160,7 +155,6 @@ public class NExecutableManager {
         if (executablePO == null) {
             return null;
         }
-        executablePO.setProject(extractProject(path));
         return fromPO(executablePO);
     }
 
@@ -195,7 +189,7 @@ public class NExecutableManager {
 
     public List<AbstractExecutable> getAllExecutables() {
         List<AbstractExecutable> ret = Lists.newArrayList();
-        for (ExecutablePO po : executableDao.getJobs(project)) {
+        for (ExecutablePO po : executableDao.getJobs()) {
             try {
                 AbstractExecutable ae = fromPO(po);
                 ret.add(ae);
@@ -242,7 +236,7 @@ public class NExecutableManager {
 
     public List<AbstractExecutable> getAllExecutables(long timeStartInMillis, long timeEndInMillis) {
         List<AbstractExecutable> ret = Lists.newArrayList();
-        for (ExecutablePO po : executableDao.getJobs(project, timeStartInMillis, timeEndInMillis)) {
+        for (ExecutablePO po : executableDao.getJobs(timeStartInMillis, timeEndInMillis)) {
             try {
                 AbstractExecutable ae = fromPO(po);
                 ret.add(ae);
@@ -267,7 +261,7 @@ public class NExecutableManager {
     public List<AbstractExecutable> getAllAbstractExecutables(long timeStartInMillis, long timeEndInMillis,
             Class<? extends AbstractExecutable> expectedClass) {
         List<AbstractExecutable> ret = Lists.newArrayList();
-        for (ExecutablePO po : executableDao.getJobs(project, timeStartInMillis, timeEndInMillis)) {
+        for (ExecutablePO po : executableDao.getJobs(timeStartInMillis, timeEndInMillis)) {
             try {
                 AbstractExecutable ae = parseToAbstract(po, expectedClass);
                 ret.add(ae);
@@ -278,25 +272,16 @@ public class NExecutableManager {
         return ret;
     }
 
-    public List<String> getJobPathes(String project) {
-        return Lists.newArrayList(executableDao.getJobPathes(project));
-    }
-
-    public List<String> getAllJobPathes() {
-        NProjectManager prjMgr = NProjectManager.getInstance(config);
-        List<String> result = Lists.newArrayList();
-        for (ProjectInstance prj : prjMgr.listAllProjects()) {
-            result.addAll(getJobPathes(prj.getName()));
-        }
-        return result;
+    public List<String> getJobPathes() {
+        return Lists.newArrayList(executableDao.getJobPathes());
     }
 
     public void resumeAllRunningJobs() {
-        final List<ExecutableOutputPO> jobOutputs = executableDao.getJobOutputs(project);
+        final List<ExecutableOutputPO> jobOutputs = executableDao.getJobOutputs();
         for (ExecutableOutputPO executableOutputPO : jobOutputs) {
             if (executableOutputPO.getStatus().equalsIgnoreCase(ExecutableState.RUNNING.toString())) {
                 executableOutputPO.setStatus(ExecutableState.READY.toString());
-                executableDao.updateOutputPO(executableOutputPO, project);
+                executableDao.updateOutputPO(executableOutputPO);
             }
         }
     }
@@ -377,7 +362,7 @@ public class NExecutableManager {
         if (output != null) {
             jobOutput.setContent(output);
         }
-        executableDao.updateOutputPO(jobOutput, project);
+        executableDao.updateOutputPO(jobOutput);
         logger.info("job id:" + jobId + " from " + oldStatus + " to " + newStatus);
     }
 
@@ -394,7 +379,7 @@ public class NExecutableManager {
             }
             break;
         }
-        executableDao.updateOutputPO(jobOutput, project);
+        executableDao.updateOutputPO(jobOutput);
     }
 
     private AbstractExecutable fromPO(ExecutablePO executablePO) {
@@ -410,7 +395,7 @@ public class NExecutableManager {
             result.initConfig(config);
             result.setId(executablePO.getUuid());
             result.setName(executablePO.getName());
-            result.setProject(executablePO.getProject());
+            result.setProject(project);
             result.setParams(executablePO.getParams());
             result.setName(executablePO.getJobType());
             result.setDataRangeStart(executablePO.getDataRangeStart());
@@ -421,7 +406,6 @@ public class NExecutableManager {
             if (tasks != null && !tasks.isEmpty()) {
                 Preconditions.checkArgument(result instanceof ChainedExecutable);
                 for (ExecutablePO subTask : tasks) {
-                    subTask.setProject(executablePO.getProject());
                     ((ChainedExecutable) result).addTask(fromPO(subTask));
                 }
             }

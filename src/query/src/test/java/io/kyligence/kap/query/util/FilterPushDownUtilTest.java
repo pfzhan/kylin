@@ -457,7 +457,6 @@ public class FilterPushDownUtilTest {
         NDataLoadingRange range = new NDataLoadingRange();
         range.setColumnName("kylin_sales.part_dt");
         range.setTableName("default.kylin_sales");
-        range.setProject("learn_kylin");
         SegmentRange.TimePartitionedSegmentRange timePartitionedSegmentRange = new SegmentRange.TimePartitionedSegmentRange();
         timePartitionedSegmentRange.setStart(DateFormat.stringToMillis("2012-07-08"));
         timePartitionedSegmentRange.setEnd(DateFormat.stringToMillis("2015-09-23"));

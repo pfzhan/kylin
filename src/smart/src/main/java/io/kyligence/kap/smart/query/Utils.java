@@ -45,7 +45,7 @@ public class Utils {
         try {
             props = KylinConfig.getInstanceFromEnv().exportToProperties();
         } catch (Exception e) {
-            logger.warn("Pass KylinConfig export exception", e);
+            logger.warn("Ignoring KylinConfig export exception", e);
             props = new Properties();
         }
         setLargeCuboidCombinationConf(props);
@@ -68,6 +68,7 @@ public class Utils {
         setLargeCuboidCombinationConf(props);
         props.setProperty("kylin.env", "DEV");
         props.setProperty("kylin.metadata.url", metadataUrl);
+        props.setProperty("kylin.metadata.mq-type", "mock");
 
         return KylinConfig.createKylinConfig(props);
     }
@@ -101,8 +102,8 @@ public class Utils {
     }
 
     public static void clearCacheForKylinConfig(KylinConfig kylinConfig) throws IOException {
-//        Broadcaster.getInstance(kylinConfig).notifyNonStaticListener(Broadcaster.SYNC_ALL, Broadcaster.Event.UPDATE,
-//                Broadcaster.SYNC_ALL);
+        //        Broadcaster.getInstance(kylinConfig).notifyNonStaticListener(Broadcaster.SYNC_ALL, Broadcaster.Event.UPDATE,
+        //                Broadcaster.SYNC_ALL);
     }
 
     public static void exposeAllTableAndColumn(KylinConfig kylinConfig) {

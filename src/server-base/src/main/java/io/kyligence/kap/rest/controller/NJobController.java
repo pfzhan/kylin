@@ -30,7 +30,6 @@ import java.util.Map;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
@@ -38,7 +37,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -91,13 +89,6 @@ public class NJobController extends NBasicController {
             throw new BadRequestException("At least one job should be selected to delete!");
         }
         jobService.dropJobBatchly(project, jobIds, status);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
-    }
-
-    @PostMapping(value = "", produces = "application/vnd.apache.kylin-v2+json")
-    @ResponseBody
-    public EnvelopeResponse addJob(@RequestBody ExecutablePO executablePO) {
-        jobService.addJob(executablePO.getProject(), executablePO);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 

@@ -45,7 +45,9 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Lists;
 
@@ -57,6 +59,9 @@ import lombok.var;
 public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     private String projectDefault = "default";
 
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
+
     @Before
     public void setUp() throws Exception {
         this.createTestMetadata();
@@ -65,6 +70,16 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     @After
     public void tearDown() throws Exception {
         this.cleanupTestMetadata();
+    }
+
+    @Test
+    public void testInvalidMerge() {
+        thrown.expectMessage("Range TimePartitionedSegmentRange[1262304000000,1356998400000) must contain at least 2 segments, but there is 0");
+
+        NDataflowManager dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        NDataflow df = dfMgr.getDataflow("ncube_basic");
+        dfMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
+                SegmentRange.dateToLong("2013-01-01")), false);
     }
 
     @Test
@@ -402,7 +417,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
                     Random rand = new Random();
                     while (runningFlag.get() == 0) {
                         String name = dataFlowNames[rand.nextInt(n)];
-//                        NDataflowManager.getInstance(testConfig, projectDefault).reloadDataFlow(name);
+                        //                        NDataflowManager.getInstance(testConfig, projectDefault).reloadDataFlow(name);
                         Thread.sleep(1);
                     }
                 } catch (Exception ex) {

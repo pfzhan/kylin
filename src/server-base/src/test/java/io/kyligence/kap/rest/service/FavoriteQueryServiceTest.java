@@ -23,22 +23,11 @@
  */
 package io.kyligence.kap.rest.service;
 
-import com.google.common.collect.Lists;
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.smart.NSmartMaster;
-import lombok.val;
-import lombok.var;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -56,11 +45,23 @@ import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.io.IOException;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.smart.NSmartMaster;
+import lombok.val;
+import lombok.var;
 
 public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -112,7 +113,8 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     public void setup() {
         createTestMetadata();
         getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
-        ReflectionTestUtils.setField(favoriteQueryService, "favoriteRuleService", Mockito.spy(new FavoriteRuleService()));
+        ReflectionTestUtils.setField(favoriteQueryService, "favoriteRuleService",
+                Mockito.spy(new FavoriteRuleService()));
         for (ProjectInstance projectInstance : NProjectManager.getInstance(getTestConfig()).listAllProjects()) {
             NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(projectInstance.getName());
             favoriteScheduler.init();
@@ -209,7 +211,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueryService.acceptAccelerate(PROJECT_NEWTEN, 4);
         EventDao eventDaoOfNewtenProj = EventDao.getInstance(getTestConfig(), PROJECT_NEWTEN);
         var events = eventDaoOfNewtenProj.getEvents();
-        events.sort(Comparator.comparing(Event::getCreateTimeNanosecond));
+        events.sort(Event::compareTo);
         Assert.assertEquals(2, events.size());
         Assert.assertEquals(4, ((AddCuboidEvent) events.get(0)).getSqlPatterns().size());
 
@@ -218,7 +220,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQueryService.acceptAccelerate(PROJECT, 4);
         EventDao eventDaoOfDefaultProj = EventDao.getInstance(getTestConfig(), PROJECT);
         events = eventDaoOfNewtenProj.getEvents();
-        events.sort(Comparator.comparing(Event::getCreateTimeNanosecond));
+        events.sort(Event::compareTo);
         Assert.assertEquals(2, events.size());
         Assert.assertEquals(4, ((AddCuboidEvent) events.get(0)).getSqlPatterns().size());
 
@@ -257,7 +259,11 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         createTestFavoriteQuery();
         getTestConfig().setProperty("kylin.server.mode", "query");
         // when sql pattern not exists
-        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add("sql_pattern_not_exists");}}, PROJECT, "ADMIN");
+        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>() {
+            {
+                add("sql_pattern_not_exists");
+            }
+        }, PROJECT, "ADMIN");
 
         List<FavoriteQuery> favoriteQueries = favoriteQueryService.getFavoriteQueries(PROJECT);
         FavoriteQuery newInsertedRow = favoriteQueries.get(0);
@@ -266,11 +272,15 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         // triggered accelerate event, no new layouts no new event
         EventDao eventDao = EventDao.getInstance(getTestConfig(), PROJECT);
         Assert.assertEquals(0, eventDao.getEvents().size());
-//        AccelerateEvent accelerateEvent = (AccelerateEvent) eventDao.getEvents().get(0);
-//        Assert.assertEquals("sql_pattern_not_exists", accelerateEvent.getSqlPatterns().get(0));
+        //        AccelerateEvent accelerateEvent = (AccelerateEvent) eventDao.getEvents().get(0);
+        //        Assert.assertEquals("sql_pattern_not_exists", accelerateEvent.getSqlPatterns().get(0));
 
         // sql pattern exists but not accelerating
-        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add("sql1");}}, PROJECT, "ADMIN");
+        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>() {
+            {
+                add("sql1");
+            }
+        }, PROJECT, "ADMIN");
         // triggered another accelerate event
         // sql_pattern_not_exists, sql1
         Assert.assertEquals(2, eventDao.getEvents().size());

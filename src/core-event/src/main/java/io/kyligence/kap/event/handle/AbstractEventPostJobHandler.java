@@ -23,11 +23,8 @@
  */
 package io.kyligence.kap.event.handle;
 
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.JobRelatedEvent;
 import lombok.val;
@@ -37,24 +34,21 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
     @Override
     protected void doHandle(EventContext eventContext) {
+        super.doHandle(eventContext);
+
         val event = (JobRelatedEvent) eventContext.getEvent();
-        String project = event.getProject();
-        val id = event.getId();
+        String project = eventContext.getProject();
         val jobId = event.getJobId();
 
         val execManager = getExecutableManager(project, eventContext.getConfig());
         val executable = (ChainedExecutable) execManager.getJob(jobId);
-        if (executable == null) {
-            log.info("no job created, abort handler or job was discard {}", executable);
-            UnitOfWork.doInTransactionWithRetry(() -> {
-                EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
-                eventDao.deleteEvent(id);
-                return null;
-            }, project);
-            return;
-        }
         doHandle(eventContext, executable);
     }
 
+    /**
+     *
+     * @param eventContext
+     * @param executable may be null !
+     */
     protected abstract void doHandle(EventContext eventContext, ChainedExecutable executable);
 }

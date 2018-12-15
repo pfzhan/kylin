@@ -42,7 +42,6 @@
 
 package io.kyligence.kap.event.manager;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executors;
@@ -58,7 +57,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
-import com.google.common.collect.Ordering;
 
 import io.kyligence.kap.event.handle.EventHandler;
 import io.kyligence.kap.event.model.Event;
@@ -110,9 +108,9 @@ public class EventOrchestrator {
                 String modelId = eventsEntry.getKey();
                 Event event = eventsEntry.getValue();
                 logger.trace("project: {}, model: {}, event to be processed: {}", project, modelId, event);
-//
+                //
                 try {
-                    EventContext eventContext = new EventContext(event, kylinConfig);
+                    EventContext eventContext = new EventContext(event, kylinConfig, project);
                     EventHandler eventHandler = event.getEventHandler();
                     eventHandler.handle(eventContext);
                 } catch (Exception e) {
@@ -132,9 +130,7 @@ public class EventOrchestrator {
                 return map;
             }
 
-            Ordering<Event> eventOrdering = Ordering.natural().onResultOf(Event::getCreateTimeNanosecond)
-                    .compound(Comparator.comparing(Event::getSequenceId));
-            events.sort(eventOrdering);
+            events.sort(Event::compareTo);
 
             events.forEach(event -> {
                 String groupKey = genGroupKey(event);

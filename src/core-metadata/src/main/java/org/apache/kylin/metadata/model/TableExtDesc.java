@@ -151,10 +151,6 @@ public class TableExtDesc extends RootPersistentEntity implements Serializable {
         return project;
     }
 
-    public void setProject(String project) {
-        this.project = project;
-    }
-
     public int getFrequency() {
         return this.frequency;
     }

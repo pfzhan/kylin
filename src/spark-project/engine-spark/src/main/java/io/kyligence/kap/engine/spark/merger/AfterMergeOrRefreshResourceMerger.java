@@ -28,12 +28,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.clearspring.analytics.util.Lists;
-import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -42,12 +40,12 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import lombok.val;
 
-public class AfterMergeResourceMerger {
+public class AfterMergeOrRefreshResourceMerger {
 
     private final KylinConfig config;
     private final String project;
 
-    public AfterMergeResourceMerger(KylinConfig config, String project) {
+    public AfterMergeOrRefreshResourceMerger(KylinConfig config, String project) {
         this.config = config;
         this.project = project;
     }
@@ -56,16 +54,10 @@ public class AfterMergeResourceMerger {
         NDataflowManager mgr = NDataflowManager.getInstance(config, project);
         NDataflowUpdate update = new NDataflowUpdate(dataflowName);
 
-        if (mgr.getDataflow(dataflowName) == null) {
-            return;
-        }
-
         NDataflowManager distMgr = NDataflowManager.getInstance(remoteResourceStore.getConfig(), project);
         NDataflow distDataflow = distMgr.getDataflow(update.getDataflowName()).copy(); // avoid changing cached objects
-        distDataflow.initAfterReload(KylinConfigExt.createInstance(remoteResourceStore.getConfig(), Maps.newHashMap()));
 
         List<NDataSegment> toUpdateSegments = Lists.newArrayList();
-        List<NDataSegment> toRemoveSegments = Lists.newArrayList();
         List<NDataCuboid> toUpdateCuboids = Lists.newArrayList();
 
         NDataSegment mergedSegment = distDataflow.getSegment(segmentId);
@@ -76,16 +68,15 @@ public class AfterMergeResourceMerger {
         toUpdateSegments.add(mergedSegment);
 
         // only add layouts which still in segments, others maybe deleted by user
-        val toBeMerged = distDataflow.getMergingSegments(mergedSegment);
-        val livedLayouts = toBeMerged.getFirstSegment().getCuboidsMap().values().stream()
+        List<NDataSegment> toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, mergedSegment);
+        val livedLayouts = toRemoveSegments.get(toRemoveSegments.size() - 1).getCuboidsMap().values().stream()
                 .map(NDataCuboid::getCuboidLayoutId).collect(Collectors.toSet());
         toUpdateCuboids.addAll(mergedSegment.getSegDetails().getCuboids().stream()
                 .filter(c -> livedLayouts.contains(c.getCuboidLayoutId())).collect(Collectors.toList()));
-        toRemoveSegments.addAll(toBeMerged);
 
+        update.setToAddOrUpdateCuboids(toUpdateCuboids.toArray(new NDataCuboid[0]));
         update.setToRemoveSegs(toRemoveSegments.toArray(new NDataSegment[0]));
         update.setToUpdateSegs(toUpdateSegments.toArray(new NDataSegment[0]));
-        update.setToAddOrUpdateCuboids(toUpdateCuboids.toArray(new NDataCuboid[0]));
 
         mgr.updateDataflow(update);
     }

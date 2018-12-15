@@ -301,7 +301,6 @@ public class FavoriteQueryService extends BasicService {
                     List<Long> addedLayoutIds = updatedLayoutsPair.getFirst();
                     if (CollectionUtils.isNotEmpty(addedLayoutIds)) {
                         AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-                        addCuboidEvent.setProject(project);
                         addCuboidEvent.setModelName(targetCubePlan.getModelName());
                         addCuboidEvent.setCubePlanName(targetCubePlan.getName());
                         addCuboidEvent.setSqlPatterns(sqls);
@@ -311,7 +310,6 @@ public class FavoriteQueryService extends BasicService {
 
                         PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
                         postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-                        postAddCuboidEvent.setProject(project);
                         postAddCuboidEvent.setModelName(targetCubePlan.getModelName());
                         postAddCuboidEvent.setCubePlanName(targetCubePlan.getName());
                         postAddCuboidEvent.setOwner(user);

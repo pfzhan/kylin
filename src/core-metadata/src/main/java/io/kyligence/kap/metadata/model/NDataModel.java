@@ -872,12 +872,10 @@ public class NDataModel extends RootPersistentEntity {
         return project;
     }
 
-    public void setProject(String project) {
-        this.project = project;
-    }
-
     public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
-            boolean isOnlineModel) {
+            boolean isOnlineModel, String project) {
+        this.project = project;
+
         // tweak the tables according to Computed Columns defined in model
         Map<String, TableDesc> tables = Maps.newHashMap();
         for (Map.Entry<String, TableDesc> entry : originalTables.entrySet()) {

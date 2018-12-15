@@ -28,10 +28,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Maps;
-import io.kyligence.kap.engine.spark.SegmentUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -44,6 +41,7 @@ import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.engine.spark.SegmentUtils;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
@@ -65,14 +63,13 @@ public class AfterBuildResourceMerger {
         val localDataflow = localDataflowManager.getDataflow(flowName);
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), project);
         val remoteDataflow = remoteDataflowManager.getDataflow(flowName).copy();
-        remoteDataflow.initAfterReload(KylinConfigExt.createInstance(remoteStore.getConfig(), Maps.newHashMap()));
 
         val dfUpdate = new NDataflowUpdate(flowName);
         val availableLayoutIds = intersectionWithLastSegment(localDataflow, layoutIds);
-        val lastSegment = remoteDataflow.getLastSegment();
-        lastSegment.setStatus(SegmentStatusEnum.READY);
-        dfUpdate.setToUpdateSegs(lastSegment);
-        dfUpdate.setToAddOrUpdateCuboids(lastSegment.getSegDetails().getCuboids().stream()
+        val theSeg = remoteDataflow.getSegment(segmentId);
+        theSeg.setStatus(SegmentStatusEnum.READY);
+        dfUpdate.setToUpdateSegs(theSeg);
+        dfUpdate.setToAddOrUpdateCuboids(theSeg.getSegDetails().getCuboids().stream()
                 .filter(c -> availableLayoutIds.contains(c.getCuboidLayoutId())).toArray(NDataCuboid[]::new));
 
         localDataflowManager.updateDataflow(dfUpdate);
@@ -84,13 +81,13 @@ public class AfterBuildResourceMerger {
         val localDataflow = localDataflowManager.getDataflow(flowName);
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), project);
         val remoteDataflow = remoteDataflowManager.getDataflow(flowName).copy();
-        remoteDataflow.initAfterReload(KylinConfigExt.createInstance(remoteStore.getConfig(), Maps.newHashMap()));
 
         val dataflow = localDataflowManager.getDataflow(flowName);
         val dfUpdate = new NDataflowUpdate(flowName);
         val addCuboids = Lists.<NDataCuboid> newArrayList();
 
-        val layoutInCubeIds = dataflow.getCubePlan().getAllCuboidLayouts().stream().map(NCuboidLayout::getId).collect(Collectors.toList());
+        val layoutInCubeIds = dataflow.getCubePlan().getAllCuboidLayouts().stream().map(NCuboidLayout::getId)
+                .collect(Collectors.toList());
         val availableLayoutIds = layoutIds.stream().filter(layoutInCubeIds::contains).collect(Collectors.toSet());
         for (String segId : segmentIds) {
             val localSeg = localDataflow.getSegment(segId);
@@ -126,7 +123,7 @@ public class AfterBuildResourceMerger {
     }
 
     private Set<Long> intersectionWithLastSegment(NDataflow dataflow, Collection<Long> layoutIds) {
-        val layoutInSegmentIds = SegmentUtils.lastReadySegmentLayouts(dataflow).stream().map(NCuboidLayout::getId)
+        val layoutInSegmentIds = SegmentUtils.getToBuildLayouts(dataflow).stream().map(NCuboidLayout::getId)
                 .collect(Collectors.toSet());
         return layoutIds.stream().filter(layoutInSegmentIds::contains).collect(Collectors.toSet());
     }

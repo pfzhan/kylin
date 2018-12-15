@@ -184,7 +184,7 @@ public abstract class ResourceStore {
 
     public static ImageStore createImageStore(KylinConfig config) {
         StorageURL url = config.getMetadataUrl();
-        logger.info("Creating resource store by {}", url);
+        logger.info("Creating resource store by KylinConfig {}", config);
         String clsName = config.getImageStoreImpls().get(url.getScheme());
         try {
             Class<? extends ImageStore> cls = ClassUtil.forName(clsName, ImageStore.class);
@@ -434,6 +434,11 @@ public abstract class ResourceStore {
         val metaDir = new File(dir, ImageStore.METADATA_DIR);
         metaDir.mkdirs();
         ResourceStore from = ResourceStore.getKylinMetaStore(kylinConfig);
+
+        if (dumpList == null) {
+            dumpList = from.listResourcesRecursively("/");
+        }
+
         for (String path : dumpList) {
             RawResource res = from.getResource(path);
             if (res == null)
@@ -469,4 +474,7 @@ public abstract class ResourceStore {
         dumpResources(kylinConfig, metaDir, dumpList, null);
     }
 
+    public static void dumpResources(KylinConfig kylinConfig, String dumpDir) {
+        dumpResources(kylinConfig, new File(dumpDir), null, null);
+    }
 }

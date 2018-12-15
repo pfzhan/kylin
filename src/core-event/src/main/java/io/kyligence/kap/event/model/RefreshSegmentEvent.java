@@ -52,10 +52,13 @@ import org.apache.kylin.metadata.model.SegmentRange;
 
 @Setter
 @Getter
-public class RefreshSegmentEvent extends Event {
+public class RefreshSegmentEvent extends JobRelatedEvent {
 
     @JsonProperty("segment_range")
     private SegmentRange segmentRange;
+
+    @JsonProperty("segment_id")
+    private String segmentId;
 
     public RefreshSegmentEvent() {
         super();

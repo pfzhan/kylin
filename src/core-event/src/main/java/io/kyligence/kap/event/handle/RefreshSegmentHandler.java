@@ -26,15 +26,11 @@ package io.kyligence.kap.event.handle;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
-import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
-import org.apache.kylin.metadata.model.Segments;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,11 +38,10 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
-import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 
 public class RefreshSegmentHandler extends AbstractEventWithJobHandler {
@@ -54,47 +49,27 @@ public class RefreshSegmentHandler extends AbstractEventWithJobHandler {
     private static final Logger logger = LoggerFactory.getLogger(RefreshSegmentHandler.class);
 
     @Override
-    public AbstractExecutable createJob(EventContext eventContext) {
-        RefreshSegmentEvent event = (RefreshSegmentEvent) eventContext.getEvent();
+    public AbstractExecutable createJob(Event e, String project) {
+        RefreshSegmentEvent event = (RefreshSegmentEvent) e;
 
-        String project = event.getProject();
-        KylinConfig kylinConfig = eventContext.getConfig();
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
-        NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-
-        SegmentRange tobeRefreshSegmentRange = event.getSegmentRange();
-        NDataflow df = dfMgr.getDataflow(event.getCubePlanName());
-        AbstractExecutable job;
-        List<NCuboidLayout> layouts = new ArrayList<>();
-        Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
-        if (CollectionUtils.isEmpty(readySegments)) {
+        if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
             return null;
         }
 
-        for (Map.Entry<Long, NDataCuboid> cuboid : readySegments.getLatestReadySegment().getCuboidsMap().entrySet()) {
+        List<NCuboidLayout> layouts = new ArrayList<>();
+        NDataflow dataflow = NDataflowManager.getInstance(kylinConfig, project).getDataflow(event.getCubePlanName());
+        for (Map.Entry<Long, NDataCuboid> cuboid : dataflow.getSegments().getLatestReadySegment().getCuboidsMap()
+                .entrySet()) {
             layouts.add(cuboid.getValue().getCuboidLayout());
         }
         if (CollectionUtils.isEmpty(layouts)) {
             return null;
         }
 
-        Set<NDataSegment> segments = Sets.newHashSet();
-        for (NDataSegment readySegment : readySegments) {
-            SegmentRange readySegmentRange = readySegment.getSegRange();
-            if (tobeRefreshSegmentRange.overlaps(readySegmentRange)) {
-                NDataSegment tobeRefreshSegment = dfMgr.refreshSegment(df, readySegmentRange);
-                segments.add(tobeRefreshSegment);
-            }
-        }
-
-        if (CollectionUtils.isEmpty(segments)) {
-            return null;
-        }
-
-        job = NSparkCubingJob.create(segments, Sets.<NCuboidLayout> newLinkedHashSet(layouts), "ADMIN",
-                JobTypeEnum.INDEX_REFRESH);
-
-        return job;
+        return NSparkCubingJob.create(Sets.newHashSet(dataflow.getSegment(event.getSegmentId())),
+                Sets.newLinkedHashSet(layouts), event.getOwner(), JobTypeEnum.INDEX_REFRESH, event.getJobId());
     }
 
 }
