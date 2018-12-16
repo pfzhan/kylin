@@ -62,14 +62,13 @@ public class KapContext {
 
         OLAPContext context = ((KapRel) kapRel).getContext();
         //add columns of context's TopNode to context when there are no agg rel
-        if (kapRel instanceof KapProjectRel) {
+        if (kapRel instanceof KapProjectRel && !((KapProjectRel)kapRel).isMerelyPermutation()) {
             for (Set<TblColRef> colRefs : ((KapRel) kapRel).getColumnRowType().getSourceColumns()) {
                 for (TblColRef colRef : colRefs) {
                     if (context.isOriginAndBelongToCtxTables(colRef))
                         context.allColumns.add(colRef);
                 }
             }
-
         } else if (kapRel instanceof KapValuesRel) {
             for (TblColRef colRef : ((KapRel) kapRel).getColumnRowType().getAllColumns()) {
                 if (context.isOriginAndBelongToCtxTables(colRef)) {

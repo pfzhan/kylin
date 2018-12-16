@@ -29,7 +29,7 @@ import java.util.Map;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.JoinDesc;
-import org.apache.kylin.metadata.model.JoinsTree;
+import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
@@ -42,7 +42,6 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
-import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
 import io.kyligence.kap.smart.model.ModelTree;
 
 public class NModelSelectProposer extends NAbstractProposer {
@@ -126,8 +125,9 @@ public class NModelSelectProposer extends NAbstractProposer {
                     }
                 }
             }
-            JoinsTree joinsTree = new JoinsTree(factTblRef, modelTreeJoins);
-            return GreedyModelTreesBuilder.matchJoinTree(model.getJoinsTree(), joinsTree);
+            JoinsGraph joinsGraph = new JoinsGraph(factTblRef, modelTreeJoins);
+            return JoinsGraph.match(model.getJoinsGraph(), joinsGraph, Maps.newHashMap(), false) || 
+                    JoinsGraph.match(joinsGraph, model.getJoinsGraph(), Maps.newHashMap(), false);
         }
         return false;
     }

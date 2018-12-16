@@ -60,7 +60,7 @@ import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
-import org.apache.kylin.metadata.model.JoinsTree;
+import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.realization.IRealization;
@@ -71,7 +71,6 @@ import org.apache.kylin.query.enumerator.OLAPQuery;
 import org.apache.kylin.query.routing.RealizationCheck;
 import org.apache.kylin.query.schema.OLAPSchema;
 import org.apache.kylin.storage.StorageContext;
-import org.apache.kylin.util.JoinsGraph;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -199,7 +198,6 @@ public class OLAPContext {
     public TupleFilter filter;
     public TupleFilter havingFilter;
     public List<JoinDesc> joins = new LinkedList<>();
-    public JoinsTree joinsTree;
     @Getter
     @Setter
     private JoinsGraph joinsGraph;
@@ -340,7 +338,6 @@ public class OLAPContext {
         this.sortOrders.clear();
 
         this.joinsGraph = null;
-        this.joinsTree = null;
 
         this.sqlDigest = null;
     }

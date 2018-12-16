@@ -73,7 +73,7 @@ import org.apache.kylin.metadata.datatype.DataType;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.JoinsTree;
+import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TableDesc;
@@ -81,7 +81,6 @@ import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.util.JoinsGraph;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -249,7 +248,6 @@ public class NDataModel extends RootPersistentEntity {
 
     private Map<String, TableRef> tableNameMap = Maps.newHashMap(); // name => TableRef, a table maybe referenced by multiple names
 
-    private JoinsTree joinsTree;
     private JoinsGraph joinsGraph;
 
     // when set true, cc expression will allow null value
@@ -422,11 +420,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public JoinDesc getJoinByPKSide(TableRef table) {
-        return joinsTree.getJoinByPKSide(table);
-    }
-
-    public JoinsTree getJoinsTree() {
-        return joinsTree;
+        return joinsGraph.getJoinByPKSide(table);
     }
 
     public JoinsGraph getJoinsGraph() {
@@ -579,7 +573,6 @@ public class NDataModel extends RootPersistentEntity {
         initTableAlias(tables);
         initJoinColumns();
         reorderJoins(tables);
-        initJoinsTree();
         initJoinsGraph();
         initPartitionDesc();
         initFilterCondition();
@@ -767,14 +760,6 @@ public class NDataModel extends RootPersistentEntity {
                 }
             }
         }
-    }
-
-    private void initJoinsTree() {
-        List<JoinDesc> joins = new ArrayList<>();
-        for (JoinTableDesc joinTable : joinTables) {
-            joins.add(joinTable.getJoin());
-        }
-        joinsTree = new JoinsTree(rootFactTableRef, joins);
     }
 
     private void initJoinsGraph() {
@@ -1159,23 +1144,13 @@ public class NDataModel extends RootPersistentEntity {
 
     private void singleCCConflictCheck(NDataModel existingModel, ComputedColumnDesc existingCC,
             ComputedColumnDesc newCC) {
-        AliasMapping aliasMapping = null;
-        JoinsTree ccJoinsTree = getCCExprRelatedSubgraph(newCC, this);
-        Map<String, String> matches = ccJoinsTree.matches(existingModel.getJoinsTree());
-        if (matches != null && !matches.isEmpty()) {
-            BiMap<String, String> biMap = HashBiMap.create();
-            biMap.putAll(matches);
-            aliasMapping = new AliasMapping(biMap);
-        }
-
-        AliasMapping positionAliasMapping = getPositionAliasMapping(existingModel, existingCC);
-
+        AliasMapping aliasMapping = getCCAliasMapping(existingModel, existingCC, newCC);
         boolean sameName = StringUtils.equalsIgnoreCase(existingCC.getColumnName(), newCC.getColumnName());
         boolean sameCCExpr = isSameCCExpr(existingCC, newCC, aliasMapping);
 
         if (sameName) {
-            if (!isSameAliasTable(existingCC, newCC, positionAliasMapping)) {
-                makeAdviseOnWrongPositionName(existingModel, existingCC, newCC, positionAliasMapping);
+            if (!isSameAliasTable(existingCC, newCC, aliasMapping)) {
+                makeAdviseOnWrongPositionName(existingModel, existingCC, newCC, aliasMapping);
             }
 
             if (!sameCCExpr) {
@@ -1184,8 +1159,8 @@ public class NDataModel extends RootPersistentEntity {
         }
 
         if (sameCCExpr) {
-            if (!isSameAliasTable(existingCC, newCC, positionAliasMapping)) {
-                makeAdviseOnWrongPositionExpr(existingModel, existingCC, newCC, positionAliasMapping);
+            if (!isSameAliasTable(existingCC, newCC, aliasMapping)) {
+                makeAdviseOnWrongPositionExpr(existingModel, existingCC, newCC, aliasMapping);
             }
 
             if (!sameName) {
@@ -1196,9 +1171,8 @@ public class NDataModel extends RootPersistentEntity {
 
     private void makeAdviseOnSameNameDiffExpr(NDataModel existingModel, ComputedColumnDesc existingCC,
             ComputedColumnDesc newCC) {
-        JoinsTree ccJoinsTree = getCCExprRelatedSubgraph(existingCC, existingModel);
-        AliasMapping aliasMapping = getAliasMappingFromJoinTree(ccJoinsTree);
-
+        JoinsGraph ccJoinsGraph = getCCExprRelatedSubgraph(existingCC, existingModel);
+        AliasMapping aliasMapping = getAliasMappingFromJoinsGraph(ccJoinsGraph, this.getJoinsGraph());
         String advisedExpr = aliasMapping == null ? null
                 : CalciteParser.replaceAliasInExpr(existingCC.getExpression(), aliasMapping.getAliasMapping());
 
@@ -1210,10 +1184,17 @@ public class NDataModel extends RootPersistentEntity {
                 existingModel.getName(), newCC.getFullName());
     }
 
-    private AliasMapping getAliasMappingFromJoinTree(JoinsTree joinsTree) {
+    private AliasMapping getCCAliasMapping(NDataModel existingModel, ComputedColumnDesc existingCC,
+            ComputedColumnDesc newCC) {
+        JoinsGraph newCCGraph = getCCExprRelatedSubgraph(newCC, this);
+        JoinsGraph existCCGraph = getCCExprRelatedSubgraph(existingCC, existingModel);
+        return getAliasMappingFromJoinsGraph(newCCGraph, existCCGraph);
+    }
+
+    private static AliasMapping getAliasMappingFromJoinsGraph(JoinsGraph fromGraph, JoinsGraph toMatchGraph) {
         AliasMapping adviceAliasMapping = null;
 
-        Map<String, String> matches = joinsTree.matches(this.getJoinsTree());
+        Map<String, String> matches = fromGraph.matchAlias(toMatchGraph, true);
         if (matches != null && !matches.isEmpty()) {
             BiMap<String, String> biMap = HashBiMap.create();
             biMap.putAll(matches);
@@ -1275,13 +1256,6 @@ public class NDataModel extends RootPersistentEntity {
                 existingModel.getName(), newCC.getFullName());
     }
 
-    private AliasMapping getPositionAliasMapping(NDataModel existingModel, ComputedColumnDesc existingCC) {
-        JoinsTree joinsTree = existingModel.getJoinsTree()
-                .getSubgraphByAlias(Collections.singleton(existingCC.getTableAlias()));
-
-        return getAliasMappingFromJoinTree(joinsTree);
-    }
-
     private boolean isSameCCExpr(ComputedColumnDesc existingCC, ComputedColumnDesc newCC, AliasMapping aliasMapping) {
         if (existingCC.getExpression() == null) {
             return newCC.getExpression() == null;
@@ -1320,12 +1294,15 @@ public class NDataModel extends RootPersistentEntity {
 
     // model X contains table f,a,b,c, and model Y contains table f,a,b,d
     // if two cc involve table a,b, they might still be treated equal regardless of the model difference on c,d
-    private JoinsTree getCCExprRelatedSubgraph(ComputedColumnDesc cc, NDataModel model) {
+    private static JoinsGraph getCCExprRelatedSubgraph(ComputedColumnDesc cc, NDataModel model) {
         Set<String> aliasSets = getUsedAliasSet(cc.getExpression());
-        return model.getJoinsTree().getSubgraphByAlias(aliasSets);
+        if (cc.getTableAlias() != null) {
+            aliasSets.add(cc.getTableAlias());
+        }
+        return model.getJoinsGraph().getSubgraphByAlias(aliasSets);
     }
 
-    private Set<String> getUsedAliasSet(String expr) {
+    private static Set<String> getUsedAliasSet(String expr) {
         if (expr == null) {
             return Sets.newHashSet();
         }
@@ -1343,12 +1320,6 @@ public class NDataModel extends RootPersistentEntity {
 
         sqlNode.accept(sqlVisitor);
         return s;
-    }
-
-    private boolean isTwoCCDefinitionEquals(String definition0, String definition1) {
-        definition0 = definition0.replaceAll("\\s*", "");
-        definition1 = definition1.replaceAll("\\s*", "");
-        return definition0.equalsIgnoreCase(definition1);
     }
 
     public ComputedColumnDesc findCCByCCColumnName(final String columnName) {

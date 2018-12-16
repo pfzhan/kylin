@@ -51,7 +51,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.JoinDesc;
-import org.apache.kylin.metadata.model.JoinsTree;
+import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
@@ -379,11 +379,11 @@ public class QueryAliasMatcher {
 
     }
 
-    private static class CCJoinDescMatcher extends JoinsTree.DefaultJoinDescMatcher {
+    private static class CCJoinEdgeMatcher extends JoinsGraph.DefaultJoinEdgeMatcher {
         transient QueryAliasMatchInfo matchInfo;
         boolean compareCCExpr;
 
-        public CCJoinDescMatcher(QueryAliasMatchInfo matchInfo, boolean compareCCExpr) {
+        public CCJoinEdgeMatcher(QueryAliasMatchInfo matchInfo, boolean compareCCExpr) {
             this.matchInfo = matchInfo;
             this.compareCCExpr = compareCCExpr;
         }
@@ -453,13 +453,13 @@ public class QueryAliasMatcher {
 
         List<JoinDesc> joinDescs = sqlJoinCapturer.getJoinDescs();
         TableRef firstTable = sqlJoinCapturer.getFirstTable();
-        JoinsTree joinsTree = new JoinsTree(firstTable, joinDescs);
+        JoinsGraph joinsGraph = new JoinsGraph(firstTable, joinDescs);
 
         if (sqlJoinCapturer.foundJoinOnCC) {
             // 1st round: dry run without cc expr comparison to collect model alias matching
-            joinsTree.setJoinDescMatcher(new CCJoinDescMatcher(null, false));
+            joinsGraph.setJoinEdgeMatcher(new CCJoinEdgeMatcher(null, false));
 
-            Map<String, String> matches = joinsTree.matches(model.getJoinsTree());
+            Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(), false);
             if (matches == null || matches.isEmpty()) {
                 return null;
             }
@@ -470,10 +470,10 @@ public class QueryAliasMatcher {
             QueryAliasMatchInfo ccAliasMatch = new QueryAliasMatchInfo(aliasMapping, queryAlias);
 
             // 2nd round: real run with cc expr comparison
-            joinsTree.setJoinDescMatcher(new CCJoinDescMatcher(ccAliasMatch, true));
+            joinsGraph.setJoinEdgeMatcher(new CCJoinEdgeMatcher(ccAliasMatch, true));
         }
 
-        Map<String, String> matches = joinsTree.matches(model.getJoinsTree());
+        Map<String, String> matches = joinsGraph.matchAlias(model.getJoinsGraph(), false);
         if (matches == null || matches.isEmpty()) {
             return null;
         }

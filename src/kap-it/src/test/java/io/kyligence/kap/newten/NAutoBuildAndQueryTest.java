@@ -272,11 +272,9 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
      * Test Kylin test queries with auto modeling
      */
 
-    // FIXME query02 will be fixed in #7257
     @Test
     public void testCommonQuery() throws Exception {
-        String[] exclusionList = new String[] { "query02.sql" };
-        new TestScenario("sql", CompareLevel.SAME, exclusionList).execute();
+        new TestScenario("sql", CompareLevel.SAME).execute();
     }
 
     @Test

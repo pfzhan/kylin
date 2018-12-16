@@ -26,7 +26,6 @@ package io.kyligence.kap.smart.model;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,8 +40,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
-import org.apache.kylin.metadata.model.JoinsTree;
-import org.apache.kylin.metadata.model.JoinsTree.Chain;
+import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -110,16 +108,10 @@ public class GreedyModelTreesBuilder {
         if (ctxA == null || ctxB == null) {
             return false;
         }
-        JoinsTree treeA = new JoinsTree(ctxA.firstTableScan.getTableRef(), Lists.newArrayList(ctxA.joins));
-        JoinsTree treeB = new JoinsTree(ctxB.firstTableScan.getTableRef(), Lists.newArrayList(ctxB.joins));
-        return matchJoinTree(treeA, treeB);
-    }
-    
-    public static boolean matchJoinTree(JoinsTree treeA, JoinsTree treeB) {
-        List<Chain> chainsUnmatchedA2B = treeA.unmatchedChain(treeB, Collections.<String, String>emptyMap());
-        List<Chain> chainsUnmatchedB2A = treeB.unmatchedChain(treeA, Collections.<String, String>emptyMap());
-        return chainsUnmatchedA2B.stream().map(Chain::getJoin).allMatch(JoinDesc::isLeftJoin) 
-                && chainsUnmatchedB2A.stream().map(Chain::getJoin).allMatch(JoinDesc::isLeftJoin);
+        JoinsGraph graphA = new JoinsGraph(ctxA.firstTableScan.getTableRef(), Lists.newArrayList(ctxA.joins));
+        JoinsGraph graphB = new JoinsGraph(ctxB.firstTableScan.getTableRef(), Lists.newArrayList(ctxB.joins));
+        return JoinsGraph.match(graphA, graphB, Maps.newHashMap())
+                || JoinsGraph.match(graphB, graphA, Maps.newHashMap());
     }
 
     public static class TreeBuilder {
@@ -255,16 +247,16 @@ public class GreedyModelTreesBuilder {
         }
 
         private Map<TableRef, String> getTableAliasMap(OLAPContext ctx, TableAliasGenerator.TableAliasDict dict) {
-            JoinsTree joinsTree = ctx.joinsTree;
-            if (joinsTree == null) {
-                joinsTree = new JoinsTree(ctx.firstTableScan.getTableRef(), ctx.joins);
+            JoinsGraph joinsGraph = ctx.getJoinsGraph();
+            if (joinsGraph == null) {
+                joinsGraph = new JoinsGraph(ctx.firstTableScan.getTableRef(), ctx.joins);
             }
 
             Map<TableRef, String> allTableAlias = new HashMap<>();
             TableRef[] allTables = OLAPContextUtil.getAllTableRef(ctx);
 
             for (TableRef tableRef : allTables) {
-                TableRef[] joinHierarchy = getJoinHierarchy(joinsTree, tableRef);
+                TableRef[] joinHierarchy = getJoinHierarchy(joinsGraph, tableRef);
                 String[] tableNames = new String[joinHierarchy.length];
 
                 for (int i = 0; i < joinHierarchy.length; i++) {
@@ -281,7 +273,7 @@ public class GreedyModelTreesBuilder {
             return allTableAlias;
         }
 
-        private TableRef[] getJoinHierarchy(JoinsTree joinsTree, TableRef leaf) {
+        private TableRef[] getJoinHierarchy(JoinsGraph joinsTree, TableRef leaf) {
             if (leaf == null) {
                 return new TableRef[0];
             }

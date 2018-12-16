@@ -12,6 +12,8 @@ local.properties
 release.properties
 .loadpath
 .settings
+.cache-main
+.cache-tests
 
 #IDEA
 *.iml
