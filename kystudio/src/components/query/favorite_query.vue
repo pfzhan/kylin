@@ -779,6 +779,7 @@ export default class FavoriteQuery extends Vue {
     this.getDurationObj()
     this.loadRuleImpactRatio()
     if (this.currentSelectedProject) {
+      this.getSpeedInfo(this.currentSelectedProject)
       this.getPreferrence({project: this.currentSelectedProject}).then((res) => {
         handleSuccess(res, (data) => {
           this.preSettingObj = data
