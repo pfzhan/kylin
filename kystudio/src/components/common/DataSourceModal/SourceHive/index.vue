@@ -27,7 +27,7 @@
               <span>({{selectedDatabases.length}})</span>
             </div>
             <div class="names">
-              <el-select multiple filterable v-model="selectedDatabases" @remove-tag="handleRemoveTable" @input="handleAddTable">
+              <el-select multiple filterable :value="selectedDatabases" @remove-tag="handleRemoveDatabase" @input="handleAddDatabase">
                 <el-option
                   v-for="option in databaseOptions"
                   :key="option.value"
@@ -43,7 +43,7 @@
               <span>({{selectedTables.length}})</span>
             </div>
             <div class="names">
-              <el-select multiple filterable v-model="selectedTables" @remove-tag="handleRemoveTable" @input="handleAddTable">
+              <el-select multiple filterable :value="selectedTables" @remove-tag="handleRemoveTable" @input="handleAddTable">
                 <el-option
                   v-for="option in tableOptions"
                   :key="option.value"
