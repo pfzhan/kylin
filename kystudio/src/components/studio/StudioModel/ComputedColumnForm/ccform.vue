@@ -87,7 +87,7 @@ export default class CCForm extends Vue {
   floatType = ['decimal', 'double', 'float']
   otherType = ['binary', 'boolean', 'char', 'date', 'string', 'timestamp', 'varchar']
   checkCCName (rule, value, callback) {
-    if (/^\d+$|^_+/.test(value) || !NamedRegex.test(value.toUpperCase())) {
+    if (/^\d|^_+/.test(value) || !NamedRegex.test(value.toUpperCase())) {
       return callback(new Error(this.$t('numberNameFormatValidTip')))
     }
     if (!this.modelInstance.checkSameCCName(value.toUpperCase())) {

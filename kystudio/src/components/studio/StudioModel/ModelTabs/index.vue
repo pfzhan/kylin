@@ -162,7 +162,6 @@ export default class ModelTabs extends Vue {
     position: absolute;
     bottom: 0;
     right:0;
-    width:100%;
     .btn-group {
       float: right;
       margin-top: 14px;
