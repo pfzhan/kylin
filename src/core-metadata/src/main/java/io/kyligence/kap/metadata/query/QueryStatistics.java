@@ -24,15 +24,59 @@
 
 package io.kyligence.kap.metadata.query;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
-public class QueryTimesResponse {
+import java.time.Instant;
 
-    @Column(name = "model")
+@Getter
+@Setter
+@NoArgsConstructor
+public class QueryStatistics {
+    @JsonProperty("engine_type")
+    @Column(name = "engine_type", tag = true)
+    private String engineType;
+
+    @JsonProperty("count")
+    @Column(name = "count")
+    private int count;
+
+    @JsonProperty("ratio")
+    private double ratio;
+
+    @JsonProperty("mean")
+    @Column(name = "mean")
+    private double meanDuration;
+
+    @JsonProperty("model")
+    @Column(name = "model", tag = true)
     private String model;
-    @Column(name = "query_times")
-    private int queryTimes;
 
+    @JsonProperty("time")
+    @Column(name = "time")
+    private Instant time;
+
+    @JsonProperty("month")
+    @Column(name = "month", tag = true)
+    private String month;
+
+    public QueryStatistics(String engineType) {
+        this.engineType = engineType;
+    }
+
+    public void apply(final QueryStatistics other) {
+        this.count = other.count;
+        this.ratio = other.ratio;
+        this.meanDuration = other.meanDuration;
+    }
+
+    public void updateRatio(double amount) {
+        if (amount > 0d) {
+            // Keep two decimals
+            this.ratio = ((double) Math.round(((double) count) / amount * 100d)) / 100d;
+        }
+    }
 }

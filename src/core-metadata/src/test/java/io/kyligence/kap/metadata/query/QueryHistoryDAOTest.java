@@ -42,8 +42,9 @@
 
 package io.kyligence.kap.metadata.query;
 
-import java.io.IOException;
 import java.net.URL;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 
 import org.junit.After;
@@ -70,6 +71,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     private static final String PROJECT = "default";
     private String queryMeasurement;
+    private String realizationMeasurement;
     private QueryHistoryDAO queryHistoryDAO;
 
     final String mockedHostname = "192.168.1.1";
@@ -86,6 +88,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         queryHistoryDAO = QueryHistoryDAO.getInstance(getTestConfig(), PROJECT);
         queryMeasurement = queryHistoryDAO.getQueryMetricMeasurement();
+        realizationMeasurement = queryHistoryDAO.getRealizationMetricMeasurement();
     }
 
     @After
@@ -95,10 +98,10 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasics() {
-        QueryHistoryDAO.influxDB = mockInfluxDB();
+        QueryHistoryDAO.influxDB = mockInfluxDB(getMockData());
 
-        final String testSql = String.format("select * from %s", QueryHistory.QUERY_MEASUREMENT_PREFIX);
-        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesBySql(testSql, QueryHistory.class);
+        final String testSql = String.format("select * from %s", queryMeasurement);
+        List<QueryHistory> queryHistories = queryHistoryDAO.getResultBySql(testSql, QueryHistory.class, queryMeasurement);
         Assert.assertEquals(2, queryHistories.size());
         QueryHistory queryHistory1 = queryHistories.get(0);
         QueryHistory queryHistory2 = queryHistories.get(1);
@@ -114,7 +117,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryHistoriesByTime() {
-        QueryHistoryDAO.influxDB = mockInfluxDB();
+        QueryHistoryDAO.influxDB = mockInfluxDB(getMockData());
         long startTime = 0;
         long endTime = 1000;
 
@@ -139,15 +142,15 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDatabaseNotExist() {
-        QueryHistoryDAO.influxDB = mockInfluxDBWhenDatabaseNotExist();
-        final String testSql = String.format("select * from %s", QueryHistory.QUERY_MEASUREMENT_PREFIX);
-        List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesBySql(testSql, QueryHistory.class);
+        QueryHistoryDAO.influxDB = mockInfluxDB(SHOW_DATABASES_NOT_EXIST);
+        final String testSql = String.format("select * from %s", queryMeasurement);
+        List<QueryHistory> queryHistories = queryHistoryDAO.getResultBySql(testSql, QueryHistory.class, queryMeasurement);
         Assert.assertEquals(0, queryHistories.size());
     }
 
     @Test
     public void testGetFilteredQueryHistories() {
-        QueryHistoryDAO.influxDB = mockInfluxDB();
+        QueryHistoryDAO.influxDB = mockInfluxDB(getMockData());
 
         int limit = 2;
         int offset = 0;
@@ -164,6 +167,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         List<QueryHistory> queryHistories = queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset);
         Assert.assertEquals(2, queryHistories.size());
 
+        QueryHistoryDAO.influxDB = mockInfluxDB(getMockedZeroSize());
         int size = queryHistoryDAO.getQueryHistoriesSize(request);
         Assert.assertEquals(0, size);
     }
@@ -249,29 +253,98 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetQueryStatistics() {
-        QueryHistoryDAO.influxDB = mockInfluxDB();
-        List<QueryStatisticsResponse.QueryStatistics> queryStatistics = queryHistoryDAO.getQueryStatistics(0L, Long.MAX_VALUE);
+    public void testGetQueryStatisticsByEngine() {
+        QueryHistoryDAO.influxDB = mockInfluxDB(getQueryStatisticsByEngineResult());
+        List<QueryStatistics> queryStatistics = queryHistoryDAO.getQueryEngineStatistics(0L, Long.MAX_VALUE);
         Assert.assertEquals(1, queryStatistics.size());
         Assert.assertEquals("RDBMS", queryStatistics.get(0).getEngineType());
         Assert.assertEquals(7, queryStatistics.get(0).getCount());
         Assert.assertEquals(1108.71, queryStatistics.get(0).getMeanDuration(), 0.01);
     }
 
-    private InfluxDB mockInfluxDBWhenDatabaseNotExist() {
-        final OkHttpClient.Builder client = new OkHttpClient.Builder();
-        client.addInterceptor(new Interceptor() {
-            @Override
-            public Response intercept(Chain chain) throws IOException {
-                final Request request = chain.request();
-                return mockShowDatabases(request, SHOW_DATABASES_NOT_EXIST);
-            }
-        });
+    @Test
+    public void testGetQueryStatistics() {
+        QueryHistoryDAO.influxDB = mockInfluxDB(getQueryStatisticsResult());
+        QueryStatistics queryStatistics = queryHistoryDAO.getQueryCountAndAvgDuration(0L, Long.MAX_VALUE);
 
-        return InfluxDBFactory.connect("http://localhost:8096", "username", "password", client);
+        Assert.assertNotNull(queryStatistics);
+        Assert.assertEquals(1000, queryStatistics.getCount());
+        Assert.assertEquals(3000, queryStatistics.getMeanDuration(), 0.1);
     }
 
-    private InfluxDB mockInfluxDB() {
+    @Test
+    public void testGetQueryCount() {
+        // query count by model
+        QueryHistoryDAO.influxDB = mockInfluxDB(getQueryCountByModelResult());
+        List<QueryStatistics> queryStatistics = queryHistoryDAO.getQueryCountByModel(0, Long.MAX_VALUE);
+        Assert.assertEquals(1, queryStatistics.size());
+        Assert.assertEquals("model1", queryStatistics.get(0).getModel());
+        Assert.assertEquals(1000, queryStatistics.get(0).getCount());
+
+        // query count by day
+        QueryHistoryDAO.influxDB = mockInfluxDB(getQueryCountByTimeResult());
+        queryStatistics = queryHistoryDAO.getQueryCountByTime(0, Long.MAX_VALUE, "day");
+        Assert.assertEquals(2, queryStatistics.size());
+
+        Assert.assertEquals(2000, queryStatistics.get(0).getCount());
+        Date date = new Date(queryStatistics.get(0).getTime().toEpochMilli());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Assert.assertEquals("2018-11-30", sdf.format(date));
+
+        Assert.assertEquals(3000, queryStatistics.get(1).getCount());
+        date = new Date(queryStatistics.get(1).getTime().toEpochMilli());
+        Assert.assertEquals("2018-12-01", sdf.format(date));
+
+        // query count by week
+        String sql = queryHistoryDAO.getQueryStatsByTimeSql("sql_prefix_for_count group by ", 1000, 2000, "week");
+        Assert.assertEquals("sql_prefix_for_count group by time(1w, 4d)", sql);
+
+        // query count by month
+        sql = queryHistoryDAO.getQueryStatsByTimeSql("sql_prefix_for_count group by ", 1000, 2000, "month");
+        Assert.assertEquals("sql_prefix_for_count group by month", sql);
+
+        // query count by default
+        sql = queryHistoryDAO.getQueryStatsByTimeSql("sql_prefix_for_count group by ", 1000, 2000, "");
+        Assert.assertEquals("sql_prefix_for_count group by time(1d)", sql);
+    }
+
+    @Test
+    public void testGetAvgDuration() {
+        // avg duration by model
+        QueryHistoryDAO.influxDB = mockInfluxDB(getAvgDurationByModelResult());
+        List<QueryStatistics> queryStatistics = queryHistoryDAO.getQueryCountByModel(0, Long.MAX_VALUE);
+        Assert.assertEquals(1, queryStatistics.size());
+        Assert.assertEquals("model1", queryStatistics.get(0).getModel());
+        Assert.assertEquals(500, queryStatistics.get(0).getMeanDuration(), 0.1);
+
+        // avg duration by time
+        QueryHistoryDAO.influxDB = mockInfluxDB(getAvgDurationByTimeResult());
+        queryStatistics = queryHistoryDAO.getQueryCountByTime(0, Long.MAX_VALUE, "day");
+        Assert.assertEquals(2, queryStatistics.size());
+
+        Assert.assertEquals(500, queryStatistics.get(0).getMeanDuration(), 0.1);
+        Date date = new Date(queryStatistics.get(0).getTime().toEpochMilli());
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Assert.assertEquals("2018-11-30", sdf.format(date));
+
+        Assert.assertEquals(600, queryStatistics.get(1).getMeanDuration(), 0.1);
+        date = new Date(queryStatistics.get(1).getTime().toEpochMilli());
+        Assert.assertEquals("2018-12-01", sdf.format(date));
+
+        // query count by week
+        String sql = queryHistoryDAO.getQueryStatsByTimeSql("sql_prefix_for_duration group by ", 1000, 2000, "week");
+        Assert.assertEquals("sql_prefix_for_duration group by time(1w, 4d)", sql);
+
+        // query count by month
+        sql = queryHistoryDAO.getQueryStatsByTimeSql("sql_prefix_for_duration group by ", 1000, 2000, "month");
+        Assert.assertEquals("sql_prefix_for_duration group by month", sql);
+
+        // query count by default
+        sql = queryHistoryDAO.getQueryStatsByTimeSql("sql_prefix_for_duration group by ", 1000, 2000, "");
+        Assert.assertEquals("sql_prefix_for_duration group by time(1d)", sql);
+    }
+
+    private InfluxDB mockInfluxDB(final String mockedResult) {
         final OkHttpClient.Builder client = new OkHttpClient.Builder();
         client.addInterceptor(new Interceptor() {
             @Override
@@ -279,32 +352,19 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
                 final Request request = chain.request();
                 final URL url = request.url().url();
 
+
                 if (url.toString().contains("SHOW+DATABASES")) {
-                    return mockShowDatabases(request, SHOW_DATABASES);
+                    return mockResponse(request, SHOW_DATABASES);
                 }
 
-                if (url.toString().contains("MEAN")) {
-                    return new Response.Builder().request(request).protocol(Protocol.HTTP_2).code(200)
-                            .addHeader("Content-Type", "application/json").message("ok")
-                            .body(ResponseBody.create(MediaType.parse("application/json"), getQueryStatisticsResponse())).build();
-                }
-
-                if (url.toString().contains("count")) {
-                    return new Response.Builder().request(request).protocol(Protocol.HTTP_2).code(200)
-                            .addHeader("Content-Type", "application/json").message("ok")
-                            .body(ResponseBody.create(MediaType.parse("application/json"), getMockedZeroSize())).build();
-                }
-
-                return new Response.Builder().request(request).protocol(Protocol.HTTP_2).code(200)
-                        .addHeader("Content-Type", "application/json").message("ok")
-                        .body(ResponseBody.create(MediaType.parse("application/json"), getMockData())).build();
+                return mockResponse(request, mockedResult);
             }
         });
 
         return InfluxDBFactory.connect("http://localhost:8096", "username", "password", client);
     }
 
-    private Response mockShowDatabases(final Request request, String result) {
+    private Response mockResponse(final Request request, String result) {
         return new Response.Builder().request(request).protocol(Protocol.HTTP_2).code(200)
                 .addHeader("Content-Type", "application/json").message("ok").addHeader("X-Influxdb-Version", "mock")
                 .body(ResponseBody.create(MediaType.parse("application/json"), result)).build();
@@ -327,6 +387,56 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         return sb.toString();
     }
 
+    private String getQueryStatisticsResult() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",", queryMeasurement));
+        // column
+        sb.append("\"columns\":[\"count\",\"mean\"],");
+        // row
+        sb.append("\"values\":[[1000,3000]]}]}]}");
+        return sb.toString();
+    }
+
+    private String getQueryCountByModelResult() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",\"tags\":{\"model\":\"model1\"}, ", realizationMeasurement));
+        // column
+        sb.append("\"columns\":[\"count\"],");
+        // row
+        sb.append("\"values\":[[1000]]}]}]}");
+        return sb.toString();
+    }
+
+    private String getQueryCountByTimeResult() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("{\"results\":[{\"series\":[{\"name\":\"%s\", ", queryMeasurement));
+        // column
+        sb.append("\"columns\":[\"count\", \"time\"],");
+        // row
+        sb.append("\"values\":[[2000, \"2018-11-30T00:00:00Z\"], [3000, \"2018-12-01T00:00:00Z\"]]}]}]}");
+        return sb.toString();
+    }
+
+    private String getAvgDurationByModelResult() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",\"tags\":{\"model\":\"model1\"}, ", realizationMeasurement));
+        // column
+        sb.append("\"columns\":[\"mean\"],");
+        // row
+        sb.append("\"values\":[[500]]}]}]}");
+        return sb.toString();
+    }
+
+    private String getAvgDurationByTimeResult() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("{\"results\":[{\"series\":[{\"name\":\"%s\", ", queryMeasurement));
+        // column
+        sb.append("\"columns\":[\"mean\", \"time\"],");
+        // row
+        sb.append("\"values\":[[500, \"2018-11-30T00:00:00Z\"], [600, \"2018-12-01T00:00:00Z\"]]}]}]}");
+        return sb.toString();
+    }
+
     private String getMockedZeroSize() {
 
         StringBuilder sb = new StringBuilder();
@@ -334,7 +444,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         return sb.toString();
     }
 
-    private String getQueryStatisticsResponse() {
+    private String getQueryStatisticsByEngineResult() {
         return String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",\"tags\":{\"engine_type\":\"RDBMS\"}," +
                 "\"columns\":[\"time\",\"count\",\"mean\"]," +
                 "\"values\":[[\"1970-01-01T00:00:00Z\",7.0,1108.7142857142858]]}]," +

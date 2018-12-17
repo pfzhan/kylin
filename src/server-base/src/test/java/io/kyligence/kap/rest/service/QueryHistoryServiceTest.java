@@ -29,19 +29,23 @@ import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
-import org.apache.kylin.rest.msg.MsgPicker;
+import io.kyligence.kap.metadata.query.QueryStatistics;
+import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 
 import java.lang.reflect.InvocationTargetException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -98,18 +102,124 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    @Ignore("do not throw exception")
-    public void testCheckMetricTypeError() {
-        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "");
+    public void testGetQueryStatistics() {
+        QueryStatistics queryStatistics = new QueryStatistics();
+        queryStatistics.setCount(100);
+        queryStatistics.setMeanDuration(500);
 
-        QueryHistoryRequest request = new QueryHistoryRequest();
-        request.setProject(PROJECT);
+        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        Mockito.doReturn(queryStatistics).when(queryHistoryDAO).getQueryCountAndAvgDuration(0, Long.MAX_VALUE);
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
 
-        try {
-            queryHistoryService.getQueryHistories(request, 10, 0);
-        } catch (Throwable ex) {
-            Assert.assertEquals(IllegalStateException.class, ex.getClass());
-            Assert.assertEquals(MsgPicker.getMsg().getNOT_SET_INFLUXDB(), ex.getMessage());
-        }
+        QueryStatisticsResponse result = queryHistoryService.getQueryStatistics(PROJECT, 0, Long.MAX_VALUE);
+        Assert.assertEquals(100, result.getCount());
+        Assert.assertEquals(500, result.getMean(), 0.1);
+    }
+
+    @Test
+    public void testGetQueryCount() throws ParseException {
+        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getQueryCountByModel(0, Long.MAX_VALUE);
+        Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getQueryCountByTime(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
+
+        // query count by model
+        Map<String, Object> result = queryHistoryService.getQueryCount(PROJECT, 0, Long.MAX_VALUE, "model");
+        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(10, result.get("nmodel_basic"));
+        Assert.assertEquals(11, result.get("all_fixed_length"));
+        Assert.assertEquals(12, result.get("test_encoding"));
+
+        // query count by day
+        result = queryHistoryService.getQueryCount(PROJECT, 0, Long.MAX_VALUE, "day");
+        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(10, result.get("2018-01-01"));
+        Assert.assertEquals(11, result.get("2018-01-02"));
+        Assert.assertEquals(12, result.get("2018-01-03"));
+
+        // query count by week
+        result = queryHistoryService.getQueryCount(PROJECT, 0, Long.MAX_VALUE, "week");
+        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(10, result.get("2018-01-01"));
+        Assert.assertEquals(11, result.get("2018-01-02"));
+        Assert.assertEquals(12, result.get("2018-01-03"));
+
+        // query count by month
+        result = queryHistoryService.getQueryCount(PROJECT, 0, Long.MAX_VALUE, "month");
+        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(10, result.get("2018-01-01"));
+        Assert.assertEquals(11, result.get("2018-01-02"));
+        Assert.assertEquals(12, result.get("2018-01-03"));
+    }
+
+    @Test
+    public void testGetAvgDuration() throws ParseException {
+        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getAvgDurationByModel(0, Long.MAX_VALUE);
+        Mockito.doReturn(getTestStatistics()).when(queryHistoryDAO).getAvgDurationByTime(Mockito.anyLong(), Mockito.anyLong(), Mockito.anyString());
+        Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
+
+        // avg duration by model
+        Map<String, Object> result = queryHistoryService.getAvgDuration(PROJECT, 0, Long.MAX_VALUE, "model");
+        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(500, (double) result.get("nmodel_basic"), 0.1);
+        Assert.assertEquals(600, (double) result.get("all_fixed_length"), 0.1);
+        Assert.assertEquals(700, (double) result.get("test_encoding"), 0.1);
+
+        // avg duration by day
+        result = queryHistoryService.getAvgDuration(PROJECT, 0, Long.MAX_VALUE, "day");
+        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(500, (double) result.get("2018-01-01"), 0.1);
+        Assert.assertEquals(600, (double) result.get("2018-01-02"), 0.1);
+        Assert.assertEquals(700, (double) result.get("2018-01-03"), 0.1);
+
+        // avg duration by week
+        result = queryHistoryService.getAvgDuration(PROJECT, 0, Long.MAX_VALUE, "week");
+        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(500, (double) result.get("2018-01-01"), 0.1);
+        Assert.assertEquals(600, (double) result.get("2018-01-02"), 0.1);
+        Assert.assertEquals(700, (double) result.get("2018-01-03"), 0.1);
+
+        // avg duration by month
+        result = queryHistoryService.getAvgDuration(PROJECT, 0, Long.MAX_VALUE, "month");
+        Assert.assertEquals(3, result.size());
+        Assert.assertEquals(500, (double) result.get("2018-01-01"), 0.1);
+        Assert.assertEquals(600, (double) result.get("2018-01-02"), 0.1);
+        Assert.assertEquals(700, (double) result.get("2018-01-03"), 0.1);
+    }
+
+    private List<QueryStatistics> getTestStatistics() throws ParseException {
+        String date = "2018-01-01";
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        long time = format.parse(date).getTime();
+
+        QueryStatistics queryStatistics1 = new QueryStatistics();
+        queryStatistics1.setCount(10);
+        queryStatistics1.setMeanDuration(500);
+        queryStatistics1.setModel("nmodel_basic");
+        queryStatistics1.setTime(Instant.ofEpochMilli(time));
+        queryStatistics1.setMonth(date);
+
+        date = "2018-01-02";
+        time = format.parse(date).getTime();
+
+        QueryStatistics queryStatistics2 = new QueryStatistics();
+        queryStatistics2.setCount(11);
+        queryStatistics2.setMeanDuration(600);
+        queryStatistics2.setModel("all_fixed_length");
+        queryStatistics2.setTime(Instant.ofEpochMilli(time));
+        queryStatistics2.setMonth(date);
+
+        date = "2018-01-03";
+        time = format.parse(date).getTime();
+
+        QueryStatistics queryStatistics3 = new QueryStatistics();
+        queryStatistics3.setCount(12);
+        queryStatistics3.setMeanDuration(700);
+        queryStatistics3.setModel("test_encoding");
+        queryStatistics3.setTime(Instant.ofEpochMilli(time));
+        queryStatistics3.setMonth(date);
+
+        return Lists.newArrayList(queryStatistics1, queryStatistics2, queryStatistics3);
     }
 }

@@ -1794,9 +1794,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         result2.setModel("nmodel_full_measure_test");
         result2.setQueryTimes(10);
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(result1, result2)).when(queryHistoryDAO).getQueryTimesResponseBySql(
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(),
-                Mockito.any());
+        Mockito.doReturn(Lists.newArrayList(result1, result2)).when(queryHistoryDAO).getQueryTimesByModel(
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
         val modelInfo = modelService.getModelInfo("*", "nmodel_basic", "default", 0, 0);
         Assert.assertEquals(1, modelInfo.size());
@@ -1814,9 +1813,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         result1.setModel("nmodel_basic");
         result1.setQueryTimes(10);
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesResponseBySql(
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(),
-                Mockito.any());
+        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
         val modelInfo = modelService.getModelInfo("*", "*", "default", 0, 0);
         Assert.assertEquals(6, modelInfo.size());
@@ -1830,9 +1828,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         result1.setModel("nmodel_basic");
         result1.setQueryTimes(10);
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesResponseBySql(
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(),
-                Mockito.any());
+        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
         val modelInfo = modelService.getModelInfo("*", "*", "*", 0, 0);
         Assert.assertEquals(9, modelInfo.size());

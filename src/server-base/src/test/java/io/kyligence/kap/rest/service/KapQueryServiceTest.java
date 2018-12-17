@@ -27,7 +27,8 @@ package io.kyligence.kap.rest.service;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
-import io.kyligence.kap.metadata.query.QueryStatisticsResponse;
+import io.kyligence.kap.metadata.query.QueryStatistics;
+import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
@@ -58,37 +59,38 @@ public class KapQueryServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetQueryStatistics() {
+        System.setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        QueryStatisticsResponse.QueryStatistics queryStatistics = new QueryStatisticsResponse.QueryStatistics();
+        QueryStatistics queryStatistics = new QueryStatistics();
         queryStatistics.setEngineType("RDBMS");
         queryStatistics.setCount(7);
         queryStatistics.setMeanDuration(1108.7142857142858);
-        Mockito.doReturn(Lists.newArrayList(queryStatistics)).when(queryHistoryDAO).getQueryStatistics(Mockito.anyLong(), Mockito.anyLong());
+        Mockito.doReturn(Lists.newArrayList(queryStatistics)).when(queryHistoryDAO).getQueryEngineStatistics(Mockito.anyLong(), Mockito.anyLong());
         Mockito.doReturn(queryHistoryDAO).when(kapQueryService).getQueryHistoryDao("default");
 
-        final QueryStatisticsResponse actual = kapQueryService.getQueryStatistics("default", 0L, Long.MAX_VALUE);
+        final QueryEngineStatisticsResponse actual = kapQueryService.getQueryStatisticsByEngine("default", 0L, Long.MAX_VALUE);
 
         Assert.assertEquals(7, actual.getAmount());
 
-        final QueryStatisticsResponse.QueryStatistics hive = actual.getHive();
+        final QueryStatistics hive = actual.getHive();
         Assert.assertEquals("HIVE", hive.getEngineType());
         Assert.assertEquals(0, hive.getCount());
         Assert.assertEquals(0d, hive.getMeanDuration(), 0.1);
         Assert.assertEquals(0d, hive.getRatio(), 0.01);
 
-        final QueryStatisticsResponse.QueryStatistics rdbms = actual.getRdbms();
+        final QueryStatistics rdbms = actual.getRdbms();
         Assert.assertEquals("RDBMS", rdbms.getEngineType());
         Assert.assertEquals(7, rdbms.getCount());
         Assert.assertEquals(1108.71d, rdbms.getMeanDuration(), 0.1);
         Assert.assertEquals(1d, rdbms.getRatio(), 0.01);
 
-        final QueryStatisticsResponse.QueryStatistics aggIndex = actual.getAggIndex();
+        final QueryStatistics aggIndex = actual.getAggIndex();
         Assert.assertEquals("Agg Index", aggIndex.getEngineType());
         Assert.assertEquals(0, aggIndex.getCount());
         Assert.assertEquals(0d, aggIndex.getMeanDuration(), 0.1);
         Assert.assertEquals(0d, aggIndex.getRatio(), 0.01);
 
-        final QueryStatisticsResponse.QueryStatistics tableIndex = actual.getTableIndex();
+        final QueryStatistics tableIndex = actual.getTableIndex();
         Assert.assertEquals("Table Index", tableIndex.getEngineType());
         Assert.assertEquals(0, tableIndex.getCount());
         Assert.assertEquals(0d, tableIndex.getMeanDuration(), 0.1);

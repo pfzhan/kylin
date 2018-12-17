@@ -30,6 +30,10 @@ import io.kyligence.kap.shaded.influxdb.org.influxdb.dto.QueryResult;
 import lombok.NoArgsConstructor;
 
 import java.lang.reflect.Field;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -40,6 +44,9 @@ import java.util.concurrent.ConcurrentMap;
 
 @NoArgsConstructor
 public class InfluxDBResultMapper {
+    private static final DateTimeFormatter ISO8601_FORMATTER = (new DateTimeFormatterBuilder())
+            .appendPattern("yyyy-MM-dd'T'HH:mm:ss").appendFraction(ChronoField.NANO_OF_SECOND, 0, 9, true)
+            .appendPattern("X").toFormatter();
     private static final ConcurrentMap<String, ConcurrentMap<String, Field>> CLASS_FIELD_CACHE = new ConcurrentHashMap();
 
     public <T> List<T> toPOJO(QueryResult queryResult, Class<T> clazz, String tableName)
@@ -133,7 +140,6 @@ public class InfluxDBResultMapper {
         }
     }
 
-
     <T> void setFieldValue(T object, Field field, Object value)
             throws IllegalArgumentException, IllegalAccessException {
         if (value != null) {
@@ -164,9 +170,26 @@ public class InfluxDBResultMapper {
         if (String.class.isAssignableFrom(fieldType)) {
             field.set(object, String.valueOf(value));
             return true;
-        }
+        } else if (Instant.class.isAssignableFrom(fieldType)) {
+            Instant instant;
+            if (value instanceof String) {
+                instant = Instant.from(ISO8601_FORMATTER.parse(String.valueOf(value)));
+            } else if (value instanceof Long) {
+                instant = Instant.ofEpochMilli((Long) value);
+            } else {
+                if (!(value instanceof Double)) {
+                    throw new InfluxDBMapperException(
+                            "Unsupported type " + field.getClass() + " for field " + field.getName());
+                }
 
-        return false;
+                instant = Instant.ofEpochMilli(((Double) value).longValue());
+            }
+
+            field.set(object, instant);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     <T> boolean fieldValueForPrimitivesModified(Class<?> fieldType, Field field, T object, Object value)

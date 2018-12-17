@@ -231,7 +231,44 @@ public class NQueryControllerTest {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
 
-        Mockito.verify(nQueryController).queryStatistics("default", 0, 999999999999L);
+        Mockito.verify(nQueryController).getQueryStatistics("default", 0, 999999999999L);
+    }
+
+    @Test
+    public void testGetQueryCount() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/statistics/count").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default")
+                .param("start_time", "0")
+                .param("end_time", "999999999999")
+                .param("dimension", "model")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nQueryController).getQueryCount("default", 0, 999999999999L, "model");
+    }
+
+    @Test
+    public void testGetQueryDuration() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/statistics/duration").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default")
+                .param("start_time", "0")
+                .param("end_time", "999999999999")
+                .param("dimension", "model")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nQueryController).getAvgDuration("default", 0, 999999999999L, "model");
+    }
+
+    @Test
+    public void testQueryStatisticsEngine() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/query/overview").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default")
+                .param("start_time", "0").param("end_time", "999999999999")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+
+        Mockito.verify(nQueryController).queryStatisticsByEngine("default", 0, 999999999999L);
     }
 
     private List<QueryHistory> mockedQueryHistories() {

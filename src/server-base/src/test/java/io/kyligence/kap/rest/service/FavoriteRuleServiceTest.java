@@ -31,6 +31,7 @@ import io.kyligence.kap.metadata.query.AccelerateRatioManager;
 import io.kyligence.kap.rest.response.FavoriteRuleResponse;
 import io.kyligence.kap.rest.response.UpdateWhitelistResponse;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
+import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -42,6 +43,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.io.File;
@@ -68,6 +71,8 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         createTestMetadata();
         getTestConfig().setProperty("kylin.favorite.storage-url", "kylin_favorite@jdbc,url=jdbc:h2:mem:db_default;MODE=MySQL,username=sa,password=,driverClassName=org.h2.Driver");
         ReflectionTestUtils.setField(favoriteRuleService, "favoriteQueryService", favoriteQueryService);
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
     }
 
     @Test
@@ -127,7 +132,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, sqls.size());
         Assert.assertEquals(updatedSql, sqls.get(0).getSql());
         // triggered accelerate
-        Mockito.verify(favoriteQueryService).favoriteForWhitelistChannel(Mockito.anySet(), Mockito.anyString());
+        Mockito.verify(favoriteQueryService).markFavoriteAndAccelerate(Mockito.anySet(), Mockito.anyString(), Mockito.anyString());
 
         // case of updated sql is invalid
         String invalidSql = "select * from not_exist_table";
@@ -249,7 +254,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         favoriteRuleService.loadSqlsToWhitelist(file, PROJECT);
         sqls = favoriteRuleService.getWhitelist(PROJECT);
         Assert.assertEquals(3, sqls.size());
-        Mockito.verify(favoriteQueryService).favoriteForWhitelistChannel(Mockito.anySet(), Mockito.anyString());
+        Mockito.verify(favoriteQueryService).markFavoriteAndAccelerate(Mockito.anySet(), Mockito.anyString(), Mockito.anyString());
 
         // case of having 8 total sqls, and 2 of them are valid
         file = new MockMultipartFile("sqls.sql", "sqls.sql", "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls.sql")));
@@ -280,7 +285,7 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
         capableSqlPatterns.add(capableSqlPattern2);
 
         // only insert capable sql pattern to DAO
-        Mockito.verify(favoriteQueryService).favoriteForWhitelistChannel(capableSqlPatterns, PROJECT);
+        Mockito.verify(favoriteQueryService).markFavoriteAndAccelerate(capableSqlPatterns, PROJECT, "ADMIN");
     }
 
     @Test

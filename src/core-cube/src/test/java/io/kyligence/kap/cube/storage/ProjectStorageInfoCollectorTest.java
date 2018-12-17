@@ -131,7 +131,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         ConcurrentHashMap<String, Object> prjCache = new ConcurrentHashMap<>();
         prjCache.put(PROJECT, dao);
         cache.put(QueryHistoryDAO.class, prjCache);
-        Mockito.doReturn(hotCuboidLayoutQueryTimesList).when(dao).getCuboidLayoutQueryTimes("default", 5,
+        Mockito.doReturn(hotCuboidLayoutQueryTimesList).when(dao).getCuboidLayoutQueryTimes(5,
                 CuboidLayoutQueryTimes.class);
 
     }

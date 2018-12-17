@@ -22,24 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package io.kyligence.kap.metadata.query;
 
 import java.util.List;
@@ -52,7 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.common.metric.MetricWriter;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDB;
 import io.kyligence.kap.shaded.influxdb.org.influxdb.InfluxDBFactory;
@@ -65,7 +46,16 @@ public class QueryHistoryDAO {
     private String queryMetricMeasurement;
     private String realizationMetricMeasurement;
 
-    private final String QUERY_TIMES_SQL_FORMAT = "select count(query_id) as query_times from realization_metric where suite=~ /^%s$/ and project=~ /^%s$/ and model=~ /^%s$/ and time>=%dms and time<=%dms group by model";
+    private static final String CUBOID_LAYOUT_QUERY_TIMES_SQL_FORMAT = "SELECT * FROM (SELECT count(query_id) as query_times FROM %s group by model, cuboid_layout_id) WHERE query_times > %d";
+    private static final String QUERY_TIMES_BY_MODEL_SQL_FORMAT = "SELECT COUNT(DISTINCT(query_id)) as query_times FROM %s WHERE suite=~ /^%s$/ AND model=~ /^%s$/ AND time>=%dms AND time<=%dms GROUP BY model";
+    private static final String QUERY_STATISTICS_SQL_FORMAT = "SELECT COUNT(query_id), MEAN(\"duration\") FROM %s WHERE time>=%dms AND time <= %dms";
+    private static final String QUERY_COUNT_BY_MODEL_SQL_FORMAT = "SELECT COUNT(DISTINCT(query_id)) FROM %s WHERE time>=%dms AND time <=%dms GROUP BY model";
+    private static final String AVG_DURATION_BY_MODEL_SQL_FORMAT = "SELECT MEAN(query_duration) FROM (select mean(\"duration\") AS query_duration FROM %s WHERE time>=%dms AND time<=%dms GROUP BY model, query_id) GROUP BY model";
+    private static final String QUERY_STATISTICS_BY_ENGINES_SQL_FORMAT = "SELECT COUNT(query_id), MEAN(\"duration\") FROM %s WHERE (time>=%dms AND time<=%dms) AND error_type = '' GROUP BY engine_type";
+    private static final String QUERY_HISTORY_BY_TIME_SQL_FORMAT = "SELECT * FROM %s WHERE time >= %dms AND time < %dms";
+
+    private static final String QUERY_COUNT_BY_TIME_SQL_PREFIX = "SELECT COUNT(query_id) FROM %s WHERE time>=%dms AND time<=%dms GROUP BY ";
+    private static final String AVG_DURATION_BY_TIME_SQL_PREFIX = "SELECT MEAN(\"duration\") FROM %s WHERE time>=%dms AND time<=%dms GROUP BY ";
 
     public static QueryHistoryDAO getInstance(KylinConfig config, String project) {
         return config.getManager(project, QueryHistoryDAO.class);
@@ -114,36 +104,76 @@ public class QueryHistoryDAO {
         return this.influxDB;
     }
 
-    public <T> List<T> getQueryHistoriesBySql(String query, Class clazz) {
+    protected <T> List<T> getResultBySql(String query, Class clazz, String tableName) {
         if (!getInfluxDB().databaseExists(QueryHistory.DB_NAME))
             return Lists.newArrayList();
         final QueryResult result = getInfluxDB().query(new Query(query, QueryHistory.DB_NAME));
         final InfluxDBResultMapper mapper = new InfluxDBResultMapper();
 
-        return mapper.toPOJO(result, clazz, this.queryMetricMeasurement);
+        return mapper.toPOJO(result, clazz, tableName);
     }
 
     public List<QueryHistory> getQueryHistoriesByTime(long startTime, long endTime) {
-        return getQueryHistoriesBySql(getQueryHistoriesByTimeSql(startTime, endTime), QueryHistory.class);
-    }
-
-    String getQueryHistoriesByTimeSql(long startTime, long endTime) {
-        return String.format("SELECT * FROM %s WHERE time >= %dms AND time < %dms", this.queryMetricMeasurement,
-                startTime, endTime);
+        return getResultBySql(getQueryHistoriesByTimeSql(startTime, endTime), QueryHistory.class, this.queryMetricMeasurement);
     }
 
     public List<QueryHistory> getQueryHistoriesByConditions(QueryHistoryRequest request, int limit, int offset) {
         String sql = getQueryHistoriesSql(getQueryHistoryFilterSql(request), limit, offset);
-        return getQueryHistoriesBySql(sql, QueryHistory.class);
+        return getResultBySql(sql, QueryHistory.class, this.queryMetricMeasurement);
     }
 
     public int getQueryHistoriesSize(QueryHistoryRequest request) {
         String sql = getQueryHistoriesSizeSql(getQueryHistoryFilterSql(request));
-        List<QueryHistory> queryHistories = getQueryHistoriesBySql(sql, QueryHistory.class);
+        List<QueryHistory> queryHistories = getResultBySql(sql, QueryHistory.class, this.queryMetricMeasurement);
         if (queryHistories.isEmpty())
             return 0;
         return queryHistories.get(0).getCount();
     }
+
+    public <T> List<T> getQueryTimesByModel(String suite, String model, long start, long end, Class clazz) {
+        String sql = String.format(QUERY_TIMES_BY_MODEL_SQL_FORMAT, this.realizationMetricMeasurement, suite, model, start,
+                end == 0 ? System.currentTimeMillis() : end);
+        return getResultBySql(sql, clazz, this.realizationMetricMeasurement);
+    }
+
+    public <T> List<T> getCuboidLayoutQueryTimes(int queryTimesThreshold, Class clazz) {
+        String query = getCuboidLayoutQueryTimesSql(queryTimesThreshold);
+        return getResultBySql(query, clazz, this.realizationMetricMeasurement);
+    }
+
+    public List<QueryStatistics> getQueryEngineStatistics(long startTime, long endTime) {
+        String sql = getQueryEngineStatisticsSql(startTime, endTime);
+        return getResultBySql(sql, QueryStatistics.class, this.queryMetricMeasurement);
+    }
+
+    public QueryStatistics getQueryCountAndAvgDuration(long startTime, long endTime) {
+        String sql = getQueryStatisticsSql(startTime, endTime);
+        List<QueryStatistics> result = getResultBySql(sql, QueryStatistics.class, this.queryMetricMeasurement);
+        return result.get(0);
+    }
+
+    public List<QueryStatistics> getQueryCountByModel(long startTime, long endTime) {
+        String sql = getQueryCountByModelSql(startTime, endTime);
+        return getResultBySql(sql, QueryStatistics.class, this.realizationMetricMeasurement);
+    }
+
+    public List<QueryStatistics> getQueryCountByTime(long startTime, long endTime, String timeDimension) {
+        String sql = getQueryStatsByTimeSql(QUERY_COUNT_BY_TIME_SQL_PREFIX, startTime, endTime, timeDimension);
+        return getResultBySql(sql, QueryStatistics.class, this.queryMetricMeasurement);
+    }
+
+    public List<QueryStatistics> getAvgDurationByModel(long startTime, long endTime) {
+        String sql = getAvgDurationMeanByModelSql(startTime, endTime);
+        return getResultBySql(sql, QueryStatistics.class, this.realizationMetricMeasurement);
+    }
+
+    public List<QueryStatistics> getAvgDurationByTime(long startTime, long endTime, String timeDimension) {
+        String sql = getQueryStatsByTimeSql(AVG_DURATION_BY_TIME_SQL_PREFIX, startTime, endTime, timeDimension);
+        return getResultBySql(sql, QueryStatistics.class, this.queryMetricMeasurement);
+    }
+    /**
+     *  format sqls to query Query History statistics
+     */
 
     String getQueryHistoriesSql(String filterSql, int limit, int offset) {
         return String.format("SELECT * FROM %s ", queryMetricMeasurement) + filterSql
@@ -172,15 +202,15 @@ public class QueryHistoryDAO {
             sb.append("AND (");
             for (int i = 0; i < request.getRealizations().size(); i++) {
                 switch (request.getRealizations().get(i)) {
-                case "pushdown":
-                    sb.append("cube_hit = 'false' OR ");
-                    break;
-                case "modelName":
-                    sb.append("cube_hit = 'true' OR ");
-                    break;
-                default:
-                    throw new IllegalArgumentException(
-                            String.format("Illegal realization type %s", request.getRealizations().get(i)));
+                    case "pushdown":
+                        sb.append("cube_hit = 'false' OR ");
+                        break;
+                    case "modelName":
+                        sb.append("cube_hit = 'true' OR ");
+                        break;
+                    default:
+                        throw new IllegalArgumentException(
+                                String.format("Illegal realization type %s", request.getRealizations().get(i)));
                 }
 
                 if (i == request.getRealizations().size() - 1) {
@@ -203,39 +233,42 @@ public class QueryHistoryDAO {
         return sb.toString();
     }
 
-    public <T> List<T> getQueryTimesResponseBySql(String suite, String project, String model, long start, long end,
-            Class clazz) {
-        String sql = String.format(QUERY_TIMES_SQL_FORMAT, suite, project, model, start,
-                end == 0 ? System.currentTimeMillis() : end);
-        return getQueryHistoriesBySql(sql, clazz);
+    String getQueryHistoriesByTimeSql(long startTime, long endTime) {
+        return String.format(QUERY_HISTORY_BY_TIME_SQL_FORMAT, this.queryMetricMeasurement,
+                startTime, endTime);
     }
 
-    public <T> List<T> getCuboidLayoutQueryTimes(String project, int queryTimesThreshold, Class clazz) {
-        String query = getCuboidLayoutQueryTimesSql(project, queryTimesThreshold);
-        return getQueryHistoriesBySql(query, clazz);
+    private String getQueryEngineStatisticsSql(long startTime, long endTime) {
+        return String.format(QUERY_STATISTICS_BY_ENGINES_SQL_FORMAT, this.queryMetricMeasurement, startTime, endTime);
     }
 
-    private String getCuboidLayoutQueryTimesSql(String project, int queryTimesThreshold) {
-        return String.format(
-                "SELECT * FROM (SELECT count(query_id) as query_times FROM %s "
-                        + "WHERE project = '%s' group by model, cuboid_layout_id) WHERE query_times > %d ",
-                QueryHistory.REALIZATION_MEASUREMENT_PREFIX, project, queryTimesThreshold);
-    }
-
-    private void checkMetricWriterType() {
-        if (!MetricWriter.Type.INFLUX.name().equals(kapConfig.diagnosisMetricWriterType())) {
-            throw new IllegalStateException("Not set kap.metric.diagnosis.graph-writer-type to 'INFLUX'");
-        }
-    }
-
-    public List<QueryStatisticsResponse.QueryStatistics> getQueryStatistics(long startTime, long endTime) {
-        checkMetricWriterType();
-        return getQueryHistoriesBySql(getQueryStatisticsSql(startTime, endTime), QueryStatisticsResponse.QueryStatistics.class);
+    private String getCuboidLayoutQueryTimesSql(int queryTimesThreshold) {
+        return String.format(CUBOID_LAYOUT_QUERY_TIMES_SQL_FORMAT, this.realizationMetricMeasurement, queryTimesThreshold);
     }
 
     private String getQueryStatisticsSql(long startTime, long endTime) {
-        return String.format(
-                "SELECT COUNT(query_id), MEAN(\"duration\") FROM %s WHERE (time >= %dms AND time <= %dms) AND error_type = '' GROUP BY engine_type",
-                queryMetricMeasurement, startTime, endTime);
+        return String.format(QUERY_STATISTICS_SQL_FORMAT, this.queryMetricMeasurement, startTime, endTime);
+    }
+
+    protected String getQueryStatsByTimeSql(String sqlPrefix, long startTime, long endTime, String timeDimension) {
+        switch (timeDimension) {
+            case "day":
+                return String.format(sqlPrefix, this.queryMetricMeasurement, startTime, endTime) + "time(1d)";
+            case "week":
+                // influxDB start a week from thursday, so need to set a 4 day offset to start a week from monday
+                return String.format(sqlPrefix, this.queryMetricMeasurement, startTime, endTime) + "time(1w, 4d)";
+            case "month":
+                return String.format(sqlPrefix, this.queryMetricMeasurement, startTime, endTime) + "month";
+            default:
+                return String.format(sqlPrefix, this.queryMetricMeasurement, startTime, endTime) + "time(1d)";
+        }
+    }
+
+    private String getQueryCountByModelSql(long startTime, long endTime) {
+        return String.format(QUERY_COUNT_BY_MODEL_SQL_FORMAT, this.realizationMetricMeasurement, startTime, endTime);
+    }
+
+    private String getAvgDurationMeanByModelSql(long startTime, long endTime) {
+        return String.format(AVG_DURATION_BY_MODEL_SQL_FORMAT, this.realizationMetricMeasurement, startTime, endTime);
     }
 }

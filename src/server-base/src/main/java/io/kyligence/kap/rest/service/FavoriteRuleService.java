@@ -280,7 +280,7 @@ public class FavoriteRuleService extends BasicService {
         }
 
         // put to favorite query list and accelerate these sqls
-        favoriteQueryService.favoriteForWhitelistChannel(capableSqlPatterns, project);
+        favoriteQueryService.markFavoriteAndAccelerate(capableSqlPatterns, project, getUsername());
     }
 
     private List<String> transferFileToSqls(MultipartFile file) {
@@ -355,7 +355,7 @@ public class FavoriteRuleService extends BasicService {
         // put to favorite query and accelerate right now
         Set<String> sqlPatternSet = new HashSet<>();
         sqlPatternSet.add(updatedSqlPattern);
-        favoriteQueryService.favoriteForWhitelistChannel(sqlPatternSet, project);
+        favoriteQueryService.markFavoriteAndAccelerate(sqlPatternSet, project, getUsername());
 
         return response;
     }

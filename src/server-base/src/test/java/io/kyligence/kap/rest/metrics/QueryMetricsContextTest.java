@@ -165,6 +165,9 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             final Map<String, String> influxdbTags = metricsContext.getInfluxdbTags();
             Assert.assertFalse(influxdbTags.containsKey("error_type"));
 
+            // assert month
+            Assert.assertEquals("2018-12", influxdbTags.get("month"));
+
         } finally {
             QueryContext.reset();
             QueryMetricsContext.reset();

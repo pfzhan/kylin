@@ -25,10 +25,14 @@ package io.kyligence.kap.rest.metrics;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
@@ -43,6 +47,7 @@ import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KapConfig;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 import org.apache.kylin.query.util.QueryUtil;
@@ -91,6 +96,7 @@ public class QueryMetricsContext {
     private String queryStatus;
     private String accelerateStatus;
     private String answeredBy;
+    private String month;
 
     private final List<RealizationMetrics> realizationMetrics = new ArrayList<>();
 
@@ -158,6 +164,12 @@ public class QueryMetricsContext {
         this.sqlPattern = QueryPatternUtil.normalizeSQLPattern(this.sql);
 
         this.queryTime = QueryContext.current().getQueryStartMillis();
+
+        // for query stats
+        TimeZone timeZone = TimeZone.getTimeZone(KylinConfig.getInstanceFromEnv().getTimeZone());
+        LocalDate date = Instant.ofEpochMilli(this.queryTime).atZone(timeZone.toZoneId()).toLocalDate();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        this.month = date.withDayOfMonth(1).format(formatter);
 
         this.submitter = request.getUsername();
 
@@ -230,6 +242,7 @@ public class QueryMetricsContext {
 
         for (RealizationMetrics singleMetric : response.getRealizationMetrics()) {
             singleMetric.setQueryId(queryId);
+            singleMetric.setDuration(queryDuration);
             singleMetric.setSuite(suite);
             this.realizationMetrics.add(singleMetric);
         }
@@ -242,7 +255,8 @@ public class QueryMetricsContext {
                 .put(QueryHistory.ENGINE_TYPE, engineType)
                 .put(QueryHistory.ANSWERED_BY, answeredBy)
                 .put(QueryHistory.IS_CUBE_HIT, String.valueOf(isCubeHit))
-                .put(QueryHistory.ACCELERATE_STATUS, accelerateStatus);
+                .put(QueryHistory.ACCELERATE_STATUS, accelerateStatus)
+                .put(QueryHistory.QUERY_MONTH, month);
 
         if (StringUtils.isBlank(hostname)) {
             try {
@@ -302,6 +316,8 @@ public class QueryMetricsContext {
 
         private String queryId;
 
+        private long duration;
+
         private String suite;
 
         private String cuboidLayoutId;
@@ -326,7 +342,9 @@ public class QueryMetricsContext {
         }
 
         public Map<String, Object> getInfluxdbFields() {
-            return ImmutableMap.<String, Object> builder().put(QueryHistory.QUERY_ID, queryId).build();
+            return ImmutableMap.<String, Object> builder()
+                    .put(QueryHistory.QUERY_ID, queryId)
+                    .put(QueryHistory.QUERY_DURATION, duration).build();
         }
     }
 }

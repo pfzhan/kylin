@@ -952,7 +952,7 @@ public class ModelService extends BasicService {
             modelInfoList.add(getModelInfoByModel(model, project));
         }
 
-        List<QueryTimesResponse> result = getQueryHistoryDao(project).getQueryTimesResponseBySql(suite, project, model,
+        List<QueryTimesResponse> result = getQueryHistoryDao(project).getQueryTimesByModel(suite, model,
                 start, end, QueryTimesResponse.class);
         Map<String, QueryTimesResponse> resultMap = result.stream()
                 .collect(Collectors.toMap(QueryTimesResponse::getModel, queryTimesResponse -> queryTimesResponse));

@@ -57,7 +57,7 @@ public class GarbageStorageCollector implements StorageInfoCollector {
         config = NProjectManager.getInstance(config).getProject(project).getConfig();
         int queryTimesThreshold = config.getQueryTimesThresholdOfGarbageStorage();
         List<CuboidLayoutQueryTimes> hotCuboidLayoutQueryTimesList = QueryHistoryDAO.getInstance(config, project)
-                .getCuboidLayoutQueryTimes(project, queryTimesThreshold, CuboidLayoutQueryTimes.class);
+                .getCuboidLayoutQueryTimes(queryTimesThreshold, CuboidLayoutQueryTimes.class);
         // query history can not provide the statistics of cuboidLayout which never been queried,
         // so that we calculate out the cuboidLayouts which query times is more than the queryTimesThreshold
         // then calculate the garbage cuboidLayouts by subtraction

@@ -261,7 +261,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.server.mode", "query");
         // when sql pattern not exists
         String sqlPattern = "select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME";
-        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add(sqlPattern);}}, PROJECT, "ADMIN");
+        favoriteQueryService.markFavoriteAndAccelerate(new HashSet<String>(){{add(sqlPattern);}}, PROJECT, "ADMIN");
 
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
@@ -272,7 +272,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, newCreated.getStatus());
 
         // sql pattern exists but not accelerating
-        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add(sqls[0]);}}, PROJECT, "ADMIN");
+        favoriteQueryService.markFavoriteAndAccelerate(new HashSet<String>(){{add(sqls[0]);}}, PROJECT, "ADMIN");
         favoriteQueries = favoriteQueryManager.getAll();
         favoriteQueries.sort(Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed());
         FavoriteQuery favoriteQueryWithSql0 = favoriteQueries.get(favoriteQueries.size() - 1);
@@ -280,7 +280,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueryWithSql0.getStatus());
 
         // sql pattern exists and is accelerating
-        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>() {
+        favoriteQueryService.markFavoriteAndAccelerate(new HashSet<String>() {
             {
                 add(sqls[2]);
             }
@@ -309,7 +309,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
         String blockedSql = "select CAL_DT, LSTG_FORMAT_NAME, max(SLR_SEGMENT_CD) " +
                 "from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME";
-        favoriteQueryService.insertToDaoAndAccelerateForWhitelistChannel(new HashSet<String>(){{add(blockedSql);}}, PROJECT, "ADMIN");
+        favoriteQueryService.markFavoriteAndAccelerate(new HashSet<String>(){{add(blockedSql);}}, PROJECT, "ADMIN");
         Assert.assertEquals(5, favoriteQueryManager.getAll().size());
         favoriteQueries = favoriteQueryManager.getAll();
         favoriteQueries.sort(Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed());
@@ -317,19 +317,20 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(blockedSql, newCreated.getSqlPattern());
         Assert.assertEquals(FavoriteQueryStatusEnum.BLOCKED, newCreated.getStatus());
 
-        // when query history is failed
-        FavoriteRequest request = new FavoriteRequest(PROJECT, "test_sql", "test_sql_pattern", 1000,
-                QueryHistory.QUERY_HISTORY_FAILED);
-        favoriteQueryService.manualFavorite(request);
-        Mockito.verify(favoriteQueryService, Mockito.never()).favoriteForWhitelistChannel(Mockito.anySet(),
-                Mockito.anyString());
-
         FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), PROJECT);
         FavoriteRule whitelist = favoriteRuleManager.getByName(FavoriteRule.WHITELIST_NAME);
         int originSqlSize = whitelist.getConds().size();
+
+        // when query history is failed
+        FavoriteRequest request = new FavoriteRequest(PROJECT, "test_sql", "test_sql_pattern", 1000,
+                QueryHistory.QUERY_HISTORY_FAILED);
+        favoriteQueryService.manualFavorite(PROJECT, request);
+        // not saved to whitelist
+        Assert.assertEquals(originSqlSize, whitelist.getConds().size());
+
         // when query history is succeeded
         request.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
-        favoriteQueryService.manualFavorite(request);
+        favoriteQueryService.manualFavorite(PROJECT, request);
         // saved to whitelist
         whitelist = favoriteRuleManager.getByName(FavoriteRule.WHITELIST_NAME);
         Assert.assertEquals(originSqlSize + 1, whitelist.getConds().size());

@@ -22,15 +22,14 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.query;
+package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
-import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Measurement;
+import io.kyligence.kap.metadata.query.QueryStatistics;
 
 import java.util.List;
 
-public class QueryStatisticsResponse {
+public class QueryEngineStatisticsResponse {
 
     @JsonProperty("amount")
     private int amount;
@@ -47,8 +46,8 @@ public class QueryStatisticsResponse {
     @JsonProperty("Table Index")
     private QueryStatistics tableIndex = new QueryStatistics("Table Index");
 
-    public static QueryStatisticsResponse valueOf(List<QueryStatistics> statistics) {
-        final QueryStatisticsResponse response = new QueryStatisticsResponse();
+    public static QueryEngineStatisticsResponse valueOf(List<QueryStatistics> statistics) {
+        final QueryEngineStatisticsResponse response = new QueryEngineStatisticsResponse();
         for (final QueryStatistics queryStatistics : statistics) {
             response.amount += queryStatistics.getCount();
         }
@@ -65,7 +64,7 @@ public class QueryStatisticsResponse {
         return response;
     }
 
-    private static QueryStatistics getOrigin(QueryStatistics other, QueryStatisticsResponse response) {
+    private static QueryStatistics getOrigin(QueryStatistics other, QueryEngineStatisticsResponse response) {
         switch (other.getEngineType()) {
         case "HIVE":
             return response.hive;
@@ -98,76 +97,5 @@ public class QueryStatisticsResponse {
 
     public QueryStatistics getTableIndex() {
         return tableIndex;
-    }
-
-    @Measurement(name = "query_metric")
-    public static class QueryStatistics {
-
-        @JsonProperty("engine_type")
-        @Column(name = "engine_type", tag = true)
-        private String engineType;
-
-        @JsonProperty("count")
-        @Column(name = "count")
-        private int count;
-
-        @JsonProperty("ratio")
-        private double ratio;
-
-        @JsonProperty("mean")
-        @Column(name = "mean")
-        private double meanDuration;
-
-        public QueryStatistics() {
-        }
-
-        private QueryStatistics(String engineType) {
-            this.engineType = engineType;
-        }
-
-        private void apply(final QueryStatistics other) {
-            this.count = other.count;
-            this.ratio = other.ratio;
-            this.meanDuration = other.meanDuration;
-        }
-
-        private void updateRatio(double amount) {
-            if (amount > 0d) {
-                // Keep two decimals
-                this.ratio = ((double) Math.round(((double) count) / amount * 100d)) / 100d;
-            }
-        }
-
-        public String getEngineType() {
-            return engineType;
-        }
-
-        public void setEngineType(String engineType) {
-            this.engineType = engineType;
-        }
-
-        public int getCount() {
-            return count;
-        }
-
-        public void setCount(int count) {
-            this.count = count;
-        }
-
-        public double getMeanDuration() {
-            return meanDuration;
-        }
-
-        public void setMeanDuration(double meanDuration) {
-            this.meanDuration = meanDuration;
-        }
-
-        public double getRatio() {
-            return ratio;
-        }
-
-        public void setRatio(double ratio) {
-            this.ratio = ratio;
-        }
     }
 }

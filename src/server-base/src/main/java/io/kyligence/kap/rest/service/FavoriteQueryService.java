@@ -39,7 +39,6 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -55,7 +54,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.event.manager.EventManager;
@@ -87,8 +85,7 @@ public class FavoriteQueryService extends BasicService {
     @Qualifier("favoriteRuleService")
     FavoriteRuleService favoriteRuleService;
 
-    @Transaction(project = 1)
-    void insertToDaoAndAccelerateForWhitelistChannel(Set<String> sqlPatterns, String project, String user) {
+    void markFavoriteAndAccelerate(Set<String> sqlPatterns, String project, String user) {
         List<String> sqlsToAccelerate = Lists.newArrayList();
         List<FavoriteQuery> favoriteQueriesToInsert = Lists.newArrayList();
 
@@ -112,7 +109,8 @@ public class FavoriteQueryService extends BasicService {
             handleAccelerate(project, sqlsToAccelerate, user);
     }
 
-    public void manualFavorite(FavoriteRequest request) throws IOException {
+    @Transaction(project = 0)
+    public void manualFavorite(String project, FavoriteRequest request) throws IOException {
         Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
         if (QueryHistory.QUERY_HISTORY_FAILED.equals(request.getQueryStatus()))
             return;
@@ -121,25 +119,8 @@ public class FavoriteQueryService extends BasicService {
         Set<String> sqlPatterns = new HashSet<>();
         sqlPatterns.add(sqlPattern);
         favoriteRuleService.appendSqlToWhitelist(request.getSql(), sqlPattern.hashCode(), request.getProject());
-        favoriteForWhitelistChannel(sqlPatterns, request.getProject());
-    }
-
-    public void favoriteForWhitelistChannel(Set<String> sqlPatterns, String project) {
-        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
         val user = getUsername();
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    UnitOfWork.doInTransactionWithRetry(() -> {
-                        insertToDaoAndAccelerateForWhitelistChannel(sqlPatterns, project, user);
-                        return 0;
-                    }, project);
-                } catch (Exception ex) {
-                    throw new RuntimeException(ex);
-                }
-            }
-        }).start();
+        markFavoriteAndAccelerate(sqlPatterns, project, user);
     }
 
     public List<FavoriteQuery> filterAndSortFavoriteQueries(String project, String sortBy, boolean reverse, List<String> status) {
@@ -277,7 +258,8 @@ public class FavoriteQueryService extends BasicService {
         return getFavoriteQueryManager(project).getUnAcceleratedSqlPattern();
     }
 
-    public void acceptAccelerate(String project, int accelerateSize) throws PersistentException {
+    @Transaction(project = 0)
+    public void acceptAccelerate(String project, int accelerateSize) {
         List<String> unAcceleratedSqlPattern = getUnAcceleratedSqlPattern(project);
         if (accelerateSize > unAcceleratedSqlPattern.size()) {
             throw new IllegalArgumentException(

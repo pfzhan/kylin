@@ -40,7 +40,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
-import io.kyligence.kap.metadata.query.QueryStatisticsResponse;
+import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 import io.kyligence.kap.rest.service.QueryHistoryService;
 import org.apache.commons.io.IOUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -169,8 +169,10 @@ public class NQueryController extends NBasicController {
             @RequestParam(value = "accelerateStatus", required = false) List<String> accelerateStatuses,
             @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
-        QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom, latencyTo, sql, realizations, accelerateStatuses);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryHistoryService.getQueryHistories(request, limit, offset), "");
+        QueryHistoryRequest request = new QueryHistoryRequest(project, startTimeFrom, startTimeTo, latencyFrom,
+                latencyTo, sql, realizations, accelerateStatuses);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                queryHistoryService.getQueryHistories(request, limit, offset), "");
     }
 
     @RequestMapping(value = "/format/{format}", method = RequestMethod.POST, produces = {
@@ -229,13 +231,38 @@ public class NQueryController extends NBasicController {
                 "");
     }
 
-    @RequestMapping(value = "/statistics", method = RequestMethod.GET, params = { "start_time",
+    @RequestMapping(value = "/overview", method = RequestMethod.GET, params = { "start_time",
             "end_time" }, produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse<List<QueryStatisticsResponse>> queryStatistics(
-            @RequestParam("project") String project,
-            @RequestParam("start_time") long startTime,
+    public EnvelopeResponse<List<QueryEngineStatisticsResponse>> queryStatisticsByEngine(
+            @RequestParam("project") String project, @RequestParam("start_time") long startTime,
             @RequestParam("end_time") long endTime) {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, queryService.getQueryStatistics(project, startTime, endTime), "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                queryService.getQueryStatisticsByEngine(project, startTime, endTime), "");
     }
 
+    @RequestMapping(value = "/statistics", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    public EnvelopeResponse getQueryStatistics(@RequestParam("project") String project,
+            @RequestParam("start_time") long startTime, @RequestParam("end_time") long endTime) {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                queryHistoryService.getQueryStatistics(project, startTime, endTime), "");
+    }
+
+    @RequestMapping(value = "/statistics/count", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    public EnvelopeResponse getQueryCount(@RequestParam("project") String project,
+            @RequestParam("start_time") long startTime, @RequestParam("end_time") long endTime,
+            @RequestParam("dimension") String dimension) {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                queryHistoryService.getQueryCount(project, startTime, endTime, dimension), "");
+    }
+
+    @RequestMapping(value = "/statistics/duration", method = RequestMethod.GET, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    public EnvelopeResponse getAvgDuration(@RequestParam("project") String project,
+            @RequestParam("start_time") long startTime, @RequestParam("end_time") long endTime,
+            @RequestParam("dimension") String dimension) {
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                queryHistoryService.getAvgDuration(project, startTime, endTime, dimension), "");
+    }
 }

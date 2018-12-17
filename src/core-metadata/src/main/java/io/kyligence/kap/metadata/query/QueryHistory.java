@@ -90,6 +90,7 @@ public class QueryHistory {
     public static final String ANSWERED_BY = "answered_by";
     public static final String IS_CUBE_HIT = "cube_hit";
     public static final String QUERY_TIME = "query_time";
+    public static final String QUERY_MONTH = "month";
 
     @JsonProperty(SQL_TEXT)
     @Column(name = SQL_TEXT)

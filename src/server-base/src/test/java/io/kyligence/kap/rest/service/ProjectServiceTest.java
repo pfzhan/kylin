@@ -241,7 +241,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         ConcurrentHashMap<String, Object> prjCache = new ConcurrentHashMap<>();
         prjCache.put("default", dao);
         cache.put(QueryHistoryDAO.class, prjCache);
-        Mockito.doReturn(hotCuboidLayoutQueryTimesList).when(dao).getCuboidLayoutQueryTimes("default", 5,
+        Mockito.doReturn(hotCuboidLayoutQueryTimesList).when(dao).getCuboidLayoutQueryTimes(5,
                 CuboidLayoutQueryTimes.class);
 
     }

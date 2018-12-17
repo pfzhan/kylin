@@ -53,7 +53,7 @@ import java.net.UnknownHostException;
 import com.google.common.base.Preconditions;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
-import io.kyligence.kap.metadata.query.QueryStatisticsResponse;
+import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.request.SQLRequest;
@@ -113,9 +113,9 @@ public class KapQueryService extends QueryService {
         super.recordMetric(sqlRequest, sqlResponse);
     }
 
-    public QueryStatisticsResponse getQueryStatistics(String project, long startTime, long endTime) {
+    public QueryEngineStatisticsResponse getQueryStatisticsByEngine(String project, long startTime, long endTime) {
         Preconditions.checkArgument(project != null && !project.isEmpty());
 
-        return QueryStatisticsResponse.valueOf(getQueryHistoryDao(project).getQueryStatistics(startTime, endTime));
+        return QueryEngineStatisticsResponse.valueOf(getQueryHistoryDao(project).getQueryEngineStatistics(startTime, endTime));
     }
 }

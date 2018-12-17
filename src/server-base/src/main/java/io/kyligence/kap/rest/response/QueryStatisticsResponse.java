@@ -22,17 +22,21 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.query;
+package io.kyligence.kap.rest.response;
 
-import io.kyligence.kap.shaded.influxdb.org.influxdb.annotation.Column;
-import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Data
-public class QueryTimesResponse {
+@Getter
+@Setter
+@NoArgsConstructor
+public class QueryStatisticsResponse {
+    private int count;
+    private double mean;
 
-    @Column(name = "model")
-    private String model;
-    @Column(name = "query_times")
-    private int queryTimes;
-
+    public QueryStatisticsResponse(int count, double mean) {
+        this.count = count;
+        this.mean = mean;
+    }
 }
