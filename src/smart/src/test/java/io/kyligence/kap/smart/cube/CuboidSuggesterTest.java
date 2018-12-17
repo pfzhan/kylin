@@ -45,7 +45,47 @@ import io.kyligence.kap.smart.common.NTestBase;
 public class CuboidSuggesterTest extends NTestBase {
 
     @Test
-    public void testSuggestWithoutDimension() throws IOException {
+    public void testAggIndexSuggesetColOrder() throws IOException {
+
+        hideTableExdInfo();
+        String[] sqls = new String[] { "select lstg_format_name, buyer_id, seller_id, sum(price) from kylin_sales "
+                + "where part_dt = '2012-01-03' group by part_dt, lstg_format_name, buyer_id, seller_id" };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        smartMaster.runAll();
+        {
+            NSmartContext ctx = smartMaster.getContext();
+            NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+            final NCubePlan targetCubePlan = mdCtx.getTargetCubePlan();
+            final List<NCuboidDesc> allCuboids = targetCubePlan.getAllCuboids();
+            final List<NCuboidLayout> layouts = allCuboids.get(0).getLayouts();
+            final NCuboidLayout layout = layouts.get(0);
+            Assert.assertEquals("unexpected colOrder", "[7, 0, 3, 9, 1000, 1001]", layout.getColOrder().toString());
+        }
+    }
+
+    @Test
+    public void testTableIndexSuggestColOrder() {
+        String[] sqls = new String[] {
+                "select ops_user_id, ops_region, price from kylin_sales where "
+                        + "ops_user_id = '10009998' order by item_count, lstg_site_id",
+                "select ops_user_id, ops_region, price from kylin_sales where "
+                        + "part_dt = '2012-01-08' order by item_count, lstg_site_id" };
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        smartMaster.runAll();
+
+        NSmartContext ctx = smartMaster.getContext();
+        NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
+        final NCubePlan targetCubePlan = mdCtx.getTargetCubePlan();
+        final List<NCuboidDesc> allCuboids = targetCubePlan.getAllCuboids();
+        final NCuboidLayout layout = allCuboids.get(0).getLayouts().get(0);
+        Assert.assertEquals("unexpected colOrder", "[6, 1, 4, 5, 8]", layout.getColOrder().toString());
+
+        final NCuboidLayout layout2 = allCuboids.get(1).getLayouts().get(0);
+        Assert.assertEquals("unexpected colOrder", "[7, 1, 4, 5, 6, 8]", layout2.getColOrder().toString());
+    }
+
+    @Test
+    public void testSuggestWithoutDimension() {
         String[] sqls = new String[] { "select count(*) from kylin_sales", // count star
                 "select count(price) from kylin_sales", // measure with column
                 "select sum(price) from kylin_sales", //
@@ -88,7 +128,7 @@ public class CuboidSuggesterTest extends NTestBase {
     }
 
     @Test
-    public void testMinMaxForAllTypes() throws IOException {
+    public void testMinMaxForAllTypes() {
         String[] sqls = new String[] { "select min(lstg_format_name), max(lstg_format_name) from kylin_sales",
                 "select min(part_dt), max(part_dt) from kylin_sales",
                 "select lstg_format_name, min(price), max(price) from kylin_sales group by lstg_format_name",
@@ -136,7 +176,7 @@ public class CuboidSuggesterTest extends NTestBase {
     }
 
     @Test
-    public void testSuggestShardBy() throws IOException {
+    public void testSuggestShardBy() {
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
 
@@ -162,7 +202,7 @@ public class CuboidSuggesterTest extends NTestBase {
     }
 
     @Test
-    public void testSuggestSortBy() throws IOException {
+    public void testSuggestSortBy() {
 
         String[] sqls = new String[] { "select part_dt, lstg_format_name, price from kylin_sales order by part_dt" };
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
@@ -185,7 +225,7 @@ public class CuboidSuggesterTest extends NTestBase {
     }
 
     @Test
-    public void testSqlPattern2Layout() throws IOException {
+    public void testSqlPattern2Layout() {
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales "
                         + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name",

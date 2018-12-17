@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart.cube;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -45,7 +44,7 @@ import io.kyligence.kap.smart.common.NTestBase;
 public class NCubeMasterTest extends NTestBase {
 
     @Test
-    public void test() throws IOException {
+    public void test() {
         NSmartContext.NModelContext mdCtx = getModelContext();
         Assert.assertNotNull(mdCtx);
 
@@ -115,7 +114,7 @@ public class NCubeMasterTest extends NTestBase {
                     NCuboidLayout c31 = c.getLayouts().get(0);
                     Assert.assertSame(c31.getCuboidDesc(), c);
                     Assert.assertEquals(4, c31.getColOrder().size());
-                    Assert.assertEquals(new Integer(1), c31.getColOrder().get(0));
+                    Assert.assertEquals(new Integer(7), c31.getColOrder().get(0));
                     Assert.assertEquals("eq", c31.getColIndexType(0));
 
                 } else if (c.getLayouts().size() == 1) {
@@ -127,7 +126,7 @@ public class NCubeMasterTest extends NTestBase {
                     NCuboidLayout c41 = c.getLayouts().get(0);
                     Assert.assertSame(c41.getCuboidDesc(), c);
                     Assert.assertEquals(3, c41.getColOrder().size());
-                    Assert.assertEquals(new Integer(3), c41.getColOrder().get(0));
+                    Assert.assertEquals(new Integer(7), c41.getColOrder().get(0));
                     Assert.assertEquals("eq", c41.getColIndexType(0));
 
                 } else {
@@ -141,7 +140,7 @@ public class NCubeMasterTest extends NTestBase {
         Assert.assertEquals(cp2, cubePlan);
     }
 
-    private NSmartContext.NModelContext getModelContext() throws IOException {
+    private NSmartContext.NModelContext getModelContext() {
         String[] sqls = new String[] { //
                 "select 1", // not effective olap_context
                 "create table a", // not effective olap_context

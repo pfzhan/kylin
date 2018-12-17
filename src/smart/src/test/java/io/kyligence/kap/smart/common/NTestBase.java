@@ -25,10 +25,9 @@
 package io.kyligence.kap.smart.common;
 
 import java.io.File;
-import java.util.Collection;
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -59,9 +58,9 @@ public abstract class NTestBase {
     protected static final Logger logger = LoggerFactory.getLogger(NTestBase.class);
 
     protected String proj = "learn_kylin";
-    protected File tmpMeta;
+    private File tmpMeta;
     protected KylinConfig kylinConfig;
-    protected FavoriteQueryManager favoriteQueryManager;
+    private FavoriteQueryManager favoriteQueryManager;
 
     @Before
     public void setUp() throws Exception {
@@ -81,12 +80,6 @@ public abstract class NTestBase {
         if (tmpMeta != null)
             FileUtils.forceDelete(tmpMeta);
         ResourceStore.clearCache(kylinConfig);
-    }
-
-    protected <T> int countInnerObj(Collection<Collection<T>> collections) {
-        if (collections == null)
-            return 0;
-        return collections.stream().flatMap(Collection::stream).collect(Collectors.toList()).size();
     }
 
     protected List<NCuboidLayout> collectAllLayouts(List<NCuboidDesc> cuboidDescs) {
@@ -127,5 +120,69 @@ public abstract class NTestBase {
         }
 
         favoriteQueryManager.create(favoriteQueries);
+    }
+
+    protected void showTableExdInfo() throws IOException {
+        val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
+        ResourceStore.dumpResources(kylinConfig, tmpMeta, resourceStore.listResourcesRecursively("/"));
+        reAddMetadataTableExd();
+        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
+        kylinConfig.setProperty("kylin.env", "UT");
+        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+        favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
+    }
+
+    protected void hideTableExdInfo() throws IOException {
+        deleteMetadataTableExd();
+        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
+
+        kylinConfig.setProperty("kylin.env", "UT");
+        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+        favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
+    }
+
+    // ================== handle table exd ==============
+    private String tmpTableExdDir;
+
+    private void deleteMetadataTableExd() throws IOException {
+        Preconditions.checkNotNull(tmpMeta, "no valid metadata.");
+        val metaDir = new File(tmpMeta, ImageStore.METADATA_DIR);
+        final File[] files = metaDir.listFiles();
+        Preconditions.checkNotNull(files);
+        for (File file : files) {
+            if (!file.isDirectory() || !file.getName().equals(proj)) {
+                continue;
+            }
+
+            final File[] directories = file.listFiles();
+            Preconditions.checkNotNull(directories);
+            for (File item : directories) {
+                if (item.isDirectory() && item.getName().equals("table_exd")) {
+                    final File destTableExd = new File(metaDir.getParent(), "table_exd");
+                    tmpTableExdDir = destTableExd.getCanonicalPath();
+                    if (destTableExd.exists()) {
+                        FileUtils.forceDelete(destTableExd);
+                    }
+                    FileUtils.moveDirectory(new File(file.getCanonicalPath(), "table_exd"), destTableExd);
+                    return;
+                }
+            }
+        }
+    }
+
+    private void reAddMetadataTableExd() throws IOException {
+        Preconditions.checkNotNull(tmpMeta, "no valid metadata.");
+        val metaDir = new File(tmpMeta, ImageStore.METADATA_DIR);
+        final File[] files = metaDir.listFiles();
+        Preconditions.checkNotNull(files);
+        for (File file : files) {
+            if (file.isDirectory() && file.getName().equals(proj)) {
+                File srcTableExd = new File(tmpTableExdDir);
+                if (srcTableExd.exists()) {
+                    FileUtils.copyDirectory(srcTableExd, new File(file.getCanonicalPath(), "table_exd"));
+                }
+                break;
+            }
+        }
     }
 }

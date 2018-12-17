@@ -189,8 +189,8 @@ public class OLAPContext {
     @Setter
     private boolean hasSelected = false;
     public Set<TblColRef> allColumns = new HashSet<>();
-    public List<TblColRef> groupByColumns = new ArrayList<>();
-    public Set<TblColRef> subqueryJoinParticipants = new HashSet<TblColRef>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
+    public final List<TblColRef> groupByColumns = new ArrayList<>();
+    public final Set<TblColRef> subqueryJoinParticipants = new HashSet<>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
     public Set<TblColRef> metricsColumns = new HashSet<>();
     public List<FunctionDesc> aggregations = new ArrayList<>(); // storage level measure type, on top of which various sql aggr function may apply
     public List<TblColRef> aggrOutCols = new ArrayList<>(); // aggregation output (inner) columns
@@ -233,7 +233,7 @@ public class OLAPContext {
                     Sets.newHashSet(involvedMeasure));
         return sqlDigest;
     }
-    
+
     public String getFirstTableIdentity() {
         return firstTableScan.getTableRef().getTableIdentity();
     }
@@ -241,7 +241,7 @@ public class OLAPContext {
     public boolean isFirstTableLookupTableInModel(NDataModel model) {
         return joins.isEmpty() && model.isLookupTable(getFirstTableIdentity());
     }
-     
+
     public boolean hasPrecalculatedFields() {
         NLayoutCandidate candidate = storageContext.getCandidate();
         if (candidate == null) {

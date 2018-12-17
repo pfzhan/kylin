@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,11 +34,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.commons.collections.CollectionUtils;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -61,7 +58,7 @@ public class NSmartMasterTest extends NTestBase {
 
     // Test shrink model/cube_plan process may contaminate the original model/cube_plan or not
     @Test
-    public void testShrinkIsolation() throws Exception {
+    public void testShrinkIsolation() {
         String[] sqlStatements = new String[] {
                 "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" };
         NDataModel originalModel1, originalModel2, targetModel1, targetModel2, targetModel3;
@@ -137,7 +134,7 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     @Test
-    public void testRenameModel() throws Exception {
+    public void testRenameModel() {
         NDataModel model1, model2, model3;
         {
             String[] sqlStatements = new String[] {
@@ -165,7 +162,7 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     @Test
-    public void testSaveAccelerateInfo() throws IOException {
+    public void testSaveAccelerateInfo() {
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales "
                         + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name",
@@ -214,7 +211,7 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     @Test
-    public void testCountDistinctTwoParamColumn() throws IOException {
+    public void testCountDistinctTwoParamColumn() {
         /*
          * case 1:
          */
@@ -267,7 +264,7 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     @Test
-    public void testSaveAccelerateInfoOfOneSqlToManyLayouts() throws IOException {
+    public void testSaveAccelerateInfoOfOneSqlToManyLayouts() {
         String[] sqls = new String[] { "select a.*, kylin_sales.lstg_format_name as lstg_format_name \n"
                 + "from ( select part_dt, sum(price) as sum_price from kylin_sales\n"
                 + "         where part_dt > '2010-01-01' group by part_dt) a \n"
@@ -296,7 +293,7 @@ public class NSmartMasterTest extends NTestBase {
      * Refer to: <ref>NCuboidRefresherTest.testParallelTimeLineRetryWithMultiThread()</ref>
      */
     @Test
-    public void testRefreshCubePlanWithRetry() throws IOException, ExecutionException, InterruptedException {
+    public void testRefreshCubePlanWithRetry() throws ExecutionException, InterruptedException {
         String[] sqlsA = new String[] {
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales "
                         + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name",
@@ -326,29 +323,9 @@ public class NSmartMasterTest extends NTestBase {
         smartMasterC.runAll();
 
         ExecutorService service = Executors.newCachedThreadPool();
-        Future futureA = service.submit(() -> {
-            try {
-                refreshCubePlanWithRetry(smartMasterA);
-            } catch (IOException e) {
-                Assert.fail();
-            }
-        });
-
-        Future futureB = service.submit(() -> {
-            try {
-                refreshCubePlanWithRetry(smartMasterB);
-            } catch (IOException e) {
-                Assert.fail();
-            }
-        });
-
-        Future futureC = service.submit(() -> {
-            try {
-                refreshCubePlanWithRetry(smartMasterC);
-            } catch (IOException e) {
-                Assert.fail();
-            }
-        });
+        Future futureA = service.submit(smartMasterA::refreshCubePlanWithRetry);
+        Future futureB = service.submit(smartMasterB::refreshCubePlanWithRetry);
+        Future futureC = service.submit(smartMasterC::refreshCubePlanWithRetry);
 
         futureA.get();
         futureB.get();
@@ -363,20 +340,7 @@ public class NSmartMasterTest extends NTestBase {
         Assert.assertEquals(6, collectAllLayouts(allCuboids).size());
     }
 
-    // TODO if fixed  #7844 delete this method
-    private void refreshCubePlanWithRetry(NSmartMaster smartMaster) throws IOException {
-        try {
-            KylinConfig externalConfig = smartMaster.getContext().getKylinConfig();
-            KylinConfig.setKylinConfigThreadLocal(externalConfig);
-            smartMaster.refreshCubePlanWithRetry();
-        } catch (InterruptedException e) {
-            logger.error("thread interrupted exception", e);
-            Assert.fail();
-        }
-    }
-
     @Test
-    @Ignore("not always failed")
     public void testRefreshCubePlanWithRetryFail() {
         kylinConfig.setProperty("kap.smart.conf.propose.retry-max", "0");
         try {
@@ -390,7 +354,7 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     @Test
-    public void testMaintainModelTypeWithNoInitialModel() throws IOException {
+    public void testMaintainModelTypeWithNoInitialModel() {
         // set to manual model type
         final NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
         final ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject(proj));
@@ -441,7 +405,7 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     @Test
-    public void testMaintainModelType() throws IOException {
+    public void testMaintainModelType() {
         String[] sqls = new String[] { //
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales "
                         + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
@@ -572,7 +536,7 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     @Test
-    public void testInitTargetModelError() throws IOException {
+    public void testInitTargetModelError() {
         String[] sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from kylin_sales \n"
                 + " left join kylin_cal_dt on cal_dt = part_dt \n"
                 + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
@@ -602,7 +566,7 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     @Test
-    public void testInitTargetCubePlanError() throws IOException {
+    public void testInitTargetCubePlanError() {
         String[] sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from kylin_sales \n"
                 + " left join kylin_cal_dt on cal_dt = part_dt \n"
                 + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
@@ -674,7 +638,7 @@ public class NSmartMasterTest extends NTestBase {
         Assert.assertEquals("TEST_ACCOUNT_1.ACCOUNT_COUNTRY", namedColumn2);
     }
 
-    private NDataModel proposeModel(String[] sqlStatements) throws Exception {
+    private NDataModel proposeModel(String[] sqlStatements) {
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqlStatements);
         smartMaster.analyzeSQLs();
         smartMaster.selectModel();

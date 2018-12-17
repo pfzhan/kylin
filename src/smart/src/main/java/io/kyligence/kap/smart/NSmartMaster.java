@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -137,7 +136,7 @@ public class NSmartMaster {
         proposerProvider.getCubePlanRefreshProposer().propose();
     }
 
-    public void refreshCubePlanWithRetry() throws IOException, InterruptedException {
+    public void refreshCubePlanWithRetry() {
         int maxRetry = context.getSmartConfig().getProposeRetryMax();
         for (int i = 0; i <= maxRetry; i++) {
             try {
@@ -194,8 +193,7 @@ public class NSmartMaster {
             NCubePlan cubePlan = modelCtx.getTargetCubePlan();
             if (cubePlanManager.getCubePlan(cubePlan.getName()) == null) {
                 cubePlanManager.createCubePlan(cubePlan);
-                dataflowManager.createDataflow(cubePlan.getName(), cubePlan,
-                        cubePlan.getModel().getOwner());
+                dataflowManager.createDataflow(cubePlan.getName(), cubePlan, cubePlan.getModel().getOwner());
                 continue;
             }
 

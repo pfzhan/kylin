@@ -24,7 +24,6 @@
 
 package io.kyligence.kap.smart.cube;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.List;
@@ -35,10 +34,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.image.ImageStore;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -51,12 +47,10 @@ import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.NTestBase;
-import io.kyligence.kap.smart.query.Utils;
 import lombok.val;
 
 public class NCuboidRefresherTest extends NTestBase {
@@ -94,7 +88,7 @@ public class NCuboidRefresherTest extends NTestBase {
 
             final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
             final NCuboidLayout layout = layouts.get(0);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
 
@@ -125,7 +119,7 @@ public class NCuboidRefresherTest extends NTestBase {
 
             final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
             final NCuboidLayout layout = layouts.get(0);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
 
@@ -167,7 +161,7 @@ public class NCuboidRefresherTest extends NTestBase {
 
             final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
             final NCuboidLayout layout = layouts.get(0);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 1000, 1001]", layout.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 1000, 1001]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", 1, layout.getId());
 
@@ -241,7 +235,7 @@ public class NCuboidRefresherTest extends NTestBase {
             List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();
             final List<NCuboidLayout> allLayouts = collectAllLayouts(cuboidDescs);
             Assert.assertEquals("unmatched cuboids size", 3, cuboidDescs.size());
-            Assert.assertEquals("unmatched layouts size", 3, allLayouts.size());
+            Assert.assertEquals("unmatched layouts size", 4, allLayouts.size());
 
             val realizations = collectFavoriteQueryRealizations(allLayouts);
             Assert.assertEquals(4, realizations.size());
@@ -360,13 +354,13 @@ public class NCuboidRefresherTest extends NTestBase {
 
             final List<NCuboidLayout> layoutsAfterRefreshA = cuboidDescs.get(0).getLayouts();
             final NCuboidLayout layout = layoutsAfterRefreshA.get(0);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 1, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout.getId());
             Assert.assertEquals("unexpected draft version", draftVersionB, layout.getDraftVersion());
 
             final NCuboidLayout layout2 = layoutsAfterRefreshA.get(1);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout2.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
@@ -412,13 +406,13 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched layouts size", 2, layoutsAfterRefreshB.size());
 
             final NCuboidLayout layout = layoutsAfterRefreshB.get(0);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
 
             final NCuboidLayout layout2 = layoutsAfterRefreshB.get(1);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout2.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 1, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 4, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
@@ -503,13 +497,13 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched layouts size", 2, layoutsAfterRefreshB.size());
 
             final NCuboidLayout layout = layoutsAfterRefreshB.get(0);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
             Assert.assertEquals("unexpected draft id", draftVersionA, layout.getDraftVersion());
 
             final NCuboidLayout layout2 = layoutsAfterRefreshB.get(1);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout2.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 1, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
@@ -554,13 +548,13 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched layouts size", 2, layoutsAfterRefreshA.size());
 
             final NCuboidLayout layout = layoutsAfterRefreshA.get(0);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 1, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
 
             final NCuboidLayout layout2 = layoutsAfterRefreshA.get(1);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout2.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
@@ -625,7 +619,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched layouts size", 1, layoutsAfterRefreshA.size());
 
             final NCuboidLayout layout = layoutsAfterRefreshA.get(0);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
@@ -684,13 +678,13 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched layouts size", 2, layoutsAfterRefreshB.size());
 
             final NCuboidLayout layout = layoutsAfterRefreshB.get(0);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
 
             final NCuboidLayout layout2 = layoutsAfterRefreshB.get(1);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout2.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 1, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
@@ -777,7 +771,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched layouts size", 1, layoutsAfterRefreshA.size());
 
             final NCuboidLayout layout = layoutsAfterRefreshA.get(0);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
@@ -816,7 +810,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched layouts size", 1, cuboidDesc.getLayouts().size());
 
             final NCuboidLayout layout = cuboidDesc.getLayouts().get(0);
-            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
@@ -827,7 +821,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched layouts size", 1, cuboidDesc2.getLayouts().size());
 
             final NCuboidLayout layout2 = cuboidDesc2.getLayouts().get(0);
-            Assert.assertEquals("unexpected colOrder", "[1, 3, 7, 8]", layout2.getColOrder().toString());
+            Assert.assertEquals("unexpected colOrder", "[7, 1, 3, 8]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected override indices", 0, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + NCuboidDesc.CUBOID_DESC_ID_STEP + 1,
                     layout2.getId());
@@ -1075,13 +1069,13 @@ public class NCuboidRefresherTest extends NTestBase {
         Assert.assertEquals("unmatched layouts size", 2, allLayouts.size());
 
         final NCuboidLayout layout1 = allLayouts.get(0);
-        Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout1.getColOrder().toString());
+        Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout1.getColOrder().toString());
         Assert.assertEquals("unexpected override indices", 1, layout1.getLayoutOverrideIndices().size());
         Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout1.getId());
         Assert.assertNull("not published error", layout1.getDraftVersion());
 
         final NCuboidLayout layout2 = allLayouts.get(1);
-        Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout2.getColOrder().toString());
+        Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout2.getColOrder().toString());
         Assert.assertEquals("unexpected override indices", 0, layout2.getLayoutOverrideIndices().size());
         Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout2.getId());
         Assert.assertNull("not published error", layout2.getDraftVersion());
@@ -1136,70 +1130,6 @@ public class NCuboidRefresherTest extends NTestBase {
             Preconditions.checkNotNull(layouts);
             for (NCuboidLayout layout : layouts) {
                 Assert.assertEquals(draftVersion, layout.getDraftVersion());
-            }
-        }
-    }
-
-    private void showTableExdInfo() throws IOException {
-        val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-        ResourceStore.dumpResources(kylinConfig, tmpMeta, resourceStore.listResourcesRecursively("/"));
-        reAddMetadataTableExd();
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
-        kylinConfig.setProperty("kylin.env", "UT");
-        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
-        favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
-    }
-
-    private void hideTableExdInfo() throws IOException {
-        deleteMetadataTableExd();
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
-
-        kylinConfig.setProperty("kylin.env", "UT");
-        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
-        favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
-    }
-
-    // ================== handle table exd ==============
-    private String tmpTableExdDir;
-
-    private void deleteMetadataTableExd() throws IOException {
-        Preconditions.checkNotNull(tmpMeta, "no valid metadata.");
-        val metaDir = new File(tmpMeta, ImageStore.METADATA_DIR);
-        final File[] files = metaDir.listFiles();
-        Preconditions.checkNotNull(files);
-        for (File file : files) {
-            if (!file.isDirectory() || !file.getName().equals(proj)) {
-                continue;
-            }
-
-            final File[] directories = file.listFiles();
-            Preconditions.checkNotNull(directories);
-            for (File item : directories) {
-                if (item.isDirectory() && item.getName().equals("table_exd")) {
-                    final File destTableExd = new File(metaDir.getParent(), "table_exd");
-                    tmpTableExdDir = destTableExd.getCanonicalPath();
-                    if (destTableExd.exists()) {
-                        FileUtils.forceDelete(destTableExd);
-                    }
-                    FileUtils.moveDirectory(new File(file.getCanonicalPath(), "table_exd"), destTableExd);
-                    return;
-                }
-            }
-        }
-    }
-
-    private void reAddMetadataTableExd() throws IOException {
-        Preconditions.checkNotNull(tmpMeta, "no valid metadata.");
-        val metaDir = new File(tmpMeta, ImageStore.METADATA_DIR);
-        final File[] files = metaDir.listFiles();
-        Preconditions.checkNotNull(files);
-        for (File file : files) {
-            if (file.isDirectory() && file.getName().equals(proj)) {
-                File srcTableExd = new File(tmpTableExdDir);
-                if (srcTableExd.exists()) {
-                    FileUtils.copyDirectory(srcTableExd, new File(file.getCanonicalPath(), "table_exd"));
-                }
-                break;
             }
         }
     }
