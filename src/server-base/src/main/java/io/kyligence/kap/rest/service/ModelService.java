@@ -830,7 +830,7 @@ public class ModelService extends BasicService {
         }
     }
 
-    @Transaction(project = 0)
+    @Transaction(project = 1)
     public void refreshSegmentById(String modelName, String project, String[] ids) {
         NDataflowManager dfMgr = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);

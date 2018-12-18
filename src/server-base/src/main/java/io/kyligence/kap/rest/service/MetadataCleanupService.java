@@ -51,10 +51,7 @@ public class MetadataCleanupService {
         for (ProjectInstance project : projectManager.listAllProjects()) {
             log.info("Start garbage collection for project<{}>", project.getName());
             try {
-                UnitOfWork.doInTransactionWithRetry(() -> {
-                    cleanupProject(project);
-                    return 0;
-                }, project.getName());
+                cleanupProject(project);
             } catch (Exception e) {
                 log.warn("clean project<" + project.getName() + "> failed", e);
             }
@@ -63,18 +60,21 @@ public class MetadataCleanupService {
     }
 
     public void cleanupProject(ProjectInstance project) throws Exception {
-        val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName());
-        val favoriteQueryCleaner = new FavoriteQueryCleaner(project);
-        val dataflowCleaner = new DataflowCleaner();
-        val cleaners = Lists.newArrayList(favoriteQueryCleaner, dataflowCleaner);
-        for (NDataModel model : modelManager.getDataModels()) {
-            for (GarbageCleaner cleaner : cleaners) {
-                cleaner.collect(model);
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName());
+            val favoriteQueryCleaner = new FavoriteQueryCleaner(project);
+            val dataflowCleaner = new DataflowCleaner();
+            val cleaners = Lists.newArrayList(favoriteQueryCleaner, dataflowCleaner);
+            for (NDataModel model : modelManager.getDataModels()) {
+                for (GarbageCleaner cleaner : cleaners) {
+                    cleaner.collect(model);
+                }
             }
-        }
-        for (GarbageCleaner cleaner : cleaners) {
-            cleaner.cleanup();
-        }
+            for (GarbageCleaner cleaner : cleaners) {
+                cleaner.cleanup();
+            }
+            return 0;
+        }, project.getName());
     }
 
 }

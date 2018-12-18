@@ -196,6 +196,7 @@ public class ProjectService extends BasicService {
         return response;
     }
 
+    @Transaction(project = 0)
     public void cleanupProjectGarbageIndex(String project) throws IOException {
         val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE);
         val collector = new ProjectStorageInfoCollector(storageInfoEnumList);
@@ -218,6 +219,7 @@ public class ProjectService extends BasicService {
         }
     }
 
+    @Transaction(project = 0)
     public void updateStorageQuotaConfig(String project, long storageQuotaSize) throws IOException {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         long storageQuotaSizeGB = storageQuotaSize / (1024 * 1024 * 1024);
