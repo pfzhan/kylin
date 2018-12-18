@@ -31,6 +31,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.List;
 
+import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.IllegalStateTranferException;
 import org.junit.After;
@@ -143,7 +144,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testDiscardAndDropJob() throws IOException {
+    public void testDiscardAndDropJob() throws IOException, InterruptedException {
         BaseTestExecutable executable = new SucceedTestExecutable();
         executable.setParam("test1", "test1");
         executable.setParam("test2", "test2");
@@ -151,6 +152,13 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         executable.setProject("default");
         manager.addJob(executable);
         manager.discardJob(executable.getId());
+
+        val duration = AbstractExecutable.getDurationIncludingPendingTime(executable.getCreateTime(), executable.getEndTime(),
+                executable.getInterruptTime());
+        Thread.sleep(3000);
+        Assert.assertEquals(duration, AbstractExecutable.getDurationIncludingPendingTime(executable.getCreateTime(),
+                executable.getEndTime(), executable.getInterruptTime()));
+
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.DISCARDED));
         manager.deleteJob(executable.getId());
         List<AbstractExecutable> executables = manager.getAllExecutables();
@@ -158,7 +166,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testResumeAndPauseJob() throws IOException {
+    public void testResumeAndPauseJob() throws IOException, InterruptedException {
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         SucceedTestExecutable executable = new SucceedTestExecutable();
         job.addTask(executable);
@@ -172,6 +180,12 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.resumeJob(job.getId());
         Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.READY));
         manager.pauseJob(job.getId());
+        Assert.assertTrue(job.getEndTime() != 0);
+        val duration = AbstractExecutable.getDurationIncludingPendingTime(job.getCreateTime(), job.getEndTime(),
+                job.getInterruptTime());
+        Thread.sleep(3000);
+        Assert.assertEquals(duration, AbstractExecutable.getDurationIncludingPendingTime(job.getCreateTime(),
+                job.getEndTime(), job.getInterruptTime()));
         manager.resumeJob(job.getId());
         Assert.assertTrue(anotherJob.getStatus().equals(ExecutableState.READY));
     }

@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import lombok.val;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -201,7 +202,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         if (startTime > 0) {
             updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null);
         } else {
-            Map<String, String> info = Maps.newHashMap();
+            val info = Maps.newHashMap(getManager().getOutput(getId()).getExtra());
             info.put(START_TIME, Long.toString(System.currentTimeMillis()));
             updateJobOutput(project, getId(), ExecutableState.RUNNING, info, null);
         }
@@ -517,6 +518,14 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
             return System.currentTimeMillis() - startTime - interruptTime;
         } else {
             return endTime - startTime - interruptTime;
+        }
+    }
+
+    public static long getDurationIncludingPendingTime(long createTime, long endTime, long interruptTime) {
+        if (endTime == 0) {
+            return System.currentTimeMillis() - createTime - interruptTime;
+        } else {
+            return endTime - createTime - interruptTime;
         }
     }
 

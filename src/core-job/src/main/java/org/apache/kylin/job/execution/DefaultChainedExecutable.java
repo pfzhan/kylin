@@ -22,6 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+ 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -107,8 +108,10 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         NExecutableManager mgr = getManager();
 
         if (isDiscarded()) {
+            setEndTime(result);
             notifyUserStatusChange(executableContext, ExecutableState.DISCARDED);
         } else if (isPaused()) {
+            setEndTime(result);
             notifyUserStatusChange(executableContext, ExecutableState.STOPPED);
         } else if (result.succeed()) {
             List<? extends Executable> jobs = getTasks();

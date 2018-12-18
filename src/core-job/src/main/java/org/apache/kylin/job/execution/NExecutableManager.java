@@ -303,7 +303,8 @@ public class NExecutableManager {
             final long endTime = job.getEndTime();
             if (endTime != 0) {
                 long interruptTime = System.currentTimeMillis() - endTime + job.getInterruptTime();
-                info = Maps.newHashMap(getJobOutput(jobId).getInfo());
+                val path = pathOfOutput(jobId, project);
+                info = Maps.newHashMap(getJobOutput(path).getInfo());
                 info.put(AbstractExecutable.INTERRUPT_TIME, Long.toString(interruptTime));
                 info.remove(AbstractExecutable.END_TIME);
             }
@@ -325,7 +326,9 @@ public class NExecutableManager {
                 }
             }
         }
-        updateJobOutput(jobId, ExecutableState.DISCARDED, null, null);
+        val info = Maps.newHashMap(getJobOutput(pathOfOutput(jobId, project)).getInfo());
+        info.put(AbstractExecutable.END_TIME, Long.toString(System.currentTimeMillis()));
+        updateJobOutput(jobId, ExecutableState.DISCARDED, info, null);
     }
 
     public void pauseJob(String jobId) {
@@ -333,8 +336,9 @@ public class NExecutableManager {
         if (job == null) {
             return;
         }
-
-        updateJobOutput(jobId, ExecutableState.STOPPED, null, null);
+        val info = Maps.newHashMap(getJobOutput(pathOfOutput(jobId, project)).getInfo());
+        info.put(AbstractExecutable.END_TIME, Long.toString(System.currentTimeMillis()));
+        updateJobOutput(jobId, ExecutableState.STOPPED, info, null);
     }
 
     public ExecutableOutputPO getJobOutput(String path) {
@@ -353,11 +357,7 @@ public class NExecutableManager {
             jobOutput.setStatus(newStatus.toString());
         }
         if (info != null) {
-            if (jobOutput.getInfo() != null) {
-                jobOutput.getInfo().putAll(info);
-            } else {
-                jobOutput.setInfo(info);
-            }
+            jobOutput.setInfo(info);
         }
         if (output != null) {
             jobOutput.setContent(output);
