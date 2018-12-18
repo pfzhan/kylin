@@ -246,4 +246,5 @@ public class NDataSegDetails extends RootPersistentEntity implements Serializabl
         return "/" + project + NDataSegDetails.DATAFLOW_DETAILS_RESOURCE_ROOT + "/" + dataflowName + "/" + uuid
                 + MetadataConstants.FILE_SURFIX;
     }
+
 }

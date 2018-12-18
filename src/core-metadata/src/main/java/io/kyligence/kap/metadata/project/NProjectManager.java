@@ -84,8 +84,6 @@ public class NProjectManager {
                 return entity;
             }
         };
-
-        crud.reloadAll();
     }
 
     public List<ProjectInstance> listAllProjects() {

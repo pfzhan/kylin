@@ -139,6 +139,12 @@ public class NCubePlan extends RootPersistentEntity implements Serializable, IEn
     @JsonProperty("dictionaries")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<NDictionaryDesc> dictionaries;
+    @Getter
+    @JsonProperty("next_aggregate_index_id")
+    private long nextAggregateIndexId = 0;
+    @Getter
+    @JsonProperty("next_table_index_id")
+    private long nextTableIndexId = NCuboidDesc.TABLE_INDEX_START_ID;
 
     // computed fields below
     private String project;
@@ -472,7 +478,10 @@ public class NCubePlan extends RootPersistentEntity implements Serializable, IEn
         }
         mergedCuboids.forEach(value -> {
             value.setCubePlan(this);
-            value.init();
+            if (this.project != null) {
+                // project is null means this is not initialized
+                value.init();
+            }
         });
         return mergedCuboids;
     }
@@ -545,32 +554,36 @@ public class NCubePlan extends RootPersistentEntity implements Serializable, IEn
     public void setCuboids(List<NCuboidDesc> cuboids) {
         checkIsNotCachedAndShared();
         this.cuboids = cuboids;
+        updateNextId();
     }
 
-    public void setRuleBasedCuboidsDesc(NRuleBasedCuboidsDesc ruleBasedCuboidsDesc) {
+    public void setRuleBasedCuboidsDesc(NRuleBasedCuboidsDesc newRuleBasedCuboidsDesc, boolean reuseStartId) {
         checkIsNotCachedAndShared();
-        ruleBasedCuboidsDesc.setCuboidStartId(nextId());
-        ruleBasedCuboidsDesc.setCubePlan(this);
-        ruleBasedCuboidsDesc.init();
-        ruleBasedCuboidsDesc.genCuboidLayouts();
-        this.ruleBasedCuboidsDesc = ruleBasedCuboidsDesc;
+        newRuleBasedCuboidsDesc.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasureMap().keySet()));
+        newRuleBasedCuboidsDesc
+                .setCuboidStartId(reuseStartId ? newRuleBasedCuboidsDesc.getCuboidStartId() : nextAggregateIndexId);
+        newRuleBasedCuboidsDesc.setCubePlan(this);
+        newRuleBasedCuboidsDesc.init();
+        newRuleBasedCuboidsDesc.genCuboidLayouts(
+                this.ruleBasedCuboidsDesc == null ? Sets.newHashSet() : this.ruleBasedCuboidsDesc.genCuboidLayouts());
+        this.ruleBasedCuboidsDesc = newRuleBasedCuboidsDesc;
+        this.ruleBasedLayouts = Lists.newArrayList(this.ruleBasedCuboidsDesc.genCuboidLayouts());
+        updateNextId();
     }
 
-    public void setNewRuleBasedCuboid(NRuleBasedCuboidsDesc newRuleBasedCuboid) {
-        if (ruleBasedCuboidsDesc == null) {
-            setRuleBasedCuboidsDesc(new NRuleBasedCuboidsDesc());
-        }
-        newRuleBasedCuboid.setMeasures(Lists.newArrayList(getModel().getEffectiveMeasureMap().keySet()));
-        newRuleBasedCuboid.setCuboidStartId(nextId());
-        newRuleBasedCuboid.setCubePlan(this);
-        newRuleBasedCuboid.init();
-        ruleBasedCuboidsDesc.setNewRuleBasedCuboid(newRuleBasedCuboid);
-        ruleBasedCuboidsDesc.genCuboidLayouts();
+    public void setRuleBasedCuboidsDesc(NRuleBasedCuboidsDesc newRuleBasedCuboidsDesc) {
+        setRuleBasedCuboidsDesc(newRuleBasedCuboidsDesc, false);
     }
 
-    private long nextId() {
-        return getAllCuboids().stream().map(NCuboidDesc::getId).filter(id -> id < NCuboidDesc.TABLE_INDEX_START_ID)
-                .mapToLong(i -> i).max().orElse(-NCuboidDesc.CUBOID_DESC_ID_STEP) + NCuboidDesc.CUBOID_DESC_ID_STEP;
+    private void updateNextId() {
+        nextAggregateIndexId = Math.max(
+                getAllCuboids().stream().filter(c -> !c.isTableIndex()).mapToLong(NCuboidDesc::getId).max()
+                        .orElse(-NCuboidDesc.CUBOID_DESC_ID_STEP) + NCuboidDesc.CUBOID_DESC_ID_STEP,
+                nextAggregateIndexId);
+        nextTableIndexId = Math
+                .max(getAllCuboids().stream().filter(NCuboidDesc::isTableIndex).mapToLong(NCuboidDesc::getId).max()
+                        .orElse(NCuboidDesc.TABLE_INDEX_START_ID - NCuboidDesc.CUBOID_DESC_ID_STEP)
+                        + NCuboidDesc.CUBOID_DESC_ID_STEP, nextTableIndexId);
     }
 
     public void setName(String name) {

@@ -35,7 +35,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Sets;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -52,6 +51,7 @@ import org.springframework.stereotype.Service;
 import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
@@ -199,7 +199,7 @@ public class ModelSemanticHelper extends BasicService {
 
         // compare originModel and expectedModel's existing allNamedColumn
         val originExistMap = toExistMap.apply(originModel.getAllNamedColumns());
-        val newCols = Lists.<NDataModel.NamedColumn>newArrayList();
+        val newCols = Lists.<NDataModel.NamedColumn> newArrayList();
         compareAndUpdateColumns(originExistMap, toExistMap.apply(expectedModel.getAllNamedColumns()), newCols::add,
                 oldCol -> oldCol.setStatus(NDataModel.ColumnStatus.TOMB),
                 (olCol, newCol) -> olCol.setName(newCol.getName()));
@@ -306,10 +306,12 @@ public class ModelSemanticHelper extends BasicService {
         }
         // measure changed: does not matter to auto created cuboids' data, need refresh rule based cuboids
         if (!measuresNotChanged) {
-            handleMeasuresChanged(matchingCubePlan, newModel.getEffectiveMeasureMap().keySet(), (cube, rule) -> {
-                cube.setNewRuleBasedCuboid(rule);
-                handleCubeUpdateRule(project, model, cube.getName());
-            }, cubeMgr);
+            val oldRule = matchingCubePlan.getRuleBasedCuboidsDesc();
+            handleMeasuresChanged(matchingCubePlan, newModel.getEffectiveMeasureMap().keySet(),
+                    (copyForWrite, rule) -> {
+                        copyForWrite.setRuleBasedCuboidsDesc(rule);
+                        handleCubeUpdateRule(project, model, oldRule, rule);
+                    }, cubeMgr);
         }
         // dimension deleted: previous step is remove dimensions in rule,
         //   so we only remove the auto created cuboids
@@ -339,13 +341,13 @@ public class ModelSemanticHelper extends BasicService {
             try {
                 val newRule = JsonUtil.deepCopy(copyForWrite.getRuleBasedCuboidsDesc(), NRuleBasedCuboidsDesc.class);
                 newRule.setMeasures(Lists.newArrayList(measures));
+                newRule.setLayoutIdMapping(Lists.newArrayList());
                 descConsumer.accept(copyForWrite, newRule);
             } catch (IOException e) {
                 log.warn("copy rule failed ", e);
             }
         });
-        return savedCube.getRuleBasedCuboidsDesc() != null
-                && savedCube.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid() != null;
+        return savedCube.getRuleBasedCuboidsDesc() != null;
     }
 
     private void removeUselessDimensions(NCubePlan cube, Set<Integer> availableDimensions, boolean triggerEvent,
@@ -397,20 +399,14 @@ public class ModelSemanticHelper extends BasicService {
         eventManager.post(postAddCuboidEvent);
     }
 
-    public void handleCubeUpdateRule(String project, String model, String cubePlanName) {
+    public void handleCubeUpdateRule(String project, String model, NRuleBasedCuboidsDesc oldRule,
+            NRuleBasedCuboidsDesc newRule) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val cubePlanManager = getCubePlanManager(project);
-        val dataflowManager = getDataflowManager(project);
-        val ruleBasedCuboidDesc = cubePlanManager.getCubePlan(cubePlanName).getRuleBasedCuboidsDesc();
-        val newRuleBasedCuboidDesc = ruleBasedCuboidDesc.getNewRuleBasedCuboid();
         val eventManager = EventManager.getInstance(kylinConfig, project);
-        if (newRuleBasedCuboidDesc == null) {
-            log.debug("There is no new rule");
-            return;
-        }
+        val cubePlanName = newRule.getCubePlan().getName();
 
-        val originLayouts = ruleBasedCuboidDesc.genCuboidLayouts(false);
-        val targetLayouts = ruleBasedCuboidDesc.getNewRuleBasedCuboid().genCuboidLayouts(false);
+        val originLayouts = oldRule == null ? Sets.<NCuboidLayout> newHashSet() : oldRule.genCuboidLayouts();
+        val targetLayouts = newRule.genCuboidLayouts();
 
         if (!onlyRemoveMeasures(originLayouts, targetLayouts)) {
             val difference = Maps.difference(Maps.asMap(originLayouts, Functions.identity()),
@@ -433,19 +429,6 @@ public class ModelSemanticHelper extends BasicService {
                 eventManager.post(postAddCuboidEvent);
             }
 
-            // old cuboid
-            if (difference.entriesOnlyOnLeft().size() > 0) {
-                val cube = cubePlanManager.getCubePlan(cubePlanName);
-                val layoutIds = Sets.<Long> newHashSet();
-                for (NCuboidLayout removedLayout : difference.entriesOnlyOnLeft().keySet()) {
-                    layoutIds.add(removedLayout.getId());
-                }
-                cube.getWhitelistCuboidLayouts().forEach(l -> {
-                    layoutIds.remove(l.getId());
-                });
-                val df = dataflowManager.getDataflow(cubePlanName);
-                dataflowManager.removeLayouts(df, layoutIds);
-            }
         }
     }
 

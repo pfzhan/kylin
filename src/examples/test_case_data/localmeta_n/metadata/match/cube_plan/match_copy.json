@@ -66,6 +66,8 @@
   ],
   "override_properties": {
   },
+  "next_aggregate_index_id": 1000,
+  "next_table_index_id": 20000000000,
   "segment_range_start": 0,
   "segment_range_end": 9223372036854775807,
   "auto_merge_time_ranges": null,

@@ -175,7 +175,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
                                         + "            [4,6]\n" + "          ]\n" + "        }\n" + "}",
                                 NAggregationGroup.class);
                 newRule.setAggregationGroups(Lists.newArrayList(group1));
-                copyForWrite.setNewRuleBasedCuboid(newRule);
+                copyForWrite.setRuleBasedCuboidsDesc(newRule);
             } catch (IOException ignore) {
             }
         });

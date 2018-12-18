@@ -33,7 +33,6 @@ import org.apache.kylin.job.execution.ExecutableState;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.event.model.EventContext;
@@ -93,7 +92,6 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
             merger.mergeAnalysis(dataflowName, analysisResourceStore);
 
             handleFavoriteQuery(project, sqlList);
-            handleCubePlan(project, event.getCubePlanName());
 
             finishEvent(project, event.getId());
             return null;
@@ -113,29 +111,11 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
             }
 
             handleFavoriteQuery(project, sqlList);
-            handleCubePlan(project, event.getCubePlanName());
 
             finishEvent(project, event.getId());
 
             return null;
         }, project);
-    }
-
-    private void handleCubePlan(String project, String cubePlanName) {
-        val kylinConfig = KylinConfig.getInstanceFromEnv();
-
-        val cubePlanManager = NCubePlanManager.getInstance(kylinConfig, project);
-        cubePlanManager.updateCubePlan(cubePlanName, copyForWrite -> {
-            val oldRule = copyForWrite.getRuleBasedCuboidsDesc();
-            if (oldRule == null) {
-                return;
-            }
-            val newRule = oldRule.getNewRuleBasedCuboid();
-            if (newRule == null) {
-                return;
-            }
-            copyForWrite.setRuleBasedCuboidsDesc(newRule);
-        });
     }
 
     private void handleFavoriteQuery(String project, List<String> sqlList) {

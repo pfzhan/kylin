@@ -552,6 +552,8 @@
       "builder": "org.apache.kylin.dict.NGlobalDictionaryBuilder2"
     }
   ],
+  "next_aggregate_index_id": 1013000,
+  "next_table_index_id": 20000003000,
   "override_properties": {},
   "segment_range_start": 0,
   "segment_range_end": 9223372036854775807,

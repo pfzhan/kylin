@@ -115,7 +115,7 @@ public class UnitOfWork {
                 if (isIndependentTransaction) {
                     try {
                         UnitOfWork.get().unlock();
-                    } catch (IllegalMonitorStateException e) {
+                    } catch (IllegalStateException e) {
                         //has not hold the lock yet, it's ok
                     }
 

@@ -34,6 +34,7 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.google.common.collect.Sets;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
@@ -286,7 +287,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         }
 
         // Set seg1's cuboid-0's status to NEW
-        NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg1.getDataflow(), seg1.getId(), 0);
+        NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg1.getDataflow(), seg1.getId(), df.getCubePlan().getAllCuboidLayouts().get(0).getId());
         update = new NDataflowUpdate(df.getName());
         update.setToUpdateSegs(seg1);
         update.setToAddOrUpdateCuboids(dataCuboid);
@@ -535,5 +536,19 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(originSize - 2, dataflow.getLastSegment().getSegDetails().getCuboids().size());
         dataflow = mgr.removeLayouts(dataflow, Lists.newArrayList(100000000L));
         Assert.assertEquals(originSize - 2, dataflow.getLastSegment().getSegDetails().getCuboids().size());
+    }
+
+    @Test
+    public void testCuboidsNotInCube() {
+        val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
+        val cube = cubeMgr.updateCubePlan("ncube_basic", copyForWrite -> {
+            copyForWrite.removeLayouts(Sets.newHashSet(1L), NCuboidLayout::equals, true, true);
+        });
+
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), projectDefault);
+        val df = dfMgr.getDataflow(cube.getName());
+        for (NDataSegment segment : df.getSegments()) {
+            Assert.assertFalse(segment.getCuboidsMap().containsKey(1L));
+        }
     }
 }

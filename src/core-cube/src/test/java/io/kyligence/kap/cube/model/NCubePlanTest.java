@@ -39,10 +39,14 @@ import org.junit.Test;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.val;
+import lombok.var;
 
 public class NCubePlanTest extends NLocalFileMetadataTestCase {
     private String projectDefault = "default";
@@ -174,6 +178,60 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals("non-eq-2", colIndexType);
         }
 
+    }
+
+    @Test
+    public void testNeverReuseId_AfterDeleteSomeLayout() {
+        val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
+        var cube = cubeMgr.getCubePlan("ncube_basic");
+        NCubePlanManager.NCubePlanUpdater updater = copyForWrite -> {
+            val cuboids = copyForWrite.getCuboids();
+
+            val newAggIndex = new NCuboidDesc();
+            newAggIndex.setId(copyForWrite.getNextAggregateIndexId());
+            newAggIndex.setDimensions(Lists.newArrayList(1, 2, 3));
+            newAggIndex.setMeasures(Lists.newArrayList(1000));
+            val newLayout1 = new NCuboidLayout();
+            newLayout1.setId(newAggIndex.getId() + 1);
+            newLayout1.setAuto(true);
+            newLayout1.setColOrder(Lists.newArrayList(2, 1, 3, 1000));
+            newAggIndex.setLayouts(Lists.newArrayList(newLayout1));
+
+            val newTableIndex = new NCuboidDesc();
+            newTableIndex.setId(copyForWrite.getNextTableIndexId());
+            newTableIndex.setDimensions(Lists.newArrayList(1, 2, 3));
+            val newLayout2 = new NCuboidLayout();
+            newLayout2.setId(newTableIndex.getId() + 1);
+            newLayout2.setAuto(true);
+            newLayout2.setColOrder(Lists.newArrayList(2, 1, 3, 1000));
+            newTableIndex.setLayouts(Lists.newArrayList(newLayout2));
+
+            cuboids.add(newAggIndex);
+            cuboids.add(newTableIndex);
+            copyForWrite.setCuboids(cuboids);
+        };
+        val nextAggId1 = cube.getNextAggregateIndexId();
+        val nextTableId1 = cube.getNextTableIndexId();
+        cube = cubeMgr.updateCubePlan(cube.getName(), updater);
+
+        Assert.assertEquals(nextAggId1 + 1000, cube.getNextAggregateIndexId());
+        Assert.assertEquals(nextTableId1 + 1000, cube.getNextTableIndexId());
+
+        // remove maxId
+        cube = cubeMgr.updateCubePlan(cube.getName(), copyForWrite -> {
+            copyForWrite.removeLayouts(Sets.newHashSet(nextAggId1 + 1, nextTableId1 + 1), NCuboidLayout::equals, true,
+                    false);
+        });
+        Assert.assertTrue(
+                cube.getAllCuboids().stream().noneMatch(c -> c.getId() == nextAggId1 || c.getId() == nextTableId1));
+        Assert.assertEquals(nextAggId1 + 1000, cube.getNextAggregateIndexId());
+        Assert.assertEquals(nextTableId1 + 1000, cube.getNextTableIndexId());
+
+        // add again
+        cube = cubeMgr.updateCubePlan(cube.getName(), updater);
+
+        Assert.assertEquals(nextAggId1 + 2000, cube.getNextAggregateIndexId());
+        Assert.assertEquals(nextTableId1 + 2000, cube.getNextTableIndexId());
     }
 
     @Test

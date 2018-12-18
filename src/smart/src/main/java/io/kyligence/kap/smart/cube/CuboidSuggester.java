@@ -409,14 +409,12 @@ class CuboidSuggester {
             }
         }
 
-        if (cuboidIds.isEmpty()) {
-            return result;
+        if (!cuboidIds.isEmpty()) {
+            // use the largest cuboid id + step
+            cuboidIds.sort(Long::compareTo);
+            result = cuboidIds.get(cuboidIds.size() - 1) + NCuboidDesc.CUBOID_DESC_ID_STEP;
         }
-
-        // use the largest cuboid id + step
-        cuboidIds.sort(Long::compareTo);
-        result = cuboidIds.get(cuboidIds.size() - 1);
-        return result + NCuboidDesc.CUBOID_DESC_ID_STEP;
+        return Math.max(result, isTableIndex ? cubePlan.getNextTableIndexId() : cubePlan.getNextAggregateIndexId());
     }
 
     private long suggestLayoutId(NCuboidDesc cuboidDesc) {

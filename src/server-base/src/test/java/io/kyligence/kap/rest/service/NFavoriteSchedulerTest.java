@@ -23,8 +23,25 @@
  */
 package io.kyligence.kap.rest.service;
 
+import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.junit.After;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mockito;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.Event;
@@ -36,21 +53,6 @@ import io.kyligence.kap.metadata.favorite.QueryHistoryTimeOffsetManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mockito;
-
-import java.io.IOException;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";

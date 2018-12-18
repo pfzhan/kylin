@@ -85,12 +85,6 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
 
     @Setter
     @Getter
-    @JsonProperty("new_rule_based_cuboid")
-    @JsonInclude(JsonInclude.Include.NON_NULL)
-    private NRuleBasedCuboidsDesc newRuleBasedCuboid;
-
-    @Setter
-    @Getter
     @JsonProperty("layout_id_mapping")
     private List<Long> layoutIdMapping = Lists.newArrayList();
 
@@ -135,7 +129,9 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
         // all layouts' measure order follow cuboid_desc's define
         ImmutableBiMap.Builder<Integer, NDataModel.Measure> measuresBuilder = ImmutableBiMap.builder();
         for (int m : measures) {
-            measuresBuilder.put(m, model.getEffectiveMeasureMap().get(m));
+            if (model.getEffectiveMeasureMap().containsKey(m)) {
+                measuresBuilder.put(m, model.getEffectiveMeasureMap().get(m));
+            }
         }
         this.orderedMeasures = measuresBuilder.build();
         this.measureSet = orderedMeasures.values();
@@ -151,11 +147,6 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
 
         for (NAggregationGroup nAggregationGroup : aggregationGroups) {
             nAggregationGroup.init(this);
-        }
-
-        if (newRuleBasedCuboid != null) {
-            newRuleBasedCuboid.setCubePlan(cubePlan);
-            newRuleBasedCuboid.init();
         }
     }
 
@@ -175,14 +166,10 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
         return dim2bitIndex.get(colId);
     }
 
-    public Set<NCuboidLayout> genCuboidLayouts(boolean recursive) {
-        val result = Sets.<NCuboidLayout> newHashSet();
-        genCuboidLayouts(result, recursive);
-        return result;
-    }
-
     public Set<NCuboidLayout> genCuboidLayouts() {
-        return genCuboidLayouts(true);
+        val result = Sets.<NCuboidLayout> newHashSet();
+        genCuboidLayouts(result);
+        return result;
     }
 
     public int getColumnBitIndex(TblColRef tblColRef) {
@@ -270,7 +257,7 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
         return cuboidBlackSet.contains(cuboidID);
     }
 
-    private void genCuboidLayouts(Set<NCuboidLayout> result, boolean recursive) {
+    void genCuboidLayouts(Set<NCuboidLayout> result) {
         NCuboidScheduler initialCuboidScheduler = getInitialCuboidScheduler();
         List<Long> allCuboidIds = Lists.newArrayList(initialCuboidScheduler.getAllCuboidIds());
 
@@ -340,9 +327,6 @@ public class NRuleBasedCuboidsDesc implements Serializable, IKeep {
             layout.setCuboidDesc(maybeCuboid);
 
             result.add(layout);
-        }
-        if (newRuleBasedCuboid != null && recursive) {
-            newRuleBasedCuboid.genCuboidLayouts(result, true);
         }
     }
 

@@ -95,8 +95,8 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
                 UpdateRuleBasedCuboidRequest.builder().project("default").model("nmodel_basic")
                         .dimensions(Arrays.asList(1, 2, 3, 4))
                         .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
-        Assert.assertNotNull(saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid());
-        Assert.assertEquals(4, saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().getDimensions().size());
+        Assert.assertNotNull(saved.getRuleBasedCuboidsDesc());
+        Assert.assertEquals(4, saved.getRuleBasedCuboidsDesc().getDimensions().size());
         Assert.assertEquals(origin.getAllCuboidLayouts().size() + 1, saved.getAllCuboidLayouts().size());
     }
 
@@ -108,8 +108,8 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
                 UpdateRuleBasedCuboidRequest.builder().project("default").model("nmodel_basic")
                         .dimensions(Arrays.asList(1, 2, 3, 4))
                         .aggregationGroups(Lists.<NAggregationGroup> newArrayList()).build());
-        Assert.assertNotNull(saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid());
-        Assert.assertEquals(4, saved.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().getDimensions().size());
+        Assert.assertNotNull(saved.getRuleBasedCuboidsDesc());
+        Assert.assertEquals(4, saved.getRuleBasedCuboidsDesc().getDimensions().size());
         Assert.assertEquals(origin.getAllCuboidLayouts().size() + 1, saved.getAllCuboidLayouts().size());
     }
 
@@ -297,8 +297,7 @@ public class CubePlanServiceTest extends NLocalFileMetadataTestCase {
             val newRule = new NRuleBasedCuboidsDesc();
             newRule.setDimensions(Lists.newArrayList(1, 2, 3));
             newRule.setMeasures(Lists.newArrayList(1001, 1002));
-            rule.setNewRuleBasedCuboid(newRule);
-            copy.setRuleBasedCuboidsDesc(rule);
+            copy.setRuleBasedCuboidsDesc(newRule);
         });
         val rule2 = cubePlanService.getRule("default", "nmodel_basic_inner");
         Assert.assertNotEquals(rule2, rule);

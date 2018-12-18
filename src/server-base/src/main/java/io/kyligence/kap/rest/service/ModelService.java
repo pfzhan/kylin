@@ -278,9 +278,7 @@ public class ModelService extends BasicService {
         List<NSpanningTree> result = new ArrayList<>();
         val allLayouts = Lists.<NCuboidLayout> newArrayList();
         if (cubeplan.getRuleBasedCuboidsDesc() != null) {
-            val rule = cubeplan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid() == null
-                    ? cubeplan.getRuleBasedCuboidsDesc()
-                    : cubeplan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid();
+            val rule = cubeplan.getRuleBasedCuboidsDesc();
             allLayouts.addAll(rule.genCuboidLayouts());
         }
         val autoLayouts = cubeplan.getWhitelistCuboidLayouts().stream()

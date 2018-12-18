@@ -273,7 +273,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                         + "          \"mandatory_dims\": [],\n" + "          \"joint_dims\": [],\n"
                         + "          \"dim_cap\": 1\n" + "        }\n" + "      }", NAggregationGroup.class);
                 rule.setAggregationGroups(Lists.newArrayList(aggGroup));
-                copyForWrite.setNewRuleBasedCuboid(rule);
+                copyForWrite.setRuleBasedCuboidsDesc(rule);
             } catch (IOException ignore) {
             }
         });

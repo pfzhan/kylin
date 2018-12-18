@@ -53,6 +53,8 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -65,6 +67,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import io.kyligence.kap.server.AbstractMVCIntegrationTestCase;
 import lombok.val;
@@ -76,6 +79,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     public static final String DEFAULT_PROJECT = "default";
     public static final String MODEL_NAME = "nmodel_basic";
+    public static final String INNER_MODEL_NAME = "nmodel_inner_basic";
 
     protected static SparkConf sparkConf;
     protected static SparkSession ss;
@@ -110,24 +114,13 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     public void setupHandlers() {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "3");
         System.setProperty("kylin.job.event.poll-interval-second", "1");
+        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
         EventOrchestratorManager.destroyInstance();
         EventOrchestratorManager.getInstance(getTestConfig());
         NDefaultScheduler.destroyInstance();
         val scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
         scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
-    }
 
-    @After
-    public void tearDown() {
-        EventOrchestratorManager.destroyInstance();
-        NDefaultScheduler.getInstance(DEFAULT_PROJECT).shutdown();
-        System.clearProperty("kylin.job.event.poll-interval-second");
-        System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        super.tearDown();
-    }
-
-    @Test
-    public void testSemanticChangedHappy() throws Exception {
         val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         var df = dfManager.getDataflowByModelName(MODEL_NAME);
 
@@ -152,7 +145,21 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         val update = new NDataflowUpdate(df.getName());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dfManager.updateDataflow(update);
+    }
 
+    @After
+    public void tearDown() {
+        EventOrchestratorManager.destroyInstance();
+        NDefaultScheduler.getInstance(DEFAULT_PROJECT).shutdown();
+        System.clearProperty("kylin.job.event.poll-interval-second");
+        System.clearProperty("kylin.job.scheduler.poll-interval-second");
+        System.clearProperty("kylin.engine.spark.build-class-name");
+        super.tearDown();
+    }
+
+    @Test
+    public void testSemanticChangedHappy() throws Exception {
+        val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         changeModelRequest();
 
         val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
@@ -161,10 +168,92 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
         waitForEventFinished(0);
 
-        df = dfManager.getDataflowByModelName(MODEL_NAME);
+        val df = dfManager.getDataflowByModelName(MODEL_NAME);
         Assert.assertEquals(2, df.getSegments().size());
         Assert.assertEquals(df.getCubePlan().getAllCuboidLayouts().size(),
                 df.getSegments().getLatestReadySegment().getCuboidsMap().size());
+    }
+
+    @Test
+    // see issue #8740
+    public void testChange_WithReadySegment() throws Exception {
+        changeModelRequest();
+        waitForEventFinished(0);
+
+        // update measure
+        updateMeasureRequest();
+        waitForEventFinished(0);
+
+        val result = mockMvc
+                .perform(MockMvcRequestBuilders.get("/api/models/relations").param("model", MODEL_NAME)
+                        .param("project", DEFAULT_PROJECT)
+                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data[0].roots[0].cuboid.status").value("AVAILABLE"))
+                .andExpect(MockMvcResultMatchers.jsonPath("$.data[0].roots[0].cuboid.storage_size").value(246))
+                .andReturn();
+    }
+
+    @Test
+    // see issue #8820
+    public void testChange_ModelWithAggGroup() throws Exception {
+        changeModelRequest();
+        waitForEventFinished(0);
+
+        // init agg group
+        val group1 = JsonUtil.readValue("{\n" + //
+                "        \"includes\": [1,2,3,4],\n" + //
+                "        \"select_rule\": {\n" + //
+                "          \"hierarchy_dims\": [],\n" + //
+                "          \"mandatory_dims\": [3],\n" + //
+                "          \"joint_dims\": [\n" + //
+                "            [1,2]\n" + //
+                "          ]\n" + //
+                "        }\n" + //
+                "}", NAggregationGroup.class);
+        val request = UpdateRuleBasedCuboidRequest.builder().project(DEFAULT_PROJECT).model(MODEL_NAME)
+                .dimensions(Lists.newArrayList(1, 2, 3, 4)).aggregationGroups(Lists.newArrayList(group1)).build();
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/cube_plans/rule").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        waitForEventFinished(0);
+
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+
+        // update measures
+        updateMeasureRequest();
+
+        // job is running
+        val cube1 = dfMgr.getDataflowByModelName(MODEL_NAME).getCubePlan();
+        var actions1 = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/relations").param("model", MODEL_NAME)
+                .param("project", DEFAULT_PROJECT)
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")));
+        for (NCuboidLayout layout : cube1.getRuleBaseCuboidLayouts()) {
+            actions1 = actions1.andExpect(MockMvcResultMatchers
+                    .jsonPath("$.data[0].nodes." + layout.getCuboidDesc().getId() + ".cuboid.status").value("EMPTY"))
+                    .andExpect(MockMvcResultMatchers
+                            .jsonPath("$.data[0].nodes." + layout.getCuboidDesc().getId() + ".cuboid.storage_size")
+                            .value(0));
+        }
+        val results1 = actions1.andReturn();
+
+        // after finish
+        waitForEventFinished(0);
+
+        val cube2 = dfMgr.getDataflowByModelName(MODEL_NAME).getCubePlan();
+        var actions2 = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/relations").param("model", MODEL_NAME)
+                .param("project", DEFAULT_PROJECT)
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")));
+        for (NCuboidLayout layout : cube2.getRuleBaseCuboidLayouts()) {
+            actions2 = actions2
+                    .andExpect(MockMvcResultMatchers
+                            .jsonPath("$.data[0].nodes." + layout.getCuboidDesc().getId() + ".cuboid.status")
+                            .value("AVAILABLE"))
+                    .andExpect(MockMvcResultMatchers
+                            .jsonPath("$.data[0].nodes." + layout.getCuboidDesc().getId() + ".cuboid.storage_size")
+                            .value(246));
+        }
+        val results = actions2.andReturn();
     }
 
     private void changeModelRequest() throws Exception {
@@ -184,6 +273,29 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 .perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
                         .content(JsonUtil.writeValueAsString(request))
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+    }
+
+    private void updateMeasureRequest() throws Exception {
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val model = modelManager.getDataModelDesc(MODEL_NAME);
+        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request.setProject(DEFAULT_PROJECT);
+        request.setName(MODEL_NAME);
+        request.setSimplifiedMeasures(
+                model.getAllMeasures().stream().filter(m -> !m.tomb).map(SimplifiedMeasure::fromMeasure).peek(sm -> {
+                    if (sm.getId() == 1016) {
+                        sm.setExpression("MAX");
+                        sm.setName("MAX_DEAL_AMOUNT");
+                    }
+                }).collect(Collectors.toList()));
+        request.setComputedColumnDescs(model.getComputedColumnDescs());
+        request.setAllNamedColumns(model.getAllNamedColumns().stream()
+                .filter(c -> c.getStatus() == NDataModel.ColumnStatus.DIMENSION).collect(Collectors.toList()));
+        request.setJoinTables(request.getJoinTables());
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/semantic").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
     }
 
@@ -208,13 +320,13 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
             int finishedEventNum = 0;
             events = eventDao.getEvents();
             log.debug("finished {}, all {}", finishedEventNum, events.size());
-            if (events.size() == 0) {
+            if (events.size() == expectedSize) {
                 break;
             }
             if (System.currentTimeMillis() - startTime > 200 * 1000) {
                 break;
             }
-            Thread.sleep(5000);
+            Thread.sleep(1000);
         }
         return 0L;
     }

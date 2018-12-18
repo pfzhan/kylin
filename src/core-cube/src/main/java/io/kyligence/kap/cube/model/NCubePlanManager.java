@@ -37,10 +37,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.cube.model.validation.NCubePlanValidator;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 
 public class NCubePlanManager implements IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(NCubePlanManager.class);
@@ -190,6 +192,17 @@ public class NCubePlanManager implements IKeepNames {
                         .filter(l -> l.isAuto() || l.getId() >= NCuboidDesc.TABLE_INDEX_START_ID)
                         .collect(Collectors.toList())))
                 .filter(cuboid -> cuboid.getLayouts().size() > 0).collect(Collectors.toList()));
+
+        val dataflowManager = NDataflowManager.getInstance(config, project);
+        val dataflow = dataflowManager.getDataflow(cubePlan.getName());
+        if (dataflow != null && dataflow.getLastSegment() != null) {
+            val livedIds = cubePlan.getAllCuboidLayouts().stream().map(NCuboidLayout::getId)
+                    .collect(Collectors.toSet());
+            val layoutIds = Sets.newHashSet(dataflow.getLastSegment().getCuboidsMap().keySet());
+            layoutIds.removeAll(livedIds);
+            dataflowManager.removeLayouts(dataflow, layoutIds);
+        }
+
         return crud.save(cubePlan);
     }
 }

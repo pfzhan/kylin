@@ -30,7 +30,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.lang.SerializationUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -111,11 +110,11 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     public void tearDown() {
         cleanupTestMetadata();
     }
-    
+
     @Test
     public void testModelUpdateComputedColumn() throws Exception {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        
+
         // Add new computed column
         final int colIdOfCC;
         {
@@ -135,7 +134,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             colIdOfCC = model.getColumnIdByColumnName("TEST_KYLIN_FACT.TEST_CC_1");
             Assert.assertNotEquals(-1, colIdOfCC);
         }
-        
+
         // Add dimension which uses TEST_CC_1, column will be renamed
         {
             ModelRequest request = newSemanticRequest();
@@ -155,7 +154,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
             Assert.assertEquals("TEST_DIM_WITH_CC", dimensionToVerify.getName());
             Assert.assertEquals(ColumnStatus.DIMENSION, dimensionToVerify.getStatus());
         }
-        
+
         // Add measure which uses TEST_CC_1
         final int measureIdOfCC;
         {
@@ -505,17 +504,13 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
                 }).collect(Collectors.toList())));
 
         semanticService.handleSemanticUpdate("default", originModel.getName(), originModel);
-//
-//        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
-//        Assert.assertEquals(1, events.size());
-//        Assert.assertTrue(events.get(1) instanceof AddCuboidEvent);
 
         val cube = cubeMgr.getCubePlan("ncube_basic_inner");
         for (NCuboidLayout layout : cube.getWhitelistCuboidLayouts()) {
             Assert.assertTrue(!layout.getColOrder().contains(1011));
             Assert.assertTrue(!layout.getCuboidDesc().getMeasures().contains(1011));
         }
-        val newRule = cube.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid();
+        val newRule = cube.getRuleBasedCuboidsDesc();
         Assert.assertTrue(!newRule.getMeasures().contains(1011));
     }
 
@@ -553,11 +548,6 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         for (NCuboidLayout layout : cube.getWhitelistCuboidLayouts()) {
             Assert.assertTrue(!layout.getColOrder().contains(1011));
             Assert.assertTrue(!layout.getCuboidDesc().getMeasures().contains(1011));
-            //            if (removeEvent.getLayoutIds().contains(layout.getId())) {
-            //                Assert.assertTrue(layout.getColOrder().contains(26));
-            //            } else {
-            //                Assert.assertTrue(!layout.getColOrder().contains(26));
-            //            }
         }
     }
 
@@ -569,45 +559,51 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val originSegLayoutSize = df.getSegments().get(0).getCuboidsMap().size();
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
         val cube = df.getCubePlan();
-        val nc1 = NDataCuboid.newDataCuboid(df, df.getSegments().get(0).getId(), cube.getRuleBaseCuboidLayouts().get(0).getId());
-        val nc2 = NDataCuboid.newDataCuboid(df, df.getSegments().get(0).getId(), cube.getRuleBaseCuboidLayouts().get(1).getId());
-        val nc3 = NDataCuboid.newDataCuboid(df, df.getSegments().get(0).getId(), cube.getRuleBaseCuboidLayouts().get(2).getId());
+        val nc1 = NDataCuboid.newDataCuboid(df, df.getSegments().get(0).getId(),
+                cube.getRuleBaseCuboidLayouts().get(0).getId());
+        val nc2 = NDataCuboid.newDataCuboid(df, df.getSegments().get(0).getId(),
+                cube.getRuleBaseCuboidLayouts().get(1).getId());
+        val nc3 = NDataCuboid.newDataCuboid(df, df.getSegments().get(0).getId(),
+                cube.getRuleBaseCuboidLayouts().get(2).getId());
         update.setToAddOrUpdateCuboids(nc1, nc2, nc3);
         dfMgr.updateDataflow(update);
 
-        val cubePlan = cubePlanManager.updateCubePlan("ncube_basic_inner", copyForWrite -> {
+        val newCube = cubePlanManager.updateCubePlan(cube.getName(), copyForWrite -> {
             val newRule = new NRuleBasedCuboidsDesc();
             newRule.setDimensions(Arrays.asList(1, 2, 3, 4, 5, 6));
             newRule.setMeasures(Arrays.asList(1001, 1002));
-            copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(newRule);
+            copyForWrite.setRuleBasedCuboidsDesc(newRule);
         });
-        semanticService.handleCubeUpdateRule("default", cubePlan.getModelName(), cubePlan.getName());
+        semanticService.handleCubeUpdateRule("default", df.getModel().getName(), cube.getRuleBasedCuboidsDesc(),
+                newCube.getRuleBasedCuboidsDesc());
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
 
         Assert.assertEquals(2, events.size());
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
-        val df2 = NDataflowManager.getInstance(getTestConfig(), "default").getDataflow(cubePlan.getName());
+        val df2 = NDataflowManager.getInstance(getTestConfig(), "default").getDataflow(df.getName());
         Assert.assertEquals(originSegLayoutSize, df2.getFirstSegment().getCuboidsMap().size());
     }
 
     @Test
     public void testOnlyRemoveMeasures() throws Exception {
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
         val cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), "default");
 
-        val cubePlan = cubePlanManager.updateCubePlan("ncube_basic_inner", copyForWrite -> {
-            val newRule = (NRuleBasedCuboidsDesc) SerializationUtils.clone(copyForWrite.getRuleBasedCuboidsDesc());
-            newRule.setMeasures(copyForWrite.getRuleBasedCuboidsDesc().getMeasures().stream()
-                    .filter(m -> m != 1000 && m != 1001).collect(Collectors.toList()));
-            copyForWrite.getRuleBasedCuboidsDesc().setNewRuleBasedCuboid(newRule);
-        });
-        semanticService.handleCubeUpdateRule("default", cubePlan.getModelName(), cubePlan.getName());
+        val cubePlan = cubePlanManager.getCubePlan("ncube_basic_inner");
+        val originModel = getTestInnerModel();
+        modelManager.updateDataModel(originModel.getName(), model -> model.setAllMeasures(model.getAllMeasures().stream()
+                .filter(m -> m.id != 1002 && m.id != 1001 && m.id != 1011).collect(Collectors.toList())));
+        semanticService.handleSemanticUpdate("default", cubePlan.getModelName(), originModel);
+
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
-
         Assert.assertEquals(0, events.size());
 
+        val newCube = cubePlanManager.getCubePlan(cubePlan.getName());
+        Assert.assertNotEquals(cubePlan.getRuleBasedCuboidsDesc().getLayoutIdMapping().toString(),
+                newCube.getRuleBasedCuboidsDesc().getLayoutIdMapping().toString());
     }
 
     private NDataModel getTestInnerModel() {

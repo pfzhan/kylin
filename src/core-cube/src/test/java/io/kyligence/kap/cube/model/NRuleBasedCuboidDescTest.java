@@ -66,6 +66,7 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         newPlan.setLastModified(0L);
 
         newPlan = cubePlanManager.createCubePlan(newPlan);
+        val oldRule = newPlan.getRuleBasedCuboidsDesc();
         logLayouts(newPlan.getAllCuboidLayouts());
         Assert.assertEquals(12, newPlan.getAllCuboidLayouts().size());
         val cubePlan = cubePlanManager.updateCubePlan("ncube_rule_based", copyForWrite -> {
@@ -95,16 +96,16 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
                         "        }\n" +
                         "}", NAggregationGroup.class);
                 newRule.setAggregationGroups(Arrays.asList(group1, group2));
-                copyForWrite.setNewRuleBasedCuboid(newRule);
+                copyForWrite.setRuleBasedCuboidsDesc(newRule);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
         logLayouts(cubePlan.getAllCuboidLayouts());
 
-        Assert.assertEquals(20, cubePlan.getAllCuboidLayouts().size());
-        checkIntersection(cubePlan, Lists.newArrayList(1001L, 3001L, 4001L, 8001L));
-        Assert.assertThat(cubePlan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().getLayoutIdMapping(),
+        Assert.assertEquals(12, cubePlan.getAllCuboidLayouts().size());
+        checkIntersection(oldRule, cubePlan, Lists.newArrayList(1001L, 3001L, 4001L, 8001L));
+        Assert.assertThat(cubePlan.getRuleBasedCuboidsDesc().getLayoutIdMapping(),
                 CoreMatchers.is(Arrays.asList(1001L, 12001L, 3001L, 4001L, 8001L, 13001L, 14001L, 15001L, 16001L,
                         17001L, 18001L, 19001L)));
     }
@@ -116,6 +117,7 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         newPlan.setLastModified(0L);
 
         newPlan = cubePlanManager.createCubePlan(newPlan);
+        val oldRule = newPlan.getRuleBasedCuboidsDesc();
         logLayouts(newPlan.getAllCuboidLayouts());
         Assert.assertEquals(13, newPlan.getAllCuboidLayouts().size());
 
@@ -146,16 +148,16 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
                         "        }\n" +
                         "}", NAggregationGroup.class);
                 newRule.setAggregationGroups(Arrays.asList(group1, group2));
-                copyForWrite.setNewRuleBasedCuboid(newRule);
+                copyForWrite.setRuleBasedCuboidsDesc(newRule);
             } catch (IOException e) {
                 e.printStackTrace();
             }
         });
         logLayouts(cubePlan.getAllCuboidLayouts());
 
-        Assert.assertEquals(21, cubePlan.getAllCuboidLayouts().size());
-        checkIntersection(cubePlan, Lists.newArrayList(13001L, 15001L, 16001L, 20001L));
-        Assert.assertThat(cubePlan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().getLayoutIdMapping(),
+        Assert.assertEquals(14, cubePlan.getAllCuboidLayouts().size());
+        checkIntersection(oldRule, cubePlan, Lists.newArrayList(13001L, 15001L, 16001L, 20001L));
+        Assert.assertThat(cubePlan.getRuleBasedCuboidsDesc().getLayoutIdMapping(),
                 CoreMatchers.is(Arrays.asList(13001L, 23001L, 15001L, 16001L, 20001L, 24001L, 25001L, 26001L, 2004L, 27001L, 28001L, 29001L)));
     }
 
@@ -166,6 +168,7 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         newPlan.setLastModified(0L);
 
         newPlan = cubePlanManager.createCubePlan(newPlan);
+        val oldRule = newPlan.getRuleBasedCuboidsDesc();
         logLayouts(newPlan.getAllCuboidLayouts());
         Assert.assertEquals(12, newPlan.getAllCuboidLayouts().size());
         val cubePlan = cubePlanManager.updateCubePlan("ncube_rule_based", copyForWrite -> {
@@ -196,7 +199,7 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
                         "        }\n" +
                         "}", NAggregationGroup.class);
                 newRule.setAggregationGroups(Arrays.asList(group1, group2));
-                copyForWrite.setNewRuleBasedCuboid(newRule);
+                copyForWrite.setRuleBasedCuboidsDesc(newRule);
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -204,8 +207,55 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
 
         logLayouts(cubePlan.getAllCuboidLayouts());
 
-        Assert.assertEquals(22, cubePlan.getAllCuboidLayouts().size());
-        checkIntersection(cubePlan, Lists.newArrayList(1L, 2001L, 4001L, 5001L, 6001L, 7001L, 8001L, 9001L, 10001L, 11001L));
+        Assert.assertEquals(20, cubePlan.getAllCuboidLayouts().size());
+        checkIntersection(oldRule, cubePlan, Lists.newArrayList(1L, 2001L, 4001L, 5001L, 6001L, 7001L, 8001L, 9001L, 10001L, 11001L));
+    }
+
+    @Test
+    public void testSetRuleAgain() throws Exception {
+        val cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), "default");
+        var newPlan = JsonUtil.readValue(getClass().getResourceAsStream("/ncude_rule_based.json"), NCubePlan.class);
+        newPlan.setLastModified(0L);
+
+        newPlan = cubePlanManager.createCubePlan(newPlan);
+        logLayouts(newPlan.getAllCuboidLayouts());
+        Assert.assertEquals(12, newPlan.getAllCuboidLayouts().size());
+        val cubePlan = cubePlanManager.updateCubePlan("ncube_rule_based", copyForWrite -> {
+            val newRule = new NRuleBasedCuboidsDesc();
+            newRule.setDimensions(Arrays.asList(0, 1, 2, 3, 4, 5, 6));
+            try {
+                val group1 = JsonUtil.readValue("{\n" +
+                        "        \"includes\": [1,3,4,5,6],\n" +
+                        "        \"select_rule\": {\n" +
+                        "          \"hierarchy_dims\": [],\n" +
+                        "          \"mandatory_dims\": [3],\n" +
+                        "          \"joint_dims\": [\n" +
+                        "            [1,5],\n" +
+                        "            [4,6]\n" +
+                        "          ]\n" +
+                        "        }\n" +
+                        "}", NAggregationGroup.class);
+                val group2 = JsonUtil.readValue("" +
+                        "      {\n" +
+                        "        \"includes\": [0,1,2,3,4,5],\n" +
+                        "        \"select_rule\": {\n" +
+                        "          \"hierarchy_dims\": [[0,1,2]],\n" +
+                        "          \"mandatory_dims\": [],\n" +
+                        "          \"joint_dims\": [\n" +
+                        "            [3,4]\n" +
+                        "          ]\n" +
+                        "        }\n" +
+                        "}", NAggregationGroup.class);
+                newRule.setAggregationGroups(Arrays.asList(group1, group2));
+                copyForWrite.setRuleBasedCuboidsDesc(newRule);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        val copy = cubePlan.copy();
+        copy.setRuleBasedCuboidsDesc(copy.getRuleBasedCuboidsDesc(), true);
+        Assert.assertEquals(JsonUtil.writeValueAsIndentString(cubePlan), JsonUtil.writeValueAsIndentString(copy));
     }
 
     private void logLayouts(List<NCuboidLayout> layouts) {
@@ -216,9 +266,9 @@ public class NRuleBasedCuboidDescTest extends NLocalFileMetadataTestCase {
         }
     }
 
-    private void checkIntersection(NCubePlan plan, Collection<Long> ids) {
-        Set<NCuboidLayout> originLayouts = plan.getRuleBasedCuboidsDesc().genCuboidLayouts(false);
-        Set<NCuboidLayout> targetLayouts = plan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid().genCuboidLayouts(false);
+    private void checkIntersection(NRuleBasedCuboidsDesc oldRule, NCubePlan plan, Collection<Long> ids) {
+        Set<NCuboidLayout> originLayouts = oldRule.genCuboidLayouts();
+        Set<NCuboidLayout> targetLayouts = plan.getRuleBasedCuboidsDesc().genCuboidLayouts();
 
         val difference = Maps.difference(Maps.asMap(originLayouts, NCuboidLayout::getId), Maps.asMap(targetLayouts, input -> input.getId()));
         Assert.assertTrue(CollectionUtils.isEqualCollection(difference.entriesInCommon().values(), ids));

@@ -82,12 +82,13 @@ public class CubePlanService extends BasicService {
         val cubePlan = cubePlanManager.updateCubePlan(originCubePlan.getName(), copyForWrite -> {
             val newRuleBasedCuboid = new NRuleBasedCuboidsDesc();
             BeanUtils.copyProperties(request, newRuleBasedCuboid);
-            copyForWrite.setNewRuleBasedCuboid(newRuleBasedCuboid);
+            copyForWrite.setRuleBasedCuboidsDesc(newRuleBasedCuboid);
         });
         if (request.isLoadData()) {
-            semanticUpater.handleCubeUpdateRule(request.getProject(), model.getName(), cubePlan.getName());
+            semanticUpater.handleCubeUpdateRule(request.getProject(), model.getName(),
+                    originCubePlan.getRuleBasedCuboidsDesc(), cubePlan.getRuleBasedCuboidsDesc());
         }
-        return cubePlan;
+        return cubePlanManager.getCubePlan(originCubePlan.getName());
     }
 
     @Transaction(project = 0)
@@ -105,13 +106,7 @@ public class CubePlanService extends BasicService {
         NDataModel model = cubePlan.getModel();
 
         val newLayout = new NCuboidLayout();
-        long maxCuboidId = NCuboidDesc.TABLE_INDEX_START_ID - NCuboidDesc.CUBOID_DESC_ID_STEP;
-        for (NCuboidDesc cuboid : cubePlan.getAllCuboids()) {
-            if (cuboid.isTableIndex()) {
-                maxCuboidId = Math.max(maxCuboidId, cuboid.getId());
-            }
-        }
-        newLayout.setId(maxCuboidId + NCuboidDesc.CUBOID_DESC_ID_STEP + 1);
+        newLayout.setId(cubePlan.getNextTableIndexId() + 1);
 
         // handle remove the latest table index
         if (Objects.equals(newLayout.getId(), request.getId())) {
@@ -225,10 +220,6 @@ public class CubePlanService extends BasicService {
     public NRuleBasedCuboidsDesc getRule(String project, String model) {
         val cubePlan = getCubePlan(project, model);
         Preconditions.checkState(cubePlan != null);
-        if (cubePlan.getRuleBasedCuboidsDesc() != null
-                && cubePlan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid() != null) {
-            return cubePlan.getRuleBasedCuboidsDesc().getNewRuleBasedCuboid();
-        }
         return cubePlan.getRuleBasedCuboidsDesc();
     }
 
