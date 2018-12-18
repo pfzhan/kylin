@@ -143,17 +143,19 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                     hasDiscarded = true;
                 }
             }
-            setEndTime(result);
             if (allSucceed) {
+                setEndTime(result);
                 updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, result.getExtraInfo(), null);
                 notifyUserStatusChange(executableContext, ExecutableState.SUCCEED);
             } else if (hasError) {
+                setEndTime(result);
                 updateJobOutput(getProject(), getId(), ExecutableState.ERROR, result.getExtraInfo(), null);
                 notifyUserStatusChange(executableContext, ExecutableState.ERROR);
             } else if (hasRunning) {
                 //TODO: normal?
                 updateJobOutput(getProject(), getId(), ExecutableState.RUNNING, result.getExtraInfo(), null);
             } else if (hasDiscarded) {
+                setEndTime(result);
                 updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, result.getExtraInfo(), null);
             } else {
                 //TODO: normal?
