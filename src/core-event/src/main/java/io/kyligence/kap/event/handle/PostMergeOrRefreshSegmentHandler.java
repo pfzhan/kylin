@@ -26,6 +26,7 @@ package io.kyligence.kap.event.handle;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -38,6 +39,7 @@ import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
@@ -66,9 +68,8 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
             return;
         }
 
-        val tasks = executable.getTasks();
-        Preconditions.checkState(tasks.size() > 0, "job " + event.getJobId() + " steps is not enough");
-        val task = tasks.get(0);
+        val task = getBuildTask(executable);
+
         val dataflowName = ExecutableUtils.getDataflowName(task);
         val segmentIds = ExecutableUtils.getSegmentIds(task);
         try (val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), task)) {
@@ -86,6 +87,17 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
                 return null;
             }, project);
         }
+    }
+
+    private AbstractExecutable getBuildTask(ChainedExecutable executable) {
+        val tasks = executable.getTasks();
+        Preconditions.checkState(tasks.size() > 0, "job " + executable.getId() + " steps is not enough");
+        if (executable instanceof NSparkCubingJob) {
+            return tasks.get(1);
+        } else {
+            return tasks.get(0);
+        }
+
     }
 
     private void doHandleWithNullJob(EventContext eventContext) {
