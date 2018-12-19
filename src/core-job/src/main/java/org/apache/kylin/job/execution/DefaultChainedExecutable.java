@@ -22,7 +22,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -44,7 +44,9 @@
 package org.apache.kylin.job.execution;
 
 import java.util.List;
+import java.util.Map;
 
+import com.google.common.collect.Maps;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 
@@ -107,6 +109,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
     protected void onExecuteFinished(ExecuteResult result, ExecutableContext executableContext) {
         NExecutableManager mgr = getManager();
 
+        Map<String, String> info = Maps.newHashMap();
+
         if (isDiscarded()) {
             setEndTime(result);
             notifyUserStatusChange(executableContext, ExecutableState.DISCARDED);
@@ -144,28 +148,31 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 }
             }
             if (allSucceed) {
-                setEndTime(result);
-                updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, result.getExtraInfo(), null);
+                setEndTime(info);
+                updateJobOutput(getProject(), getId(), ExecutableState.SUCCEED, info, null);
                 notifyUserStatusChange(executableContext, ExecutableState.SUCCEED);
             } else if (hasError) {
-                setEndTime(result);
-                updateJobOutput(getProject(), getId(), ExecutableState.ERROR, result.getExtraInfo(), null);
+                setEndTime(info);
+                updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null);
                 notifyUserStatusChange(executableContext, ExecutableState.ERROR);
             } else if (hasRunning) {
-                //TODO: normal?
-                updateJobOutput(getProject(), getId(), ExecutableState.RUNNING, result.getExtraInfo(), null);
+                updateJobOutput(getProject(), getId(), ExecutableState.RUNNING, null, null);
             } else if (hasDiscarded) {
-                setEndTime(result);
-                updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, result.getExtraInfo(), null);
+                setEndTime(info);
+                updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, info, null);
             } else {
                 //TODO: normal?
-                updateJobOutput(getProject(), getId(), ExecutableState.READY, result.getExtraInfo(), null);
+                updateJobOutput(getProject(), getId(), ExecutableState.READY, null, null);
             }
         } else {
-            setEndTime(result);
-            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, result.getExtraInfo(), null);
+            setEndTime(info);
+            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null);
             notifyUserStatusChange(executableContext, ExecutableState.ERROR);
         }
+    }
+
+    private void setEndTime(Map<String, String> info) {
+        info.put(AbstractExecutable.END_TIME, Long.toString(System.currentTimeMillis()));
     }
 
     @Override

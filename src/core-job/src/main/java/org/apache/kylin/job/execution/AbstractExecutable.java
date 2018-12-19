@@ -197,12 +197,11 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     protected void onExecuteStart(ExecutableContext executableContext) {
 
         suicideIfNecessary();
-
         final long startTime = getStartTime();
         if (startTime > 0) {
             updateJobOutput(project, getId(), ExecutableState.RUNNING, null, null);
         } else {
-            val info = Maps.newHashMap(getManager().getOutput(getId()).getExtra());
+            Map<String, String> info = Maps.newHashMap();
             info.put(START_TIME, Long.toString(System.currentTimeMillis()));
             updateJobOutput(project, getId(), ExecutableState.RUNNING, info, null);
         }
@@ -233,7 +232,11 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
             Map<String, String> info, String output) {
         UnitOfWork.doInTransactionWithRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
-            executableManager.updateJobOutput(jobId, newStatus, info, output);
+            val existedInfo = executableManager.getOutput(jobId).getExtra();
+            if (info != null) {
+                existedInfo.putAll(info);
+            }
+            executableManager.updateJobOutput(jobId, newStatus, existedInfo, output);
             return null;
         }, project);
     }
