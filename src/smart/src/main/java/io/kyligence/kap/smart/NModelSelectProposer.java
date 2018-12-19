@@ -66,19 +66,19 @@ public class NModelSelectProposer extends NAbstractProposer {
         for (NSmartContext.NModelContext modelContext : modelContexts) {
             ModelTree modelTree = modelContext.getModelTree();
             NDataModel model = compareWithFactTable(modelTree);
-            if (model == null || selectedModel.contains(model.getAlias())) {
+            if (model == null || selectedModel.contains(model.getName())) {
                 // original model is allowed to be selected one context in batch
                 // to avoid modification conflict
                 continue;
             }
             // found matched, then use it
             modelContext.setOrigModel(model);
+            selectedModel.add(model.getName());
             NDataModel targetModel = NDataModel.getCopyOf(model);
             initModel(targetModel);
             targetModel.getComputedColumnDescs()
                     .forEach(cc -> smartContext.getUsedCC().put(cc.getExpression(), cc));
             modelContext.setTargetModel(targetModel);
-            selectedModel.add(targetModel.getAlias());
         }
 
         // if manual maintain type and selected model is null, record error message

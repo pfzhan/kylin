@@ -110,8 +110,9 @@ public class GreedyModelTreesBuilder {
         }
         JoinsGraph graphA = new JoinsGraph(ctxA.firstTableScan.getTableRef(), Lists.newArrayList(ctxA.joins));
         JoinsGraph graphB = new JoinsGraph(ctxB.firstTableScan.getTableRef(), Lists.newArrayList(ctxB.joins));
-        return graphA.match(graphB, Maps.newHashMap())
-                || graphB.match(graphA, Maps.newHashMap());
+        return graphA.match(graphB, Maps.newHashMap()) || graphB.match(graphA, Maps.newHashMap())
+                || (graphA.unmatched(graphB).stream().allMatch(JoinsGraph.Edge::isLeftJoin)
+                && graphB.unmatched(graphA).stream().allMatch(JoinsGraph.Edge::isLeftJoin));
     }
 
     public static class TreeBuilder {
@@ -201,7 +202,8 @@ public class GreedyModelTreesBuilder {
                             && JoinDescUtil.isJoinTypeEqual(oldJoinTable.getJoin(), newJoinTable.getJoin())
                             && !oldJoinTable.getKind().equals(newJoinTable.getKind())) {
                         // same join info but table kind differ: LOOKUP vs FACT, use FACT
-                        kind = NDataModel.TableKind.FACT;
+                        newJoinTable.setKind(NDataModel.TableKind.FACT);
+                        alias2JoinTablesUpdates.put(joinTableAlias, newJoinTable);
                     } else {
                         // twin join table with different join info
                         // resolve and assign new alias

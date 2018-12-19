@@ -84,7 +84,7 @@ public class JoinsGraph implements Serializable {
             }
         }
         
-        private boolean isLeftJoin() {
+        public boolean isLeftJoin() {
             return join.isLeftJoin();
         }
         
@@ -320,6 +320,20 @@ public class JoinsGraph implements Serializable {
             }
         }
         return true;
+    }
+    
+    public List<Edge> unmatched(JoinsGraph pattern) {
+        List<Edge> unmatched = Lists.newArrayList();
+        Set<Edge> all = edgesFromNode.values().stream().flatMap(List::stream).collect(Collectors.toSet());
+        for (Edge edge : all) {
+            List<JoinDesc> joins = getJoinsPathByPKSide(edge.right());
+            JoinsGraph subGraph = new JoinsGraph(center, joins);
+            if (subGraph.match(pattern, Maps.newHashMap())) {
+                continue;
+            }
+            unmatched.add(edge);
+        }
+        return unmatched;
     }
 
     private List<TableRef> searchCenterByIdentity(final TableRef table) {
