@@ -110,8 +110,8 @@ public class GreedyModelTreesBuilder {
         }
         JoinsGraph graphA = new JoinsGraph(ctxA.firstTableScan.getTableRef(), Lists.newArrayList(ctxA.joins));
         JoinsGraph graphB = new JoinsGraph(ctxB.firstTableScan.getTableRef(), Lists.newArrayList(ctxB.joins));
-        return JoinsGraph.match(graphA, graphB, Maps.newHashMap())
-                || JoinsGraph.match(graphB, graphA, Maps.newHashMap());
+        return graphA.match(graphB, Maps.newHashMap())
+                || graphB.match(graphA, Maps.newHashMap());
     }
 
     public static class TreeBuilder {

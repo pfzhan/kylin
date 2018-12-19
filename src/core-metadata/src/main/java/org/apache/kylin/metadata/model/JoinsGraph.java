@@ -44,7 +44,6 @@ package org.apache.kylin.metadata.model;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -252,37 +251,38 @@ public class JoinsGraph implements Serializable {
         }
     }
 
-    public static boolean match(JoinsGraph query, JoinsGraph pattern, Map<String, String> matchAlias) {
-        return match(query, pattern, matchAlias, false);
+    public boolean match(JoinsGraph pattern, Map<String, String> matchAlias) {
+        return match(pattern, matchAlias, false);
     }
 
-    public static boolean match(JoinsGraph query, JoinsGraph pattern, Map<String, String> matchAlias,
+    public boolean match(JoinsGraph pattern, Map<String, String> matchAlias,
             boolean matchPatial) {
         if (pattern.center == null) {
             throw new IllegalArgumentException("pattern(model) should have a center: " + pattern);
         }
 
-        List<TableRef> candidatesOfQCenter = query.searchCenterByIdentity(pattern.center);
+        List<TableRef> candidatesOfQCenter = searchCenterByIdentity(pattern.center);
         if (CollectionUtils.isEmpty(candidatesOfQCenter)) {
             return false;
         }
 
-        Map<String, String> tmpMatchAlias = Maps.newHashMap(matchAlias);
         for (TableRef queryCenter : candidatesOfQCenter) {
-            matchAlias.put(queryCenter.getAlias(), pattern.center.getAlias());
-            if (innerMatch(query, pattern, queryCenter, pattern.center, null, null, matchAlias, matchPatial)) {
+            // query <-> pattern
+            Map<TableRef, TableRef> matchedNodes = Maps.newHashMap();
+            matchedNodes.put(queryCenter, pattern.center);
+            if (innerMatch(pattern, queryCenter, pattern.center, null, null, matchedNodes, matchPatial)) {
+                matchAlias.putAll(matchedNodes.entrySet().stream()
+                        .collect(Collectors.toMap(e -> e.getKey().getAlias(), e -> e.getValue().getAlias())));
                 return true;
             }
-            matchAlias.clear();
-            matchAlias.putAll(tmpMatchAlias);
         }
         return false;
     }
 
-    private static boolean innerMatch(JoinsGraph query, JoinsGraph pattern, TableRef queryVisited,
-            TableRef patternVisited, final TableRef queryPrev, TableRef patternPrev, Map<String, String> matchAlias,
-            boolean matchPartial) {
-        List<Edge> queryNexts = query.edgesFrom(queryVisited);
+    private boolean innerMatch(JoinsGraph pattern, TableRef queryVisited,
+            TableRef patternVisited, final TableRef queryPrev, TableRef patternPrev,
+            Map<TableRef, TableRef> matchedNodes, boolean matchPartial) {
+        List<Edge> queryNexts = this.edgesFrom(queryVisited);
         int cntInnerQueryEdges = (int) queryNexts.stream().filter(e -> !e.isLeftJoin()).count();
         List<Edge> patternNexts = pattern.edgesFrom(patternVisited);
         int cntInnerPatternEdges = (int) patternNexts.stream().filter(e -> !e.isLeftJoin()).count();
@@ -291,7 +291,6 @@ public class JoinsGraph implements Serializable {
             return false;
         }
 
-        Set<TableRef> matchedPatternNexts = new HashSet<>();
         for (Edge queryEdge : queryNexts) {
             TableRef queryNext = queryEdge.other(queryVisited);
             if (queryNext.equals(queryPrev)) {
@@ -300,20 +299,19 @@ public class JoinsGraph implements Serializable {
             boolean matched = false;
             for (Edge patternEdge : patternNexts) {
                 TableRef patternNext = patternEdge.other(patternVisited);
-                if (patternNext.equals(patternPrev) || matchedPatternNexts.contains(patternNext)
-                        || !queryNext.getTableIdentity().equals(patternNext.getTableIdentity())) {
+                if (patternNext.equals(patternPrev) || matchedNodes.containsValue(patternNext)
+                        || matchedNodes.containsKey(queryNext)
+                        || !queryNext.getTableIdentity().equals(patternNext.getTableIdentity())
+                        || !queryEdge.equals(patternEdge)) {
                     continue;
                 }
-                if (queryEdge == null || !queryEdge.equals(patternEdge) || (matchAlias.containsKey(queryNext.getAlias())
-                        && !matchAlias.get(queryNext.getAlias()).equals(patternNext.getAlias())))
-                    continue;
-
-                matchAlias.put(queryNext.getAlias(), patternNext.getAlias());
-                matched = innerMatch(query, pattern, queryNext, patternNext, queryVisited, patternVisited, matchAlias, matchPartial);
+                matchedNodes.put(queryNext, patternNext);
+                matched = innerMatch(pattern, queryNext, patternNext, queryVisited, patternVisited, matchedNodes,
+                        matchPartial);
                 if (matched) {
-                    matchedPatternNexts.add(patternNext);
                     break;
                 }
+                matchedNodes.remove(queryNext);
             }
 
             // any unmatched child node means unmatched graph
@@ -328,7 +326,7 @@ public class JoinsGraph implements Serializable {
         // special case: several same nodes in a JoinGraph
         return nodes.values().stream().filter(node -> node.getTableIdentity().equals(table.getTableIdentity()))
                 .filter(node -> {
-                    List<JoinDesc> path2Center = getJoinsPathByPKSide(table);
+                    List<JoinDesc> path2Center = getJoinsPathByPKSide(node);
                     return path2Center.stream().noneMatch(JoinDesc::isLeftJoin);
                 }).collect(Collectors.toList());
     }
@@ -343,7 +341,7 @@ public class JoinsGraph implements Serializable {
 
     public Map<String, String> matchAlias(JoinsGraph joinsGraph, boolean matchPartial) {
         Map<String, String> matchAlias = Maps.newHashMap();
-        match(this, joinsGraph, matchAlias, matchPartial);
+        match(joinsGraph, matchAlias, matchPartial);
         return matchAlias;
     }
 

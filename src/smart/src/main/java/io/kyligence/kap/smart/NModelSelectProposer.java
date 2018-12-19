@@ -26,6 +26,7 @@ package io.kyligence.kap.smart;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.JoinDesc;
@@ -35,6 +36,7 @@ import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -60,18 +62,23 @@ public class NModelSelectProposer extends NAbstractProposer {
         if (CollectionUtils.isEmpty(modelContexts))
             return;
 
+        Set<String> selectedModel = Sets.newHashSet();
         for (NSmartContext.NModelContext modelContext : modelContexts) {
             ModelTree modelTree = modelContext.getModelTree();
             NDataModel model = compareWithFactTable(modelTree);
-            if (model != null) {
-                // found matched, then use it
-                modelContext.setOrigModel(model);
-                NDataModel targetModel = NDataModel.getCopyOf(model);
-                initModel(targetModel);
-                targetModel.getComputedColumnDescs()
-                        .forEach(cc -> smartContext.getUsedCC().put(cc.getExpression(), cc));
-                modelContext.setTargetModel(targetModel);
+            if (model == null || selectedModel.contains(model.getAlias())) {
+                // original model is allowed to be selected one context in batch
+                // to avoid modification conflict
+                continue;
             }
+            // found matched, then use it
+            modelContext.setOrigModel(model);
+            NDataModel targetModel = NDataModel.getCopyOf(model);
+            initModel(targetModel);
+            targetModel.getComputedColumnDescs()
+                    .forEach(cc -> smartContext.getUsedCC().put(cc.getExpression(), cc));
+            modelContext.setTargetModel(targetModel);
+            selectedModel.add(targetModel.getAlias());
         }
 
         // if manual maintain type and selected model is null, record error message
@@ -126,8 +133,8 @@ public class NModelSelectProposer extends NAbstractProposer {
                 }
             }
             JoinsGraph joinsGraph = new JoinsGraph(factTblRef, modelTreeJoins);
-            return JoinsGraph.match(model.getJoinsGraph(), joinsGraph, Maps.newHashMap(), false) || 
-                    JoinsGraph.match(joinsGraph, model.getJoinsGraph(), Maps.newHashMap(), false);
+            return model.getJoinsGraph().match(joinsGraph, Maps.newHashMap()) || 
+                    joinsGraph.match(model.getJoinsGraph(), Maps.newHashMap());
         }
         return false;
     }

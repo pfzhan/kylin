@@ -283,7 +283,7 @@ public class RealizationChooser {
             if (ctx.getJoinsGraph() == null) {
                 ctx.setJoinsGraph(new JoinsGraph(firstTable, ctx.joins));
             }
-            matched = JoinsGraph.match(ctx.getJoinsGraph(), model.getJoinsGraph(), matchUp);
+            matched = ctx.getJoinsGraph().match(model.getJoinsGraph(), matchUp);
         }
 
         if (!matched) {

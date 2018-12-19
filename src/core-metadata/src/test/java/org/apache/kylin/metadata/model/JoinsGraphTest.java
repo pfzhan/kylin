@@ -43,25 +43,43 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
     public void setUp() throws Exception {
         createTestMetadata();
     }
-    
+
     @Test
     public void testMatch() {
         NDataModel modelDesc = NDataModelManager.getInstance(getTestConfig(), "default")
                 .getDataModelDesc("nmodel_basic");
-        
+
         JoinsGraph orderIJFactGraph = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
                 .innerJoin(new String[] { "TEST_ORDER.ORDER_ID" }, new String[] { "TEST_KYLIN_FACT.ORDER_ID" }).build();
         JoinsGraph factIJOrderGraph = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
                 .innerJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" }).build();
-        Assert.assertTrue(JoinsGraph.match(orderIJFactGraph, factIJOrderGraph, new HashMap<String, String>()));
-        
+        Assert.assertTrue(orderIJFactGraph.match(factIJOrderGraph, new HashMap<String, String>()));
+
         JoinsGraph orderLJfactGraph = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
                 .leftJoin(new String[] { "TEST_ORDER.ORDER_ID" }, new String[] { "TEST_KYLIN_FACT.ORDER_ID" }).build();
         JoinsGraph factLJorderGraph = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
                 .leftJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" }).build();
-        Assert.assertFalse(JoinsGraph.match(orderLJfactGraph, factLJorderGraph, new HashMap<String, String>()));
+        Assert.assertFalse(orderLJfactGraph.match(factLJorderGraph, new HashMap<String, String>()));
     }
-    
+
+    @Test
+    public void testMatchDupJoinTable() {
+        NDataModel modelDesc = NDataModelManager.getInstance(getTestConfig(), "default")
+                .getDataModelDesc("nmodel_basic");
+
+        JoinsGraph graph1 = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
+                .innerJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" })
+                .innerJoin(new String[] { "BUYER_ACCOUNT.ACCOUNT_COUNTRY" }, new String[] { "BUYER_COUNTRY.COUNTRY" })
+                .innerJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "SELLER_ACCOUNT.ACCOUNT_ID" })
+                .build();
+        JoinsGraph graph2 = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
+                .innerJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "SELLER_ACCOUNT.ACCOUNT_ID" })
+                .innerJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" })
+                .innerJoin(new String[] { "BUYER_ACCOUNT.ACCOUNT_COUNTRY" }, new String[] { "BUYER_COUNTRY.COUNTRY" })
+                .build();
+        Assert.assertTrue(graph1.match(graph2, new HashMap<String, String>()));
+    }
+
     @Test
     public void testMatchLeft() {
         NDataModel modelDesc = NDataModelManager.getInstance(getTestConfig(), "default")
@@ -69,24 +87,24 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
         JoinsGraph modelJoinsGraph = modelDesc.getJoinsGraph();
 
         JoinsGraph singleTblGraph = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT").build();
-        Assert.assertTrue(JoinsGraph.match(modelJoinsGraph, modelJoinsGraph, new HashMap<String, String>()));
-        Assert.assertTrue(JoinsGraph.match(singleTblGraph, singleTblGraph, new HashMap<String, String>()));
-        Assert.assertTrue(JoinsGraph.match(singleTblGraph, modelJoinsGraph, new HashMap<String, String>()));
-        Assert.assertFalse(JoinsGraph.match(modelJoinsGraph, singleTblGraph, new HashMap<String, String>()));
+        Assert.assertTrue(modelJoinsGraph.match(modelJoinsGraph, new HashMap<String, String>()));
+        Assert.assertTrue(singleTblGraph.match(singleTblGraph, new HashMap<String, String>()));
+        Assert.assertTrue(singleTblGraph.match(modelJoinsGraph, new HashMap<String, String>()));
+        Assert.assertFalse(modelJoinsGraph.match(singleTblGraph, new HashMap<String, String>()));
 
         JoinsGraph noFactGraph = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
                 .leftJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" }).build();
-        Assert.assertFalse(JoinsGraph.match(noFactGraph, modelJoinsGraph, new HashMap<String, String>()));
+        Assert.assertFalse(noFactGraph.match(modelJoinsGraph, new HashMap<String, String>()));
 
         JoinsGraph factJoinGraph = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
                 .leftJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
                 .leftJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" }).build();
-        Assert.assertTrue(JoinsGraph.match(factJoinGraph, modelJoinsGraph, new HashMap<String, String>()));
+        Assert.assertTrue(factJoinGraph.match(modelJoinsGraph, new HashMap<String, String>()));
 
         JoinsGraph joinedFactGraph = new MockJoinGraphBuilder(modelDesc, "BUYER_ACCOUNT")
                 .leftJoin(new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" }, new String[] { "TEST_ORDER.BUYER_ID" })
                 .leftJoin(new String[] { "TEST_ORDER.ORDER_ID" }, new String[] { "TEST_KYLIN_FACT.ORDER_ID" }).build();
-        Assert.assertFalse(JoinsGraph.match(joinedFactGraph, factJoinGraph, new HashMap<String, String>()));
+        Assert.assertFalse(joinedFactGraph.match(factJoinGraph, new HashMap<String, String>()));
     }
 
     @Test
@@ -96,26 +114,26 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
         JoinsGraph modelJoinsGraph = modelDesc.getJoinsGraph();
 
         JoinsGraph singleTblGraph = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT").build();
-        Assert.assertTrue(JoinsGraph.match(modelJoinsGraph, modelJoinsGraph, new HashMap<String, String>()));
-        Assert.assertTrue(JoinsGraph.match(singleTblGraph, singleTblGraph, new HashMap<String, String>()));
-        Assert.assertFalse(JoinsGraph.match(singleTblGraph, modelJoinsGraph, new HashMap<String, String>()));
-        Assert.assertFalse(JoinsGraph.match(modelJoinsGraph, singleTblGraph, new HashMap<String, String>()));
+        Assert.assertTrue(modelJoinsGraph.match(modelJoinsGraph, new HashMap<String, String>()));
+        Assert.assertTrue(singleTblGraph.match(singleTblGraph, new HashMap<String, String>()));
+        Assert.assertFalse(singleTblGraph.match(modelJoinsGraph, new HashMap<String, String>()));
+        Assert.assertFalse(modelJoinsGraph.match(singleTblGraph, new HashMap<String, String>()));
 
         JoinsGraph noFactGraph = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
                 .innerJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" }).build();
-        Assert.assertFalse(JoinsGraph.match(noFactGraph, modelJoinsGraph, new HashMap<String, String>()));
+        Assert.assertFalse(noFactGraph.match(modelJoinsGraph, new HashMap<String, String>()));
 
         JoinsGraph factJoinGraph = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
                 .innerJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
                 .innerJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" }).build();
-        Assert.assertFalse(JoinsGraph.match(factJoinGraph, modelJoinsGraph, new HashMap<String, String>()));
+        Assert.assertFalse(factJoinGraph.match(modelJoinsGraph, new HashMap<String, String>()));
 
         JoinsGraph joinedFactGraph = new MockJoinGraphBuilder(modelDesc, "BUYER_ACCOUNT")
                 .innerJoin(new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" }, new String[] { "TEST_ORDER.BUYER_ID" })
                 .innerJoin(new String[] { "TEST_ORDER.ORDER_ID" }, new String[] { "TEST_KYLIN_FACT.ORDER_ID" }).build();
-        Assert.assertTrue(JoinsGraph.match(joinedFactGraph, factJoinGraph, new HashMap<String, String>()));
+        Assert.assertTrue(joinedFactGraph.match(factJoinGraph, new HashMap<String, String>()));
     }
-    
+
     @Test
     public void testPartialMatch() {
         NDataModel modelDesc = NDataModelManager.getInstance(getTestConfig(), "default")
@@ -125,14 +143,14 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
         JoinsGraph factJoinGraph = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")
                 .innerJoin(new String[] { "TEST_KYLIN_FACT.ORDER_ID" }, new String[] { "TEST_ORDER.ORDER_ID" })
                 .innerJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" }).build();
-        Assert.assertTrue(JoinsGraph.match(factJoinGraph, modelJoinsGraph, new HashMap<String, String>(), true));
+        Assert.assertTrue(factJoinGraph.match(modelJoinsGraph, new HashMap<String, String>(), true));
     }
-    
+
     private class MockJoinGraphBuilder {
         private NDataModel modelDesc;
         private TableRef root;
         private List<JoinDesc> joins;
-        
+
         public MockJoinGraphBuilder(NDataModel modelDesc, String rootName) {
             this.modelDesc = modelDesc;
             this.root = modelDesc.findTable(rootName);
@@ -157,17 +175,17 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
             joinDesc.setPrimaryKeyColumns(pkColRefs);
             return joinDesc;
         }
-        
+
         public MockJoinGraphBuilder innerJoin(String[] fkCols, String[] pkCols) {
             joins.add(mockJoinDesc("INNER", fkCols, pkCols));
             return this;
         }
-        
+
         public MockJoinGraphBuilder leftJoin(String[] fkCols, String[] pkCols) {
             joins.add(mockJoinDesc("LEFT", fkCols, pkCols));
             return this;
         }
-        
+
         public JoinsGraph build() {
             return new JoinsGraph(root, joins);
         }
