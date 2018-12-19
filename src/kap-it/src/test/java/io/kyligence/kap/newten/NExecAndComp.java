@@ -36,7 +36,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.query.CompareQueryBySuffix;
-import org.apache.kylin.source.adhocquery.HivePushDownConverter;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.common.SparderQueryTest;
@@ -200,8 +200,9 @@ public class NExecAndComp {
     }
 
     private static Dataset<Row> queryWithSpark(KapSparkSession kapSparkSession, String sql) {
+        String afterConvert = QueryUtil.massagePushdownSql(sql, kapSparkSession.project(), "default", false);
         // Table schema comes from csv and DATABASE.TABLE is not supported.
-        String sqlForSpark = sql.replaceAll("edw\\.", "")
+        String sqlForSpark = afterConvert.replaceAll("edw\\.", "")
                 .replaceAll("\"EDW\"\\.", "")
                 .replaceAll("EDW\\.", "")
                 .replaceAll("default\\.", "")
@@ -211,10 +212,7 @@ public class NExecAndComp {
                 .replaceAll("tpch\\.", "")
                 .replaceAll("TDVT\\.", "")
                 .replaceAll("\"TDVT\"\\.", "");
-        HivePushDownConverter converter = new HivePushDownConverter();
-        String afterConvert = converter.convert(sqlForSpark, "default", "default", false);
-
-        return kapSparkSession.querySparkSql(afterConvert);
+        return kapSparkSession.querySparkSql(sqlForSpark);
     }
 
     public static String changeJoinType(String sql, String targetType) {

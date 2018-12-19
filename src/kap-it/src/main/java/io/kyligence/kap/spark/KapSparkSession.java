@@ -121,6 +121,10 @@ public class KapSparkSession extends SparkSession {
         }
         logger.info("Switch project to: {}", project);
     }
+    
+    public String project() {
+        return project;
+    }
 
     @Override
     public Dataset<Row> sql(String sqlText) {

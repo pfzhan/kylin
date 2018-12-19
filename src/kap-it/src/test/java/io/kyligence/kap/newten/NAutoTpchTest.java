@@ -46,17 +46,16 @@ public class NAutoTpchTest extends NAutoTestBase {
     //KAP#7892 fix this
     @Test
     public void testTpch() throws Exception {
-        /*
-        * Reason for not using CompareLevel.SAME:
-        * See #7257, #7268, #7269
-        * Plus the precision difference between query cuboid and SparkSQL
-        */
-        new TestScenario("sql_tpch", CompareLevel.SAME).execute();
+        // split batch to verify KAP#9114
+        new TestScenario("sql_tpch", CompareLevel.SAME, 0, 5).execute();
+        new TestScenario("sql_tpch", CompareLevel.SAME, 5, 10).execute();
+        new TestScenario("sql_tpch", CompareLevel.SAME, 10, 15).execute();
+        new TestScenario("sql_tpch", CompareLevel.SAME, 15, 22).execute();
     }
 
     @Test
     public void testReProposeCase() throws Exception {
-        // verify issue https://github.com/Kyligence/KAP/issues/7515
+        // run twice to verify KAP#7515
         for (int i = 0; i < 2; ++i) {
             new TestScenario("sql_tpch", CompareLevel.SAME, 1, 2).execute();
         }

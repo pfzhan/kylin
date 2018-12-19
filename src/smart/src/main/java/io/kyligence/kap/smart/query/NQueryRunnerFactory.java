@@ -41,9 +41,10 @@ public final class NQueryRunnerFactory {
         return builder.buildBasic(projectName);
     }
 
-    public static AbstractQueryRunner createForModelSuggestion(KylinConfig srcKylinConfig, String[] sqls, int nThreads,
-            String projectName, List<NDataModel> modelDescs) {
-        return new NLocalQueryRunnerBuilder(srcKylinConfig, sqls, nThreads).buildWithModelDescs(projectName, modelDescs);
+    public static AbstractQueryRunner createForModelSuggestion(KylinConfig srcKylinConfig, String projectName,
+            String[] sqls, List<NDataModel> modelDescs, int nThreads) {
+        return new NLocalQueryRunnerBuilder(srcKylinConfig, sqls, nThreads).buildWithModelDescs(projectName,
+                modelDescs);
     }
 
 }

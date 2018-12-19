@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
@@ -52,8 +54,9 @@ class NSQLAnalysisProposer extends NAbstractProposer {
 
     @Override
     void propose() {
+        List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, project).getDataModels();
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project, sqls,
-                DEFAULT_THREAD_NUM)) {
+                models, DEFAULT_THREAD_NUM)) {
             extractor.execute();
             logFailedQuery(extractor);
 

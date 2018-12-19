@@ -144,7 +144,7 @@ public class NModelMaster {
 
         // Rebuild modelTrees and find match one to replace original
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig,
-                newQueries.toArray(new String[0]), 1, project, Lists.newArrayList(dataModel))) {
+                project, newQueries.toArray(new String[0]), Lists.newArrayList(dataModel), 1)) {
             extractor.execute();
             List<ModelTree> modelTrees = new GreedyModelTreesBuilder(kylinConfig, project) //
                     .build(oldQueries, extractor.getAllOLAPContexts(), null);

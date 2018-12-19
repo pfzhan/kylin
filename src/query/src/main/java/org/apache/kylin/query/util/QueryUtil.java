@@ -54,6 +54,7 @@ import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.source.adhocquery.IPushDownConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -149,6 +150,19 @@ public class QueryUtil {
         }
 
         return makeErrorMsgUserFriendly(msg);
+    }
+
+    public static String massagePushdownSql(String sql, String project, String defaultSchema, boolean isPrepare) {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        for (String converterName : kylinConfig.getPushDownConverterClassNames()) {
+            IPushDownConverter converter = (IPushDownConverter) ClassUtil.newInstance(converterName);
+            String convertedSql = converter.convert(sql, project, defaultSchema, isPrepare);
+            if (!sql.equals(convertedSql)) {
+                logger.info("The query is converted to {} after applying converter {}", convertedSql, converterName);
+                sql = convertedSql;
+            }
+        }
+        return sql;
     }
 
     public static String makeErrorMsgUserFriendly(String errorMsg) {
