@@ -71,21 +71,21 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
         val task = tasks.get(0);
         val dataflowName = ExecutableUtils.getDataflowName(task);
         val segmentIds = ExecutableUtils.getSegmentIds(task);
-        val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), task);
+        try (val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), task)) {
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+                    finishEvent(project, event.getId());
+                    return null;
+                }
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+                val kylinConfig = KylinConfig.getInstanceFromEnv();
+                val merger = new AfterMergeOrRefreshResourceMerger(kylinConfig, project);
+                merger.mergeAfterJob(dataflowName, segmentIds.iterator().next(), buildResourceStore);
+
                 finishEvent(project, event.getId());
                 return null;
-            }
-
-            val kylinConfig = KylinConfig.getInstanceFromEnv();
-            val merger = new AfterMergeOrRefreshResourceMerger(kylinConfig, project);
-            merger.mergeAfterJob(dataflowName, segmentIds.iterator().next(), buildResourceStore);
-
-            finishEvent(project, event.getId());
-            return null;
-        }, project);
+            }, project);
+        }
     }
 
     private void doHandleWithNullJob(EventContext eventContext) {

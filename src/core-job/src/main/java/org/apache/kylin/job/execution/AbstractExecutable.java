@@ -215,7 +215,8 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         Preconditions.checkState(this.getStatus() == ExecutableState.RUNNING);
 
         setEndTime(result);
-        updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), result.output());
+        // remove output from metadata, move it to HDFS #9172
+        updateJobOutput(project, getId(), ExecutableState.SUCCEED, result.getExtraInfo(), null);
     }
 
     protected void onExecuteError(ExecuteResult result, ExecutableContext executableContext) {

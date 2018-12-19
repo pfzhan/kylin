@@ -71,6 +71,7 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 
+import io.kyligence.kap.rest.transaction.Transaction;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -155,7 +156,6 @@ public class QueryService extends BasicService {
     public static final String QUERY_STORE_PATH_PREFIX = "/query/";
     private static final Logger logger = LoggerFactory.getLogger(QueryService.class);
     final SlowQueryDetector slowQueryDetector = new SlowQueryDetector();
-    final ResourceStore queryStore;
 
     @Autowired
     protected CacheManager cacheManager;
@@ -164,7 +164,6 @@ public class QueryService extends BasicService {
     private AclEvaluate aclEvaluate;
 
     public QueryService() {
-        queryStore = ResourceStore.getKylinMetaStore(getConfig());
         slowQueryDetector.start();
     }
 
@@ -219,15 +218,17 @@ public class QueryService extends BasicService {
         }
     }
 
+    @Transaction(project = 1)
     public void saveQuery(final String creator, final String project, final Query query) throws IOException {
         List<Query> queries = getSavedQueries(creator, project);
         queries.add(query);
         Query[] queryArray = new Query[queries.size()];
         QueryRecord record = new QueryRecord(queries.toArray(queryArray));
-        queryStore.checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
+        getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
         return;
     }
 
+    @Transaction(project = 1)
     public void removeSavedQuery(final String creator, final String project, final String id) throws IOException {
         List<Query> queries = getSavedQueries(creator, project);
         Iterator<Query> queryIter = queries.iterator();
@@ -247,7 +248,7 @@ public class QueryService extends BasicService {
         }
         Query[] queryArray = new Query[queries.size()];
         QueryRecord record = new QueryRecord(queries.toArray(queryArray));
-        queryStore.checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
+        getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
         return;
     }
 
@@ -256,7 +257,7 @@ public class QueryService extends BasicService {
             return null;
         }
         List<Query> queries = new ArrayList<Query>();
-        QueryRecord record = queryStore.getResource(getQueryKeyById(project, creator),
+        QueryRecord record = getStore().getResource(getQueryKeyById(project, creator),
                 QueryRecordSerializer.getInstance());
         if (record != null) {
             for (Query query : record.getQueries()) {
@@ -1092,6 +1093,10 @@ public class QueryService extends BasicService {
 
     public void setCacheManager(CacheManager cacheManager) {
         this.cacheManager = cacheManager;
+    }
+
+    private static ResourceStore getStore() {
+        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }
 
     private static class QueryRecordSerializer implements Serializer<QueryRecord> {

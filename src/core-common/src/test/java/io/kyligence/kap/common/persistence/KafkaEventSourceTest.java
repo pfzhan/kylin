@@ -23,14 +23,23 @@
  */
 package io.kyligence.kap.common.persistence;
 
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RawResource;
+import org.apache.kylin.common.persistence.ResourceStore;
+import org.apache.kylin.common.util.JsonUtil;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
+import com.google.common.io.ByteStreams;
 
-import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
-import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
@@ -42,21 +51,51 @@ public class KafkaEventSourceTest extends NLocalFileMetadataTestCase {
     @Before
     public void init() {
         createTestMetadata();
-        System.setProperty("kylin.event-store.url", "kylin_metadata@kafka,bootstrap.servers=sandbox:9093");
+        System.setProperty("kylin.metadata.url", "kylin_metadata@hdfs,bootstrap.servers=sandbox:9092");
+        System.setProperty("kylin.metadata.mq-type", "kafka");
     }
 
     @Test
     @Ignore("for develop")
     public void testKafkaTransaction() throws Exception {
-        val store = EventStore.getInstance(getTestConfig());
-        val publisher = store.getEventPublisher();
-        publisher.publish(Lists.newArrayList(new ResourceCreateOrUpdateEvent(null), new ResourceDeleteEvent("/path")));
+        val raw = new RawResource("/abc", ByteStreams.asByteSource("123".getBytes()), 1L, 0L);
 
-        store.startConsumer(event -> {
-            log.info("receive {} {}", event, event.getClass());
-        });
-        while (true) {
-            Thread.sleep(10000);
+        val executors = Executors.newFixedThreadPool(4);
+        List<Future> futures = Lists.newArrayList();
+        for (int i = 0; i < 10; i++) {
+            int finalI = i;
+            val future = executors.submit(() -> {
+                UnitOfWork.doInTransactionWithRetry(() -> {
+                    val store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+                    store.checkAndPutResource("/abc", ByteStreams.asByteSource("abc".getBytes()), -1);
+                    store.checkAndPutResource("/abc2", ByteStreams.asByteSource("abc".getBytes()), -1);
+                    store.checkAndPutResource("/abc3", ByteStreams.asByteSource("abc".getBytes()), -1);
+                    store.deleteResource("/abc");
+                    return 0;
+                }, "project" + (finalI % 4));
+                //                val publisher = store.getEventPublisher();
+                //                val events = Lists.newArrayList(new ResourceCreateOrUpdateEvent(raw), new ResourceDeleteEvent("/path"));
+                //                for (ResourceRelatedEvent event : events) {
+                //                    event.setKey("project" + (finalI % 4));
+                //                }
+                //                publisher.publish(events);
+            });
+            futures.add(future);
         }
+        while (true) {
+            Thread.sleep(1000);
+        }
+    }
+
+    @Test
+    @Ignore
+    public void testSubscriber() throws Exception {
+        val store = EventStore.getInstance(getTestConfig());
+        store.syncEvents(event -> {
+            try {
+                log.info("data {}", JsonUtil.writeValueAsIndentString(event));
+            } catch (JsonProcessingException ignore) {
+            }
+        });
     }
 }

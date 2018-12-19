@@ -77,25 +77,25 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
         val segmentIds = ExecutableUtils.getSegmentIds(buildTask);
         val layoutIds = ExecutableUtils.getLayoutIds(buildTask);
 
-        val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), tasks.get(0));
-        val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask);
+        try (val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), tasks.get(0));
+                val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask)) {
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                if (!checkSubjectExists(project, event.getCubePlanName(), null, event)) {
+                    finishEvent(project, event.getId());
+                    return null;
+                }
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            if (!checkSubjectExists(project, event.getCubePlanName(), null, event)) {
+                val kylinConfig = KylinConfig.getInstanceFromEnv();
+                val merger = new AfterBuildResourceMerger(kylinConfig, project);
+                merger.mergeAfterCatchup(dataflowName, segmentIds, layoutIds, buildResourceStore);
+                merger.mergeAnalysis(dataflowName, analysisResourceStore);
+
+                handleFavoriteQuery(project, sqlList);
+
                 finishEvent(project, event.getId());
                 return null;
-            }
-
-            val kylinConfig = KylinConfig.getInstanceFromEnv();
-            val merger = new AfterBuildResourceMerger(kylinConfig, project);
-            merger.mergeAfterCatchup(dataflowName, segmentIds, layoutIds, buildResourceStore);
-            merger.mergeAnalysis(dataflowName, analysisResourceStore);
-
-            handleFavoriteQuery(project, sqlList);
-
-            finishEvent(project, event.getId());
-            return null;
-        }, project);
+            }, project);
+        }
     }
 
     private void doHandleWithNullJob(EventContext eventContext) {

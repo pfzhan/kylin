@@ -29,6 +29,7 @@ import java.util.Properties;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
@@ -40,6 +41,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.transaction.mq.EventPublisher;
@@ -52,7 +54,7 @@ import lombok.extern.slf4j.Slf4j;
 public class KafkaEventStore extends EventStore {
 
     private final StorageURL url;
-    private KafkaProducer<String, Event> producer;
+    private Map<String, KafkaProducer<String, Event>> producers = Maps.newConcurrentMap();
     private final String topic;
     private final Map<String, String> kafkaPropeties;
 
@@ -63,8 +65,13 @@ public class KafkaEventStore extends EventStore {
     }
 
     public EventPublisher getEventPublisher() {
-        initProducer();
         return events -> {
+            if (CollectionUtils.isEmpty(events)) {
+                return;
+            }
+            val key = events.get(0).getKey();
+            initProducer(key);
+            val producer = producers.get(key);
             try {
                 producer.beginTransaction();
                 log.debug("events are {}", events);
@@ -136,12 +143,12 @@ public class KafkaEventStore extends EventStore {
 
     private KafkaConsumer<String, Event> getKafkaConsumer() {
         val consumerConfig = new Properties();
-        consumerConfig.put(ConsumerConfig.CLIENT_ID_CONFIG, "transaction-consumer");
+        consumerConfig.put(ConsumerConfig.CLIENT_ID_CONFIG, topic + "-consumer");
         consumerConfig.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
                 "org.apache.kafka.common.serialization.StringDeserializer");
         consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 "io.kyligence.kap.common.persistence.transaction.kafka.EventDeserializer");
-        consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, "transaction-group0");
+        consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, "transaction-group-" + topic);
         kafkaPropeties.forEach(consumerConfig::put);
         val consumer = new KafkaConsumer<String, Event>(consumerConfig);
         return consumer;
@@ -155,26 +162,27 @@ public class KafkaEventStore extends EventStore {
         });
     }
 
-    private synchronized void initProducer() {
-        if (producer != null) {
+    private synchronized void initProducer(String key) {
+        if (producers.get(key) != null) {
             return;
         }
         val producerConfig = new Properties();
-        producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, topic + "-producer");
+        producerConfig.put(ProducerConfig.CLIENT_ID_CONFIG, topic + "-" + key + "-producer");
         producerConfig.put(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, true);
-        producerConfig.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "kylin-transactional-" + topic);
+        producerConfig.put(ProducerConfig.TRANSACTIONAL_ID_CONFIG, "kylin-" + topic + "-" + key);
         producerConfig.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
                 "org.apache.kafka.common.serialization.StringSerializer");
         producerConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
                 "io.kyligence.kap.common.persistence.transaction.kafka.EventSerializer");
         url.getAllParameters().forEach(producerConfig::put);
-        producer = new KafkaProducer<>(producerConfig);
+        val producer = new KafkaProducer<String, Event>(producerConfig);
         producer.initTransactions();
+        producers.put(key, producer);
     }
 
     @Override
     public void close() throws IOException {
-        if (producer != null) {
+        for (KafkaProducer<String, Event> producer : producers.values()) {
             producer.close();
         }
     }

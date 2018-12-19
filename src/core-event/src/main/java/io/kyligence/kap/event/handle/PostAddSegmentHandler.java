@@ -86,34 +86,34 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         val segmentIds = ExecutableUtils.getSegmentIds(buildTask);
         val layoutIds = ExecutableUtils.getLayoutIds(buildTask);
 
-        val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), tasks.get(0));
-        val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask);
+        try (val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), tasks.get(0));
+                val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask)) {
+            UnitOfWork.doInTransactionWithRetry(() -> {
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
+                if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+                    finishEvent(project, event.getId());
+                    return null;
+                }
 
-            if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+                val kylinConfig = KylinConfig.getInstanceFromEnv();
+                String cubePlanName = event.getCubePlanName();
+
+                val merger = new AfterBuildResourceMerger(kylinConfig, project);
+                merger.mergeAfterIncrement(dataflowName, segmentIds.iterator().next(), layoutIds, buildResourceStore);
+                merger.mergeAnalysis(dataflowName, analysisResourceStore);
+
+                NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
+                NDataflow df = dfMgr.getDataflow(cubePlanName);
+
+                updateDataLoadingRange(df);
+
+                //TODO: take care of this
+                autoMergeSegments(df, project, event.getModelName(), event.getOwner());
+
                 finishEvent(project, event.getId());
                 return null;
-            }
-
-            val kylinConfig = KylinConfig.getInstanceFromEnv();
-            String cubePlanName = event.getCubePlanName();
-
-            val merger = new AfterBuildResourceMerger(kylinConfig, project);
-            merger.mergeAfterIncrement(dataflowName, segmentIds.iterator().next(), layoutIds, buildResourceStore);
-            merger.mergeAnalysis(dataflowName, analysisResourceStore);
-
-            NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-            NDataflow df = dfMgr.getDataflow(cubePlanName);
-
-            updateDataLoadingRange(df);
-
-            //TODO: take care of this
-            autoMergeSegments(df, project, event.getModelName(), event.getOwner());
-
-            finishEvent(project, event.getId());
-            return null;
-        }, project);
+            }, project);
+        }
     }
 
     private void doHandleWithNullJob(EventContext eventContext) {
