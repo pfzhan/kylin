@@ -117,6 +117,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse createModel(@RequestBody ModelRequest modelRequest) {
         checkProjectName(modelRequest.getProject());
+        modelService.preProcessBeforeModelSave(modelRequest, modelRequest.getProject());
         modelService.createModel(modelRequest.getProject(), modelRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
@@ -233,6 +234,7 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse updateSemantic(@RequestBody ModelRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_NAME, request.getName());
+        modelService.preProcessBeforeModelSave(request, request.getProject());
         modelService.updateDataModelSemantic(request.getProject(), request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
