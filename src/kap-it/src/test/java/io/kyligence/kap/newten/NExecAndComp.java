@@ -203,15 +203,22 @@ public class NExecAndComp {
         String afterConvert = QueryUtil.massagePushdownSql(sql, kapSparkSession.project(), "default", false);
         // Table schema comes from csv and DATABASE.TABLE is not supported.
         String sqlForSpark = afterConvert.replaceAll("edw\\.", "")
+                .replaceAll("`edw`\\.", "")
                 .replaceAll("\"EDW\"\\.", "")
                 .replaceAll("EDW\\.", "")
+                .replaceAll("`EDW`\\.", "")
                 .replaceAll("default\\.", "")
+                .replaceAll("`default`\\.", "")
                 .replaceAll("DEFAULT\\.", "")
                 .replaceAll("\"DEFAULT\"\\.", "")
+                .replaceAll("`DEFAULT`\\.", "")
                 .replaceAll("TPCH\\.", "")
+                .replaceAll("`TPCH`\\.", "")
                 .replaceAll("tpch\\.", "")
+                .replaceAll("`tpch`\\.", "")
                 .replaceAll("TDVT\\.", "")
-                .replaceAll("\"TDVT\"\\.", "");
+                .replaceAll("\"TDVT\"\\.", "")
+                .replaceAll("`TDVT`\\.", "");
         return kapSparkSession.querySparkSql(sqlForSpark);
     }
 

@@ -561,6 +561,7 @@ public class ModelService extends BasicService {
         checkAliasExist(modelRequest.getName(), modelRequest.getAlias(), project);
         //remove some attributes in modelResponse to fit NDataModel
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
+        preProcessBeforeModelSave(dataModel, project);
         val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
         syncPartitionDesc(model.getName(), project);
 
@@ -893,6 +894,7 @@ public class ModelService extends BasicService {
                     + "'s agg group still contains dimensions " + StringUtils.join(dimensionNames, ","));
         }
 
+        preProcessBeforeModelSave(copyModel, project);
         modelManager.updateDataModelDesc(copyModel);
         semanticUpdater.handleSemanticUpdate(project, request.getName(), originModel);
     }

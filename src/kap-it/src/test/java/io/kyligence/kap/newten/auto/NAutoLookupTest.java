@@ -77,7 +77,7 @@ public class NAutoLookupTest extends NAutoTestBase {
         Assert.assertEquals(2, smartMaster.getContext().getModelContexts().size());
 
         List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, getProject()).getDataModels();
-        Assert.assertEquals(1, models.size());
+        Assert.assertEquals(2, models.size());
         NDataModel model = models.get(0);
         Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
         kapSparkSession.buildAllCubes(kylinConfig, getProject());
