@@ -83,16 +83,14 @@ class NModelOptProposer extends NAbstractProposer {
         List<NModelContext> snapshotModelCandidate = smartContext.getModelContexts().stream()
                 .filter(ctx -> ctx.getOrigModel() == null && ctx.getTargetModel() != null
                         && CollectionUtils.isEmpty(ctx.getTargetModel().getJoinTables())
-                        && CollectionUtils.isEmpty(ctx.getTargetModel().getComputedColumnDescs()))
+                        && CollectionUtils.isEmpty(ctx.getTargetModel().getComputedColumnDescs())
+                        && ! ctx.getTargetModel().getRootFactTable().getTableDesc().isFact())
                 .collect(Collectors.toList());
 
         final NDataModelManager modelManager = NDataModelManager.getInstance(smartContext.getKylinConfig(),
                 smartContext.getProject());
-        List<NDataModel> snapshotProviders = smartContext.getModelContexts().stream()
-                .filter(ctx -> ctx.getTargetModel() != null).map(NModelContext::getTargetModel)
+        List<NDataModel> snapshotProviders = modelManager.getDataModels().stream()
                 .filter(model -> CollectionUtils.isNotEmpty(model.getJoinTables())).collect(Collectors.toList());
-        snapshotProviders.addAll(modelManager.getDataModels().stream()
-                .filter(model -> CollectionUtils.isNotEmpty(model.getJoinTables())).collect(Collectors.toList()));
 
         snapshotModelCandidate.stream().forEach(modelContext -> {
             String rootTable = modelContext.getTargetModel().getRootFactTable().getTableIdentity();
