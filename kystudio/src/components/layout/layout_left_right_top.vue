@@ -51,6 +51,7 @@
                 class="entry-admin"
                 @click="handleSwitchAdmin">
                 <span>{{$t('kylinLang.menu.admin')}}</span>
+                <i :class="isAdminView ? 'el-icon-ksd-admin_collapse' : 'el-icon-ksd-admin_extend'"></i>
               </el-button>
             </li>
             <li><help></help></li>
@@ -87,9 +88,9 @@
               </el-breadcrumb>
             </el-col>
             <el-col :span="24" class="main-content">
-              <!--<transition name="fade">-->
-              <router-view v-on:addProject="addProject"></router-view>
-              <!--</transition>-->
+              <transition :name="isAnimation ? 'slide' : null">
+                <router-view v-on:addProject="addProject"></router-view>
+              </transition>
             </el-col>
           </div>
         </div>
@@ -241,6 +242,7 @@ export default class LayoutLeftRightTop extends Vue {
   applyBtnLoading = false
   btnLoadingCancel = false
   rotateVisibel = false
+  isAnimation = false
 
   get isAdminView () {
     const adminRegex = /^\/admin/
@@ -255,7 +257,6 @@ export default class LayoutLeftRightTop extends Vue {
       })
     }
   }
-
   @Watch('$route.name')
   onRouterChange (newVal, val) {
     if (newVal !== val) {
@@ -265,10 +266,18 @@ export default class LayoutLeftRightTop extends Vue {
   handleSwitchAdmin () {
     if (this.isAdminView) {
       const nextLocation = this.cachedHistory ? this.cachedHistory : '/'
+      this.isAnimation = true
       this.$router.push(nextLocation)
+      setTimeout(() => {
+        this.isAnimation = false
+      })
     } else {
       this.cacheHistory(this.$route.fullPath)
+      this.isAnimation = true
       this.$router.push('/admin/project')
+      setTimeout(() => {
+        this.isAnimation = false
+      })
     }
   }
   loadSpeedInfo (loadingname) {

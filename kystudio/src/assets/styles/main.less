@@ -782,3 +782,15 @@ i[class^=el-icon-]{
 .center {
   text-align: center;
 }
+
+.slide-enter-active, .slide-leave-active {
+  transition: transform .5s;
+  position: absolute;
+  width: calc(~'100% - 40px');
+  top: 0;
+  transform: translateY(0);
+}
+.slide-enter, .slide-leave-to {
+  top: 0;
+  transform: translateY(-100%);
+}
