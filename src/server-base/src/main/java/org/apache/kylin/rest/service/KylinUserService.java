@@ -47,12 +47,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.annotation.PostConstruct;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -81,8 +78,6 @@ public class KylinUserService implements UserService {
 
     public static final Serializer<ManagedUser> SERIALIZER = new JsonSerializer<>(ManagedUser.class);
 
-    protected ResourceStore aclStore;
-
     private boolean evictCacheFlag = false;
 
     @Override
@@ -93,11 +88,6 @@ public class KylinUserService implements UserService {
     @Override
     public void setEvictCacheFlag(boolean evictCacheFlag) {
         this.evictCacheFlag = evictCacheFlag;
-    }
-
-    @PostConstruct
-    public void init() throws IOException {
-        aclStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     }
 
     @Override

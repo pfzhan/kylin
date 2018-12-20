@@ -31,7 +31,6 @@ import java.util.List;
 
 import javax.annotation.PostConstruct;
 
-import io.kyligence.kap.rest.transaction.Transaction;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
@@ -57,12 +56,12 @@ import com.google.common.collect.Lists;
 import com.google.common.io.ByteStreams;
 
 import io.kyligence.kap.metadata.acl.UserGroup;
+import io.kyligence.kap.rest.transaction.Transaction;
 
 @Component("nUserGroupService")
 public class NUserGroupService implements IUserGroupService {
     public static final Logger logger = LoggerFactory.getLogger(NUserGroupService.class);
 
-    private ResourceStore store = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
     private static final String PATH = "/user_group";
     private static final Serializer<UserGroup> USER_GROUP_SERIALIZER = new JsonSerializer<>(UserGroup.class);
 
@@ -96,10 +95,11 @@ public class NUserGroupService implements IUserGroupService {
             }
 
             try {
-                if (store.getResource(PATH) != null) {
+                if (getStore().getResource(PATH) != null) {
                     return;
                 }
-                store.putResourceWithoutCheck(PATH, ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(userGroup)), 0);
+                getStore().putResourceWithoutCheck(PATH,
+                        ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(userGroup)), 0);
                 return;
             } catch (WriteConflictException e) {
                 logger.info("Find WriteConflictException, sleep 100 ms.", e);
@@ -111,7 +111,7 @@ public class NUserGroupService implements IUserGroupService {
     }
 
     private UserGroup getUserGroup() throws IOException {
-        UserGroup userGroup = store.getResource(PATH, USER_GROUP_SERIALIZER);
+        UserGroup userGroup = getStore().getResource(PATH, USER_GROUP_SERIALIZER);
         if (userGroup == null) {
             userGroup = new UserGroup();
         }
@@ -140,7 +140,7 @@ public class NUserGroupService implements IUserGroupService {
     public void addGroup(String name) throws IOException {
         aclEvaluate.checkIsGlobalAdmin();
         UserGroup userGroup = getUserGroup();
-        store.checkAndPutResource(PATH, userGroup.add(name), USER_GROUP_SERIALIZER);
+        getStore().checkAndPutResource(PATH, userGroup.add(name), USER_GROUP_SERIALIZER);
     }
 
     @Override
@@ -158,7 +158,7 @@ public class NUserGroupService implements IUserGroupService {
         //delete group's project ACL
         accessService.revokeProjectPermission(name, MetadataConstants.TYPE_GROUP);
 
-        store.checkAndPutResource(PATH, getUserGroup().delete(name), USER_GROUP_SERIALIZER);
+        getStore().checkAndPutResource(PATH, getUserGroup().delete(name), USER_GROUP_SERIALIZER);
     }
 
     //user's group information is stored by user its own.Object user group does not hold user's ref.
@@ -202,4 +202,7 @@ public class NUserGroupService implements IUserGroupService {
         return getAllUserGroups().contains(name);
     }
 
+    public ResourceStore getStore() {
+        return ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
+    }
 }

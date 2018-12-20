@@ -42,7 +42,8 @@
 
 package org.apache.kylin.rest.service;
 
-import java.io.IOException;
+import static org.apache.kylin.rest.security.ACLManager.DIR_PREFIX;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,14 +54,11 @@ import java.util.Map;
 import javax.annotation.Nullable;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.JsonSerializer;
-import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.persistence.WriteConflictException;
-import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.security.ACLManager;
 import org.apache.kylin.rest.security.AclRecord;
 import org.apache.kylin.rest.security.MutableAclRecord;
 import org.apache.kylin.rest.security.ObjectIdentityImpl;
@@ -86,9 +84,6 @@ import org.springframework.stereotype.Component;
 public class AclService implements MutableAclService {
     private static final Logger logger = LoggerFactory.getLogger(AclService.class);
 
-    public static final String DIR_PREFIX = "/acl/";
-    public static final Serializer<AclRecord> SERIALIZER = new JsonSerializer<>(AclRecord.class, true);
-
     // ============================================================================
 
     @Autowired
@@ -96,27 +91,12 @@ public class AclService implements MutableAclService {
 
     @Autowired
     protected PermissionFactory aclPermissionFactory;
-    // cache
-    private CachedCrudAssist<AclRecord> crud;
-
-    public AclService() throws IOException {
-        KylinConfig config = KylinConfig.getInstanceFromEnv();
-        ResourceStore aclStore = ResourceStore.getKylinMetaStore(config);
-        this.crud = new CachedCrudAssist<AclRecord>(aclStore, "/acl", "", AclRecord.class) {
-            @Override
-            protected AclRecord initEntityAfterReload(AclRecord acl, String resourceName) {
-                acl.init(null, aclPermissionFactory, permissionGrantingStrategy);
-                return acl;
-            }
-        };
-        crud.reloadAll();
-    }
 
     @Override
     public List<ObjectIdentity> findChildren(ObjectIdentity parentIdentity) {
         List<ObjectIdentity> oids = new ArrayList<>();
         Collection<AclRecord> allAclRecords;
-        allAclRecords = crud.listAll();
+        allAclRecords = getAclManager().listAll();
         for (AclRecord record : allAclRecords) {
             ObjectIdentityImpl parent = record.getParentDomainObjectInfo();
             if (parent != null && parent.equals(parentIdentity)) {
@@ -180,7 +160,7 @@ public class AclService implements MutableAclService {
             throw new AlreadyExistsException("ACL of " + objectIdentity + " exists!");
         }
         AclRecord record = newPrjACL(objectIdentity);
-        crud.save(record);
+        getAclManager().save(record);
         logger.debug("ACL of " + objectIdentity + " created successfully.");
         return (MutableAcl) readAclById(objectIdentity);
     }
@@ -195,7 +175,7 @@ public class AclService implements MutableAclService {
         for (ObjectIdentity oid : children) {
             deleteAcl(oid, deleteChildren);
         }
-        crud.delete(objID(objectIdentity));
+        getAclManager().delete(objID(objectIdentity));
         logger.debug("ACL of " + objectIdentity + " deleted successfully.");
     }
 
@@ -203,7 +183,7 @@ public class AclService implements MutableAclService {
     @Override
     public MutableAcl updateAcl(MutableAcl mutableAcl) throws NotFoundException {
         AclRecord record = ((MutableAclRecord) mutableAcl).getAclRecord();
-        crud.save(record);
+        getAclManager().save(record);
         logger.debug("ACL of " + mutableAcl.getObjectIdentity() + " updated successfully.");
         return mutableAcl;
     }
@@ -241,7 +221,7 @@ public class AclService implements MutableAclService {
 
     @Nullable
     private AclRecord getAclRecordByCache(String id) {
-        return crud.get(id);
+        return getAclManager().get(id);
     }
 
     private AclRecord newPrjACL(ObjectIdentity objID) {
@@ -255,6 +235,10 @@ public class AclService implements MutableAclService {
         return new PrincipalSid(SecurityContextHolder.getContext().getAuthentication());
     }
 
+    public ACLManager getAclManager() {
+        return ACLManager.getInstance(KylinConfig.getInstanceFromEnv());
+    }
+
     public interface AclRecordUpdater {
         void update(AclRecord record);
     }
@@ -266,7 +250,7 @@ public class AclService implements MutableAclService {
 
             updater.update(record);
             try {
-                crud.save(record);
+                getAclManager().save(record);
                 return acl; // here we are done
 
             } catch (WriteConflictException ise) {

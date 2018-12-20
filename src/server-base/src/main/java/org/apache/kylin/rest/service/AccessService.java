@@ -42,8 +42,14 @@
 
 package org.apache.kylin.rest.service;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.metadata.project.NProjectManager;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.AclEntity;
@@ -82,13 +88,10 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.base.Preconditions;
+
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.transaction.Transaction;
 
 @Component("accessService")
 public class AccessService extends BasicService {
@@ -122,6 +125,7 @@ public class AccessService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    @Transaction
     public void batchGrant(AclEntity ae, Map<Sid, Permission> sidToPerm) {
         Message msg = MsgPicker.getMsg();
 
@@ -144,6 +148,7 @@ public class AccessService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    @Transaction
     public MutableAclRecord grant(AclEntity ae, Permission permission, Sid sid) {
         Message msg = MsgPicker.getMsg();
 
@@ -166,13 +171,16 @@ public class AccessService extends BasicService {
         return aclService.upsertAce(acl, sid, permission);
     }
 
-    public void grant(String type, String uuid, String identifier, Boolean isPrincipal, String permission) throws IOException {
+    @Transaction
+    public void grant(String type, String uuid, String identifier, Boolean isPrincipal, String permission)
+            throws IOException {
         AclEntity ae = getAclEntity(type, uuid);
         Sid sid = getSid(identifier, isPrincipal);
         grant(ae, AclPermissionFactory.getPermission(permission), sid);
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    @Transaction
     public MutableAclRecord update(AclEntity ae, int accessEntryIndex, Permission newPermission) {
         Message msg = MsgPicker.getMsg();
 
@@ -190,6 +198,7 @@ public class AccessService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    @Transaction
     public MutableAclRecord revoke(AclEntity ae, int accessEntryIndex) {
         Message msg = MsgPicker.getMsg();
 
@@ -236,6 +245,7 @@ public class AccessService extends BasicService {
         aclService.inherit(acl, parentAcl);
     }
 
+    @Transaction
     public void revokeProjectPermission(String name, String type) {
         Sid sid = null;
         if (type.equalsIgnoreCase(MetadataConstants.TYPE_USER)) {
@@ -265,6 +275,7 @@ public class AccessService extends BasicService {
     }
 
     @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#ae, 'ADMINISTRATION')")
+    @Transaction
     public void clean(AclEntity ae, boolean deleteChildren) {
         Message msg = MsgPicker.getMsg();
 
