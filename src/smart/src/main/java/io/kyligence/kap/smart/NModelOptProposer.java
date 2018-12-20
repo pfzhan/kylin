@@ -24,17 +24,20 @@
 
 package io.kyligence.kap.smart;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
+import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModel.TableKind;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -84,20 +87,17 @@ class NModelOptProposer extends NAbstractProposer {
                 .filter(ctx -> ctx.getOrigModel() == null && ctx.getTargetModel() != null
                         && CollectionUtils.isEmpty(ctx.getTargetModel().getJoinTables())
                         && CollectionUtils.isEmpty(ctx.getTargetModel().getComputedColumnDescs())
-                        && ! ctx.getTargetModel().getRootFactTable().getTableDesc().isFact())
+                        && !ctx.getTargetModel().getRootFactTable().getTableDesc().isFact())
                 .collect(Collectors.toList());
 
-        final NDataModelManager modelManager = NDataModelManager.getInstance(smartContext.getKylinConfig(),
+        NDataflowManager manager = NDataflowManager.getInstance(smartContext.getKylinConfig(),
                 smartContext.getProject());
-        List<NDataModel> snapshotProviders = modelManager.getDataModels().stream()
-                .filter(model -> CollectionUtils.isNotEmpty(model.getJoinTables())).collect(Collectors.toList());
-
+        Set<String> snapshotProviders = manager.listAllDataflows().stream().filter(NDataflow::isReady)
+                .map(NDataflow::getLatestReadySegment).filter(Objects::nonNull).map(seg -> seg.getSnapshots().keySet())
+                .flatMap(Collection::stream).collect(Collectors.toSet());
         snapshotModelCandidate.stream().forEach(modelContext -> {
             String rootTable = modelContext.getTargetModel().getRootFactTable().getTableIdentity();
-            boolean hasSnapshot = snapshotProviders.stream().map(NDataModel::getJoinTables).flatMap(List::stream)
-                    .filter(join -> join.getKind() == TableKind.LOOKUP)
-                    .anyMatch(join -> rootTable.equals(join.getTable()));
-            if (hasSnapshot) {
+            if (snapshotProviders.contains(rootTable)) {
                 final Map<String, AccelerateInfo> sql2AccelerateInfo = smartContext.getAccelerateInfoMap();
                 // TODO add snapshot to AccelerateInfo
                 modelContext.setTargetModel(null);

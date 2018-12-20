@@ -49,49 +49,6 @@ public class NAutoLookupTest extends NAutoTestBase {
     public void testLookup() throws Exception {
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use(getProject());
-        String modelQuery = "select sum(ITEM_COUNT) as ITEM_CNT\n" + 
-                "FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT\n" + 
-                "INNER JOIN TEST_ORDER as TEST_ORDER\n" + 
-                "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + 
-                "INNER JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n" + 
-                "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n" + 
-                "INNER JOIN TEST_ACCOUNT as SELLER_ACCOUNT\n" + 
-                "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID\n" + 
-                "INNER JOIN EDW.TEST_CAL_DT as TEST_CAL_DT\n" + 
-                "ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n" + 
-                "INNER JOIN TEST_CATEGORY_GROUPINGS as TEST_CATEGORY_GROUPINGS\n" + 
-                "ON TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID\n" + 
-                "INNER JOIN EDW.TEST_SITES as TEST_SITES\n" + 
-                "ON TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_SITES.SITE_ID\n" + 
-                "INNER JOIN EDW.TEST_SELLER_TYPE_DIM as TEST_SELLER_TYPE_DIM\n" + 
-                "ON TEST_KYLIN_FACT.SLR_SEGMENT_CD = TEST_SELLER_TYPE_DIM.SELLER_TYPE_CD\n" + 
-                "INNER JOIN TEST_COUNTRY as BUYER_COUNTRY\n" + 
-                "ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY\n" + 
-                "INNER JOIN TEST_COUNTRY as SELLER_COUNTRY\n" + 
-                "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY limit 1";
-        String lookupQuery = "select leaf_categ_id from test_category_groupings group by leaf_categ_id limit 1";
-
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(),
-                new String[] { modelQuery, lookupQuery });
-        smartMaster.runAll();
-        Assert.assertEquals(2, smartMaster.getContext().getModelContexts().size());
-
-        List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, getProject()).getDataModels();
-        Assert.assertEquals(2, models.size());
-        NDataModel model = models.get(0);
-        Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
-        kapSparkSession.buildAllCubes(kylinConfig, getProject());
-        kapSparkSession.close();
-
-        kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
-        kapSparkSession.use(getProject());
-        Assert.assertEquals(1, kapSparkSession.queryFromCube(modelQuery).toDF().count());
-        Assert.assertEquals(1, kapSparkSession.queryFromCube(lookupQuery).toDF().count());
-        kapSparkSession.close();
-    }
-
-    @Test
-    public void testLookupByStep() throws Exception {
         {
             String modelQuery = "select sum(ITEM_COUNT) as ITEM_CNT\n" + 
                 "FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT\n" + 
@@ -123,6 +80,9 @@ public class NAutoLookupTest extends NAutoTestBase {
             Assert.assertEquals(1, models.size());
             NDataModel model = models.get(0);
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
+
+            kapSparkSession.buildAllCubes(kylinConfig, getProject());
+            Assert.assertEquals(1, kapSparkSession.queryFromCube(modelQuery).toDF().count());
         }
 
         {
@@ -137,6 +97,102 @@ public class NAutoLookupTest extends NAutoTestBase {
             Assert.assertEquals(1, models.size());
             NDataModel model = models.get(0);
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
+
+            // Use snapshot, no need to build
+            Assert.assertEquals(1, kapSparkSession.queryFromCube(lookupQuery).toDF().count());
         }
+        kapSparkSession.close();
+    }
+
+    @Test
+    public void testNoLookup() throws Exception {
+        {
+            String modelQuery = "select sum(ITEM_COUNT) as ITEM_CNT\n" + 
+                "FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT\n" + 
+                "INNER JOIN TEST_ORDER as TEST_ORDER\n" + 
+                "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + 
+                "INNER JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n" + 
+                "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n" + 
+                "INNER JOIN TEST_ACCOUNT as SELLER_ACCOUNT\n" + 
+                "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID\n" + 
+                "INNER JOIN EDW.TEST_CAL_DT as TEST_CAL_DT\n" + 
+                "ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n" + 
+                "INNER JOIN TEST_CATEGORY_GROUPINGS as TEST_CATEGORY_GROUPINGS\n" + 
+                "ON TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID\n" + 
+                "INNER JOIN EDW.TEST_SITES as TEST_SITES\n" + 
+                "ON TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_SITES.SITE_ID\n" + 
+                "INNER JOIN EDW.TEST_SELLER_TYPE_DIM as TEST_SELLER_TYPE_DIM\n" + 
+                "ON TEST_KYLIN_FACT.SLR_SEGMENT_CD = TEST_SELLER_TYPE_DIM.SELLER_TYPE_CD\n" + 
+                "INNER JOIN TEST_COUNTRY as BUYER_COUNTRY\n" + 
+                "ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY\n" + 
+                "INNER JOIN TEST_COUNTRY as SELLER_COUNTRY\n" + 
+                "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY limit 1";
+
+            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { modelQuery });
+            smartMaster.runAll();
+            Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
+            Assert.assertNotNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
+
+            List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, getProject()).getDataModels();
+            Assert.assertEquals(1, models.size());
+            NDataModel model = models.get(0);
+            Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
+
+            // Build not triggered, next query should create new model
+        }
+
+        {
+            String lookupQuery = "select leaf_categ_id from test_category_groupings group by leaf_categ_id limit 1";
+
+            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { lookupQuery });
+            smartMaster.runAll();
+            Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
+            NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
+            Assert.assertNotNull(model);
+            Assert.assertTrue(model.isFactTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
+
+            List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, getProject()).getDataModels();
+            Assert.assertEquals(2, models.size());
+        }
+    }
+
+    @Test
+    public void testNoLookupInBatch() throws Exception {
+        String modelQuery = "select sum(ITEM_COUNT) as ITEM_CNT\n" + 
+                "FROM TEST_KYLIN_FACT as TEST_KYLIN_FACT\n" + 
+                "INNER JOIN TEST_ORDER as TEST_ORDER\n" + 
+                "ON TEST_KYLIN_FACT.ORDER_ID = TEST_ORDER.ORDER_ID\n" + 
+                "INNER JOIN TEST_ACCOUNT as BUYER_ACCOUNT\n" + 
+                "ON TEST_ORDER.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID\n" + 
+                "INNER JOIN TEST_ACCOUNT as SELLER_ACCOUNT\n" + 
+                "ON TEST_KYLIN_FACT.SELLER_ID = SELLER_ACCOUNT.ACCOUNT_ID\n" + 
+                "INNER JOIN EDW.TEST_CAL_DT as TEST_CAL_DT\n" + 
+                "ON TEST_KYLIN_FACT.CAL_DT = TEST_CAL_DT.CAL_DT\n" + 
+                "INNER JOIN TEST_CATEGORY_GROUPINGS as TEST_CATEGORY_GROUPINGS\n" + 
+                "ON TEST_KYLIN_FACT.LEAF_CATEG_ID = TEST_CATEGORY_GROUPINGS.LEAF_CATEG_ID AND TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_CATEGORY_GROUPINGS.SITE_ID\n" + 
+                "INNER JOIN EDW.TEST_SITES as TEST_SITES\n" + 
+                "ON TEST_KYLIN_FACT.LSTG_SITE_ID = TEST_SITES.SITE_ID\n" + 
+                "INNER JOIN EDW.TEST_SELLER_TYPE_DIM as TEST_SELLER_TYPE_DIM\n" + 
+                "ON TEST_KYLIN_FACT.SLR_SEGMENT_CD = TEST_SELLER_TYPE_DIM.SELLER_TYPE_CD\n" + 
+                "INNER JOIN TEST_COUNTRY as BUYER_COUNTRY\n" + 
+                "ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY\n" + 
+                "INNER JOIN TEST_COUNTRY as SELLER_COUNTRY\n" + 
+                "ON SELLER_ACCOUNT.ACCOUNT_COUNTRY = SELLER_COUNTRY.COUNTRY limit 1";
+        String lookupQuery = "select leaf_categ_id from test_category_groupings group by leaf_categ_id limit 1";
+
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(),
+                new String[] { modelQuery, lookupQuery });
+        smartMaster.runAll();
+        Assert.assertEquals(2, smartMaster.getContext().getModelContexts().size());
+
+        List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, getProject()).getDataModels();
+        Assert.assertEquals(2, models.size());
+
+        KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
+        kapSparkSession.use(getProject());
+        kapSparkSession.buildAllCubes(kylinConfig, getProject());
+        Assert.assertEquals(1, kapSparkSession.queryFromCube(modelQuery).toDF().count());
+        Assert.assertEquals(1, kapSparkSession.queryFromCube(lookupQuery).toDF().count());
+        kapSparkSession.close();
     }
 }

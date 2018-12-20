@@ -274,6 +274,15 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         }
     }
 
+    public NDataSegment getLatestReadySegment() {
+        Segments<NDataSegment> readySegment = getSegments(SegmentStatusEnum.READY);
+        if (readySegment.isEmpty()) {
+            return null;
+        } else {
+            return readySegment.get(readySegment.size() - 1);
+        }
+    }
+
     @Override
     public boolean supportsLimitPushDown() {
         return true; // TODO: storage_type defined on cuboid level, which will decide whether to support

@@ -253,7 +253,7 @@ public class NSmartContextPartitionTest extends NTestBase {
         }
 
         /*
-         * case 3: incremental load table marks with '*', should have four contexts, but three layouts
+         * case 3: incremental load table marks with '*', should have five contexts, but five layouts
          * --        join
          * --       /    \
          * --    left    join
@@ -289,7 +289,7 @@ public class NSmartContextPartitionTest extends NTestBase {
             Assert.assertEquals(5, collectAllOlapContexts(smartContext).size());
 
             final Map<String, AccelerateInfo> accelerateInfoMap = smartContext.getAccelerateInfoMap();
-            Assert.assertEquals(4, accelerateInfoMap.get(sqls[0]).getRelatedLayouts().size());
+            Assert.assertEquals(5, accelerateInfoMap.get(sqls[0]).getRelatedLayouts().size());
         }
 
         kylinCountry.setFact(false);
