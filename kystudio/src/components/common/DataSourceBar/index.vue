@@ -11,7 +11,7 @@
 
     <section class="body" v-scroll>
       <div v-if="isShowLoadSource" class="btn-group">
-        <el-button plain size="medium" type="primary" icon="el-icon-ksd-add_data_source" @click="importDataSource(sourceTypes.NEW, currentProjectData)">
+        <el-button  plain size="medium" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource(sourceTypes.NEW, currentProjectData)">
           {{$t('addDatasource')}}
         </el-button>
       </div>

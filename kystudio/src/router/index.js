@@ -28,7 +28,7 @@ let routerOptions = {
     {
       path: '/refresh',
       name: 'refresh',
-      component: layoutFull
+      component: topLeftRightView
     },
     {
       path: '/',

@@ -1,5 +1,5 @@
 <template>
-  <el-dialog class="data-srouce-modal" :width="modelWidth"
+  <el-dialog class="data-srouce-modal" :width="modelWidth" v-guide.dataSourceSelectBox
     :title="$t(modalTitle)"
     :visible="isShow"
     :close-on-press-escape="false"
@@ -32,7 +32,7 @@
     </template>
     <div slot="footer" class="dialog-footer">
       <el-button size="medium" @click="handleCancel" v-if="cancelText">{{cancelText}}</el-button>
-      <el-button size="medium" plain type="primary" @click="handleClick" v-if="confirmText" :loading="isLoading">{{confirmText}}</el-button>
+      <el-button size="medium" plain type="primary" @click="handleClick" v-guide.saveSourceType v-if="confirmText" :loading="isLoading">{{confirmText}}</el-button>
     </div>
   </el-dialog>
 </template>

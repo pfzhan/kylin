@@ -7,7 +7,8 @@
     v-event-stop
     @close="isShow && handleClose(false)">
     <template v-if="isFormShow">
-        <div class="add_dimensions">
+      <div v-scroll v-guide.dimensionScroll style="max-height:60vh; overflow:hidden">
+        <div class="add_dimensions" v-guide.batchAddDimensionBox>
           <div v-for="(table, index) in factTable" class="ksd-mb-10" :key="index">
             <div @click="toggleTableShow(table)" class="table-header">
               <i class="el-icon-arrow-right ksd-fright ksd-mt-14 right-icon" v-if="!table.show"></i>
@@ -21,6 +22,7 @@
               :data="table.columns"
               @row-click="(row) => {dimensionRowClick(row, table.guid)}"
               :ref="table.guid"
+              :row-class-name="(para) => tableRowClassName(para, table)"
               @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
               @select="selectionChange">
               <el-table-column
@@ -67,10 +69,11 @@
               <span class="ksd-ml-2"><i class="el-icon-ksd-lookup_table"></i></span><span class="table-title">{{table.alias}} <span>({{countTableSelectColumns(table)}})</span></span>
             </div>
             <el-table
-              v-if="table.show"
+              v-if="table.show || isGuideMode"
               class="ksd-mt-10"
               style="width:98%;margin: 0 auto"
               border
+              :row-class-name="(para) => tableRowClassName(para, table)"
               :data="table.columns" :ref="table.guid"
               @row-click="(row) => {dimensionRowClick(row, table.guid)}"
               @select-all="(selection) => {selectionAllChange(selection, table.guid)}"
@@ -109,11 +112,12 @@
             </el-table>
           </div>
         </div>
+      </div>
     </template>
     <div slot="footer" class="dialog-footer">
       <span class="ksd-fleft ksd-mt-10">{{$t('totalSelect')}}{{countAllTableSelectColumns()}}</span>
       <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" :disabled="countAllTableSelectColumns() <= 0" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button size="medium" plain type="primary" v-guide.saveBatchDimensionBtn :disabled="countAllTableSelectColumns() <= 0" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -134,7 +138,8 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
 @Component({
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'isGuideMode'
     ]),
     // Store数据注入
     ...mapState('DimensionsModal', {
@@ -160,7 +165,10 @@ vuex.registerModule(['modals', 'DimensionsModal'], store)
       saveKafka: 'SAVE_KAFKA',
       loadDataSourceByProject: 'LOAD_DATASOURCE',
       saveSampleData: 'SAVE_SAMPLE_DATA'
-    })
+    }),
+    tableRowClassName ({row, rowIndex}, table) {
+      return 'guide-' + table.alias + row.name
+    }
   },
   locales
 })

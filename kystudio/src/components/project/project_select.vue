@@ -10,7 +10,6 @@
 </template>
 <script>
 import { mapActions, mapMutations } from 'vuex'
-import { handleError } from '../../util'
 export default {
   name: 'projectselect',
   data () {
@@ -27,12 +26,7 @@ export default {
       setProject: 'SET_PROJECT'
     }),
     changeProject (val) {
-      this.getUserAccess({project: val}).then(() => {
-        this.setProject(val)
-        this.$emit('changePro', val)
-      }, (res) => {
-        handleError(res)
-      })
+      this.$emit('changePro', val)
     }
   },
   watch: {

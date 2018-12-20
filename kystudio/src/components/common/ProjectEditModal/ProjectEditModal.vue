@@ -7,7 +7,7 @@
     <el-form :model="form" :label-position="labelPosition" :rules="rules" ref="form" v-if="isFormShow" label-width="110px">
       <!-- 表单：项目名 -->
       <el-form-item :label="$t('projectName')" prop="name" v-if="isFieldShow('name')">
-        <el-input
+        <el-input v-guide.addProjectInput
           v-focus="isShow"
           size="small"
           auto-complete="off"
@@ -25,7 +25,7 @@
               <span class="el-icon-ksd-good_health"></span>
             </div> -->
             <div class="project-type-button">
-              <div class="project-type-icon" @click="inputHandler('type', 'MANUAL_MAINTAIN')">
+              <div class="project-type-icon" @click="inputHandler('type', 'MANUAL_MAINTAIN')" v-guide.changeMunalProjectType>
                 <i class="el-icon-ksd-model_designer"></i>
               </div>
               <div class="project-type-text">
@@ -39,7 +39,7 @@
               <span class="el-icon-ksd-good_health"></span>
             </div> -->
             <div class="project-type-button">
-              <div class="project-type-icon" @click="inputHandler('type', 'AUTO_MAINTAIN')">
+              <div class="project-type-icon" @click="inputHandler('type', 'AUTO_MAINTAIN')" v-guide.changeAutoProjectType>
                 <i class="el-icon-ksd-sql_acceleration"></i>
               </div>
               <div class="project-type-text">
@@ -51,7 +51,7 @@
       </div>
       <!-- 表单：项目描述 -->
       <el-form-item :label="$t('description')" prop="description" v-if="isFieldShow('description')">
-        <el-input
+        <el-input v-guide.addProjectDesc
           size="small"
           type="textarea"
           auto-complete="off"
@@ -117,7 +117,7 @@
 
     <div slot="footer" class="dialog-footer">
       <el-button size="medium" @click="closeHandler(false)">{{$t('cancel')}}</el-button>
-      <el-button size="medium" plain type="primary" @click="submit">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button size="medium" :loading="saveLoading" plain type="primary" @click="submit" v-guide.saveProjectBtn>{{$t('kylinLang.common.submit')}}</el-button>
     </div>
   </el-dialog>
 </template>
@@ -168,6 +168,7 @@ vuex.registerModule(['modals', 'ProjectEditModal'], store)
   locales
 })
 export default class ProjectEditModal extends Vue {
+  saveLoading = false
   // Data: 用来销毁el-form
   isFormShow = false
   // Data: el-form表单验证规则
@@ -261,6 +262,7 @@ export default class ProjectEditModal extends Vue {
       const isInvaild = this.validateProperties()
 
       if (!isInvaild) {
+        this.saveLoading = true
         let res
         // 获取Form格式化后的递交数据
         const data = getSubmitData(this)
@@ -279,11 +281,13 @@ export default class ProjectEditModal extends Vue {
           type: 'success',
           message: this.$t('saveSuccessful')
         })
+        this.saveLoading = false
         this.closeHandler(res)
       } else {
         this.$message({ showClose: true, duration: 0, message: isInvaild, type: 'error' })
       }
     } catch (e) {
+      this.saveLoading = false
       // 异常处理
       e && handleError(e)
     }

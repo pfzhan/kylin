@@ -126,6 +126,7 @@ export default {
     async newProject () {
       const isSubmit = await this.callProjectEditModal({ editType: 'new' })
       isSubmit && this.loadProjects({pageOffset: this.currentPage, pageSize: this.pageCount})
+      this.loadAllProjects()
     },
     async changeProject (project) {
       const isSubmit = await this.callProjectEditModal({ editType: 'edit', project })

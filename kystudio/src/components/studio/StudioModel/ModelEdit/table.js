@@ -12,7 +12,7 @@ class NTable {
     }) // 所有列
     this.kind = options.kind ? options.kind : options.fact ? modelRenderConfig.tableKind.fact : modelRenderConfig.tableKind.lookup // table 类型
     this.joinInfo = {} // 链接对象
-    this.guid = sampleGuid() // identify id
+    this.guid = options.guid || sampleGuid() // identify id
     this.alias = options.alias || options.table // 别名
     // this._parent = options._parent
     this.ST = null

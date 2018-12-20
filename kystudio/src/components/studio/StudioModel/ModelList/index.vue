@@ -6,20 +6,22 @@
         <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model"  @input="searchModels" class="show-search-btn" >
         </el-input>
       </div>
-      <el-button icon="el-icon-plus" type="primary" size="medium" plain class="ksd-mb-14 ksd-mt-8" id="addModel" v-visible="!isAutoProject && (isAdmin || hasPermissionOfProject())" @click="showAddModelDialog"><span>{{$t('kylinLang.common.model')}}</span></el-button>
+      <el-button v-guide.addModelBtn icon="el-icon-plus" type="primary" size="medium" plain class="ksd-mb-14 ksd-mt-8" id="addModel" v-visible="!isAutoProject && (isAdmin || hasPermissionOfProject())" @click="showAddModelDialog"><span>{{$t('kylinLang.common.model')}}</span></el-button>
       <el-table class="model_list_table"
         :data="modelArray"
         border
         tooltip-effect="dark"
+        :expand-row-keys=[currentExtandRow]
+        :row-key="renderRowKey"
         @sort-change="onSortChange"
         style="width: 100%">
         <el-table-column type="expand" min-width="30">
           <template slot-scope="props">
             <transition name="full-model-slide-fade">
-              <div class="cell-content" v-if="props.row.showModelDetail" :class="{'hidden-cell': props.$index !== activeIndex}">
+              <div class="cell-content" v-if="props.row.showModelDetail">
                 <i class="el-icon-ksd-full_screen_1 ksd-fright full-model-box" v-if="!showFull" @click="toggleShowFull(props.$index, props.row)"></i>
                 <i class="el-icon-ksd-collapse_1 ksd-fright full-model-box" v-else @click="toggleShowFull(props.$index, props.row)"></i>
-                <el-tabs activeName="first" class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
+                <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" />
                   </el-tab-pane>
@@ -125,7 +127,7 @@
       <img src="../../../../assets/img/no_model.png">
       <p v-if="!isAutoProject && (isAdmin || hasPermissionOfProject())">{{$t('noModel')}}</p>
       <div>
-      <el-button size="medium" type="primary" icon="el-icon-plus"  v-if="!isAutoProject && (isAdmin || hasPermissionOfProject())" @click="showAddModelDialog">{{$t('kylinLang.common.model')}}</el-button>
+      <el-button v-guide.addModelBtn size="medium" type="primary" icon="el-icon-plus"  v-if="!isAutoProject && (isAdmin || hasPermissionOfProject())" @click="showAddModelDialog">{{$t('kylinLang.common.model')}}</el-button>
        </div>
     </div>
 
@@ -169,7 +171,16 @@ import '../../../../util/fly.js'
       'modelsPagerRenderData',
       'briefMenuGet',
       'isAutoProject'
-    ])
+    ]),
+    currentExtandRow () {
+      // toggleShowFull
+      let currentExtandRow = this.$store.state.model.currentEditModel
+      if (this.$store.state.model.currentEditModel) {
+        this.showFull = true
+        // this.$store.state.model.currentEditModel = null
+      }
+      return currentExtandRow
+    }
   },
   methods: {
     ...mapActions({
@@ -215,21 +226,6 @@ import '../../../../util/fly.js'
 })
 export default class ModelList extends Vue {
   mockSQL = mockSQL
-  checkOptions = []
-  createModelVisible = false
-  cloneFormVisible = false
-  modelCheckModeVisible = false
-  dataRangeVal = []
-  createModelFormRule = {
-    modelName: [
-      {required: true, message: this.$t('inputModelName'), trigger: 'blur'},
-      {validator: this.checkName, trigger: 'blur'}
-    ]
-  }
-  createModelMeta = {
-    modelName: '',
-    modelDesc: ''
-  }
   filterArgs = {
     pageOffset: 0,
     pageSize: 10,
@@ -239,10 +235,12 @@ export default class ModelList extends Vue {
     reverse: true
   }
   showFull = false
-  activeIndex = -1
   showSearchResult = false
   searchLoading = false
   modelArray = []
+  renderRowKey (row) {
+    return row.alias
+  }
   checkName (rule, value, callback) {
     if (!NamedRegex.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
@@ -340,7 +338,7 @@ export default class ModelList extends Vue {
       this.$set(item, 'showModelDetail', true)
       this.modelArray.push({
         ...item,
-        tabTypes: 'first'
+        tabTypes: this.$store.state.model.currentEditModel === item.alias ? 'second' : 'first'
       })
     })
   }
@@ -362,10 +360,10 @@ export default class ModelList extends Vue {
     this.$nextTick(() => {
       this.$set(row, 'showModelDetail', true)
       this.showFull = !this.showFull
-      this.activeIndex = index
       this.$nextTick(() => {
         if (scrollBoxDom) {
           if (this.showFull) {
+            this.$store.state.model.currentEditModel = row.alias
             scrollBoxDom.scrollTop = 0
           } else {
             scrollBoxDom.scrollTop = row.hisScrollTop
@@ -418,6 +416,9 @@ export default class ModelList extends Vue {
     if (this.filterArgs.project) {
       this.loadModelsList()
     }
+  }
+  destroyed () {
+    this.$store.state.model.currentEditModel = null
   }
 }
 </script>

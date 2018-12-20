@@ -37,7 +37,7 @@
             <el-button v-show='gloalProjectSelectShow' :title="$t('kylinLang.project.projectList')" :class="{'project-page':defaultActive==='projectActive'}" @click="goToProjectList" size="medium">
               <i class="el-icon-ksd-project_list"></i>
             </el-button>
-            <el-button :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="medium">
+            <el-button v-guide.addProjectBtn :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="medium">
               <i class="el-icon-plus"></i>
             </el-button>
           </template>
@@ -84,7 +84,7 @@
                 </el-breadcrumb-item>
                 <el-breadcrumb-item v-if="currentRouterNameArr[2]" >
                   {{currentRouterNameArr[2]}}
-                </el-breadcrumb-item> 
+                </el-breadcrumb-item>
               </el-breadcrumb>
             </el-col>
             <el-col :span="24" class="main-content">
@@ -134,7 +134,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
 import { handleError, kapConfirm, hasRole, hasPermission } from '../../util/business'
-import { objectClone, getQueryString, cacheSessionStorage, cacheLocalStorage } from '../../util/index'
+import { getQueryString, cacheSessionStorage, cacheLocalStorage } from '../../util/index'
 import { permissions, menusData, speedInfoTimer } from '../../config'
 import { mapState, mapActions, mapMutations, mapGetters } from 'vuex'
 import projectSelect from '../project/project_select'
@@ -378,19 +378,21 @@ export default class LayoutLeftRightTop extends Vue {
       return obj
     }
   }
-  _replaceRouter (currentPath) {
-    this.$router.push('/refresh')
+  _replaceRouter (currentPathName) {
+    this.$router.replace('/refresh')
     this.$nextTick(() => {
-      if (currentPath === '/monitor' && !this.hasPermissionWithoutQuery && !this.isAdmin) {
-        this.$router.replace('/dashboard')
+      if (currentPathName === 'Job' && !this.hasPermissionWithoutQuery && !this.isAdmin) {
+        this.$router.replace({name: 'Dashboard', params: { refresh: true }})
       } else {
-        this.$router.replace(currentPath)
+        this.$router.replace({name: currentPathName, params: { refresh: true }})
       }
     })
   }
   changeProject (val) {
-    var currentPath = this.$router.currentRoute.path
-    this._replaceRouter(currentPath)
+    var currentPathName = this.$router.currentRoute.name
+    cacheSessionStorage('projectName', val)
+    cacheLocalStorage('projectName', val)
+    this._replaceRouter(currentPathName)
   }
   async addProject () {
     try {
@@ -405,8 +407,7 @@ export default class LayoutLeftRightTop extends Vue {
         this.$store.state.project.selected_project = data.name
         this.FormVisible = false
         this.projectSaveLoading = false
-        this.$router.push('/studio/source')
-        this._replaceRouter(this.$router.currentRoute.path)
+        this._replaceRouter('Source')
       }
     } catch (e) {
       handleError(e)
@@ -414,27 +415,6 @@ export default class LayoutLeftRightTop extends Vue {
   }
   Save () {
     this.$refs.projectForm.$emit('projectFormValid')
-  }
-  validSuccess (data) {
-    this.projectSaveLoading = true
-    var saveData = objectClone(data)
-    this.saveProject(JSON.stringify(saveData)).then((result) => {
-      this.$message({
-        type: 'success',
-        message: this.$t('kylinLang.common.saveSuccess')
-      })
-      cacheSessionStorage('projectName', data.name)
-      cacheLocalStorage('projectName', data.name)
-      this.$store.state.project.selected_project = saveData.name
-      this.FormVisible = false
-      this.projectSaveLoading = false
-      this.$router.push('/studio/source')
-      this._replaceRouter(this.$router.currentRoute.path)
-    }, (res) => {
-      this.FormVisible = false
-      this.projectSaveLoading = false
-      handleError(res)
-    })
   }
   onSubmit () {
   }
@@ -725,10 +705,10 @@ export default class LayoutLeftRightTop extends Vue {
             display: none;
           }
         }
-        .el-submenu.is-active{ 
+        .el-submenu.is-active{
           .el-submenu__title {
             background-color: @menu-active-bgcolor;
-            i,span{              
+            i,span{
               color: @base-color-1;
             }
           }

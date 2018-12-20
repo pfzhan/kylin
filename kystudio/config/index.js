@@ -3,8 +3,10 @@ var path = require('path')
 // var cmdArg = process.argv.splice(2) && process.argv.splice(2)[0] || ''
 var proxyTable = {}
 var argvs = process.argv.slice(2)
+let port = argvs[1] || 8080
+console.log(port)
 if (argvs && argvs.indexOf('proxy') !== -1) {
-  var proxyBase = 'http://localhost:8080'
+  var proxyBase = 'http://localhost:' + port
   var proxyHost = 'http://localhost:7070' // 测试其他环境的数据请修改该地址进行转发
   proxyTable = {
     '/kylin/api': {
@@ -44,7 +46,7 @@ module.exports = {
   },
   dev: {
     env: require('./dev.env'),
-    port: 8080,
+    port: port,
     autoOpenBrowser: true,
     assetsSubDirectory: 'static',
     assetsPublicPath: '/',

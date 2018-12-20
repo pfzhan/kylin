@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import $ from 'jquery'
 import Scrollbar from 'smooth-scrollbar'
+import store from '../store'
 import { stopPropagation, on } from 'util/event'
 const nodeList = []
 const ctx = '@@clickoutsideContext'
@@ -433,6 +434,28 @@ Vue.directive('drag', {
         document.onmouseup = null
         $(window).unbind('resize')
       }
+    }
+  }
+})
+// 收集guide dom
+Vue.directive('guide', {
+  inserted: function (el, binding) {
+    let keys = binding.modifiers
+    let storeGuide = store.state.system.guideConfig.targetList
+    if (storeGuide) {
+      for (let i in keys) {
+        storeGuide[i] = el.__vue__ || el
+      }
+      if (store.state.system.guideConfig.globalMaskVisible && binding.value) {
+        storeGuide[binding.value] = el.__vue__ || el
+      }
+    }
+  },
+  unbind: function (el, binding) {
+    let keys = binding.modifiers
+    let storeGuide = store.state.system.guideConfig.targetList
+    for (let i in keys) {
+      delete storeGuide[i]
     }
   }
 })

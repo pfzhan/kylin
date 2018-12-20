@@ -1,8 +1,9 @@
 <template>
   <div class="model-edit-outer" @drop='dropTable($event)' @dragover='allowDrop($event)' v-drag="{sizeChangeCb:dragBox}" @dragleave="dragLeave">
     <div class="model-edit">
+      <el-button v-guide.modelEditAction v-visible @click="guideActions"></el-button>
       <!-- table box -->
-      <div class="table-box" @click="activeTablePanel(t)" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
+      <div v-guide="t.guid" class="table-box" @click="activeTablePanel(t)" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
         <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="t.drawSize">
           <!-- <el-input v-show="t.aliasIsEdit" v-focus="t.aliasIsEdit" v-event-stop v-model="t.alias" @blur="saveNewAlias(t)" @keyup.enter="saveNewAlias(t)"></el-input> -->
           <span>
@@ -13,11 +14,11 @@
             <span slot="content">{{t.alias}}</span>
             <span class="alias-span">{{t.alias}}</span>
           </common-tip>
-          <span class="close" @click="editTable(t.guid)"><i class="el-icon-ksd-table_setting"></i></span>
+          <span class="setting-icon" @click="editTable(t.guid)"><i class="el-icon-ksd-table_setting"></i></span>
         </div>
         <div class="column-list-box" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll>
           <ul >
-            <li v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in t.columns" :key="col.name">
+            <li v-guide="t.guid + col.name" v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in t.columns" :key="col.name">
               <span class="col-type-icon"><i :class="columnTypeIconMap(col.datatype)"></i></span>
               <span class="col-name">{{col.name|omit(14,'...')}}</span>
               <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
@@ -42,8 +43,9 @@
       <transition name="bounceleft">
         <div class="panel-box panel-datasource"  v-show="panelAppear.datasource.display" :style="panelStyle('datasource')" v-event-stop>
           <div class="panel-title" v-drag:change.left.top="panelAppear.datasource"><span class="title">{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
-          <div v-scroll style="height:calc(100% - 40px)" class="ksd-right-4">
+          <div v-scroll v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 40px)" class="ksd-right-4">
             <DataSourceBar 
+              v-guide.modelDataSourceTree
               class="tree-box"
               :project-name="currentSelectedProject"
               :is-show-load-source="true"
@@ -67,8 +69,8 @@
         <common-tip class="name" :content="$t('allowSysChange')" placement="left" v-else><i class="el-icon-ksd-unlock"></i></common-tip>
       </div>
       <div class="tool-icon-group" v-event-stop>
-        <div class="tool-icon" :class="{active: panelAppear.dimension.display}" @click="toggleMenu('dimension')">D</div>
-        <div class="tool-icon" :class="{active: panelAppear.measure.display}" @click="toggleMenu('measure')">M</div>
+        <div class="tool-icon" v-guide.dimensionPanelShowBtn :class="{active: panelAppear.dimension.display}" @click="toggleMenu('dimension')">D</div>
+        <div class="tool-icon" v-guide.measurePanelShowBtn :class="{active: panelAppear.measure.display}" @click="toggleMenu('measure')">M</div>
         <div class="tool-icon" :class="{active: panelAppear.cc.display}" @click="toggleMenu('cc')"><i class="el-icon-ksd-computed_column"></i></div>
         <div class="tool-icon" :class="{active: panelAppear.search.display}" @click="toggleMenu('search')">
           <i class="el-icon-ksd-search"></i>
@@ -104,7 +106,7 @@
                   <i class="el-icon-ksd-project_add"></i>
                   <span>{{$t('add')}}</span>
                 </span>
-                <span class="action_btn" @click="batchSetDimension">
+                <span class="action_btn" v-guide.batchAddDimension @click="batchSetDimension">
                   <i class="el-icon-ksd-backup"></i>
                   <span>{{$t('batchAdd')}}</span>
                 </span>
@@ -172,7 +174,7 @@
                 transform: `translateX(${ translateMea }px)`,
                 width: panelAppear.measure.width-2+'px'
               }">
-                <span class="action_btn" @click="addNewMeasure">
+                <span class="action_btn" @click="addNewMeasure" v-guide.measureAddBtn>
                   <i class="el-icon-ksd-project_add"></i>
                   <span>{{$t('add')}}</span>
                 </span>
@@ -337,7 +339,7 @@
     <div class="full-screen-cover" v-event-stop @click="cancelTableEdit" v-if="showTableCoverDiv"></div>
     <transition name="slide-fade">
       <!-- 编辑table 快捷按钮 -->
-      <div class="fast-action-box" v-event-stop @click="cancelTableEdit" :class="{'edge-right': currentEditTable.drawSize.isInRightEdge}" :style="tableBoxToolStyleNoZoom(currentEditTable.drawSize)" v-if="currentEditTable && showTableCoverDiv">
+      <div v-guide.modelActionPanel class="fast-action-box" v-event-stop @click="cancelTableEdit" :class="{'edge-right': currentEditTable.drawSize.isInRightEdge}" :style="tableBoxToolStyleNoZoom(currentEditTable.drawSize)" v-if="currentEditTable && showTableCoverDiv">
         <div v-if="currentEditTable.kind === 'FACT' || modelInstance.checkTableCanSwitchFact(currentEditTable.guid)">
           <div class="action switch" v-if="currentEditTable.kind === 'FACT'" @click.stop="changeTableType(currentEditTable)"><i class="el-icon-ksd-switch"></i>
             <span >{{$t('switchLookup')}}</span>
@@ -380,14 +382,14 @@
       </div>
     </transition>
     <!-- 被编辑table clone dom -->
-    <div class="table-box fast-action-temp-table" :id="currentEditTable.guid + 'temp'" v-event-stop v-if="showTableCoverDiv" :class="{isLookup:currentEditTable.kind==='LOOKUP'}" :style="tableBoxStyleNoZoom(currentEditTable.drawSize)">
+    <div class="table-box fast-action-temp-table" v-guide.actionTable :id="currentEditTable.guid + 'temp'" v-event-stop v-if="showTableCoverDiv" :class="{isLookup:currentEditTable.kind==='LOOKUP'}" :style="tableBoxStyleNoZoom(currentEditTable.drawSize)">
       <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="currentEditTable.drawSize">
         <span @click.stop="changeTableType(currentEditTable)">
           <i class="el-icon-ksd-fact_table kind" v-if="currentEditTable.kind==='FACT'"></i>
           <i v-else class="el-icon-ksd-lookup_table kind"></i>
         </span>
         <span class="alias-span name">{{currentEditTable.alias}}</span>
-        <span class="close" @click="cancelTableEdit"><i class="el-icon-ksd-table_setting"></i></span>
+        <span class="setting-icon guide-setting" @click="cancelTableEdit"><i class="el-icon-ksd-table_setting"></i></span>
       </div>
       <div class="column-list-box"  v-scroll>
         <ul >
@@ -418,7 +420,7 @@ import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters, mapMutations, mapState } from 'vuex'
 import locales from './locales'
 import DataSourceBar from '../../../common/DataSourceBar'
-import { handleSuccess, handleError, loadingBox, kapMessage } from '../../../../util/business'
+import { handleSuccess, handleError, loadingBox, kapMessage, kapConfirm } from '../../../../util/business'
 import { isIE, groupData, objectClone } from '../../../../util'
 import $ from 'jquery'
 import DimensionModal from '../DimensionsModal/index.vue'
@@ -555,6 +557,33 @@ export default class ModelEdit extends Vue {
   showEditAliasForm = false
   currentEditAlias = ''
   delTipVisible = false
+  guideActions (obj) {
+    let data = obj.data
+    if (obj.action === 'addTable') {
+      let { left, top } = this.modelInstance.renderDom.getBoundingClientRect()
+      this.modelInstance.addTable({
+        table: data.tableName,
+        alias: data.tableName.split('.')[1],
+        guid: data.guid,
+        drawSize: {
+          left: data.x - left - this.modelRender.zoomXSpace,
+          top: data.y - top - this.modelRender.zoomYSpace
+        }
+      })
+    } else if (obj.action === 'link') {
+      let fTable = this.modelInstance.getTableByGuid(data.fguid)
+      let pTable = this.modelInstance.getTableByGuid(data.pguid)
+      let joinDialogOption = {
+        fid: data.fguid,
+        pid: data.pguid,
+        joinType: data.joinType,
+        fColumnName: fTable.alias + '.' + data.fColumnName,
+        pColumnName: pTable.alias + '.' + data.pColumnName,
+        tables: this.modelRender.tables
+      }
+      this.callJoinDialog(joinDialogOption)
+    }
+  }
   // 取消table编辑
   cancelTableEdit () {
     this.showTableCoverDiv = false
@@ -1255,9 +1284,19 @@ export default class ModelEdit extends Vue {
     }
     this[action](para).then((res) => {
       handleSuccess(res, () => {
-        kapMessage(this.$t('kylinLang.common.saveSuccess'))
+        // kapMessage(this.$t('kylinLang.common.saveSuccess'))
         setTimeout(() => {
-          this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
+          kapConfirm('Model Save successfuly! Here you can add some index', {
+            confirmButtonText: 'Add Index',
+            cancelButtonText: 'No Thanks',
+            type: 'success',
+            confirmButtonClass: 'guide-gotoindex-btn'
+          }).then(() => {
+            this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
+            this.$store.state.model.currentEditModel = data.name
+          }).catch(() => {
+            this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
+          })
           this.$emit('saveRequestEnd')
         }, 1000)
       })
@@ -1796,7 +1835,7 @@ export default class ModelEdit extends Vue {
         .table-title {
           background-color: @lookup-title-color;
           color:@fff;
-          .close {
+          .setting-icon {
             &:hover{
               background-color:@base-color-14;
             }
@@ -1811,7 +1850,7 @@ export default class ModelEdit extends Vue {
       }
       // overflow: hidden;
       .table-title {
-        .close {  
+        .setting-icon {  
           float:right;
           font-size:14px;
           width:20px;

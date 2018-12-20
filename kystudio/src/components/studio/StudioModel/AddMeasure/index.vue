@@ -3,11 +3,11 @@
     <el-form :model="measure" class="add-measure" label-position="top" :rules="rules"  ref="measureForm">
       <el-form-item :label="$t('name')" prop="name">
         <div>
-          <el-input class="measures-width" size="medium" v-model="measure.name" @blur="upperCaseName"></el-input>
+          <el-input v-guide.measureNameInput class="measures-width" size="medium" v-model="measure.name" @blur="upperCaseName"></el-input>
         </div>
       </el-form-item>
       <el-form-item :label="$t('expression')" prop="expression">
-        <el-select :popper-append-to-body="false" class="measures-width" size="medium" v-model="measure.expression" @change="changeExpression">
+        <el-select v-guide.measureExpressionSelect :popper-append-to-body="false" class="measures-width" size="medium" v-model="measure.expression" @change="changeExpression">
           <el-option
             v-for="item in expressionsConf"
             :key="item.value"
@@ -31,7 +31,7 @@
         <el-tag type="info" class="measures-width" v-if="measure.expression === 'SUM(constant)' || measure.expression === 'COUNT(constant)'">1</el-tag>
         <div class="measure-flex-row" v-else>
           <div class="flex-item">
-            <el-select :class="{
+            <el-select v-guide.measureReturnValSelect :class="{
             'measures-addCC': measure.expression !== 'COUNT_DISTINCT' && measure.expression !== 'TOP_N',
             'measures-width': measure.expression === 'COUNT_DISTINCT' || measure.expression === 'TOP_N'}"
             size="medium" v-model="measure.parameterValue.value" :placeholder="$t('kylinLang.common.pleaseSelect')"
@@ -112,7 +112,7 @@
     </el-form>
     <span slot="footer" class="dialog-footer">
       <el-button size="medium" @click="measureVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button size="medium" type="primary" plain @click="checkMeasure">{{$t('kylinLang.common.submit')}}</el-button>
+      <el-button size="medium" type="primary" v-guide.saveMeasureBtn plain @click="checkMeasure">{{$t('kylinLang.common.submit')}}</el-button>
     </span>
   </el-dialog>
 </template>

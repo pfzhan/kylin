@@ -26,7 +26,19 @@ export default {
     canaryReloadTimer: 15,
     sourceDefault: 0,
     lang: 'en',
-    platform: ''
+    platform: '',
+    guideConfig: {
+      guideModeCheckDialog: false,
+      globalMouseDrag: false,
+      globalMaskVisible: false,
+      globalMouseVisible: false,
+      globalMouseClick: false,
+      mousePos: {
+        x: 0,
+        y: 0
+      },
+      targetList: {}
+    }
   },
   mutations: {
     [types.SAVE_AUTHENTICATION]: function (state, result) {
@@ -168,6 +180,9 @@ export default {
   getters: {
     isTestingSecurityProfile (state) {
       return state.securityProfile === 'testing'
+    },
+    isGuideMode (state) {
+      return state.guideConfig.globalMaskVisible
     }
   }
 }

@@ -40,7 +40,7 @@
     </el-row>
     <span slot="footer" class="dialog-footer">
       <el-button @click="isShow && handleClose(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" plain size="medium" @click="saveJoinCondition">{{$t('kylinLang.common.ok')}}</el-button>
+      <el-button type="primary" v-guide.saveJoinBtn plain size="medium" @click="saveJoinCondition">{{$t('kylinLang.common.ok')}}</el-button>
     </span>
   </el-dialog>
 </template>
@@ -100,6 +100,7 @@ export default class TableJoinModal extends Vue {
       }
       this.selectP = this.form.pid || ''
       this.selectF = this.form.fid || ''
+      this.joinType = this.form.joinType || 'INNER'
       let ptable = this.form.tables[this.selectP]
       // let ftable = this.form.tables[this.selectF]
       let joinData = ptable && ptable.getJoinInfoByFGuid(this.selectF) || null
@@ -109,7 +110,6 @@ export default class TableJoinModal extends Vue {
         this.joinColumns.primary_key = objectClone(joinInfo.primary_key)
         this.joinType = joinInfo.type
       } else { // 无join数据的情况,设置默认值
-        this.joinType = 'INNER'
         this.$set(this.joinColumns, 'foreign_key', [''])
         this.$set(this.joinColumns, 'primary_key', [''])
       }

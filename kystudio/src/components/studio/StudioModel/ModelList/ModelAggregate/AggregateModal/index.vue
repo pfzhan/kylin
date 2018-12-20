@@ -33,12 +33,13 @@
         <div class="body">
           <!-- Include聚合组 -->
           <div class="row">
-            <el-button plain size="mini" type="primary" @click="handleAddAllIncludes(aggregateIdx)">{{$t('selectAll')}}</el-button>
+            <el-button plain size="mini" type="primary" v-guide.selectAllIncludesBtn @click="handleAddAllIncludes(aggregateIdx)">{{$t('selectAll')}}</el-button>
             <el-button size="mini" @click="handleRemoveAllIncludes(aggregateIdx)">{{$t('cancelAll')}}</el-button>
           </div>
           <div class="row">
             <h2 class="title font-medium">{{$t('include')}}</h2>
             <el-select
+              v-guide.aggIncludes
               multiple
               filterable
               :ref="`aggregate.include.${aggregateIdx}`"
@@ -58,6 +59,7 @@
           <div class="row mandatory">
             <h2 class="title font-medium">{{$t('mandatory')}}</h2>
             <el-select
+              v-guide.aggMandatory
               multiple
               filterable
               :value="aggregate.mandatory"
@@ -78,6 +80,7 @@
               v-for="(hierarchy, hierarchyRowIdx) in aggregate.hierarchyArray"
               :key="`hierarchy-${hierarchyRowIdx}`">
               <el-select
+                v-guide.aggHierarchy
                 multiple
                 filterable
                 :value="hierarchy.items"
@@ -108,6 +111,7 @@
               v-for="(joint, jointRowIdx) in aggregate.jointArray"
               :key="`joint-${jointRowIdx}`">
               <el-select
+                v-guide.joint
                 multiple
                 filterable
                 :value="joint.items"
@@ -140,7 +144,7 @@
       </div>
       <div class="right">
         <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button size="medium" plain type="primary" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button size="medium" v-guide.saveAggBtn plain type="primary" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </div>
   </el-dialog>

@@ -2,6 +2,7 @@
   <div class="source-hive clearfix">
     <div class="list clearfix">
       <TreeList
+        v-guide.hiveTree
         ref="tree-list"
         class="table-tree"
         :data="treeData"
@@ -20,7 +21,7 @@
     </div>
     <div class="content" :style="contentStyle">
       <div class="content-body" :class="{ 'has-tips': isShowTips }">
-        <template v-if="selectedDatabases.length || selectedTables.length">
+        <template v-if="selectedDatabases.length || selectedTables.length || isGuideMode">
           <div class="category databases" v-if="selectedDatabases.length">
             <div class="header font-medium">
               <span>{{$t('database')}}</span>
@@ -37,13 +38,13 @@
               </el-select>
             </div>
           </div>
-          <div class="category tables" v-if="selectedTables.length">
+          <div class="category tables" v-if="selectedTables.length || isGuideMode">
             <div class="header font-medium">
               <span>{{$t('tableName')}}</span>
               <span>({{selectedTables.length}})</span>
             </div>
             <div class="names">
-              <el-select multiple filterable :value="selectedTables" @remove-tag="handleRemoveTable" @input="handleAddTable">
+              <el-select v-guide.selectHiveTables multiple filterable :value="selectedTables" @remove-tag="handleRemoveTable" @input="handleAddTable">
                 <el-option
                   v-for="option in tableOptions"
                   :key="option.value"
@@ -104,7 +105,8 @@ import arealabel from '../../area_label.vue'
   computed: {
     ...mapGetters([
       'currentSelectedProject',
-      'selectedProjectDatasource'
+      'selectedProjectDatasource',
+      'isGuideMode'
     ])
   },
   methods: {

@@ -40,7 +40,7 @@ export function bindRouterGuard (router) {
         prepositionRequest()
       } else if (from.name !== 'access' && from.name !== 'Login' && to.name !== 'access' && to.name !== 'Login') {
         // 如果是非登录页过来的，内页之间的路由跳转的话，就需要判断是否已经拿过权限
-        if (store.state.system.authentication === null && store.state.system.serverConfig === null) {
+        if (store.state.system.authentication === null && store.state.system.serverConfig === null || (to.params.refresh || from.name === null)) {
           prepositionRequest()
         } else {
           next()

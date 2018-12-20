@@ -6,7 +6,7 @@
     <div class="footer">
       <div class="btn-group">
         <el-button @click="goModelList" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button size="medium" type="primary" icon="el-icon-ksd-table_save" @click="saveModel" :loading="saveBtnLoading">{{$t('kylinLang.common.save')}}</el-button>
+        <el-button size="medium" v-guide.saveModelBtn type="primary" icon="el-icon-ksd-table_save" @click="saveModel" :loading="saveBtnLoading">{{$t('kylinLang.common.save')}}</el-button>
       </div>
     </div>
   </div>

@@ -8,7 +8,7 @@ export default {
     projectList: [],
     allProject: [],
     projectTotalSize: 0,
-    selected_project: localStorage.getItem('selected_project')
+    selected_project: cacheSessionStorage('projectName') || cacheLocalStorage('projectName')
   },
   mutations: {
     [types.SAVE_PROJECT_LIST]: function (state, { list, size }) {
@@ -103,7 +103,7 @@ export default {
     },
     [types.SAVE_PROJECT]: function ({ dispatch, commit }, project) {
       return api.project.saveProject(project).then(async (res) => {
-        await dispatch(types.LOAD_ALL_PROJECT)
+        // await dispatch(types.LOAD_ALL_PROJECT)
         return res
       })
     },

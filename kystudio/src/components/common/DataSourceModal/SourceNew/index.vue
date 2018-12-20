@@ -2,7 +2,7 @@
   <div class="source-new">
     <ul class="ksd-center">
       <li class="datasouce" :class="getSourceClass([sourceTypes.HIVE])">
-        <div class="datasource-icon" @click="clickHandler(sourceTypes.HIVE)">
+        <div class="datasource-icon" @click="clickHandler(sourceTypes.HIVE)" v-guide.selectHive>
           <i class="el-icon-ksd-hive"></i>
         </div>
         <div class="datasource-name">Hive</div>

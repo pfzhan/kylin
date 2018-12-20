@@ -5,108 +5,16 @@
         {{$t('kylinLang.common.help')}} <i class="el-icon-caret-bottom"></i>
       </span>
       <el-dropdown-menu slot="dropdown" >
+        <el-dropdown-item command="guide"><a class="ksd-block-a">{{$t('User Guide')}}</a></el-dropdown-item>
         <el-dropdown-item command="kapmanual"><a class="ksd-block-a" target="_blank" href="http://manual.kyligence.io/">{{$t('Manual')}}</a></el-dropdown-item>
-        <!-- <el-dropdown-item command="kybot">
-          <div v-if='!isLogin'>
-            <span @click="alertkybot=true">{{$t('kybotAuto')}}</span>
-            <el-switch
-              v-model="isopend"
-              active-text="OFF"
-              inactive-text="ON"
-              @change="changeKystaus"
-              @click.native.stop
-              @openSwitch="openSwitch"
-              @closeSwitch="closeSwitch">
-            </el-switch>
-          </div>
-        </el-dropdown-item> -->
         <el-dropdown-item command="kybotservice"><a class="ksd-block-a" target="_blank" :href="'https://kybot.io/#/home'+kapVersionPara"> {{$t('kybotService')}}</a></el-dropdown-item>
-        <!-- <el-dropdown-item command="updatelicense" divided>{{$t('updateLicense')}}</el-dropdown-item> -->
-        <!-- <el-dropdown-item command="aboutkap" divided>{{$t('aboutKap')}}</el-dropdown-item> -->
       </el-dropdown-menu>
     </el-dropdown>
-
-
-    <a :href="url" target="_blank"></a>
-    <el-dialog :visible.sync="aboutKapVisible" :title="$t('aboutKap')" width="560px"  :close-on-click-modal="false" :append-to-body="true">
-      <about_kap :about="serverAbout" :aboutKapVisible="aboutKapVisible">
-      </about_kap>
-    </el-dialog>
-    <el-dialog class="login-kybotAccount" :append-to-body="true" :visible.sync="kyBotUploadVisible" :title="$t('kylinLang.login.signIn')" @close="resetLoginKybotForm" :close-on-click-modal="false">
-      <login_kybot ref="loginKybotForm" @closeLoginForm="closeLoginForm" @closeLoginOpenKybot="closeLoginOpenKybot"></login_kybot>
-    </el-dialog>
-    <el-dialog :visible.sync="infoKybotVisible" :append-to-body="true" :title="$t('kybotAuto')" :close-on-click-modal="false">
-      <start_kybot @closeStartLayer="closeStartLayer" @openSwitch="openSwitch" :propAgreement="infoKybotVisible"></start_kybot>
-    </el-dialog>
-    <el-dialog :visible.sync="alertkybot" :title="$t('autoUpload')" :append-to-body="true">
-      <div v-if="$lang=='en'"  >
-        <div class="ksd-left">By analyzing diagnostic package, <a href='https://kybot.io/'>KyBot</a> can provide online diagnostic, tuning and support service for KAP. After starting auto upload service, it will automatically upload packages at 24:00 o'clock everyday regularly</div>
-        <el-button type="primary" @click="alertkybot = false">{{$t('ok')}}</el-button>
-      </span>
-      </div>
-      <div v-if="$lang=='zh-cn'" >
-        <div class="ksd-left"><a href="https://kybot.io/#/home?src=kap250">KyBot</a>通过分析生产的诊断包，提供KAP在线诊断、优化及服务，启动自动上传服务后，每天零点定时自动上传，无需自行打包和上传</div>
-        <el-button type="primary" @click="alertkybot = false">{{$t('ok')}}</el-button>
-      </span>
-      </div>
-    </el-dialog>
-
-    <el-dialog class="license-msg" :append-to-body="true" width="440px"
-      :before-close="handleClose"
-      :title="$t('kylinLang.common.license')"
-      :close-on-click-modal="false"
-      :visible.sync="showLicenseCheck"
-      :close-on-press-escape="false">
-      <el-alert
-        show-icon
-        :title="$store.state.system.serverAboutKap.msg"
-        :type="$store.state.system.serverAboutKap.code === '002' ? 'error' : 'warning'"
-        :closable="false">
-      </el-alert>
-      <span slot="footer" class="dialog-footer">
-        <div>
-          <a class="el-button  el-button--primary el-button--medium is-plain" style="text-decoration:none;" href="mailto:g-ent-lic@kyligence.io">{{$t('kylinLang.common.contactTech')}}</a>
-          <el-button size="medium" type="primary" plain @click="handleClose">{{$t('kylinLang.common.IKnow')}}</el-button>
-        </div>
-      </span>
-    </el-dialog>
-
-    <el-dialog :title="$t('license')" :append-to-body="true" :visible.sync="updateLicenseVisible" :close-on-click-modal="false" class="updateKAPLicense" width="660px">
-      <div class="ksd-mb-40 license-pic">
-        <img src="../../assets/img/license.png">
-        <p class="ksd-fs-12 ksd-mt-10">{{$t('validPeriod')}} {{license(serverAboutKap && serverAboutKap['kap.dates'])}}</p>
-      </div>
-      <update_license ref="licenseEnter" :updateLicenseVisible="updateLicenseVisible" v-on:validSuccess="licenseValidSuccess"></update_license>
-      <div slot="footer" class="dialog-footer">
-        <span @click="apply" class="ksd-fleft ksd-lineheight-36 ky-a-like" style="text-decoration: underline;">{{$t('applyLicense')}}</span>
-        <el-button size="medium" @click="updateLicenseVisible = false">{{$t('cancel')}}</el-button>
-        <el-button size="medium" type="primary" plain :loading="loadCheck" @click="licenseForm">{{$t('kylinLang.common.submit')}}</el-button>
-      </div>
-    </el-dialog>
-
-    <el-dialog class="applyLicense" :append-to-body="true" @close="closeApplyLicense" :title="$t('applyLicense')" :visible.sync="applyLicense" :close-on-click-modal="false" width="440px">
-      <el-form label-position="top" :model="userMessage" :rules="userRules" ref="applyLicenseForm">
-        <el-form-item prop="email">
-          <el-input v-model="userMessage.email" :placeholder="$t('businessEmail')"></el-input>
-        </el-form-item>
-        <el-form-item prop="company">
-          <el-input v-model="userMessage.company" :placeholder="$t('companyName')"></el-input>
-        </el-form-item>
-        <el-form-item prop="userName">
-          <el-input v-model="userMessage.userName" :placeholder="$t('yourName')"></el-input>
-        </el-form-item>
-      </el-form>
-      <div slot="footer" class="dialog-footer">
-        <el-button @click="submitApply" type="primary" plain :loading="applyLoading">{{$t('kylinLang.common.submit')}}</el-button>
-      </div>
-    </el-dialog>
   </div>
 </template>
 <script>
   import { mapActions } from 'vuex'
   import aboutKap from '../common/about_kap.vue'
-  import loginKybot from '../common/login_kybot.vue'
-  import startKybot from '../common/start_kybot.vue'
   import updateLicense from '../user/license'
   import { handleSuccess, handleError } from '../../util/business'
   import { personalEmail } from '../../config/index'
@@ -132,6 +40,7 @@
           password: ''
         },
         infoKybotVisible: false,
+        showGuideBox: false,
         isopend: false, // 是否已开启
         startLoading: false,
         flag: true,
@@ -155,23 +64,13 @@
     },
     methods: {
       ...mapActions({
-        getAboutKap: 'GET_ABOUTKAP',
-        getKybotAccount: 'GET_KYBOT_ACCOUNT',
-        loginKybot: 'LOGIN_KYBOT',
         getKyStatus: 'GET_KYBOT_STATUS',
-        startKybot: 'START_KYBOT',
-        stopKybot: 'STOP_KYBOT',
         getAgreement: 'GET_AGREEMENT',
         trialLicenseFile: 'TRIAL_LICENSE_FILE',
         getCurKybotAccount: 'GET_CUR_ACCOUNTNAME'
       }),
       handleCommand (val) {
         if (val === 'aboutkap') {
-          // 发请求 kap/system/license
-          // this.getAboutKap().then((result) => {
-          // }, (resp) => {
-          //   // console.log(resp)
-          // })
           this.getCurKybotAccount().then((res) => {
             handleSuccess(res, (data, code, status, msg) => {
               this.$store.state.kybot.hasLoginAccount = data
@@ -183,15 +82,8 @@
           this.aboutKapVisible = true
         } else if (val === 'updatelicense') {
           this.updateLicenseVisible = true
-        } else if (val === 'kybot') {
-          // 需要先检测有没有登录 待修改
-          // this.kyBotUploadVisible = true
-          // if (_this.isopend) {
-          //   return
-          // }
-          // this.checkLogin(() => {
-          //   this.getStatus(true)
-          // })
+        } else if (val === 'guide') {
+          this.$store.state.system.guideConfig.guideModeCheckDialog = true
         }
       },
       dropHelp (s) {
@@ -220,20 +112,6 @@
                 message: this.$t('openSuccess')
               })
               this.infoKybotVisible = false
-            }
-          })
-        })
-      },
-      // 关闭服务
-      stopService () {
-        this.stopKybot().then((resp) => {
-          handleSuccess(resp, (data, code, status, msg) => {
-            if (data) {
-              this.isopend = false
-              this.$message({
-                type: 'success',
-                message: this.$t('closeSuccess')
-              })
             }
           })
         })
@@ -438,8 +316,6 @@
     },
     components: {
       'about_kap': aboutKap,
-      'login_kybot': loginKybot,
-      'start_kybot': startKybot,
       'update_license': updateLicense
     },
     locales: {
@@ -450,6 +326,34 @@
 </script>
 <style lang="less">
   @import '../../assets/styles/variables.less';
+  .guide-box {
+    .guide-pic{
+      width:85px;
+      height:85px;
+      background-color: @grey-4;
+      margin: 0 auto;
+      margin-top:40px;
+    }
+    .guide-title{
+      text-align: center;
+      color:@text-title-color;
+      margin-top:14px;
+    }
+    .guide-desc {
+      text-align: center;
+      color:@text-disabled-color;
+      font-size:12px;
+      margin-top:14px;
+    }
+    .guide-footer {
+      font-size: 16px;
+      margin-top:14px;
+      text-align: center;
+      color:@base-color;
+      margin-bottom: 60px;
+      cursor:pointer;
+    }
+  }
   .help-box {
     .errMsgBox {
       .el-dialog__body {

@@ -13,7 +13,8 @@ export default {
     activeMenuName: '',
     modelSpeedEvents: 0,
     modelSpeedModelsCount: 0,
-    reachThreshold: false
+    reachThreshold: false,
+    currentEditModel: null
   },
   mutations: {
     [types.SAVE_MODEL_LIST]: function (state, result) {
