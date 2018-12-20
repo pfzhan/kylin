@@ -648,8 +648,7 @@ export const sourceNameMapping = {
 }
 
 export const pageSizeMapping = {
-  TABLE_TREE: 99,
-  SEGMENT_CHART: 50
+  TABLE_TREE: 99
 }
 
 export const speedProjectTypes = [

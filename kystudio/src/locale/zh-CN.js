@@ -155,7 +155,8 @@ exports.default = {
     go: '跳转',
     catchUp: '保存后，向新索引中加载数据',
     null: '无',
-    nan: 'NaN'
+    nan: 'NaN',
+    purge: '清空'
   },
   model: {
     modelName: '模型名称：',

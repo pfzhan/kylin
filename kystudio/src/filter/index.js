@@ -12,7 +12,7 @@ Vue.filter('utcDate', function (value) {
 
 Vue.filter('utcTime', function (value) {
   if (/[^\d]/.test(value) || value === '') {
-    return ''
+    return value
   }
   var dateObj = new Date(value)
   var year = dateObj.getUTCFullYear()

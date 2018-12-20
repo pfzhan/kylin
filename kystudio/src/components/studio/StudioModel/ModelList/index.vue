@@ -21,7 +21,7 @@
                 <i class="el-icon-ksd-collapse_1 ksd-fright full-model-box" v-else @click="toggleShowFull(props.$index, props.row)"></i>
                 <el-tabs activeName="first" class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
-                    <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" />
+                    <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" />
                   </el-tab-pane>
                   <el-tab-pane :label="$t('aggregate')" name="second">
                     <ModelAggregate :model="props.row" :project-name="currentSelectedProject" v-if="props.row.tabTypes === 'second'" />

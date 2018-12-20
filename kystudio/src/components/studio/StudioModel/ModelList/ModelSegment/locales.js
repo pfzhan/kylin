@@ -14,7 +14,21 @@ export default {
     selectContinueSegments: 'Please select continuous segments',
     pleaseSelectSegments: 'Please select at least one segment',
     confirmDeleteSegments: 'Are you sure delete?',
-    pleaseSelectStartOrEndSegments: 'Please select first or last continuous segments.'
+    pleaseSelectStartOrEndSegments: 'Please select first or last continuous segments.',
+    storageSize: 'Storage Size',
+    segmentDetail: 'Segment Details',
+    segmentID: 'Segment ID:',
+    segmentName: 'Segment Name:',
+    segmentPath: 'Segment Path:',
+    fileNumber: 'File Number:',
+    storageSize1: 'Storage Size:',
+    startTime: 'Start Time:',
+    endTime: 'End Time:',
+    tableIndexSegmentPath: 'Table Index Segment Path:',
+    tableIndexFileNumber: 'Table Index File Number:',
+    tableIndexStorageSize: 'Table Index Storage Size:',
+    fullLoad: 'Full Load',
+    confirmRefreshSegments: 'Confirm to refresh the segments?\r\n{segmentArray}'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',
@@ -31,6 +45,20 @@ export default {
     selectContinueSegments: '请选择时间相邻的segment',
     pleaseSelectSegments: '至少选择一个segment',
     confirmDeleteSegments: '确认是否删除？',
-    pleaseSelectStartOrEndSegments: '请选择第一个开始或最后一个结束的连续segments。'
+    pleaseSelectStartOrEndSegments: '请选择第一个开始或最后一个结束的连续segments。',
+    storageSize: '存储大小',
+    segmentDetail: 'Segment详情',
+    segmentID: 'Segment ID：',
+    segmentName: 'Segment 名称：',
+    segmentPath: 'Segment 路径：',
+    fileNumber: '索引文件数：',
+    storageSize1: '存储空间：',
+    startTime: '开始时间：',
+    endTime: '结束时间：',
+    tableIndexSegmentPath: '表索引 Segment 路径：',
+    tableIndexFileNumber: '表索引文件数：',
+    tableIndexStorageSize: '表索引存储空间：',
+    fullLoad: '全量加载',
+    confirmRefreshSegments: '是否确认刷新以下segments?\r\n{segmentArray}'
   }
 }

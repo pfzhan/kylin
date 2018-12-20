@@ -3,8 +3,9 @@
     <div class="segment-actions clearfix">
       <div class="left">
         <el-button size="medium" type="primary" icon="el-icon-ksd-table_refresh" @click="handleRefreshSegment">{{$t('kylinLang.common.refresh')}}</el-button>
-        <el-button size="medium" type="primary" icon="el-icon-ksd-merge" @click="handleMergeSegment">{{$t('merge')}}</el-button>
+        <!-- <el-button size="medium" type="primary" icon="el-icon-ksd-merge" @click="handleMergeSegment">{{$t('merge')}}</el-button> -->
         <el-button size="medium" type="default" icon="el-icon-ksd-table_delete" @click="handleDeleteSegment">{{$t('kylinLang.common.delete')}}</el-button>
+        <el-button size="medium" type="default" icon="el-icon-ksd-table_delete" v-if="model.management_type!=='TABLE_ORIENTED'" @click="handlePurgeModel">{{$t('kylinLang.common.purge')}}</el-button>
       </div>
       <div class="right">
         <div class="segment-action">
@@ -44,29 +45,79 @@
     </div>
 
     <div class="segment-views">
-      <div class="segment-charts">
-        <SegmentChart
-          v-loading="isSegmentLoading"
-          :segments="segments"
-          :scaleType="scaleTypes[scaleTypeIdx]"
-          @input="handleSelectSegment"
-          @load-more="handleLoadMore">
-          <Waypoint class="load-more" :scrollable-ancestor="scrollableAncestor" @enter="handleLoadMore"></Waypoint>
-        </SegmentChart>
-        <div class="chart-actions">
-          <div class="icon-button" @click="handleAddZoom">
-            <img :src="iconAdd" />
-          </div>
-          <div class="icon-button" @click="handleMinusZoom">
-            <img :src="iconReduce" />
-          </div>
-          <div>{{zoom.toFixed(0)}}</div>
-          <div>%</div>
-          <div class="linear-chart"></div>
-          <div class="empty-chart"></div>
-        </div>
-      </div>
+      <el-table border :data="segments" @selection-change="handleSelectSegments">
+        <el-table-column type="selection" width="35" align="center">
+        </el-table-column>
+        <el-table-column prop="id" label="Segment Id">
+        </el-table-column>
+        <el-table-column prop="status" :label="$t('kylinLang.common.status')" width="155" align="center">
+        </el-table-column>
+        <el-table-column :label="$t('storageSize')" width="145" header-align="center" align="right">
+          <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
+        </el-table-column>
+        <el-table-column :label="$t('kylinLang.common.startTime')" align="center">
+          <template slot-scope="scope">{{scope.row.startTime | utcTime}}</template>
+        </el-table-column>
+        <el-table-column :label="$t('kylinLang.common.endTime')" align="center">
+          <template slot-scope="scope">{{scope.row.endTime | utcTime}}</template>
+        </el-table-column>
+        <el-table-column :label="$t('kylinLang.common.action')" width="100" align="center">
+          <template slot-scope="scope">
+            <i class="el-icon-ksd-type_date" @click="handleShowDetail(scope.row)"></i>
+          </template>
+        </el-table-column>
+      </el-table>
+      <kap-pager
+        class="ksd-center ksd-mt-20"
+        :totalSize="totalSegmentCount"
+        @handleCurrentChange="handleCurrentChange">
+      </kap-pager>
     </div>
+
+    <el-dialog :title="$t('segmentDetail')" :visible.sync="isShowDetail">
+      <table class="ksd-table" v-if="detailSegment">
+        <tr class="ksd-tr">
+          <th>{{$t('segmentID')}}</th>
+          <td>{{detailSegment.id}}</td>
+        </tr>
+        <tr class="ksd-tr">
+          <th>{{$t('segmentName')}}</th>
+          <td>{{detailSegment.name}}</td>
+        </tr>
+        <tr class="ksd-tr">
+          <th>{{$t('segmentPath')}}</th>
+          <td>{{detailSegment.path}}</td>
+        </tr>
+        <tr class="ksd-tr">
+          <th>{{$t('fileNumber')}}</th>
+          <td>{{detailSegment.fileNumber}}</td>
+        </tr>
+        <tr class="ksd-tr">
+          <th>{{$t('storageSize1')}}</th>
+          <td>{{detailSegment.bytes_size | dataSize}}</td>
+        </tr>
+        <tr class="ksd-tr">
+          <th>{{$t('startTime')}}</th>
+          <td>{{detailSegment.startTime | utcTime}}</td>
+        </tr>
+        <tr class="ksd-tr">
+          <th>{{$t('endTime')}}</th>
+          <td>{{detailSegment.endTime | utcTime}}</td>
+        </tr>
+        <tr class="ksd-tr">
+          <th>{{$t('tableIndexSegmentPath')}}</th>
+          <td>{{detailSegment.tableIndexPath}}</td>
+        </tr>
+        <tr class="ksd-tr">
+          <th>{{$t('tableIndexFileNumber')}}</th>
+          <td>{{detailSegment.tableIndexFileNumber}}</td>
+        </tr>
+        <tr class="ksd-tr">
+          <th>{{$t('tableIndexStorageSize')}}</th>
+          <td>{{detailSegment.tableIndexStorageSize}}</td>
+        </tr>
+      </table>
+    </el-dialog>
   </div>
 </template>
 
@@ -76,12 +127,8 @@ import { mapActions, mapGetters } from 'vuex'
 import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
-import SegmentChart from './SegmentChart/SegmentChart'
-import Waypoint from '../../../../common/Waypoint/Waypoint'
-import { pageSizeMapping } from '../../../../../config'
+import { pageCount } from '../../../../../config'
 import { handleSuccessAsync, handleError, transToUTCMs } from '../../../../../util'
-import iconAdd from './icon_add.svg'
-import iconReduce from './icon_reduce.svg'
 import { formatSegments } from './handler'
 // import { getMockSegments } from './mock'
 
@@ -89,19 +136,7 @@ import { formatSegments } from './handler'
   props: {
     model: {
       type: Object
-    },
-    isShowActions: {
-      type: Boolean,
-      default: true
-    },
-    isShowSettings: {
-      type: Boolean,
-      default: true
     }
-  },
-  components: {
-    SegmentChart,
-    Waypoint
   },
   computed: {
     ...mapGetters([
@@ -121,23 +156,20 @@ import { formatSegments } from './handler'
   locales
 })
 export default class ModelSegment extends Vue {
-  iconAdd = iconAdd
-  iconReduce = iconReduce
-  zoom = 100
   segments = []
+  detailSegment = null
+  totalSegmentCount = 0
   filter = {
     mpValues: '',
     startDate: '',
     endDate: ''
   }
-  scaleTypes = ['hour', 'day', 'month', 'year']
-  scaleTypeIdx = 1
-  scrollableAncestor = null
   pagination = {
     pageOffset: 0,
-    pageSize: pageSizeMapping.SEGMENT_CHART
+    pageSize: pageCount
   }
   selectedSegmentIds = []
+  isShowDetail = false
   isSegmentLoading = false
   get selectedSegments () {
     return this.selectedSegmentIds.map(
@@ -146,13 +178,11 @@ export default class ModelSegment extends Vue {
   }
   @Watch('filter.startDate')
   @Watch('filter.endDate')
-  @Watch('scaleTypeIdx')
   onDateRangeChange (val) {
     this.loadSegments()
   }
   async mounted () {
     await this.loadSegments()
-    this.scrollableAncestor = this.$el.querySelector('.segment-chart .container')
   }
   getStartDateLimit (time) {
     return this.filter.endDate ? time.getTime() > this.filter.endDate.getTime() : false
@@ -160,15 +190,13 @@ export default class ModelSegment extends Vue {
   getEndDateLimit (time) {
     return this.filter.startDate ? time.getTime() < this.filter.startDate.getTime() : false
   }
-  addPagination () {
-    this.pagination.pageOffset++
+  handleCurrentChange (pager, count) {
+    this.pagination.pageOffset = pager
+    this.pagination.pageSize = count
+    this.loadSegments()
   }
-  clearPagination () {
-    this.pagination.pageOffset = 0
-  }
-  async loadSegments (options) {
+  async loadSegments () {
     try {
-      const { isReset = true } = options || {}
       const { startDate, endDate } = this.filter
       const projectName = this.currentSelectedProject
       const modelName = this.model.name
@@ -176,59 +204,36 @@ export default class ModelSegment extends Vue {
       const endTime = endDate && transToUTCMs(endDate)
 
       this.isSegmentLoading = true
-      isReset && this.clearPagination()
       const res = await this.fetchSegments({ projectName, modelName, startTime, endTime, ...this.pagination })
       const { size, segments } = await handleSuccessAsync(res)
-      const formatedSegments = formatSegments(segments)
-      if (isReset) {
-        this.segments = formatedSegments
-        this.addPagination()
-      } else if (size > this.segments.length) {
-        this.segments = isReset ? formatedSegments : this.segments.concat(formatedSegments)
-        this.addPagination()
-      }
+      const formatedSegments = formatSegments(this, segments)
+      this.segments = formatedSegments
+      this.totalSegmentCount = size
       this.isSegmentLoading = false
     } catch (e) {
-      e !== 'cancel' && handleError(e)
-    }
-  }
-  async handleLoadMore () {
-    try {
-      await this.loadSegments({ isReset: false })
-    } catch (e) {
-      e !== 'cancel' && handleError(e)
-    }
-  }
-  handleAddZoom () {
-    if (this.scaleTypeIdx > 0) {
-      this.scaleTypeIdx--
-    }
-  }
-  handleMinusZoom () {
-    if (this.scaleTypeIdx < this.scaleTypes.length - 1) {
-      this.scaleTypeIdx++
-    }
-  }
-  handleSelectSegment (selectedSegmentIds, isSelectable) {
-    if (isSelectable) {
-      this.selectedSegmentIds = selectedSegmentIds
-    } else {
-      this.$message(this.$t('selectContinueSegments'))
+      handleError(e)
     }
   }
   async handleRefreshSegment () {
     try {
       const segmentIds = this.selectedSegmentIds
       if (segmentIds.length) {
+        const segmentNames = this.selectedSegments.map(segment => segment.name)
+        const segmentArray = `[${segmentNames.join('\r\n')}]`
         const projectName = this.currentSelectedProject
         const modelName = this.model.name
+        const confirmTitle = this.$t('kylinLang.common.notice')
+        const confirmMessage = this.$t('confirmRefreshSegments', { segmentArray })
+        const confirmButtonText = this.$t('kylinLang.common.ok')
+        const cancelButtonText = this.$t('kylinLang.common.cancel')
+        await this.$confirm(confirmMessage, confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText })
         const isSubmit = await this.refreshSegments({ projectName, modelName, segmentIds })
         isSubmit && this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
       } else {
         this.$message(this.$t('pleaseSelectSegments'))
       }
     } catch (e) {
-      e !== 'cancel' && handleError(e)
+      handleError(e)
     }
   }
   async handleMergeSegment () {
@@ -240,19 +245,11 @@ export default class ModelSegment extends Vue {
       handleError(e)
     }
   }
-  isStartOrEndSegment (segmentIds) {
-    const startAndEndIds = this.segments.filter((segment, index) => {
-      return index === 0 || index === this.segments.length - 1
-    }).map(segment => segment.id)
-    return segmentIds.some(segmentId => startAndEndIds.includes(segmentId))
-  }
   async handleDeleteSegment () {
     try {
       const segmentIds = this.selectedSegmentIds
       if (!segmentIds.length) {
         this.$message(this.$t('pleaseSelectSegments'))
-      } else if (!this.isStartOrEndSegment(segmentIds)) {
-        this.$message(this.$t('pleaseSelectStartOrEndSegments'))
       } else {
         const projectName = this.currentSelectedProject
         const modelName = this.model.name
@@ -269,6 +266,16 @@ export default class ModelSegment extends Vue {
       e !== 'cancel' && handleError(e)
     }
   }
+  handleShowDetail (segment) {
+    this.detailSegment = segment
+    this.isShowDetail = true
+  }
+  handleSelectSegments (selectedSegments) {
+    this.selectedSegmentIds = selectedSegments.map(segment => segment.id)
+  }
+  async handlePurgeModel () {
+    this.$emit('purge-model', this.model)
+  }
 }
 </script>
 
@@ -282,7 +289,6 @@ export default class ModelSegment extends Vue {
     margin-bottom: 15px;
     .left {
       float: left;
-      display: none;
     }
     .right {
       float: right;
@@ -309,102 +315,11 @@ export default class ModelSegment extends Vue {
   }
   .segment-charts {
     position: relative;
-    .segment-chart {
-      width: calc(~'100% - 25px');
-    }
-    .stage {
-      position: relative;
-    }
-    .chart-actions {
-      position: absolute;
-      right: 0;
-      top: 10px;
-      text-align: center;
-    }
-    .icon-button {
-      width: 21px;
-      height: 21px;
-      padding: 6px;
-      background: #0988DE;
-      margin: 0 auto 5px auto;
-      cursor: pointer;
-    }
-    .icon-button img {
-      display: block;
-      width: 9px;
-      height: 9px;
-    }
-    .linear-chart {
-      width: 10px;
-      height: 50px;
-      background: linear-gradient(0deg, #FFCD58 0%, #FAC954 36%, #FF0000 100%);
-      border: 1px solid #CFD8DC;
-      margin: 10px auto 5px auto;
-    }
-    .empty-chart {
-      width: 10px;
-      height: 10px;
-      margin: 0 auto;
-      background: #FFFFFF;
-      border: 1px solid #B0BEC5;
-    }
   }
   .title {
     font-size: 16px;
     color: #263238;
     margin: 20px 0 10px 0;
-  }
-  .segment-settings {
-    display: none;
-  }
-  .settings {
-    padding: 15px 0;
-    border: 1px solid #B0BEC5;
-    background: white;
-  }
-  .setting {
-    padding: 0 23px;
-    &:not(:last-child) {
-      border-bottom: 1px solid #B0BEC5;
-      padding-bottom: 10px;
-    }
-    &:not(:first-child) {
-      padding-top: 10px;
-    }
-    .el-input {
-      width: 220px;
-    }
-    .setting-checkbox {
-      float: left;
-      position: relative;
-      transform: translateY(9px);
-    }
-    .setting-input {
-      margin-left: 117px;
-      &:not(:last-child) {
-        padding-bottom: 10px;
-      }
-      &:not(:nth-child(2)) .delete-setting {
-        margin-left: 55px;
-      }
-    }
-    .is-circle {
-      margin-left: 10px;
-    }
-    .el-select {
-      width: 100px;
-      margin-left: 5px;
-      .el-input {
-        width: 100%;
-      }
-    }
-  }
-  .load-more {
-    position: absolute;
-    right: 0;
-    top: 0;
-    height: 100%;
-    width: 1px;
   }
 }
 </style>

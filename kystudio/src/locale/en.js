@@ -156,7 +156,8 @@ exports.default = {
     go: 'Continue',
     catchUp: 'Load data into new index after saving',
     null: 'Null',
-    nan: 'NaN'
+    nan: 'NaN',
+    purge: 'Purge'
   },
   model: {
     draft: 'Draft',
