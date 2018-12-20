@@ -65,11 +65,11 @@ export const menusData = [
       // {name: 'admin', path: '/monitor/admin'}
     ]
   },
-  // {
-  //   name: 'setting',
-  //   path: '/setting',
-  //   icon: 'el-icon-ksd-setting'
-  // },
+  {
+    name: 'setting',
+    path: '/setting',
+    icon: 'el-icon-ksd-setting'
+  },
   {
     name: 'project',
     path: '/admin/project',

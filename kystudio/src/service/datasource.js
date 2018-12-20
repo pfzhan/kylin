@@ -28,7 +28,16 @@ export default {
     return Vue.resource(apiUrl + 'tables_and_columns?project=' + project).get()
   },
   loadStatistics: (para) => {
+    return Vue.resource(apiUrl + 'query/statistics/engine').get(para)
+  },
+  loadDashboardQueryInfo: (para) => {
     return Vue.resource(apiUrl + 'query/statistics').get(para)
+  },
+  loadQueryChartData: (para) => {
+    return Vue.resource(apiUrl + 'query/statistics/count').get(para)
+  },
+  loadQueryDuraChartData: (para) => {
+    return Vue.resource(apiUrl + 'query/statistics/duration').get(para)
   },
   query: (para) => {
     const vm = window.kapVm

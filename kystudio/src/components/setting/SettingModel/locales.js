@@ -1,16 +1,16 @@
 export default {
   'en': {
-    segmentMerge: 'Segment Merge',
-    segmentMergeDesc: 'Segment auto-merge can help defragment your data file.',
-    storageQuota: 'Storage Quota',
-    storageGarbage: 'Storage Garbage',
-    snapshotSize: 'Snapshot Size'
+    modifyTime: 'Modify Time',
+    modelSetting: 'Model Setting',
+    modifiedUser: 'Modify User',
+    segmentMerge: 'Segment Merge:',
+    retention: 'Retention Threshold'
   },
   'zh-cn': {
-    segmentMerge: 'Segment Merge',
-    segmentMergeDesc: 'Segment自动合并能够减少数据中的碎片。',
-    storageQuota: 'Storage Quota',
-    storageGarbage: 'Storage Garbage',
-    snapshotSize: 'Snapshot Size'
+    modifyTime: '修改时间',
+    modelSetting: '已重写的设置项',
+    modifiedUser: '修改人',
+    segmentMerge: 'Segment合并：',
+    retention: '相关配置：'
   }
 }

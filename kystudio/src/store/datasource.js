@@ -59,6 +59,15 @@ export default {
     [types.LOAD_STATISTICS]: function ({commit}, para) {
       return api.datasource.loadStatistics(para)
     },
+    [types.LOAD_DASHBOARD_QUERY_INFO]: function ({commit}, para) {
+      return api.datasource.loadDashboardQueryInfo(para)
+    },
+    [types.LOAD_QUERY_CHART_DATA]: function ({commit}, para) {
+      return api.datasource.loadQueryChartData(para)
+    },
+    [types.LOAD_QUERY_DURA_CHART_DATA]: function ({commit}, para) {
+      return api.datasource.loadQueryDuraChartData(para)
+    },
     [types.QUERY_BUILD_TABLES]: function ({commit}, para) {
       return api.datasource.query(para)
     },

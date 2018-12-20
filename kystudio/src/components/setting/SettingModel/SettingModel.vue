@@ -1,44 +1,41 @@
 <template>
-  <div class="setting-storage">
-    <div class="quota-setting ksd-mb-20">
-      <span class="setting-label font-medium">{{$t('storageQuota')}}</span>
-      <span>{{storageQuotaSize | dataSize}}</span>
-      <p class="desc">Granted storage quota by system admin. If your project storage exceeds the quota, you would be forbidden to build new index or load more data.  </p>
-      <hr/>
-      <span class="setting-label font-medium">{{$t('storageGarbage')}}</span>
-      <p class="desc">
-        <el-checkbox v-model="garbageChecked">Index or query repeatedly used 5 times or below in a month.</el-checkbox>
-      </p>
-    </div>
-    <div class="project-setting project-switch ksd-mb-20">
-      <div class="setting-item clearfix">
-        <span class="setting-label font-medium">{{$t('segmentMerge')}}</span>
-        <span class="setting-value">
-          <el-switch
-            class="ksd-switch"
-            v-model="form.isSegmentMerge"
-            :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')">
-          </el-switch>
-        </span>
-      </div>
-      <div class="setting-desc">{{$t('segmentMergeDesc')}}</div>
-      <SegmentMerge v-model="form"></SegmentMerge>
-    </div>
-    <div class="snapshot-setting">
-      <span class="setting-label font-medium">{{$t('snapshotSize')}}</span>
-      <span>300M</span>
-      <p class="desc">Suggested snapshot storage size by system admin.</p>
-      <hr/>
-      <span class="setting-label font-medium">{{$t('storageGarbage')}}</span>
-      <el-switch
-        class="ksd-switch"
-        v-model="storageGarbage"
-        :active-text="$t('kylinLang.common.OFF')"
-        :inactive-text="$t('kylinLang.common.ON')">
-      </el-switch>
-      <p class="desc">Tables exceed the storage size may perform not so well, the system will want to notify you. </p>
-    </div>
+  <div class="setting-model">
+    <el-table
+      :data="modelList"
+      border
+      style="width: 100%">
+      <el-table-column width="230px" show-overflow-tooltip prop="name" :label="$t('kylinLang.model.modelNameGrid')"></el-table-column>
+      <el-table-column prop="last_modified" show-overflow-tooltip width="250px" :label="$t('modifyTime')">
+        <template slot-scope="scope">
+          {{transToGmtTime(scope.row.last_modified)}}
+        </template>
+      </el-table-column>
+      <el-table-column prop="owner" show-overflow-tooltip width="100" :label="$t('modifiedUser')"></el-table-column>
+      <el-table-column min-width="400px" :label="$t('modelSetting')">
+        <template slot-scope="scope">
+          <div v-if="scope.row.segmentMerge&&scope.row.segmentMerge.length">
+            <span class="model-setting-item">
+              {{$t('segmentMerge')}}<span v-for="item in scope.row.segmentMerge" :key="item">{{item}}</span>
+            </span>
+            <i class="el-icon-ksd-symbol_type"></i>
+          </div>
+          <div v-if="scope.row.retention">
+            <span class="model-setting-item">
+              {{$t('retention')}}<span>{{scope.row.retention}}</span>
+            </span>
+            <i class="el-icon-ksd-symbol_type"></i>
+          </div>
+        </template>
+      </el-table-column>
+      <el-table-column
+        width="100px"
+        align="center"
+        :label="$t('kylinLang.common.action')">
+          <template slot-scope="scope">
+            <i class="el-icon-ksd-table_add"></i>
+          </template>
+      </el-table-column>
+    </el-table>
   </div>
 </template>
 
@@ -48,8 +45,8 @@ import { Component } from 'vue-property-decorator'
 import { mapActions } from 'vuex'
 
 import locales from './locales'
-import SegmentMerge from '../SegmentMerge/SegmentMerge.vue'
-import { handleSuccessAsync } from '../../../util/index'
+import { transToGmtTime } from '../../../util/business'
+// import { handleSuccessAsync } from '../../../util/index'
 
 @Component({
   props: {
@@ -59,53 +56,40 @@ import { handleSuccessAsync } from '../../../util/index'
     }
   },
   methods: {
+    transToGmtTime: transToGmtTime,
     ...mapActions({
-      getQuotaInfo: 'GET_QUOTA_INFO'
     })
   },
   components: {
-    SegmentMerge
   },
   locales
 })
 export default class SettingStorage extends Vue {
-  form = {
-    isSegmentMerge: true,
-    autoMergeConfigs: [ 'WEEK', 'MONTH' ],
-    volatileConfig: {
-      value: 0,
-      type: 'DAY'
-    }
-  }
-  storageQuotaSize = 0
-  garbageChecked = true
-  storageGarbage = true
-  async created () {
-    const res = await this.getQuotaInfo({project: this.project.name})
-    const resData = await handleSuccessAsync(res)
-    this.storageQuotaSize = resData.storage_quota_size
+  modelList = [
+    {name: 'nmodel_basic_inner', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['One day', 'One week'], retention: '200 days'},
+    {name: 'nmodel_full_measure_test', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['One day', 'One week'], retention: '200 days'},
+    {name: 'test_encoding', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['One day', 'One week'], retention: '200 days'},
+    {name: 'ut_inner_join_cube_partial', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['One day', 'One week'], retention: '200 days'},
+    {name: 'nmodel_basic', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['One day', 'One week'], retention: '200 days'},
+    {name: 'all_fixed_length', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['One day', 'One week'], retention: '200 days'}
+  ]
+  created () {
   }
 }
 </script>
 
 <style lang="less">
 @import '../../../assets/styles/variables.less';
-.setting-storage {
-  padding: 5px 0;
-  .ksd-switch {
-    transform: scale(0.8);
-  }
-  .quota-setting,
-  .snapshot-setting {
-    hr {
-      border: 1px solid @grey-3;
-      margin: 10px 0;
+.setting-model {
+  .model-setting-item {
+    background-color: @grey-4;
+    line-height: 18px;
+    > span {
+      margin-left: 5px;
     }
-    .desc {
-      font-size: 12px;
-      color: @text-normal-color;
-      line-height: 16px;
-      margin-top: 5px;
+    &:hover {
+      color: @base-color;
+      cursor: pointer;
     }
   }
 }

@@ -8,7 +8,7 @@
         <SettingBasic :project="currentProjectData"></SettingBasic>
       </el-tab-pane>
       <el-tab-pane :label="$t('advanced')" :name="viewTypes.ADVANCED">
-        <SettingAccelerate></SettingAccelerate>
+        <SettingAdvanced></SettingAdvanced>
       </el-tab-pane>
       <el-tab-pane :label="$t('model')" :name="viewTypes.MODEL">
         <SettingModel :project="currentProjectData"></SettingModel>
@@ -26,7 +26,7 @@ import locales from './locales'
 import { viewTypes } from './handler'
 import emptyImg from '../../assets/img/empty.svg'
 import SettingBasic from './SettingBasic/SettingBasic.vue'
-import SettingAccelerate from './SettingAccelerate/SettingAccelerate.vue'
+import SettingAdvanced from './SettingAdvanced/SettingAdvanced.vue'
 import SettingModel from './SettingModel/SettingModel.vue'
 
 @Component({
@@ -37,7 +37,7 @@ import SettingModel from './SettingModel/SettingModel.vue'
   },
   components: {
     SettingBasic,
-    SettingAccelerate,
+    SettingAdvanced,
     SettingModel
   },
   locales
@@ -64,7 +64,6 @@ export default class Setting extends Vue {
     margin-left: 10px;
   }
   .project-setting,
-  .accelerate-setting-block,
   .quota-setting,
   .snapshot-setting {
     background-color: @aceditor-bg-color;
