@@ -145,6 +145,12 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         val update = new NDataflowUpdate(df.getName());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dfManager.updateDataflow(update);
+
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        modelManager.updateDataModel(MODEL_NAME, copyForWrite -> {
+            copyForWrite.setAllMeasures(
+                    copyForWrite.getAllMeasures().stream().filter(m -> m.id != 1011).collect(Collectors.toList()));
+        });
     }
 
     @After

@@ -73,7 +73,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
     public void setUp() throws Exception {
         System.setProperty("kylin.job.event.poll-interval-second", "1");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "2");
-        //System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
+        System.setProperty("kylin.engine.spark.build-class-name", "io.kyligence.kap.engine.spark.job.MockedDFBuildJob");
         this.createTestMetadata();
         EventOrchestratorManager.destroyInstance();
         NDefaultScheduler.destroyInstance();
@@ -96,7 +96,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         this.cleanupTestMetadata();
         System.clearProperty("kylin.job.event.poll-interval-second");
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
-        //System.clearProperty("kylin.engine.spark.build-class-name");
+        System.clearProperty("kylin.engine.spark.build-class-name");
 
     }
 

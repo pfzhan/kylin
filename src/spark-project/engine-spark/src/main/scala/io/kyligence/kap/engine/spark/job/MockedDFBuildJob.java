@@ -24,6 +24,9 @@
 
 package io.kyligence.kap.engine.spark.job;
 
+import static org.apache.spark.sql.types.DataTypes.IntegerType;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -35,6 +38,7 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -46,12 +50,12 @@ import org.apache.spark.sql.util.SparderTypeUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
@@ -59,8 +63,11 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.builder.DFFlatTableEncoder;
+import io.kyligence.kap.engine.spark.builder.DictionaryBuilder;
 import io.kyligence.kap.engine.spark.builder.NDataflowJob;
-import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.val;
+import lombok.var;
 
 public class MockedDFBuildJob extends NDataflowJob {
     protected static final Logger logger = LoggerFactory.getLogger(MockedDFBuildJob.class);
@@ -90,24 +97,28 @@ public class MockedDFBuildJob extends NDataflowJob {
 
             for (String segId : segmentIds) {
                 NDataSegment seg = dfMgr.getDataflow(dfName).getSegment(segId);
-                cuboids.stream().forEach(layout -> {
-                    ImmutableList<Integer> colOrder = layout.getColOrder();
-                    List<DataType> sparkTypes = colOrder.stream().map(x -> {
-                        if (x < NDataModel.MEASURE_ID_BASE) {
-                            return cubePlan.getModel().getColRef(x).getType();
-                        } else {
-                            return cubePlan.getModel().getEffectiveMeasureMap().get(x).getFunction()
-                                    .getReturnDataType();
-                        }
-                    }).map(SparderTypeUtil::toSparkType).collect(Collectors.toList());
+                val dimensions = new ArrayList<Integer>(cubePlan.getModel().getEffectiveCols().keySet());
+                List<DataType> sparkTypes = dimensions.stream().map(x -> cubePlan.getModel().getColRef(x).getType())
+                        .map(SparderTypeUtil::toSparkType).collect(Collectors.toList());
+                val collect = IntStream.range(0, dimensions.size())
+                        .mapToObj(x -> new StructField(String.valueOf(dimensions.get(x)), sparkTypes.get(x), true,
+                                Metadata.empty()))
+                        .toArray(StructField[]::new);
 
-                    List<StructField> collect = IntStream.range(0, colOrder.size())
-                            .mapToObj(x -> new StructField(String.valueOf(colOrder.get(x)), sparkTypes.get(x), true,
-                                    Metadata.empty()))
-                            .collect(Collectors.toList());
+                var structType = new StructType(collect);
+                val flatTableDesc = new NCubeJoinedFlatTableDesc(cubePlan, seg.getSegRange());
+                for (TblColRef ref : DictionaryBuilder.extractGlobalDictColumns(seg)) {
+                    int columnIndex = flatTableDesc.getColumnIndex(ref);
+                    structType = structType.add(
+                            structType.apply(columnIndex).name() + DFFlatTableEncoder.ENCODE_SUFFIX(), IntegerType);
+                }
 
-                    Dataset<Row> ds = ss.createDataFrame(Lists.newArrayList(),
-                            new StructType(collect.toArray(new StructField[0])));
+                Dataset<Row> ds = ss.createDataFrame(Lists.newArrayList(), structType);
+
+                cuboids.forEach(layout -> {
+                    CuboidAggregator.agg(ss, ds, layout.getOrderedDimensions().keySet(),
+                            cubePlan.getEffectiveMeasures(), seg);
+
                     NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg.getDataflow(), seg.getId(), layout.getId());
                     dataCuboid.setRows(123);
                     dataCuboid.setSourceByteSize(123);

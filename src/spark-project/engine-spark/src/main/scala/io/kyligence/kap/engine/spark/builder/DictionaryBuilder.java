@@ -128,7 +128,7 @@ public class DictionaryBuilder {
                 seg.getConfig().getGlobalDictV2VersionTTL());
     }
 
-    protected static Set<TblColRef> extractGlobalDictColumns(NDataSegment seg) {
+    public static Set<TblColRef> extractGlobalDictColumns(NDataSegment seg) {
         Set<TblColRef> colRefSet = Sets.newHashSet();
         NCubePlan cubePlan = seg.getDataflow().getCubePlan();
         for (NCuboidLayout layout : cubePlan.getAllCuboidLayouts()) {

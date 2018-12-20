@@ -148,7 +148,7 @@ public class NQueryController extends NBasicController {
 
         HashMap<String, Object> data = new HashMap<String, Object>();
         String creator = SecurityContextHolder.getContext().getAuthentication().getName();
-        List<Query> savedQueries = queryService.getSavedQueries(creator, project);
+        List<Query> savedQueries = queryService.getSavedQueries(creator, project).getQueries();
 
         data.put("saved_queries", PagingUtil.cutPage(savedQueries, offset, limit));
         data.put("size", savedQueries.size());

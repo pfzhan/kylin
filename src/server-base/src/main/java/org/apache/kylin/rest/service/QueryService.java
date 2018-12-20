@@ -58,20 +58,18 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
-import io.kyligence.kap.rest.transaction.Transaction;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -141,6 +139,11 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
+import io.kyligence.kap.rest.transaction.Transaction;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.val;
 import net.sf.ehcache.Cache;
 import net.sf.ehcache.CacheManager;
 import net.sf.ehcache.Element;
@@ -220,51 +223,28 @@ public class QueryService extends BasicService {
 
     @Transaction(project = 1)
     public void saveQuery(final String creator, final String project, final Query query) throws IOException {
-        List<Query> queries = getSavedQueries(creator, project);
-        queries.add(query);
-        Query[] queryArray = new Query[queries.size()];
-        QueryRecord record = new QueryRecord(queries.toArray(queryArray));
+        val record = getSavedQueries(creator, project);
+        record.getQueries().add(query);
         getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
-        return;
     }
 
     @Transaction(project = 1)
     public void removeSavedQuery(final String creator, final String project, final String id) throws IOException {
-        List<Query> queries = getSavedQueries(creator, project);
-        Iterator<Query> queryIter = queries.iterator();
-
-        boolean changed = false;
-        while (queryIter.hasNext()) {
-            Query temp = queryIter.next();
-            if (temp.getId().equals(id)) {
-                queryIter.remove();
-                changed = true;
-                break;
-            }
-        }
-
-        if (!changed) {
-            return;
-        }
-        Query[] queryArray = new Query[queries.size()];
-        QueryRecord record = new QueryRecord(queries.toArray(queryArray));
+        val record = getSavedQueries(creator, project);
+        record.setQueries(record.getQueries().stream().filter(q -> !q.getId().equals(id)).collect(Collectors.toList()));
         getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
-        return;
     }
 
-    public List<Query> getSavedQueries(final String creator, final String project) throws IOException {
+    public QueryRecord getSavedQueries(final String creator, final String project) throws IOException {
         if (null == creator) {
             return null;
         }
-        List<Query> queries = new ArrayList<Query>();
         QueryRecord record = getStore().getResource(getQueryKeyById(project, creator),
                 QueryRecordSerializer.getInstance());
-        if (record != null) {
-            for (Query query : record.getQueries()) {
-                queries.add(query);
-            }
+        if (record == null) {
+            return new QueryRecord();
         }
-        return queries;
+        return JsonUtil.deepCopy(record, QueryRecord.class);
     }
 
     public String logQuery(final SQLRequest request, final SQLResponse response) {
@@ -277,7 +257,8 @@ public class QueryService extends BasicService {
 
         if (response.getRealizationMetrics() != null) {
             modelNames = Collections2.transform(response.getRealizationMetrics(), input -> input.getModelName());
-            cuboidLayoutIds = Collections2.transform(response.getRealizationMetrics(), input -> input.getCuboidLayoutId());
+            cuboidLayoutIds = Collections2.transform(response.getRealizationMetrics(),
+                    input -> input.getCuboidLayoutId());
         }
 
         int resultRowCount = 0;
@@ -946,7 +927,7 @@ public class QueryService extends BasicService {
     }
 
     private SQLResponse buildSqlResponse(Boolean isPushDown, List<List<String>> results,
-                                                List<SelectedColumnMeta> columnMetas) {
+            List<SelectedColumnMeta> columnMetas) {
         boolean isPartialResult = false;
         List<String> models = Lists.newArrayList();
         StringBuilder cubeSb = new StringBuilder();
@@ -973,9 +954,9 @@ public class QueryService extends BasicService {
                     } else {
                         realizationType = QueryMetricsContext.AGG_INDEX;
                     }
-                    realizationMetrics.add(
-                            QueryMetricsContext.createRealizationMetrics(String.valueOf(ctx.storageContext.getCuboidId()),
-                                    realizationType, ctx.realization.getModel().getName()));
+                    realizationMetrics.add(QueryMetricsContext.createRealizationMetrics(
+                            String.valueOf(ctx.storageContext.getCuboidId()), realizationType,
+                            ctx.realization.getModel().getName()));
                     engineTypes.add(realizationType);
                 }
             }
@@ -988,7 +969,7 @@ public class QueryService extends BasicService {
         response.setTotalScanCount(QueryContext.current().getScannedRows());
         response.setTotalScanBytes(QueryContext.current().getScannedBytes());
         response.setRealizationMetrics(realizationMetrics);
-        
+
         if (isPushDown) {
             response.setEngineType(QueryContext.current().getPushdownEngine());
             response.setAnsweredBy(Lists.newArrayList(QueryContext.current().getPushdownEngine()));
@@ -1124,29 +1105,20 @@ public class QueryService extends BasicService {
         }
     }
 
-}
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    @SuppressWarnings("serial")
+    public static class QueryRecord extends RootPersistentEntity {
 
-@SuppressWarnings("serial")
-class QueryRecord extends RootPersistentEntity {
+        @JsonProperty()
+        private List<Query> queries = Lists.newArrayList();
 
-    @JsonProperty()
-    private Query[] queries;
+        public QueryRecord() {
+            updateRandomUuid();
+        }
 
-    public QueryRecord() {
-        updateRandomUuid();
-    }
-
-    public QueryRecord(Query[] queries) {
-        updateRandomUuid();
-        this.queries = queries;
-    }
-
-    public Query[] getQueries() {
-        return queries;
-    }
-
-    public void setQueries(Query[] queries) {
-        this.queries = queries;
     }
 
 }
+

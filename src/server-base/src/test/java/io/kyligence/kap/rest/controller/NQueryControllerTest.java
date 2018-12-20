@@ -56,6 +56,7 @@ import org.apache.kylin.rest.request.MetaRequest;
 import org.apache.kylin.rest.request.PrepareSqlRequest;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.request.SaveSqlRequest;
+import org.apache.kylin.rest.service.QueryService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.Assert;
@@ -171,7 +172,7 @@ public class NQueryControllerTest {
         Mockito.verify(nQueryController).getSavedQueries("default", 2, 3);
     }
 
-    private List<Query> mockSavedQueries() {
+    private QueryService.QueryRecord mockSavedQueries() {
         final List<Query> queries = new ArrayList<>();
         queries.add(new Query("1", PROJECT, "", ""));
         queries.add(new Query("2", PROJECT, "", ""));
@@ -184,7 +185,7 @@ public class NQueryControllerTest {
         queries.add(new Query("9", PROJECT, "", ""));
         queries.add(new Query("10", PROJECT, "", ""));
 
-        return queries;
+        return new QueryService.QueryRecord(queries);
     }
 
     @Test
