@@ -61,7 +61,7 @@ class NModel {
     this.all_measures = options.simplified_measures || []
     this.project = options.project
     this.maintain_model_type = options.maintain_model_type
-    this.management_type = options.management_type || 'TABLE_ORIENTED'
+    this.management_type = options.management_type || 'MODEL_BASED'
     this.globalDataSource = store.state.datasource.dataSource // 全局数据源表数据
     this.datasource = options.simplified_tables || [] // 当前模型使用的数据源表数据
     if (_) {
@@ -225,7 +225,7 @@ class NModel {
     })
   }
   _renderTable () {
-    if (this.mode === 'edit') {
+    if (this.fact_table) {
       let factTableInfo = this._getTableOriginInfo(this.fact_table)
       let initTableOptions = {
         alias: this.fact_table.split('.')[1],
