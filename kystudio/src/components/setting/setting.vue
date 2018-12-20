@@ -130,12 +130,28 @@ export default class Setting extends Vue {
     font-size: 12px;
     line-height: 16px;
     color: @text-description;
+    &.large {
+      font-size: 14px;
+    }
   }
   .setting-desc:last-child {
     margin-bottom: 0px;
   }
   .option-title {
     color: @text-title-color;
+  }
+  .field-item {
+    margin-top: 10px;
+  }
+  .setting-input+.setting-input {
+    margin-left: 7px;
+  }
+  .editable-block:not(.is-edit) {
+    .disabled {
+      * {
+        color: @text-disabled-color;
+      }
+    }
   }
 }
 </style>
