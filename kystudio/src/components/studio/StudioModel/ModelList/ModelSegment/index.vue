@@ -226,7 +226,8 @@ export default class ModelSegment extends Vue {
         const confirmMessage = this.$t('confirmRefreshSegments', { segmentArray })
         const confirmButtonText = this.$t('kylinLang.common.ok')
         const cancelButtonText = this.$t('kylinLang.common.cancel')
-        await this.$confirm(confirmMessage, confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText })
+        const customClass = 'pre'
+        await this.$confirm(confirmMessage, confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText, customClass })
         const isSubmit = await this.refreshSegments({ projectName, modelName, segmentIds })
         isSubmit && this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
       } else {
