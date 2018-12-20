@@ -254,7 +254,7 @@ public class CubePlanService extends BasicService {
     private NCubePlan getCubePlan(String project, String model) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val cubePlanManager = NCubePlanManager.getInstance(kylinConfig, project);
-        return cubePlanManager.findMatchingCubePlan(model, project, kylinConfig);
+        return cubePlanManager.findMatchingCubePlan(model);
     }
 
     private List<String> convertColumnIdName(List<Integer> ids, NDataModel model) {

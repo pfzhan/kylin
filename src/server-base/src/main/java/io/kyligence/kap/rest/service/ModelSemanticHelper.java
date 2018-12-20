@@ -284,7 +284,7 @@ public class ModelSemanticHelper extends BasicService {
         val modelMgr = NDataModelManager.getInstance(config, project);
         val dataflowManager = NDataflowManager.getInstance(config, project);
 
-        val matchingCubePlan = cubeMgr.findMatchingCubePlan(model, project, config);
+        val matchingCubePlan = cubeMgr.findMatchingCubePlan(model);
         val newModel = modelMgr.getDataModelDesc(model);
 
         if (isSignificantChange(originModel, newModel)) {

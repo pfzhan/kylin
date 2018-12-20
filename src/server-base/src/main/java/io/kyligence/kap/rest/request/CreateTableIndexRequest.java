@@ -25,15 +25,24 @@ package io.kyligence.kap.rest.request;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+
+import javax.validation.constraints.AssertFalse;
+
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.IStorageAware;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidLayout;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.apache.kylin.metadata.model.IStorageAware;
+import lombok.val;
 
 @Builder
 @AllArgsConstructor
@@ -69,4 +78,14 @@ public class CreateTableIndexRequest {
     @Builder.Default
     @JsonProperty("load_data")
     private boolean isLoadData = true;
+
+    @AssertFalse
+    public boolean isNameExisting() {
+        val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val cubePlan = cubePlanManager.findMatchingCubePlan(model);
+        return cubePlan.getWhitelistCuboidLayouts().stream().filter(l -> l.getId() >= NCuboidDesc.TABLE_INDEX_START_ID)
+                .filter(l -> !Objects.equals(l.getId(), id)).map(NCuboidLayout::getName).filter(Objects::nonNull)
+                .anyMatch(x -> Objects.equals(x, name));
+
+    }
 }

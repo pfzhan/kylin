@@ -49,6 +49,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -71,11 +72,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 import io.kyligence.kap.common.persistence.transaction.TransactionException;
+import lombok.val;
 
 public class NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NBasicController.class);
@@ -124,6 +127,16 @@ public class NBasicController {
     ErrorResponse handleBadRequest(HttpServletRequest req, Exception ex) {
         logger.error("", ex);
         return new ErrorResponse(req.getRequestURL().toString(), ex);
+    }
+
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseBody
+    ErrorResponse handleInvalidArgument(HttpServletRequest request, MethodArgumentNotValidException ex) {
+        val response = new ErrorResponse(request.getRequestURL().toString(), ex);
+        response.data = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -> e.getField() + ":" + e.getDefaultMessage()).collect(Collectors.toList());
+        return response;
     }
 
     @ResponseStatus(HttpStatus.UNAUTHORIZED)

@@ -85,8 +85,8 @@ public class SegmentHelper extends BasicService {
 
             EventManager eventManager = EventManager.getInstance(kylinConfig, project);
             for (String modelName : modelNames) {
-                NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName,
-                        project, kylinConfig);
+                NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName
+                );
                 NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
                 NDataflow df = dfMgr.getDataflow(cubePlan.getName());
                 Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY);

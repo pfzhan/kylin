@@ -72,7 +72,7 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), PROJECT);
         val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), PROJECT);
         val model = modelMgr.getDataModelDesc(MODEL_NAME);
-        val cube = cubeMgr.findMatchingCubePlan(MODEL_NAME, PROJECT, getTestConfig());
+        val cube = cubeMgr.findMatchingCubePlan(MODEL_NAME);
         val layoutIds = cube.getAllCuboidLayouts().stream().map(NCuboidLayout::getId).collect(Collectors.toList());
 
         modelMgr.updateDataModel("nmodel_basic", copyForWrite -> copyForWrite.setSemanticVersion(2));

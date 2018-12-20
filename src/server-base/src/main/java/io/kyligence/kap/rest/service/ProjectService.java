@@ -212,7 +212,7 @@ public class ProjectService extends BasicService {
         for (Map.Entry<String, Set<Long>> entry : garbageIndexMap.entrySet()) {
             val modelId = entry.getKey();
             val cuboidLayoutIds = entry.getValue();
-            val cubePlan = cubePlanManager.findMatchingCubePlan(modelId, project, getConfig());
+            val cubePlan = cubePlanManager.findMatchingCubePlan(modelId);
             cubePlanManager.updateCubePlan(cubePlan.getName(), copyForWrite -> {
                 copyForWrite.removeLayouts(cuboidLayoutIds, NCuboidLayout::equals, true, false);
             });

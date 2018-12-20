@@ -329,7 +329,7 @@ public class ModelService extends BasicService {
 
     private NCubePlan getCubePlan(String modelName, String project) {
         NCubePlanManager cubePlanManager = getCubePlanManager(project);
-        return cubePlanManager.findMatchingCubePlan(modelName, project, KylinConfig.getInstanceFromEnv());
+        return cubePlanManager.findMatchingCubePlan(modelName);
     }
 
     private void checkAliasExist(String modelName, String newAlias, String project) {
@@ -407,7 +407,7 @@ public class ModelService extends BasicService {
 
     private void cloneCubePlan(String modelName, String newModelName, String project, String owner) {
         NCubePlanManager cubePlanManager = getCubePlanManager(project);
-        NCubePlan cubePlan = cubePlanManager.findMatchingCubePlan(modelName, project, getConfig());
+        NCubePlan cubePlan = cubePlanManager.findMatchingCubePlan(modelName);
         NDataflowManager dataflowManager = getDataflowManager(project);
         NCubePlan copy = cubePlanManager.copy(cubePlan);
         copy.setModelName(newModelName);
@@ -880,8 +880,7 @@ public class ModelService extends BasicService {
                 .getAllTablesMap();
         copyModel.init(modelManager.getConfig(), allTables, modelManager.getDataModels(), false, project);
 
-        val cubePlan = cubeManager.findMatchingCubePlan(request.getName(), request.getProject(),
-                KylinConfig.getInstanceFromEnv());
+        val cubePlan = cubeManager.findMatchingCubePlan(request.getName());
         // check agg group contains removed dimensions
         val rule = cubePlan.getRuleBasedCuboidsDesc();
         if (rule != null && !copyModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {

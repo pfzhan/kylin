@@ -55,7 +55,7 @@ public class NSpanningTreeResponse {
     }
     public NSpanningTreeResponse(NForestSpanningTree tree, NDataModel model) {
         val cubePlan = NCubePlanManager.getInstance(model.getConfig(), model.getProject())
-                .findMatchingCubePlan(model.getName(), model.getProject(), model.getConfig());
+                .findMatchingCubePlan(model.getName());
         for (NForestSpanningTree.TreeNode root : tree.getRoots()) {
             roots.add(simplifyTreeNodeResponse(root, cubePlan));
         }

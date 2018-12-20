@@ -276,8 +276,8 @@ public class NDataLoadingRangeManager {
         SegmentRange first;
         SegmentRange last;
         for (String model : models) {
-            NCubePlan cubePlan = NCubePlanManager.getInstance(config, project).findMatchingCubePlan(model, project,
-                    config);
+            NCubePlan cubePlan = NCubePlanManager.getInstance(config, project).findMatchingCubePlan(model
+            );
             if (cubePlan == null) {
                 continue;
             }

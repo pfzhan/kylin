@@ -25,14 +25,12 @@
 package io.kyligence.kap.cube.model;
 
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.cube.model.validation.ValidateContext;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.realization.IRealization;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +39,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeepNames;
 import io.kyligence.kap.cube.model.validation.NCubePlanValidator;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
 public class NCubePlanManager implements IKeepNames {
@@ -86,14 +83,10 @@ public class NCubePlanManager implements IKeepNames {
         crud.reloadAll();
     }
 
-    public NCubePlan findMatchingCubePlan(String modelName, String project, KylinConfig kylinConfig) {
-        Set<IRealization> realizations = NProjectManager.getInstance(kylinConfig).listAllRealizations(project);
-        for (IRealization realization : realizations) {
-            if (realization instanceof NDataflow) {
-                NCubePlan cubePlan = ((NDataflow) realization).getCubePlan();
-                if (cubePlan.getModelName().equals(modelName)) {
-                    return cubePlan;
-                }
+    public NCubePlan findMatchingCubePlan(String modelName) {
+        for (NCubePlan cubePlan : crud.listAll()) {
+            if (cubePlan.getModelName().equals(modelName)) {
+                return cubePlan;
             }
         }
         throw new IllegalStateException("model " + modelName + " does not contain cube");

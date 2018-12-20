@@ -42,6 +42,8 @@ import io.kyligence.kap.rest.request.UpdateRuleBasedCuboidRequest;
 import io.kyligence.kap.rest.service.CubePlanService;
 import lombok.val;
 
+import javax.validation.Valid;
+
 @RestController
 @RequestMapping(value = "/cube_plans")
 public class NCubePlanController extends NBasicController {
@@ -69,7 +71,7 @@ public class NCubePlanController extends NBasicController {
     }
 
     @PostMapping(value = "/table_index", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse createTableIndex(@RequestBody CreateTableIndexRequest request) {
+    public EnvelopeResponse createTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_NAME, request.getModel());
         cubePlanService.createTableIndex(request.getProject(), request);
@@ -77,7 +79,7 @@ public class NCubePlanController extends NBasicController {
     }
 
     @PutMapping(value = "/table_index", produces = { "application/vnd.apache.kylin-v2+json" })
-    public EnvelopeResponse updateTableIndex(@RequestBody CreateTableIndexRequest request) {
+    public EnvelopeResponse updateTableIndex(@Valid @RequestBody CreateTableIndexRequest request) {
         checkProjectName(request.getProject());
         checkRequiredArg(MODEL_NAME, request.getModel());
         checkRequiredArg("id", request.getId());

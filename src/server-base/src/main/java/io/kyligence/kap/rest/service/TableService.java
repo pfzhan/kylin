@@ -395,7 +395,7 @@ public class TableService extends BasicService {
         val eventManager = getEventManager(project);
         val dataflowManager = getDataflowManager(project);
         val cubePlanManager = getCubePlanManager(project);
-        val cubePlan = cubePlanManager.findMatchingCubePlan(model, project, KylinConfig.getInstanceFromEnv());
+        val cubePlan = cubePlanManager.findMatchingCubePlan(model);
         val dataflow = dataflowManager.getDataflow(cubePlan.getName());
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
@@ -472,8 +472,8 @@ public class TableService extends BasicService {
             NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
             for (String modelName : modelNames) {
 
-                NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName,
-                        project, kylinConfig);
+                NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName
+                );
                 NDataflow df = dataflowManager.getDataflow(cubePlan.getName());
                 NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
                 AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
