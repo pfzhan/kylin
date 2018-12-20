@@ -43,9 +43,13 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
+import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -263,4 +267,32 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobs.add(job3);
         return jobs;
     }
+
+    @Test
+    public void testGetJobStats() throws ParseException {
+        JobStatisticsResponse jobStats = jobService.getJobStats("default", Long.MIN_VALUE, Long.MAX_VALUE);
+        Assert.assertEquals(0, jobStats.getCount());
+        Assert.assertEquals(0, jobStats.getDurationPerByte(), 0);
+
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+        String date = "2018-01-01";
+        long startTime = format.parse(date).getTime();
+        date = "2018-02-01";
+        long endTime = format.parse(date).getTime();
+        Map<String, Integer> jobCount = jobService.getJobCount("default", startTime, endTime, "day");
+        Assert.assertEquals(32, jobCount.size());
+        Assert.assertEquals(0, (int) jobCount.get("2018-01-01"));
+        Assert.assertEquals(0, (int) jobCount.get("2018-02-01"));
+
+        jobCount = jobService.getJobCount("default", startTime, endTime, "model");
+        Assert.assertEquals(0, jobCount.size());
+
+        Map<String, Double> jobDurationPerMb = jobService.getJobDurationPerByte("default", startTime, endTime, "day");
+        Assert.assertEquals(32, jobDurationPerMb.size());
+        Assert.assertEquals(0, jobDurationPerMb.get("2018-01-01"), 0.1);
+
+        jobDurationPerMb = jobService.getJobDurationPerByte("default", startTime, endTime, "model");
+        Assert.assertEquals(0, jobDurationPerMb.size());
+    }
+
 }

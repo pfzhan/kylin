@@ -123,4 +123,36 @@ public class NJobController extends NBasicController {
         List<ExecutableStepResponse> jobDetails = jobService.getJobDetail(project, jobId);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobDetails, "");
     }
+
+    @RequestMapping(value = "/statistics", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getJobStats(@RequestParam(value = "project") String project,
+                                         @RequestParam(value = "start_time") long startTime,
+                                        @RequestParam(value = "end_time") long endTime) {
+        checkProjectName(project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobStats(project, startTime, endTime), "");
+    }
+
+    @RequestMapping(value = "/statistics/count", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getJobCount(@RequestParam(value = "project") String project,
+                                        @RequestParam(value = "start_time") long startTime,
+                                        @RequestParam(value = "end_time") long endTime,
+                                        @RequestParam(value = "dimension") String dimension) {
+        checkProjectName(project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobCount(project, startTime, endTime, dimension), "");
+    }
+
+    @RequestMapping(value = "/statistics/duration_per_byte", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getJobDurationPerByte(@RequestParam(value = "project") String project,
+                                                  @RequestParam(value = "start_time") long startTime,
+                                                  @RequestParam(value = "end_time") long endTime,
+                                                  @RequestParam(value = "dimension") String dimension) {
+        checkProjectName(project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getJobDurationPerByte(project, startTime, endTime, dimension), "");
+    }
 }

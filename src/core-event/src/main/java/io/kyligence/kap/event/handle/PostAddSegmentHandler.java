@@ -99,8 +99,10 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
                 String cubePlanName = event.getCubePlanName();
 
                 val merger = new AfterBuildResourceMerger(kylinConfig, project);
-                merger.mergeAfterIncrement(dataflowName, segmentIds.iterator().next(), layoutIds, buildResourceStore);
+                val updatedCuboids = merger.mergeAfterIncrement(dataflowName, segmentIds.iterator().next(), layoutIds, buildResourceStore);
                 merger.mergeAnalysis(dataflowName, analysisResourceStore);
+
+                recordDownJobStats(buildTask, updatedCuboids);
 
                 NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
                 NDataflow df = dfMgr.getDataflow(cubePlanName);

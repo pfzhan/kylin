@@ -49,6 +49,7 @@ import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.acl.TableACLManager;
 
@@ -140,5 +141,10 @@ public abstract class BasicService {
 
     public AccelerateRatioManager getAccelerateRatioManager(String project) {
         return AccelerateRatioManager.getInstance(getConfig(), project);
+    }
+
+
+    public JobStatisticsManager getJobStatisticsManager(String project) {
+        return JobStatisticsManager.getInstance(getConfig(), project);
     }
 }

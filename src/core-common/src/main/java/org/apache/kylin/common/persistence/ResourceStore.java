@@ -106,6 +106,7 @@ public abstract class ResourceStore {
     public static final String DATA_LOADING_RANGE_RESOURCE_ROOT = "/loading_range";
     public static final String QUERY_FILTER_RULE_RESOURCE_ROOT = "/rule";
     public static final String FAVORITE_QUERY_RESOURCE_ROOT = "/favorite";
+    public static final String JOB_STATISTICS = "/job_stats";
 
     public static final String PROJECT_DICT_RESOURCE_ROOT = DICT_RESOURCE_ROOT + "/project_dict";
     public static final String SPARDER_DICT_RESOURCE_ROOT = "/sparder/sdict";

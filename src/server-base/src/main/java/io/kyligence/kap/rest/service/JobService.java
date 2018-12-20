@@ -33,12 +33,15 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
 import org.apache.kylin.job.dao.ExecutablePO;
+import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -319,5 +322,28 @@ public class JobService extends BasicService {
     public void resumeJob(String project, String jobId) {
         val executableManager = getExecutableManager(project);
         executableManager.resumeJob(jobId);
+    }
+
+    public JobStatisticsResponse getJobStats(String project, long startTime, long endTime) {
+        JobStatisticsManager manager = getJobStatisticsManager(project);
+        Pair<Integer, Double> stats = manager.getOverallJobStats(startTime, endTime);
+
+        return new JobStatisticsResponse(stats.getFirst(), stats.getSecond());
+    }
+
+    public Map<String, Integer> getJobCount(String project, long startTime, long endTime, String dimension) {
+        JobStatisticsManager manager = getJobStatisticsManager(project);
+        if (dimension.equals("model"))
+            return manager.getJobCountByModel(startTime, endTime);
+
+        return manager.getJobCountByTime(startTime, endTime, dimension);
+    }
+
+    public Map<String, Double> getJobDurationPerByte(String project, long startTime, long endTime, String dimension) {
+        JobStatisticsManager manager = getJobStatisticsManager(project);
+        if (dimension.equals("model"))
+            return manager.getDurationPerByteByModel(startTime, endTime);
+
+        return manager.getDurationPerByteByTime(startTime, endTime, dimension);
     }
 }

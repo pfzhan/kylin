@@ -81,7 +81,7 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     // ============================================================================
 
     @JsonProperty("uuid")
-    protected String uuid;
+    protected String uuid = UUID.randomUUID().toString();
 
     @JsonProperty("last_modified")
     protected long lastModified;

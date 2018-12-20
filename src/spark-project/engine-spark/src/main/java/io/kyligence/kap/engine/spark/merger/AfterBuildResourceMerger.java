@@ -58,7 +58,7 @@ public class AfterBuildResourceMerger {
         this.project = project;
     }
 
-    public void mergeAfterIncrement(String flowName, String segmentId, Set<Long> layoutIds, ResourceStore remoteStore) {
+    public NDataCuboid[] mergeAfterIncrement(String flowName, String segmentId, Set<Long> layoutIds, ResourceStore remoteStore) {
         val localDataflowManager = NDataflowManager.getInstance(config, project);
         val localDataflow = localDataflowManager.getDataflow(flowName);
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), project);
@@ -73,9 +73,11 @@ public class AfterBuildResourceMerger {
                 .filter(c -> availableLayoutIds.contains(c.getCuboidLayoutId())).toArray(NDataCuboid[]::new));
 
         localDataflowManager.updateDataflow(dfUpdate);
+
+        return dfUpdate.getToAddOrUpdateCuboids();
     }
 
-    public void mergeAfterCatchup(String flowName, Set<String> segmentIds, Set<Long> layoutIds,
+    public NDataCuboid[] mergeAfterCatchup(String flowName, Set<String> segmentIds, Set<Long> layoutIds,
             ResourceStore remoteStore) {
         val localDataflowManager = NDataflowManager.getInstance(config, project);
         val localDataflow = localDataflowManager.getDataflow(flowName);
@@ -106,6 +108,8 @@ public class AfterBuildResourceMerger {
         dfUpdate.setToAddOrUpdateCuboids(addCuboids.toArray(new NDataCuboid[0]));
 
         localDataflowManager.updateDataflow(dfUpdate);
+
+        return dfUpdate.getToAddOrUpdateCuboids();
     }
 
     public void mergeAnalysis(String dataflowName, ResourceStore remoteStore) {

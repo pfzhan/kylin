@@ -88,8 +88,10 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
 
                 val kylinConfig = KylinConfig.getInstanceFromEnv();
                 val merger = new AfterBuildResourceMerger(kylinConfig, project);
-                merger.mergeAfterCatchup(dataflowName, segmentIds, layoutIds, buildResourceStore);
+                val addedCuboids = merger.mergeAfterCatchup(dataflowName, segmentIds, layoutIds, buildResourceStore);
                 merger.mergeAnalysis(dataflowName, analysisResourceStore);
+
+                recordDownJobStats(buildTask, addedCuboids);
 
                 handleFavoriteQuery(project, sqlList);
 

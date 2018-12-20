@@ -23,12 +23,21 @@
  */
 package io.kyligence.kap.event.handle;
 
+import io.kyligence.kap.cube.model.NDataCuboid;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.dao.JobStatisticsManager;
+import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.JobRelatedEvent;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
+
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.TimeZone;
 
 @Slf4j
 public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
@@ -43,6 +52,25 @@ public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
         val execManager = getExecutableManager(project, eventContext.getConfig());
         val executable = (ChainedExecutable) execManager.getJob(jobId);
         doHandle(eventContext, executable);
+    }
+
+    protected void recordDownJobStats(AbstractExecutable buildTask, NDataCuboid[] addOrUpdateCuboids) {
+        String model = buildTask.getTargetModel();
+        long buildEndTime = buildTask.getParent().getEndTime();
+        long duration = buildTask.getParent().getDuration();
+        long byteSize = 0;
+
+        for (NDataCuboid dataCuboid : addOrUpdateCuboids) {
+            byteSize += dataCuboid.getByteSize();
+        }
+
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        ZoneId zoneId = TimeZone.getTimeZone(kylinConfig.getTimeZone()).toZoneId();
+        LocalDate localDate = Instant.ofEpochMilli(buildEndTime).atZone(zoneId).toLocalDate();
+        long startOfDay = localDate.atStartOfDay().atZone(zoneId).toInstant().toEpochMilli();
+        // update
+        JobStatisticsManager jobStatisticsManager = JobStatisticsManager.getInstance(kylinConfig, buildTask.getProject());
+        jobStatisticsManager.updateStatistics(startOfDay, model, duration, byteSize);
     }
 
     /**

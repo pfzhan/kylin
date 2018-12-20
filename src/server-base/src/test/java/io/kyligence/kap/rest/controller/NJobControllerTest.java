@@ -189,4 +189,42 @@ public class NJobControllerTest {
         jobUpdateRequest.setJobIds(Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"));
         return jobUpdateRequest;
     }
+
+    @Test
+    public void testGetJobOverallStats() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/statistics").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default")
+                .param("start_time", String.valueOf(Long.MIN_VALUE))
+                .param("end_time", String.valueOf(Long.MAX_VALUE))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nJobController).getJobStats("default", Long.MIN_VALUE, Long.MAX_VALUE);
+    }
+
+    @Test
+    public void testGetJobCount() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/statistics/count").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default")
+                .param("start_time", String.valueOf(Long.MIN_VALUE))
+                .param("end_time", String.valueOf(Long.MAX_VALUE))
+                .param("dimension", "model")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nJobController).getJobCount("default", Long.MIN_VALUE, Long.MAX_VALUE, "model");
+    }
+
+    @Test
+    public void testGetJobDurationPerMb() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/statistics/duration_per_byte").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default")
+                .param("start_time", String.valueOf(Long.MIN_VALUE))
+                .param("end_time", String.valueOf(Long.MAX_VALUE))
+                .param("dimension", "model")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nJobController).getJobDurationPerByte("default", Long.MIN_VALUE, Long.MAX_VALUE, "model");
+    }
 }

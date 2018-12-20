@@ -50,7 +50,7 @@ public class AfterMergeOrRefreshResourceMerger {
         this.project = project;
     }
 
-    public void mergeAfterJob(String dataflowName, String segmentId, ResourceStore remoteResourceStore) {
+    public NDataCuboid[] mergeAfterJob(String dataflowName, String segmentId, ResourceStore remoteResourceStore) {
         NDataflowManager mgr = NDataflowManager.getInstance(config, project);
         NDataflowUpdate update = new NDataflowUpdate(dataflowName);
 
@@ -79,6 +79,8 @@ public class AfterMergeOrRefreshResourceMerger {
         update.setToUpdateSegs(toUpdateSegments.toArray(new NDataSegment[0]));
 
         mgr.updateDataflow(update);
+
+        return update.getToAddOrUpdateCuboids();
     }
 
 }

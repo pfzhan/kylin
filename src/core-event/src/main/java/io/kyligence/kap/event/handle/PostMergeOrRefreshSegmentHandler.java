@@ -82,7 +82,9 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
 
                 val kylinConfig = KylinConfig.getInstanceFromEnv();
                 val merger = new AfterMergeOrRefreshResourceMerger(kylinConfig, project);
-                merger.mergeAfterJob(dataflowName, segmentIds.iterator().next(), buildResourceStore);
+                val updatedCuboids = merger.mergeAfterJob(dataflowName, segmentIds.iterator().next(), buildResourceStore);
+
+                recordDownJobStats(task, updatedCuboids);
 
                 finishEvent(project, event.getId());
                 return null;
