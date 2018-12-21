@@ -34,9 +34,9 @@ import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
 import io.kyligence.kap.query.util.SparderDerivedUtil
 import org.apache.calcite.DataContext
-import org.apache.kylin.common.KapConfig
+import org.apache.kylin.common.{KapConfig, QueryContext}
 import org.apache.kylin.cube.gridtable.GridTables
-import org.apache.kylin.metadata.model.{FunctionDesc, ParameterDesc, SegmentStatusEnum, TblColRef}
+import org.apache.kylin.metadata.model._
 import org.apache.kylin.metadata.realization.IRealization
 import org.apache.kylin.metadata.tuple.TupleInfo
 import org.apache.spark.internal.Logging
@@ -86,9 +86,12 @@ object TableScanPlan extends Logging {
       .map {
         case dataflow: NDataflow =>
           olapContext.resetSQLDigest()
-
           val context = olapContext.storageContext
           val cuboidLayout = context.getCandidate.getCuboidLayout
+
+          val sourceBytes = dataflow.getSegments.asScala.map(_.getCuboid(cuboidLayout.getId).getByteSize).sum
+          QueryContext.current().addAndGetSourceScanBytes(sourceBytes)
+
           val tableName = olapContext.firstTableScan.getBackupAlias
           val mapping = new NCuboidToGridTableMapping(cuboidLayout)
           val info =

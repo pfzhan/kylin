@@ -40,35 +40,20 @@ object ResultType extends Enumeration {
 }
 
 object ResultPlan extends Logging {
-
-  /*
-    def asyncResult(df: DataFrame, rowType: RelDataType): Enumerable[Array[Any]] = {
-      val separator = SparderEnv.getSeparator
-      val path = KapConfig.getInstanceFromEnv.getAsyncResultBaseDir(QueryContext.current.getProject) +
-        "/" + QueryContext.current.getQueryId
-      val indexDataType = rowType.getFieldList.asScala.toList.zipWithIndex.map {
-        case (field, index) =>
-          (index, field.getType.getSqlTypeName.getName)
-      }.toMap
-      SparkOperation.export(df, indexDataType, separator, path)
-      Linq4j.asEnumerable(Array.empty[Array[Any]])
-    }
-   */
+  val PARTITION_SPLIT_BYTES: Long = 64 * 1000 * 1000 // 64MB
 
   def collectEnumerable(df: DataFrame,
-                        rowType: RelDataType): Enumerable[Array[Any]] =
-    withScope(df, rowType) {
+                        rowType: RelDataType): Enumerable[Array[Any]] = {
       val rowsItr: Array[Array[Any]] = collectInternal(df, rowType)
       Linq4j.asEnumerable(rowsItr.array)
     }
 
   def collectScalarEnumerable(df: DataFrame,
-                              rowType: RelDataType): Enumerable[Any] =
-    withScope(df, rowType) {
-      val rowsItr: Array[Array[Any]] = collectInternal(df, rowType)
-      val x = rowsItr.toIterable.map(a => a.apply(0)).asJava
-      Linq4j.asEnumerable(x)
-    }
+                              rowType: RelDataType): Enumerable[Any] = {
+    val rowsItr: Array[Array[Any]] = collectInternal(df, rowType)
+    val x = rowsItr.toIterable.map(a => a.apply(0)).asJava
+    Linq4j.asEnumerable(x)
+  }
 
   private def collectInternal(df: DataFrame,
                               rowType: RelDataType): Array[Array[Any]] = {
@@ -80,31 +65,30 @@ object ResultPlan extends Logging {
 
     val kapConfig = KapConfig.getInstanceFromEnv
     var pool = "heavy_tasks"
-
+    val partitionsNum = QueryContext.current().getSourceScanBytes / PARTITION_SPLIT_BYTES + 1
     // set priority
     sparkContext.setLocalProperty("spark.scheduler.pool", pool)
+    sparkContext.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
 
     sparkContext.setJobGroup(jobGroup,
-                             QueryContext.current().getSql,
-                             interruptOnCancel = true)
+      QueryContext.current().getSql,
+      interruptOnCancel = true)
     try {
       val rows = df.collect()
       val dt = rows.map { row =>
         var rowIndex = 0
-        row.toSeq.map { cell =>
-          {
-            var vale = cell
-            val rType = resultTypes.apply(rowIndex).getType
-            val value = SparderTypeUtil.convertStringToValue(vale,
-                                                             rType,
-                                                             toCalcite = true)
-            rowIndex = rowIndex + 1
-            value
-          }
+        row.toSeq.map { cell => {
+          var vale = cell
+          val rType = resultTypes.apply(rowIndex).getType
+          val value = SparderTypeUtil.convertStringToValue(vale,
+            rType,
+            toCalcite = true)
+          rowIndex = rowIndex + 1
+          value
+        }
         }.toArray
       }
       dt
-      //      }
     } catch {
       case e: InterruptedException =>
         QueryContext.current().setTimeout(true)
@@ -126,13 +110,17 @@ object ResultPlan extends Logging {
     * @tparam U
     * @return
     */
-  def withScope[U](df: DataFrame, rowType: RelDataType)(body: => U): U = {
-    body
+  def withScope[U](df: DataFrame)(body: => U): U = {
+    val r = body
+    // remember clear local properties.
+    df.sparkSession.sparkContext.setLocalProperty("spark.scheduler.pool", null)
+    df.sparkSession.sparkContext.setLocalProperty("spark.sql.shuffle.partitions", null)
+    SparderEnv.setDF(df)
+    r
   }
 
   def getResult(df: DataFrame, rowType: RelDataType, resultType: ResultType)
-    : Either[Enumerable[Array[Any]], Enumerable[Any]] = {
-    SparderEnv.setDF(df)
+  : Either[Enumerable[Array[Any]], Enumerable[Any]] = withScope(df) {
     val result: Either[Enumerable[Array[Any]], Enumerable[Any]] =
       resultType match {
         case ResultType.NORMAL =>
@@ -147,8 +135,6 @@ object ResultPlan extends Logging {
           } else {
             Right(Linq4j.asEnumerable(Lists.newArrayList[Any]()))
           }
-        //        case ResultType.ASYNC =>
-        //          Left(ResultPlan.asyncResult(df, rowType))
       }
     SparderEnv.cleanQueryInfo()
     result
