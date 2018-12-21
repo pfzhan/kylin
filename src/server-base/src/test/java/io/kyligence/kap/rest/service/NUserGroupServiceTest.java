@@ -55,16 +55,14 @@ public class NUserGroupServiceTest extends ServiceTestBase {
     @Test
     public void testBasic() throws IOException {
         for (String group : userGroupService.getAllUserGroups()) {
-            if (!group.equals(GROUP_ALL_USERS)) {
-                userGroupService.deleteGroup(group);
-            }
+            userGroupService.deleteGroup(group);
         }
         //test group add and get
 //        userGroupService.addGroup(GROUP_ALL_USERS);
         userGroupService.addGroup("g1");
         userGroupService.addGroup("g2");
         userGroupService.addGroup("g3");
-        Assert.assertEquals(Lists.newArrayList(GROUP_ALL_USERS, "g1", "g2", "g3"), userGroupService.getAllUserGroups());
+        Assert.assertEquals(Lists.newArrayList("g1", "g2", "g3"), userGroupService.getAllUserGroups());
 
         //test modify users in user group
         for (int i = 1; i <= 6; i++) {
