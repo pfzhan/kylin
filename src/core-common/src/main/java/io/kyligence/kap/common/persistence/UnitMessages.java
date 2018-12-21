@@ -21,14 +21,30 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.common.persistence.event;
+package io.kyligence.kap.common.persistence;
 
-public abstract class ResourceRelatedEvent extends Event {
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.google.common.collect.Lists;
+import io.kyligence.kap.common.persistence.event.Event;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.apache.commons.collections.CollectionUtils;
 
-    public abstract String getResPath();
+import java.util.List;
 
-    @Override
-    public String toString() {
-        return this.getClass().getName() + "@" + getResPath();
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class UnitMessages {
+
+    private List<Event> messages = Lists.newArrayList();
+
+    @JsonIgnore
+    public String getKey() {
+        if (CollectionUtils.isEmpty(messages)) {
+            return null;
+        }
+        return messages.get(0).getKey();
     }
 }

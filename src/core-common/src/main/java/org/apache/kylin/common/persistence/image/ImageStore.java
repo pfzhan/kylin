@@ -28,7 +28,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Map;
 import java.util.NavigableSet;
-import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -43,7 +42,6 @@ import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
 import lombok.Data;
 import lombok.val;
@@ -78,14 +76,6 @@ public abstract class ImageStore {
             val raw = loadFile(METADATA_DIR + resPath);
             store.putResourceWithoutCheck(resPath, raw.getByteSource(), raw.getMvcc());
         }
-
-        // initial locks for projects
-        val resources = store.listResourcesRecursively("/");
-        if (resources == null) {
-            return;
-        }
-        resources.stream().filter(Objects::nonNull).filter(x -> x.endsWith("project.json"))
-                .forEach(x -> UnitOfWork.newLock(x.split("/")[1]));
     }
 
     public void putResource(RawResource res) throws Exception {

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -52,6 +51,7 @@ import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.collect.ImmutableMap;
+import org.apache.commons.lang.StringUtils;
 
 /**
  * The object form of metadata/storage URL: IDENTIFIER@SCHEME[,PARAM=VALUE,PARAM=VALUE...]
@@ -92,7 +92,9 @@ public class StorageURL {
         String s = null;
         Map<String, String> m = new LinkedHashMap<>();
 
-        for (String split : metadataUrl.split(",")) {
+        // split by comma but ignoring commas in quotes
+        // see https://stackoverflow.com/a/1757107
+        for (String split : metadataUrl.split(",(?=(?:[^\"']*[\"'][^\"']*[\"'])*[^\"']*$)")) {
             if (first) {
                 // identifier @ scheme
                 int cut = split.lastIndexOf('@');
@@ -115,7 +117,7 @@ public class StorageURL {
                     k = split.substring(0, cut).trim();
                     v = split.substring(cut + 1).trim();
                 }
-                m.put(k, v);
+                m.put(k, StringUtils.strip(v, "\"'"));
             }
         }
 

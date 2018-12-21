@@ -28,7 +28,7 @@ import java.util.function.Consumer;
 
 import org.apache.kylin.common.KylinConfig;
 
-import io.kyligence.kap.common.persistence.event.Event;
+import io.kyligence.kap.common.persistence.UnitMessages;
 
 public class MockedMQ extends EventStore {
 
@@ -42,12 +42,12 @@ public class MockedMQ extends EventStore {
     }
 
     @Override
-    public void startConsumer(Consumer<Event> consumer) {
+    public void startConsumer(Consumer<UnitMessages> consumer) {
         // do nothing here, just mock
     }
 
     @Override
-    public void syncEvents(Consumer<Event> consumer) {
+    public void syncEvents(Consumer<UnitMessages> consumer) {
         // do nothing here, just mock
     }
 

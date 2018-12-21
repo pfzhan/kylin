@@ -16,6 +16,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <kafka.junit.version>3.1.0</kafka.junit.version>
     </properties>
 
     <dependencies>
@@ -95,6 +96,12 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.salesforce.kafka.test</groupId>
+            <artifactId>kafka-junit4</artifactId>
+            <version>${kafka.junit.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>

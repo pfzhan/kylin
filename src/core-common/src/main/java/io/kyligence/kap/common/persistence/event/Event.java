@@ -33,7 +33,4 @@ public class Event {
 
     private String key;
 
-    public boolean isVital() {
-        return false;
-    }
 }

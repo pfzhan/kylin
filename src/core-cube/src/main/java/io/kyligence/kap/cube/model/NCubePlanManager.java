@@ -78,9 +78,6 @@ public class NCubePlanManager implements IKeepNames {
             }
         };
         this.crud.setCheckCopyOnWrite(true);
-
-        // touch lower level metadata before registering my listener
-        crud.reloadAll();
     }
 
     public NCubePlan findMatchingCubePlan(String modelName) {

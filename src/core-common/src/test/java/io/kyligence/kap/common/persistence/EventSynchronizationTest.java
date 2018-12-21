@@ -59,9 +59,7 @@ public class EventSynchronizationTest extends NLocalFileMetadataTestCase {
     public void replayTest() {
         val synchronize = EventSynchronization.getInstance(getTestConfig());
         val events = createEvents();
-        for (Event event : events) {
-            synchronize.replay(event, true);
-        }
+        synchronize.replay(new UnitMessages(events), true);
         val resourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
         val raw = resourceStore.getResource("/default/abc.json");
         Assert.assertEquals(1, raw.getMvcc());

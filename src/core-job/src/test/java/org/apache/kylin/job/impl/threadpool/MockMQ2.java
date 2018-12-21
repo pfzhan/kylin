@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 
 import org.apache.kylin.common.KylinConfig;
 
+import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.transaction.mq.EventPublisher;
 import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
@@ -46,11 +47,11 @@ public class MockMQ2 extends EventStore {
     }
 
     @Override
-    public void startConsumer(Consumer<Event> consumer) {
+    public void startConsumer(Consumer<UnitMessages> consumer) {
     }
 
     @Override
-    public void syncEvents(Consumer<Event> consumer) {
+    public void syncEvents(Consumer<UnitMessages> consumer) {
 
     }
 

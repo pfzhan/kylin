@@ -24,14 +24,21 @@
 package io.kyligence.kap.common.persistence.transaction.kafka;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -39,10 +46,14 @@ import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
+import org.apache.kylin.common.util.ExecutorServiceUtil;
+import org.apache.kylin.common.util.NamedThreadFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.persistence.UnitMessages;
+import io.kyligence.kap.common.persistence.event.EndUnit;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.transaction.mq.EventPublisher;
 import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
@@ -54,6 +65,7 @@ import lombok.extern.slf4j.Slf4j;
 public class KafkaEventStore extends EventStore {
 
     private final StorageURL url;
+    private final ExecutorService consumeExecutor;
     private Map<String, KafkaProducer<String, Event>> producers = Maps.newConcurrentMap();
     private final String topic;
     private final Map<String, String> kafkaPropeties;
@@ -62,6 +74,7 @@ public class KafkaEventStore extends EventStore {
         url = config.getMetadataUrl();
         kafkaPropeties = url.getAllParameters();
         topic = url.getIdentifier();
+        consumeExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory(CONSUMER_THREAD_NAME));
     }
 
     public EventPublisher getEventPublisher() {
@@ -74,7 +87,6 @@ public class KafkaEventStore extends EventStore {
             val producer = producers.get(key);
             try {
                 producer.beginTransaction();
-                log.debug("events are {}", events);
                 for (Event event : events) {
                     val record = new ProducerRecord<String, Event>(topic, event.getKey(), event);
                     producer.send(record);
@@ -87,55 +99,40 @@ public class KafkaEventStore extends EventStore {
         };
     }
 
-    public void startConsumer(Consumer<Event> eventConsumer) {
-        val consumerThread = new Thread(() -> {
+    public void startConsumer(Consumer<UnitMessages> eventConsumer) {
+        consumeExecutor.submit(() -> {
             val consumer = getKafkaConsumer();
-            consumer.subscribe(Lists.newArrayList(topic));
+            Map<String, UnitMessages> processingUnit = Maps.newHashMap();
             while (true) {
                 val consumerRecords = consumer.poll(1000);
                 if (consumerRecords.isEmpty()) {
                     continue;
                 }
-                consumerRecords.forEach(record -> {
-                    eventConsumer.accept(record.value());
-                });
-                consumer.commitSync();
-                updateOffset(consumer);
+                processRecords(consumerRecords, processingUnit, consumer, eventConsumer);
             }
-        }, CONSUMER_THREAD_NAME);
-        consumerThread.start();
+        });
     }
 
     @Override
-    public void syncEvents(Consumer<Event> eventConsumer) {
+    public void syncEvents(Consumer<UnitMessages> eventConsumer) {
         val originName = Thread.currentThread().getName();
         Thread.currentThread().setName(CONSUMER_THREAD_NAME);
         val consumer = getKafkaConsumer();
-        consumer.assign(consumer.partitionsFor(topic).stream().map(p -> new TopicPartition(p.topic(), p.partition()))
-                .collect(Collectors.toList()));
-        val partitions = consumer.partitionsFor(topic);
-        for (PartitionInfo partition : partitions) {
-            val maybeOffset = eventStoreProperties.get("offset" + partition.partition());
-            val topicPartition = new TopicPartition(topic, partition.partition());
-            if (maybeOffset != null) {
-                int offset = Integer.parseInt(maybeOffset);
-                consumer.seek(topicPartition, offset);
-            } else {
-                consumer.seekToBeginning(Lists.newArrayList(topicPartition));
-            }
-        }
-        int retry = 3;
+        val topicPartitions = consumer.partitionsFor(topic).stream()
+                .map(p -> new TopicPartition(p.topic(), p.partition())).collect(Collectors.toList());
+        val endOffsets = consumer.endOffsets(topicPartitions);
+        Map<String, UnitMessages> processingUnit = Maps.newHashMap();
         while (true) {
+            boolean catchup = topicPartitions.stream().map(tp -> consumer.position(tp) >= endOffsets.get(tp))
+                    .reduce(true, (l, r) -> l && r);
+            if (catchup) {
+                break;
+            }
             val consumerRecords = consumer.poll(2000);
             if (consumerRecords.isEmpty()) {
-                if (retry == 0) {
-                    break;
-                }
-                retry--;
+                continue;
             }
-            consumerRecords.forEach(record -> eventConsumer.accept(record.value()));
-            consumer.commitSync();
-            updateOffset(consumer);
+            processRecords(consumerRecords, processingUnit, consumer, eventConsumer);
         }
         consumer.close();
         Thread.currentThread().setName(originName);
@@ -148,18 +145,54 @@ public class KafkaEventStore extends EventStore {
                 "org.apache.kafka.common.serialization.StringDeserializer");
         consumerConfig.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
                 "io.kyligence.kap.common.persistence.transaction.kafka.EventDeserializer");
-        consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, "transaction-group-" + topic);
+
+        String hostname = "localhost";
+        try {
+            hostname = InetAddress.getLocalHost().getCanonicalHostName();
+        } catch (UnknownHostException ignored) {
+            // ignore it
+        }
+        consumerConfig.put(ConsumerConfig.GROUP_ID_CONFIG, "transaction-" + topic + "-" + hostname);
+        consumerConfig.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+        consumerConfig.put(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed");
         kafkaPropeties.forEach(consumerConfig::put);
         val consumer = new KafkaConsumer<String, Event>(consumerConfig);
+        val partitions = consumer.partitionsFor(topic);
+        val topicPartitions = partitions.stream().map(p -> new TopicPartition(p.topic(), p.partition()))
+                .collect(Collectors.toList());
+        consumer.assign(topicPartitions);
+        for (PartitionInfo partition : partitions) {
+            val maybeOffset = eventStoreProperties.get("offset" + partition.partition());
+            val topicPartition = new TopicPartition(topic, partition.partition());
+            if (maybeOffset != null) {
+                int offset = Integer.parseInt(maybeOffset);
+                consumer.seek(topicPartition, offset);
+            } else {
+                consumer.seekToBeginning(Lists.newArrayList(topicPartition));
+            }
+        }
         return consumer;
     }
 
-    private void updateOffset(KafkaConsumer<String, Event> consumer) {
-        val partitions = consumer.partitionsFor(topic);
-        partitions.forEach(p -> {
-            long pos = consumer.position(new TopicPartition(topic, p.partition()));
-            eventStoreProperties.put("offset" + p.partition(), pos + "");
-        });
+    private void processRecords(ConsumerRecords<String, Event> consumerRecords,
+            Map<String, UnitMessages> processingUnit, KafkaConsumer<String, Event> consumer,
+            Consumer<UnitMessages> eventConsumer) {
+        Map<TopicPartition, OffsetAndMetadata> offsetAndMetadataMap = Maps.newHashMap();
+        log.debug("records count {}", consumerRecords.count());
+        for (ConsumerRecord<String, Event> record : consumerRecords) {
+            val unit = processingUnit.computeIfAbsent(record.key(), key -> new UnitMessages());
+            unit.getMessages().add(record.value());
+            if (record.value() instanceof EndUnit) {
+                eventConsumer.accept(unit);
+                processingUnit.put(record.key(), new UnitMessages());
+                offsetAndMetadataMap.put(new TopicPartition(topic, record.partition()),
+                        new OffsetAndMetadata(record.offset()));
+            }
+        }
+        consumer.commitSync(offsetAndMetadataMap);
+        offsetAndMetadataMap
+                .forEach((p, offset) -> eventStoreProperties.put("offset" + p.partition(), (offset.offset() + 1) + ""));
+        log.debug("offset map is {}, {}", eventStoreProperties);
     }
 
     private synchronized void initProducer(String key) {
@@ -174,6 +207,8 @@ public class KafkaEventStore extends EventStore {
                 "org.apache.kafka.common.serialization.StringSerializer");
         producerConfig.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
                 "io.kyligence.kap.common.persistence.transaction.kafka.EventSerializer");
+        producerConfig.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, 10 * 1024 * 1024); // 10M
+        producerConfig.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "gzip");
         url.getAllParameters().forEach(producerConfig::put);
         val producer = new KafkaProducer<String, Event>(producerConfig);
         producer.initTransactions();
@@ -185,5 +220,6 @@ public class KafkaEventStore extends EventStore {
         for (KafkaProducer<String, Event> producer : producers.values()) {
             producer.close();
         }
+        ExecutorServiceUtil.shutdownGracefully(consumeExecutor, 10);
     }
 }

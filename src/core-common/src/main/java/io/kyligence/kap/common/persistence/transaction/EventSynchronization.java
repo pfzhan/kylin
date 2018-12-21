@@ -23,18 +23,13 @@
  */
 package io.kyligence.kap.common.persistence.transaction;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 
-import com.google.common.base.Preconditions;
-
 import io.kyligence.kap.common.cluster.LeaderInitiator;
-import io.kyligence.kap.common.persistence.event.EndUnit;
-import io.kyligence.kap.common.persistence.event.Event;
+import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
-import io.kyligence.kap.common.persistence.event.StartUnit;
 import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -47,8 +42,6 @@ public class EventSynchronization {
     private final EventListenerRegistry eventListener;
     @Getter
     private long eventSize = 0;
-
-    private String currentKey = null;
 
     public static EventSynchronization getInstance(KylinConfig config) {
         return config.getManager(EventSynchronization.class);
@@ -64,38 +57,31 @@ public class EventSynchronization {
         eventListener = EventListenerRegistry.getInstance(config);
     }
 
-    public void replay(Event event) {
+    public void replay(UnitMessages event) {
         replay(event, false);
     }
 
-    public void replay(Event event, boolean locally) {
+    public void replay(UnitMessages messages, boolean locally) {
         // No need to replay in leader
         if (leaderInitiator.isLeader() && !locally) {
             return;
         }
-        if (event instanceof StartUnit) {
-            UnitOfWork.startTransaction(event.getKey(), false);
-            currentKey = event.getKey();
-            return;
+        if (!locally){
+            UnitOfWork.startTransaction(messages.getKey(), false);
         }
-        if (event instanceof EndUnit) {
-            UnitOfWork.get().unlock();
-            currentKey = null;
-            return;
-        }
-
-        if (currentKey != null)
-            Preconditions.checkState(StringUtils.equals(currentKey, event.getKey()));
-
-        if (event instanceof ResourceCreateOrUpdateEvent) {
-            replayUpdate((ResourceCreateOrUpdateEvent) event);
-            eventListener.onUpdate((ResourceCreateOrUpdateEvent) event);
-        } else if (event instanceof ResourceDeleteEvent) {
-            replayDelete((ResourceDeleteEvent) event);
-            eventListener.onDelete((ResourceDeleteEvent) event);
-        }
-        if (event.isVital()) {
+        messages.getMessages().forEach(event -> {
+            if (event instanceof ResourceCreateOrUpdateEvent) {
+                replayUpdate((ResourceCreateOrUpdateEvent) event);
+                eventListener.onUpdate((ResourceCreateOrUpdateEvent) event);
+            } else if (event instanceof ResourceDeleteEvent) {
+                replayDelete((ResourceDeleteEvent) event);
+                eventListener.onDelete((ResourceDeleteEvent) event);
+            }
             eventSize++;
+        });
+
+        if (!locally) {
+            UnitOfWork.get().unlock();
         }
     }
 

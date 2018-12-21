@@ -75,9 +75,6 @@ public class AppInitializer {
     }
 
     static void initProject(KylinConfig config, String project, boolean needTransaction) {
-        if (!UnitOfWork.containsLock(project)) {
-            UnitOfWork.newLock(project);
-        }
         val leaderInitiator = LeaderInitiator.getInstance(config);
         if (!leaderInitiator.isLeader()) {
             return;

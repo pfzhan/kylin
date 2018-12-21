@@ -67,6 +67,15 @@ public class StorageURLTest {
             Assert.assertEquals("hello@hbase,a=b,c=d", id.toString());
         }
         {
+            StorageURL id = new StorageURL("hello@hbase,a=b,c=d,d='e,f,g',d2=\"e2,f2,g2\",d3='e3,'f3',g3'");
+            Assert.assertEquals("hello", id.getIdentifier());
+            Assert.assertEquals("hbase", id.getScheme());
+            Assert.assertEquals(5, id.getAllParameters().size());
+            Assert.assertEquals("e,f,g", id.getParameter("d"));
+            Assert.assertEquals("e2,f2,g2", id.getParameter("d2"));
+            Assert.assertEquals("e3,'f3',g3", id.getParameter("d3"));
+        }
+        {
             StorageURL o = new StorageURL("hello@hbase,c=d");
             StorageURL o2 = new StorageURL("hello@hbase,a=b");
             StorageURL id = o.copy(o2.getAllParameters());

@@ -30,6 +30,7 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.UnitMessages;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.RawResource;
@@ -136,6 +137,7 @@ public class UnitOfWork {
 
         ReentrantLock lock = getLock(project);
 
+        log.debug("get lock {}, {}", project, lock.isHeldByCurrentThread());
         //re-entry is not encouraged (because it indicates complex handling logic, bad smell), let's abandon it first
         Preconditions.checkState(!lock.isHeldByCurrentThread());
 
@@ -184,10 +186,6 @@ public class UnitOfWork {
         return temp;
     }
 
-    public static void newLock(String project) {
-        projectLocks.put(project, new ReentrantLock());
-    }
-
     public static boolean containsLock(String project) {
         return project.equals(GLOBAL_UNIT) || projectLocks.containsKey(project);
     }
@@ -221,7 +219,7 @@ public class UnitOfWork {
             // replay in leader before release lock
             replaying.set(true);
             val replayer = EventSynchronization.getInstance(originConfig);
-            eventList.forEach(e -> replayer.replay(e, true));
+            replayer.replay(new UnitMessages(eventList), true);
             replaying.remove();
         } catch (Exception e) {
             // in theory, this should not happen
@@ -245,10 +243,6 @@ public class UnitOfWork {
                             .allMatch(e -> ((ResourceRelatedEvent) e).getResPath().startsWith("/" + project)),
                     "some event are not in project " + project);
         }
-        if (events.stream().noneMatch(Event::isVital)) {
-            return;
-        }
-
         val uuid = UUID.randomUUID().toString();
         events.add(0, new StartUnit(uuid));
         events.add(new EndUnit(uuid));
@@ -264,7 +258,16 @@ public class UnitOfWork {
             return globalLock;
         }
         ReentrantLock lock = projectLocks.get(project);
-        return Preconditions.checkNotNull(lock);
+        if (lock == null) {
+            synchronized (UnitOfWork.class) {
+                val cacheLock = projectLocks.get(project);
+                if (cacheLock == null) {
+                    projectLocks.put(project, new ReentrantLock());
+                }
+            }
+        }
+
+        return projectLocks.get(project);
     }
 
     public void unlock() {

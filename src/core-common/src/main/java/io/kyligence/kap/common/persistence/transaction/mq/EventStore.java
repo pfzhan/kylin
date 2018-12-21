@@ -35,7 +35,7 @@ import org.apache.kylin.common.util.ClassUtil;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.common.persistence.event.Event;
+import io.kyligence.kap.common.persistence.UnitMessages;
 import lombok.Getter;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -78,9 +78,9 @@ public abstract class EventStore implements Closeable {
 
     public abstract EventPublisher getEventPublisher();
 
-    public abstract void startConsumer(Consumer<Event> consumer);
+    public abstract void startConsumer(Consumer<UnitMessages> consumer);
 
-    public abstract void syncEvents(Consumer<Event> consumer);
+    public abstract void syncEvents(Consumer<UnitMessages> consumer);
 
     @Override
     public void close() throws IOException {
