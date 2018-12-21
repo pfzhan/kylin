@@ -28,16 +28,10 @@
                 </p>
               </el-popover>
               <div class="quota-chart" v-popover:popover>
-                <div class="unUseage-block" :style="{'height': (1-useageRatio-trashRatio)*quotaHeight+'px'}">
-                  <div class="text" v-if="(trashRatio*quotaHeight<14 || useageRatio*quotaHeight<14)">{{unUseageRatio*100 | fixed(2)}}%</div>
+                <div class="useage-block" :style="{'height': useageBlockHeight+'px'}">
+                  <div class="text" v-if="useageRatio*quotaHeight>=14">{{useageRatio*100 | fixed(2)}}%</div>
                 </div>
-                <div class="total-use-block" :style="{'height': usedBlockHeight+'px'}">
-                  <div class="useage-block" :style="{'height': (useageRatio*quotaHeight/usedBlockHeight)*100+'%'}">
-                    <div class="text" v-if="useageRatio*quotaHeight>=14">{{useageRatio*100 | fixed(2)}}%</div>
-                  </div>
-                  <div class="trash-block" :style="{'height': (trashRatio*quotaHeight/usedBlockHeight)*100+'%'}">
-                    <div class="text" v-if="trashRatio*quotaHeight>=14">{{trashRatio*100 | fixed(2)}}%</div>
-                  </div>
+                <div class="trash-block" :style="{'height': trashBlockHeight+'px'}">
                 </div>
               </div>
             </el-col>
@@ -221,8 +215,8 @@ export default class Dashboard extends Vue {
   }
   useageRatio = 0
   trashRatio = 0
-  unUseageRatio = 0
-  usedBlockHeight = 0
+  useageBlockHeight = 0
+  trashBlockHeight = 0
   popoverVisible = false
   queryCount = 0
   queryMean = 0
@@ -451,9 +445,9 @@ export default class Dashboard extends Vue {
     this.quotaInfo = resData
     this.useageRatio = (resData.total_storage_size / resData.storage_quota_size).toFixed(4)
     this.trashRatio = (resData.garbage_storage_size / resData.storage_quota_size).toFixed(4)
-    this.unUseageRatio = (1 - this.useageRatio - this.trashRatio).toFixed(4)
     setTimeout(() => {
-      this.usedBlockHeight = (this.useageRatio + this.trashRatio) * this.quotaHeight
+      this.useageBlockHeight = this.useageRatio >= 1 ? this.quotaHeight : this.useageRatio * this.quotaHeight
+      this.trashBlockHeight = this.trashRatio >= 1 ? this.quotaHeight : this.trashRatio * this.quotaHeight
     }, 0)
   }
   loadRuleImpactRatio () {
@@ -522,6 +516,7 @@ export default class Dashboard extends Vue {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
+            z-index: 2;
           }
           .unUseage-block {
             background-color: @fff;
@@ -532,27 +527,29 @@ export default class Dashboard extends Vue {
               color: @text-secondary-color;
             }
           }
-          .total-use-block {
+          .useage-block {
+            background-image: linear-gradient(-202deg, #6EDAAF 0%, #3BB477 100%);
+            position: absolute;
+            bottom: 0;
+            width: 100%;
             height: 0px;
             -moz-transition: height .5s ease;
             -webkit-transition: height .5s ease;
             -o-transition: height .5s ease;
             transition: height .5s ease;
+          }
+          .trash-block {
+            background-image: linear-gradient(-194deg, #FCDE54 0%, #F7BA2A 100%);
             position: absolute;
             bottom: 0;
             width: 100%;
-            .useage-block {
-              background-image: linear-gradient(-202deg, #6EDAAF 0%, #3BB477 100%);
-              position: relative;
-              width: 100%;
-            }
-            .trash-block {
-              background-image: linear-gradient(-194deg, #FCDE54 0%, #F7BA2A 100%);
-              position: relative;
-              width: 100%;
-            }
+            height: 0px;
+            z-index: 1;
+            -moz-transition: height .5s ease;
+            -webkit-transition: height .5s ease;
+            -o-transition: height .5s ease;
+            transition: height .5s ease;
           }
-
         }
         .quota-info {
           float: left;
