@@ -49,6 +49,7 @@
                 text
                 type="primary"
                 class="entry-admin"
+                :class="isAdminView ? 'active' : null"
                 @click="handleSwitchAdmin">
                 <span>{{$t('kylinLang.menu.admin')}}</span>
                 <i :class="isAdminView ? 'el-icon-ksd-admin_collapse' : 'el-icon-ksd-admin_extend'"></i>
@@ -834,8 +835,15 @@ export default class LayoutLeftRightTop extends Vue {
         }
       }
     }
-    .entry-admin {
+    .el-button.entry-admin {
       padding: 0;
+      color: @text-title-color;
+      &.active {
+        color: @base-color;
+      }
+      &:hover {
+        color: @base-color-2;
+      }
     }
   }
   .round-icon (@width, @height) {
