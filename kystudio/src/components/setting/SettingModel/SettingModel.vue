@@ -19,6 +19,12 @@
             </span>
             <i class="el-icon-ksd-symbol_type"></i>
           </div>
+          <div v-if="scope.row.volatileRange">
+            <span class="model-setting-item" @click="editVolatileItem(scope.row)">
+              {{$t('volatileRange')}}<span>{{scope.row.volatileRange.value}} {{scope.row.volatileRange.unit}}</span>
+            </span>
+            <i class="el-icon-ksd-symbol_type"></i>
+          </div>
           <div v-if="scope.row.retention">
             <span class="model-setting-item" @click="editRetentionItem(scope.row)">
               {{$t('retention')}}<span>{{scope.row.retention.value}} {{scope.row.retention.unit}}</span>
@@ -51,6 +57,7 @@
             </el-option>
           </el-select>
           <p v-if="modelSettingForm.settingItem==='Auto-merge'">Segment auto-merge can help defragment your data file by merging the small segments into medium and large segment automatically.</p>
+          <p v-if="modelSettingForm.settingItem==='Volatile Range'">‘Auto-Merge’ will not merge latest [Volatile Range] days cube segments, by default is 0.</p>
           <p v-if="modelSettingForm.settingItem==='Retention Threshold'">Only keep the segment whose data is in past given days in cube, the old segment will be automatically dropped from head. </p>
         </el-form-item>
         <el-form-item :label="$t('autoMerge')" class="ksd-mb-10" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Auto-merge'">
@@ -58,6 +65,17 @@
             <div><el-checkbox v-for="(item, index) in mergeGroups" :label="item" :key="item" v-if="index<3">{{$t(item)}}</el-checkbox></div>
             <div><el-checkbox v-for="(item, index) in mergeGroups" :label="item" :key="item" v-if="index>2">{{$t(item)}}</el-checkbox></div>
           </el-checkbox-group>
+        </el-form-item>
+        <el-form-item :label="$t('volatileRangeItem')" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Volatile Range'">
+          <el-input v-model.trim="modelSettingForm.volatileRange.value" class="retention-input"></el-input>
+          <el-select v-model="modelSettingForm.volatileRange.unit" class="ksd-ml-8" size="medium" :placeholder="$t('kylinLang.common.pleaseSelect')">
+            <el-option
+              v-for="item in units"
+              :key="item"
+              :label="$t(item)"
+              :value="item">
+            </el-option>
+          </el-select>
         </el-form-item>
         <el-form-item :label="$t('retentionThreshold')" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Retention Threshold'">
           <el-input v-model.trim="modelSettingForm.retentionThreshold.value" class="retention-input"></el-input>
@@ -116,7 +134,7 @@ import { transToGmtTime } from '../../../util/business'
 })
 export default class SettingStorage extends Vue {
   modelList = [
-    {name: 'nmodel_basic_inner', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'], retention: {value: 200, unit: 'days'}},
+    {name: 'nmodel_basic_inner', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'], volatileRange: {value: 2, unit: 'days'}, retention: {value: 200, unit: 'days'}},
     {name: 'nmodel_full_measure_test', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'], retention: {value: 200, unit: 'days'}},
     {name: 'test_encoding', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'], retention: {value: 200, unit: 'days'}},
     {name: 'ut_inner_join_cube_partial', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'], retention: {value: 200, unit: 'days'}},
@@ -126,10 +144,10 @@ export default class SettingStorage extends Vue {
   editModelSetting = false
   isEdit = false
   step = 'stepOne'
-  settingOption = ['Auto-merge', 'Retention Threshold']
+  settingOption = ['Auto-merge', 'Volatile Range', 'Retention Threshold']
   mergeGroups = ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR']
   units = ['day', 'week', 'year']
-  modelSettingForm = {name: '', settingItem: '', autoMerge: [], retentionThreshold: {value: 0, unit: ''}}
+  modelSettingForm = {name: '', settingItem: '', autoMerge: [], volatileRange: {value: 0, unit: ''}, retentionThreshold: {value: 0, unit: ''}}
 
   addSettingItem (row) {
     this.modelSettingForm.name = row.name
@@ -140,6 +158,8 @@ export default class SettingStorage extends Vue {
   }
   get isSubmit () {
     if (this.modelSettingForm.settingItem === 'Auto-merge' && !this.modelSettingForm.autoMerge.length) {
+      return true
+    } else if (this.modelSettingForm.settingItem === 'Volatile Range' && (!this.modelSettingForm.volatileRange.value || !this.modelSettingForm.volatileRange.unit)) {
       return true
     } else if (this.modelSettingForm.settingItem === 'Retention Threshold' && (!this.modelSettingForm.retentionThreshold.value || !this.modelSettingForm.retentionThreshold.unit)) {
       return true
@@ -156,10 +176,15 @@ export default class SettingStorage extends Vue {
   editMergeItem (row) {
     this.modelSettingForm.name = row.name
     this.modelSettingForm.settingItem = 'Auto-merge'
-    this.$nextTick(() => {
-      debugger
-      this.modelSettingForm.autoMerge = JSON.parse(JSON.stringify(row.segmentMerge))
-    })
+    this.modelSettingForm.autoMerge = JSON.parse(JSON.stringify(row.segmentMerge))
+    this.step = 'stepTwo'
+    this.isEdit = true
+    this.editModelSetting = true
+  }
+  editVolatileItem (row) {
+    this.modelSettingForm.name = row.name
+    this.modelSettingForm.settingItem = 'Volatile Range'
+    this.modelSettingForm.volatileRange = JSON.parse(JSON.stringify(row.volatileRange))
     this.step = 'stepTwo'
     this.isEdit = true
     this.editModelSetting = true
