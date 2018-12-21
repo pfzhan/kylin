@@ -22,9 +22,11 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.newten;
+package io.kyligence.kap.newten.auto;
 
 import org.junit.Test;
+
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 
 public class NAutoTdvtTest extends NAutoTestBase {
 
@@ -35,7 +37,7 @@ public class NAutoTdvtTest extends NAutoTestBase {
 
     @Test
     public void testTdvt() throws Exception {
-        new TestScenario("sql_tdvt", NExecAndComp.CompareLevel.NONE).execute();
+        new TestScenario(CompareLevel.NONE, "sql_tdvt").execute();
     }
 
 }

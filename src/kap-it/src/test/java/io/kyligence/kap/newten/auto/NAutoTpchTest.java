@@ -21,19 +21,35 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package io.kyligence.kap.newten;
+
+package io.kyligence.kap.newten.auto;
 
 import org.junit.Test;
 
-public class NAutoSinaiPocTest extends NAutoTestBase {
+import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+
+public class NAutoTpchTest extends NAutoTestBase {
+
     @Override
     public String getProject() {
-        return "sinai_poc";
+        return "tpch";
+    }
+
+    //KAP#7892 fix this
+    @Test
+    public void testTpch() throws Exception {
+        // split batch to verify KAP#9114
+        new TestScenario(CompareLevel.SAME, "sql_tpch", 0, 5).execute();
+        new TestScenario(CompareLevel.SAME, "sql_tpch", 5, 10).execute();
+        new TestScenario(CompareLevel.SAME, "sql_tpch", 10, 15).execute();
+        new TestScenario(CompareLevel.SAME, "sql_tpch", 15, 20).execute();
     }
 
     @Test
-    public void testSinai() throws Exception {
-        new TestScenario("sql_sinai_poc", NExecAndComp.CompareLevel.SAME).execute();
+    public void testReProposeCase() throws Exception {
+        // run twice to verify KAP#7515
+        for (int i = 0; i < 2; ++i) {
+            new TestScenario(CompareLevel.SAME, "sql_tpch", 1, 2).execute();
+        }
     }
-
 }

@@ -24,8 +24,6 @@
 
 package io.kyligence.kap.newten.auto;
 
-import java.io.IOException;
-
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -34,20 +32,18 @@ import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
-import io.kyligence.kap.newten.NAutoTestBase;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
 public class NAutoComputedColumnTest extends NAutoTestBase {
 
     @Test
-    public void testComputedColumnsWontImpactFavoriteQuery() throws IOException {
+    public void testComputedColumnsWontImpactFavoriteQuery() {
         // test all named columns rename
-        String query = 
-                "SELECT SUM(CASE WHEN PRICE > 100 THEN 100 ELSE PRICE END), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, "newten", new String[] {query});
+        String query = "SELECT SUM(CASE WHEN PRICE > 100 THEN 100 ELSE PRICE END), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, "newten", new String[] { query });
         smartMaster.runAll();
-        
+
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
         Assert.assertEquals(1, model.getComputedColumnDescs().size());
         ComputedColumnDesc computedColumnDesc = model.getComputedColumnDescs().get(0);
@@ -61,11 +57,11 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertNotNull(measure);
         Assert.assertTrue(measure.getFunction().isSum());
         Assert.assertEquals("CC_AUTO_1", measure.getFunction().getParameter().getColRef().getName());
-        
+
         NCubePlan cubePlan = smartMaster.getContext().getModelContexts().get(0).getTargetCubePlan();
         Assert.assertEquals(1, cubePlan.getAllCuboidLayouts().size());
         Assert.assertEquals(1, cubePlan.getAllCuboidLayouts().get(0).getId());
-        
+
         // Assert query info is updated
         AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(query);
         Assert.assertNotNull(accelerateInfo);
@@ -75,10 +71,10 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     }
 
     @Test
-    public void testComputedColumnWithLikeClause() throws IOException {
+    public void testComputedColumnWithLikeClause() {
         String query = "SELECT 100.00 * SUM(CASE WHEN LSTG_FORMAT_NAME LIKE 'VIP%' THEN 100 ELSE 120 END), CAL_DT "
-                        + "FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, "newten", new String[] {query});
+                + "FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, "newten", new String[] { query });
         smartMaster.runAll();
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
@@ -106,6 +102,6 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().size());
         Assert.assertEquals(1, accelerateInfo.getRelatedLayouts().iterator().next().getLayoutId());
     }
-    
+
     // TODO add more detailed test case in #8285
 }

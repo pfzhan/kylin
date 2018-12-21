@@ -356,7 +356,7 @@ public class KylinTestBase {
     // end of execute
     // ////////////////////////////////////////////////////////////////////////////////////////
 
-    protected static String changeJoinType(String sql, String targetType) {
+    public static String changeJoinType(String sql, String targetType) {
 
         if (targetType.equalsIgnoreCase("default"))
             return sql;

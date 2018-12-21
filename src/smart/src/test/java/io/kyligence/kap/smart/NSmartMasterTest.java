@@ -37,6 +37,7 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -340,6 +341,7 @@ public class NSmartMasterTest extends NTestBase {
         Assert.assertEquals(6, collectAllLayouts(allCuboids).size());
     }
 
+    @Ignore
     @Test
     public void testRefreshCubePlanWithRetryFail() {
         kylinConfig.setProperty("kap.smart.conf.propose.retry-max", "0");

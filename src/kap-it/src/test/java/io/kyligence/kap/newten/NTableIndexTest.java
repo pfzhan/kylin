@@ -25,14 +25,11 @@
 package io.kyligence.kap.newten;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.SparkContext;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -40,13 +37,6 @@ import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.spark.KapSparkSession;
 
 public class NTableIndexTest extends NLocalWithSparkSessionTest {
-    @Before
-    public void setup() throws Exception {
-    }
-
-    @After
-    public void after() throws Exception {
-    }
 
     @Test
     @Ignore("keep for debug.")
@@ -60,7 +50,7 @@ public class NTableIndexTest extends NLocalWithSparkSessionTest {
         ksc.use("default");
         populateSSWithCSVData(config, getProject(), ksc);
 
-        List<Pair<String, String>> queries = new ArrayList<>();
+        List<Pair<String, String>> queries;
         String[] joinTypes = new String[] { "left", "inner" };
 
         for (String joinType : joinTypes) {

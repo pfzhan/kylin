@@ -21,43 +21,21 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.newten.auto;
 
-package io.kyligence.kap.newten;
-
-import org.junit.Before;
 import org.junit.Test;
 
-import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
+import io.kyligence.kap.newten.NExecAndComp;
 
-public class NAutoTpchTest extends NAutoTestBase {
-
+public class NAutoSinaiPocTest extends NAutoTestBase {
     @Override
     public String getProject() {
-        return "tpch";
-    }
-
-    @Override
-    @Before
-    public void setup() throws Exception {
-        super.setup();
-        overwriteSystemProp("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
-    }
-
-    //KAP#7892 fix this
-    @Test
-    public void testTpch() throws Exception {
-        // split batch to verify KAP#9114
-        new TestScenario("sql_tpch", CompareLevel.SAME, 0, 5).execute();
-        new TestScenario("sql_tpch", CompareLevel.SAME, 5, 10).execute();
-        new TestScenario("sql_tpch", CompareLevel.SAME, 10, 15).execute();
-        new TestScenario("sql_tpch", CompareLevel.SAME, 15, 22).execute();
+        return "sinai_poc";
     }
 
     @Test
-    public void testReProposeCase() throws Exception {
-        // run twice to verify KAP#7515
-        for (int i = 0; i < 2; ++i) {
-            new TestScenario("sql_tpch", CompareLevel.SAME, 1, 2).execute();
-        }
+    public void testSinai() throws Exception {
+        new TestScenario(NExecAndComp.CompareLevel.SAME, "sql_sinai_poc").execute();
     }
+
 }

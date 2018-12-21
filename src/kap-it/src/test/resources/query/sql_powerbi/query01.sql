@@ -18,7 +18,7 @@
 
 -- ISSUE #5527
 
--- failed at io.kyligence.kap.newten.NAutoBuildAndQueryTest.testPowerBiQuery()
+-- failed at io.kyligence.kap.newten.auto.NAutoBuildAndQueryTest.testPowerBiQuery()
 
 SELECT
     "NAME"

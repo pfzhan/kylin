@@ -24,18 +24,20 @@
 package io.kyligence.kap.newten;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.query.CompareQueryBySuffix;
+import org.apache.kylin.query.KylinTestBase;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -44,11 +46,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.spark.KapSparkSession;
+import io.kyligence.kap.utils.RecAndQueryCompareUtil.AccelerationMatchedLevel;
+import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
 
 public class NExecAndComp {
     private static final Logger logger = LoggerFactory.getLogger(NExecAndComp.class);
@@ -61,54 +64,28 @@ public class NExecAndComp {
         SAME_SQL_COMPARE
     }
 
-    public static void execLimitAndValidate(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
+    static void execLimitAndValidate(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
             String joinType) {
-        execLimitAndValidateNew(queries, kapSparkSession, joinType);
-    }
-
-    public static void execLimitAndValidateOld(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
-            String joinType) {
-
-        int appendLimitQueries = 0;
-        for (Pair<String, String> query : queries) {
-
-            logger.info("execLimitAndValidate on query: " + query.getFirst());
-            String sql = changeJoinType(query.getSecond(), joinType);
-
-            String sqlWithLimit;
-            if (sql.toLowerCase().contains("limit ")) {
-                sqlWithLimit = sql;
-            } else {
-                sqlWithLimit = sql + " limit 5";
-                appendLimitQueries++;
-            }
-
-            Dataset<Row> kapResult = queryWithKap(kapSparkSession, joinType, sqlWithLimit);
-            Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
-
-            compareResults(sparkResult, kapResult, CompareLevel.SUBSET);
-        }
-        logger.info("Queries appended with limit: " + appendLimitQueries);
+        execLimitAndValidateNew(queries, kapSparkSession, joinType, null);
     }
 
     public static void execLimitAndValidateNew(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
-            String joinType) {
+            String joinType, Map<String, CompareEntity> recAndQueryResult) {
 
         int appendLimitQueries = 0;
         for (Pair<String, String> query : queries) {
-
             logger.info("execLimitAndValidate on query: " + query.getFirst());
-            String sql = changeJoinType(query.getSecond(), joinType);
+            String sql = KylinTestBase.changeJoinType(query.getSecond(), joinType);
 
-            String sqlWithLimit;
-            if (sql.toLowerCase().contains("limit ")) {
-                sqlWithLimit = sql;
-            } else {
-                sqlWithLimit = sql + " limit 5";
+            Pair<String, String> sqlAndAddedLimitSql = Pair.newPair(sql, sql);
+            if (!sql.toLowerCase().contains("limit ")) {
+                sqlAndAddedLimitSql.setSecond(sql + " limit 5");
                 appendLimitQueries++;
             }
 
-            Dataset<Row> kapResult = queryWithKap(kapSparkSession, joinType, sqlWithLimit);
+            Dataset<Row> kapResult = (recAndQueryResult == null)
+                    ? queryWithKap(kapSparkSession, joinType, sqlAndAddedLimitSql)
+                    : queryWithKap(kapSparkSession, joinType, sqlAndAddedLimitSql, recAndQueryResult);
             Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
             List<Row> kapRows = SparderQueryTest.castDataType(kapResult, sparkResult).toJavaRDD().collect();
             List<Row> sparkRows = sparkResult.toJavaRDD().collect();
@@ -121,20 +98,21 @@ public class NExecAndComp {
 
     public static void execAndCompare(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
             CompareLevel compareLevel, String joinType) {
-        //        execAndCompareOld(queries, kapSparkSession, compareLevel, joinType);
-        execAndCompareNew(queries, kapSparkSession, compareLevel, joinType);
+        execAndCompareNew(queries, kapSparkSession, compareLevel, joinType, null);
     }
 
     public static void execAndCompareNew(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
-            CompareLevel compareLevel, String joinType) {
+            CompareLevel compareLevel, String joinType, Map<String, CompareEntity> recAndQueryResult) {
         for (Pair<String, String> query : queries) {
             logger.info("Exec and compare query (" + joinType + ") :" + query.getFirst());
 
-            String sql = changeJoinType(query.getSecond(), joinType);
+            String sql = KylinTestBase.changeJoinType(query.getSecond(), joinType);
 
             // Query from Cube
             long startTime = System.currentTimeMillis();
-            Dataset<Row> cubeResult = queryWithKap(kapSparkSession, joinType, sql);
+            Dataset<Row> cubeResult = (recAndQueryResult == null)
+                    ? queryWithKap(kapSparkSession, joinType, Pair.newPair(sql, sql))
+                    : queryWithKap(kapSparkSession, joinType, Pair.newPair(sql, sql), recAndQueryResult);
             if (compareLevel != CompareLevel.NONE) {
                 Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
                 List<Row> kapRows = SparderQueryTest.castDataType(cubeResult, sparkResult).toJavaRDD().collect();
@@ -155,32 +133,31 @@ public class NExecAndComp {
         }
     }
 
-
-    public static void execCompareQueryAndCompare(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
+    static void execCompareQueryAndCompare(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
             String joinType) {
         for (Pair<String, String> query : queries) {
 
             logger.info("Exec CompareQuery and compare on query: " + query.getFirst());
-            String sql1 = changeJoinType(query.getSecond(), joinType);
+            String sql1 = KylinTestBase.changeJoinType(query.getSecond(), joinType);
             String sql2 = CompareQueryBySuffix.INSTANCE.transform(new File(query.getFirst()));
 
-            Dataset<Row> kapResult = queryWithKap(kapSparkSession, joinType, sql1);
+            Dataset<Row> kapResult = queryWithKap(kapSparkSession, joinType, Pair.newPair(sql1, sql1));
             Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql2);
 
             compareResults(sparkResult, kapResult, CompareLevel.SAME);
         }
     }
 
-    public static void execAndCompareOld(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
+    static void execAndCompareOld(List<Pair<String, String>> queries, KapSparkSession kapSparkSession,
             CompareLevel compareLevel, String joinType) {
 
         for (Pair<String, String> query : queries) {
             logger.info("Exec and compare query (" + joinType + ") :" + query.getFirst());
 
-            String sql = changeJoinType(query.getSecond(), joinType);
+            String sql = KylinTestBase.changeJoinType(query.getSecond(), joinType);
 
             // Query from Cube
-            Dataset<Row> cubeResult = queryWithKap(kapSparkSession, joinType, sql);
+            Dataset<Row> cubeResult = queryWithKap(kapSparkSession, joinType, new Pair<>(sql, sql));
 
             if (compareLevel != CompareLevel.NONE) {
                 Dataset<Row> sparkResult = queryWithSpark(kapSparkSession, sql);
@@ -195,8 +172,26 @@ public class NExecAndComp {
         }
     }
 
-    private static Dataset<Row> queryWithKap(KapSparkSession kapSparkSession, String joinType, String sql) {
-        return kapSparkSession.queryFromCube(changeJoinType(sql, joinType));
+    private static Dataset<Row> queryWithKap(KapSparkSession kapSparkSession, String joinType,
+            Pair<String, String> pair, Map<String, CompareEntity> compareEntityMap) {
+
+        compareEntityMap.putIfAbsent(pair.getFirst(), new CompareEntity());
+        final CompareEntity entity = compareEntityMap.get(pair.getFirst());
+        entity.setSql(pair.getFirst());
+        Dataset<Row> rowDataset = null;
+        try {
+            rowDataset = kapSparkSession.queryFromCube(KylinTestBase.changeJoinType(pair.getSecond(), joinType));
+            entity.setOlapContexts(OLAPContext.getThreadLocalContexts());
+            OLAPContext.clearThreadLocalContexts();
+        } catch (Exception e) {
+            entity.setLevel(AccelerationMatchedLevel.FAILED_QUERY);
+        }
+        return rowDataset;
+    }
+
+    private static Dataset<Row> queryWithKap(KapSparkSession kapSparkSession, String joinType,
+            Pair<String, String> sql) {
+        return kapSparkSession.queryFromCube(KylinTestBase.changeJoinType(sql.getSecond(), joinType));
     }
 
     private static Dataset<Row> queryWithSpark(KapSparkSession kapSparkSession, String sql) {
@@ -224,36 +219,12 @@ public class NExecAndComp {
         return kapSparkSession.querySparkSql(sqlForSpark);
     }
 
-    public static String changeJoinType(String sql, String targetType) {
-
-        if (targetType.equalsIgnoreCase("default"))
-            return sql;
-
-        String specialStr = "changeJoinType_DELIMITERS";
-        sql = sql.replaceAll(System.getProperty("line.separator"), " " + specialStr + " ");
-
-        String[] tokens = StringUtils.split(sql, null);// split white spaces
-        for (int i = 0; i < tokens.length - 1; ++i) {
-            if ((tokens[i].equalsIgnoreCase("inner") || tokens[i].equalsIgnoreCase("left"))
-                    && tokens[i + 1].equalsIgnoreCase("join")) {
-                tokens[i] = targetType.toLowerCase();
-            }
-        }
-
-        String ret = StringUtils.join(tokens, " ");
-        ret = ret.replaceAll(specialStr, System.getProperty("line.separator"));
-        logger.info("The actual sql executed is: " + ret);
-
-        return ret;
-    }
-
     public static List<Pair<String, String>> fetchQueries(String folder) throws IOException {
         File sqlFolder = new File(folder);
         return retrieveITSqls(sqlFolder);
     }
 
-    @SuppressWarnings("SameParameterValue")
-    static List<Pair<String, String>> fetchPartialQueries(String folder, int start, int end) throws IOException {
+    public static List<Pair<String, String>> fetchPartialQueries(String folder, int start, int end) throws IOException {
         File sqlFolder = new File(folder);
         List<Pair<String, String>> originalSqls = retrieveITSqls(sqlFolder);
         return originalSqls.subList(start, end);
@@ -265,12 +236,7 @@ public class NExecAndComp {
         if (baseDir != null) {
             File sqlDirF = new File(baseDir);
             if (sqlDirF.exists() && sqlDirF.listFiles() != null) {
-                sqlFiles = new File(baseDir).listFiles(new FilenameFilter() {
-                    @Override
-                    public boolean accept(File dir, String name) {
-                        return name.startsWith("sql_");
-                    }
-                });
+                sqlFiles = new File(baseDir).listFiles((dir, name) -> name.startsWith("sql_"));
             }
         }
         List<Pair<String, String>> allSqls = new ArrayList<>();
@@ -282,24 +248,12 @@ public class NExecAndComp {
 
     private static List<Pair<String, String>> retrieveITSqls(File file) throws IOException {
         File[] sqlFiles = new File[0];
-        if (file != null) {
-            if (file.exists() && file.listFiles() != null) {
-                sqlFiles = file.listFiles(new FilenameFilter() {
-                    @Override
-                    public boolean accept(File dir, String name) {
-                        return name.endsWith(".sql");
-                    }
-                });
-            }
+        if (file != null && file.exists() && file.listFiles() != null) {
+            sqlFiles = file.listFiles((dir, name) -> name.endsWith(".sql"));
         }
         List<Pair<String, String>> ret = Lists.newArrayList();
         assert sqlFiles != null;
-        Arrays.sort(sqlFiles, new Comparator<File>() {
-            @Override
-            public int compare(File o1, File o2) {
-                return String.CASE_INSENSITIVE_ORDER.compare(o1.getName(), o2.getName());
-            }
-        });
+        Arrays.sort(sqlFiles, (o1, o2) -> String.CASE_INSENSITIVE_ORDER.compare(o1.getName(), o2.getName()));
         for (File sqlFile : sqlFiles) {
             String sqlStatement = FileUtils.readFileToString(sqlFile, "UTF-8").trim();
             int semicolonIndex = sqlStatement.lastIndexOf(";");
@@ -310,17 +264,16 @@ public class NExecAndComp {
         return ret;
     }
 
-    private static boolean compareResults(List<Row> expectedResult, List<Row> actualResult,
-                                       CompareLevel compareLevel) {
+    private static boolean compareResults(List<Row> expectedResult, List<Row> actualResult, CompareLevel compareLevel) {
         boolean good = true;
         if (compareLevel == CompareLevel.SAME) {
             if (expectedResult.size() == actualResult.size()) {
-                if (expectedResult.size() > 15000 || actualResult.size() > 15000) {
+                if (expectedResult.size() > 15000) {
                     throw new RuntimeException(
                             "please modify the sql to control the result size that less than 15000 and it has "
                                     + actualResult.size() + " rows");
                 }
-                for (Row eRow: expectedResult) {
+                for (Row eRow : expectedResult) {
                     if (!actualResult.contains(eRow)) {
                         good = false;
                         break;
@@ -338,7 +291,7 @@ public class NExecAndComp {
         }
 
         if (compareLevel == CompareLevel.SUBSET) {
-            for (Row eRow: actualResult) {
+            for (Row eRow : actualResult) {
                 if (!expectedResult.contains(eRow)) {
                     good = false;
                     break;
@@ -356,9 +309,7 @@ public class NExecAndComp {
 
     private static void printRows(String source, List<Row> rows) {
         System.out.println("***********" + source + " start**********");
-        for (Row row : rows) {
-            System.out.println(row.mkString(" | "));
-        }
+        rows.forEach(row -> System.out.println(row.mkString(" | ")));
         System.out.println("***********" + source + " end**********");
     }
 
@@ -405,18 +356,13 @@ public class NExecAndComp {
 
     }
 
-    static List<Pair<String, String>> doFilter(List<Pair<String, String>> sources, final String[] exclusionList) {
+    public static List<Pair<String, String>> doFilter(List<Pair<String, String>> sources,
+            final Set<String> exclusionList) {
         Preconditions.checkArgument(sources != null);
-        return Lists.newArrayList(Collections2.filter(sources, new Predicate<Pair<String, String>>() {
-            @Override
-            public boolean apply(Pair<String, String> input) {
-                String fullPath = input.getFirst();
-                for (String excludeFile : exclusionList) {
-                    if (fullPath.endsWith(excludeFile))
-                        return false;
-                }
-                return true;
-            }
-        }));
+        Set<String> excludes = Sets.newHashSet(exclusionList);
+        return sources.stream().filter(pair -> {
+            final String[] splits = pair.getFirst().split(File.separator);
+            return !excludes.contains(splits[splits.length - 1]);
+        }).collect(Collectors.toList());
     }
 }
