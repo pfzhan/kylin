@@ -78,6 +78,20 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
                 .innerJoin(new String[] { "BUYER_ACCOUNT.ACCOUNT_COUNTRY" }, new String[] { "BUYER_COUNTRY.COUNTRY" })
                 .build();
         Assert.assertTrue(graph1.match(graph2, new HashMap<String, String>()));
+        Assert.assertTrue(graph2.match(graph1, new HashMap<String, String>()));
+
+        JoinsGraph graph3 = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
+                .leftJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" })
+                .leftJoin(new String[] { "BUYER_ACCOUNT.ACCOUNT_COUNTRY" }, new String[] { "BUYER_COUNTRY.COUNTRY" })
+                .leftJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "SELLER_ACCOUNT.ACCOUNT_ID" })
+                .build();
+        JoinsGraph graph4 = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
+                .leftJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "SELLER_ACCOUNT.ACCOUNT_ID" })
+                .leftJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" })
+                .leftJoin(new String[] { "BUYER_ACCOUNT.ACCOUNT_COUNTRY" }, new String[] { "BUYER_COUNTRY.COUNTRY" })
+                .build();
+        Assert.assertTrue(graph3.match(graph4, new HashMap<String, String>()));
+        Assert.assertTrue(graph4.match(graph3, new HashMap<String, String>()));
     }
 
     @Test

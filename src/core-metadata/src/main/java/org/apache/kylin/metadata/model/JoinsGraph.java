@@ -47,10 +47,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.util.Pair;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -83,15 +86,15 @@ public class JoinsGraph implements Serializable {
                 rightCols[i++] = colRef.getColumnDesc();
             }
         }
-        
+
         public boolean isLeftJoin() {
             return join.isLeftJoin();
         }
-        
+
         private TableRef left() {
             return join.getFKSide();
         }
-        
+
         private TableRef right() {
             return join.getPKSide();
         }
@@ -120,7 +123,7 @@ public class JoinsGraph implements Serializable {
 
             if (this.getClass() != that.getClass())
                 return false;
-            
+
             return joinEdgeMatcher.matches(this, (Edge) that);
         }
 
@@ -151,7 +154,6 @@ public class JoinsGraph implements Serializable {
         return new Edge(join);
     }
 
-    
     private static final IJoinEdgeMatcher DEFAULT_JOIN_EDGE_MATCHER = new DefaultJoinEdgeMatcher();
     @Setter
     private IJoinEdgeMatcher joinEdgeMatcher = DEFAULT_JOIN_EDGE_MATCHER;
@@ -199,7 +201,7 @@ public class JoinsGraph implements Serializable {
         }
     }
 
-    private TableRef center = null;
+    private TableRef center;
     private Map<String, TableRef> nodes = new HashMap<>();
     private Map<TableRef, List<Edge>> edgesFromNode = new HashMap<>();
     private Map<TableRef, List<Edge>> edgesToNode = new HashMap<>();
@@ -217,6 +219,8 @@ public class JoinsGraph implements Serializable {
             Preconditions.checkState(Arrays.stream(join.getPrimaryKeyColumns()).allMatch(TblColRef::isQualified));
             addAsEdge(join);
         }
+        
+        validate(joins);
     }
 
     private void addNode(TableRef table) {
@@ -234,7 +238,6 @@ public class JoinsGraph implements Serializable {
     private void addAsEdge(JoinDesc join) {
         TableRef fkTable = join.getFKSide();
         TableRef pkTable = join.getPKSide();
-        addNode(fkTable);
         addNode(pkTable);
 
         Edge edge = edgeOf(join);
@@ -250,13 +253,21 @@ public class JoinsGraph implements Serializable {
             edgesToNode.get(fkTable).add(edge);
         }
     }
+    
+    private void validate(List<JoinDesc> joins) {
+        for (JoinDesc join : joins) {
+            TableRef fkTable = join.getFKSide();
+            Preconditions.checkNotNull(nodes.get(fkTable.getAlias()));
+            Preconditions.checkState(nodes.get(fkTable.getAlias()).equals(fkTable));
+        }
+        Preconditions.checkState(nodes.size() == joins.size() + 1);
+    }
 
     public boolean match(JoinsGraph pattern, Map<String, String> matchAlias) {
         return match(pattern, matchAlias, false);
     }
 
-    public boolean match(JoinsGraph pattern, Map<String, String> matchAlias,
-            boolean matchPatial) {
+    public boolean match(JoinsGraph pattern, Map<String, String> matchAlias, boolean matchPatial) {
         if (pattern.center == null) {
             throw new IllegalArgumentException("pattern(model) should have a center: " + pattern);
         }
@@ -268,10 +279,18 @@ public class JoinsGraph implements Serializable {
 
         for (TableRef queryCenter : candidatesOfQCenter) {
             // query <-> pattern
-            Map<TableRef, TableRef> matchedNodes = Maps.newHashMap();
-            matchedNodes.put(queryCenter, pattern.center);
-            if (innerMatch(pattern, queryCenter, pattern.center, null, null, matchedNodes, matchPatial)) {
-                matchAlias.putAll(matchedNodes.entrySet().stream()
+            Map<TableRef, TableRef> trialMatch = Maps.newHashMap();
+            trialMatch.put(queryCenter, pattern.center);
+
+            if (!checkInnerJoinNum(pattern, queryCenter, pattern.center, matchPatial)) {
+                continue;
+            }
+
+            AtomicReference<Map<TableRef, TableRef>> finalMatchRef = new AtomicReference<>();
+            innerMatch(pattern, trialMatch, matchPatial, finalMatchRef);
+            if (finalMatchRef.get() != null) {
+                matchAlias.clear();
+                matchAlias.putAll(finalMatchRef.get().entrySet().stream()
                         .collect(Collectors.toMap(e -> e.getKey().getAlias(), e -> e.getValue().getAlias())));
                 return true;
             }
@@ -279,49 +298,62 @@ public class JoinsGraph implements Serializable {
         return false;
     }
 
-    private boolean innerMatch(JoinsGraph pattern, TableRef queryVisited,
-            TableRef patternVisited, final TableRef queryPrev, TableRef patternPrev,
-            Map<TableRef, TableRef> matchedNodes, boolean matchPartial) {
-        List<Edge> queryNexts = this.edgesFrom(queryVisited);
-        int cntInnerQueryEdges = (int) queryNexts.stream().filter(e -> !e.isLeftJoin()).count();
-        List<Edge> patternNexts = pattern.edgesFrom(patternVisited);
-        int cntInnerPatternEdges = (int) patternNexts.stream().filter(e -> !e.isLeftJoin()).count();
-        if (!matchPartial && cntInnerQueryEdges != cntInnerPatternEdges) {
-            // fully match: unmatched if extra inner join edge on either graph
-            return false;
+    private boolean checkInnerJoinNum(JoinsGraph pattern, TableRef queryTableRef, TableRef patternTableRef,
+            boolean matchPartial) {
+        if (matchPartial) {
+            return true;
         }
-
-        for (Edge queryEdge : queryNexts) {
-            TableRef queryNext = queryEdge.other(queryVisited);
-            if (queryNext.equals(queryPrev)) {
-                continue;
-            }
-            boolean matched = false;
-            for (Edge patternEdge : patternNexts) {
-                TableRef patternNext = patternEdge.other(patternVisited);
-                if (patternNext.equals(patternPrev) || matchedNodes.containsValue(patternNext)
-                        || matchedNodes.containsKey(queryNext)
-                        || !queryNext.getTableIdentity().equals(patternNext.getTableIdentity())
-                        || !queryEdge.equals(patternEdge)) {
-                    continue;
-                }
-                matchedNodes.put(queryNext, patternNext);
-                matched = innerMatch(pattern, queryNext, patternNext, queryVisited, patternVisited, matchedNodes,
-                        matchPartial);
-                if (matched) {
-                    break;
-                }
-                matchedNodes.remove(queryNext);
-            }
-
-            // any unmatched child node means unmatched graph
-            if (!matched) {
-                return false;
-            }
-        }
-        return true;
+        // fully match: unmatched if extra inner join edge on either graph
+        List<Edge> queryEdges = this.edgesFrom(queryTableRef);
+        int cntInnerQueryEdges = (int) queryEdges.stream().filter(e -> !e.isLeftJoin()).count();
+        List<Edge> patternEdges = pattern.edgesFrom(patternTableRef);
+        int cntInnerPatternEdges = (int) patternEdges.stream().filter(e -> !e.isLeftJoin()).count();
+        return cntInnerQueryEdges == cntInnerPatternEdges;
     }
     
+    private void innerMatch(JoinsGraph pattern, Map<TableRef, TableRef> trialMatches, boolean matchPartial,
+            AtomicReference<Map<TableRef, TableRef>> finalMatch) {
+        if (trialMatches.size() == nodes.size()) {
+            //match is found
+            finalMatch.set(trialMatches);
+            return;
+        }
+
+        Preconditions.checkState(nodes.size() > trialMatches.size());
+        Optional<Pair<Edge, TableRef>> toMatch = trialMatches.keySet().stream()
+                .map(t -> edgesFrom(t).stream().filter(e -> !trialMatches.containsKey(e.other(t))).findFirst()
+                        .map(edge -> new Pair<Edge, TableRef>(edge, edge.other(t))).orElse(null))
+                .filter(Objects::nonNull).findFirst();
+
+        Preconditions.checkState(toMatch.isPresent());
+        Edge toMatchQueryEdge = toMatch.get().getFirst();
+        TableRef toMatchQueryNode = toMatch.get().getSecond();
+        TableRef matchedQueryNode = toMatchQueryEdge.other(toMatchQueryNode);
+        TableRef matchedPatternNode = trialMatches.get(matchedQueryNode);
+
+        List<TableRef> toMatchPatternNodeCandidates = Lists.newArrayList();
+        for (Edge patternEdge : pattern.edgesFrom(matchedPatternNode)) {
+            TableRef toMatchPatternNode = patternEdge.other(matchedPatternNode);
+            if (!toMatchQueryNode.getTableIdentity().equals(toMatchPatternNode.getTableIdentity())
+                    || !toMatchQueryEdge.equals(patternEdge) || trialMatches.containsValue(toMatchPatternNode)
+                    || !checkInnerJoinNum(pattern, toMatchQueryNode, toMatchPatternNode, matchPartial)) {
+                continue;
+            }
+            toMatchPatternNodeCandidates.add(toMatchPatternNode);
+        }
+
+        for (TableRef toMatchPatternNode : toMatchPatternNodeCandidates) {
+            Map<TableRef, TableRef> newTrialMatches = Maps.newHashMap();
+            newTrialMatches.putAll(trialMatches);
+            newTrialMatches.put(toMatchQueryNode, toMatchPatternNode);
+            innerMatch(pattern, newTrialMatches, matchPartial, finalMatch);
+            if (finalMatch.get() != null) {
+                //get out of recursive invoke chain straightly
+                return;
+            }
+        }
+    }
+
     public List<Edge> unmatched(JoinsGraph pattern) {
         List<Edge> unmatched = Lists.newArrayList();
         Set<Edge> all = edgesFromNode.values().stream().flatMap(List::stream).collect(Collectors.toSet());
@@ -346,11 +378,7 @@ public class JoinsGraph implements Serializable {
     }
 
     private List<Edge> edgesFrom(TableRef thisSide) {
-        List<Edge> edgesFrom = edgesFromNode.get(thisSide);
-        if (edgesFrom == null) {
-            return Lists.newArrayList();
-        }
-        return edgesFrom;
+        return edgesFromNode.getOrDefault(thisSide, Lists.newArrayList());
     }
 
     public Map<String, String> matchAlias(JoinsGraph joinsGraph, boolean matchPartial) {
@@ -379,12 +407,12 @@ public class JoinsGraph implements Serializable {
         Preconditions.checkState(edgesByPkSide.size() == 1, "%s is allowed to be Join PK side once", table);
         return edgesByPkSide.get(0);
     }
-    
+
     public JoinDesc getJoinByPKSide(TableRef table) {
         Edge edge = getEdgeByPKSide(table);
         return edge != null ? edge.join : null;
     }
-    
+
     private List<JoinDesc> getJoinsPathByPKSide(TableRef table) {
         List<JoinDesc> pathToRoot = Lists.newArrayList();
         TableRef pkSide = table; // start from leaf
@@ -408,7 +436,7 @@ public class JoinsGraph implements Serializable {
         }
         return new JoinsGraph(subGraphRoot, Lists.newArrayList(subGraphJoin));
     }
-    
+
     @Override
     public String toString() {
         StringBuilder graphStrBuilder = new StringBuilder();
@@ -417,7 +445,7 @@ public class JoinsGraph implements Serializable {
         nextEdges.forEach(e -> buildGraphStr(graphStrBuilder, e, 1));
         return graphStrBuilder.toString();
     }
-    
+
     private void buildGraphStr(StringBuilder sb, @NonNull Edge edge, int indent) {
         sb.append('\n');
         for (int i = 0; i < indent; i++) {
