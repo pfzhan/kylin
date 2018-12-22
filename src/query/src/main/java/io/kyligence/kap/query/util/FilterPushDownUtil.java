@@ -93,7 +93,7 @@ public class FilterPushDownUtil {
     static String applyDataLoadingRange(String sqlToUpdate, NDataLoadingRange range)
             throws SqlParseException {
         Preconditions.checkNotNull(range);
-        SegmentRange readySegmentRange = range.getCoveredReadySegmentRange();
+        SegmentRange readySegmentRange = range.getCoveredRange();
         Preconditions.checkNotNull(readySegmentRange);
 
         final String tableName = range.getTableName();

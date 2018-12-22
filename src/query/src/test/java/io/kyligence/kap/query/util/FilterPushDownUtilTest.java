@@ -460,9 +460,8 @@ public class FilterPushDownUtilTest {
         SegmentRange.TimePartitionedSegmentRange timePartitionedSegmentRange = new SegmentRange.TimePartitionedSegmentRange();
         timePartitionedSegmentRange.setStart(DateFormat.stringToMillis("2012-07-08"));
         timePartitionedSegmentRange.setEnd(DateFormat.stringToMillis("2015-09-23"));
-        range.setWaterMarkEnd(0);
-        range.getSegmentRanges().add(timePartitionedSegmentRange);
 
+        range.setCoveredRange(timePartitionedSegmentRange);
         final String actual = FilterPushDownUtil.applyDataLoadingRange(sql, range);
         String expected = "SELECT KS.PRICE PRICE, KS.PART_DT DT\n" //
                 + "FROM KYLIN_SALES KS\n" //

@@ -54,20 +54,11 @@ public class TableDescResponse extends TableDesc {
     private String partitionedColumn;
     @JsonProperty("segment_range")
     private SegmentRange segmentRange;
-    //ready segments range
-    @JsonProperty("ready_start")
-    private long readyStart = -1;
-    @JsonProperty("ready_end")
-    private long readyEnd = -1;
-    //datarange for query
-    @JsonProperty("actual_query_start")
-    private long actualQueryStart = -1;
-    @JsonProperty("actual_query_end")
-    private long actualQueryEnd = -1;
     @JsonProperty("storage_size")
     private long storageSize = -1;
     @JsonProperty("total_records")
     private long totalRecords;
+
     public TableDescResponse(TableDesc table) {
         super(table);
     }

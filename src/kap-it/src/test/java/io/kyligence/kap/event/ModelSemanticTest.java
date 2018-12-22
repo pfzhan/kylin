@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.model.ManagementType;
 import org.apache.hadoop.util.Shell;
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -55,6 +56,8 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
@@ -122,6 +125,15 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         var df = dfManager.getDataflowByModelName(MODEL_NAME);
         String tableName = df.getModel().getRootFactTable().getTableIdentity();
+        NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
+        dataLoadingRange.setUuid(UUID.randomUUID().toString());
+        dataLoadingRange.setTableName(tableName);
+        dataLoadingRange.setColumnName(df.getModel().getPartitionDesc().getPartitionDateColumn());
+        dataLoadingRange.setCoveredRange(
+                new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-01-01"),
+                        SegmentRange.dateToLong("2012-05-01")));
+        NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT)
+                .createDataLoadingRange(dataLoadingRange);
 
         val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val table = tableMgr.getTableDesc(tableName);

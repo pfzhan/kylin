@@ -54,6 +54,20 @@ public class SegmentsTest {
     }
 
     @Test
+    public void testGetRetentionStart_ByHour() {
+        Segments segments = new Segments();
+        //2012-02-10 02:03:00
+        long start = segments.getRetentionEnd(1328810580000L, AutoMergeTimeEnum.HOUR, -1);
+        //2012-02-10 01:03:00
+        Assert.assertEquals(1328806980000L, start);
+
+        //2012-02-10 03:00:00
+        start = segments.getRetentionEnd(1328814000000L, AutoMergeTimeEnum.HOUR, -1);
+        //2012-02-10 02:00:00
+        Assert.assertEquals(1328810400000L, start);
+    }
+
+    @Test
     public void testGetMergeEnd_ByDay() {
         Segments segments = new Segments();
         //2012-02-10 02:03:00
@@ -63,6 +77,20 @@ public class SegmentsTest {
         //2012-02-28 03:00:00
         end = segments.getMergeEnd(1330477200000L, AutoMergeTimeEnum.DAY);
         Assert.assertEquals(1330560000000L, end);
+    }
+
+    @Test
+    public void testGetRetentionStart_ByDay() {
+        Segments segments = new Segments();
+        //2012-02-10 02:03:00
+        long start = segments.getRetentionEnd(1328810580000L, AutoMergeTimeEnum.DAY, -1);
+        //2012-02-09 02:03:00
+        Assert.assertEquals(1328724180000L, start);
+
+        //2010-02-01 11:00:00
+        start = segments.getRetentionEnd(1264993200000L, AutoMergeTimeEnum.DAY, -2);
+        //2010-01-30 11:00:00
+        Assert.assertEquals(1264820400000L, start);
     }
 
     @Test
@@ -82,6 +110,15 @@ public class SegmentsTest {
         end = segments.getMergeEnd(1328659200000L, AutoMergeTimeEnum.WEEK);
         //2012-02-13 00:00:00 monday
         Assert.assertEquals(1329091200000L, end);
+    }
+
+    @Test
+    public void testGetRetentionStart_ByWeek_FirstDayOfWeekMonday() {
+        Segments segments = new Segments();
+        //2012-02-5 9:00:00 sunday
+        long start = segments.getRetentionEnd(1328403600000L, AutoMergeTimeEnum.WEEK, -1);
+        //2012-01-29 09:00:00 sunday
+        Assert.assertEquals(1327798800000L, start);
     }
 
     @Test
@@ -105,6 +142,7 @@ public class SegmentsTest {
         config.setProperty("kylin.metadata.first-day-of-week", "monday");
 
     }
+
 
     @Test
     public void testGetMergeEnd_ByWeek_AWeekOverlapTwoMonth() {
@@ -132,6 +170,15 @@ public class SegmentsTest {
     }
 
     @Test
+    public void testGetRetentionStart_ByMonth() {
+        Segments segments = new Segments();
+        //2012-03-31 00:00:00
+        long start = segments.getRetentionEnd(1333123200000L, AutoMergeTimeEnum.MONTH, -1);
+        //2012-03-01 00:00:00
+        Assert.assertEquals(1330531200000L, start);
+    }
+
+    @Test
     public void testGetMergeEnd_ByYear() {
         Segments segments = new Segments();
         //2012-02-28 00:00:00
@@ -146,4 +193,12 @@ public class SegmentsTest {
 
     }
 
+    @Test
+    public void testGetRetentionStart_ByYear() {
+        Segments segments = new Segments();
+        //2012-02-28 00:00:00
+        long start = segments.getRetentionEnd(1330387200000L, AutoMergeTimeEnum.YEAR, -1);
+        //2011-02-28 08:00:00
+        Assert.assertEquals(1298851200000L, start);
+    }
 }

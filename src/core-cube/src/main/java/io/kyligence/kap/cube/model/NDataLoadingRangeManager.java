@@ -25,15 +25,17 @@
 package io.kyligence.kap.cube.model;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.val;
+import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
-import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 import org.apache.kylin.metadata.datatype.DataType;
@@ -48,7 +50,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NDataLoadingRangeManager {
@@ -100,7 +101,7 @@ public class NDataLoadingRangeManager {
     }
 
     // for test mostly
-    public Serializer<NDataLoadingRange> getDataModelSerializer() {
+    public Serializer<NDataLoadingRange> getDataLoadingRangeSerializer() {
         return crud.getSerializer();
     }
 
@@ -146,27 +147,17 @@ public class NDataLoadingRangeManager {
 
     public NDataLoadingRange appendSegmentRange(NDataLoadingRange dataLoadingRange, SegmentRange segmentRange) {
         NDataLoadingRange copyForWrite = copyForWrite(dataLoadingRange);
-        List<SegmentRange> segmentRanges = copyForWrite.getSegmentRanges();
-        if (CollectionUtils.isEmpty(segmentRanges)) {
-            segmentRanges.add(segmentRange);
+        val coveredRange = copyForWrite.getCoveredRange();
+        if (coveredRange == null) {
+            copyForWrite.setCoveredRange(segmentRange);
         } else {
-            SegmentRange lastSegmentRange = segmentRanges.get(segmentRanges.size() - 1);
-            SegmentRange firstSegmentRange = segmentRanges.get(0);
-
-            if (lastSegmentRange.connects(segmentRange)) {
-                segmentRanges.add(segmentRange);
-            } else if (segmentRange.connects(firstSegmentRange)) {
-                // if add segRange at first, waterMarkStart and waterMarkEnd ++
-                int waterMarkEnd = copyForWrite.getWaterMarkEnd();
-                int waterMarkStart = copyForWrite.getWaterMarkStart();
-                if (waterMarkEnd != -1) {
-                    copyForWrite.setWaterMarkStart(++waterMarkStart);
-                    copyForWrite.setWaterMarkEnd(++waterMarkEnd);
-                }
-                segmentRanges.add(0, segmentRange);
+            if (coveredRange.connects(segmentRange)) {
+                copyForWrite.setCoveredRange(coveredRange.coverWith(segmentRange));
+            } else if (segmentRange.connects(coveredRange)) {
+                copyForWrite.setCoveredRange(segmentRange.coverWith(coveredRange));
             } else {
                 throw new IllegalArgumentException("NDataLoadingRange appendSegmentRange " + segmentRange
-                        + " has overlaps/gap with existing segmentRanges " + copyForWrite.getCoveredSegmentRange());
+                        + " has overlaps/gap with existing segmentRanges " + copyForWrite.getCoveredRange());
             }
         }
         return updateDataLoadingRange(copyForWrite);
@@ -209,128 +200,99 @@ public class NDataLoadingRangeManager {
             throw new IllegalArgumentException("NDataLoadingRange uuid or resourceName is empty");
     }
 
-    public void updateDataLoadingRangeWaterMark(String tableName) throws IOException {
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(tableName);
-        if (dataLoadingRange == null) {
-            return;
-        }
-        dataLoadingRange = copyForWrite(dataLoadingRange);
-
-        TableDesc tableDesc = NTableMetadataManager.getInstance(config, project).getTableDesc(tableName);
-        List<String> models = NDataModelManager.getInstance(config, project)
-                .getTableOrientedModelsUsingRootTable(tableDesc);
-        boolean needUpdateWaterMark = false;
-
-        if (CollectionUtils.isEmpty(models)) {
-            dataLoadingRange.setActualQueryStart(
-                    Long.parseLong(dataLoadingRange.getCoveredSegmentRange().getStart().toString()));
-            dataLoadingRange
-                    .setActualQueryEnd(Long.parseLong(dataLoadingRange.getCoveredSegmentRange().getEnd().toString()));
-            updateDataLoadingRange(dataLoadingRange);
-            return;
-        } else {
-            List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
-            Pair<SegmentRange, SegmentRange> readySegmentRange = genSegmentRange(models);
-            SegmentRange start = readySegmentRange.getFirst();
-            SegmentRange end = readySegmentRange.getSecond();
-
-            if (start != null) {
-                int waterMarkStart = segmentRanges.indexOf(start) >= 0 ? segmentRanges.indexOf(start) - 1 : -1;
-                if (waterMarkStart != dataLoadingRange.getWaterMarkStart()) {
-                    dataLoadingRange.setWaterMarkStart(waterMarkStart);
-                    needUpdateWaterMark = true;
-                }
-            }
-            if (end != null) {
-                int waterMarkEnd = segmentRanges.indexOf(end);
-                if (waterMarkEnd != dataLoadingRange.getWaterMarkEnd()) {
-                    dataLoadingRange.setWaterMarkEnd(waterMarkEnd);
-                    needUpdateWaterMark = true;
-                }
-            }
-        }
-
-        if (needUpdateWaterMark) {
-            updateActualQueryRange(dataLoadingRange);
-        }
+    private List<NDataflow> getOnlineDataflow(NDataLoadingRange dataLoadingRange) {
+        val dfManager = NDataflowManager.getInstance(config, project);
+        return dfManager.getDataflowsByTableAndStatus(dataLoadingRange.getTableName(), RealizationStatusEnum.ONLINE);
     }
 
-    private void updateActualQueryRange(NDataLoadingRange dataLoadingRange) throws IOException {
-        if (dataLoadingRange.getWaterMarkEnd() == -1 && dataLoadingRange.getWaterMarkStart() == -1) {
-            dataLoadingRange.setActualQueryStart(-1);
-            dataLoadingRange.setActualQueryEnd(-1);
-        } else {
-            dataLoadingRange.setActualQueryStart(
-                    Long.parseLong(dataLoadingRange.getCoveredReadySegmentRange().getStart().toString()));
-            dataLoadingRange.setActualQueryEnd(
-                    Long.parseLong(dataLoadingRange.getCoveredReadySegmentRange().getEnd().toString()));
+    public SegmentRange getQuerableSegmentRange(NDataLoadingRange dataLoadingRange) {
+
+        val dataflows = getOnlineDataflow(dataLoadingRange);
+
+        var querableRange = dataLoadingRange.getCoveredRange();
+        if (CollectionUtils.isEmpty(dataflows)) {
+            return dataLoadingRange.getCoveredRange();
         }
-        updateDataLoadingRange(dataLoadingRange);
+        for (val dataflow : dataflows) {
+            if (querableRange == null) {
+                break;
+            }
+            querableRange = getOverlapRange(dataflow, querableRange);
+        }
+        return querableRange;
     }
 
-    private Pair<SegmentRange, SegmentRange> genSegmentRange(List<String> models) {
-        Pair<SegmentRange, SegmentRange> readySegmentRangePair = new Pair<>();
-        if (CollectionUtils.isEmpty(models)) {
-            return readySegmentRangePair;
-        }
-        SegmentRange first;
-        SegmentRange last;
-        for (String model : models) {
-            NCubePlan cubePlan = NCubePlanManager.getInstance(config, project).findMatchingCubePlan(model
-            );
-            if (cubePlan == null) {
-                continue;
-            }
-            NDataflow df = NDataflowManager.getInstance(config, project).getDataflow(cubePlan.getName());
-            //ONLINE/OFFLINE makes no difference here
-            RealizationStatusEnum statusEnum = df.getStatus();
-            if (!RealizationStatusEnum.ONLINE.equals(statusEnum)) {
-                continue;
-            }
-            List<SegmentRange> readySegmentRangeList = calcReadySegmentRangeList(df);
-            if (CollectionUtils.isEmpty(readySegmentRangeList)) {
-                return new Pair<>();
-            }
-            int size = readySegmentRangeList.size();
-            first = readySegmentRangeList.get(0);
-            last = readySegmentRangeList.get(size - 1);
-            SegmentRange firstReady = readySegmentRangePair.getFirst();
-            SegmentRange lastReady = readySegmentRangePair.getSecond();
-
-            if (firstReady == null) {
-                readySegmentRangePair.setFirst(first);
-            } else {
-                if (first.compareTo(firstReady) > 0) {
-                    readySegmentRangePair.setFirst(first);
-                }
-            }
-
-            if (lastReady == null) {
-                readySegmentRangePair.setSecond(last);
-            } else {
-                if (last.compareTo(lastReady) < 0) {
-                    readySegmentRangePair.setSecond(last);
-                }
-            }
-        }
-        return readySegmentRangePair;
-    }
-
-    private List<SegmentRange> calcReadySegmentRangeList(NDataflow df) {
-        List<SegmentRange> segmentRangeList = Lists.newArrayList();
-        if (df == null) {
-            return segmentRangeList;
-        }
-        Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
+    private SegmentRange getOverlapRange(NDataflow dataflow, SegmentRange querableRange) {
+        val readySegments = dataflow.getSegments(SegmentStatusEnum.READY);
         if (CollectionUtils.isEmpty(readySegments)) {
-            return segmentRangeList;
+            return null;
         }
-        for (NDataSegment readySegment : readySegments) {
-            segmentRangeList.add(readySegment.getSegRange());
-        }
-        Collections.sort(segmentRangeList);
-        return segmentRangeList;
+        val readySegRange = readySegments.getFirstSegment().getSegRange().coverWith(readySegments.getLastSegment().getSegRange());
+        return readySegRange.getOverlapRange(querableRange);
 
     }
 
+    public List<SegmentRange> getSegRangesToBuildForNewDataflow(NDataLoadingRange dataLoadingRange) {
+        val standardDataflow = getStandardDataflow(dataLoadingRange);
+
+        if (standardDataflow != null) {
+            return standardDataflow.getFlatSegments().getSegRanges();
+        }
+        if (dataLoadingRange.getCoveredRange() == null) {
+            return null;
+        }
+        val segConfig = NSegmentConfigHelper.getTableSegmentConfig(project, dataLoadingRange.getTableName());
+        if (!segConfig.getAutoMergeEnabled()) {
+            return Lists.newArrayList(dataLoadingRange.getCoveredRange());
+        }
+        return Segments.getSplitedSegRanges(dataLoadingRange.getCoveredRange(), segConfig.getAutoMergeTimeRanges(), segConfig.getVolatileRange());
+
+    }
+
+    private NDataflow getStandardDataflow(NDataLoadingRange dataLoadingRange) {
+        val dataflows = getOnlineDataflow(dataLoadingRange);
+        NDataflow candidateDataflow = null;
+        if (CollectionUtils.isEmpty(dataflows)) {
+            return null;
+        }
+        var minSize = Integer.MAX_VALUE;
+
+        for (val df : dataflows) {
+            if (CollectionUtils.isEmpty(df.getFlatSegments())) {
+                continue;
+            }
+            val flatSegs = df.getFlatSegments();
+            val flatSegRange = flatSegs.getFirstSegment().getSegRange().coverWith(flatSegs.getLastSegment().getSegRange());
+            if (!flatSegRange.startStartMatch(dataLoadingRange.getCoveredRange()) || !flatSegRange.endEndMatch(dataLoadingRange.getCoveredRange())) {
+                continue;
+            }
+            val size = df.getFlatSegments().size();
+            minSize = Integer.min(minSize, size);
+            if (size == minSize) {
+                candidateDataflow = df;
+            }
+        }
+        return candidateDataflow;
+    }
+
+    public void updateCoveredRangeAfterRetention(NDataModel model, NDataSegment lastSegment) {
+        if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
+            return;
+        }
+        val loadingRange = getDataLoadingRange(model.getRootFactTableName());
+        if (loadingRange == null) {
+            return;
+        } else {
+            val copy = copyForWrite(loadingRange);
+            val coveredRange = copy.getCoveredRange();
+            if (coveredRange == null) {
+                return;
+            }
+            if (lastSegment.getSegRange().overlaps(coveredRange)) {
+                copy.setCoveredRange(lastSegment.getSegRange().getEndDeviation(coveredRange));
+                updateDataLoadingRange(copy);
+            }
+
+        }
+    }
 }

@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.event.handle;
 
-import java.io.IOException;
 import java.util.UUID;
 
 import io.kyligence.kap.cube.model.NSegmentConfigHelper;
@@ -37,7 +36,6 @@ import org.apache.kylin.metadata.model.Segments;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -49,8 +47,6 @@ import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -96,7 +92,6 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
                 }
 
                 val kylinConfig = KylinConfig.getInstanceFromEnv();
-                String cubePlanName = event.getCubePlanName();
 
                 val merger = new AfterBuildResourceMerger(kylinConfig, project);
                 val updatedCuboids = merger.mergeAfterIncrement(dataflowName, segmentIds.iterator().next(), layoutIds, buildResourceStore);
@@ -104,13 +99,11 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
 
                 recordDownJobStats(buildTask, updatedCuboids);
 
-                NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-                NDataflow df = dfMgr.getDataflow(cubePlanName);
 
-                updateDataLoadingRange(df);
+                handleRetention(project, event.getModelName());
 
                 //TODO: take care of this
-                autoMergeSegments(df, project, event.getModelName(), event.getOwner());
+                autoMergeSegments(project, event.getModelName(), event.getOwner());
 
                 finishEvent(project, event.getId());
                 return null;
@@ -143,37 +136,28 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
             val seg = df.copy().getSegment(segmentId);
             seg.setStatus(SegmentStatusEnum.READY);
             dfUpdate.setToUpdateSegs(seg);
-            NDataflow df2 = dfMgr.updateDataflow(dfUpdate);
-
-            //update loading range
-            updateDataLoadingRange(df);
+            dfMgr.updateDataflow(dfUpdate);
 
             //TODO: take care of this
-            autoMergeSegments(df2, project, event.getModelName(), event.getOwner());
+            handleRetention(project, event.getModelName());
+            autoMergeSegments(project, event.getModelName(), event.getOwner());
 
             finishEvent(project, event.getId());
             return null;
         }, project);
     }
 
-    private void updateDataLoadingRange(NDataflow df) throws IOException {
-        NDataModel model = df.getModel();
-        String tableName = model.getRootFactTableName();
-        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(df.getConfig(),
-                df.getProject());
-        dataLoadingRangeManager.updateDataLoadingRangeWaterMark(tableName);
-    }
 
-    private void autoMergeSegments(NDataflow df, String project, String modelName, String owner) {
-        NDataModel model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getDataModelDesc(modelName);
+
+    private void autoMergeSegments(String project, String modelName, String owner) {
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val df = dfManager.getDataflowByModelName(modelName);
         Segments segments = df.getSegments();
         SegmentRange rangeToMerge = null;
         EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, model.getName());
+        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelName);
         Preconditions.checkState(segmentConfig != null);
-        rangeToMerge = segments.autoMergeSegments(segmentConfig.getAutoMergeEnabled(), model.getName(),
-                segmentConfig.getAutoMergeTimeRanges(), segmentConfig.getVolatileRange());
+        rangeToMerge = segments.autoMergeSegments(segmentConfig);
         if (rangeToMerge == null) {
             return;
         } else {
@@ -182,7 +166,7 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
 
             val mergeEvent = new MergeSegmentEvent();
             mergeEvent.setCubePlanName(df.getCubePlanName());
-            mergeEvent.setModelName(model.getName());
+            mergeEvent.setModelName(modelName);
             mergeEvent.setSegmentId(mergeSeg.getId());
             mergeEvent.setJobId(UUID.randomUUID().toString());
             mergeEvent.setOwner(owner);
@@ -190,7 +174,7 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
 
             val postMergeEvent = new PostMergeOrRefreshSegmentEvent();
             postMergeEvent.setCubePlanName(df.getCubePlanName());
-            postMergeEvent.setModelName(model.getName());
+            postMergeEvent.setModelName(modelName);
             postMergeEvent.setSegmentId(mergeSeg.getId());
             postMergeEvent.setJobId(mergeEvent.getJobId());
             postMergeEvent.setOwner(owner);
@@ -198,5 +182,12 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         }
 
     }
+
+    private void handleRetention(String project, String modelName) {
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        val df = dfManager.getDataflowByModelName(modelName);
+        dfManager.handleRetention(df);
+    }
+
 
 }

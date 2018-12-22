@@ -58,7 +58,7 @@ object TableScanPlan extends Logging {
   def listSegmentsForQuery(cube: NDataflow): util.List[NDataSegment] = {
     val r: util.List[NDataSegment] = new util.ArrayList[NDataSegment]
     import scala.collection.JavaConversions._
-    for (seg <- cube.getSegments(SegmentStatusEnum.READY)) {
+    for (seg <- cube.getQuerableSegments()) {
       r.add(seg)
     }
     r

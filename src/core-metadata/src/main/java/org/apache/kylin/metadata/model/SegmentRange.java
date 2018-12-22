@@ -45,6 +45,7 @@ package org.apache.kylin.metadata.model;
 import java.io.Serializable;
 import java.util.Map;
 
+import lombok.val;
 import org.apache.kylin.common.util.DateFormat;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
@@ -92,6 +93,8 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
 
     abstract public SegmentRange getEndDeviation(SegmentRange o);
 
+    abstract public SegmentRange getOverlapRange(SegmentRange o);
+
     /**
      * create a new SegmentRange which will start from this.start and end at o.end
      * caller should make sure this.start < o.end
@@ -111,6 +114,7 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
     public T getEnd() {
         return end;
     }
+
 
     // ============================================================================
 
@@ -270,6 +274,17 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
         }
 
         @Override
+        public SegmentRange getOverlapRange(SegmentRange o) {
+            TimePartitionedSegmentRange other = convert(o);
+            if (!this.overlaps(o)) {
+                return null;
+            }
+            val start = this.start < other.start ? other.start : this.start;
+            val end = this.end < other.end ? this.end : other.end;
+            return new TimePartitionedSegmentRange(start, end);
+        }
+
+        @Override
         public SegmentRange gapTill(SegmentRange o) {
             TimePartitionedSegmentRange other = convert(o);
             return new TimePartitionedSegmentRange(this.end, other.start);
@@ -353,6 +368,17 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
             KafkaOffsetPartitionedSegmentRange other = convert(o);
             return new KafkaOffsetPartitionedSegmentRange(this.end, other.end, this.getSourcePartitionOffsetEnd(),
                     other.getSourcePartitionOffsetEnd());
+        }
+
+        @Override
+        public SegmentRange getOverlapRange(SegmentRange o) {
+            KafkaOffsetPartitionedSegmentRange other = convert(o);
+            if (!this.overlaps(o)) {
+                return null;
+            }
+            val start = this.start < other.start ? other.start : this.start;
+            val end = this.end < other.end ? this.start : other.start;
+            return new TimePartitionedSegmentRange(start, end);
         }
 
         @Override

@@ -307,15 +307,7 @@ public class TableService extends BasicService {
                     .getDataLoadingRange(table.getIdentity());
             if (null != dataLoadingRange) {
                 rtableDesc.setPartitionedColumn(dataLoadingRange.getColumnName());
-                rtableDesc.setSegmentRange(dataLoadingRange.getCoveredSegmentRange());
-                rtableDesc.setActualQueryStart(dataLoadingRange.getActualQueryStart());
-                rtableDesc.setActualQueryEnd(dataLoadingRange.getActualQueryEnd());
-                SegmentRange segmentRange = dataLoadingRange.getCoveredReadySegmentRange();
-                if (segmentRange != null) {
-                    rtableDesc.setReadyStart(Long.parseLong(segmentRange.getStart().toString()));
-                    rtableDesc.setReadyEnd(Long.parseLong(segmentRange.getEnd().toString()));
-
-                }
+                rtableDesc.setSegmentRange(dataLoadingRange.getCoveredRange());
             }
             rtableDesc.setForeignKey(tableColumnType.getSecond());
             rtableDesc.setPrimaryKey(tableColumnType.getFirst());
@@ -369,19 +361,6 @@ public class TableService extends BasicService {
         }
     }
 
-    private Map<SegmentRange, SegmentStatusEnum> getSegmentRangesWithStatus(NDataLoadingRange dataLoadingRange) {
-        Map<SegmentRange, SegmentStatusEnum> segmentRangeResult = new HashMap<>();
-        List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
-        for (int i = 0; i < segmentRanges.size(); i++) {
-            if (i > dataLoadingRange.getWaterMarkStart() && i <= dataLoadingRange.getWaterMarkEnd()) {
-                segmentRangeResult.put(segmentRanges.get(i), SegmentStatusEnum.READY);
-            } else {
-                segmentRangeResult.put(segmentRanges.get(i), SegmentStatusEnum.NEW);
-
-            }
-        }
-        return segmentRangeResult;
-    }
 
     //get table's primaryKeys(pair first) and foreignKeys(pair second)
     private Pair<Set<String>, Set<String>> getTableColumnType(TableDesc table, String project) {
@@ -492,7 +471,7 @@ public class TableService extends BasicService {
         String table = dateRangeRequest.getTable();
         NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        SegmentRange allRange = dataLoadingRange.getCoveredSegmentRange();
+        SegmentRange allRange = dataLoadingRange.getCoveredRange();
 
         var start = dateRangeRequest.getStart();
         var end = dateRangeRequest.getEnd();
@@ -526,8 +505,8 @@ public class TableService extends BasicService {
         String lastEnd;
         Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
 
-        if (dataLoadingRange.getCoveredSegmentRange() != null)
-            lastEnd = dataLoadingRange.getCoveredSegmentRange().getEnd().toString();
+        if (dataLoadingRange.getCoveredRange() != null)
+            lastEnd = dataLoadingRange.getCoveredRange().getEnd().toString();
         else
             lastEnd = pushdownResult.getFirst();
 
@@ -627,11 +606,6 @@ public class TableService extends BasicService {
                         "LoadingRangeUpdateHandler produce AddSegmentEvent project : {}, model : {}, segmentRange : {}",
                         project, modelName, segmentRange);
             }
-        } else {
-            // there is no models, just update the dataLoadingRange waterMark
-            NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(kylinConfig,
-                    project);
-            dataLoadingRangeManager.updateDataLoadingRangeWaterMark(tableName);
         }
     }
 
@@ -716,7 +690,7 @@ public class TableService extends BasicService {
             return;
 
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        SegmentRange readySegmentRange = dataLoadingRange.getCoveredReadySegmentRange();
+        SegmentRange readySegmentRange = dataLoadingRange.getCoveredRange();
         if (readySegmentRange == null) {
             throw new BadRequestException("There is no ready segment to refresh!");
         }

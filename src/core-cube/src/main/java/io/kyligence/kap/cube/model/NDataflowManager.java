@@ -36,6 +36,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -47,6 +49,7 @@ import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TimeRange;
 import org.apache.kylin.metadata.realization.IRealization;
 import org.apache.kylin.metadata.realization.IRealizationProvider;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -192,13 +195,14 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             return;
         }
         val rootTable = df.getModel().getRootFactTable();
+        val dataLoadingRangeManager = NDataLoadingRangeManager
+                .getInstance(KylinConfig.getInstanceFromEnv(), project);
         // if table is incremental load
         if (rootTable.getTableDesc().isIncrementLoading()) {
             String tableName = df.getModel().getRootFactTable().getTableIdentity();
-            NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager
-                    .getInstance(KylinConfig.getInstanceFromEnv(), project).getDataLoadingRange(tableName);
+            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
             if (dataLoadingRange != null) {
-                List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
+                val segmentRanges = dataLoadingRangeManager.getSegRangesToBuildForNewDataflow(dataLoadingRange);
                 if (CollectionUtils.isNotEmpty(segmentRanges)) {
                     fillDfWithNewRanges(df, segmentRanges);
                 }
@@ -370,6 +374,18 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return crud.copyBySerialization(df);
     }
 
+    public List<NDataflow> getDataflowsByTableAndStatus(String tableName, RealizationStatusEnum status) {
+        val tableManager = NTableMetadataManager.getInstance(config, project);
+        val table = tableManager.getTableDesc(tableName);
+        val models = NDataModelManager.getInstance(config, project).getTableOrientedModelsUsingRootTable(table);
+        List<NDataflow> dataflows = Lists.newArrayList();
+        for (val model : models) {
+            dataflows.add(getDataflowByModelName(model));
+        }
+        return dataflows.stream().filter(dataflow -> dataflow.getStatus().equals(status)).collect(Collectors.toList());
+
+    }
+
     public void fillDfManually(NDataflow df, List<SegmentRange> ranges) {
         if (df.getModel().getManagementType() == ManagementType.TABLE_ORIENTED) {
             return;
@@ -378,6 +394,19 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             return;
         }
         fillDfWithNewRanges(df, ranges);
+    }
+
+    public NDataflow handleRetention(NDataflow df) {
+        Segments<NDataSegment> segsToRemove = df.getSegmentsToRemoveByRetention();
+        if (CollectionUtils.isEmpty(segsToRemove)) {
+            return df;
+        }
+        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        update.setToRemoveSegs(segsToRemove.toArray(new NDataSegment[segsToRemove.size()]));
+        val loadingRangeManager = NDataLoadingRangeManager.getInstance(config, project);
+        val model = df.getModel();
+        loadingRangeManager.updateCoveredRangeAfterRetention(model, segsToRemove.getLastSegment());
+        return updateDataflow(update);
     }
 
     public interface NDataflowUpdater {

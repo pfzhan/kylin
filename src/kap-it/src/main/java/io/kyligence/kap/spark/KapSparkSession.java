@@ -240,6 +240,7 @@ public class KapSparkSession extends SparkSession {
                 oneSeg = dataflowManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
                 layouts = df.getCubePlan().getAllCuboidLayouts();
                 isAppend = true;
+                readySegments.add(oneSeg);
             } else {
                 oneSeg = readySegments.getFirstSegment();
                 layouts = df.getCubePlan().getAllCuboidLayouts().stream()
@@ -248,7 +249,7 @@ public class KapSparkSession extends SparkSession {
 
             // create cubing job
             if (!layouts.isEmpty()) {
-                NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts),
+                NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(readySegments), Sets.newLinkedHashSet(layouts),
                         "ADMIN");
                 execMgr.addJob(job);
                 while (true) {
@@ -268,7 +269,8 @@ public class KapSparkSession extends SparkSession {
                 if (isAppend) {
                     merger.mergeAfterIncrement(df.getName(), oneSeg.getId(), layoutIds, buildStore);
                 } else {
-                    merger.mergeAfterCatchup(df.getName(), Sets.newHashSet(oneSeg.getId()), layoutIds, buildStore);
+                    val segIds = readySegments.stream().map(nDataSegment -> nDataSegment.getId()).collect(Collectors.toSet());
+                    merger.mergeAfterCatchup(df.getName(), segIds, layoutIds, buildStore);
                 }
                 merger.mergeAnalysis(df.getName(), analysisStore);
             }

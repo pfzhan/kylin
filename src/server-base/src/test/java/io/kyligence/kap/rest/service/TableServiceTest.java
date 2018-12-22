@@ -255,12 +255,8 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "default");
         NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-        List<SegmentRange> segmentRanges = new ArrayList<>();
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(0L, 1294364500000L);
-        segmentRanges.add(segmentRange);
-        dataLoadingRange.setSegmentRanges(segmentRanges);
-        dataLoadingRange.setWaterMarkStart(-1);
-        dataLoadingRange.setWaterMarkEnd(0);
+        dataLoadingRange.setCoveredRange(segmentRange);
         NDataLoadingRange updateRange = rangeManager.copyForWrite(dataLoadingRange);
         rangeManager.updateDataLoadingRange(updateRange);
         DateRangeRequest request = mockDateRangeRequest();
@@ -272,15 +268,15 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         request.setEnd("1328054400000");
         tableService.setDataRange("default", request);
         dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-        Assert.assertEquals("0", dataLoadingRange.getCoveredSegmentRange().getStart().toString());
-        Assert.assertEquals("1328054400000", dataLoadingRange.getCoveredSegmentRange().getEnd().toString());
+        Assert.assertEquals("0", dataLoadingRange.getCoveredRange().getStart().toString());
+        Assert.assertEquals("1328054400000", dataLoadingRange.getCoveredRange().getEnd().toString());
 
         // case of load existing data
         tableService.setDataRange("default", mockeDateRangeRequestWithoutTime());
         dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
         // 2014-01-01
         String latestDateInEpoch = "1388534400000";
-        Assert.assertEquals(latestDateInEpoch, dataLoadingRange.getCoveredSegmentRange().getEnd().toString());
+        Assert.assertEquals(latestDateInEpoch, dataLoadingRange.getCoveredRange().getEnd().toString());
     }
 
     private void testSetDataRangeWhenNoNewData() {
@@ -391,10 +387,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
         List<SegmentRange> segmentRanges = new ArrayList<>();
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(1294364400000L, 1294364500000L);
-        segmentRanges.add(segmentRange);
-        dataLoadingRange.setSegmentRanges(segmentRanges);
-        dataLoadingRange.setWaterMarkStart(-1);
-        dataLoadingRange.setWaterMarkEnd(0);
+        dataLoadingRange.setCoveredRange(segmentRange);
         NDataLoadingRange updateRange = rangeManager.copyForWrite(dataLoadingRange);
         rangeManager.updateDataLoadingRange(updateRange);
         tableService.checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0", "1294364500000");

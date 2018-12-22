@@ -71,7 +71,7 @@ public class SegmentHelper extends BasicService {
             // check if toBeRefreshSegmentRange is within covered ready segment range
             NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager.getInstance(kylinConfig, project)
                     .getDataLoadingRange(tableName);
-            SegmentRange coveredReadySegmentRange = dataLoadingRange.getCoveredReadySegmentRange();
+            SegmentRange coveredReadySegmentRange = dataLoadingRange.getCoveredRange();
             if (coveredReadySegmentRange == null || !coveredReadySegmentRange.contains(toBeRefreshSegmentRange)) {
                 throw new IllegalArgumentException("ToBeRefreshSegmentRange " + toBeRefreshSegmentRange
                         + " is out of range the coveredReadySegmentRange of dataLoadingRange, the coveredReadySegmentRange is "

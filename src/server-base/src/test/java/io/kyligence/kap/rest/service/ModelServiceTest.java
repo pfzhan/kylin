@@ -64,9 +64,9 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import org.apache.commons.collections.CollectionUtils;
@@ -505,8 +505,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         dataLoadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
         dataLoadingRange.setUuid(UUID.randomUUID().toString());
         dataLoadingRange.setColumnName("CAL_DT");
-        dataLoadingRange.setActualQueryStart(-1);
-        dataLoadingRange.setActualQueryEnd(1309891513769L);
         NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .createDataLoadingRange(dataLoadingRange);
         modelService.updateDataModelStatus("nmodel_basic", "default", "ONLINE");

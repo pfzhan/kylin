@@ -44,20 +44,16 @@ package io.kyligence.kap.cube.model;
 
 import static org.apache.kylin.common.persistence.ResourceStore.DATA_LOADING_RANGE_RESOURCE_ROOT;
 
-import java.util.List;
 
-import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
+import lombok.AccessLevel;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.SegmentConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
-
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.common.collect.Lists;
 
-import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -73,27 +69,17 @@ public class NDataLoadingRange extends RootPersistentEntity {
     private String tableName;
     @JsonProperty("column_name")
     private String columnName;
-
     @JsonProperty("partition_date_format")
     private String partitionDateFormat;
 
-    @JsonProperty("segment_ranges")
-    private List<SegmentRange> segmentRanges = Lists.newArrayList();
-
-    // (waterMarkStart, waterMarkEnd]
-    @JsonProperty("water_mark_start")
-    private int waterMarkStart = -1;
-    @JsonProperty("water_mark_end")
-    private int waterMarkEnd = -1;
-    @JsonProperty("actual_query_start")
-    private long actualQueryStart = -1;
-    @JsonProperty("actual_query_end")
-    private long actualQueryEnd = -1;
     @JsonProperty("pushdown_range_limited")
     private boolean pushdownRangeLimited;
 
     @JsonProperty("segment_config")
     private SegmentConfig segmentConfig = new SegmentConfig();
+
+    @JsonProperty("covered_range")
+    private SegmentRange coveredRange;
 
     @Setter(AccessLevel.NONE)
     private String project;
@@ -105,42 +91,6 @@ public class NDataLoadingRange extends RootPersistentEntity {
 
     public void initAfterReload(KylinConfig config, String p) {
         this.project = p;
-    }
-
-    public SegmentRange getCoveredSegmentRange() {
-        SegmentRange readySegmentRange = null;
-
-        if (CollectionUtils.isEmpty(segmentRanges)) {
-            return readySegmentRange;
-        }
-
-        SegmentRange start = segmentRanges.get(0);
-        if (segmentRanges.size() == 1) {
-            return start;
-        }
-
-        SegmentRange end = segmentRanges.get(segmentRanges.size() - 1);
-        readySegmentRange = start.coverWith(end);
-
-        return readySegmentRange;
-    }
-
-    public SegmentRange getCoveredReadySegmentRange() {
-        SegmentRange readySegmentRange = null;
-
-        if (CollectionUtils.isEmpty(segmentRanges) || (waterMarkEnd == waterMarkStart)) {
-            return readySegmentRange;
-        }
-
-        SegmentRange end = segmentRanges.get(waterMarkEnd);
-        if (segmentRanges.size() == 1) {
-            return end;
-        }
-
-        SegmentRange start = segmentRanges.get(waterMarkStart + 1);
-        readySegmentRange = start.coverWith(end);
-
-        return readySegmentRange;
     }
 
     @Override

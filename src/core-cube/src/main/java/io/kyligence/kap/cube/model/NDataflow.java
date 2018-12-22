@@ -258,12 +258,23 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         return segments.getMergingSegments(mergedSegment);
     }
 
-    public Segments<NDataSegment> getFlatSegments() {
-        return segments.getFlatSegments();
+    public Segments<NDataSegment> getQuerableSegments() {
+        val loadingRangeManager = NDataLoadingRangeManager.getInstance(config, project);
+        val loadingRange = loadingRangeManager.getDataLoadingRange(getModel().getRootFactTableName());
+        if (loadingRange == null) {
+            return getSegments(SegmentStatusEnum.READY);
+        } else {
+            val querableRange = loadingRangeManager.getQuerableSegmentRange(loadingRange);
+            return segments.getSegments(SegmentStatusEnum.READY).getSegmentsByRange(querableRange);
+        }
     }
 
     public Segments<NDataSegment> getSegments(SegmentStatusEnum status) {
         return segments.getSegments(status);
+    }
+
+    public Segments<NDataSegment> getFlatSegments() {
+        return segments.getFlatSegments();
     }
 
     public Segments<NDataSegment> calculateToBeSegments(NDataSegment newSegment) {
@@ -469,4 +480,13 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         return "NDataflow [" + name + "]";
     }
 
+    public Segments getSegmentsToRemoveByRetention() {
+        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, getModel().getName());
+        val retentionRange = segmentConfig.getRetentionRange();
+        if (!retentionRange.isRetentionRangeEnabled() || retentionRange.getRetentionRangeNumber() <= 0 || retentionRange.getRetentionRangeType() == null) {
+            return null;
+        } else {
+            return segments.getSegmentsToRemoveByRetention(retentionRange.getRetentionRangeType(), retentionRange.getRetentionRangeNumber());
+        }
+    }
 }
