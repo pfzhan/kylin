@@ -142,6 +142,21 @@ export default {
     },
     [types.CLEAR_TRASH]: function ({ commit }, para) {
       return api.project.clearTrash(para)
+    },
+    [types.FETCH_PROJECT_SETTINGS]: function ({ commit }, para) {
+      return api.project.fetchProjectSettings(para.projectName)
+    },
+    [types.UPDATE_PROJECT_GENERAL_INFO]: function ({ commit }, para) {
+      return api.project.updateProjectGeneralInfo(para)
+    },
+    [types.UPDATE_SEGMENT_CONFIG]: function ({ commit }, para) {
+      return api.project.updateSegmentConfig(para)
+    },
+    [types.UPDATE_PUSHDOWN_CONFIG]: function ({commit}, para) {
+      return api.project.updatePushdownConfig(para)
+    },
+    [types.UPDATE_STORAGE_QUOTA]: function ({commit}, para) {
+      return api.project.updateStorageQuota(para)
     }
   },
   getters: {

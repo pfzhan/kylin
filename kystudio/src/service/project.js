@@ -60,5 +60,20 @@ export default {
   },
   clearTrash: (para) => {
     return Vue.resource(apiUrl + 'projects/storage?project=' + para.project).update()
+  },
+  fetchProjectSettings: (project) => {
+    return Vue.resource(apiUrl + 'projects/project_config').get({ project })
+  },
+  updateProjectGeneralInfo (body) {
+    return Vue.resource(apiUrl + 'projects/project_general_info').update(body)
+  },
+  updateSegmentConfig (body) {
+    return Vue.resource(apiUrl + 'projects/segment_config').update(body)
+  },
+  updatePushdownConfig (body) {
+    return Vue.resource(apiUrl + 'projects/push_down_config').update(body)
+  },
+  updateStorageQuota (body) {
+    return Vue.resource(apiUrl + 'projects/storage_quota').update(body)
   }
 }

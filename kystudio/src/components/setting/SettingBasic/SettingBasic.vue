@@ -2,20 +2,20 @@
   <div class="basic-setting">
     <EditableBlock
       :headerContent="$t('basicInfo')"
-      @submit="handleSubmitBasicInfo"
-      @cancel="handleCancelBasicInfo">
+      @submit="(scb, ecb) => handleSubmit('basic-info', scb, ecb)"
+      @cancel="() => handleReset('basic-info')">
       <div class="setting-item">
         <div class="setting-label font-medium">{{$t('projectName')}}</div>
-        <div class="setting-value">{{form.name}}</div>
-        <el-input class="setting-input" size="small" style="width: 250px;" v-model="form.name"></el-input>
+        <div class="setting-value">{{project.alias || project.project}}</div>
+        <el-input class="setting-input" size="small" style="width: 250px;" v-model="form.alias"></el-input>
       </div>
       <div class="setting-item">
         <div class="setting-label font-medium">{{$t('projectType')}}</div>
-        <div class="setting-value fixed"><i :class="projectInfo.icon"></i>{{projectInfo.type}}</div>
+        <div class="setting-value fixed"><i :class="projectIcon"></i>{{$t(project.maintain_model_type)}}</div>
       </div>
       <div class="setting-item clearfix">
         <div class="setting-label font-medium">{{$t('description')}}</div>
-        <div class="setting-value">{{form.description}}</div>
+        <div class="setting-value">{{project.description}}</div>
         <el-input class="setting-input" type="textarea" size="small" v-model="form.description"></el-input>
       </div>
     </EditableBlock>
@@ -25,7 +25,7 @@
       :isEditable="false">
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('storageQuota')}}</span>
-        <span class="setting-value fixed">{{form.storageQuotaSize | dataSize}}</span>
+        <span class="setting-value fixed">{{form.storage_quota_size | dataSize}}</span>
         <div class="setting-desc">{{$t('storageQuotaDesc')}}</div>
       </div>
       <div class="setting-item">
@@ -33,13 +33,14 @@
         <span class="setting-value fixed">
           <el-switch
             class="ksd-switch"
-            v-model="form.isCheckStorageGarbage"
+            v-model="form.storage_garbage"
             :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')">
+            :inactive-text="$t('kylinLang.common.ON')"
+            @input="value => handleSwitch('pushdown-engine', value)">
           </el-switch>
         </span>
         <div class="setting-desc large"
-          :class="{ disabled: !form.isCheckStorageGarbage }">
+          :class="{ disabled: !form.storage_garbage }">
           {{$t('storageGarbageDesc1')}}
           <b>5</b>
           {{$t('storageGarbageDesc1')}}
@@ -51,25 +52,27 @@
       :headerContent="$t('pushdownSettings')"
       :isEditable="false">
       <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('pushdownEngin')}}</span>
+        <span class="setting-label font-medium">{{$t('pushdownEngine')}}</span>
         <span class="setting-value fixed">
           <el-switch
             class="ksd-switch"
-            v-model="form.isPushdownEngine"
+            v-model="form.push_down_enabled"
             :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')">
+            :inactive-text="$t('kylinLang.common.ON')"
+            @input="value => handleSwitch('pushdown-engine', value)">
           </el-switch>
         </span>
-        <div class="setting-desc">{{$t('pushdownEnginDesc')}}</div>
+        <div class="setting-desc">{{$t('pushdownEngineDesc')}}</div>
       </div>
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('pushdownRange')}}</span>
         <span class="setting-value fixed">
           <el-switch
             class="ksd-switch"
-            v-model="form.isPushdownRange"
+            v-model="form.push_down_range_limited"
             :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')">
+            :inactive-text="$t('kylinLang.common.ON')"
+            @input="value => handleSwitch('pushdown-range', value)">
           </el-switch>
         </span>
         <div class="setting-desc">{{$t('pushdownRangeDesc')}}</div>
@@ -78,25 +81,26 @@
 
     <EditableBlock
       :headerContent="$t('segmentSettings')"
-      @submit="handleSubmitSegmentSettings"
-      @cancel="handleCancelSegmentSettings">
+      @submit="(scb, ecb) => handleSubmit('segment-settings', scb, ecb)"
+      @cancel="() => handleReset('segment-settings')">
       <div class="setting-item">
         <span class="setting-label font-medium">{{$t('segmentMerge')}}</span>
         <span class="setting-value fixed">
           <el-switch
             class="ksd-switch"
-            v-model="form.isSegmentMerge"
+            :value="project.auto_merge_enabled"
             :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')">
+            :inactive-text="$t('kylinLang.common.ON')"
+            @input="value => handleSwitch('auto-merge', value)">
           </el-switch>
         </span>
         <div class="setting-desc">{{$t('segmentMergeDesc')}}</div>
-        <div class="field-item" :class="{ disabled: !form.isSegmentMerge }">
+        <div class="field-item" :class="{ disabled: !project.auto_merge_enabled }">
           <span class="setting-label font-medium">{{$t('autoMerge')}}</span>
           <span class="setting-value">
-            {{form.autoMergeConfigs.map(autoMergeConfig => $t(autoMergeConfig)).join(', ')}}
+            {{form.auto_merge_time_ranges.map(autoMergeConfig => $t(autoMergeConfig)).join(', ')}}
           </span>
-          <el-checkbox-group class="setting-input" v-model="form.autoMergeConfigs">
+          <el-checkbox-group class="setting-input" v-model="form.auto_merge_time_ranges">
             <el-checkbox
               v-for="autoMergeType in autoMergeTypes"
               :key="autoMergeType"
@@ -105,17 +109,50 @@
             </el-checkbox>
           </el-checkbox-group>
         </div>
-        <div class="field-item" :class="{ disabled: !form.isSegmentMerge }">
+        <div class="field-item" :class="{ disabled: !project.auto_merge_enabled }">
           <span class="setting-label font-medium">{{$t('volatile')}}</span>
           <span class="setting-value">
-            {{form.volatileConfig.value}} {{$t(form.volatileConfig.type.toLowerCase())}}
+            {{form.volatile_range.volatile_range_number}} {{$t(form.volatile_range.volatile_range_type.toLowerCase())}}
           </span>
-          <el-input class="setting-input" size="small" style="width: 100px;" v-model="form.volatileConfig.value"></el-input>
+          <el-input class="setting-input" size="small" style="width: 100px;" v-model.number="form.volatile_range.volatile_range_number"></el-input>
           <el-select
             class="setting-input"
             size="small"
             style="width: 100px;"
-            v-model="form.volatileConfig.type"
+            v-model="form.volatile_range.volatile_range_type"
+            :placeholder="$t('kylinLang.common.pleaseChoose')">
+            <el-option
+              v-for="volatileType in volatileTypes"
+              :key="volatileType"
+              :label="$t(volatileType.toLowerCase())"
+              :value="volatileType">
+            </el-option>
+          </el-select>
+        </div>
+      </div>
+      <div class="setting-item">
+        <span class="setting-label font-medium">{{$t('retentionThreshold')}}</span>
+        <span class="setting-value fixed">
+          <el-switch
+            class="ksd-switch"
+            :value="project.retention_range.retention_range_enabled"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')"
+            @input="value => handleSwitch('auto-retention', value)">
+          </el-switch>
+        </span>
+        <div class="setting-desc">{{$t('retentionThresholdDesc')}}</div>
+        <div class="field-item" :class="{ disabled: !project.retention_range.retention_range_enabled }">
+          <span class="setting-label font-medium">{{$t('retentionThreshold')}}</span>
+          <span class="setting-value">
+            {{form.retention_range.retention_range_number}} {{$t(form.retention_range.retention_range_type.toLowerCase())}}
+          </span>
+          <el-input class="setting-input" size="small" style="width: 100px;" v-model.number="form.retention_range.retention_range_number"></el-input>
+          <el-select
+            class="setting-input"
+            size="small"
+            style="width: 100px;"
+            v-model="form.retention_range.retention_range_type"
             :placeholder="$t('kylinLang.common.pleaseChoose')">
             <el-option
               v-for="volatileType in volatileTypes"
@@ -137,9 +174,8 @@ import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
 import { handleError, handleSuccessAsync } from '../../../util'
-import { projectTypeIcons, autoMergeTypes, volatileTypes } from './handler'
+import { projectTypeIcons, autoMergeTypes, volatileTypes, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
-import SegmentMerge from '../SegmentMerge/SegmentMerge.vue'
 
 @Component({
   props: {
@@ -149,13 +185,16 @@ import SegmentMerge from '../SegmentMerge/SegmentMerge.vue'
     }
   },
   components: {
-    EditableBlock,
-    SegmentMerge
+    EditableBlock
   },
   methods: {
     ...mapActions({
       updateProject: 'UPDATE_PROJECT',
-      fetchQuotaInfo: 'GET_QUOTA_INFO'
+      fetchQuotaInfo: 'GET_QUOTA_INFO',
+      updateProjectGeneralInfo: 'UPDATE_PROJECT_GENERAL_INFO',
+      updateSegmentConfig: 'UPDATE_SEGMENT_CONFIG',
+      updatePushdownConfig: 'UPDATE_PUSHDOWN_CONFIG',
+      updateStorageQuota: 'UPDATE_STORAGE_QUOTA'
     })
   },
   locales
@@ -163,47 +202,17 @@ import SegmentMerge from '../SegmentMerge/SegmentMerge.vue'
 export default class SettingBasic extends Vue {
   autoMergeTypes = autoMergeTypes
   volatileTypes = volatileTypes
-  form = {
-    isFileBased: true,
-    isSourceSampling: true,
-    isPushdownEngine: true,
-    isPushdownRange: true,
-    isSegmentMerge: true,
-    isCheckStorageGarbage: true,
-    storageQuotaSize: 0,
-    autoMergeConfigs: [ 'WEEK', 'MONTH' ],
-    volatileConfig: {
-      value: 0,
-      type: 'DAY'
-    },
-    name: '',
-    description: ''
-  }
+  retentionTypes = retentionTypes
+  form = initialFormValue
   storageQuotaSize = 0
-  get projectInfo () {
-    const name = this.project.name
-    const type = this.$t(this.project.maintain_model_type)
-    const description = this.project.description
-    const icon = projectTypeIcons[this.project.maintain_model_type]
-    return { name, type, description, icon }
-  }
-  get submitData () {
-    const { form } = this
-    const projectString = JSON.stringify(this.project)
-    const newProject = JSON.parse(projectString)
-
-    form.name && (newProject.name = form.name)
-    form.description && (newProject.description = form.description)
-
-    return {
-      name: newProject.name,
-      desc: JSON.stringify(newProject)
-    }
+  get projectIcon () {
+    return projectTypeIcons[this.project.maintain_model_type]
   }
   initForm () {
-    this.form.name = this.project.name
-    this.form.description = this.project.description
-    this.form.storageQuotaSize = this.storageQuotaSize
+    this.handleReset('basic-info')
+    this.handleReset('segment-settings')
+    this.handleReset('pushdown-settings')
+    this.handleReset('storage-quota')
   }
   async mounted () {
     await this.getQuotaInfo()
@@ -211,33 +220,79 @@ export default class SettingBasic extends Vue {
   }
   async getQuotaInfo () {
     try {
-      const res = await this.fetchQuotaInfo({project: this.project.name})
+      const res = await this.fetchQuotaInfo({project: this.project.project})
       const resData = await handleSuccessAsync(res)
       this.storageQuotaSize = resData.storage_quota_size
     } catch (e) {
       handleError(e)
     }
   }
-  async handleSubmitBasicInfo (successCallback) {
+  async handleSwitch (type, value) {
     try {
-      await this.updateProject(this.submitData)
-      successCallback()
+      switch (type) {
+        case 'auto-merge': {
+          const submitData = _getSegmentSettings(this.project)
+          submitData.auto_merge_enabled = value
+          await this.updateSegmentConfig(submitData); break
+        }
+        case 'auto-retention': {
+          const submitData = _getSegmentSettings(this.project)
+          submitData.retention_range.retention_range_enabled = value
+          await this.updateSegmentConfig(submitData); break
+        }
+        case 'pushdown-range': {
+          const submitData = _getPushdownConfig(this.project)
+          submitData.push_down_range_limited = value
+          await this.updatePushdownConfig(submitData); break
+        }
+        case 'pushdown-engine': {
+          const submitData = _getPushdownConfig(this.project)
+          submitData.push_down_enabled = value
+          await this.updatePushdownConfig(submitData); break
+        }
+        case 'storage-garbage': {
+          const submitData = _getStorageQuota(this.project)
+          submitData.storage_garbage = value
+          await this.updateStorageQuota(submitData); break
+        }
+      }
+      this.$emit('reload-setting')
     } catch (e) {
       handleError(e)
     }
   }
-  handleCancelBasicInfo () {
-    this.form.name = this.project.name
-    this.form.description = this.project.description
+  async handleSubmit (type, successCallback, errorCallback) {
+    try {
+      switch (type) {
+        case 'basic-info': {
+          const submitData = _getProjectGeneralInfo(this.form)
+          await this.updateProjectGeneralInfo(submitData); break
+        }
+        case 'segment-settings': {
+          const submitData = _getSegmentSettings(this.form, this.project)
+          await this.updateSegmentConfig(submitData); break
+        }
+      }
+      successCallback(); this.$emit('reload-setting')
+    } catch (e) {
+      errorCallback(); handleError(e)
+    }
   }
-  handleSubmitSegmentSettings (successCallback) {
-    // API
-    setTimeout(() => {
-      successCallback()
-    }, 1000)
-  }
-  handleCancelSegmentSettings () {
-    // API
+  handleReset (type) {
+    switch (type) {
+      case 'basic-info': {
+        this.form = { ...this.form, ..._getProjectGeneralInfo(this.project) }; break
+      }
+      case 'segment-settings': {
+        this.form = { ...this.form, ..._getSegmentSettings(this.project) }; break
+      }
+      case 'pushdown-settings': {
+        this.form = { ...this.form, ..._getPushdownConfig(this.project) }; break
+      }
+      case 'storage-quota': {
+        this.form = { ...this.form, ..._getStorageQuota(this.project) }; break
+      }
+    }
   }
 }
 </script>

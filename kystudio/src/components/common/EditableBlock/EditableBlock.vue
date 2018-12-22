@@ -44,7 +44,10 @@ export default class EditableBlock extends Vue {
   }
   handleSubmit () {
     this.isLoading = true
-    this.$emit('submit', this.handleSuccess)
+    this.$emit('submit', this.handleSuccess, this.handleError)
+  }
+  handleError () {
+    this.isLoading = false
   }
   handleSuccess () {
     this.isLoading = false

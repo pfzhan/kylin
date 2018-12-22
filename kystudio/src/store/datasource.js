@@ -250,9 +250,6 @@ export default {
     [types.FETCH_PUSHDOWN_CONFIG]: function ({commit}, para) {
       return api.datasource.fetchPushdownConfig(para.projectName, para.tableFullName)
     },
-    [types.UPDATE_PUSHDOWN_CONFIG]: function ({commit}, para) {
-      return api.datasource.updatePushdownConfig(para.projectName, para.tableFullName, para.isPushdownSync)
-    },
     [types.DISCARD_TABLE_MODEL]: function ({commit}, para) {
       return api.datasource.discardTableModel(para.projectName, para.modelName)
     }

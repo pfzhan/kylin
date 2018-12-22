@@ -3,27 +3,30 @@
     <header class="setting-header">
       <h1 class="font-medium">{{currentProjectData.name}}</h1>
     </header>
-    <el-tabs v-model="viewType">
-      <el-tab-pane :label="$t('basic')" :name="viewTypes.BASIC">
-        <SettingBasic :project="currentProjectData"></SettingBasic>
-      </el-tab-pane>
-      <el-tab-pane :label="$t('advanced')" :name="viewTypes.ADVANCED">
-        <SettingAdvanced></SettingAdvanced>
-      </el-tab-pane>
-      <el-tab-pane :label="$t('model')" :name="viewTypes.MODEL">
-        <SettingModel :project="currentProjectData"></SettingModel>
-      </el-tab-pane>
-    </el-tabs>
+    <section class="setting-body" v-loading="isLoading">
+      <el-tabs v-model="viewType" v-if="projectSettings">
+        <el-tab-pane :label="$t('basic')" :name="viewTypes.BASIC">
+          <SettingBasic :project="projectSettings" @reload-setting="getCurrentSettings"></SettingBasic>
+        </el-tab-pane>
+        <el-tab-pane :label="$t('advanced')" :name="viewTypes.ADVANCED">
+          <SettingAdvanced></SettingAdvanced>
+        </el-tab-pane>
+        <el-tab-pane :label="$t('model')" :name="viewTypes.MODEL">
+          <SettingModel :project="currentProjectData"></SettingModel>
+        </el-tab-pane>
+      </el-tabs>
+    </section>
   </div>
 </template>
 
 <script>
 import Vue from 'vue'
-import { mapGetters } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
 import { viewTypes } from './handler'
+import { handleError, handleSuccessAsync } from '../../util'
 import emptyImg from '../../assets/img/empty.svg'
 import SettingBasic from './SettingBasic/SettingBasic.vue'
 import SettingAdvanced from './SettingAdvanced/SettingAdvanced.vue'
@@ -34,6 +37,11 @@ import SettingModel from './SettingModel/SettingModel.vue'
     ...mapGetters([
       'currentProjectData'
     ])
+  },
+  methods: {
+    ...mapActions({
+      fetchProjectSettings: 'FETCH_PROJECT_SETTINGS'
+    })
   },
   components: {
     SettingBasic,
@@ -46,6 +54,29 @@ export default class Setting extends Vue {
   viewType = viewTypes.BASIC
   viewTypes = viewTypes
   emptyImg = emptyImg
+  isLoading = false
+  projectSettings = null
+  _showLoading () {
+    this.isLoading = true
+  }
+  _hideLoading () {
+    this.isLoading = false
+  }
+  async getCurrentSettings () {
+    this._showLoading()
+    try {
+      const projectName = this.currentProjectData.name
+      const response = await this.fetchProjectSettings({ projectName })
+      const result = await handleSuccessAsync(response)
+      this.projectSettings = result
+    } catch (e) {
+      handleError(e)
+    }
+    this._hideLoading()
+  }
+  mounted () {
+    this.getCurrentSettings()
+  }
 }
 </script>
 
