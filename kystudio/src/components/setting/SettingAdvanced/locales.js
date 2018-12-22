@@ -6,8 +6,11 @@ export default {
     accePreference: 'Acceleration Preference',
     jobAlert: 'Job Alert',
     emptyDataLoad: 'Empty Data Load',
+    emptyDataLoadDesc: 'Notify me if there is an empty data load job.',
     errorJob: 'Error Job',
-    emails: 'Emails:'
+    errorJobDesc: 'Notify me if there is a error job. ',
+    emails: 'Emails:',
+    noData: 'No Data'
   },
   'zh-cn': {
     acceThreshold: '加速阈值',
@@ -16,7 +19,10 @@ export default {
     accePreference: 'Acceleration Preference',
     jobAlert: 'Job Alert',
     emptyDataLoad: 'Empty Data Load',
+    emptyDataLoadDesc: 'Notify me if there is an empty data load job.',
     errorJob: 'Error Job',
-    emails: '邮箱：'
+    errorJobDesc: 'Notify me if there is a error job. ',
+    emails: '邮箱：',
+    noData: '暂无数据'
   }
 }

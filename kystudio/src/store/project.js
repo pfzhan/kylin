@@ -157,6 +157,12 @@ export default {
     },
     [types.UPDATE_STORAGE_QUOTA]: function ({commit}, para) {
       return api.project.updateStorageQuota(para)
+    },
+    [types.UPDATE_ACCELERATION_SETTINGS]: function ({commit}, para) {
+      return api.project.updateAccelerationSettings(para)
+    },
+    [types.UPDATE_JOB_ALERT_SETTINGS]: function ({commit}, para) {
+      return api.project.updateJobAlertSettings(para)
     }
   },
   getters: {

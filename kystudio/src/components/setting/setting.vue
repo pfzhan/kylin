@@ -9,7 +9,7 @@
           <SettingBasic :project="projectSettings" @reload-setting="getCurrentSettings"></SettingBasic>
         </el-tab-pane>
         <el-tab-pane :label="$t('advanced')" :name="viewTypes.ADVANCED">
-          <SettingAdvanced></SettingAdvanced>
+          <SettingAdvanced :project="projectSettings" @reload-setting="getCurrentSettings"></SettingAdvanced>
         </el-tab-pane>
         <el-tab-pane :label="$t('model')" :name="viewTypes.MODEL">
           <SettingModel :project="currentProjectData"></SettingModel>

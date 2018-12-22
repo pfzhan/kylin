@@ -61,7 +61,8 @@ export function _getSegmentSettings (data, project) {
     },
     retention_range: {
       ...data.retention_range,
-      retention_range_enabled: project ? project.retention_range.retention_range_enabled : data.retention_range.retention_range_enabled
+      retention_range_enabled: project ? project.retention_range.retention_range_enabled : data.retention_range.retention_range_enabled,
+      retention_range_type: data.auto_merge_time_ranges[data.auto_merge_time_ranges.length - 1]
     }
   }
 }

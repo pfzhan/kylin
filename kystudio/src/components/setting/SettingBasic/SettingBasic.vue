@@ -1,5 +1,6 @@
 <template>
   <div class="basic-setting">
+    <!-- 项目基本设置 -->
     <EditableBlock
       :headerContent="$t('basicInfo')"
       @submit="(scb, ecb) => handleSubmit('basic-info', scb, ecb)"
@@ -19,7 +20,7 @@
         <el-input class="setting-input" type="textarea" size="small" v-model="form.description"></el-input>
       </div>
     </EditableBlock>
-
+    <!-- 项目存储设置 -->
     <EditableBlock
       :headerContent="$t('storageSettings')"
       :isEditable="false">
@@ -47,7 +48,7 @@
         </div>
       </div>
     </EditableBlock>
-
+    <!-- 下压查询设置 -->
     <EditableBlock
       :headerContent="$t('pushdownSettings')"
       :isEditable="false">
@@ -78,7 +79,7 @@
         <div class="setting-desc">{{$t('pushdownRangeDesc')}}</div>
       </div>
     </EditableBlock>
-
+    <!-- Segment设置 -->
     <EditableBlock
       :headerContent="$t('segmentSettings')"
       @submit="(scb, ecb) => handleSubmit('segment-settings', scb, ecb)"
@@ -148,19 +149,7 @@
             {{form.retention_range.retention_range_number}} {{$t(form.retention_range.retention_range_type.toLowerCase())}}
           </span>
           <el-input class="setting-input" size="small" style="width: 100px;" v-model.number="form.retention_range.retention_range_number"></el-input>
-          <el-select
-            class="setting-input"
-            size="small"
-            style="width: 100px;"
-            v-model="form.retention_range.retention_range_type"
-            :placeholder="$t('kylinLang.common.pleaseChoose')">
-            <el-option
-              v-for="volatileType in volatileTypes"
-              :key="volatileType"
-              :label="$t(volatileType.toLowerCase())"
-              :value="volatileType">
-            </el-option>
-          </el-select>
+          <span class="setting-input">{{$t(form.auto_merge_time_ranges[form.auto_merge_time_ranges.length - 1].toLowerCase())}}</span>
         </div>
       </div>
     </EditableBlock>
@@ -173,7 +162,7 @@ import { mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
-import { handleError, handleSuccessAsync } from '../../../util'
+import { handleError } from '../../../util'
 import { projectTypeIcons, autoMergeTypes, volatileTypes, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 
@@ -189,8 +178,6 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
   },
   methods: {
     ...mapActions({
-      updateProject: 'UPDATE_PROJECT',
-      fetchQuotaInfo: 'GET_QUOTA_INFO',
       updateProjectGeneralInfo: 'UPDATE_PROJECT_GENERAL_INFO',
       updateSegmentConfig: 'UPDATE_SEGMENT_CONFIG',
       updatePushdownConfig: 'UPDATE_PUSHDOWN_CONFIG',
@@ -215,17 +202,7 @@ export default class SettingBasic extends Vue {
     this.handleReset('storage-quota')
   }
   async mounted () {
-    await this.getQuotaInfo()
     this.initForm()
-  }
-  async getQuotaInfo () {
-    try {
-      const res = await this.fetchQuotaInfo({project: this.project.project})
-      const resData = await handleSuccessAsync(res)
-      this.storageQuotaSize = resData.storage_quota_size
-    } catch (e) {
-      handleError(e)
-    }
   }
   async handleSwitch (type, value) {
     try {

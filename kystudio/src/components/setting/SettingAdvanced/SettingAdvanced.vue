@@ -1,59 +1,109 @@
 <template>
   <div class="accelerate-setting">
+    <!-- 加速设置 -->
     <EditableBlock
       :headerContent="$t('accePreference')"
-      @submit="savePreferrence"
-      @cancel="handleCancelPreferrence">
+      @submit="(scb, ecb) => handleSubmit('accelerate-settings', scb, ecb)"
+      @cancel="() => handleReset('accelerate-settings')">
       <div class="setting-item">
-        <span class="ky-list-title">{{$t('acceThreshold')}}</span>
-        <el-switch class="ksd-switch" v-model="preSettingObj.batch_enabled" :active-text="$t('kylinLang.common.ON')" :inactive-text="$t('kylinLang.common.OFF')" @change="savePreferrence"></el-switch>
-        <div class="setting-inner" :class="{'disabled': !preSettingObj.batch_enabled}">
-          <span>{{$t('notifyLeftTips')}}</span>
-          <span class="setting-value ksd-fs-14 font-medium setting-input">{{preFormValue}}</span>
-          <el-input size="small" @input="handleInputChange" class="acce-input" :disabled="!preSettingObj.batch_enabled" v-model="preSettingObj.threshold"></el-input>
-          <span>{{$t('notifyRightTips')}}</span>
+        <div class="setting-label font-medium">{{$t('acceThreshold')}}</div>
+        <span class="setting-value fixed">
+          <el-switch
+            class="ksd-switch"
+            :value="project.batch_enabled"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')"
+            @input="value => handleSwitch('auto-merge', value)">
+          </el-switch>
+        </span>
+        <div class="setting-desc large"
+           :class="{'disabled': !project.batch_enabled }">
+          {{$t('notifyLeftTips')}}
+          <b class="setting-value">{{project.threshold}}</b>
+          <el-input
+            size="small"
+            class="acce-input setting-input"
+            :disabled="!project.batch_enabled"
+            v-model.number="form.threshold">
+          </el-input>
+          {{$t('notifyRightTips')}}
         </div>
       </div>
     </EditableBlock>
+    <!-- 任务邮件通知设置 -->
     <EditableBlock
       :headerContent="$t('jobAlert')"
-      @submit="saveJobNotice"
-      @cancel="handleCancelJobNotice">
+      @submit="(scb, ecb) => handleSubmit('job-alert', scb, ecb)"
+      @cancel="() => handleReset('job-alert')">
+      <!-- 空任务邮件通知 -->
       <div class="setting-item">
-        <span class="ky-list-title">{{$t('emptyDataLoad')}}</span>
-        <el-switch class="ksd-switch" v-model="jobNoticeObj.emptyLoad" :active-text="$t('kylinLang.common.ON')" :inactive-text="$t('kylinLang.common.OFF')"></el-switch>
-        <p class="desc">Notify me if there is an empty data load job.</p>
-        <div class="ksd-mt-10 setting-inner setting-value" :class="{'disabled': !jobNoticeObj.emptyLoad}">
-          <span class="ky-list-title">{{$t('emails')}}</span>
-          <span class="notice-email" v-for="e in jobNoticeObj.emptyNoticeEmails" :key="e">{{e}}</span>
+        <span class="setting-label font-medium">{{$t('emptyDataLoad')}}</span>
+        <span class="setting-value fixed">
+          <el-switch
+            class="ksd-switch"
+            v-model="project.data_load_empty_notification_enabled"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')"
+            @input="value => handleSwitch('enable-empty-job-alert', value)">
+          </el-switch>
+        </span>
+        <div class="setting-desc">{{$t('emptyDataLoadDesc')}}</div>
+        <div class="field-item">
+          <span class="setting-value">
+            <span class="setting-label font-medium">{{$t('emails')}}</span>
+            <template v-for="(email, index) in form.data_load_empty_notification_emails">
+              <span class="notice-email" v-if="email" :key="index">{{email}}</span>
+              <span v-else-if="index === 0 && !email" :key="index">{{$t('noData')}}</span>
+            </template>
+          </span>
+          <div class="setting-input">
+            <el-form ref="empty-job-alert" :model="form" size="small">
+              <div class="item-value" v-for="(email, index) in form.data_load_empty_notification_emails" :key="index">
+                <span class="setting-label font-medium email-fix-top">{{$t('emails')}}</span>
+                <el-form-item :prop="`data_load_empty_notification_emails.${index}`" :rules="validator">
+                  <el-input v-model="form.data_load_empty_notification_emails[index]"></el-input>
+                  <el-button icon="el-icon-plus" circle size="mini" @click="handleAddItem('data_load_empty_notification_emails', index)"></el-button>
+                  <el-button icon="el-icon-minus" circle size="mini" @click="handleRemoveItem('data_load_empty_notification_emails', index)"></el-button>
+                </el-form-item>
+              </div>
+            </el-form>
+          </div>
         </div>
-        <el-form ref="form" :model="jobNoticeForm" size="medium" label-width="42px" class="edit-form setting-input">
-          <el-form-item :label="$t('emails')">
-            <el-row class="item-value" v-for="(e, index) in jobNoticeForm.emptyNoticeEmails" :key="e">
-              <el-input :value="e" @input="val => handleInput(`emptyNoticeEmails.${index}`, val)" class="ksd-inline"></el-input>
-              <el-button icon="el-icon-plus" circle size="mini" class="ksd-ml-10" @click="addNoticeEmail"></el-button>
-              <el-button icon="el-icon-minus" circle size="mini" class="ksd-ml-2" :disabled="jobNoticeForm.emptyNoticeEmails.length==1" @click="removeNoticeEmail(index)"></el-button>
-            </el-row>
-          </el-form-item>
-        </el-form>
       </div>
+      <!-- 报错任务邮件通知 -->
       <div class="setting-item">
-        <span class="ky-list-title">{{$t('errorJob')}}</span>
-        <el-switch class="ksd-switch" v-model="jobNoticeObj.errorJob" :active-text="$t('kylinLang.common.ON')" :inactive-text="$t('kylinLang.common.OFF')"></el-switch>
-        <p class="desc">Notify me if there is a error job. </p>
-        <div class="ksd-mt-10 setting-inner setting-value" :class="{'disabled': !jobNoticeObj.errorJob}">
-          <span class="ky-list-title">{{$t('emails')}}</span>
-          <span class="notice-email" v-for="e in jobNoticeObj.errorNoticeEmails" :key="e">{{e}}</span>
+        <span class="setting-label font-medium">{{$t('errorJob')}}</span>
+        <span class="setting-value fixed">
+          <el-switch
+            class="ksd-switch"
+            v-model="project.job_error_notification_enabled"
+            :active-text="$t('kylinLang.common.OFF')"
+            :inactive-text="$t('kylinLang.common.ON')"
+            @input="value => handleSwitch('enable-empty-job-alert', value)">
+          </el-switch>
+        </span>
+        <div class="setting-desc">{{$t('errorJobDesc')}}</div>
+        <div class="field-item">
+          <span class="setting-value">
+            <span class="setting-label font-medium">{{$t('emails')}}</span>
+            <template v-for="(email, index) in form.job_error_notification_emails">
+              <span class="notice-email" v-if="email" :key="index">{{email}}</span>
+              <span v-else-if="index === 0 && !email" :key="index">{{$t('noData')}}</span>
+            </template>
+          </span>
+          <div class="setting-input">
+            <el-form ref="error-job-alert" :model="form" size="small">
+              <div class="item-value" v-for="(email, index) in form.job_error_notification_emails" :key="index">
+                <span class="setting-label font-medium email-fix-top">{{$t('emails')}}</span>
+                <el-form-item :prop="`job_error_notification_emails.${index}`" :rules="validator">
+                  <el-input v-model="form.job_error_notification_emails[index]"></el-input>
+                  <el-button icon="el-icon-plus" circle size="mini" @click="handleAddItem('job_error_notification_emails', index)"></el-button>
+                  <el-button icon="el-icon-minus" circle size="mini" @click="handleRemoveItem('job_error_notification_emails', index)"></el-button>
+                </el-form-item>
+              </div>
+            </el-form>
+          </div>
         </div>
-        <el-form ref="form" :model="jobNoticeForm" size="medium" label-width="42px" class="edit-form setting-input">
-          <el-form-item :label="$t('emails')">
-            <el-row class="item-value" v-for="(e, index) in jobNoticeForm.errorNoticeEmails" :key="e">
-              <el-input :value="e" @input="val => handleInput(`errorNoticeEmails.${index}`, val)" class="ksd-inline"></el-input>
-              <el-button icon="el-icon-plus" circle size="mini" class="ksd-ml-10" @click="addErrorNoticeEmail"></el-button>
-              <el-button icon="el-icon-minus" circle size="mini" class="ksd-ml-2" :disabled="jobNoticeForm.errorNoticeEmails.length==1" @click="removeErrorNoticeEmail(index)"></el-button>
-            </el-row>
-          </el-form-item>
-        </el-form>
       </div>
     </EditableBlock>
   </div>
@@ -65,15 +115,20 @@ import locales from './locales'
 import { mapActions, mapGetters } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
-import { handleError, objectClone } from '../../../util'
-import { handleSuccess } from '../../../util/business'
-import { set } from '../../../util/object'
+import { handleError } from '../../../util'
+import { _getAccelerationSettings, _getJobAlertSettings } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 @Component({
+  props: {
+    project: {
+      type: Object,
+      default: () => ({})
+    }
+  },
   methods: {
     ...mapActions({
-      getPreferrence: 'GET_PREFERRENCE',
-      updatePreferrence: 'UPDATE_PREFERRENCE'
+      updateAccelerationSettings: 'UPDATE_ACCELERATION_SETTINGS',
+      updateJobAlertSettings: 'UPDATE_JOB_ALERT_SETTINGS'
     })
   },
   components: {
@@ -86,88 +141,93 @@ import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
   },
   locales
 })
-
-export default class SettingAccelerate extends Vue {
-  preSettingObj = {
+export default class SettingAdvanced extends Vue {
+  form = {
+    project: '',
+    auto_apply: false,
     batch_enabled: true,
-    threshold: 20
+    threshold: 20,
+    job_error_notification_emails: [],
+    job_error_notification_enabled: true,
+    data_load_empty_notification_enabled: true,
+    data_load_empty_notification_emails: []
   }
-  preFormValue = 20
-  jobNoticeObj = {
-    emptyLoad: true,
-    emptyNoticeEmails: ['notice@kyligence.io', 'notice@kyligence.io'],
-    errorJob: false,
-    errorNoticeEmails: ['notice@kyligence.io', 'notice@kyligence.io']
+  validator = [
+    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
+    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
+  ]
+  mounted () {
+    this.initForm()
   }
-  jobNoticeForm = {
-    emptyNoticeEmails: ['notice@kyligence.io', 'notice@kyligence.io'],
-    errorNoticeEmails: ['notice@kyligence.io', 'notice@kyligence.io']
+  initForm () {
+    this.handleReset('accelerate-settings')
+    this.handleReset('job-alert')
   }
-
-  handleInput (key, value) {
-    const newValue = set(this.jobNoticeForm, key, value)
-    this.$emit('input', newValue)
+  async handleSwitch (type, value) {
+    try {
+      switch (type) {
+        case 'auto-merge': {
+          const submitData = _getAccelerationSettings(this.project)
+          submitData.batch_enabled = value
+          await this.updateAccelerationSettings(submitData); break
+        }
+        case 'enable-empty-job-alert': {
+          const submitData = _getJobAlertSettings(this.project)
+          submitData.data_load_empty_notification_enabled = value
+          await this.updateJobAlertSettings(submitData); break
+        }
+        case 'enable-error-job-alert': {
+          const submitData = _getJobAlertSettings(this.project)
+          submitData.job_error_notification_enabled = value
+          await this.updateJobAlertSettings(submitData); break
+        }
+      }
+      this.$emit('reload-setting')
+    } catch (e) {
+      handleError(e)
+    }
   }
-
-  handleInputChange (value) {
-    this.$nextTick(() => {
-      this.preSettingObj.threshold = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
-    })
-    clearTimeout(this.timer)
-    this.timer = setTimeout(() => {
-      this.savePreferrence()
-    }, 500)
+  handleReset (type) {
+    switch (type) {
+      case 'accelerate-settings': {
+        this.form = { ...this.form, ..._getAccelerationSettings(this.project) }; break
+      }
+      case 'job-alert': {
+        this.form = { ...this.form, ..._getJobAlertSettings(this.project, true) }; break
+      }
+    }
   }
-
-  savePreferrence (successCallback) {
-    this.preSettingObj['project'] = this.currentSelectedProject
-    this.preSettingObj.threshold = this.preFormValue
-    this.updatePreferrence(this.preSettingObj).then((res) => {
-      successCallback()
-    }, (res) => {
-      handleError(res)
-    })
+  async handleSubmit (type, successCallback, errorCallback) {
+    try {
+      let isVaild = true
+      switch (type) {
+        case 'accelerate-settings': {
+          const submitData = _getAccelerationSettings(this.form)
+          await this.updateAccelerationSettings(submitData); break
+        }
+        case 'job-alert': {
+          const submitData = _getJobAlertSettings(this.form)
+          const isVaild1 = await this.$refs['empty-job-alert'].validate()
+          const isVaild2 = await this.$refs['error-job-alert'].validate()
+          isVaild = isVaild1 && isVaild2
+          isVaild && await this.updateJobAlertSettings(submitData); break
+        }
+      }
+      if (isVaild) {
+        successCallback(); this.$emit('reload-setting')
+      } else {
+        errorCallback()
+      }
+    } catch (e) {
+      errorCallback(); handleError(e)
+    }
   }
-  handleCancelPreferrence () {
-    this.initPreferrence()
+  handleAddItem (key, index) {
+    this.form[key].splice(index + 1, 0, '')
   }
-  initPreferrence () {
-    this.preFormValue = this.preSettingObj.threshold
-  }
-  saveJobNotice (successCallback) {
-    this.jobNoticeObj.emptyNoticeEmails = objectClone(this.jobNoticeForm.emptyNoticeEmails)
-    this.jobNoticeObj.errorNoticeEmails = objectClone(this.jobNoticeForm.errorNoticeEmails)
-    successCallback()
-  }
-  handleCancelJobNotice () {
-    this.initJobNotice()
-  }
-  initJobNotice () {
-    this.jobNoticeForm.emptyNoticeEmails = objectClone(this.jobNoticeObj.emptyNoticeEmails)
-    this.jobNoticeForm.errorNoticeEmails = objectClone(this.jobNoticeObj.errorNoticeEmails)
-  }
-  addNoticeEmail () {
-    this.jobNoticeForm.emptyNoticeEmails.push('')
-  }
-  removeNoticeEmail (index) {
-    this.jobNoticeForm.emptyNoticeEmails.splice(index, 1)
-  }
-  addErrorNoticeEmail () {
-    this.jobNoticeForm.errorNoticeEmails.push('')
-  }
-  removeErrorNoticeEmail (index) {
-    this.jobNoticeForm.errorNoticeEmails.splice(index, 1)
-  }
-  created () {
-    if (this.currentSelectedProject) {
-      this.getPreferrence({project: this.currentSelectedProject}).then((res) => {
-        handleSuccess(res, (data) => {
-          this.preSettingObj = data
-          this.initPreferrence()
-        })
-      }, (res) => {
-        handleError(res)
-      })
+  handleRemoveItem (key, index) {
+    if (this.form[key].length > 1) {
+      this.form[key].splice(index, 1)
     }
   }
 }
@@ -175,57 +235,44 @@ export default class SettingAccelerate extends Vue {
 
 <style lang="less">
 @import '../../../assets/styles/variables.less';
-  .accelerate-setting {
-    padding: 5px 0;
-    .editable-block {
-      padding: 0;
-      .ksd-switch {
-        transform: scale(0.8);
-        margin-left: 5px;
-      }
-      .desc {
-        font-size: 12px;
-        color: @text-normal-color;
-        line-height: 16px;
-        margin-top: 5px;
-      }
-      .notice-email {
-        font-size: 14px;
-        color: @text-title-color;
-        line-height: 18px;
-        background-color: @grey-4;
-        margin-right: 10px;
-      }
-      .setting-inner {
-        margin-top: 10px;
-        font-size: 14px;
-        color: @text-title-color;
-        &.disabled,
-        &.disabled span {
-          color: @text-disabled-color;
-        }
-      }
-      .acce-input {
-        width: 64px;
-        .el-input__inner {
-          text-align: right;
-        }
-      }
-      .edit-form {
-        width: 25%;
-        .el-form-item {
-          margin-bottom: 0;
-          .el-form-item__label {
-            padding: 0;
-            text-align: left;
-            color: @text-title-color;
-            font-weight: 500;
-          }
-          .el-input {
-            width: 80%;
-          }
-        }
-      }
-    }
+.accelerate-setting {
+  .item-value .el-input {
+    width: 200px;
   }
+  .notice-email {
+    font-size: 14px;
+    color: @text-title-color;
+    line-height: 18px;
+    background-color: @grey-4;
+    margin-right: 10px;
+  }
+  .item-value .el-button {
+    margin-left: 10px;
+  }
+  .item-value .el-button+.el-button {
+    margin-left: 2px;
+  }
+  .item-value {
+    margin-bottom: 5px;
+  }
+  .item-value:not(:first-child) .setting-label {
+    visibility: hidden;
+  }
+  .acce-input {
+    width: 64px;
+  }
+  .el-form-item {
+    margin-bottom: 0;
+    display: inline-block;
+  }
+  .ksd-switch {
+    transform: scale(0.8);
+    transform-origin: left;
+  }
+  .email-fix-top {
+    position: relative;
+    top: 7px;
+    vertical-align: top;
+  }
+}
 </style>

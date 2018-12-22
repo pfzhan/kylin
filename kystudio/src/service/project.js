@@ -75,5 +75,11 @@ export default {
   },
   updateStorageQuota (body) {
     return Vue.resource(apiUrl + 'projects/storage_quota').update(body)
+  },
+  updateAccelerationSettings (body) {
+    return Vue.resource(apiUrl + 'projects/query_accelerate_threshold').update(body)
+  },
+  updateJobAlertSettings (body) {
+    return Vue.resource(apiUrl + 'projects/job_notification_config').update(body)
   }
 }
