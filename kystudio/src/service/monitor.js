@@ -34,5 +34,14 @@ export default {
   },
   removeJob: (para) => {
     return Vue.resource(apiUrl + 'jobs/' + para.project + '{?jobIds}').delete(para)
+  },
+  loadDashboardJobInfo: (para) => {
+    return Vue.resource(apiUrl + 'jobs/statistics').get(para)
+  },
+  loadJobChartData: (para) => {
+    return Vue.resource(apiUrl + 'jobs/statistics/count').get(para)
+  },
+  loadJobBulidChartData: (para) => {
+    return Vue.resource(apiUrl + 'jobs/statistics/duration_per_mb').get(para)
   }
 }

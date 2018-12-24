@@ -27,6 +27,15 @@ export default {
     },
     [types.REMOVE_JOB]: function ({ commit }, para) {
       return api.monitor.removeJob(para)
+    },
+    [types.LOAD_DASHBOARD_JOB_INFO]: function ({ commit }, para) {
+      return api.monitor.loadDashboardJobInfo(para)
+    },
+    [types.LOAD_JOB_CHART_DATA]: function ({ commit }, para) {
+      return api.monitor.loadJobChartData(para)
+    },
+    [types.LOAD_JOB_BULID_CHART_DATA]: function ({ commit }, para) {
+      return api.monitor.loadJobBulidChartData(para)
     }
   },
   getters: {}

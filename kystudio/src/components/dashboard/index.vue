@@ -64,7 +64,7 @@
         <div class="dash-card">
           <div class="cart-title clearfix">
             <span>{{$t('acceImpact')}}</span>
-            <el-button plain size="mini" class="ksd-fright">{{$t('ruleSetting')}}</el-button>
+            <!-- <el-button plain size="mini" class="ksd-fright">{{$t('ruleSetting')}}</el-button> -->
           </div>
           <svg id="ruleImpact" width="100%" height="168" class="ksd-mt-20"></svg>
         </div>
@@ -92,7 +92,7 @@
             <div class="content">
               <span class="num">{{queryCount}}</span>
             </div>
-            <el-button type="primary" plain size="mini">{{$t('viewDetail')}}</el-button>
+            <el-button type="primary" plain size="mini" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
           </div>
         </div>
       </el-col>
@@ -104,7 +104,7 @@
               <span class="num">{{queryMean}}</span>
               <span class="unit">sec</span>
             </div>
-            <el-button type="primary" plain size="mini">{{$t('viewDetail')}}</el-button>
+            <el-button type="primary" plain size="mini" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
           </div>
         </div>
       </el-col>
@@ -113,9 +113,9 @@
           <div class="inner-card">
             <div class="cart-title">{{$t('jobCount')}}</div>
             <div class="content">
-              <span class="num">5</span>
+              <span class="num">{{jobCount}}</span>
             </div>
-            <el-button type="primary" plain size="mini">{{$t('viewDetail')}}</el-button>
+            <el-button type="primary" plain size="mini" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
           </div>
         </div>
       </el-col>
@@ -124,10 +124,10 @@
           <div class="inner-card">
             <div class="cart-title">{{$t('avgBulidTime')}}</div>
             <div class="content">
-              <span class="num">11.81</span>
+              <span class="num">{{avgBulidTime}}</span>
               <span class="unit">sec</span>
             </div>
-            <el-button type="primary" plain size="mini">{{$t('viewDetail')}}</el-button>
+            <el-button type="primary" plain size="mini" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
           </div>
         </div>
       </el-col>
@@ -187,7 +187,10 @@ import LineChart from './LineChart'
       clearTrash: 'CLEAR_TRASH',
       loadDashboardQueryInfo: 'LOAD_DASHBOARD_QUERY_INFO',
       loadQueryChartData: 'LOAD_QUERY_CHART_DATA',
-      loadQueryDuraChartData: 'LOAD_QUERY_DURA_CHART_DATA'
+      loadQueryDuraChartData: 'LOAD_QUERY_DURA_CHART_DATA',
+      loadDashboardJobInfo: 'LOAD_DASHBOARD_JOB_INFO',
+      loadJobChartData: 'LOAD_JOB_CHART_DATA',
+      loadJobBulidChartData: 'LOAD_JOB_BULID_CHART_DATA'
     })
   },
   components: {
@@ -201,8 +204,8 @@ import LineChart from './LineChart'
     ])
   },
   locales: {
-    'en': {storageQuota: 'Storage Quota', acceImpact: 'Acceleration Impact', ruleSetting: 'Rules Setting', totalStorage: 'Total Storage', useageMana: 'Useage Manage', trash: 'Trash', clear: 'Clear', queryCount: 'Query Count', viewDetail: 'View Detail', avgQueryLatency: 'Avg. Query Latency', jobCount: 'Job Count', avgBulidTime: 'Avg Build Time Per MB', queryByModel: '{type} by Model', queryByDay: '{type} by {unit}', queryByIndex: '{type} by Index', lastWeek: 'Last Week', lastMonth: 'Last Month', thisMonth: 'This Month', day: 'Day', week: 'Week', month: 'Month'},
-    'zh-cn': {storageQuota: '储存配额', acceImpact: '加速规则影响力', ruleSetting: '规则设置', totalStorage: '总储存容量', useageMana: '占用资源管理', trash: '系统垃圾', clear: '清除垃圾', queryCount: '查询次数', viewDetail: '查看详情', avgQueryLatency: '平均查询延迟', jobCount: '任务次数', avgBulidTime: '每兆平均构建时间', queryByModel: '以模型{type}', queryByDay: '以{unit}{type}', queryByIndex: '以索引{type}', lastWeek: '最近一周', lastMonth: '上个月', thisMonth: '当前月', day: '天', week: '周', month: '月'}
+    'en': {storageQuota: 'Storage Quota', acceImpact: 'Acceleration Impact', ruleSetting: 'Rules Setting', totalStorage: 'Total Storage', useageMana: 'Useage Manage', trash: 'Trash', clear: 'Clear', queryCount: 'Query Count', viewDetail: 'View Detail', avgQueryLatency: 'Avg. Query Latency', jobCount: 'Job Count', avgBulidTime: 'Avg. Build Time Per MB', queryByModel: '{type} by Model', queryByDay: '{type} by {unit}', queryByIndex: '{type} by Index', lastWeek: 'Last Week', lastMonth: 'Last Month', thisMonth: 'This Month', day: 'Day', week: 'Week', month: 'Month'},
+    'zh-cn': {storageQuota: '储存配额', acceImpact: '加速规则影响力', ruleSetting: '规则设置', totalStorage: '总储存容量', useageMana: '占用资源管理', trash: '系统垃圾', clear: '清除垃圾', queryCount: '查询次数', viewDetail: '查看详情', avgQueryLatency: '平均查询延迟', jobCount: '任务次数', avgBulidTime: '每兆数据构建平均时间', queryByModel: '以模型{type}', queryByDay: '以{unit}{type}', queryByIndex: '以索引{type}', lastWeek: '最近一周', lastMonth: '上个月', thisMonth: '当前月', day: '天', week: '周', month: '月'}
   }
 })
 export default class Dashboard extends Vue {
@@ -220,32 +223,24 @@ export default class Dashboard extends Vue {
   popoverVisible = false
   queryCount = 0
   queryMean = 0
+  jobCount = 0
+  avgBulidTime = 0
   quotaHeight = 170
   showQueryChart = true
   showLatencyChart = false
   showJobChart = false
   showBulidChart = false
   chartTitle = this.$t('queryCount')
-  barChartData = {
-    customer_cube_hbase_spark: 6,
-    customer_vorder_cube_hbase_MR: 6,
-    lineitem_cube_hbase_MR: 1175,
-    partsupp_cube_hbase_spark: 8,
-    partsupp_cube_hbase_spark2: 18,
-    partsupp_cube_hbase_spark3: 28
-  }
-  lineChartDara = {
-    '2018-12-11': 0,
-    '2018-12-12': 0,
-    '2018-12-13': 0,
-    '2018-12-14': 0,
-    '2018-12-15': 0,
-    '2018-12-16': 35,
-    '2018-12-17': 1,
-    '2018-12-18': 3
-  }
+  barChartData = {}
+  lineChartDara = {}
   dateUnit = 'day'
   unitOptions = ['day', 'week', 'month']
+  gotoQueryHistory () {
+    this.$router.push('/query/query_history')
+  }
+  gotoJoblist () {
+    this.$router.push('/monitor/job')
+  }
   resetShow () {
     this.showQueryChart = false
     this.showLatencyChart = false
@@ -257,6 +252,10 @@ export default class Dashboard extends Vue {
       this.getQueryLineChartData()
     } else if (this.showLatencyChart) {
       this.getQueryDuraLineChartData()
+    } else if (this.showJobChart) {
+      this.getJobLineChartData()
+    } else if (this.showBulidChart) {
+      this.getJobBulidLineChartData()
     }
   }
   @Watch('daterange')
@@ -267,6 +266,12 @@ export default class Dashboard extends Vue {
     } else if (this.showLatencyChart) {
       this.getQueryDuraBarChartData()
       this.getQueryDuraLineChartData()
+    } else if (this.showJobChart) {
+      this.getJobBarChartData()
+      this.getJobLineChartData()
+    } else if (this.showBulidChart) {
+      this.getJobBulidBarChartData()
+      this.getJobBulidLineChartData()
     }
   }
   loadQueryChart () {
@@ -313,11 +318,41 @@ export default class Dashboard extends Vue {
     this.resetShow()
     this.showJobChart = true
     this.chartTitle = this.$t('jobCount')
+    this.getJobBarChartData()
+    this.getJobLineChartData()
+  }
+  async getJobBarChartData () {
+    const res = await this.loadJobChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: 'model'})
+    const resData = await handleSuccessAsync(res)
+    this.barChartData = resData
+  }
+  async getJobLineChartData () {
+    const resLine = await this.loadJobChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: this.dateUnit})
+    const resDataLine = await handleSuccessAsync(resLine)
+    this.lineChartDara = resDataLine
   }
   loadBulidChart () {
     this.resetShow()
     this.showBulidChart = true
     this.chartTitle = this.$t('avgBulidTime')
+    this.getJobBulidBarChartData()
+    this.getJobBulidLineChartData()
+  }
+  async getJobBulidBarChartData () {
+    const res = await this.loadJobBulidChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: 'model'})
+    const resData = await handleSuccessAsync(res)
+    Object.keys(resData).forEach(k => {
+      resData[k] = resData[k] / 1000
+    })
+    this.barChartData = resData
+  }
+  async getJobBulidLineChartData () {
+    const resLine = await this.loadJobBulidChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: this.dateUnit})
+    const resDataLine = await handleSuccessAsync(resLine)
+    Object.keys(resDataLine).forEach(k => {
+      resDataLine[k] = (resDataLine[k] / 1000).toFixed(2)
+    })
+    this.lineChartDara = resDataLine
   }
   drawImpactChart () {
     $(this.$el.querySelector('#ruleImpact')).empty()
@@ -435,7 +470,7 @@ export default class Dashboard extends Vue {
     if (this.currentSelectedProject) {
       this.loadRuleImpactRatio()
       this.loadQuotaInfo()
-      this.loadQueryInfo()
+      this.loadDashInfo()
       this.loadQueryChart()
     }
   }
@@ -460,11 +495,15 @@ export default class Dashboard extends Vue {
       handleError(res)
     })
   }
-  async loadQueryInfo () {
-    const res = await this.loadDashboardQueryInfo({project: this.currentSelectedProject, start_time: this.daterange[0], end_time: this.daterange[1]})
+  async loadDashInfo () {
+    const res = await this.loadDashboardQueryInfo({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime()})
     const resData = await handleSuccessAsync(res)
-    this.queryCount = resData.count
-    this.queryMean = (resData.mean / 1000).toFixed(2)
+    this.queryCount = resData.count || 0
+    this.queryMean = resData.mean ? (resData.mean / 1000).toFixed(2) : 0
+    const resJob = await this.loadDashboardJobInfo({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime()})
+    const resDataJob = await handleSuccessAsync(resJob)
+    this.jobCount = resDataJob.count || 0
+    this.avgBulidTime = resDataJob.duration_per_mb ? (resDataJob.duration_per_mb / 1000).toFixed(2) : 0
   }
 }
 </script>
@@ -610,6 +649,12 @@ export default class Dashboard extends Vue {
     .chart-row.dash-card {
       .chart-block {
         position: relative;
+        .nvd3.nv-noData {
+          font-size: 16px;
+          font-weight: 400;
+          font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, SimSun, sans-serif;
+          fill: @text-normal-color;
+        }
         > div {
           height: 355px;
         }
