@@ -15,6 +15,8 @@
           <SettingModel :project="currentProjectData"></SettingModel>
         </el-tab-pane>
       </el-tabs>
+      <EmptyData v-else>
+      </EmptyData>
     </section>
   </div>
 </template>
@@ -27,7 +29,7 @@ import { Component } from 'vue-property-decorator'
 import locales from './locales'
 import { viewTypes } from './handler'
 import { handleError, handleSuccessAsync } from '../../util'
-import emptyImg from '../../assets/img/empty.svg'
+import EmptyData from '../common/EmptyData/EmptyData.vue'
 import SettingBasic from './SettingBasic/SettingBasic.vue'
 import SettingAdvanced from './SettingAdvanced/SettingAdvanced.vue'
 import SettingModel from './SettingModel/SettingModel.vue'
@@ -44,6 +46,7 @@ import SettingModel from './SettingModel/SettingModel.vue'
     })
   },
   components: {
+    EmptyData,
     SettingBasic,
     SettingAdvanced,
     SettingModel
@@ -53,7 +56,6 @@ import SettingModel from './SettingModel/SettingModel.vue'
 export default class Setting extends Vue {
   viewType = viewTypes.BASIC
   viewTypes = viewTypes
-  emptyImg = emptyImg
   isLoading = false
   projectSettings = null
   _showLoading () {
@@ -75,7 +77,9 @@ export default class Setting extends Vue {
     this._hideLoading()
   }
   mounted () {
-    this.getCurrentSettings()
+    if (this.currentProjectData) {
+      this.getCurrentSettings()
+    }
   }
 }
 </script>
