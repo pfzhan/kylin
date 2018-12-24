@@ -48,7 +48,7 @@ export const modelRenderConfig = {
   pannelsLayout: () => {
     return { // 编辑界面的弹出层位置信息
       dimension: {
-        top: 72,
+        top: 12,
         right: 60,
         width: 250,
         height: 316,
@@ -61,7 +61,7 @@ export const modelRenderConfig = {
         box: rootBox
       },
       measure: {
-        top: 114,
+        top: 54,
         right: 60,
         width: 250,
         height: 316,
@@ -74,7 +74,7 @@ export const modelRenderConfig = {
         box: rootBox
       },
       setting: {
-        top: 134,
+        top: 74,
         right: 60,
         width: 250,
         height: 410,
@@ -87,7 +87,7 @@ export const modelRenderConfig = {
         box: rootBox
       },
       cc: {
-        top: 156,
+        top: 96,
         right: 60,
         width: 250,
         height: 316,

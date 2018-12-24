@@ -34,7 +34,10 @@ export default {
     delete: 'Delete',
     back: 'Back',
     requiredName: 'Please input alias',
-    modelDataNullTip: 'Failed to find this model!'
+    modelDataNullTip: 'Failed to find this model!',
+    saveSuccessTip: 'Model saved successfully. To enable it, you may need to add some indexes and load data into the model.',
+    addIndexTip: 'Add Index',
+    ignoreaddIndexTip: 'No Thanks'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -71,6 +74,9 @@ export default {
     delete: '删除',
     back: '返回',
     requiredName: '请输入别名',
-    modelDataNullTip: '没有找到当前模型!'
+    modelDataNullTip: '没有找到当前模型!',
+    saveSuccessTip: '模型保存成功。为了真正启用本模型，您需要在模型中添加索引并向其加载数据。',
+    addIndexTip: '添加索引',
+    ignoreaddIndexTip: '不需要'
   }
 }

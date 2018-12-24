@@ -670,7 +670,8 @@ class NModel {
   _delTableRelated (guid) {
     let ntable = this.getTableByGuid(guid)
     if (ntable) {
-      if (ntable.name === this.fact_table) {
+      // 如何删除的是事实表，清空this.fact_table的值
+      if (this.fact_table && ntable.name === this.fact_table && ntable.alias === this.fact_table.split('.')[1]) {
         this.fact_table = ''
       }
       let alias = ntable.alias

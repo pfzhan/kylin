@@ -459,3 +459,26 @@ Vue.directive('guide', {
     }
   }
 })
+let keyCodeMap = {
+  'esc': 27
+}
+// 为非聚焦的元素绑定keyup监听
+Vue.directive('global-key-event', {
+  inserted: function (el, binding) {
+    let keys = binding.modifiers
+    let keyCodes = []
+    Object.keys(keys).forEach((key) => {
+      keyCodes.push(keyCodeMap[key])
+    })
+    document.onkeydown = (e) => {
+      var key = (e || window.event).keyCode
+      if (keyCodes.indexOf(key) >= 0) {
+        typeof binding.value === 'function' && binding.value()
+      }
+    }
+  },
+  unbind: function (el, binding) {
+    document.onkeydown = null
+  }
+})
+

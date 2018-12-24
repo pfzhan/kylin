@@ -5,14 +5,9 @@
       <!-- table box -->
       <div v-guide="t.guid" class="table-box" @click="activeTablePanel(t)" v-visible="!currentEditTable || currentEditTable.guid !== t.guid" :id="t.guid" v-event-stop v-if="modelRender && modelRender.tables" :class="{isLookup:t.kind==='LOOKUP'}" v-for="t in modelRender && modelRender.tables || []" :key="t.guid" :style="tableBoxStyle(t.drawSize)">
         <div class="table-title" :data-zoom="modelRender.zoom"  v-drag:change.left.top="t.drawSize">
-          <!-- <el-input v-show="t.aliasIsEdit" v-focus="t.aliasIsEdit" v-event-stop v-model="t.alias" @blur="saveNewAlias(t)" @keyup.enter="saveNewAlias(t)"></el-input> -->
-          <span>
-            <i class="el-icon-ksd-fact_table kind" v-if="t.kind==='FACT'"></i>
-            <i v-else class="el-icon-ksd-lookup_table kind"></i>
-          </span>
           <common-tip class="name" v-show="!t.aliasIsEdit">
             <span slot="content">{{t.alias}}</span>
-            <span class="alias-span">{{t.alias}}</span>
+            <span class="alias-span ksd-ml-4">{{t.alias}}</span>
           </common-tip>
           <span class="setting-icon" @click="editTable(t.guid)"><i class="el-icon-ksd-table_setting"></i></span>
         </div>
@@ -64,10 +59,6 @@
         </div>
       </transition>
       <!-- datasource面板  end-->
-      <div class="tool-icon icon-lock-status" :class="{'unlock-icon': autoSetting}" v-event-stop>
-        <common-tip class="name" :content="$t('avoidSysChange')" placement="left" v-if="autoSetting"><i class="el-icon-ksd-lock" v-if="autoSetting"></i></common-tip>
-        <common-tip class="name" :content="$t('allowSysChange')" placement="left" v-else><i class="el-icon-ksd-unlock"></i></common-tip>
-      </div>
       <div class="tool-icon-group" v-event-stop>
         <div class="tool-icon" v-guide.dimensionPanelShowBtn :class="{active: panelAppear.dimension.display}" @click="toggleMenu('dimension')">D</div>
         <div class="tool-icon" v-guide.measurePanelShowBtn :class="{active: panelAppear.measure.display}" @click="toggleMenu('measure')">M</div>
@@ -298,8 +289,11 @@
     <!-- 搜索面板 -->
     <transition name="bouncecenter">
       <div class="panel-search-box panel-box" :class="{'full-screen': isFullScreen}"  v-event-stop :style="panelStyle('search')" v-if="panelAppear.search.display">
-        <span class="close" @click="toggleMenu('search')"><i class="el-icon-ksd-close"></i></span>
-         <el-alert class="search-action-result" v-if="modelSearchActionSuccessTip" v-timer-hide:2
+        <div class="close" @click="toggleMenu('search')" v-global-key-event.esc="() => {toggleMenu('search')}">
+          <i class="el-icon-ksd-close ksd-mt-12"></i><br/>
+          <span>ESC</span>
+        </div>
+        <el-alert class="search-action-result" v-if="modelSearchActionSuccessTip" v-timer-hide:2
           :title="modelSearchActionSuccessTip"
           type="success"
           :closable="false"
@@ -1286,9 +1280,9 @@ export default class ModelEdit extends Vue {
       handleSuccess(res, () => {
         // kapMessage(this.$t('kylinLang.common.saveSuccess'))
         setTimeout(() => {
-          kapConfirm('Model Save successfuly! Here you can add some index', {
-            confirmButtonText: 'Add Index',
-            cancelButtonText: 'No Thanks',
+          kapConfirm(this.$t('saveSuccessTip'), {
+            confirmButtonText: this.$t('addIndexTip'),
+            cancelButtonText: this.$t('ignoreaddIndexTip'),
             type: 'success',
             confirmButtonClass: 'guide-gotoindex-btn'
           }).then(() => {
@@ -1306,7 +1300,6 @@ export default class ModelEdit extends Vue {
     })
   }
   created () {
-    // console.log(this.extraoption)
   }
   beforeDestroy () {
     this.toggleFullScreen(false)
@@ -1660,7 +1653,18 @@ export default class ModelEdit extends Vue {
         position: absolute;
         right:10px;
         top:10px;
+        width:72px;
+        height:72px;
         font-size:18px;
+        text-align:center;
+        border-radius: 50%;
+        cursor:pointer;
+        i {
+          font-size:24px;
+        }
+        &:hover {
+          background: @grey-2;
+        }
       } 
       .search-result-box {
         max-height:calc(~"100% - 364px")!important;
@@ -1752,7 +1756,7 @@ export default class ModelEdit extends Vue {
     .tool-icon-group {
       position:absolute;
       width:32px;
-      top:72px;
+      top:12px;
       right:10px;
       .tool-icon {
         box-shadow: @box-shadow;
