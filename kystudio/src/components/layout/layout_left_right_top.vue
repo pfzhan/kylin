@@ -6,7 +6,7 @@
           <img v-show="!briefMenuGet" src="../../assets/img/big_logo.png" class="logo" @click="goHome">
           <img v-show="briefMenuGet" src="../../assets/img/small_logo.png" class="logo" @click="goHome">
           <div class="ky-line"></div>
-          <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" @open="clearMenu" unique-opened router :collapse="briefMenuGet">
+          <el-menu :default-active="defaultActive" id="menu-list" @select="handleselect" @open="clearMenu" router :collapse="briefMenuGet">
             <template v-for="(item,index) in menus">
               <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
                 <i :class="item.icon" class="ksd-fs-16"></i>
@@ -686,6 +686,7 @@ export default class LayoutLeftRightTop extends Vue {
       .main-content {
         height: calc(~"100% - 54px");
         box-sizing: border-box;
+        background: white;
       }
     }
     .linsencebox {

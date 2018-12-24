@@ -25,7 +25,7 @@
   import { Component, Watch } from 'vue-property-decorator'
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import vuex from '../../../../../store'
-  import { handleError, kapMessage } from 'util/business'
+  import { handleError, kapMessage, transToUTCMs, getGmtDateFromUtcLike } from 'util/business'
   import locales from './locales'
   import store, { types } from './store'
 
@@ -70,7 +70,7 @@
       if (this.isShow) {
         this.modelBuildMeta.dataRangeVal = []
         if (this.modelDesc.last_build_end) {
-          let lastBuildDate = new Date(+this.modelDesc.last_build_end)
+          let lastBuildDate = getGmtDateFromUtcLike(+this.modelDesc.last_build_end)
           if (lastBuildDate) {
             this.modelBuildMeta.dataRangeVal.push(lastBuildDate, lastBuildDate)
           }
@@ -94,9 +94,8 @@
       this.$refs.buildForm.validate((valid) => {
         if (!valid) { return }
         this.btnLoading = true
-        // 处理下时区问题
-        let start = this.modelBuildMeta.dataRangeVal[0].getTime()
-        let end = this.modelBuildMeta.dataRangeVal[1].getTime()
+        let start = transToUTCMs(this.modelBuildMeta.dataRangeVal[0])
+        let end = transToUTCMs(this.modelBuildMeta.dataRangeVal[1])
         this.buildModel({
           model: this.modelDesc.name,
           start: start,
