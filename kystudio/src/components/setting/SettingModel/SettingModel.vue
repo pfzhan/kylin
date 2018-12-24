@@ -2,34 +2,35 @@
   <div class="setting-model">
     <el-table
       :data="modelList"
+      class="model-setting-table"
       border
       style="width: 100%">
-      <el-table-column width="230px" show-overflow-tooltip prop="name" :label="$t('kylinLang.model.modelNameGrid')"></el-table-column>
+      <el-table-column width="230px" show-overflow-tooltip prop="alias" :label="$t('kylinLang.model.modelNameGrid')"></el-table-column>
       <el-table-column prop="last_modified" show-overflow-tooltip width="250px" :label="$t('modifyTime')">
         <template slot-scope="scope">
-          {{transToGmtTime(scope.row.last_modified)}}
+          <span v-if="scope.row.config_last_modified>0">{{transToGmtTime(scope.row.config_last_modified)}}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="owner" show-overflow-tooltip width="100" :label="$t('modifiedUser')"></el-table-column>
+      <el-table-column prop="config_last_modifier" show-overflow-tooltip width="100" :label="$t('modifiedUser')"></el-table-column>
       <el-table-column min-width="400px" :label="$t('modelSetting')">
         <template slot-scope="scope">
-          <div v-if="scope.row.segmentMerge&&scope.row.segmentMerge.length">
+          <div v-if="scope.row.auto_merge_time_ranges">
             <span class="model-setting-item" @click="editMergeItem(scope.row)">
-              {{$t('segmentMerge')}}<span v-for="item in scope.row.segmentMerge" :key="item">{{$t(item)}}</span>
+              {{$t('segmentMerge')}}<span v-for="item in scope.row.auto_merge_time_ranges" :key="item">{{$t(item)}}</span>
             </span>
-            <i class="el-icon-ksd-symbol_type"></i>
+            <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'auto_merge_time_ranges')"></i>
           </div>
-          <div v-if="scope.row.volatileRange">
+          <div v-if="scope.row.volatile_range">
             <span class="model-setting-item" @click="editVolatileItem(scope.row)">
-              {{$t('volatileRange')}}<span>{{scope.row.volatileRange.value}} {{scope.row.volatileRange.unit}}</span>
+              {{$t('volatileRange')}}<span>{{scope.row.volatile_range.volatile_range_number}} {{scope.row.volatile_range.volatile_range_type}}</span>
             </span>
-            <i class="el-icon-ksd-symbol_type"></i>
+            <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'volatile_range')"></i>
           </div>
-          <div v-if="scope.row.retention">
+          <div v-if="scope.row.retention_range">
             <span class="model-setting-item" @click="editRetentionItem(scope.row)">
-              {{$t('retention')}}<span>{{scope.row.retention.value}} {{scope.row.retention.unit}}</span>
+              {{$t('retention')}}<span>{{scope.row.retention_range.retention_range_number}} {{scope.row.retention_range.retention_range_type}}</span>
             </span>
-            <i class="el-icon-ksd-symbol_type"></i>
+            <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'retention_range')"></i>
           </div>
         </template>
       </el-table-column>
@@ -38,10 +39,11 @@
         align="center"
         :label="$t('kylinLang.common.action')">
           <template slot-scope="scope">
-            <i class="el-icon-ksd-table_add" @click="addSettingItem(scope.row)"></i>
+            <i class="el-icon-ksd-table_add" :class="{'disabled': scope.row.auto_merge_time_ranges&&scope.row.volatile_range&&scope.row.retention_range}" @click="addSettingItem(scope.row)"></i>
           </template>
       </el-table-column>
     </el-table>
+    <kap-pager :totalSize="modelListSize"  v-on:handleCurrentChange='currentChange' ref="modleConfigPager" class="ksd-mt-20 ksd-mb-20 ksd-center" ></kap-pager>
     <el-dialog :title="modelSettingTitle" :visible.sync="editModelSetting" width="440px" class="model-setting-dialog">
       <el-form label-position="top" size="medium" label-width="80px" :model="modelSettingForm">
         <el-form-item :label="$t('modelName')">
@@ -67,24 +69,24 @@
           </el-checkbox-group>
         </el-form-item>
         <el-form-item :label="$t('volatileRangeItem')" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Volatile Range'">
-          <el-input v-model.trim="modelSettingForm.volatileRange.value" class="retention-input"></el-input>
-          <el-select v-model="modelSettingForm.volatileRange.unit" class="ksd-ml-8" size="medium" :placeholder="$t('kylinLang.common.pleaseSelect')">
+          <el-input v-model.trim="modelSettingForm.volatileRange.volatile_range_number" class="retention-input"></el-input>
+          <el-select v-model="modelSettingForm.volatileRange.volatile_range_type" class="ksd-ml-8" size="medium" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option
               v-for="item in units"
-              :key="item"
-              :label="$t(item)"
-              :value="item">
+              :key="item.label"
+              :label="$t(item.label)"
+              :value="item.value">
             </el-option>
           </el-select>
         </el-form-item>
         <el-form-item :label="$t('retentionThreshold')" v-if="step=='stepTwo'&&modelSettingForm.settingItem==='Retention Threshold'">
-          <el-input v-model.trim="modelSettingForm.retentionThreshold.value" class="retention-input"></el-input>
-          <el-select v-model="modelSettingForm.retentionThreshold.unit" class="ksd-ml-8" size="medium" :placeholder="$t('kylinLang.common.pleaseSelect')">
+          <el-input v-model.trim="modelSettingForm.retentionThreshold.retention_range_number" class="retention-input"></el-input>
+          <el-select v-model="modelSettingForm.retentionThreshold.retention_range_type" class="ksd-ml-8" size="medium" :placeholder="$t('kylinLang.common.pleaseSelect')">
             <el-option
               v-for="item in units"
-              :key="item"
-              :label="$t(item)"
-              :value="item">
+              :key="item.label"
+              :label="$t(item.label)"
+              :value="item.value">
             </el-option>
           </el-select>
         </el-form-item>
@@ -99,6 +101,7 @@
           @click="submit"
           size="medium"
           v-if="step=='stepTwo'"
+          :loading="isLoading"
           :disabled="isSubmit">
             {{$t('kylinLang.common.submit')}}
           </el-button>
@@ -110,11 +113,12 @@
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { mapActions } from 'vuex'
+import { mapActions, mapGetters } from 'vuex'
 
 import locales from './locales'
-import { transToGmtTime } from '../../../util/business'
-// import { handleSuccessAsync } from '../../../util/index'
+import { pageCount } from '../../../config'
+import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
+import { handleSuccessAsync, handleError, objectClone } from '../../../util/index'
 
 @Component({
   props: {
@@ -126,31 +130,41 @@ import { transToGmtTime } from '../../../util/business'
   methods: {
     transToGmtTime: transToGmtTime,
     ...mapActions({
+      loadModelConfigList: 'LOAD_MODEL_CONFIG_LIST',
+      updateModelConfig: 'UPDATE_MODEL_CONFIG'
     })
   },
-  components: {
+  computed: {
+    ...mapGetters([
+      'currentSelectedProject'
+    ])
   },
   locales
 })
 export default class SettingStorage extends Vue {
-  modelList = [
-    {name: 'nmodel_basic_inner', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'], volatileRange: {value: 2, unit: 'days'}, retention: {value: 200, unit: 'days'}},
-    {name: 'nmodel_full_measure_test', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'], retention: {value: 200, unit: 'days'}},
-    {name: 'test_encoding', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'], retention: {value: 200, unit: 'days'}},
-    {name: 'ut_inner_join_cube_partial', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'], retention: {value: 200, unit: 'days'}},
-    {name: 'nmodel_basic', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'], retention: {value: 200, unit: 'days'}},
-    {name: 'all_fixed_length', last_modified: 1545188124251, owner: 'ADMIN', segmentMerge: ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR'], retention: {value: 200, unit: 'days'}}
-  ]
+  modelList = []
+  modelListSize = 0
+  filter = {
+    pageOffset: 0,
+    pageSize: pageCount
+  }
   editModelSetting = false
+  isLoading = false
   isEdit = false
   step = 'stepOne'
   settingOption = ['Auto-merge', 'Volatile Range', 'Retention Threshold']
   mergeGroups = ['HOUR', 'DAY', 'WEEK', 'MONTH', 'YEAR']
-  units = ['day', 'week', 'year']
-  modelSettingForm = {name: '', settingItem: '', autoMerge: [], volatileRange: {value: 0, unit: ''}, retentionThreshold: {value: 0, unit: ''}}
+  units = [{label: 'day', value: 'DAY'}, {label: 'week', value: 'WEEK'}, {label: 'month', value: 'MONTH'}, {label: 'year', value: 'YEAR'}]
+  modelSettingForm = {name: '', settingItem: '', autoMerge: [], volatileRange: {volatile_range_number: 0, volatile_range_type: ''}, retentionThreshold: {retention_range_number: 0, retention_range_type: ''}}
+  activeRow = null
 
   addSettingItem (row) {
-    this.modelSettingForm.name = row.name
+    if (row.auto_merge_time_ranges && row.volatile_range && row.retention_range) {
+      return
+    }
+    this.modelSettingForm.name = row.alias
+    this.activeRow = row
+    this.step = 'stepOne'
     this.editModelSetting = true
   }
   get modelSettingTitle () {
@@ -159,13 +173,26 @@ export default class SettingStorage extends Vue {
   get isSubmit () {
     if (this.modelSettingForm.settingItem === 'Auto-merge' && !this.modelSettingForm.autoMerge.length) {
       return true
-    } else if (this.modelSettingForm.settingItem === 'Volatile Range' && (!this.modelSettingForm.volatileRange.value || !this.modelSettingForm.volatileRange.unit)) {
+    } else if (this.modelSettingForm.settingItem === 'Volatile Range' && (!this.modelSettingForm.volatileRange.volatile_range_number || !this.modelSettingForm.volatileRange.volatile_range_type)) {
       return true
-    } else if (this.modelSettingForm.settingItem === 'Retention Threshold' && (!this.modelSettingForm.retentionThreshold.value || !this.modelSettingForm.retentionThreshold.unit)) {
+    } else if (this.modelSettingForm.settingItem === 'Retention Threshold' && (!this.modelSettingForm.retentionThreshold.retention_range_number || !this.modelSettingForm.retentionThreshold.retention_range_type)) {
       return true
     } else {
       return false
     }
+  }
+  removeAutoMerge (row, type) {
+    kapConfirm(this.$t('isDel_' + type)).then(() => {
+      const rowCopy = objectClone(row)
+      rowCopy[type] = null
+      this.updateModelConfig(Object.assign({}, {project: this.currentSelectedProject}, rowCopy)).then((res) => {
+        handleSuccess(res, () => {
+          this.getConfigList()
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    })
   }
   nextStep () {
     this.step = 'stepTwo'
@@ -174,31 +201,72 @@ export default class SettingStorage extends Vue {
     this.step = 'stepOne'
   }
   editMergeItem (row) {
-    this.modelSettingForm.name = row.name
+    this.modelSettingForm.name = row.alias
     this.modelSettingForm.settingItem = 'Auto-merge'
-    this.modelSettingForm.autoMerge = JSON.parse(JSON.stringify(row.segmentMerge))
+    this.modelSettingForm.autoMerge = JSON.parse(JSON.stringify(row.auto_merge_time_ranges))
+    this.activeRow = row
     this.step = 'stepTwo'
     this.isEdit = true
     this.editModelSetting = true
   }
   editVolatileItem (row) {
-    this.modelSettingForm.name = row.name
+    this.modelSettingForm.name = row.alias
     this.modelSettingForm.settingItem = 'Volatile Range'
-    this.modelSettingForm.volatileRange = JSON.parse(JSON.stringify(row.volatileRange))
+    this.modelSettingForm.volatileRange = JSON.parse(JSON.stringify(row.volatile_range))
+    this.activeRow = row
     this.step = 'stepTwo'
     this.isEdit = true
     this.editModelSetting = true
   }
   editRetentionItem (row) {
-    this.modelSettingForm.name = row.name
+    this.modelSettingForm.name = row.alias
     this.modelSettingForm.settingItem = 'Retention Threshold'
-    this.modelSettingForm.retentionThreshold = JSON.parse(JSON.stringify(row.retention))
+    this.modelSettingForm.retentionThreshold = JSON.parse(JSON.stringify(row.retention_range))
+    this.activeRow = row
     this.step = 'stepTwo'
     this.isEdit = true
     this.editModelSetting = true
   }
-  submit () {}
+  resetForm () {
+    this.modelSettingForm = {name: '', settingItem: '', autoMerge: [], volatileRange: {volatile_range_number: 0, volatile_range_type: ''}, retentionThreshold: {retention_range_number: 0, retention_range_type: ''}}
+    this.activeRow = null
+  }
+  submit () {
+    if (this.modelSettingForm.settingItem === 'Auto-merge') {
+      this.activeRow.auto_merge_time_ranges = this.modelSettingForm.autoMerge
+    }
+    if (this.modelSettingForm.settingItem === 'Volatile Range') {
+      this.activeRow.volatile_range = this.modelSettingForm.volatileRange
+    }
+    if (this.modelSettingForm.settingItem === 'Retention Threshold') {
+      this.activeRow.retention_range = this.modelSettingForm.retentionThreshold
+    }
+    this.updateModelConfig(Object.assign({}, {project: this.currentSelectedProject}, this.activeRow)).then((res) => {
+      this.isLoading = true
+      handleSuccess(res, () => {
+        this.getConfigList()
+        this.isLoading = false
+        this.editModelSetting = false
+        this.resetForm()
+      })
+    }, (res) => {
+      handleError(res)
+      this.isLoading = false
+    })
+  }
+  async getConfigList () {
+    const res = await this.loadModelConfigList(Object.assign({}, {project: this.currentSelectedProject}, this.filter))
+    const resData = await handleSuccessAsync(res)
+    this.modelList = resData.model_config
+    this.modelListSize = resData.size
+  }
+  currentChange (size, count) {
+    this.filter.pageOffset = size
+    this.filter.pageSize = count
+    this.getConfigList()
+  }
   created () {
+    this.getConfigList()
   }
 }
 </script>
@@ -215,6 +283,12 @@ export default class SettingStorage extends Vue {
     &:hover {
       color: @base-color;
       cursor: pointer;
+    }
+  }
+  .model-setting-table {
+    .el-icon-ksd-table_add.disabled {
+      color: @text-disabled-color;
+      cursor: not-allowed;
     }
   }
 }

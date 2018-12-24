@@ -22,7 +22,10 @@ export default {
     day: 'Day',
     week: 'Week',
     month: 'Month',
-    year: 'Year'
+    year: 'Year',
+    isDel_auto_merge_time_ranges: 'Are you sure delete auto-merge setting item?',
+    isDel_volatile_range: 'Are you sure delete volatile range setting item?',
+    isDel_retention_range: 'Are you sure delete retention range setting item?'
   },
   'zh-cn': {
     modifyTime: '修改时间',
@@ -47,6 +50,9 @@ export default {
     day: '天',
     week: '周',
     month: '月',
-    year: '年'
+    year: '年',
+    isDel_auto_merge_time_ranges: '确认删除自动合并设置项吗？',
+    isDel_volatile_range: '确认删除动态区间设置项吗？',
+    isDel_retention_range: '确认删除留存区间设置项吗？'
   }
 }

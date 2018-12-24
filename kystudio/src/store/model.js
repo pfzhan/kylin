@@ -217,6 +217,12 @@ export default {
     },
     [types.FETCH_RELATED_MODEL_STATUS] ({ commit }, params) {
       return api.model.fetchRelatedModelStatus(params.projectName, params.uuids)
+    },
+    [types.LOAD_MODEL_CONFIG_LIST] ({ commit }, params) {
+      return api.model.loadModelConfigList(params)
+    },
+    [types.UPDATE_MODEL_CONFIG] ({ commit }, params) {
+      return api.model.updateModelConfig(params)
     }
   },
   getters: {

@@ -159,5 +159,11 @@ export default {
     const body = { project, uuids }
     const headers = { 'X-Progress-Invisiable': 'true' }
     return window.kapVm.$http.post(apiUrl + 'models/job_error_status', body, { headers })
+  },
+  loadModelConfigList: (para) => {
+    return Vue.resource(apiUrl + 'models/config').get(para)
+  },
+  updateModelConfig: (para) => {
+    return Vue.resource(apiUrl + 'models/' + para.model + '/config').update(para)
   }
 }
