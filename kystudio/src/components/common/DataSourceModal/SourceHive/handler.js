@@ -38,8 +38,8 @@ export function getTableTree (database, res, isTableReset) {
     label: table.table_name,
     type: 'table',
     database: database.id,
-    isSelected: table.loaded,
-    clickable: !table.loaded,
+    isSelected: table.loaded || database.isSelected,
+    clickable: !table.loaded && !database.isSelected,
     isLoaded: table.loaded,
     render: (h, { node, data, store }) => {
       const isChecked = !data.isLoaded && data.isSelected
