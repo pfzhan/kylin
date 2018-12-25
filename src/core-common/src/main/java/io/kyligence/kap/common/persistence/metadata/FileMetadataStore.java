@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.kylin.common.persistence.image;
+package io.kyligence.kap.common.persistence.metadata;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -43,20 +43,24 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class FileImageStore extends ImageStore {
+public class FileMetadataStore extends MetadataStore {
 
     private final File root;
 
-    public FileImageStore(KylinConfig kylinConfig) {
-        super(kylinConfig);
+    public FileMetadataStore(KylinConfig kylinConfig, String namespace) {
+        super(kylinConfig, namespace);
         root = new File(kylinConfig.getMetadataUrl().getIdentifier()).getAbsoluteFile();
     }
 
     @Override
-    protected void saveFile(String path, ByteSource bs, long ts) throws Exception {
-        File f = file(path);
+    protected void save(String path, ByteSource bs, long ts, long mvcc) throws Exception {
+        File f = file(namespace + path);
         f.getParentFile().mkdirs();
         FileOutputStream out = new FileOutputStream(f);
+        if (bs == null) {
+            FileUtils.deleteQuietly(f);
+            return;
+        }
         try {
             IOUtils.copy(bs.openStream(), out);
         } finally {
@@ -69,8 +73,8 @@ public class FileImageStore extends ImageStore {
     }
 
     @Override
-    protected NavigableSet<String> listFiles(String subPath) {
-        val scanFolder = new File(root, subPath);
+    protected NavigableSet<String> list(String subPath) {
+        val scanFolder = new File(root, namespace + subPath);
         val files = FileUtils.listFiles(scanFolder, null, true);
         TreeSet<String> result = Sets.newTreeSet();
         for (File file : files) {
@@ -80,8 +84,8 @@ public class FileImageStore extends ImageStore {
     }
 
     @Override
-    protected RawResource loadFile(String path) throws IOException {
-        val f = new File(root.getPath() + path);
+    protected RawResource load(String path) throws IOException {
+        val f = new File(root, namespace + path);
         val resPath = f.getPath().replace(root.getPath() + path, "");
         val bs = ByteStreams.asByteSource(IOUtils.toByteArray(new FileInputStream(f)));
         return new RawResource(resPath, bs, f.lastModified(), getMvcc(bs));

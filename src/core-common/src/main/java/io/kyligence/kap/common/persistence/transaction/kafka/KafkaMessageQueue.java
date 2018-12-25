@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -56,13 +57,12 @@ import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.EndUnit;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.transaction.mq.EventPublisher;
-import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
 import io.kyligence.kap.common.persistence.transaction.mq.MQPublishFailureException;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class KafkaEventStore extends EventStore {
+public class KafkaMessageQueue extends MessageQueue {
 
     private final StorageURL url;
     private final ExecutorService consumeExecutor;
@@ -70,15 +70,16 @@ public class KafkaEventStore extends EventStore {
     private final String topic;
     private final Map<String, String> kafkaPropeties;
 
-    public KafkaEventStore(KylinConfig config) {
-        url = config.getMetadataUrl();
+    public KafkaMessageQueue(KylinConfig config) {
+        url = config.getMetadataMQUrl();
         kafkaPropeties = url.getAllParameters();
         topic = url.getIdentifier();
         consumeExecutor = Executors.newSingleThreadExecutor(new NamedThreadFactory(CONSUMER_THREAD_NAME));
     }
 
     public EventPublisher getEventPublisher() {
-        return events -> {
+        return unit -> {
+            val events = unit.getMessages();
             if (CollectionUtils.isEmpty(events)) {
                 return;
             }

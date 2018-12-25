@@ -92,9 +92,9 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
             resourceStore.checkAndPutResource("/path/to/res2", ByteStreams.asByteSource("{}".getBytes()), -1L);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 val resourceStore2 = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
-                resourceStore2.checkAndPutResource("/path/to/res2/1", ByteStreams.asByteSource("{}".getBytes()), -1L);
-                resourceStore2.checkAndPutResource("/path/to/res2/2", ByteStreams.asByteSource("{}".getBytes()), -1L);
-                resourceStore2.checkAndPutResource("/path/to/res2/3", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                resourceStore2.checkAndPutResource("/path2/to/res2/1", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                resourceStore2.checkAndPutResource("/path2/to/res2/2", ByteStreams.asByteSource("{}".getBytes()), -1L);
+                resourceStore2.checkAndPutResource("/path2/to/res2/3", ByteStreams.asByteSource("{}".getBytes()), -1L);
                 Assert.assertEquals(resourceStore, resourceStore2);
                 return 0;
             }, UnitOfWork.GLOBAL_UNIT);
@@ -105,9 +105,9 @@ public class UnitOfWorkTest extends NLocalFileMetadataTestCase {
         val resourceStore = ResourceStore.getKylinMetaStore(KylinConfig.getInstanceFromEnv());
         Assert.assertEquals(0, resourceStore.getResource("/path/to/res").getMvcc());
         Assert.assertEquals(0, resourceStore.getResource("/path/to/res2").getMvcc());
-        Assert.assertEquals(0, resourceStore.getResource("/path/to/res2/1").getMvcc());
-        Assert.assertEquals(0, resourceStore.getResource("/path/to/res2/2").getMvcc());
-        Assert.assertEquals(0, resourceStore.getResource("/path/to/res2/3").getMvcc());
+        Assert.assertEquals(0, resourceStore.getResource("/path2/to/res2/1").getMvcc());
+        Assert.assertEquals(0, resourceStore.getResource("/path2/to/res2/2").getMvcc());
+        Assert.assertEquals(0, resourceStore.getResource("/path2/to/res2/3").getMvcc());
         Assert.assertEquals(0, resourceStore.getResource("/path/to/res3").getMvcc());
     }
 

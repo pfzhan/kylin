@@ -68,7 +68,6 @@ public class Utils {
         setLargeCuboidCombinationConf(props);
         props.setProperty("kylin.env", "DEV");
         props.setProperty("kylin.metadata.url", metadataUrl);
-        props.setProperty("kylin.metadata.mq-type", "mock");
 
         return KylinConfig.createKylinConfig(props);
     }

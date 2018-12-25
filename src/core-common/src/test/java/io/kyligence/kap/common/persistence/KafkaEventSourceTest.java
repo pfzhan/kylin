@@ -51,7 +51,7 @@ import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.StartUnit;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
+import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
@@ -66,15 +66,13 @@ public class KafkaEventSourceTest extends NLocalFileMetadataTestCase {
     public void init() {
         createTestMetadata();
         val connectString = kafkaTestResource.getKafkaConnectString();
-        System.setProperty("kylin.metadata.url",
-                "kylin_metadata_" + UUID.randomUUID().toString() + "@hdfs,bootstrap.servers='" + connectString + "'");
-        System.setProperty("kylin.metadata.mq-type", "kafka");
+        System.setProperty("kylin.metadata.mq-url",
+                "kylin_metadata_" + UUID.randomUUID().toString() + "@kafka,bootstrap.servers='" + connectString + "'");
     }
 
     @After
     public void destroy() {
-        System.clearProperty("kylin.metadata.url");
-        System.clearProperty("kylin.metadata.mq-type");
+        System.clearProperty("kylin.metadata.mq-url");
     }
 
     @Test
@@ -95,7 +93,7 @@ public class KafkaEventSourceTest extends NLocalFileMetadataTestCase {
             }, unit);
         }
 
-        val eventStore = EventStore.getInstance(getTestConfig());
+        val eventStore = MessageQueue.getInstance(getTestConfig());
         AtomicInteger count = new AtomicInteger();
         eventStore.syncEvents(um -> {
             Assert.assertTrue(um.getMessages().get(0) instanceof StartUnit);
@@ -124,7 +122,7 @@ public class KafkaEventSourceTest extends NLocalFileMetadataTestCase {
             }, unit);
         }
 
-        val eventStore = EventStore.getInstance(getTestConfig());
+        val eventStore = MessageQueue.getInstance(getTestConfig());
         val start = new StartUnit(UUID.randomUUID().toString());
         start.setKey(unit);
         val partialEvents = Lists.<Event> newArrayList(start);
@@ -134,7 +132,7 @@ public class KafkaEventSourceTest extends NLocalFileMetadataTestCase {
             event.setKey(unit);
             partialEvents.add(event);
         }
-        eventStore.getEventPublisher().publish(partialEvents);
+        eventStore.getEventPublisher().publish(new UnitMessages(partialEvents));
 
         AtomicInteger count = new AtomicInteger();
         eventStore.syncEvents(um -> count.getAndIncrement());
@@ -150,7 +148,7 @@ public class KafkaEventSourceTest extends NLocalFileMetadataTestCase {
         val end = new EndUnit(start.getUnitId());
         end.setKey(unit);
         otherEvents.add(end);
-        eventStore.getEventPublisher().publish(otherEvents);
+        eventStore.getEventPublisher().publish(new UnitMessages(otherEvents));
         eventStore.startConsumer(um -> {
             Assert.assertTrue(um.getMessages().get(0) instanceof StartUnit);
             Assert.assertEquals(1024 + 2, um.getMessages().size());
@@ -195,7 +193,7 @@ public class KafkaEventSourceTest extends NLocalFileMetadataTestCase {
     @Test
     @Ignore("for develop")
     public void testIsolation() throws Exception {
-        val store = EventStore.getInstance(getTestConfig());
+        val store = MessageQueue.getInstance(getTestConfig());
         val publisher = store.getEventPublisher();
         int counter = 0;
         while (true) {
@@ -208,7 +206,7 @@ public class KafkaEventSourceTest extends NLocalFileMetadataTestCase {
                 event1.setKey("p1");
                 events.add(event1);
             }
-            publisher.publish(events);
+            publisher.publish(new UnitMessages(events));
             Thread.sleep(1000);
         }
     }
@@ -216,7 +214,7 @@ public class KafkaEventSourceTest extends NLocalFileMetadataTestCase {
     @Test
     @Ignore
     public void testSubscriber() throws Exception {
-        val store = EventStore.getInstance(getTestConfig());
+        val store = MessageQueue.getInstance(getTestConfig());
         store.syncEvents(event -> {
             try {
                 log.info("data {}", JsonUtil.writeValueAsString(event));

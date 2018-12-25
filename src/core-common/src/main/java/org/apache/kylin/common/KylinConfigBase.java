@@ -61,7 +61,6 @@ import org.apache.commons.lang3.text.StrSubstitutor;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.lock.DistributedLockFactory;
-import org.apache.kylin.common.persistence.image.HDFSImageStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -73,6 +72,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore;
 
 /**
  * An abstract class to encapsulate access to a set of 'properties'.
@@ -366,15 +367,11 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public StorageURL getMetadataUrl() {
-        return StorageURL.valueOf(getOptional("kylin.metadata.url", "kylin_metadata@hdfs"));
+        return StorageURL.valueOf(getOptional("kylin.metadata.url", "kylin_metadata@jdbc"));
     }
 
-    public int getImageCountThreshold() {
-        return Integer.parseInt(getOptional("kylin.metadata.image.count-threshold", "5"));
-    }
-
-    public String getMQType() {
-        return getOptional("kylin.metadata.mq-type", "kafka");
+    public StorageURL getMetadataMQUrl() {
+        return StorageURL.valueOf(getOptional("kylin.metadata.mq-url", ""));
     }
 
     public int getCacheSyncRetrys() {
@@ -390,11 +387,12 @@ abstract public class KylinConfigBase implements Serializable {
         return getMetadataUrl().getIdentifier();
     }
 
-    public Map<String, String> getImageStoreImpls() {
+    public Map<String, String> getMetadataStoreImpls() {
         Map<String, String> r = Maps.newLinkedHashMap();
         // ref constants in ISourceAware
-        r.put("", "org.apache.kylin.common.persistence.image.FileImageStore");
-        r.put("hdfs", "org.apache.kylin.common.persistence.image.HDFSImageStore");
+        r.put("", "io.kyligence.kap.common.persistence.metadata.FileMetadataStore");
+        r.put("hdfs", "io.kyligence.kap.common.persistence.metadata.HDFSMetadataStore");
+        r.put("jdbc", "io.kyligence.kap.common.persistence.metadata.JdbcMetadataStore");
         r.putAll(getPropertiesByPrefix("kylin.metadata.resource-store-provider.")); // note the naming convention -- http://kylin.apache.org/development/coding_naming_convention.html
         return r;
     }
@@ -590,7 +588,7 @@ abstract public class KylinConfigBase implements Serializable {
     public StorageURL getJobTmpMetaStoreUrl(String jobId) {
         Map<String, String> params = new HashMap<>();
         params.put("path", getHdfsWorkingDirectory() + "job_tmp/" + jobId + "/meta");
-        return new StorageURL(getMetadataUrlPrefix(), HDFSImageStore.HDFS_SCHEME, params);
+        return new StorageURL(getMetadataUrlPrefix(), HDFSMetadataStore.HDFS_SCHEME, params);
     }
 
     public CliCommandExecutor getCliCommandExecutor() {

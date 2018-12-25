@@ -24,13 +24,11 @@
 
 package io.kyligence.kap.common.persistence.transaction.mq;
 
-import java.util.List;
-
-import io.kyligence.kap.common.persistence.event.Event;
+import io.kyligence.kap.common.persistence.UnitMessages;
 
 public interface EventPublisher {
     /**
      * publish should ensure atomicity
      */
-    void publish(List<? extends Event> events) throws MQPublishFailureException;
+    void publish(UnitMessages events) throws MQPublishFailureException;
 }

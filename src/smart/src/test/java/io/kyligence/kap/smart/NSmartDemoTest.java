@@ -31,10 +31,10 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.List;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
-import org.apache.kylin.common.persistence.image.ImageStore;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Test;
@@ -116,10 +116,9 @@ public class NSmartDemoTest {
         String[] sqls = sqlList.toArray(new String[0]);
 
         File tmpMeta = Files.createTempDir();
-        FileUtils.copyDirectory(new File(metaDir), new File(tmpMeta, ImageStore.METADATA_DIR));
+        FileUtils.copyDirectory(new File(metaDir), new File(tmpMeta, MetadataStore.METADATA_NAMESPACE));
         KylinConfig kylinConfig = Utils.newKylinConfig(tmpMeta.getAbsolutePath());
         kylinConfig.setProperty("kylin.env", "UT");
-        kylinConfig.setProperty("kylin.metadata.mq-type", "mock");
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
         try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig)) {
             NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqls);

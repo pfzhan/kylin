@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
@@ -109,7 +110,7 @@ public abstract class NDataflowJob extends AbstractApplication {
             val resourceStore = ResourceStore.getKylinMetaStore(config);
             val outputConfig = KylinConfig.createKylinConfig(config);
             outputConfig.setMetadataUrl(optionsHelper.getOptionValue(OPTION_OUTPUT_META_URL));
-            ResourceStore.createImageStore(outputConfig).dump(resourceStore);
+            ResourceStore.createMetadataStore(outputConfig, MetadataStore.METADATA_NAMESPACE).dump(resourceStore);
         } finally {
             KylinConfig.removeKylinConfigThreadLocal();
             if (ss != null && !ss.conf().get("spark.master").startsWith("local")) {

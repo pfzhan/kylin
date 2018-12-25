@@ -21,34 +21,25 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.common.persistence.metadata.jdbc;
 
-package io.kyligence.kap.common.persistence.transaction.mq;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-import java.util.function.Consumer;
+import org.apache.kylin.common.persistence.RawResource;
+import org.springframework.jdbc.core.RowMapper;
 
-import org.apache.kylin.common.KylinConfig;
+import com.google.common.io.ByteStreams;
 
-import io.kyligence.kap.common.persistence.UnitMessages;
+import lombok.val;
 
-public class MockedMQ extends MessageQueue {
-
-    public MockedMQ(KylinConfig config) {
-    }
-
+public class RawResourceRowMapper implements RowMapper<RawResource> {
     @Override
-    public EventPublisher getEventPublisher() {
-        return events -> {
-        };
+    public RawResource mapRow(ResultSet rs, int rowNum) throws SQLException {
+        val resPath = rs.getString(1);
+        val content = rs.getBytes(2);
+        val ts = rs.getLong(3);
+        val mvcc = rs.getLong(4);
+        return new RawResource(resPath, ByteStreams.asByteSource(content), ts, mvcc);
     }
-
-    @Override
-    public void startConsumer(Consumer<UnitMessages> consumer) {
-        // do nothing here, just mock
-    }
-
-    @Override
-    public void syncEvents(Consumer<UnitMessages> consumer) {
-        // do nothing here, just mock
-    }
-
 }

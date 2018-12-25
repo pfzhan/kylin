@@ -46,6 +46,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.Map;
 
+import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.exception.SchedulerException;
@@ -58,7 +59,6 @@ import org.junit.Before;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
 
@@ -83,11 +83,12 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
     @Before
     public void setup() throws Exception {
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+        System.setProperty("kylin.metadata.mq-url", "topic@mock");
         staticCreateTestMetadata();
         executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
         startScheduler();
 
-        val clazz = EventStore.class;
+        val clazz = MessageQueue.class;
         val field = clazz.getDeclaredField("MQ_PROVIDERS");
         field.setAccessible(true);
         val providers = (Map<String, String>) field.get(null);
@@ -107,6 +108,7 @@ public abstract class BaseSchedulerTest extends NLocalFileMetadataTestCase {
         NDefaultScheduler.destroyInstance();
         cleanupTestMetadata();
         System.clearProperty("kylin.job.scheduler.poll-interval-second");
+        System.clearProperty("kylin.metadata.mq-url");
     }
 
     static void setFinalStatic(Field field, Object newValue) throws Exception {

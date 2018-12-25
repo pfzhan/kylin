@@ -29,6 +29,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
@@ -41,27 +43,30 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public abstract class EventStore implements Closeable {
+public abstract class MessageQueue implements Closeable {
 
-    public static EventStore getInstance(KylinConfig kylinConfig) {
-        return kylinConfig.getManager(EventStore.class);
+    public static MessageQueue getInstance(KylinConfig kylinConfig) {
+        if (StringUtils.isEmpty(kylinConfig.getMetadataMQUrl().getScheme())) {
+            return null;
+        }
+        return kylinConfig.getManager(MessageQueue.class);
     }
 
     private static final Map<String, String> MQ_PROVIDERS = new HashMap<>();
     static {
-        MQ_PROVIDERS.put("kafka", "io.kyligence.kap.common.persistence.transaction.kafka.KafkaEventStore");
+        MQ_PROVIDERS.put("kafka", "io.kyligence.kap.common.persistence.transaction.kafka.KafkaMessageQueue");
         MQ_PROVIDERS.put("mock", "io.kyligence.kap.common.persistence.transaction.mq.MockedMQ");
     }
 
     public static final String CONSUMER_THREAD_NAME = "consumer";
 
-    static EventStore newInstance(KylinConfig config) {
-        String schema = config.getMQType();
-        val clazz = MQ_PROVIDERS.get(schema);
+    static MessageQueue newInstance(KylinConfig config) {
+        String scheme = config.getMetadataMQUrl().getScheme();
+        val clazz = MQ_PROVIDERS.get(scheme);
         try {
-            val cls = ClassUtil.forName(clazz, EventStore.class);
+            val cls = ClassUtil.forName(clazz, MessageQueue.class);
             val instance = cls.getConstructor(KylinConfig.class).newInstance(config);
-            val snapshotStore = ResourceStore.createImageStore(config);
+            val snapshotStore = ResourceStore.createMetadataStore(config, MetadataStore.MQ_NAMESPACE);
             try {
                 snapshotStore.restore(instance);
             } catch (IOException ignore) {

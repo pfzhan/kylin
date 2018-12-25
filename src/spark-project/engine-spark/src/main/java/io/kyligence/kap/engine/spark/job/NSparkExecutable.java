@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -257,7 +258,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
         // copy metadata to target metaUrl
         KylinConfig dstConfig = KylinConfig.createKylinConfig(props);
-        ResourceStore.createImageStore(dstConfig).uploadFromFile(tmpDir);
+        ResourceStore.createMetadataStore(dstConfig, MetadataStore.ALL_NAMESPACE).uploadFromFile(tmpDir);
         // clean up
         logger.debug("Copied metadata to the target metaUrl, delete the temp dir: {}", tmpDir);
         FileUtils.forceDelete(tmpDir);

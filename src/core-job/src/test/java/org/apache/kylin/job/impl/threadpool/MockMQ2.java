@@ -27,14 +27,14 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.function.Consumer;
 
+import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import org.apache.kylin.common.KylinConfig;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.transaction.mq.EventPublisher;
-import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
 
-public class MockMQ2 extends EventStore {
+public class MockMQ2 extends MessageQueue {
 
     private BlockingQueue<Event> inmemQueue = new ArrayBlockingQueue<>(100);
 
@@ -43,7 +43,7 @@ public class MockMQ2 extends EventStore {
 
     @Override
     public EventPublisher getEventPublisher() {
-        return events -> inmemQueue.addAll(events);
+        return events -> inmemQueue.addAll(events.getMessages());
     }
 
     @Override

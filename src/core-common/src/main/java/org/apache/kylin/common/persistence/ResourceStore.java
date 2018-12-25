@@ -64,7 +64,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.NotImplementedException;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
-import org.apache.kylin.common.persistence.image.ImageStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +74,7 @@ import com.google.common.collect.Lists;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import lombok.Getter;
 import lombok.val;
 
@@ -118,7 +118,7 @@ public abstract class ResourceStore {
 
     private static final Map<KylinConfig, ResourceStore> META_CACHE = new ConcurrentHashMap<>();
     @Getter
-    protected ImageStore imageStore;
+    protected MetadataStore metadataStore;
 
     /**
      * Get a resource store for Kylin's metadata.
@@ -174,7 +174,7 @@ public abstract class ResourceStore {
      */
     private static ResourceStore createResourceStore(KylinConfig config) {
         try {
-            val snapshotStore = createImageStore(config);
+            val snapshotStore = createMetadataStore(config, MetadataStore.METADATA_NAMESPACE);
             val resourceStore = new InMemResourceStore(config);
             resourceStore.init(snapshotStore);
             return resourceStore;
@@ -183,17 +183,16 @@ public abstract class ResourceStore {
         }
     }
 
-    public static ImageStore createImageStore(KylinConfig config) {
+    public static MetadataStore createMetadataStore(KylinConfig config, String namespace) {
         StorageURL url = config.getMetadataUrl();
         logger.info("Creating resource store by KylinConfig {}", config);
-        String clsName = config.getImageStoreImpls().get(url.getScheme());
+        String clsName = config.getMetadataStoreImpls().get(url.getScheme());
         try {
-            Class<? extends ImageStore> cls = ClassUtil.forName(clsName, ImageStore.class);
-            return cls.getConstructor(KylinConfig.class).newInstance(config);
+            Class<? extends MetadataStore> cls = ClassUtil.forName(clsName, MetadataStore.class);
+            return cls.getConstructor(KylinConfig.class, String.class).newInstance(config, namespace);
         } catch (Exception e) {
             throw new IllegalArgumentException("Failed to create metadata store by url: " + url, e);
         }
-
     }
 
     // ============================================================================
@@ -232,9 +231,9 @@ public abstract class ResourceStore {
      */
     protected abstract NavigableSet<String> listResourcesImpl(String folderPath, boolean recursive);
 
-    protected void init(ImageStore imageStore) throws Exception {
-        imageStore.restore(this);
-        this.imageStore = imageStore;
+    protected void init(MetadataStore metadataStore) throws Exception {
+        metadataStore.restore(this);
+        this.metadataStore = metadataStore;
     }
 
     protected String createMetaStoreUUID() {
@@ -343,6 +342,7 @@ public abstract class ResourceStore {
         resPath = norm(resPath);
 
         long oldMvcc = obj.getMvcc();
+        obj.setMvcc(oldMvcc + 1);
 
         ByteArrayOutputStream buf = new ByteArrayOutputStream();
         DataOutputStream dout = new DataOutputStream(buf);
@@ -357,7 +357,6 @@ public abstract class ResourceStore {
         ByteSource byteSource = ByteStreams.asByteSource(buf.toByteArray());
 
         val x = checkAndPutResource(resPath, byteSource, oldMvcc);
-        obj.setMvcc(x.getMvcc());
         obj.setLastModified(x.getTimestamp());
     }
 
@@ -436,7 +435,7 @@ public abstract class ResourceStore {
     public static void dumpResources(KylinConfig kylinConfig, File dir, Set<String> dumpList, Properties properties) {
         long startTime = System.currentTimeMillis();
 
-        val metaDir = new File(dir, ImageStore.METADATA_DIR);
+        val metaDir = new File(dir, MetadataStore.METADATA_NAMESPACE);
         metaDir.mkdirs();
         ResourceStore from = ResourceStore.getKylinMetaStore(kylinConfig);
 

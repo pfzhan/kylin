@@ -39,11 +39,11 @@ import com.google.common.io.ByteStreams;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
-import io.kyligence.kap.common.persistence.transaction.EventSynchronization;
+import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import lombok.val;
 
-public class EventSynchronizationTest extends NLocalFileMetadataTestCase {
+public class MessageSynchronizationTest extends NLocalFileMetadataTestCase {
 
     @Before
     public void setup() {
@@ -57,7 +57,7 @@ public class EventSynchronizationTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void replayTest() {
-        val synchronize = EventSynchronization.getInstance(getTestConfig());
+        val synchronize = MessageSynchronization.getInstance(getTestConfig());
         val events = createEvents();
         synchronize.replay(new UnitMessages(events), true);
         val resourceStore = ResourceStore.getKylinMetaStore(getTestConfig());
@@ -69,13 +69,13 @@ public class EventSynchronizationTest extends NLocalFileMetadataTestCase {
 
     private List<Event> createEvents() {
         val event1 = new ResourceCreateOrUpdateEvent(
-                new RawResource("/default/abc.json", ByteStreams.asByteSource("version1".getBytes()), 0L, -1));
+                new RawResource("/default/abc.json", ByteStreams.asByteSource("version1".getBytes()), 0L, 0));
         val event2 = new ResourceCreateOrUpdateEvent(
-                new RawResource("/default/abc2.json", ByteStreams.asByteSource("abc2".getBytes()), 0L, -1));
+                new RawResource("/default/abc2.json", ByteStreams.asByteSource("abc2".getBytes()), 0L, 0));
         val event3 = new ResourceCreateOrUpdateEvent(
-                new RawResource("/default/abc.json", ByteStreams.asByteSource("version2".getBytes()), 0L, 0));
+                new RawResource("/default/abc.json", ByteStreams.asByteSource("version2".getBytes()), 0L, 1));
         val event4 = new ResourceCreateOrUpdateEvent(
-                new RawResource("/default/abc3.json", ByteStreams.asByteSource("42".getBytes()), 0L, -1));
+                new RawResource("/default/abc3.json", ByteStreams.asByteSource("42".getBytes()), 0L, 0));
         val event5 = new ResourceDeleteEvent("/default/abc3.json");
         return Lists.newArrayList(event1, event2, event3, event4, event5).stream().peek(e -> e.setKey("default"))
                 .collect(Collectors.toList());

@@ -28,6 +28,7 @@ import java.io.FileNotFoundException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.BaseTestExecutable;
@@ -47,7 +48,6 @@ import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
@@ -270,7 +270,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         waitForJobStatus(job.getId(), ExecutableState.RUNNING, 100);
 
-        val mq = (MockMQ2) EventStore.getInstance(getTestConfig());
+        val mq = (MockMQ2) MessageQueue.getInstance(getTestConfig());
         val clazz = mq.getClass();
         val field = clazz.getDeclaredField("inmemQueue");
         field.setAccessible(true);
@@ -302,7 +302,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         waitForJobStatus(job.getId(), ExecutableState.RUNNING, 100);
 
-        val mq = (MockMQ2) EventStore.getInstance(getTestConfig());
+        val mq = (MockMQ2) MessageQueue.getInstance(getTestConfig());
         val clazz = mq.getClass();
         val field = clazz.getDeclaredField("inmemQueue");
         field.setAccessible(true);

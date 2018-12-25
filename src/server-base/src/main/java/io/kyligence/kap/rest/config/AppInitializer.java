@@ -23,8 +23,11 @@
  */
 package io.kyligence.kap.rest.config;
 
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Map;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.RawResource;
@@ -42,19 +45,16 @@ import org.springframework.stereotype.Component;
 import io.kyligence.kap.common.cluster.LeaderInitiator;
 import io.kyligence.kap.common.cluster.NodeCandidate;
 import io.kyligence.kap.common.persistence.transaction.EventListenerRegistry;
-import io.kyligence.kap.common.persistence.transaction.EventSynchronization;
+import io.kyligence.kap.common.persistence.transaction.MessageSynchronization;
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
+import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.service.NFavoriteScheduler;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
-
-import java.io.DataInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map;
 
 @Slf4j
 @Component
@@ -63,11 +63,8 @@ public class AppInitializer {
     @EventListener(ContextRefreshedEvent.class)
     public void init(ContextRefreshedEvent event) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
-        val eventStore = EventStore.getInstance(kylinConfig);
-        val replayer = EventSynchronization.getInstance(kylinConfig);
-        eventStore.syncEvents(replayer::replay);
-        val candidate = new NodeCandidate(kylinConfig.getNodeId());
 
+        val candidate = new NodeCandidate(kylinConfig.getNodeId());
         val leaderInitiator = LeaderInitiator.getInstance(kylinConfig);
         leaderInitiator.start(candidate);
 
@@ -76,10 +73,14 @@ public class AppInitializer {
             for (ProjectInstance project : projectManager.listAllProjects()) {
                 initProject(kylinConfig, project.getName(), true);
             }
+            EventListenerRegistry.getInstance(kylinConfig).register(new GlobalEventListener(), UnitOfWork.GLOBAL_UNIT);
+        } else {
+            val messageQueue = MessageQueue.getInstance(kylinConfig);
+            if (messageQueue != null) {
+                val replayer = MessageSynchronization.getInstance(kylinConfig);
+                messageQueue.startConsumer(replayer::replay);
+            }
         }
-        EventListenerRegistry.getInstance(kylinConfig).register(new GlobalEventListener(), UnitOfWork.GLOBAL_UNIT);
-
-        eventStore.startConsumer(replayer::replay);
         event.getApplicationContext().publishEvent(new AppInitializedEvent(event.getApplicationContext()));
     }
 
@@ -175,7 +176,8 @@ public class AppInitializer {
 
         private FavoriteQuery deserialize(RawResource rawResource) {
             FavoriteQuery favoriteQuery = null;
-            try (InputStream is = rawResource.getByteSource().openStream(); DataInputStream din = new DataInputStream(is)) {
+            try (InputStream is = rawResource.getByteSource().openStream();
+                    DataInputStream din = new DataInputStream(is)) {
                 favoriteQuery = new JsonSerializer<>(FavoriteQuery.class).deserialize(din);
             } catch (IOException e) {
                 log.warn("error when deserializing resource: {}", rawResource.getResPath());

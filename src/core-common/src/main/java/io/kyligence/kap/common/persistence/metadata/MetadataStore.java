@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.kylin.common.persistence.image;
+package io.kyligence.kap.common.persistence.metadata;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,28 +42,48 @@ import com.google.common.collect.Sets;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
 
-import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
+import io.kyligence.kap.common.persistence.UnitMessages;
+import io.kyligence.kap.common.persistence.event.Event;
+import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
+import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
+import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import lombok.Data;
 import lombok.val;
 
-public abstract class ImageStore {
+public abstract class MetadataStore {
 
     static final Set<String> IMMUTABLE_PREFIX = Sets.newHashSet("/UUID");
 
-    public static final String METADATA_DIR = "/metadata";
+    public static final String ALL_NAMESPACE = "";
+    public static final String METADATA_NAMESPACE = "/metadata";
+    public static final String MQ_NAMESPACE = "/mq";
     public static final String EVENT_PROPERTIES_FILE = "/events.json";
 
-    public ImageStore(KylinConfig kylinConfig) {
+    protected final String namespace;
+
+    public MetadataStore(KylinConfig kylinConfig, String namespace) {
+        this.namespace = namespace;
     }
 
-    protected abstract void saveFile(String path, ByteSource bs, long ts) throws Exception;
+    protected abstract void save(String path, ByteSource bs, long ts, long mvcc) throws Exception;
 
-    protected abstract NavigableSet<String> listFiles(String rootPath);
+    protected abstract NavigableSet<String> list(String rootPath);
 
-    protected abstract RawResource loadFile(String path) throws IOException;
+    protected abstract RawResource load(String path) throws IOException;
 
-    public void restore(EventStore store) throws IOException {
-        val raw = loadFile(EVENT_PROPERTIES_FILE);
+    public void batchUpdate(UnitMessages unitMessages) throws Exception {
+        for (Event event : unitMessages.getMessages()) {
+            if (event instanceof ResourceCreateOrUpdateEvent) {
+                val rawResource = ((ResourceCreateOrUpdateEvent) event).getCreatedOrUpdated();
+                putResource(rawResource);
+            } else if (event instanceof ResourceDeleteEvent) {
+                deleteResource(((ResourceDeleteEvent) event).getResPath());
+            }
+        }
+    }
+
+    public void restore(MessageQueue store) throws IOException {
+        val raw = load(EVENT_PROPERTIES_FILE);
         Map props = JsonUtil.readValue(raw.getByteSource().openStream(), Map.class);
         props.forEach((key, value) -> {
             store.getEventStoreProperties().put(key.toString(), value.toString());
@@ -71,15 +91,19 @@ public abstract class ImageStore {
     }
 
     public void restore(ResourceStore store) throws IOException {
-        val all = listFiles(METADATA_DIR);
+        val all = list("/");
         for (String resPath : all) {
-            val raw = loadFile(METADATA_DIR + resPath);
+            val raw = load(resPath);
             store.putResourceWithoutCheck(resPath, raw.getByteSource(), raw.getMvcc());
         }
     }
 
     public void putResource(RawResource res) throws Exception {
-        saveFile(METADATA_DIR + res.getResPath(), res.getByteSource(), res.getTimestamp());
+        save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc());
+    }
+
+    public void deleteResource(String resPath) throws Exception {
+        save(resPath, null, 0, 0);
     }
 
     public void dump(ResourceStore store) throws Exception {
@@ -89,10 +113,10 @@ public abstract class ImageStore {
         }
     }
 
-    public void dump(EventStore eventStore) throws Exception {
-        val properties = eventStore.getEventStoreProperties();
-        saveFile(EVENT_PROPERTIES_FILE, ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(properties)),
-                System.currentTimeMillis());
+    public void dump(MessageQueue messageQueue) throws Exception {
+        val properties = messageQueue.getEventStoreProperties();
+        save(EVENT_PROPERTIES_FILE, ByteStreams.asByteSource(JsonUtil.writeValueAsBytes(properties)),
+                System.currentTimeMillis(), 0);
     }
 
     /**
@@ -105,7 +129,7 @@ public abstract class ImageStore {
                 if (IMMUTABLE_PREFIX.contains(res.getResPath())) {
                     return;
                 }
-                saveFile(res.getResPath(), res.getByteSource(), res.getTimestamp());
+                save(res.getResPath(), res.getByteSource(), res.getTimestamp(), res.getMvcc());
             } catch (Exception e) {
                 throw new IllegalArgumentException("put resource " + res.getResPath() + " failed", e);
             }
@@ -115,7 +139,7 @@ public abstract class ImageStore {
     public static long getMvcc(ByteSource bs) {
         try {
             val wrapper = JsonUtil.readValue(bs.openStream(), MvccWrapper.class);
-            return wrapper.getMvcc() + 1;
+            return wrapper.getMvcc();
         } catch (IOException e) {
             return 0;
         }
@@ -127,9 +151,9 @@ public abstract class ImageStore {
         }
         val files = FileUtils.listFiles(root, null, true);
         files.forEach(f -> {
-            try {
+            try (val fis = new FileInputStream(f)) {
                 val resPath = f.getPath().replace(root.getPath(), "");
-                val bs = ByteStreams.asByteSource(IOUtils.toByteArray(new FileInputStream(f)));
+                val bs = ByteStreams.asByteSource(IOUtils.toByteArray(fis));
                 val raw = new RawResource(resPath, bs, f.lastModified(), getMvcc(bs));
                 resourceConsumer.accept(raw);
             } catch (IOException e) {
@@ -140,6 +164,6 @@ public abstract class ImageStore {
 
     @Data
     public static class MvccWrapper {
-        private long mvcc = -1;
+        private long mvcc = 0;
     }
 }

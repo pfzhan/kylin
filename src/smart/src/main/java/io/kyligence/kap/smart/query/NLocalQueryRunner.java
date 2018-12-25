@@ -34,11 +34,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.common.persistence.image.ImageStore;
 import org.apache.kylin.common.util.JsonUtil;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import lombok.val;
 
 class NLocalQueryRunner extends AbstractQueryRunner {
@@ -62,7 +62,7 @@ class NLocalQueryRunner extends AbstractQueryRunner {
         FileUtils.forceDelete(tmp);
         val properties = KylinConfig.getInstanceFromEnv().exportToProperties();
         ResourceStore.dumpResources(KylinConfig.getInstanceFromEnv(), tmp, dumpResources, properties);
-        File metaDir = new File(tmp, ImageStore.METADATA_DIR);
+        File metaDir = new File(tmp, MetadataStore.METADATA_NAMESPACE);
 
         for (Map.Entry<String, RootPersistentEntity> mockupResource : mockupResources.entrySet()) {
             File dumpFile = new File(metaDir, mockupResource.getKey());

@@ -147,7 +147,6 @@ public class KylinConfig extends KylinConfigBase {
             System.setProperty(KylinConfig.KYLIN_CONF, localMetaDir);
 
             KylinConfig config = KylinConfig.getInstanceFromEnv();
-            config.setProperty("kylin.metadata.mq-type", "mock");
             config.setMetadataUrl(localMetaDir);
 
             // make sure a local working directory

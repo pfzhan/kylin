@@ -21,34 +21,11 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package io.kyligence.kap.common.persistence.metadata;
 
-package io.kyligence.kap.common.persistence.transaction.mq;
+public class PersistException extends RuntimeException {
 
-import java.util.function.Consumer;
-
-import org.apache.kylin.common.KylinConfig;
-
-import io.kyligence.kap.common.persistence.UnitMessages;
-
-public class MockedMQ extends MessageQueue {
-
-    public MockedMQ(KylinConfig config) {
+    public PersistException(String message, Throwable cause) {
+        super(message, cause);
     }
-
-    @Override
-    public EventPublisher getEventPublisher() {
-        return events -> {
-        };
-    }
-
-    @Override
-    public void startConsumer(Consumer<UnitMessages> consumer) {
-        // do nothing here, just mock
-    }
-
-    @Override
-    public void syncEvents(Consumer<UnitMessages> consumer) {
-        // do nothing here, just mock
-    }
-
 }

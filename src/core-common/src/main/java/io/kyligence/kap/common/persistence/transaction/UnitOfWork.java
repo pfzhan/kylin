@@ -30,7 +30,6 @@ import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.UnitMessages;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.persistence.InMemResourceStore;
@@ -42,14 +41,15 @@ import org.apache.kylin.common.persistence.TombRawResource;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.common.persistence.UnitMessages;
 import io.kyligence.kap.common.persistence.event.EndUnit;
 import io.kyligence.kap.common.persistence.event.Event;
 import io.kyligence.kap.common.persistence.event.ResourceCreateOrUpdateEvent;
 import io.kyligence.kap.common.persistence.event.ResourceDeleteEvent;
 import io.kyligence.kap.common.persistence.event.ResourceRelatedEvent;
 import io.kyligence.kap.common.persistence.event.StartUnit;
-import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
 import io.kyligence.kap.common.persistence.transaction.mq.MQPublishFailureException;
+import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -163,14 +163,13 @@ public class UnitOfWork {
         ResourceStore underlying = ResourceStore.getKylinMetaStore(config);
         KylinConfig configCopy = KylinConfig.createKylinConfig(config);
         //TODO check underlying rs is never changed since here
-        ThreadViewResourceStore rs = new ThreadViewResourceStore((InMemResourceStore) underlying,
-                configCopy);
+        ThreadViewResourceStore rs = new ThreadViewResourceStore((InMemResourceStore) underlying, configCopy);
         ResourceStore.setRS(configCopy, rs);
         this.localConfig = KylinConfig.setAndUnsetThreadLocalConfig(configCopy);
 
         log.info("sandbox RS {} now takes place for main RS {}", rs, underlying);
     }
-    
+
     private void done() {
         if (localConfig == null) {
             return;
@@ -191,11 +190,7 @@ public class UnitOfWork {
         return temp;
     }
 
-    public static boolean containsLock(String project) {
-        return project.equals(GLOBAL_UNIT) || projectLocks.containsKey(project);
-    }
-
-    static void endTransaction() {
+    static void endTransaction() throws Exception {
 
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         val threadViewRS = (ThreadViewResourceStore) ResourceStore.getKylinMetaStore(config);
@@ -204,8 +199,7 @@ public class UnitOfWork {
             if (x instanceof TombRawResource) {
                 return new ResourceDeleteEvent(x.getResPath());
             } else {
-                return new ResourceCreateOrUpdateEvent(
-                        new RawResource(x.getResPath(), x.getByteSource(), x.getTimestamp(), x.getMvcc() - 1));
+                return new ResourceCreateOrUpdateEvent(x);
             }
         }).collect(Collectors.<Event> toList());
 
@@ -215,16 +209,24 @@ public class UnitOfWork {
 
         val originConfig = KylinConfig.getInstanceFromEnv();
         // publish events here
-        packageEvents(eventList, work.project);
-        eventList.forEach(e -> e.setKey(work.project));
-        val eventStore = EventStore.getInstance(originConfig);
-        eventStore.getEventPublisher().publish(eventList);
+        val unitMessages = packageEvents(eventList, get().project);
+        val metadataStore = ResourceStore.getKylinMetaStore(originConfig).getMetadataStore();
+        metadataStore.batchUpdate(unitMessages);
+
+        try {
+            val messageQueue = MessageQueue.getInstance(originConfig);
+            if (messageQueue != null) {
+                messageQueue.getEventPublisher().publish(unitMessages);
+            }
+        } catch (MQPublishFailureException e) {
+            log.warn("mq publish failed", e);
+        }
 
         try {
             // replay in leader before release lock
             replaying.set(true);
-            val replayer = EventSynchronization.getInstance(originConfig);
-            replayer.replay(new UnitMessages(eventList), true);
+            val replayer = MessageSynchronization.getInstance(originConfig);
+            replayer.replay(unitMessages, true);
             replaying.remove();
         } catch (Exception e) {
             // in theory, this should not happen
@@ -233,7 +235,7 @@ public class UnitOfWork {
         }
     }
 
-    private static void packageEvents(List<Event> events, String project) {
+    private static UnitMessages packageEvents(List<Event> events, String project) {
         if (!project.equals(GLOBAL_UNIT)) {
             Preconditions.checkState(
                     events.stream().filter(e -> e instanceof ResourceRelatedEvent)
@@ -243,11 +245,13 @@ public class UnitOfWork {
         val uuid = UUID.randomUUID().toString();
         events.add(0, new StartUnit(uuid));
         events.add(new EndUnit(uuid));
+        events.forEach(e -> e.setKey(get().project));
+        return new UnitMessages(events);
     }
 
     public static boolean isReplaying() {
         return Objects.equals(true, replaying.get())
-                || Thread.currentThread().getName().equals(EventStore.CONSUMER_THREAD_NAME);
+                || Thread.currentThread().getName().equals(MessageQueue.CONSUMER_THREAD_NAME);
     }
 
     public static ReentrantLock getLock(String project) {

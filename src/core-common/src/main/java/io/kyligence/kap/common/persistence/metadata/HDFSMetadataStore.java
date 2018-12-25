@@ -21,7 +21,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package org.apache.kylin.common.persistence.image;
+package io.kyligence.kap.common.persistence.metadata;
 
 import java.io.IOException;
 import java.util.NavigableSet;
@@ -47,15 +47,15 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class HDFSImageStore extends ImageStore {
+public class HDFSMetadataStore extends MetadataStore {
 
     public static final String HDFS_SCHEME = "hdfs";
 
     private final Path rootPath;
     private final FileSystem fs;
 
-    public HDFSImageStore(KylinConfig kylinConfig) {
-        super(kylinConfig);
+    public HDFSMetadataStore(KylinConfig kylinConfig, String namespace) {
+        super(kylinConfig, namespace);
         try {
             val storageUrl = kylinConfig.getMetadataUrl();
             Preconditions.checkState(HDFS_SCHEME.equals(storageUrl.getScheme()));
@@ -79,9 +79,12 @@ public class HDFSImageStore extends ImageStore {
     }
 
     @Override
-    protected void saveFile(String path, ByteSource bs, long ts) throws Exception {
-        log.trace("res path : {}", path);
-        Path p = getRealHDFSPath(path);
+    protected void save(String resPath, ByteSource bs, long ts, long mvcc) throws Exception {
+        log.trace("res path : {}", resPath);
+        Path p = getRealHDFSPath(namespace + resPath);
+        if (bs == null) {
+            fs.delete(p, true);
+        }
         FSDataOutputStream out = null;
         try {
             out = fs.create(p, true);
@@ -95,9 +98,9 @@ public class HDFSImageStore extends ImageStore {
     }
 
     @Override
-    protected NavigableSet<String> listFiles(String rootFilepath) {
+    protected NavigableSet<String> list(String resPath) {
         try {
-            Path p = getRealHDFSPath(rootFilepath);
+            Path p = getRealHDFSPath(namespace + resPath);
             if (!fs.exists(p) || !fs.isDirectory(p)) {
                 return new TreeSet<>();
             }
@@ -111,8 +114,8 @@ public class HDFSImageStore extends ImageStore {
     }
 
     @Override
-    protected RawResource loadFile(String filepath) throws IOException {
-        Path p = getRealHDFSPath(filepath);
+    protected RawResource load(String resPath) throws IOException {
+        Path p = getRealHDFSPath(namespace + resPath);
         if (fs.exists(p) && fs.isFile(p)) {
             if (fs.getFileStatus(p).getLen() == 0) {
                 log.warn("Zero length file: " + p.toString());
@@ -120,7 +123,7 @@ public class HDFSImageStore extends ImageStore {
             try (val in = fs.open(p)) {
                 val bs = ByteStreams.asByteSource(IOUtils.toByteArray(in));
                 long t = fs.getFileStatus(p).getModificationTime();
-                return new RawResource(filepath, bs, t, getMvcc(bs));
+                return new RawResource(resPath, bs, t, getMvcc(bs));
             }
         } else {
             throw new IOException("path " + p + " not found");

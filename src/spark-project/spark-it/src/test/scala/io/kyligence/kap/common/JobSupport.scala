@@ -26,6 +26,7 @@ import java.io.File
 import java.util.{Objects, UUID}
 
 import com.google.common.collect.{Lists, Maps, Sets}
+import io.kyligence.kap.common.persistence.metadata.MetadataStore
 import io.kyligence.kap.cube.model.{NCuboidLayout, NDataSegment, NDataflow, NDataflowManager, NDataflowUpdate}
 import io.kyligence.kap.engine.spark.ExecutableUtils
 import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob}
@@ -338,6 +339,6 @@ trait JobSupport
     val resourceStore: ResourceStore = ResourceStore.getKylinMetaStore(config)
     val outputConfig: KylinConfig = KylinConfig.createKylinConfig(config)
     outputConfig.setMetadataUrl(metadataUrlPrefix)
-    ResourceStore.createImageStore(outputConfig).dump(resourceStore)
+    ResourceStore.createMetadataStore(outputConfig, MetadataStore.METADATA_NAMESPACE).dump(resourceStore)
   }
 }

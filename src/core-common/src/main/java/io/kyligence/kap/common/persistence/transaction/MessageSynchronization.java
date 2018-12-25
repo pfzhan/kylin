@@ -35,7 +35,7 @@ import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class EventSynchronization {
+public class MessageSynchronization {
 
     private final KylinConfig config;
     private final LeaderInitiator leaderInitiator;
@@ -43,15 +43,15 @@ public class EventSynchronization {
     @Getter
     private long eventSize = 0;
 
-    public static EventSynchronization getInstance(KylinConfig config) {
-        return config.getManager(EventSynchronization.class);
+    public static MessageSynchronization getInstance(KylinConfig config) {
+        return config.getManager(MessageSynchronization.class);
     }
 
-    static EventSynchronization newInstance(KylinConfig config) {
-        return new EventSynchronization(config);
+    static MessageSynchronization newInstance(KylinConfig config) {
+        return new MessageSynchronization(config);
     }
 
-    private EventSynchronization(KylinConfig config) {
+    private MessageSynchronization(KylinConfig config) {
         this.config = config;
         leaderInitiator = LeaderInitiator.getInstance(config);
         eventListener = EventListenerRegistry.getInstance(config);
@@ -66,7 +66,7 @@ public class EventSynchronization {
         if (leaderInitiator.isLeader() && !locally) {
             return;
         }
-        if (!locally){
+        if (!locally) {
             UnitOfWork.startTransaction(messages.getKey(), false);
         }
         messages.getMessages().forEach(event -> {
@@ -95,7 +95,12 @@ public class EventSynchronization {
         val resourceStore = ResourceStore.getKylinMetaStore(config);
         log.debug("replay update {}, {}", event.getResPath(), event.getCreatedOrUpdated().getMvcc());
         val raw = event.getCreatedOrUpdated();
-        resourceStore.checkAndPutResource(raw.getResPath(), raw.getByteSource(), raw.getMvcc());
+        val oldRaw = resourceStore.getResource(raw.getResPath());
+        if (oldRaw == null) {
+            resourceStore.putResourceWithoutCheck(raw.getResPath(), raw.getByteSource(), raw.getMvcc());
+        } else {
+            resourceStore.checkAndPutResource(raw.getResPath(), raw.getByteSource(), raw.getMvcc() - 1);
+        }
     }
 
 }
