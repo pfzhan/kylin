@@ -10,7 +10,7 @@ export const drama = {
   manual: () => [...addProjectDrama(), ...loadTableDrama()],
   project: () => [...addProjectDrama()],
   loadTable: () => [...loadTableDrama()],
-  addModel: () => [...addModelDrama],
-  addIndexDrama: () => [...addIndexDrama]
+  addModel: () => [...addModelDrama(), ...addIndexDrama()],
+  monitor: () => [...monitorDrama()]
 }
 

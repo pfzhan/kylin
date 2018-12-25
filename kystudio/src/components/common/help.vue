@@ -326,34 +326,6 @@
 </script>
 <style lang="less">
   @import '../../assets/styles/variables.less';
-  .guide-box {
-    .guide-pic{
-      width:85px;
-      height:85px;
-      background-color: @grey-4;
-      margin: 0 auto;
-      margin-top:40px;
-    }
-    .guide-title{
-      text-align: center;
-      color:@text-title-color;
-      margin-top:14px;
-    }
-    .guide-desc {
-      text-align: center;
-      color:@text-disabled-color;
-      font-size:12px;
-      margin-top:14px;
-    }
-    .guide-footer {
-      font-size: 16px;
-      margin-top:14px;
-      text-align: center;
-      color:@base-color;
-      margin-bottom: 60px;
-      cursor:pointer;
-    }
-  }
   .help-box {
     .errMsgBox {
       .el-dialog__body {

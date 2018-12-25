@@ -215,12 +215,55 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      search: '.guide-gotoindex-btn' // 点击保存模型
+      target: 'partitionTable' // 飞向partition table
+    },
+    {
+      eventID: 31,
+      done: false,
+      target: 'partitionTable', // 输入partition table
+      val: 'P_LINEORDER'
+    },
+    {
+      eventID: 1,
+      done: false,
+      target: 'partitionColumn' // 飞向partition column
+    },
+    {
+      eventID: 31,
+      done: false,
+      target: 'partitionColumn', // 输入partition column内容
+      val: 'LO_ORDERDATE'
+    },
+    {
+      eventID: 1,
+      done: false,
+      target: 'partitionFormat' // 飞向format输入框
+    },
+    {
+      eventID: 31,
+      done: false,
+      target: 'partitionFormat', // 输入partition输入
+      val: 'yyyyMMdd'
+    },
+    {
+      eventID: 1,
+      done: false,
+      target: 'partitionSaveBtn' // 飞向partition保存按钮
     },
     {
       eventID: 2,
       done: false,
-      search: '.guide-gotoindex-btn' // 点击保存模型
+      target: 'partitionSaveBtn'// 点击partition保存按钮
+    },
+    {
+      eventID: 1,
+      done: false,
+      search: '.guide-gotoindex-btn' // 飞向添加index 按钮
+    },
+    {
+      eventID: 2,
+      done: false,
+      search: '.guide-gotoindex-btn' // 点击添加index按钮
     }
   ]
 }

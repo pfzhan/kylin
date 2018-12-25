@@ -29,13 +29,13 @@
       <el-form-item :label="$t('partitionDateColumn')">
         <el-col :span="12">
           <el-form-item prop="date1">
-             <el-select v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:248px">
+             <el-select v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:248px">
               <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
             </el-select>
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-select v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:248px">
+          <el-select v-guide.partitionColumn  v-model="partitionMeta.column" :placeholder="$t('kylinLang.common.pleaseSelect')" filterable style="width:248px">
           <el-option :label="t.name" :value="t.name" v-for="t in columns" :key="t.name">
             <span style="float: left">{{ t.name }}</span>
             <span class="ky-option-sub-info">{{ t.datatype }}</span>
@@ -44,7 +44,7 @@
         </el-col>
       </el-form-item>
       <el-form-item :label="$t('dateFormat')">
-        <el-select size="medium" v-model="partitionMeta.format" style="width:248px" :placeholder="$t('kylinLang.common.pleaseSelect')">
+        <el-select v-guide.partitionFormat  size="medium" v-model="partitionMeta.format" style="width:248px" :placeholder="$t('kylinLang.common.pleaseSelect')">
           <el-option
             v-for="item in formatList"
             :key="item.value"
@@ -62,7 +62,7 @@
       <!-- <span class="ksd-fleft up-performance"><i class="el-icon-ksd-arrow_up"></i>提升<i>5%</i></span> -->
       <!-- <span class="ksd-fleft down-performance"><i class="el-icon-ksd-arrow_down"></i>下降<span>5%</span></span> -->
       <el-button plain  size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" plain @click="savePartition()" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
+      <el-button type="primary" v-guide.partitionSaveBtn plain @click="savePartition()" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
     </div>
   </el-dialog>
 </template>

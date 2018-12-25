@@ -52,6 +52,11 @@ export function addProjectDrama () {
       eventID: 2,
       done: false,
       target: 'saveProjectBtn' // 点击project 保存按钮
+    },
+    {
+      eventID: 5,
+      done: false,
+      target: 'addProjectInput' // 检查表单里的input元素是否存在 不存在说明添加project成功完成
     }
   ]
 }

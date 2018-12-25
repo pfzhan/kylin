@@ -28,6 +28,7 @@ export default {
     lang: 'en',
     platform: '',
     guideConfig: {
+      guideType: '',
       guideModeCheckDialog: false,
       globalMouseDrag: false,
       globalMaskVisible: false,

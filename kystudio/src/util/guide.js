@@ -31,7 +31,10 @@ class Guide {
     ]
     this.drama = {
       manual: drama.manual(),
-      automatic: drama.automatic
+      project: drama.project(),
+      loadTable: drama.loadTable(),
+      addModel: drama.addModel(),
+      monitor: drama.monitor()
     }
   }
   getEventById (id) {
@@ -85,12 +88,15 @@ class Guide {
           } else {
             result = targetResult
           }
+        } else {
+          result = null
         }
       } else {
         result = document.querySelector(search)
       }
       if (checkAbsent && result || !checkAbsent && !result) {
         if (this.waitCount > this.waitLimit) {
+          console.log('查找超时')
           return reject()
         }
         setTimeout(() => {
@@ -102,7 +108,12 @@ class Guide {
       }
     }
     return new Promise((resolve, reject) => {
-      searchFuc(resolve, reject)
+      try {
+        searchFuc(resolve, reject)
+      } catch (e) {
+        console.log(e)
+        reject(e)
+      }
     })
   }
   // 无拦截跳转路由
@@ -244,30 +255,27 @@ class Guide {
       }
     }
   }
-  // 自动播放模式
-  run () {
-    this.go()
-  }
   // 单步播放模式
-  go (step) {
+  step (step, resolve, reject) {
     if (this.currentStep && this.currentStep.done === true || !this.currentStep) {
       let p = this.steps.next().value
       if (p && p.then) {
         p.then((stepInfo) => {
           this.currentStep = stepInfo
           stepInfo.done = true
-          if (step === undefined || step - 1 > 0) {
+          if (step === undefined || isNaN(step) || step - 1 > 0) {
             let st = setTimeout(() => {
-              this.go(step - 1)
+              this.step(step - 1, resolve)
             }, this.stepSpeed)
             this.STs.push(st)
           }
         })
       } else {
-        this.stop()
+        resolve()
         console.log('完成了！')
       }
     } else {
+      reject()
       console.log('上一步还没完成')
     }
   }
@@ -279,6 +287,12 @@ class Guide {
     this.systemStore.globalMaskVisible = true
     this.steps = this.stepFuncs(this.drama[this.mode])
     return this
+  }
+  // 按步执行，step为空的话就连续执行
+  go (step) {
+    return new Promise((resolve, reject) => {
+      this.step(step, resolve, reject)
+    })
   }
   stop () {
     this.systemStore.globalMaskVisible = false
