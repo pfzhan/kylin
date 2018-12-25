@@ -5,6 +5,7 @@
     :append-to-body="true"
     :close-on-click-modal="false"
     @close="isShow && handleClose(false)">
+    <div class="loading" v-loading="isLoading"></div>
     <template v-if="model">
       <!-- 维度列表展示 -->
       <div class="dimension-list clearfix" v-if="isDimensionShow">
@@ -170,6 +171,7 @@ vuex.registerModule(['modals', 'AggregateModal'], store)
     ...mapState('AggregateModal', {
       form: state => state.form,
       isShow: state => state.isShow,
+      isLoading: state => state.isLoading,
       editType: state => state.editType,
       callback: state => state.callback,
       model: state => state.model,
@@ -558,6 +560,13 @@ export default class AggregateModal extends Vue {
   }
   .dialog-footer {
     line-height: 32px;
+  }
+  .loading {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
   }
 }
 </style>
