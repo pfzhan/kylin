@@ -54,7 +54,7 @@ public class NModelMasterTest extends NTestBase {
                 "select part_dt, sum(item_count), count(*) from kylin_sales left join kylin_cal_dt on cal_dt = part_dt group by part_dt" //
         };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.analyzeSQLs();
 
         NSmartContext ctx = smartMaster.getContext();
@@ -125,7 +125,7 @@ public class NModelMasterTest extends NTestBase {
                         + " group by kylin_category_groupings.meta_categ_name ,kylin_category_groupings.categ_lvl2_name" //
         };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.analyzeSQLs();
 
         NSmartContext ctx = smartMaster.getContext();
@@ -169,7 +169,7 @@ public class NModelMasterTest extends NTestBase {
                 + "INNER JOIN KYLIN_ACCOUNT as BUYER_ACCOUNT ON KYLIN_SALES.BUYER_ID = BUYER_ACCOUNT.ACCOUNT_ID \n"
                 + "INNER JOIN KYLIN_COUNTRY as BUYER_COUNTRY ON BUYER_ACCOUNT.ACCOUNT_COUNTRY = BUYER_COUNTRY.COUNTRY \n" };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.analyzeSQLs();
 
         NSmartContext ctx = smartMaster.getContext();
@@ -201,7 +201,7 @@ public class NModelMasterTest extends NTestBase {
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2013-01-01");
 
-        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(kylinConfig, proj);
+        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(), proj);
         NDataLoadingRange savedDataLoadingRange = dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
         return savedDataLoadingRange;
     }

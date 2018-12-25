@@ -34,6 +34,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
@@ -60,6 +62,7 @@ public class NSmartMasterTest extends NTestBase {
     // Test shrink model/cube_plan process may contaminate the original model/cube_plan or not
     @Test
     public void testShrinkIsolation() {
+        KylinConfig kylinConfig = getTestConfig();
         String[] sqlStatements = new String[] {
                 "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" };
         NDataModel originalModel1, originalModel2, targetModel1, targetModel2, targetModel3;
@@ -164,6 +167,7 @@ public class NSmartMasterTest extends NTestBase {
 
     @Test
     public void testSaveAccelerateInfo() {
+        KylinConfig kylinConfig = getTestConfig();
         String[] sqls = new String[] {
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales "
                         + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name",
@@ -213,6 +217,7 @@ public class NSmartMasterTest extends NTestBase {
 
     @Test
     public void testCountDistinctTwoParamColumn() {
+        KylinConfig kylinConfig = getTestConfig();
         /*
          * case 1:
          */
@@ -266,6 +271,7 @@ public class NSmartMasterTest extends NTestBase {
 
     @Test
     public void testSaveAccelerateInfoOfOneSqlToManyLayouts() {
+        KylinConfig kylinConfig = getTestConfig();
         String[] sqls = new String[] { "select a.*, kylin_sales.lstg_format_name as lstg_format_name \n"
                 + "from ( select part_dt, sum(price) as sum_price from kylin_sales\n"
                 + "         where part_dt > '2010-01-01' group by part_dt) a \n"
@@ -295,6 +301,7 @@ public class NSmartMasterTest extends NTestBase {
      */
     @Test
     public void testRefreshCubePlanWithRetry() throws ExecutionException, InterruptedException {
+        KylinConfig kylinConfig = getTestConfig();
         String[] sqlsA = new String[] {
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales "
                         + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name",
@@ -324,9 +331,24 @@ public class NSmartMasterTest extends NTestBase {
         smartMasterC.runAll();
 
         ExecutorService service = Executors.newCachedThreadPool();
-        Future futureA = service.submit(smartMasterA::refreshCubePlanWithRetry);
-        Future futureB = service.submit(smartMasterB::refreshCubePlanWithRetry);
-        Future futureC = service.submit(smartMasterC::refreshCubePlanWithRetry);
+        Future<?> futureA = service.submit(() -> {
+            try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
+                    .setAndUnsetThreadLocalConfig(kylinConfig)) {
+                smartMasterA.refreshCubePlanWithRetry();
+            }
+        });
+        Future<?> futureB = service.submit(() -> {
+            try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
+                    .setAndUnsetThreadLocalConfig(kylinConfig)) {
+                smartMasterB.refreshCubePlanWithRetry();
+            }
+        });
+        Future<?> futureC = service.submit(() -> {
+            try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
+                    .setAndUnsetThreadLocalConfig(kylinConfig)) {
+                smartMasterC.refreshCubePlanWithRetry();
+            }
+        });
 
         futureA.get();
         futureB.get();
@@ -344,6 +366,7 @@ public class NSmartMasterTest extends NTestBase {
     @Ignore
     @Test
     public void testRefreshCubePlanWithRetryFail() {
+        KylinConfig kylinConfig = getTestConfig();
         kylinConfig.setProperty("kap.smart.conf.propose.retry-max", "0");
         try {
 
@@ -357,6 +380,7 @@ public class NSmartMasterTest extends NTestBase {
 
     @Test
     public void testMaintainModelTypeWithNoInitialModel() {
+        KylinConfig kylinConfig = getTestConfig();
         // set to manual model type
         final NProjectManager projectManager = NProjectManager.getInstance(kylinConfig);
         final ProjectInstance projectUpdate = projectManager.copyForWrite(projectManager.getProject(proj));
@@ -408,6 +432,7 @@ public class NSmartMasterTest extends NTestBase {
 
     @Test
     public void testMaintainModelType() {
+        KylinConfig kylinConfig = getTestConfig();
         String[] sqls = new String[] { //
                 "select part_dt, lstg_format_name, sum(price) from kylin_sales "
                         + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
@@ -539,6 +564,7 @@ public class NSmartMasterTest extends NTestBase {
 
     @Test
     public void testInitTargetModelError() {
+        KylinConfig kylinConfig = getTestConfig();
         String[] sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from kylin_sales \n"
                 + " left join kylin_cal_dt on cal_dt = part_dt \n"
                 + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
@@ -569,6 +595,7 @@ public class NSmartMasterTest extends NTestBase {
 
     @Test
     public void testInitTargetCubePlanError() {
+        KylinConfig kylinConfig = getTestConfig();
         String[] sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from kylin_sales \n"
                 + " left join kylin_cal_dt on cal_dt = part_dt \n"
                 + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
@@ -591,6 +618,7 @@ public class NSmartMasterTest extends NTestBase {
 
     @Test
     public void testWithoutSaveModel() {
+        KylinConfig kylinConfig = getTestConfig();
         String[] sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from kylin_sales \n"
                 + " left join kylin_cal_dt on cal_dt = part_dt \n"
                 + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name" };
@@ -609,6 +637,7 @@ public class NSmartMasterTest extends NTestBase {
 
     @Test
     public void testRenameAllColumns() {
+        KylinConfig kylinConfig = getTestConfig();
         // test all named columns rename
         String[] sqlStatements = new String[] { "SELECT\n"
                 + "BUYER_ACCOUNT.ACCOUNT_COUNTRY, SELLER_ACCOUNT.ACCOUNT_COUNTRY "
@@ -641,6 +670,7 @@ public class NSmartMasterTest extends NTestBase {
     }
 
     private NDataModel proposeModel(String[] sqlStatements) {
+        KylinConfig kylinConfig = getTestConfig();
         NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqlStatements);
         smartMaster.analyzeSQLs();
         smartMaster.selectModel();

@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.image.ImageStore;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -59,7 +60,7 @@ public abstract class NTestBase {
 
     protected String proj = "learn_kylin";
     private File tmpMeta;
-    protected KylinConfig kylinConfig;
+    private SetAndUnsetThreadLocalConfig localConfig;
     private FavoriteQueryManager favoriteQueryManager;
 
     @Before
@@ -68,18 +69,22 @@ public abstract class NTestBase {
         tmpMeta = Files.createTempDir();
         FileUtils.copyDirectory(new File(metaDir), new File(tmpMeta, ImageStore.METADATA_DIR));
 
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
+        KylinConfig kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
         kylinConfig.setProperty("kylin.env", "UT");
-        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+        localConfig = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig);
         favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
+    }
+    
+    public KylinConfig getTestConfig() {
+        return localConfig.get();
     }
 
     @After
     public void tearDown() throws Exception {
-        KylinConfig.removeKylinConfigThreadLocal();
         if (tmpMeta != null)
             FileUtils.forceDelete(tmpMeta);
-        ResourceStore.clearCache(kylinConfig);
+        ResourceStore.clearCache(localConfig.get());
+        localConfig.close();
     }
 
     protected List<NCuboidLayout> collectAllLayouts(List<NCuboidDesc> cuboidDescs) {
@@ -123,21 +128,26 @@ public abstract class NTestBase {
     }
 
     protected void showTableExdInfo() throws IOException {
-        val resourceStore = ResourceStore.getKylinMetaStore(kylinConfig);
-        ResourceStore.dumpResources(kylinConfig, tmpMeta, resourceStore.listResourcesRecursively("/"));
+        KylinConfig oldKylinConfig = localConfig.get();
+        val resourceStore = ResourceStore.getKylinMetaStore(oldKylinConfig);
+        ResourceStore.dumpResources(oldKylinConfig, tmpMeta, resourceStore.listResourcesRecursively("/"));
+        
         reAddMetadataTableExd();
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
+        localConfig.close();
+        
+        KylinConfig kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
         kylinConfig.setProperty("kylin.env", "UT");
-        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+        localConfig = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig);
         favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
     }
 
     protected void hideTableExdInfo() throws IOException {
         deleteMetadataTableExd();
-        kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
+        localConfig.close();
 
+        KylinConfig kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
         kylinConfig.setProperty("kylin.env", "UT");
-        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
+        localConfig = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig);
         favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
     }
 

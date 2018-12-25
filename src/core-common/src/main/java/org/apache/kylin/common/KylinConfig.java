@@ -64,6 +64,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -698,12 +699,23 @@ public class KylinConfig extends KylinConfigBase {
 
     public static class SetAndUnsetThreadLocalConfig implements AutoCloseable {
 
-        public SetAndUnsetThreadLocalConfig(KylinConfig config) {
+        private SetAndUnsetThreadLocalConfig(KylinConfig config) {
+            if (THREAD_ENV_INSTANCE.get() != null) {
+                logger.warn("KylinConfig already hosts thread local instance {}, will be overwritten by {}",
+                        THREAD_ENV_INSTANCE.get(), config);
+            }
             THREAD_ENV_INSTANCE.set(config);
+        }
+
+        public KylinConfig get() {
+            Preconditions.checkNotNull(THREAD_ENV_INSTANCE.get(),
+                    "KylinConfig thread local instance is already closed");
+            return THREAD_ENV_INSTANCE.get();
         }
 
         @Override
         public void close() {
+            ResourceStore.clearCache(get());
             THREAD_ENV_INSTANCE.remove();
         }
     }

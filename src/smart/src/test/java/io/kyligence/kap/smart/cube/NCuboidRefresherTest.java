@@ -35,6 +35,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -63,6 +64,7 @@ public class NCuboidRefresherTest extends NTestBase {
     public void testSingleTimeLineTableIndex() throws Exception {
 
         hideTableExdInfo();
+        KylinConfig kylinConfig = getTestConfig();
 
         //------------propose-----------------------------------------
         String[] sqls = new String[] {
@@ -97,6 +99,7 @@ public class NCuboidRefresherTest extends NTestBase {
         }
 
         showTableExdInfo();
+        kylinConfig = getTestConfig();
 
         //------------update-----------------------------------------
         smartMaster = new NSmartMaster(kylinConfig, proj, sqls, draftVersion);
@@ -123,9 +126,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
 
-            smartMaster.saveModel();
-            smartMaster.saveCubePlan();
-            smartMaster.saveAccelerateInfo();
+            smartMaster.save(null);
 
             val fqRealizations = collectFavoriteQueryRealizations(layouts);
             Assert.assertEquals(1, fqRealizations.size());
@@ -136,6 +137,7 @@ public class NCuboidRefresherTest extends NTestBase {
     public void testSingleTimeLineAggIndex() throws Exception {
 
         hideTableExdInfo();
+        KylinConfig kylinConfig = getTestConfig();
 
         //------------propose-----------------------------------------
         String[] sqls = new String[] { "select part_dt, lstg_format_name, sum(price) from kylin_sales "
@@ -170,6 +172,7 @@ public class NCuboidRefresherTest extends NTestBase {
         }
 
         showTableExdInfo();
+        kylinConfig = getTestConfig();
 
         //------------update-----------------------------------------
         smartMaster = new NSmartMaster(kylinConfig, proj, sqls, draftVersion);
@@ -196,9 +199,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", 1, layout.getId());
 
-            smartMaster.saveModel();
-            smartMaster.saveCubePlan();
-            smartMaster.saveAccelerateInfo();
+            smartMaster.save(null);
 
             val fqRealizations = collectFavoriteQueryRealizations(layouts);
             Assert.assertEquals(1, fqRealizations.size());
@@ -212,6 +213,7 @@ public class NCuboidRefresherTest extends NTestBase {
     public void testSingleTimeLineWithBatchSql() throws Exception {
 
         hideTableExdInfo();
+        KylinConfig kylinConfig = getTestConfig();
 
         //----------------propose------------------------------------
         String[] sqls = new String[] {
@@ -242,6 +244,7 @@ public class NCuboidRefresherTest extends NTestBase {
         }
 
         showTableExdInfo();
+        kylinConfig = getTestConfig();
 
         //------------update-----------------------------------------
         smartMaster = new NSmartMaster(kylinConfig, proj, sqls, draftVersion);
@@ -262,9 +265,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched cuboids size", 3, cuboidDescs.size());
             Assert.assertEquals("unmatched layouts size", 4, allLayouts.size());
 
-            smartMaster.saveModel();
-            smartMaster.saveCubePlan();
-            smartMaster.saveAccelerateInfo();
+            smartMaster.save(null);
 
             // get favorite query realization relationships from database and validate them
             val realizations = collectFavoriteQueryRealizations(allLayouts);
@@ -290,6 +291,7 @@ public class NCuboidRefresherTest extends NTestBase {
     public void testParallelTimeLineWithSimilarSqlCase1() throws Exception {
 
         hideTableExdInfo();
+        KylinConfig kylinConfig = getTestConfig();
 
         // -----------t1: line A propose-------------------------
         String[] sqls = new String[] {
@@ -330,6 +332,7 @@ public class NCuboidRefresherTest extends NTestBase {
         Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 2, queryRealization2.getCuboidLayoutId());
 
         showTableExdInfo();
+        kylinConfig = getTestConfig();
 
         // -----------t3: line A update and validate-------------------------
         {
@@ -365,9 +368,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
 
-            smartMasterA.saveModel();
-            smartMasterA.saveCubePlan();
-            smartMasterA.saveAccelerateInfo();
+            smartMasterA.save(null);
 
             // get favorite query realization relationships from database and validate them
             val realizationsAfterRefreshA = collectFavoriteQueryRealizations(layoutsAfterRefreshA);
@@ -417,9 +418,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 4, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
 
-            smartMasterB.saveModel();
-            smartMasterB.saveCubePlan();
-            smartMasterB.saveAccelerateInfo();
+            smartMasterB.save(null);
 
             // get favorite query realization relationships from database and validate them
             val realizationsAfterRefreshB = collectFavoriteQueryRealizations(layoutsAfterRefreshB);
@@ -445,6 +444,7 @@ public class NCuboidRefresherTest extends NTestBase {
     public void testParallelTimeLineWithSimilarSqlCase2() throws Exception {
 
         hideTableExdInfo();
+        KylinConfig kylinConfig = getTestConfig();
 
         // -----------t1: line A propose-------------------------
         String[] sqls = new String[] {
@@ -472,6 +472,7 @@ public class NCuboidRefresherTest extends NTestBase {
                         .get(0).getDraftVersion());
 
         showTableExdInfo();
+        kylinConfig = getTestConfig();
 
         // -----------t3: line B update and validate-------------------------
         {
@@ -508,9 +509,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
 
-            smartMasterB.saveModel();
-            smartMasterB.saveCubePlan();
-            smartMasterB.saveAccelerateInfo();
+            smartMasterB.save(null);
 
             // get favorite query realization relationships from database and validate them
             val realizationsAfterRefreshB = collectFavoriteQueryRealizations(layoutsAfterRefreshB);
@@ -559,9 +558,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
 
-            smartMasterA.saveModel();
-            smartMasterA.saveCubePlan();
-            smartMasterA.saveAccelerateInfo();
+            smartMasterA.save(null);
 
             // get favorite query realization relationships from database and validate them
             val realizationsAfterRefreshA = collectFavoriteQueryRealizations(layoutsAfterRefreshA);
@@ -585,7 +582,9 @@ public class NCuboidRefresherTest extends NTestBase {
      */
     @Test
     public void testParallelTimeLineWithSimilarSqlCase3() throws Exception {
+
         hideTableExdInfo();
+        KylinConfig kylinConfig = getTestConfig();
 
         // -----------t1: line A propose-------------------------
         String[] sqls = new String[] {
@@ -624,9 +623,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
 
-            smartMasterA.saveModel();
-            smartMasterA.saveCubePlan();
-            smartMasterA.saveAccelerateInfo();
+            smartMasterA.save(null);
 
             // get favorite query realization relationships from database and validate them
             val realizationsAfterRefreshA = collectFavoriteQueryRealizations(layoutsAfterRefreshA);
@@ -654,6 +651,7 @@ public class NCuboidRefresherTest extends NTestBase {
                 .getTargetCubePlan().getCuboids().get(0).getLayouts().get(0).getDraftVersion());
 
         showTableExdInfo();
+        kylinConfig = getTestConfig();
 
         // -----------t4: line B update and validate-------------------------
         {
@@ -689,9 +687,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
 
-            smartMasterB.saveModel();
-            smartMasterB.saveCubePlan();
-            smartMasterB.saveAccelerateInfo();
+            smartMasterB.save(null);
 
             // get favorite query realization relationships from database and validate them
             val realizationsAfterRefreshB = collectFavoriteQueryRealizations(layoutsAfterRefreshB);
@@ -718,7 +714,9 @@ public class NCuboidRefresherTest extends NTestBase {
      */
     @Test
     public void testParallelTimeLineWithDifferentSqlCase() throws Exception {
+
         hideTableExdInfo();
+        KylinConfig kylinConfig = getTestConfig();
 
         // -----------t1: line A propose-------------------------
         String[] sqls = new String[] {
@@ -746,6 +744,7 @@ public class NCuboidRefresherTest extends NTestBase {
                         .get(0).getDraftVersion());
 
         showTableExdInfo();
+        kylinConfig = getTestConfig();
 
         // -----------t3: line A update and validate-------------------------
         {
@@ -776,9 +775,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
 
-            smartMasterA.saveModel();
-            smartMasterA.saveCubePlan();
-            smartMasterA.saveAccelerateInfo();
+            smartMasterA.save(null);
 
             // get favorite query realization relationships from database and validate them
             val realizationsAfterRefreshA = collectFavoriteQueryRealizations(layoutsAfterRefreshA);
@@ -827,9 +824,7 @@ public class NCuboidRefresherTest extends NTestBase {
                     layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
 
-            smartMasterB.saveModel();
-            smartMasterB.saveCubePlan();
-            smartMasterB.saveAccelerateInfo();
+            smartMasterB.save(null);
 
             // get favorite query realization relationships from database and validate them
             final List<NCuboidLayout> layoutsAfterRefreshB = Lists.newArrayList();
@@ -859,6 +854,7 @@ public class NCuboidRefresherTest extends NTestBase {
     public void testParallelTimeLineWithBatchSqls() throws Exception {
 
         hideTableExdInfo();
+        KylinConfig kylinConfig = getTestConfig();
 
         // -----------t1: line A propose-------------------------
         String[] sqls = new String[] {
@@ -926,6 +922,7 @@ public class NCuboidRefresherTest extends NTestBase {
         }
 
         showTableExdInfo();
+        kylinConfig = getTestConfig();
 
         // -----------t3: line A update and validate-------------------------
         {
@@ -950,9 +947,7 @@ public class NCuboidRefresherTest extends NTestBase {
             checkDraftOfEachLayout(null, allCuboidsAfterRefresh);
             checkDraftOfEachLayout(draftVersionB, Lists.newArrayList(lastCuboid));
 
-            smartMasterA.saveModel();
-            smartMasterA.saveCubePlan();
-            smartMasterA.saveAccelerateInfo();
+            smartMasterA.save(null);
 
             // get favorite query realization relationships from database and validate them
             val realizations = collectFavoriteQueryRealizations(allLayouts);
@@ -984,9 +979,7 @@ public class NCuboidRefresherTest extends NTestBase {
             checkDraftOfEachLayout(null, allCuboidsAfterRefresh);
             checkDraftOfEachLayout(null, Lists.newArrayList(lastCuboidAfterRefresh));
 
-            smartMasterB.saveModel();
-            smartMasterB.saveCubePlan();
-            smartMasterB.saveAccelerateInfo();
+            smartMasterB.save(null);
 
             // get favorite query realization relationships from database and validate them
             val realizations = collectFavoriteQueryRealizations(allLayouts);
@@ -1026,30 +1019,31 @@ public class NCuboidRefresherTest extends NTestBase {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
         initFQData(sqls);
         String draftVersionA = "a";
-        NSmartMaster master = new NSmartMaster(kylinConfig, proj, sqls, draftVersionA);
+        NSmartMaster master = new NSmartMaster(getTestConfig(), proj, sqls, draftVersionA);
         master.runAll();
 
         String[] otherSqls = new String[] {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt < '2012-01-02'" };
         initFQData(otherSqls);
         String draftVersionB = "b";
-        NSmartMaster masterB = new NSmartMaster(kylinConfig, proj, otherSqls, draftVersionB);
+        NSmartMaster masterB = new NSmartMaster(getTestConfig(), proj, otherSqls, draftVersionB);
         masterB.runAll();
 
         showTableExdInfo();
+        KylinConfig kylinConfig = getTestConfig();
 
         ExecutorService service = Executors.newCachedThreadPool();
-        Future futureA = service.submit(() -> {
-            try {
-                course(sqls, draftVersionA, 2, 10);
+        Future<?> futureA = service.submit(() -> {
+            try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig)) {
+                course(kylinConfig, sqls, draftVersionA, 2, 10);
             } catch (InterruptedException e) {
                 logger.debug("interrupt exception" + draftVersionA, e);
             }
         });
 
-        Future futureB = service.submit(() -> {
-            try {
-                course(otherSqls, draftVersionB, 3, 3);
+        Future<?> futureB = service.submit(() -> {
+            try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig)) {
+                course(kylinConfig, otherSqls, draftVersionB, 3, 3);
             } catch (InterruptedException e) {
                 logger.debug("interrupt exception" + draftVersionB, e);
             }
@@ -1090,14 +1084,13 @@ public class NCuboidRefresherTest extends NTestBase {
         Assert.assertEquals(NCuboidDesc.TABLE_INDEX_START_ID + 3, list.get(1).getCuboidLayoutId());
     }
 
-    private void course(final String[] sqls, final String draftVer, final int sleepSecondsBeforeRefresh,
-            final int sleepSecondsAfterRefresh) throws InterruptedException {
+    private void course(KylinConfig kylinConfig, final String[] sqls, final String draftVer,
+            final int sleepSecondsBeforeRefresh, final int sleepSecondsAfterRefresh) throws InterruptedException {
 
         Thread.sleep(sleepSecondsBeforeRefresh * 1000);
 
         int retryCount = 0;
         while (retryCount < MAX_TRY_NUM) {
-            KylinConfig.setKylinConfigThreadLocal(kylinConfig);
             NSmartMaster master = new NSmartMaster(kylinConfig, proj, sqls, draftVer);
             master.selectModelAndCubePlan();
             master.refreshCubePlan();

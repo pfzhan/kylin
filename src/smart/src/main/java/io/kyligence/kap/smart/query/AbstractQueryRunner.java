@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
 import org.apache.kylin.query.relnode.OLAPContext;
@@ -85,10 +86,12 @@ public abstract class AbstractQueryRunner implements Closeable {
                     isCacheValid = true;
                 }
                 if (!isCacheValid) {
-                    KylinConfig.setKylinConfigThreadLocal(kylinConfig);
-                    NTableMetadataManager.getInstance(kylinConfig, project);
-                    NDataModelManager.getInstance(kylinConfig, project);
-                    record = executor.execute(project, sql);
+                    try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
+                            .setAndUnsetThreadLocalConfig(kylinConfig)) {
+                        NTableMetadataManager.getInstance(kylinConfig, project);
+                        NDataModelManager.getInstance(kylinConfig, project);
+                        record = executor.execute(project, sql);
+                    }
                     queryCache.put(sql, record);
                 }
                 long end = System.currentTimeMillis();
@@ -107,7 +110,6 @@ public abstract class AbstractQueryRunner implements Closeable {
                 olapContexts.put(index, olapCtxs == null ? Lists.newArrayList() : olapCtxs);
             } finally {
                 counter.countDown();
-                KylinConfig.removeKylinConfigThreadLocal();
             }
         });
     }

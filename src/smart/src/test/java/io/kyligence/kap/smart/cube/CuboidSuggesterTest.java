@@ -50,7 +50,7 @@ public class CuboidSuggesterTest extends NTestBase {
         hideTableExdInfo();
         String[] sqls = new String[] { "select lstg_format_name, buyer_id, seller_id, sum(price) from kylin_sales "
                 + "where part_dt = '2012-01-03' group by part_dt, lstg_format_name, buyer_id, seller_id" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.runAll();
         {
             NSmartContext ctx = smartMaster.getContext();
@@ -70,7 +70,7 @@ public class CuboidSuggesterTest extends NTestBase {
                         + "ops_user_id = '10009998' order by item_count, lstg_site_id",
                 "select ops_user_id, ops_region, price from kylin_sales where "
                         + "part_dt = '2012-01-08' order by item_count, lstg_site_id" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.runAll();
 
         NSmartContext ctx = smartMaster.getContext();
@@ -92,7 +92,7 @@ public class CuboidSuggesterTest extends NTestBase {
                 "select 1 as ttt from kylin_sales" // no dimension and no measure
         };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.runAll();
 
         NSmartContext ctx = smartMaster.getContext();
@@ -134,7 +134,7 @@ public class CuboidSuggesterTest extends NTestBase {
                 "select lstg_format_name, min(price), max(price) from kylin_sales group by lstg_format_name",
                 "select min(seller_id), max(seller_id) from kylin_sales" };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.runAll();
 
         NSmartContext ctx = smartMaster.getContext();
@@ -181,8 +181,8 @@ public class CuboidSuggesterTest extends NTestBase {
                 "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
 
         // set 'kap.smart.conf.rowkey.uhc.min-cardinality' = 2000 to test
-        kylinConfig.setProperty("kap.smart.conf.rowkey.uhc.min-cardinality", "2000");
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        getTestConfig().setProperty("kap.smart.conf.rowkey.uhc.min-cardinality", "2000");
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.runAll();
 
         NSmartContext ctx = smartMaster.getContext();
@@ -205,7 +205,7 @@ public class CuboidSuggesterTest extends NTestBase {
     public void testSuggestSortBy() {
 
         String[] sqls = new String[] { "select part_dt, lstg_format_name, price from kylin_sales order by part_dt" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.runAll();
 
         NSmartContext ctx = smartMaster.getContext();
@@ -236,7 +236,7 @@ public class CuboidSuggesterTest extends NTestBase {
                 "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt",
                 // error case
                 "select part_name, lstg_format_name, sum(price) from kylin_sales " };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.runAll();
 
         // validate sql pattern to layout

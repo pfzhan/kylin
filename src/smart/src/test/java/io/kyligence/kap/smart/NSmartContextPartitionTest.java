@@ -27,6 +27,7 @@ package io.kyligence.kap.smart;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.kylin.common.KylinConfig;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -39,6 +40,7 @@ public class NSmartContextPartitionTest extends NTestBase {
 
     @Test
     public void testAllFullLoadTableJoin() throws IOException {
+        KylinConfig kylinConfig = getTestConfig();
         /*
          * case 1: both are full load tables, result have two contexts
          * --     join
@@ -172,6 +174,7 @@ public class NSmartContextPartitionTest extends NTestBase {
 
     @Test
     public void testIsRightSideIncrementalLoadTable() throws IOException {
+        KylinConfig kylinConfig = getTestConfig();
 
         /*
          * case 1: incremental table marks with '*', should have three contexts, but only two layouts
@@ -300,6 +303,7 @@ public class NSmartContextPartitionTest extends NTestBase {
 
     @Test
     public void testCrossJoin() throws IOException {
+        KylinConfig kylinConfig = getTestConfig();
         /*
          * -- case 1: inner join as cross join
          * --    join
@@ -342,6 +346,7 @@ public class NSmartContextPartitionTest extends NTestBase {
 
     @Test
     public void testAllIncrementalLoadTableJoin() throws IOException {
+        KylinConfig kylinConfig = getTestConfig();
 
         /*
          * -- case 1: self join

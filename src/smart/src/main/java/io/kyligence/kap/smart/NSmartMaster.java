@@ -137,8 +137,11 @@ public class NSmartMaster {
             try {
                 selectModelAndCubePlan();
                 refreshCubePlan();
-                saveCubePlan();
-                saveAccelerateInfo();
+                UnitOfWork.doInTransactionWithRetry(() -> {
+                    saveCubePlan(); 
+                    saveAccelerateInfo();
+                    return null;
+                }, project);
                 logger.debug("save successfully after refresh, {}", context.getDraftVersion());
                 return;
             } catch (IllegalStateException | VersionConflictException e) {
@@ -154,28 +157,35 @@ public class NSmartMaster {
         selectModel();
         selectCubePlan();
     }
-
-    public void runAll() {
-        runAllAndForContext(null);
-    }
-
-    public void runAllAndForContext(Consumer<NSmartContext> hook) {
+    
+    public void selectAndOptimize() {
         analyzeSQLs();
         selectModel();
         optimizeModel();
         selectCubePlan();
         optimizeCubePlan();
-
+    }
+    
+    public void save(Consumer<NSmartContext> hook) {
         UnitOfWork.doInTransactionWithRetry(() -> {
             renameModel();
             saveModel();
-            saveCubePlan();
+            saveCubePlan(); 
             saveAccelerateInfo();
             if (hook != null) {
                 hook.accept(getContext());
             }
             return null;
         }, project);
+    }
+
+    public void runAll() {
+        runAllAndForContext(null);
+    }
+
+    public void runAllAndForContext(Consumer<NSmartContext> hook) {
+        selectAndOptimize();
+        save(hook);
     }
 
     public void saveCubePlan() {

@@ -50,7 +50,7 @@ public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
                 "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt",
                 "select part_dt, sum(item_count) from kylin_sales group by part_dt" };
 
-        SqlSyntaxValidator validator = new SqlSyntaxValidator(kylinConfig, proj, queryExecutor);
+        SqlSyntaxValidator validator = new SqlSyntaxValidator(getTestConfig(), proj, queryExecutor);
         final Map<String, SQLValidateResult> goodResults = validator.batchValidate(goodSqls);
         printSqlValidateResults(goodResults);
         goodResults.forEach((key, sqlValidateResult) -> Assert.assertTrue(sqlValidateResult.isCapable()));
@@ -66,7 +66,7 @@ public class SqlSyntaxValidatorTest extends SqlValidateTestBase {
                 "select sum(lstg_format_name) from kylin_sales" // can not apply sum to 'lstg_format_name'
         };
 
-        SqlSyntaxValidator validator = new SqlSyntaxValidator(kylinConfig, proj, queryExecutor);
+        SqlSyntaxValidator validator = new SqlSyntaxValidator(getTestConfig(), proj, queryExecutor);
         final Map<String, SQLValidateResult> badResults = validator.batchValidate(badSqls);
         printSqlValidateResults(badResults);
         badResults.forEach((key, sqlValidateResult) -> Assert.assertFalse(sqlValidateResult.isCapable()));

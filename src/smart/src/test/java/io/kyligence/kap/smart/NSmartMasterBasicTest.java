@@ -27,6 +27,7 @@ package io.kyligence.kap.smart;
 import java.io.IOException;
 import java.util.List;
 
+import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.Assert;
 import org.junit.Before;
@@ -52,6 +53,7 @@ public class NSmartMasterBasicTest extends NTestBase {
 
     @Before
     public void setupManagers() throws Exception {
+        KylinConfig kylinConfig = getTestConfig();
         setUp();
         tableMetadataManager = NTableMetadataManager.getInstance(kylinConfig, proj);
         dataModelManager = NDataModelManager.getInstance(kylinConfig, proj);
@@ -94,7 +96,7 @@ public class NSmartMasterBasicTest extends NTestBase {
         };
         final int expectedEffectiveOLAPCtxNum = 4;
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         {
             NSmartContext ctx = smartMaster.getContext();
             Assert.assertNotNull(ctx);
@@ -184,7 +186,7 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         final int expectedEffectiveOLAPCtxNum = 4;
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         {
             NSmartContext ctx = smartMaster.getContext();
             Assert.assertNotNull(ctx);
@@ -268,7 +270,7 @@ public class NSmartMasterBasicTest extends NTestBase {
                 "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" //
         };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         {
             NSmartContext ctx = smartMaster.getContext();
             Assert.assertNotNull(ctx);
@@ -345,7 +347,7 @@ public class NSmartMasterBasicTest extends NTestBase {
                 + " INNER JOIN (SELECT leaf_categ_id FROM kylin_sales f INNER JOIN KYLIN_ACCOUNT o ON f.buyer_id = o.account_id WHERE buyer_id > 100) t2"
                 + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id" };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         {
             NSmartContext ctx = smartMaster.getContext();
             Assert.assertNotNull(ctx);
@@ -441,7 +443,7 @@ public class NSmartMasterBasicTest extends NTestBase {
                         + " FROM (SELECT f.leaf_categ_id FROM kylin_sales f inner join KYLIN_CATEGORY_GROUPINGS o on f.leaf_categ_id = o.leaf_categ_id and f.LSTG_SITE_ID = o.site_id WHERE f.lstg_format_name = 'ABIN') t1"
                         + " INNER JOIN (SELECT leaf_categ_id FROM kylin_sales f INNER JOIN KYLIN_ACCOUNT o ON f.buyer_id = o.account_id WHERE buyer_id > 100) t2"
                         + " ON t1.leaf_categ_id = t2.leaf_categ_id GROUP BY t1.leaf_categ_id ORDER BY nums, leaf_categ_id" };
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         {
             NSmartContext ctx = smartMaster.getContext();
             Assert.assertNotNull(ctx);

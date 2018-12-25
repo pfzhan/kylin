@@ -33,6 +33,7 @@ import java.util.List;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.persistence.image.ImageStore;
 import org.junit.After;
 import org.junit.Assert;
@@ -119,19 +120,19 @@ public class NSmartDemoTest {
         KylinConfig kylinConfig = Utils.newKylinConfig(tmpMeta.getAbsolutePath());
         kylinConfig.setProperty("kylin.env", "UT");
         kylinConfig.setProperty("kylin.metadata.mq-type", "mock");
-
         KylinConfigUtils.setH2DriverAsFavoriteQueryStorageDB(kylinConfig);
-        KylinConfig.setKylinConfigThreadLocal(kylinConfig);
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqls);
-        smartMaster.runAll();
+        try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig)) {
+            NSmartMaster smartMaster = new NSmartMaster(kylinConfig, projectName, sqls);
+            smartMaster.runAll();
 
-        NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig, projectName);
-        Assert.assertFalse(dataModelManager.getDataModels().isEmpty());
-        log.info("Number of models: " + dataModelManager.getDataModels().size());
+            NDataModelManager dataModelManager = NDataModelManager.getInstance(kylinConfig, projectName);
+            Assert.assertFalse(dataModelManager.getDataModels().isEmpty());
+            log.info("Number of models: " + dataModelManager.getDataModels().size());
 
-        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig, projectName);
-        Assert.assertFalse(cubePlanManager.listAllCubePlans().isEmpty());
-        log.info("Number of cubes: " + cubePlanManager.listAllCubePlans().size());
+            NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig, projectName);
+            Assert.assertFalse(cubePlanManager.listAllCubePlans().isEmpty());
+            log.info("Number of cubes: " + cubePlanManager.listAllCubePlans().size());
+        }
 
         FileUtils.forceDelete(tmpMeta);
     }

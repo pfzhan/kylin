@@ -153,7 +153,7 @@ public class NCubeMasterTest extends NTestBase {
                 "select lstg_format_name, part_dt, price from kylin_sales where part_dt = '2012-01-01'",
                 "select lstg_format_name, part_dt, price, item_count from kylin_sales where part_dt = '2012-01-01'" };
 
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
+        NSmartMaster smartMaster = new NSmartMaster(getTestConfig(), proj, sqls);
         smartMaster.analyzeSQLs();
         smartMaster.optimizeModel();
         smartMaster.saveModel();
