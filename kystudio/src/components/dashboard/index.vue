@@ -204,8 +204,8 @@ import LineChart from './LineChart'
     ])
   },
   locales: {
-    'en': {storageQuota: 'Storage Quota', acceImpact: 'Acceleration Impact', ruleSetting: 'Rules Setting', totalStorage: 'Total Storage', useageMana: 'Useage Manage', trash: 'Trash', clear: 'Clear', queryCount: 'Query Count', viewDetail: 'View Detail', avgQueryLatency: 'Avg. Query Latency', jobCount: 'Job Count', avgBulidTime: 'Avg. Build Time Per MB', queryByModel: '{type} by Model', queryByDay: '{type} by {unit}', queryByIndex: '{type} by Index', lastWeek: 'Last Week', lastMonth: 'Last Month', thisMonth: 'This Month', day: 'Day', week: 'Week', month: 'Month'},
-    'zh-cn': {storageQuota: '储存配额', acceImpact: '加速规则影响力', ruleSetting: '规则设置', totalStorage: '总储存容量', useageMana: '占用资源管理', trash: '系统垃圾', clear: '清除垃圾', queryCount: '查询次数', viewDetail: '查看详情', avgQueryLatency: '平均查询延迟', jobCount: '任务次数', avgBulidTime: '每兆数据构建平均时间', queryByModel: '以模型{type}', queryByDay: '以{unit}{type}', queryByIndex: '以索引{type}', lastWeek: '最近一周', lastMonth: '上个月', thisMonth: '当前月', day: '天', week: '周', month: '月'}
+    'en': {storageQuota: 'Storage Quota', acceImpact: 'Acceleration Impact', totalStorage: 'Total Storage', useageMana: 'Useage Manage', trash: 'Trash', clear: 'Clear', queryCount: 'Query Count', viewDetail: 'View Detail', avgQueryLatency: 'Avg. Query Latency', jobCount: 'Job Count', avgBulidTime: 'Avg. Build Time Per MB', queryByModel: '{type} by Model', queryByDay: '{type} by {unit}', queryByIndex: '{type} by Index', lastWeek: 'Last Week', lastMonth: 'Last Month', thisMonth: 'This Month', day: 'Day', week: 'Week', month: 'Month'},
+    'zh-cn': {storageQuota: '储存配额', acceImpact: '加速规则影响力', totalStorage: '总储存容量', useageMana: '占用资源管理', trash: '系统垃圾', clear: '清除垃圾', queryCount: '查询次数', viewDetail: '查看详情', avgQueryLatency: '平均查询延迟', jobCount: '任务次数', avgBulidTime: '每兆数据构建平均时间', queryByModel: '以模型{type}', queryByDay: '以{unit}{type}', queryByIndex: '以索引{type}', lastWeek: '最近一周', lastMonth: '上个月', thisMonth: '当前月', day: '天', week: '周', month: '月'}
   }
 })
 export default class Dashboard extends Vue {

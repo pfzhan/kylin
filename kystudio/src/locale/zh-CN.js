@@ -315,7 +315,7 @@ exports.default = {
     rate: '查询成功率',
     frequency: '查询频率',
     avgDuration: '查询平均用时',
-    fullyAcce: '完全加速',
+    fullyAcce: '已加速',
     partlyAcce: '部分加速',
     ongoingAcce: '正在加速',
     wartingAcce: '待加速',

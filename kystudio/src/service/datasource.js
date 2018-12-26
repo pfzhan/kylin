@@ -68,7 +68,7 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules/duration').get(para)
   },
   getRulesImpact: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/rules/impact').get(para)
+    return Vue.resource(apiUrl + 'query/favorite_queries/accelerate_ratio').get(para)
   },
   getPreferrence: (para) => {
     return Vue.resource(apiUrl + 'projects/query_accelerate_threshold').get(para)

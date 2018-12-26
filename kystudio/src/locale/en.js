@@ -318,7 +318,7 @@ exports.default = {
     rate: 'Success Rate',
     frequency: 'Frequency',
     avgDuration: 'Average Duration',
-    fullyAcce: 'total accelerated',
+    fullyAcce: 'accelerated',
     partlyAcce: 'partial accelerated',
     ongoingAcce: 'is accelerating',
     wartingAcce: 'to be accelerated',
