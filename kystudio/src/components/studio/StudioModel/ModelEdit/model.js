@@ -819,7 +819,7 @@ class NModel {
   }
   setUniqueAlias (table) {
     // fact 情况的特殊处理
-    if (table.kind === modelRenderConfig.tableKind.fact) {
+    if (table.kind === modelRenderConfig.tableKind.fact && table.name.split('.')[1] !== table.alias) {
       let sameTable = this.getTables('name', table.name)
       for (let i = 0; i < sameTable.length; i++) {
         const t = sameTable[i]

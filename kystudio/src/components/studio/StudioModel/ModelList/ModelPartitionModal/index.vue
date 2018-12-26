@@ -53,11 +53,20 @@
           </el-option>
         </el-select>
       </el-form-item>
+      <el-form-item :label="$t('buildRange')" prop="dataRangeVal">
+        <el-date-picker
+          v-model="modelBuildMeta.dataRangeVal"
+          type="datetimerange"
+          :range-separator="$t('to')"
+          :start-placeholder="$t('startDate')"
+          :end-placeholder="$t('endDate')">
+        </el-date-picker>
+      </el-form-item>
     </el-form>
-    <!-- <div class="ky-line"></div>
+    <div class="ky-line"></div>
     <div class="ky-list-title ksd-mt-16">Where 条件设置</div>
     <el-input type="textarea" class="where-area" v-model="filterCondition"></el-input>
-    <div class="ksd-mt-10">Please input : “column_name = value”, i.e. Region = Beijing</div> -->
+    <div class="ksd-mt-10">Please input : “column_name = value”, i.e. Region = Beijing</div>
     <div slot="footer" class="dialog-footer">
       <!-- <span class="ksd-fleft up-performance"><i class="el-icon-ksd-arrow_up"></i>提升<i>5%</i></span> -->
       <!-- <span class="ksd-fleft down-performance"><i class="el-icon-ksd-arrow_down"></i>下降<span>5%</span></span> -->
@@ -79,6 +88,7 @@ import { timeDataType } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
 import { isDatePartitionType } from '../../../../../util'
+import { getGmtDateFromUtcLike } from 'util/business'
 
 vuex.registerModule(['modals', 'ModelPartitionModal'], store)
 
@@ -124,6 +134,23 @@ export default class ModelPartitionModal extends Vue {
     table: '',
     column: '',
     format: ''
+  }
+  modelBuildMeta = {
+    dataRangeVal: ''
+  }
+  @Watch('isShow')
+  initModelBuldRange () {
+    if (this.isShow) {
+      this.modelBuildMeta.dataRangeVal = []
+      if (this.modelDesc.last_build_end) {
+        let lastBuildDate = getGmtDateFromUtcLike(+this.modelDesc.last_build_end)
+        if (lastBuildDate) {
+          this.modelBuildMeta.dataRangeVal.push(lastBuildDate, lastBuildDate)
+        }
+      }
+    } else {
+      this.modelBuildMeta.dataRangeVal = []
+    }
   }
   filterCondition = ''
   dateFormat = [
