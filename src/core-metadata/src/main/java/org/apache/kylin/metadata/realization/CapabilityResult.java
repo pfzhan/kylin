@@ -52,6 +52,9 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Lists;
 
+import lombok.Getter;
+import lombok.Setter;
+
 public class CapabilityResult {
 
     /**
@@ -62,7 +65,9 @@ public class CapabilityResult {
     /**
      * selected capable candidate, like Lookup or layout
      */
-    public IRealizationCandidate selectedCandidate;
+    @Getter
+    @Setter
+    private IRealizationCandidate selectedCandidate;
 
     /**
      * The smaller the cost, the more capable the realization

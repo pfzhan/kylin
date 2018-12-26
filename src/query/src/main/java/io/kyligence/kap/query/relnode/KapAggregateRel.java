@@ -226,7 +226,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
         if (this.context == null)
             return;
 
-        for (TblColRef colRef : this.context.groupByColumns) {
+        for (TblColRef colRef : this.context.getGroupByColumns()) {
             if (!colRef.getName().startsWith("_KY_") && context.belongToContextTables(colRef))
                 this.context.allColumns.add(colRef);
         }

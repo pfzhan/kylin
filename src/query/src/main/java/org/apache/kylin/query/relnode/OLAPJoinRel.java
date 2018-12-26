@@ -219,7 +219,7 @@ public class OLAPJoinRel extends EnumerableJoin implements OLAPRel {
 
             for (Map.Entry<TblColRef, TblColRef> columnPair : joinCol.entrySet()) {
                 TblColRef fromCol = (rightHasSubquery ? columnPair.getKey() : columnPair.getValue());
-                this.context.subqueryJoinParticipants.add(fromCol);
+                this.context.getSubqueryJoinParticipants().add(fromCol);
             }
             joinCol.clear();
         }

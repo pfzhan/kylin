@@ -218,8 +218,8 @@ class CuboidSuggester {
 
             final List<TblColRef> aggCols = functionDesc.getParameter().getColRefs();
             if (CollectionUtils.isNotEmpty(aggCols)) {
-                aggCols.removeAll(ctx.groupByColumns);
-                aggCols.removeAll(ctx.subqueryJoinParticipants);
+                aggCols.removeAll(ctx.getGroupByColumns());
+                aggCols.removeAll(ctx.getSubqueryJoinParticipants());
                 nonFilterCols.removeAll(aggCols);
             }
         });

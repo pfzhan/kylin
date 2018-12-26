@@ -219,7 +219,8 @@ public class NQueryScopeProposer extends NAbstractModelProposer {
         private boolean canTblColRefTreatAsDimension(OLAPContext ctx, TblColRef tblColRef) {
 
             return !ctx.getSQLDigest().isRawQuery && (ctx.filterColumns.contains(tblColRef)
-                    || ctx.groupByColumns.contains(tblColRef) || ctx.subqueryJoinParticipants.contains(tblColRef)
+                    || ctx.getGroupByColumns().contains(tblColRef)
+                    || ctx.getSubqueryJoinParticipants().contains(tblColRef)
                     || dimensionAsMeasureColumns.contains(tblColRef));
         }
 

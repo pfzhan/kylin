@@ -132,7 +132,7 @@ public class RealizationChooser {
             adjustForCapabilityInfluence(selectedCandidate, context);
 
             context.realization = selectedCandidate.realization;
-            if (selectedCandidate.capability.selectedCandidate instanceof NLookupCandidate) {
+            if (selectedCandidate.capability.getSelectedCandidate() instanceof NLookupCandidate) {
                 context.storageContext
                         .setUseSnapshot(context.isFirstTableLookupTableInModel(context.realization.getModel()));
             } else {
@@ -140,7 +140,7 @@ public class RealizationChooser {
                 Set<FunctionDesc> metrics = Sets.newHashSet();
                 buildDimensionsAndMetrics(context.getSQLDigest(), dimensions, metrics, (NDataflow) context.realization);
                 buildStorageContext(context.storageContext, dimensions, metrics,
-                        (NLayoutCandidate) selectedCandidate.capability.selectedCandidate);
+                        (NLayoutCandidate) selectedCandidate.capability.getSelectedCandidate());
             }
             return;
         }
@@ -172,7 +172,7 @@ public class RealizationChooser {
     private static void addToContextGroupBy(List<TblColRef> colRefs, OLAPContext context) {
         for (TblColRef col : colRefs) {
             if (col.isInnerColumn() == false && context.belongToContextTables(col))
-                context.groupByColumns.add(col);
+                context.getGroupByColumns().add(col);
         }
     }
 
@@ -186,7 +186,7 @@ public class RealizationChooser {
                 it.remove();
             } else if (BitmapMeasureType.FUNC_INTERSECT_COUNT_DISTINCT.equalsIgnoreCase(func.getExpression())) {
                 TblColRef col = func.getParameter().getColRefs().get(1);
-                context.groupByColumns.add(col);
+                context.getGroupByColumns().add(col);
             }
         }
     }

@@ -189,8 +189,12 @@ public class OLAPContext {
     @Setter
     private boolean hasSelected = false;
     public Set<TblColRef> allColumns = new HashSet<>();
-    public Set<TblColRef> groupByColumns = Sets.newLinkedHashSet();
-    public Set<TblColRef> subqueryJoinParticipants = new HashSet<TblColRef>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
+    @Setter
+    @Getter
+    private Set<TblColRef> groupByColumns = Sets.newLinkedHashSet();
+    @Setter
+    @Getter
+    private Set<TblColRef> subqueryJoinParticipants = new HashSet<TblColRef>();//subqueryJoinParticipants will be added to groupByColumns(only when other group by co-exists) and allColumns
     public Set<TblColRef> metricsColumns = new HashSet<>();
     public List<FunctionDesc> aggregations = new ArrayList<>(); // storage level measure type, on top of which various sql aggr function may apply
     public List<TblColRef> aggrOutCols = new ArrayList<>(); // aggregation output (inner) columns

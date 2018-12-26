@@ -242,7 +242,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
             for (Map.Entry<TblColRef, TblColRef> columnPair : joinColumns.entrySet()) {
                 TblColRef fromCol = context.belongToContextTables(columnPair.getKey()) ? columnPair.getKey()
                         : columnPair.getValue();
-                this.context.subqueryJoinParticipants.add(fromCol);
+                this.context.getSubqueryJoinParticipants().add(fromCol);
             }
             pushDownJoinColsToSubContexts(joinColumns);
         }

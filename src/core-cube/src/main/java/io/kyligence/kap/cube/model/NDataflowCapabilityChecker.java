@@ -72,7 +72,7 @@ public class NDataflowCapabilityChecker {
         }
         if (chosenCandidate != null) {
             result.capable = true;
-            result.selectedCandidate = chosenCandidate;
+            result.setSelectedCandidate(chosenCandidate);
         } else {
             result.capable = false;
         }

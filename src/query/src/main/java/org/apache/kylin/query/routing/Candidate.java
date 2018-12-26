@@ -87,7 +87,8 @@ public class Candidate implements Comparable<Candidate> {
         if (comp != 0)
             return comp;
 
-        comp = Double.compare(o.capability.selectedCandidate.getCost(), this.capability.selectedCandidate.getCost());
+        comp = Double.compare(o.capability.getSelectedCandidate().getCost(),
+                this.capability.getSelectedCandidate().getCost());
         if (comp != 0)
             return comp;
 

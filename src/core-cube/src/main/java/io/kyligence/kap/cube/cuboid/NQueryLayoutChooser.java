@@ -76,7 +76,7 @@ public class NQueryLayoutChooser {
     public static Pair<NLayoutCandidate, List<CapabilityResult.CapabilityInfluence>> selectCuboidLayout(
             NDataSegment segment, SQLDigest sqlDigest) {
         if (segment == null) {
-            logger.info("Exclude {} because there are no ready segments", segment.getCubePlan().getName());
+            logger.info("Exclude this segments because there are no ready segments");
             return null;
         }
         Ordering<NLayoutCandidate> ordering = Ordering.natural().onResultOf(L1Comparator(segment))
@@ -102,8 +102,7 @@ public class NQueryLayoutChooser {
                 unmatchedCols.addAll(sqlDigest.filterColumns);
                 unmatchedCols.addAll(sqlDigest.groupbyColumns);
                 matched = matchAggIndex(sqlDigest, cuboid.getCuboidLayout(), segment.getDataflow(), unmatchedCols,
-                        unmatchedMetrics,
-                        needDerive, tempResult);
+                        unmatchedMetrics, needDerive, tempResult);
             }
             if (matched) {
                 NCuboidLayout layout = cuboid.getCuboidLayout();
@@ -132,8 +131,7 @@ public class NQueryLayoutChooser {
     }
 
     private static boolean matchAggIndex(SQLDigest sqlDigest, final NCuboidLayout cuboidLayout,
-            final NDataflow dataFlow,
-            Set<TblColRef> unmatchedCols, Collection<FunctionDesc> unmatchedMetrics,
+            final NDataflow dataFlow, Set<TblColRef> unmatchedCols, Collection<FunctionDesc> unmatchedMetrics,
             Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
         unmatchedCols.removeAll(cuboidLayout.getOrderedDimensions().values());
         goThruDerivedDims(cuboidLayout.getCuboidDesc(), dataFlow, needDerive, unmatchedCols, cuboidLayout.getModel());

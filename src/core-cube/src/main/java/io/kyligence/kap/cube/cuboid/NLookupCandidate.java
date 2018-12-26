@@ -26,11 +26,14 @@ package io.kyligence.kap.cube.cuboid;
 
 import org.apache.kylin.metadata.realization.IRealizationCandidate;
 
+import lombok.Getter;
+
 public class NLookupCandidate implements IRealizationCandidate {
+    @Getter
+    private String tableRef;
 
-    public String tableRef;
-
-    public boolean isUsingSnapShot;
+    @Getter
+    private boolean isUsingSnapShot;
 
     public NLookupCandidate(String tableRef, boolean isUsingSnapShot) {
         this.tableRef = tableRef;

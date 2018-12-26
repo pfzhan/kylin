@@ -87,7 +87,7 @@ public class QueryStats implements Serializable {
 
         ctx.fixModel(model, aliasMatch);
         r.addTotalQueries();
-        r.addGroupBy(Collections2.transform(ctx.groupByColumns, new Function<TblColRef, String>() {
+        r.addGroupBy(Collections2.transform(ctx.getGroupByColumns(), new Function<TblColRef, String>() {
             @Nullable
             @Override
             public String apply(@Nullable TblColRef input) {
@@ -110,7 +110,7 @@ public class QueryStats implements Serializable {
                         if (!model.getAliasMap().containsKey(input.getTableAlias()))
                             return false;
 
-                        if (ctx.metricsColumns.contains(input) && !ctx.groupByColumns.contains(input)
+                        if (ctx.metricsColumns.contains(input) && !ctx.getGroupByColumns().contains(input)
                                 && !ctx.filterColumns.contains(input))
                             return false;
 

@@ -459,7 +459,7 @@ public class OLAPAggregateRel extends Aggregate implements OLAPRel {
     protected void addToContextGroupBy(List<TblColRef> colRefs) {
         for (TblColRef col : colRefs) {
             if (col.isInnerColumn() == false && this.context.belongToContextTables(col))
-                this.context.groupByColumns.add(col);
+                this.context.getGroupByColumns().add(col);
         }
     }
 

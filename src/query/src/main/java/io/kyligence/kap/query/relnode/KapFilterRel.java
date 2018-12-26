@@ -151,7 +151,7 @@ public class KapFilterRel extends OLAPFilterRel implements KapRel {
                     context.allColumns.add(tblColRef);
                     context.filterColumns.add(tblColRef);
                     if (belongToPreAggContext)
-                        context.groupByColumns.add(tblColRef);
+                        context.getGroupByColumns().add(tblColRef);
                 }
             }
         }
