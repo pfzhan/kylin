@@ -35,11 +35,7 @@ import org.apache.calcite.avatica.util.TimeUnitRange
 import org.apache.calcite.rel.`type`.RelDataType
 import org.apache.calcite.rex._
 import org.apache.calcite.sql.SqlKind._
-import org.apache.calcite.sql.`type`.{
-  IntervalSqlType,
-  SqlTypeFamily,
-  SqlTypeName
-}
+import org.apache.calcite.sql.`type`.{IntervalSqlType, SqlTypeFamily, SqlTypeName}
 import org.apache.calcite.sql.fun.SqlDatetimeSubtractionOperator
 import org.apache.calcite.util.NlsString
 import org.apache.kylin.common.util.DateFormat
@@ -53,7 +49,7 @@ import org.apache.spark.sql.{Column, DataFrame}
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
-/**
+ /**
   * Convert RexNode to a nested Column
   *
   * @param df          dataframe
@@ -313,7 +309,7 @@ class SparderRexVisitor(val df: DataFrame,
       case CAST =>
         // all date type is long,skip is
         val goalType = SparderTypeUtil.convertSqlTypeNameToSparkType(
-          call.getType.getSqlTypeName)
+          call.getType)
         lit(children.head).cast(goalType)
 
       case TRIM =>
@@ -349,7 +345,7 @@ class SparderRexVisitor(val df: DataFrame,
           case "abs" =>
             abs(
               lit(children.head).cast(SparderTypeUtil
-                .convertSqlTypeNameToSparkType(call.getType.getSqlTypeName)))
+                .convertSqlTypeNameToSparkType(call.getType)))
           case "round" | "truncate" =>
             round(
               lit(children.head),

@@ -184,6 +184,7 @@ public class NExecAndComp {
             entity.setOlapContexts(OLAPContext.getThreadLocalContexts());
             OLAPContext.clearThreadLocalContexts();
         } catch (Exception e) {
+            entity.setOlapContexts(null); // clean olapContexts if query failed
             entity.setLevel(AccelerationMatchedLevel.FAILED_QUERY);
         }
         return rowDataset;

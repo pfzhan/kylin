@@ -145,10 +145,12 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
                 // 4. compare layout propose result and query cube result
                 RecAndQueryCompareUtil.computeCompareRank(kylinConfig, getProject(), compareMap);
-                compareMap.forEach((key, value) -> System.out.println(value.toString() + '\n'));
-                // TODO use assert in the future #9318
             });
         }
+
+        // print details
+        compareMap.forEach((key, value) -> System.out.println(value.toString() + '\n'));
+        // TODO use assert in the future #9318
 
         // 5. summary info
         final Map<AccelerationMatchedLevel, AtomicInteger> rankInfoMap = RecAndQueryCompareUtil

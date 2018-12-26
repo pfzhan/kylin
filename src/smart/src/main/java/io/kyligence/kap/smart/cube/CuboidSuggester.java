@@ -302,8 +302,8 @@ class CuboidSuggester {
         layout.setAuto(true);
         layout.setDraftVersion(smartContext.getDraftVersion());
 
-        String modelId = model.getId();
-        String cubePlanId = cuboidDesc.getCubePlan().getId();
+        String modelId = model.getName();
+        String cubePlanId = cuboidDesc.getCubePlan().getName();
         int semanticVersion = model.getSemanticVersion();
         for (NCuboidLayout l : cuboidDesc.getLayouts()) {
             if (l.equals(layout)) {

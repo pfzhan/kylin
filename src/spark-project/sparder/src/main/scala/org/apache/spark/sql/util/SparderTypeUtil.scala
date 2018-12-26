@@ -77,22 +77,22 @@ object SparderTypeUtil extends Logging {
   }
 
   // scalastyle:off
-  def convertSqlTypeNameToSparkType(sqlTypeName: SqlTypeName): String = {
-    sqlTypeName match {
-      case SqlTypeName.DECIMAL => "decimal"
-      case SqlTypeName.CHAR => "string"
-      case SqlTypeName.VARCHAR => "string"
-      case SqlTypeName.INTEGER => "int"
-      case SqlTypeName.TINYINT => "byte"
-      case SqlTypeName.SMALLINT => "short"
-      case SqlTypeName.BIGINT => "long"
-      case SqlTypeName.FLOAT => "float"
-      case SqlTypeName.DOUBLE => "double"
-      case SqlTypeName.DATE => "date"
-      case SqlTypeName.TIMESTAMP => "timestamp"
-      case SqlTypeName.BOOLEAN => "boolean"
+  def convertSqlTypeNameToSparkType(dataType: RelDataType): org.apache.spark.sql.types.DataType = {
+    dataType.getSqlTypeName match {
+      case SqlTypeName.DECIMAL => DataTypes.createDecimalType(dataType.getPrecision, dataType.getScale)
+      case SqlTypeName.CHAR => DataTypes.StringType
+      case SqlTypeName.VARCHAR => DataTypes.StringType
+      case SqlTypeName.INTEGER =>  DataTypes.IntegerType
+      case SqlTypeName.TINYINT =>  DataTypes.ByteType
+      case SqlTypeName.SMALLINT => DataTypes.ShortType
+      case SqlTypeName.BIGINT =>  DataTypes.LongType
+      case SqlTypeName.FLOAT =>  DataTypes.FloatType
+      case SqlTypeName.DOUBLE =>  DataTypes.DoubleType
+      case SqlTypeName.DATE =>  DataTypes.DateType
+      case SqlTypeName.TIMESTAMP =>  DataTypes.TimestampType
+      case SqlTypeName.BOOLEAN =>  DataTypes.BooleanType
       case _ =>
-        throw new IllegalArgumentException(s"unsupported SqlTypeName $sqlTypeName")
+        throw new IllegalArgumentException(s"unsupported SqlTypeName ${dataType.getSqlTypeName}")
     }
   }
 

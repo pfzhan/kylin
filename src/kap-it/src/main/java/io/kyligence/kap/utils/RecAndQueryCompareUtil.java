@@ -38,6 +38,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.QueryUtil;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.ImmutableList;
@@ -73,6 +74,7 @@ public class RecAndQueryCompareUtil {
 
             final NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project)
                     .getCubePlan(queryLayoutRelation.getCubePlanId());
+            Preconditions.checkNotNull(cubePlan);
             final NCuboidLayout cuboidLayout = cubePlan.getCuboidLayout(queryLayoutRelation.getLayoutId());
             final ImmutableList<Integer> colOrder = cuboidLayout.getColOrder();
             final BiMap<Integer, TblColRef> effectiveDimCols = cuboidLayout.getCuboidDesc().getEffectiveDimCols();
@@ -118,8 +120,8 @@ public class RecAndQueryCompareUtil {
                     }
 
                     final NCuboidLayout cuboidLayout = olapContext.storageContext.getCandidate().getCuboidLayout();
-                    final String modelId = cuboidLayout.getModel().getId();
-                    final String cubePlanId = cuboidLayout.getCuboidDesc().getCubePlan().getId();
+                    final String modelId = cuboidLayout.getModel().getName();
+                    final String cubePlanId = cuboidLayout.getCuboidDesc().getCubePlan().getName();
                     final long layoutId = cuboidLayout.getId();
                     final int semanticVersion = cuboidLayout.getModel().getSemanticVersion();
 
@@ -143,16 +145,16 @@ public class RecAndQueryCompareUtil {
             }
 
             final Set<QueryLayoutRelation> relatedLayouts = entity.getAccelerateInfo().getRelatedLayouts();
-            Set<String> propseModelIds = Sets.newHashSet();
-            Set<Long> propseCuboidIds = Sets.newHashSet();
+            Set<String> proposedModelIds = Sets.newHashSet();
+            Set<Long> proposedCuboidIds = Sets.newHashSet();
             relatedLayouts.forEach(layout -> {
-                propseModelIds.add(layout.getModelId());
-                propseCuboidIds.add(layout.getLayoutId() - layout.getLayoutId() % NCuboidDesc.CUBOID_DESC_ID_STEP);
+                proposedModelIds.add(layout.getModelId());
+                proposedCuboidIds.add(layout.getLayoutId() - layout.getLayoutId() % NCuboidDesc.CUBOID_DESC_ID_STEP);
             });
 
-            if (Objects.equals(cuboidIds, propseCuboidIds)) {
+            if (Objects.equals(cuboidIds, proposedCuboidIds)) {
                 entity.setLevel(AccelerationMatchedLevel.LAYOUT_NOT_MATCH);
-            } else if (Objects.equals(modelIds, propseModelIds)) {
+            } else if (Objects.equals(modelIds, proposedModelIds)) {
                 entity.setLevel(AccelerationMatchedLevel.CUBOID_NOT_MATCH);
             } else if (entity.getAccelerateInfo().isBlocked()) {
                 entity.setLevel(AccelerationMatchedLevel.BLOCKED_QUERY);
@@ -168,7 +170,8 @@ public class RecAndQueryCompareUtil {
      */
     public static Map<AccelerationMatchedLevel, AtomicInteger> summarizeRankInfo(Map<String, CompareEntity> map) {
         Map<AccelerationMatchedLevel, AtomicInteger> compareResult = Maps.newLinkedHashMap();
-        Arrays.stream(AccelerationMatchedLevel.values()).forEach(level -> compareResult.putIfAbsent(level, new AtomicInteger()));
+        Arrays.stream(AccelerationMatchedLevel.values())
+                .forEach(level -> compareResult.putIfAbsent(level, new AtomicInteger()));
         map.values().stream().map(CompareEntity::getLevel).map(compareResult::get)
                 .forEach(AtomicInteger::incrementAndGet);
         return compareResult;

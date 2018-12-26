@@ -283,7 +283,8 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
                 return false;
             }
 
-            if (parent instanceof OLAPToEnumerableConverter || parent instanceof OLAPUnionRel) {
+            if (parent instanceof OLAPToEnumerableConverter || parent instanceof OLAPUnionRel
+                    || parent instanceof KapWindowRel) {
                 return true;
             }
             index--;

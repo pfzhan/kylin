@@ -63,6 +63,9 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
                 new TestScenario(CompareLevel.SAME, "sql_raw"), //
                 new TestScenario(CompareLevel.SAME, "sql_rawtable"), //
                 new TestScenario(CompareLevel.SAME, "sql_subquery"), //
+                new TestScenario(CompareLevel.SAME, "sql_magine"), //
+                new TestScenario(CompareLevel.SAME, "sql_magine_inner"), //
+                new TestScenario(CompareLevel.SAME, "sql_magine_window"), //
 
                 /* CompareLevel = SAME, JoinType = LEFT */
                 new TestScenario(CompareLevel.SAME, JoinType.LEFT, "sql_distinct_precisely"), //
