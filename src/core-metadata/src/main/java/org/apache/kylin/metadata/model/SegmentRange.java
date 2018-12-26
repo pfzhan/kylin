@@ -238,6 +238,10 @@ abstract public class SegmentRange<T extends Comparable> implements Comparable<S
             super(startMs, endMs);
         }
 
+        public TimePartitionedSegmentRange(String startDate, String endDate) {
+            super(dateToLong(startDate), dateToLong(endDate));
+        }
+
         public static TimePartitionedSegmentRange createInfinite() {
             return new TimePartitionedSegmentRange(0L, Long.MAX_VALUE);
         }

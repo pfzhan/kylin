@@ -1111,7 +1111,7 @@ public class QueryService extends BasicService {
     @SuppressWarnings("serial")
     public static class QueryRecord extends RootPersistentEntity {
 
-        @JsonProperty()
+        @JsonProperty
         private List<Query> queries = Lists.newArrayList();
 
         public QueryRecord() {

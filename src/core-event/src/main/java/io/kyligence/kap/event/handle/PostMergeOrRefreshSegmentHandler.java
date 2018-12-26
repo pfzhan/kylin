@@ -72,7 +72,8 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
 
         val dataflowName = ExecutableUtils.getDataflowName(task);
         val segmentIds = ExecutableUtils.getSegmentIds(task);
-        try (val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), task)) {
+        val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), task);
+        try {
             UnitOfWork.doInTransactionWithRetry(() -> {
                 if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
                     finishEvent(project, event.getId());
@@ -86,6 +87,8 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
                 finishEvent(project, event.getId());
                 return null;
             }, project);
+        } finally {
+            buildResourceStore.close();
         }
     }
 

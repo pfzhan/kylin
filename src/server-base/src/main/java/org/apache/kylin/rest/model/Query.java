@@ -42,10 +42,12 @@
 
 package org.apache.kylin.rest.model;
 
+import java.io.Serializable;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class Query {
+public class Query implements Serializable {
 
     private String name;
     private String project;

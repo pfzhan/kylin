@@ -227,15 +227,6 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         event.setSegmentId(newSeg.getId());
         event.setOwner("ADMIN");
         eventManager.post(event);
-
-        val postEvent = new PostMergeOrRefreshSegmentEvent();
-        postEvent.setModelName(df.getModel().getName());
-        postEvent.setCubePlanName(df.getCubePlanName());
-        postEvent.setJobId(event.getJobId());
-        postEvent.setSegmentId(newSeg.getId());
-        postEvent.setOwner("ADMIN");
-        eventManager.post(postEvent);
-
         waitEventFinish(event.getId(), 240 * 1000);
 
         // after create spark job remove some layouts
@@ -246,6 +237,13 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         df = dataflowManager.getDataflow("ncube_basic");
         dataflowManager.removeLayouts(df, removeIds);
 
+        val postEvent = new PostMergeOrRefreshSegmentEvent();
+        postEvent.setModelName(df.getModel().getName());
+        postEvent.setCubePlanName(df.getCubePlanName());
+        postEvent.setJobId(event.getJobId());
+        postEvent.setSegmentId(newSeg.getId());
+        postEvent.setOwner("ADMIN");
+        eventManager.post(postEvent);
         waitEventFinish(postEvent.getId(), 240 * 1000);
 
         val df2 = dataflowManager.getDataflow(df.getName());

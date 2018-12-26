@@ -86,8 +86,9 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         val segmentIds = ExecutableUtils.getSegmentIds(buildTask);
         val layoutIds = ExecutableUtils.getLayoutIds(buildTask);
 
-        try (val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), tasks.get(0));
-                val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask)) {
+        val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), tasks.get(0));
+        val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask);
+        try {
             UnitOfWork.doInTransactionWithRetry(() -> {
 
                 if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
@@ -113,6 +114,9 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
                 finishEvent(project, event.getId());
                 return null;
             }, project);
+        } finally {
+            analysisResourceStore.close();
+            buildResourceStore.close();
         }
     }
 
