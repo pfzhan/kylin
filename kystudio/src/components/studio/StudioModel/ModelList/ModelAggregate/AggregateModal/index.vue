@@ -5,7 +5,7 @@
     :append-to-body="true"
     :close-on-click-modal="false"
     @close="isShow && handleClose(false)">
-    <div class="loading" v-loading="isLoading"></div>
+    <div class="loading" v-if="isLoading" v-loading="isLoading"></div>
     <template v-if="model">
       <!-- 维度列表展示 -->
       <div class="dimension-list clearfix" v-if="isDimensionShow">
