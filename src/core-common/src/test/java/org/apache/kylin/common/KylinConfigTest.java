@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -126,7 +127,7 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
     }
 
     @Test
-    public void testThreadLocalOverride() {
+    public void testThreadLocalOverride() throws InterruptedException {
         final String metadata1 = "meta1";
         final String metadata2 = "meta2";
 
@@ -139,25 +140,23 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
         // test thread-local override
         KylinConfig threadConfig = KylinConfig.createKylinConfig(new Properties());
         threadConfig.setMetadataUrl(metadata2);
-        KylinConfig.setKylinConfigThreadLocal(threadConfig);
+        
+        try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(threadConfig)) {
 
-        Assert.assertEquals(metadata2, KylinConfig.getInstanceFromEnv().getMetadataUrl().toString());
-
-        // other threads still use system KylinConfig
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                System.out.println("Started new thread.");
-                Assert.assertEquals(metadata1, KylinConfig.getInstanceFromEnv().getMetadataUrl().toString());
-            }
-        }).start();
-    }
-
-    @Test
-    public void testHdfsWorkingDir() {
-        KylinConfig conf = KylinConfig.getInstanceFromEnv();
-        String hdfsWorkingDirectory = conf.getHdfsWorkingDirectory();
-        Assert.assertTrue(hdfsWorkingDirectory.startsWith("file:/"));
+            Assert.assertEquals(metadata2, KylinConfig.getInstanceFromEnv().getMetadataUrl().toString());
+    
+            // other threads still use system KylinConfig
+            final String[] holder = new String[1];
+            Thread child = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    holder[0] = KylinConfig.getInstanceFromEnv().getMetadataUrl().toString();
+                }
+            });
+            child.start();
+            child.join();
+            Assert.assertEquals(metadata1, holder[0]);
+        }
     }
 
     @Test

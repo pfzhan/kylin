@@ -137,11 +137,8 @@ public class NSmartMaster {
             try {
                 selectModelAndCubePlan();
                 refreshCubePlan();
-                UnitOfWork.doInTransactionWithRetry(() -> {
-                    saveCubePlan(); 
-                    saveAccelerateInfo();
-                    return null;
-                }, project);
+                saveCubePlan();
+                saveAccelerateInfo();
                 logger.debug("save successfully after refresh, {}", context.getDraftVersion());
                 return;
             } catch (IllegalStateException | VersionConflictException e) {

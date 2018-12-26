@@ -64,7 +64,6 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.restclient.RestClient;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.HadoopUtil;
@@ -301,6 +300,10 @@ public class KylinConfig extends KylinConfigBase {
         setKylinConfigInEnvIfMissing(props);
     }
 
+    /**
+     * @deprecated use SetAndUnsetThreadLocalConfig instead.  
+     */
+    @Deprecated
     public static void setKylinConfigThreadLocal(KylinConfig config) {
         if (THREAD_ENV_INSTANCE.get() != null) {
             logger.warn("current thread already has a thread local KylinConfig, existing: {}, new: {}",
@@ -316,6 +319,10 @@ public class KylinConfig extends KylinConfigBase {
         return THREAD_ENV_INSTANCE.get() != null;
     }
 
+    /**
+     * @deprecated use SetAndUnsetThreadLocalConfig.close() instead.  
+     */
+    @Deprecated
     public static void removeKylinConfigThreadLocal() {
         THREAD_ENV_INSTANCE.remove();
     }
@@ -437,22 +444,6 @@ public class KylinConfig extends KylinConfigBase {
         } else {
             return KylinConfig.getInstanceFromEnv();
         }
-    }
-
-    public static KylinConfig loadKylinConfigFromHdfsIfNeeded(String uri) {
-        KylinConfig config;
-        try {
-            config = KylinConfig.getInstanceFromEnv();
-            //In some case, the KylinConfig from env is not the expected one.
-            String uriFromEnv = config.getMetadataUrl().toString();
-            if (!uriFromEnv.equalsIgnoreCase(uri))
-                throw new KylinConfigCannotInitException("Not the expected KylinConfig");
-        } catch (KylinConfigCannotInitException e) {
-            logger.warn("No available KylinConfig in environment, fetch it from URI.");
-            config = loadKylinConfigFromHdfs(uri);
-            KylinConfig.setKylinConfigThreadLocal(config);
-        }
-        return config;
     }
 
     public static KylinConfig loadKylinConfigFromHdfs(String uri) {
@@ -698,11 +689,13 @@ public class KylinConfig extends KylinConfigBase {
     }
 
     public static class SetAndUnsetThreadLocalConfig implements AutoCloseable {
+        private KylinConfig originThreadLocalConfig = null;
 
         private SetAndUnsetThreadLocalConfig(KylinConfig config) {
-            if (THREAD_ENV_INSTANCE.get() != null) {
+            originThreadLocalConfig = THREAD_ENV_INSTANCE.get();
+            if (originThreadLocalConfig != null) {
                 logger.warn("KylinConfig already hosts thread local instance {}, will be overwritten by {}",
-                        THREAD_ENV_INSTANCE.get(), config);
+                        originThreadLocalConfig, config);
             }
             THREAD_ENV_INSTANCE.set(config);
         }
@@ -715,8 +708,10 @@ public class KylinConfig extends KylinConfigBase {
 
         @Override
         public void close() {
-            ResourceStore.clearCache(get());
             THREAD_ENV_INSTANCE.remove();
+            if (originThreadLocalConfig != null) {
+                THREAD_ENV_INSTANCE.set(originThreadLocalConfig);
+            }
         }
     }
 

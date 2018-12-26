@@ -47,6 +47,7 @@ import java.util.Properties;
 
 import io.kyligence.kap.query.util.SparkSQLFunctionConverter;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -55,7 +56,7 @@ public class QueryUtilTest {
     @Test
     public void testMassageSql() {
         KylinConfig config = KylinConfig.createKylinConfig(new Properties());
-        KylinConfig.setKylinConfigThreadLocal(config);
+        try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(config)) {
         config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName());
 
         String sql = "SELECT * FROM TABLE";
@@ -67,26 +68,29 @@ public class QueryUtilTest {
         // SUM({fn convert(0, INT)}) -> SUM(0) -> 0 * COUNT(1)
         Assert.assertEquals("SELECT 0 * COUNT(1) from TABLE", newSql2);
     }
+    }
 
     @Test
     public void testMassagePushDownSql() {
         KylinConfig config = KylinConfig.createKylinConfig(new Properties());
-        KylinConfig.setKylinConfigThreadLocal(config);
-        config.setProperty("kylin.query.pushdown.converter-class-names", SparkSQLFunctionConverter.class.getCanonicalName());
-        String sql = "SELECT \"Z_PROVDASH_UM_ED\".\"GENDER\" AS \"GENDER\",\n" +
-                "SUM({fn CONVERT(0, SQL_BIGINT)}) AS \"sum_Calculation_336925569152049156_ok\"\n" +
-                "FROM \"POPHEALTH_ANALYTICS\".\"Z_PROVDASH_UM_ED\" \"Z_PROVDASH_UM_ED\"";
+        try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(config)) {
+            config.setProperty("kylin.query.pushdown.converter-class-names",
+                    SparkSQLFunctionConverter.class.getCanonicalName());
+            String sql = "SELECT \"Z_PROVDASH_UM_ED\".\"GENDER\" AS \"GENDER\",\n"
+                    + "SUM({fn CONVERT(0, SQL_BIGINT)}) AS \"sum_Calculation_336925569152049156_ok\"\n"
+                    + "FROM \"POPHEALTH_ANALYTICS\".\"Z_PROVDASH_UM_ED\" \"Z_PROVDASH_UM_ED\"";
         String massagedSql = QueryUtil.massagePushDownSql(config, sql, "", "default", false);
-        String expectedSql = "SELECT \"Z_PROVDASH_UM_ED\".\"GENDER\" AS \"GENDER\",\n" +
-                "SUM(CAST(0 AS BIGINT)) AS \"sum_Calculation_336925569152049156_ok\"\n" +
-                "FROM \"POPHEALTH_ANALYTICS\".\"Z_PROVDASH_UM_ED\" \"Z_PROVDASH_UM_ED\"";
+            String expectedSql = "SELECT \"Z_PROVDASH_UM_ED\".\"GENDER\" AS \"GENDER\",\n"
+                    + "SUM(CAST(0 AS BIGINT)) AS \"sum_Calculation_336925569152049156_ok\"\n"
+                    + "FROM \"POPHEALTH_ANALYTICS\".\"Z_PROVDASH_UM_ED\" \"Z_PROVDASH_UM_ED\"";
         Assert.assertEquals(expectedSql, massagedSql);
+    }
     }
 
     @Test
     public void testInit() {
         KylinConfig config = KylinConfig.createKylinConfig(new Properties());
-        KylinConfig.setKylinConfigThreadLocal(config);
+        try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(config)) {
 
         config.setProperty("kylin.query.transformers", DefaultQueryTransformer.class.getCanonicalName());
         Assert.assertEquals(0, QueryUtil.queryTransformers.size());
@@ -99,4 +103,5 @@ public class QueryUtilTest {
         Assert.assertEquals(1, QueryUtil.queryTransformers.size());
         Assert.assertTrue(QueryUtil.queryTransformers.get(0) instanceof KeywordDefaultDirtyHack);
     }
+}
 }

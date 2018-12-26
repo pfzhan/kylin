@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.UnitMessages;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.persistence.InMemResourceStore;
 import org.apache.kylin.common.persistence.RawResource;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -49,13 +50,10 @@ import io.kyligence.kap.common.persistence.event.ResourceRelatedEvent;
 import io.kyligence.kap.common.persistence.event.StartUnit;
 import io.kyligence.kap.common.persistence.transaction.mq.EventStore;
 import io.kyligence.kap.common.persistence.transaction.mq.MQPublishFailureException;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class UnitOfWork {
     public static final String GLOBAL_UNIT = "@global";
 
@@ -64,7 +62,7 @@ public class UnitOfWork {
     private static Map<String, ReentrantLock> projectLocks = Maps.newConcurrentMap();
     private static ReentrantLock globalLock = new ReentrantLock();
 
-    private KylinConfig originThreadLocalConfig = null;
+    private SetAndUnsetThreadLocalConfig localConfig;
     private ReentrantLock currentLock = null;
     private final String project;
 
@@ -121,10 +119,7 @@ public class UnitOfWork {
                     }
 
                     if (threadLocals.get() != null) {
-                        clearLocalConfig();
-                        if (threadLocals.get().originThreadLocalConfig != null) {
-                            KylinConfig.setKylinConfigThreadLocal(threadLocals.get().originThreadLocalConfig);
-                        }
+                        threadLocals.get().done();
                         threadLocals.remove();
                     }
                 }
@@ -140,40 +135,50 @@ public class UnitOfWork {
         log.debug("get lock {}, {}", project, lock.isHeldByCurrentThread());
         //re-entry is not encouraged (because it indicates complex handling logic, bad smell), let's abandon it first
         Preconditions.checkState(!lock.isHeldByCurrentThread());
-
         lock.lock();
 
-        UnitOfWork unitOfWork = new UnitOfWork(project);
+        UnitOfWork unitOfWork = new UnitOfWork(project, useSandboxStore);
         unitOfWork.currentLock = lock;
         threadLocals.set(unitOfWork);
+        return unitOfWork;
+    }
 
-        if (useSandboxStore) {
-            //put a sandbox meta store on top of base meta store for isolation
-            KylinConfig config = KylinConfig.getInstanceFromEnv();
-            //only for UT
-            if (KylinConfig.isKylinConfigThreadLocal()) {
-                unitOfWork.originThreadLocalConfig = config;
-                log.warn("unitOfWork.originThreadLocalConfig is set to {}", config);
+    private UnitOfWork(String project, boolean useSandboxStore) {
+        this.project = project;
 
-                if (!KylinConfig.getInstanceFromEnv().isUTEnv()) {
-                    throw new IllegalStateException(
-                            "No thread local KylinConfig is expected when starting a UnitOfWork, current KylinConfig: "
-                                    + KylinConfig.getInstanceFromEnv());
-                }
-            }
-
-            ResourceStore underlying = ResourceStore.getKylinMetaStore(config);
-            KylinConfig threadLocalConfig = KylinConfig.createKylinConfig(config);
-            //TODO check uderlying rs is never changed since here
-            ThreadViewResourceStore rs = new ThreadViewResourceStore((InMemResourceStore) underlying,
-                    threadLocalConfig);
-            ResourceStore.setRS(threadLocalConfig, rs);
-
-            KylinConfig.setKylinConfigThreadLocal(threadLocalConfig);
-            log.info("sandbox RS {} now takes place for main RS {}", rs, underlying);
+        if (!useSandboxStore) {
+            this.localConfig = null;
+            return;
         }
 
-        return unitOfWork;
+        //only for UT
+        if (KylinConfig.isKylinConfigThreadLocal() && !KylinConfig.getInstanceFromEnv().isUTEnv()) {
+            throw new IllegalStateException(
+                    "No thread local KylinConfig is expected when starting a UnitOfWork, current KylinConfig: "
+                            + KylinConfig.getInstanceFromEnv());
+        }
+
+        //put a sandbox meta store on top of base meta store for isolation
+        KylinConfig config = KylinConfig.getInstanceFromEnv();
+        ResourceStore underlying = ResourceStore.getKylinMetaStore(config);
+        KylinConfig configCopy = KylinConfig.createKylinConfig(config);
+        //TODO check underlying rs is never changed since here
+        ThreadViewResourceStore rs = new ThreadViewResourceStore((InMemResourceStore) underlying,
+                configCopy);
+        ResourceStore.setRS(configCopy, rs);
+        this.localConfig = KylinConfig.setAndUnsetThreadLocalConfig(configCopy);
+
+        log.info("sandbox RS {} now takes place for main RS {}", rs, underlying);
+    }
+    
+    private void done() {
+        if (localConfig == null) {
+            return;
+        }
+        KylinConfig config = localConfig.get();
+        ResourceStore.clearCache(config);
+        localConfig.close();
+        localConfig = null;
     }
 
     public static UnitOfWork get() {
@@ -205,13 +210,13 @@ public class UnitOfWork {
         }).collect(Collectors.<Event> toList());
 
         //clean rs and config
-        clearLocalConfig();
+        UnitOfWork work = get();
+        work.done();
 
-        val originConfig = get().originThreadLocalConfig == null ? KylinConfig.getInstanceFromEnv()
-                : get().originThreadLocalConfig;
+        val originConfig = KylinConfig.getInstanceFromEnv();
         // publish events here
-        packageEvents(eventList, get().project);
-        eventList.forEach(e -> e.setKey(get().project));
+        packageEvents(eventList, work.project);
+        eventList.forEach(e -> e.setKey(work.project));
         val eventStore = EventStore.getInstance(originConfig);
         eventStore.getEventPublisher().publish(eventList);
 
@@ -225,14 +230,6 @@ public class UnitOfWork {
             // in theory, this should not happen
             log.error("Unexpected error happened! Aborting right now.", e);
             System.exit(1);
-        }
-    }
-
-    private static void clearLocalConfig() {
-        if (KylinConfig.isKylinConfigThreadLocal()) {
-            KylinConfig config = KylinConfig.getInstanceFromEnv();
-            ResourceStore.clearCache(config);
-            KylinConfig.removeKylinConfigThreadLocal();
         }
     }
 
