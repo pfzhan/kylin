@@ -19,8 +19,8 @@ export default {
     [types.RESUME_JOB]: function ({ commit }, para) {
       return api.monitor.resumeJob(para)
     },
-    [types.CANCEL_JOB]: function ({ commit }, para) {
-      return api.monitor.cancelJob(para)
+    [types.RESTART_JOB]: function ({ commit }, para) {
+      return api.monitor.restartJob(para)
     },
     [types.PAUSE_JOB]: function ({ commit }, para) {
       return api.monitor.pauseJob(para)

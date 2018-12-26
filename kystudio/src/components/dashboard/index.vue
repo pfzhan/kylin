@@ -5,7 +5,7 @@
         <div class="dash-card">
           <div class="cart-title clearfix">
             <span>{{$t('storageQuota')}}</span>
-            <el-button plain size="mini" class="ksd-fright">{{$t('kylinLang.common.setting')}}</el-button>
+            <el-button plain size="mini" class="ksd-fright">{{$t('viewDetail')}}</el-button>
           </div>
           <el-row :gutter="35" class="quota-row">
             <el-col :span="12">
@@ -88,46 +88,54 @@
       <el-col :span="6">
         <div class="dash-card" :class="{'isActive': showQueryChart}" @click="loadQueryChart">
           <div class="inner-card">
-            <div class="cart-title">{{$t('queryCount')}}</div>
+            <div class="cart-title">
+              {{$t('queryCount')}}
+              <el-button plain size="mini" class="ksd-fright" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
+            </div>
             <div class="content">
               <span class="num">{{queryCount}}</span>
             </div>
-            <el-button type="primary" plain size="mini" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
           </div>
         </div>
       </el-col>
       <el-col :span="6">
         <div class="dash-card" :class="{'isActive': showLatencyChart}" @click="loadLatencyChart">
           <div class="inner-card">
-            <div class="cart-title">{{$t('avgQueryLatency')}}</div>
+            <div class="cart-title">
+              {{$t('avgQueryLatency')}}
+              <el-button plain size="mini" class="ksd-fright" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
+            </div>
             <div class="content">
               <span class="num">{{queryMean}}</span>
               <span class="unit">sec</span>
             </div>
-            <el-button type="primary" plain size="mini" @click.stop="gotoQueryHistory">{{$t('viewDetail')}}</el-button>
           </div>
         </div>
       </el-col>
       <el-col :span="6">
         <div class="dash-card" :class="{'isActive': showJobChart}" @click="loadJobChart">
           <div class="inner-card">
-            <div class="cart-title">{{$t('jobCount')}}</div>
+            <div class="cart-title">
+              {{$t('jobCount')}}
+              <el-button plain size="mini" class="ksd-fright" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
+            </div>
             <div class="content">
               <span class="num">{{jobCount}}</span>
             </div>
-            <el-button type="primary" plain size="mini" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
           </div>
         </div>
       </el-col>
       <el-col :span="6">
         <div class="dash-card" :class="{'isActive': showBulidChart}" @click="loadBulidChart">
           <div class="inner-card">
-            <div class="cart-title">{{$t('avgBulidTime')}}</div>
+            <div class="cart-title">
+              {{$t('avgBulidTime')}}
+              <el-button plain size="mini" class="ksd-fright" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
+            </div>
             <div class="content">
               <span class="num">{{avgBulidTime}}</span>
               <span class="unit">sec</span>
             </div>
-            <el-button type="primary" plain size="mini" @click.stop="gotoJoblist">{{$t('viewDetail')}}</el-button>
           </div>
         </div>
       </el-col>
@@ -449,7 +457,7 @@ export default class Dashboard extends Vue {
     ]
   }
   formatDate (d) {
-    const formatPattern = '%Y-%m-%d'
+    const formatPattern = this.dateUnit === 'month' ? '%Y-%m' : '%Y-%m-%d'
     return d3.time.format(formatPattern)(moment.unix(d / 1000).toDate())
   }
   beforeDestroy () {
@@ -621,20 +629,20 @@ export default class Dashboard extends Vue {
     }
     .count-row .el-col {
       position: relative;
-      height: 176px;
+      height: 126px;
       .dash-card {
         position: absolute;
-        height: 176px;
+        height: 126px;
         width: calc(~"100% - 10px");
         padding: 0;
         .inner-card {
           padding: 15px;
         }
         &.isActive {
-          height: 188px;
+          height: 138px;
           border-top: 2px solid @base-color-1;
           .inner-card {
-            height: 160px;
+            height: 110px;
             width: calc(~"100% - 28px");
             border-bottom: none;
             position: absolute;
@@ -656,7 +664,7 @@ export default class Dashboard extends Vue {
           fill: @text-normal-color;
         }
         > div {
-          height: 355px;
+          height: 325px;
         }
        &:first-child {
         border-right: 1px solid @line-border-color;

@@ -13,7 +13,7 @@
         </el-select>
         <el-button-group class="action_groups ksd-ml-10">
           <el-button plain size="medium" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
-          <el-button plain size="medium" :disabled="!batchBtnsEnabled.discard" @click="batchDiscard">{{$t('jobDiscard')}}</el-button>
+          <el-button plain size="medium" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
           <el-button plain size="medium" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
           <el-button plain size="medium" :disabled="!batchBtnsEnabled.drop" @click="batchDrop">{{$t('jobDrop')}}</el-button>
         </el-button-group>
@@ -104,23 +104,15 @@
           <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
             <i class="el-icon-delete ksd-fs-16" @click.stop="drop([scope.row.id])"></i>
           </common-tip>
-          <common-tip :content="$t('jobDiscard')" v-if="scope.row.job_status=='PENDING' || scope.row.job_status=='RUNNING'">
-            <i class="el-icon-ksd-table_discard ksd-fs-16" @click.stop="discard([scope.row.id])"></i>
+          <common-tip :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'">
+            <i class="el-icon-ksd-table_discard ksd-fs-16" @click.stop="restart([scope.row.id])"></i>
           </common-tip>
           <common-tip :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
             <i class="el-icon-ksd-table_resure ksd-fs-16" @click.stop="resume([scope.row.id])"></i>
           </common-tip>
-          <el-dropdown trigger="click" v-if="!(scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED')">
-            <span class="el-dropdown-link" @click.stop>
-              <common-tip :content="$t('kylinLang.common.moreActions')">
-                <i class="el-icon-ksd-table_others ksd-fs-16"></i>
-              </common-tip>
-            </span>
-            <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item @click.native="discard([scope.row.id])" v-if="scope.row.job_status=='NEW' || scope.row.job_status=='ERROR' || scope.row.job_status=='STOPPED'">{{$t('jobDiscard')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="pause([scope.row.id])" v-if="scope.row.job_status=='RUNNING' || scope.row.job_status=='NEW' || scope.row.job_status=='PENDING'">{{$t('jobPause')}}</el-dropdown-item>
-            </el-dropdown-menu>
-          </el-dropdown>
+          <common-tip :content="$t('jobPause')" v-if="scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING'">
+            <i class="el-icon-ksd-pause ksd-fs-16" @click.stop="pause([scope.row.id])"></i>
+          </common-tip>
         </template>
       </el-table-column>
     </el-table>
@@ -253,7 +245,7 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       loadStepOutputs: 'LOAD_STEP_OUTPUTS',
       removeJob: 'REMOVE_JOB',
       pauseJob: 'PAUSE_JOB',
-      cancelJob: 'CANCEL_JOB',
+      restartJob: 'RESTART_JOB',
       resumeJob: 'RESUME_JOB'
     })
   },
@@ -266,8 +258,8 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
     'job_dialog': jobDialog
   },
   locales: {
-    'en': {dataRange: 'Data Range', JobType: 'Job Type', JobName: 'Job Name', TargetSubject: 'Target Subject', ProgressStatus: 'Job Status', startTime: 'Start Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDrop: 'Drop', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', discardJob: 'Are you sure to discard the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting', noSelectJobs: 'Please check at least one job.', selectedJobs: '{selectedNumber} jobs have been selected', selectAll: 'All Select', fullLoad: 'Full Load', jobDetails: 'Job Details'},
-    'zh-cn': {dataRange: '数据范围', JobType: 'Job 类型', JobName: '任务', TargetSubject: '任务对象', ProgressStatus: '任务状态', startTime: '任务开始时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDrop: '删除', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '终止', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', discardJob: '确定要终止任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间', noSelectJobs: '请勾选至少一项任务。', selectedJobs: '目前已选择当页{selectedNumber}条任务。', selectAll: '全选', fullLoad: '全量加载', jobDetails: '任务详情'}
+    'en': {dataRange: 'Data Range', JobType: 'Job Type', JobName: 'Job Name', TargetSubject: 'Target Subject', ProgressStatus: 'Job Status', startTime: 'Start Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDrop: 'Drop', jobRestart: 'Restart', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', restartJob: 'Are you sure to restart the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting', noSelectJobs: 'Please check at least one job.', selectedJobs: '{selectedNumber} jobs have been selected', selectAll: 'All Select', fullLoad: 'Full Load', jobDetails: 'Job Details'},
+    'zh-cn': {dataRange: '数据范围', JobType: 'Job 类型', JobName: '任务', TargetSubject: '任务对象', ProgressStatus: '任务状态', startTime: '任务开始时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDrop: '删除', jobRestart: '重启', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '终止', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', restartJob: '确定要重启任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间', noSelectJobs: '请勾选至少一项任务。', selectedJobs: '目前已选择当页{selectedNumber}条任务。', selectAll: '全选', fullLoad: '全量加载', jobDetails: '任务详情'}
   }
 })
 export default class JobsList extends Vue {
@@ -284,6 +276,7 @@ export default class JobsList extends Vue {
   stepAttrToShow = ''
   beforeScrollPos = 0
   multipleSelection = []
+  isPausePolling = false
   isSelectAllShow = false
   isSelectAll = false
   selectedNumber = 0
@@ -306,14 +299,14 @@ export default class JobsList extends Vue {
   searchLoading = false
   batchBtnsEnabled = {
     resume: false,
-    discard: false,
+    restart: false,
     pause: false,
     drop: false
   }
   getBatchBtnStatus (statusArr) {
     const batchBtns = {
       resume: ['ERROR', 'STOPPED'],
-      discard: ['PENDING', 'ERROR', 'RUNNING', 'STOPPED'],
+      restart: ['ERROR'],
       pause: ['PENDING', 'RUNNING'],
       drop: ['DISCARDED', 'FINISHED']
     }
@@ -347,30 +340,36 @@ export default class JobsList extends Vue {
       </el-popover>
     </span>)
   }
-
-  created () {
-    const { modelAlias, jobStatus } = this.$route.query
-
-    modelAlias && (this.filter.subject = modelAlias)
-    jobStatus && (this.filter.status = jobStatus)
-
-    this.selectedJob = {} // 防止切换project时，发一个不存在该项目jobId的jobDetail的请求
-    this.filter.project = this.currentSelectedProject
-    var autoFilter = () => {
-      this.stCycle = setTimeout(() => {
+  autoFilter () {
+    clearTimeout(this.stCycle)
+    this.stCycle = setTimeout(() => {
+      if (!this.isPausePolling) {
         this.refreshJobs().then((res) => {
           handleSuccess(res, (data) => {
-            autoFilter()
+            if (this._isDestroyed) {
+              return
+            }
+            this.autoFilter()
           })
         }, (res) => {
           handleError(res)
         })
-      }, 30000)
-    }
+      }
+    }, 5000)
+  }
+  created () {
+    const { modelAlias, jobStatus } = this.$route.query
+    modelAlias && (this.filter.subject = modelAlias)
+    jobStatus && (this.filter.status = jobStatus)
+    this.selectedJob = {} // 防止切换project时，发一个不存在该项目jobId的jobDetail的请求
+    this.filter.project = this.currentSelectedProject
     if (this.currentSelectedProject) {
-      autoFilter()
+      this.autoFilter()
       this.getJobsList()
     }
+  }
+  destroyed () {
+    clearTimeout(this.stCycle)
   }
   mounted () {
     window.addEventListener('click', this.closeIt)
@@ -470,9 +469,14 @@ export default class JobsList extends Vue {
     }
     animate()
   }
+  reCallPolling () {
+    this.isPausePolling = false
+    this.autoFilter()
+  }
   handleSelectionChange (val) {
     if (val && val.length) {
       this.multipleSelection = val
+      this.isPausePolling = true
       const selectedStatus = this.multipleSelection.map((item) => {
         return item.job_status
       })
@@ -481,6 +485,7 @@ export default class JobsList extends Vue {
         return item.id
       })
     } else {
+      this.reCallPolling()
       this.batchBtnsEnabled = {
         resume: false,
         discard: false,
@@ -531,18 +536,20 @@ export default class JobsList extends Vue {
         const jobIds = this.getJobIds()
         this.resume(jobIds)
       }
+      this.reCallPolling()
     }
   }
-  batchDiscard () {
+  batchRestart () {
     if (!this.multipleSelection.length) {
       this.$message.warning(this.$t('noSelectJobs'))
     } else {
       if (this.isSelectAll) {
-        this.discard([])
+        this.restart([])
       } else {
         const jobIds = this.getJobIds()
-        this.discard(jobIds)
+        this.restart(jobIds)
       }
+      this.reCallPolling()
     }
   }
   batchPause () {
@@ -555,6 +562,7 @@ export default class JobsList extends Vue {
         const jobIds = this.getJobIds()
         this.pause(jobIds)
       }
+      this.reCallPolling()
     }
   }
   batchDrop () {
@@ -567,6 +575,7 @@ export default class JobsList extends Vue {
         const jobIds = this.getJobIds()
         this.drop(jobIds)
       }
+      this.reCallPolling()
     }
   }
   currentChange (val) {
@@ -621,9 +630,9 @@ export default class JobsList extends Vue {
       })
     })
   }
-  discard (jobIds) {
-    kapConfirm(this.$t('discardJob')).then(() => {
-      this.cancelJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'DISCARD', status: this.filter.status}).then(() => {
+  restart (jobIds) {
+    kapConfirm(this.$t('restartJob')).then(() => {
+      this.restartJob({jobIds: jobIds, project: this.currentSelectedProject, action: 'RESTART', status: this.filter.status}).then(() => {
         this.$message({
           type: 'success',
           message: this.$t('kylinLang.common.actionSuccess')

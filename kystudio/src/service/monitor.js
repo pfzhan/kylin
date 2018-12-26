@@ -26,7 +26,7 @@ export default {
   resumeJob: (para) => {
     return Vue.resource(apiUrl + 'jobs/status').update(para)
   },
-  cancelJob: (para) => {
+  restartJob: (para) => {
     return Vue.resource(apiUrl + 'jobs/status').update(para)
   },
   pauseJob: (para) => {
