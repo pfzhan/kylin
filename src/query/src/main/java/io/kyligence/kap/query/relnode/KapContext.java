@@ -24,11 +24,10 @@
 
 package io.kyligence.kap.query.relnode;
 
-import java.util.Set;
+import java.util.Collection;
 
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 public class KapContext {
@@ -61,21 +60,13 @@ public class KapContext {
             return;
 
         OLAPContext context = ((KapRel) kapRel).getContext();
-        //add columns of context's TopNode to context when there are no agg rel
-        if (kapRel instanceof KapProjectRel && !((KapProjectRel)kapRel).isMerelyPermutation()) {
-            for (Set<TblColRef> colRefs : ((KapRel) kapRel).getColumnRowType().getSourceColumns()) {
-                for (TblColRef colRef : colRefs) {
-                    if (context.isOriginAndBelongToCtxTables(colRef))
-                        context.allColumns.add(colRef);
-                }
-            }
+        // add columns of context's TopNode to context when there are no agg rel
+        if (kapRel instanceof KapProjectRel && !((KapProjectRel) kapRel).isMerelyPermutation()) {
+            ((KapRel) kapRel).getColumnRowType().getSourceColumns().stream().flatMap(Collection::stream)
+                    .filter(context::isOriginAndBelongToCtxTables).forEach(context.allColumns::add);
         } else if (kapRel instanceof KapValuesRel) {
-            for (TblColRef colRef : ((KapRel) kapRel).getColumnRowType().getAllColumns()) {
-                if (context.isOriginAndBelongToCtxTables(colRef)) {
-                    context.allColumns.add(colRef);
-                }
-            }
-
+            ((KapRel) kapRel).getColumnRowType().getAllColumns().stream().filter(context::isOriginAndBelongToCtxTables)
+                    .forEach(context.allColumns::add);
         } else if (kapRel instanceof KapJoinRel) {
             amendAllColsIfNoAgg(kapRel.getInput(0));
             amendAllColsIfNoAgg(kapRel.getInput(1));

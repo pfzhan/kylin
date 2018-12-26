@@ -58,7 +58,7 @@ import java.util.NavigableSet;
 import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
-import java.util.WeakHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.NotImplementedException;
@@ -116,7 +116,7 @@ public abstract class ResourceStore {
     public static final String QUERY_HISTORY_TIME_OFFSET = "/query_history_time_offset";
     public static final String ACCELERATE_RATIO_RESOURCE_ROOT = "/accelerate_ratio";
 
-    private static final Map<KylinConfig, ResourceStore> META_CACHE = new WeakHashMap<>();
+    private static final Map<KylinConfig, ResourceStore> META_CACHE = new ConcurrentHashMap<>();
     @Getter
     protected ImageStore imageStore;
 
