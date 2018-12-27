@@ -15,21 +15,24 @@
       <el-table-column min-width="400px" :label="$t('modelSetting')">
         <template slot-scope="scope">
           <div v-if="scope.row.auto_merge_time_ranges">
-            <span class="model-setting-item" @click="editMergeItem(scope.row)">
+            <span class="model-setting-item">
               {{$t('segmentMerge')}}<span v-for="item in scope.row.auto_merge_time_ranges" :key="item">{{$t(item)}}</span>
             </span>
+            <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editMergeItem(scope.row)"></i>
             <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'auto_merge_time_ranges')"></i>
           </div>
           <div v-if="scope.row.volatile_range">
             <span class="model-setting-item" @click="editVolatileItem(scope.row)">
               {{$t('volatileRange')}}<span>{{scope.row.volatile_range.volatile_range_number}} {{scope.row.volatile_range.volatile_range_type}}</span>
             </span>
+            <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editVolatileItem(scope.row)"></i>
             <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'volatile_range')"></i>
           </div>
           <div v-if="scope.row.retention_range">
             <span class="model-setting-item" @click="editRetentionItem(scope.row)">
               {{$t('retention')}}<span>{{scope.row.retention_range.retention_range_number}} {{scope.row.retention_range.retention_range_type}}</span>
             </span>
+            <i class="el-icon-ksd-table_edit ksd-mr-8 ksd-ml-10" @click="editRetentionItem(scope.row)"></i>
             <i class="el-icon-ksd-symbol_type" @click="removeAutoMerge(scope.row, 'retention_range')"></i>
           </div>
         </template>
@@ -244,10 +247,10 @@ export default class SettingStorage extends Vue {
     this.updateModelConfig(Object.assign({}, {project: this.currentSelectedProject}, this.activeRow)).then((res) => {
       this.isLoading = true
       handleSuccess(res, () => {
-        this.getConfigList()
         this.isLoading = false
         this.editModelSetting = false
         this.resetForm()
+        this.getConfigList()
       })
     }, (res) => {
       handleError(res)
@@ -280,15 +283,17 @@ export default class SettingStorage extends Vue {
     > span {
       margin-left: 5px;
     }
-    &:hover {
-      color: @base-color;
-      cursor: pointer;
-    }
   }
   .model-setting-table {
     .el-icon-ksd-table_add.disabled {
       color: @text-disabled-color;
       cursor: not-allowed;
+    }
+    .el-icon-ksd-table_edit,
+    .el-icon-ksd-symbol_type {
+      &:hover {
+        color: @base-color;
+      }
     }
   }
 }
