@@ -252,8 +252,9 @@ export default class ModelPartitionModal extends Vue {
     this.filterCondition = ''
   }
   savePartition () {
+    let hasSetDate = this.partitionMeta.table && this.partitionMeta.column
     if (this.modelDesc) {
-      this.modelDesc.partition_desc.partition_date_column = this.partitionMeta.table + '.' + this.partitionMeta.column
+      this.modelDesc.partition_desc.partition_date_column = hasSetDate ? this.partitionMeta.table + '.' + this.partitionMeta.column : ''
       this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
       this.modelDesc.filter_condition = this.filterCondition
       this.modelDesc.project = this.currentSelectedProject

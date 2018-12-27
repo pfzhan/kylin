@@ -113,11 +113,11 @@ export default class GuidePannel extends Vue {
     })
   }
   closeGuide () {
+    this.guideLoading = false
+    this.currentStep = 0
+    this.guide.stop()
     this.showGuid.showTitle = false
     this.showGuid.showContent = false
-    setTimeout(() => {
-      this.$store.state.system.guideConfig.globalMaskVisible = false
-    }, 500)
   }
   destroyed () {
     this.showCopyStatus = false

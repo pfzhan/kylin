@@ -125,6 +125,9 @@ class Guide {
     this.systemStore.globalMouseClick = false
     this.systemStore.globalMouseDrag = false
   }
+  toggleMask (isShow) {
+    this.systemStore.globalMaskVisible = isShow
+  }
   // 手型移动
   _mouseTo (el, stepInfo, resolve) {
     if (el) {
@@ -284,7 +287,7 @@ class Guide {
   }
   // 按步执行效果
   start () {
-    this.systemStore.globalMaskVisible = true
+    this.toggleMask(true)
     this.steps = this.stepFuncs(this.drama[this.mode])
     return this
   }
@@ -295,7 +298,11 @@ class Guide {
     })
   }
   stop () {
-    this.systemStore.globalMaskVisible = false
+    this.STs.forEach((i) => {
+      clearTimeout(i)
+    })
+    this.toggleMask(false)
+    this.hideAllMouse()
   }
 }
 export default Guide

@@ -58,10 +58,16 @@
           :label="$t('kylinLang.common.fact')">
         </el-table-column>
         <el-table-column
-          prop="favorite"
+          prop="usage"
           show-overflow-tooltip
           width="90px"
-          :label="$t('favorite')">
+          :label="$t('usage')">
+        </el-table-column>
+         <el-table-column
+          prop="storage"
+          show-overflow-tooltip
+          width="90px"
+          :label="$t('storage')">
         </el-table-column>
         <el-table-column
           prop="gmtTime"

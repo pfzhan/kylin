@@ -3,7 +3,6 @@ import { loadTableDrama } from './loadTable'
 import { addModelDrama } from './addModel'
 import { monitorDrama } from './monitor'
 import { addIndexDrama } from './addIndex'
-console.log(monitorDrama)
 export const drama = {
   // 手动演示流程
   manual_1: () => [...addProjectDrama(), ...loadTableDrama(), ...addModelDrama(), ...addIndexDrama()],
