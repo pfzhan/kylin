@@ -148,9 +148,9 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
             throws IOException {
         Object2IntMap<String> object2IntMap = new Object2IntOpenHashMap<>();
         Path versionDir = getVersionDir(version);
-        FileStatus[] dictCurrFiles = fileSystem.listStatus(versionDir, path -> path.getName().endsWith("_" + bucketId));
+        FileStatus[] bucketFiles = fileSystem.listStatus(versionDir, path -> path.getName().endsWith("_" + bucketId));
 
-        for (FileStatus file : dictCurrFiles) {
+        for (FileStatus file : bucketFiles) {
             if (file.getPath().getName().startsWith(DICT_CURR_PREFIX)) {
                 object2IntMap.putAll(getBucketDict(file.getPath(), metadata.getPointOffset(bucketId)));
             }
@@ -211,7 +211,7 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
         logger.info("write dict path: {} , dict num: {} success", dictPath, openHashMap.size());
     }
 
-    public void writeMetaDict(String workingPath) throws IOException {
+    public void writeMetaDict(int bucketSize, String workingPath) throws IOException {
         Path metaPath = new Path(workingPath, DICT_METADATA_NAME);
         if (fileSystem.exists(metaPath)) {
             fileSystem.delete(metaPath, true);
@@ -224,24 +224,28 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
         FileStatus[] dictCurrFiles = fileSystem.listStatus(workPath,
                 path -> StringUtils.contains(path.getName(), DICT_CURR_PREFIX));
 
-        int dictCount = 1;
+        int dictCount = 0;
         for (FileStatus fileStatus : dictPrevFiles) {
             try (FSDataInputStream is = fileSystem.open(fileStatus.getPath())) {
                 dictCount = dictCount + is.readInt();
             }
         }
 
-        int[] offset = new int[dictCurrFiles.length];
+        int[] offset = new int[bucketSize];
 
         try (FSDataOutputStream dos = fileSystem.create(metaPath)) {
-            dos.writeInt(dictCurrFiles.length);
-            dos.writeInt(dictCount);
+            dos.writeInt(bucketSize);
+
+            int currDictCnt = 0;
             for (FileStatus fileStatus : dictCurrFiles) {
                 try (FSDataInputStream is = fileSystem.open(fileStatus.getPath())) {
                     String bucketId = fileStatus.getPath().getName().replaceAll(DICT_CURR_PREFIX, "");
-                    offset[Integer.parseInt(bucketId)] = is.readInt();
+                    int cnt = is.readInt();
+                    currDictCnt = currDictCnt + cnt;
+                    offset[Integer.parseInt(bucketId)] = cnt;
                 }
             }
+            dos.writeInt(dictCount + currDictCnt);
 
             for (int i : offset) {
                 dos.writeInt(dictCount);

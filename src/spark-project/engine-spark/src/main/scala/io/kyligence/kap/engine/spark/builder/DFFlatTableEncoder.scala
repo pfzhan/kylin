@@ -21,6 +21,8 @@
  */
 package io.kyligence.kap.engine.spark.builder
 
+import java.util
+
 import io.kyligence.kap.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TblColRef
@@ -36,24 +38,23 @@ object DFFlatTableEncoder extends Logging {
 
   val ENCODE_SUFFIX = "_encode"
 
-  def encode(df: DataFrame, seg: NDataSegment, config: KylinConfig): Dataset[Row] = {
+  def encode(df: DataFrame, seg: NDataSegment, cols: util.Set[TblColRef], config: KylinConfig): Dataset[Row] = {
     var dataFrame = df
-    val globalDictCols = DictionaryBuilder.extractGlobalDictColumns(seg)
     var globalDictRdd = df.rdd
 
     var structType = df.schema
 
     // process global dictionary
-    if (globalDictCols.size > 0) {
+    if (cols.size > 0) {
       val flatTableDesc = new NCubeJoinedFlatTableDesc(seg.getCubePlan, seg.getSegRange)
 
-      for (ref: TblColRef <- globalDictCols.asScala) {
+      for (ref: TblColRef <- cols.asScala) {
         val columnIndex: Int = flatTableDesc.getColumnIndex(ref)
 
         structType = structType.add(structType.apply(columnIndex).name + ENCODE_SUFFIX, IntegerType)
         val globalDict = new NGlobalDictionaryV2(ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
 
-        val bucketPartitionSize = globalDict.getBucketSize(seg.getConfig.getGlobalDictV2HashPartitions)
+        val bucketPartitionSize = globalDict.getBucketSizeOrDefault(seg.getConfig.getGlobalDictV2HashPartitions)
         val broadDict: Broadcast[NGlobalDictionaryV2] = globalDictRdd.sparkContext.broadcast[NGlobalDictionaryV2](globalDict)
 
         globalDictRdd = globalDictRdd.map {
@@ -66,7 +67,7 @@ object DFFlatTableEncoder extends Logging {
           .mapPartitionsWithIndex {
             case (bucketId, iterator) =>
               val globalDict = broadDict.value
-              val bucketDict = globalDict.createBucketDictionary(bucketId)
+              val bucketDict = globalDict.loadBucketDictionary(bucketId)
               logInfo(s"encode source: ${globalDict.getResourceDir} bucketId: $bucketId")
               var list = new ListBuffer[Row]
               while (iterator.hasNext) {

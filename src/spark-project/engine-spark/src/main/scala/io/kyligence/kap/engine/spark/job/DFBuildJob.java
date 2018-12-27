@@ -24,22 +24,14 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.cube.model.NDataflowUpdate;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
-import io.kyligence.kap.engine.spark.builder.NDataflowJob;
-import io.kyligence.kap.engine.spark.builder.NSizeEstimator;
-import io.kyligence.kap.metadata.model.NDataModel;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
@@ -55,13 +47,23 @@ import org.apache.spark.sql.Row;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
+import io.kyligence.kap.engine.spark.builder.NDataflowJob;
+import io.kyligence.kap.engine.spark.builder.NSizeEstimator;
+import io.kyligence.kap.metadata.model.NDataModel;
 
 public class DFBuildJob extends NDataflowJob {
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
@@ -79,6 +81,7 @@ public class DFBuildJob extends NDataflowJob {
         logger.info("Start Build");
         String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
         project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
+
         Set<String> segmentIds = Sets.newHashSet(StringUtils.split(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS)));
         Set<Long> layoutIds = NSparkCubingUtil.str2Longs(optionsHelper.getOptionValue(OPTION_LAYOUT_IDS));
 
@@ -133,7 +136,7 @@ public class DFBuildJob extends NDataflowJob {
     }
 
     private void recursiveBuildCuboid(NDataSegment seg, NCuboidDesc cuboid, Dataset<Row> parent,
-                                      Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
+            Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
         if (cuboid.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
             Preconditions.checkArgument(cuboid.getMeasures().size() == 0);
             Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();

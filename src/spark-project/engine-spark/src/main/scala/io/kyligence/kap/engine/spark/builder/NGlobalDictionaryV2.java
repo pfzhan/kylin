@@ -23,12 +23,12 @@
  */
 package io.kyligence.kap.engine.spark.builder;
 
+import java.io.IOException;
+import java.io.Serializable;
+
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.io.IOException;
-import java.io.Serializable;
 
 public class NGlobalDictionaryV2 implements Serializable {
 
@@ -57,11 +57,15 @@ public class NGlobalDictionaryV2 implements Serializable {
         this.metadata = getMetaDict();
     }
 
-    public NBucketDictionary createBucketDictionary(int bucketId) throws IOException {
+    public NBucketDictionary loadBucketDictionary(int bucketId) throws IOException {
         if (null == metadata) {
             metadata = getMetaDict();
         }
         return new NBucketDictionary(baseDir, getWorkingDir(), bucketId, metadata);
+    }
+
+    public NBucketDictionary createNewBucketDictionary(int bucketId) throws IOException {
+        return new NBucketDictionary(baseDir, getWorkingDir(), bucketId);
     }
 
     public void prepareWrite() throws IOException {
@@ -69,9 +73,9 @@ public class NGlobalDictionaryV2 implements Serializable {
         globalDictStore.prepareForWrite(getWorkingDir());
     }
 
-    public void writeMetaDict(int maxVersions, int versionTTL) throws IOException {
+    public void writeMetaDict(int bucketSize, int maxVersions, int versionTTL) throws IOException {
         NGlobalDictStore globalDictStore = getResourceStore(baseDir);
-        globalDictStore.writeMetaDict(getWorkingDir());
+        globalDictStore.writeMetaDict(bucketSize, getWorkingDir());
         commit(maxVersions, versionTTL);
     }
 
@@ -88,7 +92,7 @@ public class NGlobalDictionaryV2 implements Serializable {
         return metadata;
     }
 
-    public int getBucketSize(int defaultSize) {
+    public int getBucketSizeOrDefault(int defaultSize) {
         int bucketPartitionSize;
         if (metadata == null) {
             bucketPartitionSize = defaultSize;

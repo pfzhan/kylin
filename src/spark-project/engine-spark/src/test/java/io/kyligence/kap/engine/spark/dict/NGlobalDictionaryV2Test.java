@@ -62,8 +62,6 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
 
     private final static int BUCKET_SIZE = 10;
 
-    private final static int RANDOM_DATA_SIZE = 1000;
-
     @Override
     public void setUp() throws Exception {
         super.setUp();
@@ -80,21 +78,21 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
     public void testGlobalDictionaryRoundTest() throws IOException {
 
         // round 1
-        roundTest();
+        roundTest(5);
 
         // round 2
-        roundTest();
+        roundTest(50);
 
         // round 3
-        roundTest();
+        roundTest(500);
     }
 
-    private void roundTest() throws IOException {
+    private void roundTest(int size) throws IOException {
         System.out.println("NGlobalDictionaryV2Test -> roundTest -> " + System.currentTimeMillis());
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NGlobalDictionaryV2 dict1 = new NGlobalDictionaryV2("a", "spark", config.getHdfsWorkingDirectory());
         NGlobalDictionaryV2 dict2 = new NGlobalDictionaryV2("a", "local", config.getHdfsWorkingDirectory());
-        List<String> stringList = generateRandomData();
+        List<String> stringList = generateRandomData(size);
         Collections.sort(stringList);
         runWithSparkBuildGlobalDict(dict1, stringList);
         runWithLocalBuildGlobalDict(dict2, stringList);
@@ -102,9 +100,9 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
         compareTwoModeVersionNum(dict1, dict2);
     }
 
-    private List<String> generateRandomData() {
+    private List<String> generateRandomData(int size) {
         List<String> stringList = Lists.newArrayList();
-        for (int i = 0; i < RANDOM_DATA_SIZE; i++) {
+        for (int i = 0; i < size; i++) {
             stringList.add(RandomStringUtils.randomAlphabetic(10));
         }
         return stringList;
@@ -125,16 +123,16 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
             return new Tuple2<>(row.get(0).toString(), null);
         }).sortByKey().partitionBy(new NHashPartitioner(BUCKET_SIZE)).mapPartitionsWithIndex(
                 (Function2<Integer, Iterator<Tuple2<String, String>>, Iterator<Object>>) (bucketId, tuple2Iterator) -> {
-                    NBucketDictionary bucketDict = dict.createBucketDictionary(bucketId);
+                    NBucketDictionary bucketDict = dict.loadBucketDictionary(bucketId);
                     while (tuple2Iterator.hasNext()) {
                         Tuple2<String, String> tuple2 = tuple2Iterator.next();
-                        bucketDict.addValue(tuple2._1);
+                        bucketDict.addRelativeValue(tuple2._1);
                     }
                     bucketDict.saveBucketDict(bucketId);
                     return Lists.newArrayList().iterator();
                 }, true).count();
 
-        dict.writeMetaDict(config.getGlobalDictV2MaxVersions(), config.getGlobalDictV2VersionTTL());
+        dict.writeMetaDict(BUCKET_SIZE, config.getGlobalDictV2MaxVersions(), config.getGlobalDictV2VersionTTL());
     }
 
     private void runWithLocalBuildGlobalDict(NGlobalDictionaryV2 dict, List<String> stringSet) throws IOException {
@@ -154,14 +152,14 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
         }
 
         for (Map.Entry<Integer, List<String>> entry : vmap.entrySet()) {
-            NBucketDictionary bucketDict = dict.createBucketDictionary(entry.getKey());
+            NBucketDictionary bucketDict = dict.loadBucketDictionary(entry.getKey());
             for (String s : entry.getValue()) {
-                bucketDict.addValue(s);
+                bucketDict.addRelativeValue(s);
             }
             bucketDict.saveBucketDict(entry.getKey());
         }
 
-        dict.writeMetaDict(config.getGlobalDictV2MaxVersions(), config.getGlobalDictV2VersionTTL());
+        dict.writeMetaDict(BUCKET_SIZE, config.getGlobalDictV2MaxVersions(), config.getGlobalDictV2VersionTTL());
     }
 
     private void compareTwoModeVersionNum(NGlobalDictionaryV2 dict1, NGlobalDictionaryV2 dict2) throws IOException {
@@ -180,11 +178,11 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
         Assert.assertArrayEquals(metadata1.getOffset(), metadata2.getOffset());
 
         for (int i = 0; i < metadata1.getBucketSize(); i++) {
-            NBucketDictionary bucket1 = dict1.createBucketDictionary(i);
-            NBucketDictionary bucket2 = dict2.createBucketDictionary(i);
+            NBucketDictionary bucket1 = dict1.loadBucketDictionary(i);
+            NBucketDictionary bucket2 = dict2.loadBucketDictionary(i);
 
-            Object2IntMap<String> map1 = bucket1.getPrevObject2IntMap();
-            Object2IntMap<String> map2 = bucket2.getPrevObject2IntMap();
+            Object2IntMap<String> map1 = bucket1.getAbsoluteDictMap();
+            Object2IntMap<String> map2 = bucket2.getAbsoluteDictMap();
             for (Object2IntMap.Entry<String> entry : map1.object2IntEntrySet()) {
                 Assert.assertEquals(entry.getIntValue(), map2.getInt(entry.getKey()));
             }

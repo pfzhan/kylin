@@ -21,8 +21,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -41,36 +39,55 @@
  * limitations under the License.
  */
 
-package io.kyligence.kap.engine.spark.builder;
+package io.kyligence.kap.engine.spark.builder
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import org.apache.hadoop.fs.Path;
+import java.io.IOException
+import java.util
 
-import java.io.IOException;
+import io.kyligence.kap.cube.model.NDataSegment
+import org.apache.kylin.metadata.model.TblColRef
+import org.apache.spark.SparkContext
 
-public abstract class NGlobalDictStore {
+import scala.collection.JavaConverters._
 
-    // workingDir should be an absolute path, will create if not exists
-    abstract void prepareForWrite(String workingDir) throws IOException;
+object NGlobalDictionaryBuilderAssist {
 
-    /**
-     * @return all versions of this dictionary in ascending order
-     * @throws IOException on I/O error
-     */
-    public abstract Long[] listAllVersions() throws IOException;
+  private var seg = null
 
-    // return the path of specified version dir
-    public abstract Path getVersionDir(long version);
+  @throws[IOException]
+  def resize(col: TblColRef, seg: NDataSegment, bucketPartitionSize: Int, sc: SparkContext): Unit = {
+    val globalDict = new NGlobalDictionaryV2(col.getTable, col.getName, seg.getConfig.getHdfsWorkingDirectory)
+    val broadcastDict = sc.broadcast(globalDict)
+    val paralRdd = sc.parallelize(Range(0, bucketPartitionSize), bucketPartitionSize)
 
-    public abstract NGlobalDictMetadata getMetadata(long version) throws IOException;
+    globalDict.prepareWrite()
 
-    public abstract Object2IntMap<String> getBucketDict(long version, NGlobalDictMetadata metadata, int bucketId) throws IOException;
+    val rd = paralRdd.flatMap { bucketId =>
+      val gDict: NGlobalDictionaryV2 = broadcastDict.value
+      val bucketDict: NBucketDictionary = gDict.loadBucketDictionary(bucketId)
+      val tuple2List = new util.ArrayList[(String, Int)](bucketDict.getAbsoluteDictMap.size)
+      for (entry <- bucketDict.getAbsoluteDictMap.object2IntEntrySet.asScala) {
+        val tuple2 = (entry.getKey, entry.getIntValue)
+        tuple2List.add(tuple2)
+      }
+      tuple2List.asScala.iterator
+    }.partitionBy(new NHashPartitioner(bucketPartitionSize))
+      .mapPartitionsWithIndex({
+        case (bucketId, iterator) =>
+          val gDict = broadcastDict.value
+          val bucketDict = gDict.createNewBucketDictionary(bucketId)
 
-    public abstract void writeBucketCurrDict(String workingPath, int bucketId, Object2IntMap<String> openHashMap) throws IOException;
+          while (iterator.hasNext) {
+            val tuple2 = iterator.next
+            bucketDict.addAbsoluteValue(tuple2._1, tuple2._2)
+          }
 
-    public abstract void writeBucketPrevDict(String workingPath, int bucketId, Object2IntMap<String> openHashMap) throws IOException;
+          bucketDict.saveBucketDict(bucketId)
 
-    public abstract void writeMetaDict(int bucketSize, String workingDir) throws IOException;
+          Iterator.empty
+      }).count
 
-    public abstract void commit(String workingDir, int maxVersions, int versionTTL) throws IOException;
+    globalDict.writeMetaDict(bucketPartitionSize,
+      seg.getConfig.getGlobalDictV2MaxVersions, seg.getConfig.getGlobalDictV2VersionTTL)
+  }
 }

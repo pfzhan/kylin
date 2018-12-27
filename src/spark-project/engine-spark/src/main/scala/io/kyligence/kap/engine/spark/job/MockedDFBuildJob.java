@@ -107,7 +107,8 @@ public class MockedDFBuildJob extends NDataflowJob {
 
                 var structType = new StructType(collect);
                 val flatTableDesc = new NCubeJoinedFlatTableDesc(cubePlan, seg.getSegRange());
-                for (TblColRef ref : DictionaryBuilder.extractGlobalDictColumns(seg)) {
+                val nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(cubePlan.getAllCuboidLayouts(), dfName);
+                for (TblColRef ref : DictionaryBuilder.extractGlobalEncodeColumns(seg, nSpanningTree)) {
                     int columnIndex = flatTableDesc.getColumnIndex(ref);
                     structType = structType.add(
                             structType.apply(columnIndex).name() + DFFlatTableEncoder.ENCODE_SUFFIX(), IntegerType);

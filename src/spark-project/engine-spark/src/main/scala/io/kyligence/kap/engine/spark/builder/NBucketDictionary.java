@@ -23,13 +23,12 @@
  */
 package io.kyligence.kap.engine.spark.builder;
 
-import java.io.IOException;
-
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import java.io.IOException;
 
 public class NBucketDictionary {
 
@@ -37,8 +36,9 @@ public class NBucketDictionary {
 
     private String workingDir;
 
-    private Object2IntMap<String> prevObject2IntMap;
-    private Object2IntMap<String> currObject2IntMap;
+    private Object2IntMap<String> absoluteDictMap;
+    // Relative dictionary needs to calculate dictionary code according to NGlobalDictMetadata's offset
+    private Object2IntMap<String> relativeDictMap;
 
     NBucketDictionary(String baseDir, String workingDir, int bucketId, NGlobalDictMetadata metadata)
             throws IOException {
@@ -46,25 +46,35 @@ public class NBucketDictionary {
         final NGlobalDictStore globalDictStore = new NGlobalDictHDFSStore(baseDir);
         Long[] versions = globalDictStore.listAllVersions();
         if (versions.length == 0) {
-            this.prevObject2IntMap = new Object2IntOpenHashMap<>();
+            this.absoluteDictMap = new Object2IntOpenHashMap<>();
         } else {
-            this.prevObject2IntMap = globalDictStore.getBucketDict(versions[versions.length - 1], metadata, bucketId);
+            this.absoluteDictMap = globalDictStore.getBucketDict(versions[versions.length - 1], metadata, bucketId);
         }
-        this.currObject2IntMap = new Object2IntOpenHashMap<>();
+        this.relativeDictMap = new Object2IntOpenHashMap<>();
     }
 
-    public void addValue(String value) {
+    NBucketDictionary(String baseDir, String workingDir, int bucketId) {
+        this.workingDir = workingDir;
+        this.absoluteDictMap = new Object2IntOpenHashMap<>();
+        this.relativeDictMap = new Object2IntOpenHashMap<>();
+    }
+
+    public void addRelativeValue(String value) {
         if (null == value) {
             return;
         }
-        if (prevObject2IntMap.containsKey(value)) {
+        if (absoluteDictMap.containsKey(value)) {
             return;
         }
-        currObject2IntMap.put(value, currObject2IntMap.size() + 1);
+        relativeDictMap.put(value, relativeDictMap.size() + 1);
+    }
+
+    public void addAbsoluteValue(String value, int encodeValue) {
+        absoluteDictMap.put(value, encodeValue);
     }
 
     public int encode(Object value) {
-        return prevObject2IntMap.getInt(value.toString());
+        return absoluteDictMap.getInt(value.toString());
     }
 
     public void saveBucketDict(int bucketId) throws IOException {
@@ -73,19 +83,21 @@ public class NBucketDictionary {
     }
 
     private void writeBucketPrevDict(int bucketId) throws IOException {
-        if (prevObject2IntMap.isEmpty())
+        if (absoluteDictMap.isEmpty())
             return;
         NGlobalDictStore globalDictStore = new NGlobalDictHDFSStore(workingDir);
-        globalDictStore.writeBucketPrevDict(workingDir, bucketId, prevObject2IntMap);
+        globalDictStore.writeBucketPrevDict(workingDir, bucketId, absoluteDictMap);
     }
 
     private void writeBucketCurrDict(int bucketId) throws IOException {
+        if (relativeDictMap.isEmpty())
+            return;
         NGlobalDictStore globalDictStore = new NGlobalDictHDFSStore(workingDir);
-        globalDictStore.writeBucketCurrDict(workingDir, bucketId, currObject2IntMap);
+        globalDictStore.writeBucketCurrDict(workingDir, bucketId, relativeDictMap);
     }
 
-    public Object2IntMap<String> getPrevObject2IntMap() {
-        return prevObject2IntMap;
+    public Object2IntMap<String> getAbsoluteDictMap() {
+        return absoluteDictMap;
     }
 
 }

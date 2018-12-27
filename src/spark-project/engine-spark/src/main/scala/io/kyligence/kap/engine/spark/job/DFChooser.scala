@@ -107,10 +107,13 @@ class DFChooser(toBuildTree: NSpanningTree,
     val sourceSize = NSizeEstimator.estimate(
       afterJoin,
       KapConfig.wrap(config).getSampleDatasetSizeRatio)
-    val dictionaryBuilder = new DictionaryBuilder(seg, afterJoin)
+
+    val colSet = DictionaryBuilder.extractGlobalDictColumns(seg, toBuildTree)
+    val dictionaryBuilder = new DictionaryBuilder(seg, afterJoin, colSet)
     seg = dictionaryBuilder.buildDictionary // note the segment instance is updated
     afterJoin.unpersist
-    val afterEncode = DFFlatTableEncoder.encode(afterJoin, seg, config).persist
+    val encodeColSet = DictionaryBuilder.extractGlobalEncodeColumns(seg, toBuildTree)
+    val afterEncode = DFFlatTableEncoder.encode(afterJoin, seg, encodeColSet, config).persist
     afterEncode.unpersist
     val rowcount = afterJoin.count
     // TODO: should use better method to detect the modifications.
@@ -145,8 +148,6 @@ class DFChooser(toBuildTree: NSpanningTree,
       "No suitable ready layouts could be reused, generate dataset from flat table.")
     sourceInfo
   }
-
-
 }
 
 object DFChooser {
