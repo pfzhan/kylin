@@ -4,6 +4,7 @@ export function addProjectDrama () {
     {
       eventID: 1,
       done: false,
+      tip: '点击添加project',
       target: 'addProjectBtn' // 鼠标移动到添加project按钮
     },
     {
@@ -25,6 +26,7 @@ export function addProjectDrama () {
     {
       eventID: 1,
       done: false,
+      tip: '选择project类型，分为自动模式和专家模式',
       target: 'changeMunalProjectType' // 鼠标移动到选择类型
     },
     {
@@ -46,6 +48,7 @@ export function addProjectDrama () {
     {
       eventID: 1,
       done: false,
+      tip: '保存project',
       target: 'saveProjectBtn' // 鼠标移动到project 保存按钮
     },
     {

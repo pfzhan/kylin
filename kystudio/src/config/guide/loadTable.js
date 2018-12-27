@@ -8,6 +8,7 @@ export function loadTableDrama () {
     {
       eventID: 1,
       done: false,
+      tip: '点击添加数据源头按钮',
       target: 'addDatasource' // 鼠标移动到添加数据源
     },
     {
@@ -18,6 +19,7 @@ export function loadTableDrama () {
     {
       eventID: 1,
       done: false,
+      tip: '点击选择Hive数据源',
       target: 'selectHive' // 鼠标移动到选择hive数据源
     },
     {
@@ -28,6 +30,7 @@ export function loadTableDrama () {
     {
       eventID: 1,
       done: false,
+      tip: '点击保存，加载数据源表',
       target: 'saveSourceType' // 鼠标移动到保存hive数据源按钮
     },
     {
@@ -38,6 +41,7 @@ export function loadTableDrama () {
     {
       eventID: 1,
       done: false,
+      tip: '选择需要加载的表',
       target: 'hiveTree', // 展开指定的database
       search: '.guide-SSB'
     },
@@ -110,6 +114,7 @@ export function loadTableDrama () {
     {
       eventID: 1,
       done: false,
+      tip: '点击同步加载表',
       target: 'saveSourceType' // 鼠标移动到加载数据源按钮
     },
     {

@@ -38,7 +38,7 @@ export function renderModelAddTableData (tables, links, factTableName) {
       }
     )
   })
-  links.forEach((link) => {
+  links.forEach((link, i) => {
     let fguid = guidMap[link.ftable]
     let fcolumn = link.fcolumn
     let pguid = guidMap[link.ptable]
@@ -46,6 +46,7 @@ export function renderModelAddTableData (tables, links, factTableName) {
     result.push(
       {
         eventID: 1,
+        tip: i === 0 ? '拖动表中列到另外一张表的列来建立关系' : null,
         done: false,
         target: fguid + fcolumn // 连接列
       },
@@ -83,6 +84,7 @@ export function renderModelAddTableData (tables, links, factTableName) {
   })
   let factguid = guidMap[factTableName]
   result.push({
+    tip: '设置fact表',
     eventID: 1,
     done: false,
     target: factguid, // 飞向设置

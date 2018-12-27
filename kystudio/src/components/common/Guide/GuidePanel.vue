@@ -1,7 +1,9 @@
 <template>
-  <div class="global-mask" v-if="globalMaksShow">
-        <div id="guid-panel">
-          <div class="guid-icon"></div>
+  <div class="global-mask" v-if="globalMaksShow" >
+        <div id="guid-panel" :style="guidePanelStyle">
+          <div class="guid-icon">
+            <img style="width:30px;height:30px;" src="../../../assets/img/guide/expert_mode_small.png"/>
+          </div>
           <transition name="bounce">
             <div class="guid-title" v-if="showGuid.showTitle">
               <span>Manual Mode Guide</span>
@@ -10,40 +12,22 @@
           </transition>
           <transition name="panelani">
             <div class="guid-content" v-if="showGuid.showContent">
-                <el-tabs v-model="activeName" @tab-click="">
-                  <el-tab-pane label="New Project" name="project">
-                    <div class="ksd-ml-20 ksd-mtb-6">操作提示：</div>
+                <el-tabs v-model="activeName">
+                  <el-tab-pane :label="step.label" :key="step.name" :name="step.name" v-for="step in guideSteps">
+                    <!-- <div class="ksd-ml-20 ksd-mtb-6">操作提示：</div> -->
                     <ul class="steps-info">
-                      <li class="guiding-step" @click="guide.go(10)"><span class="dot"></span>添加project</li>
-                      <li></li>
-                      <li></li>
+                      <li class="guiding-step" :class="{'guide-end': x.done}" :key="x.tip" v-for="x in stepTipData"><span class="dot"></span>{{x.tip}}</li>
                     </ul>
                   </el-tab-pane>
-                  <el-tab-pane label="Load Source" name="loadTable">
-                    <div class="ksd-ml-20 ksd-mtb-6">操作提示：</div>
-                    <ul class="steps-info">
-                      <li class="guiding-step"><span class="dot"></span>加载数据源</li>
-                      <li></li>
-                      <li></li>
-                    </ul>
-                  </el-tab-pane>
-                  <el-tab-pane label="Add Model" name="addModel">
-                    <div class="ksd-ml-20 ksd-mtb-6">操作提示：</div>
-                    <ul class="steps-info">
-                      <li class="guiding-step"><span class="dot"></span>添加模型</li>
-                      <li></li>
-                      <li></li>
-                    </ul>
-                  </el-tab-pane>
-                  <el-tab-pane label="Monitor" name="fourth">Monitor</el-tab-pane>
                 </el-tabs>
                 <el-button class="ksd-fright guide-btn" size="mini" :loading="guideLoading" @click="goNextStep" plain>{{currentStep === 0 ? '开始' : guideLoading ? '演示中' : '下一步'}}</el-button>
+                <el-button class="ksd-fright guide-btn" size="mini"  @click="stopGuide" plain>{{isPause ? '继续' : '暂停'}}</el-button>
             </div>
           </transition>
         </div>
-        <img src="../../../assets/img/guide/cursor-pointer.png" v-if="globalMouseShow" key="pointer-pic" :style="mousePos"/>
-        <img src="../../../assets/img/guide/cursor-click.png" v-if="globalMouseClick" key="pointer-pic" :style="mousePos"/>
-        <img src="../../../assets/img/guide/cursor-bg.png" v-if="globalMouseDrag" key="pointer-pic" :style="mousePos"/>
+        <img src="../../../assets/img/guide/cursor-pointer.png" v-if="globalMouseShow" class="pointer-pic" :style="mousePos"/>
+        <img src="../../../assets/img/guide/cursor-click.png" v-if="globalMouseClick" class="pointer-pic" :style="mousePos"/>
+        <img src="../../../assets/img/guide/cursor-bg.png" v-if="globalMouseDrag" class="pointer-pic" :style="mousePos"/>
     </div>
 </template>
 <script>
@@ -60,6 +44,19 @@ import Guide from 'util/guide'
   components: {
   },
   computed: {
+    guidePanelStyle () {
+      let styleObj = {}
+      if (this.guidePanelPos.hasOwnProperty('left')) {
+        styleObj.left = this.guidePanelPos.left + 'px'
+      }
+      if (this.guidePanelPos.hasOwnProperty('right')) {
+        styleObj.right = this.guidePanelPos.right + 'px'
+      }
+      if (this.guidePanelPos.hasOwnProperty('top')) {
+        styleObj.top = this.guidePanelPos.top + 'px'
+      }
+      return styleObj
+    },
     globalMaksShow () {
       let showGuideMask = this.$store.state.system.guideConfig.globalMaskVisible
       if (showGuideMask) {
@@ -67,6 +64,11 @@ import Guide from 'util/guide'
           this.showGuid.showTitle = showGuideMask
           this.showGuid.showContent = showGuideMask
         })
+        this.activeName = 'project'
+        let currentGuidePage = this.guideSteps[0]
+        this.guide = new Guide({
+          mode: currentGuidePage.name
+        }, this)
       }
       return showGuideMask
     },
@@ -93,24 +95,70 @@ export default class GuidePannel extends Vue {
     showTitle: false,
     showContent: false
   }
+  guideMount = {}
   currentStep = 0
+  guidePanelPos = {
+    right: 20,
+    top: 60
+  }
+  isPause = false
   guideLoading = false
+  stepsList = null
   activeName = 'project'
-  guideSteps = ['project', 'loadTable', 'addModel', 'monitor']
+  guideSteps = [
+    {name: 'project', label: 'Add Project'},
+    {name: 'loadTable', label: 'Load Table'},
+    {name: 'addModel', label: 'Add Model'},
+    {name: 'monitor', label: 'Monitor'}
+  ]
   guide = null
-  goNextStep () {
-    let currentGuidePage = this.guideSteps[this.currentStep]
-    this.guide = new Guide({
-      mode: currentGuidePage
-    }, this)
-    this.activeName = currentGuidePage
-    this.currentStep++
+  get stepTipData () {
+    if (this.guideMount.stepsInfo) {
+      return this.guideMount.stepsInfo.filter((step) => {
+        return !!step.tip
+      })
+    }
+    return []
+  }
+  guideGo () {
     this.guideLoading = true
-    this.guide.start().go().then(() => {
+    if (!this.guide) {
+      return
+    }
+    this.guide.go().then(() => {
       this.guideLoading = false
     }, () => {
       this.guideLoading = false
     })
+  }
+  stopGuide () {
+    this.isPause = !this.isPause
+    if (this.isPause) {
+      this.guide.pause()
+    } else {
+      this.guideGo()
+    }
+  }
+  goNextStep () {
+    let currentGuidePage = this.guideSteps[this.currentStep]
+    this.guide = new Guide({
+      mode: currentGuidePage.name
+    }, this)
+    this.stepsList = this.guide.stepsInfo
+    this.activeName = currentGuidePage.name
+    if (this.activeName === 'addModel') {
+      this.guidePanelPos = {
+        left: 20,
+        top: 60
+      }
+    } else {
+      this.guidePanelPos = {
+        right: 20,
+        top: 60
+      }
+    }
+    this.currentStep++
+    this.guideGo()
   }
   closeGuide () {
     this.guideLoading = false
@@ -129,6 +177,9 @@ export default class GuidePannel extends Vue {
 <style lang="less">
 @import '../../../assets/styles/variables.less';
 .global-mask {
+  .pointer-pic {
+    transform: scale(0.7);
+  }
   .bounce-enter-active {
     transform-origin:50% 50%;
     animation: bounce-in .5s;
@@ -216,8 +267,6 @@ export default class GuidePannel extends Vue {
     // tab 组件演示覆盖
     width:370px;
     position:absolute;
-    right:20px;
-    top:60px;
     .guid-icon {
       width: 41px;
       height: 41px;
@@ -227,6 +276,12 @@ export default class GuidePannel extends Vue {
       position: absolute;
       top:-5px;
       left:-20px;
+      img {
+        width:30px;
+        height:30px;
+        margin: 5px 6px;
+        line-height: 41px;
+      }
     }
     .guid-title {
       span{
@@ -276,7 +331,9 @@ export default class GuidePannel extends Vue {
           &.guiding-step {
             width: 360px;
             height: 28px;
-            background-image: linear-gradient(193deg, #15bdf1, #0988de);
+            &.guide-end {
+              background-image: linear-gradient(193deg, #15bdf1, #0988de);
+            }
           }
         }
       }

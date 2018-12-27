@@ -12,6 +12,7 @@ export function addIndexDrama () {
     },
     {
       eventID: 1,
+      tip: '设置Agg Index',
       done: false,
       target: 'aggIncludes' // 移动到includes 输入框
     },
@@ -56,6 +57,7 @@ export function addIndexDrama () {
     {
       eventID: 1,
       done: false,
+      tip: '保存Agg Index',
       target: 'saveAggBtn' // 移动到保存Agg的按钮
     },
     {

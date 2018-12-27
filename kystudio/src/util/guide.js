@@ -8,12 +8,15 @@ class Guide {
     this.systemStore = store.state.system.guideConfig
     this.mode = options.mode || 'manual' // 模式
     this.steps = null
+    this.stepsInfo = []
+    this._mount = _.guideMount
     this.promiseObj = null
     this.STs = []
     this.stepSpeed = 1000
     this.waitLimit = 2000 // 等待查询的次数限制
     this.waitCount = 0 // 等待次数
     this.currentStep = null
+    this.isPause = false
     this.events = [
       {id: 1, info: '鼠标移动到指定位置', action: 'mouse'},
       {id: 11, info: '鼠标移动到指定位置', action: 'drag'},
@@ -36,6 +39,9 @@ class Guide {
       addModel: drama.addModel(),
       monitor: drama.monitor()
     }
+    this.stepsInfo = this.drama[this.mode]
+    this.steps = this.stepFuncs(this.stepsInfo)
+    this.vm.$set(this._mount, 'stepsInfo', this.stepsInfo)
   }
   getEventById (id) {
     for (let i = 0; i < this.events.length; i++) {
@@ -265,8 +271,8 @@ class Guide {
       if (p && p.then) {
         p.then((stepInfo) => {
           this.currentStep = stepInfo
-          stepInfo.done = true
-          if (step === undefined || isNaN(step) || step - 1 > 0) {
+          this.vm.$set(stepInfo, 'done', true)
+          if ((step === undefined || isNaN(step) || step - 1 > 0) && !this.isPause) {
             let st = setTimeout(() => {
               this.step(step - 1, resolve)
             }, this.stepSpeed)
@@ -288,14 +294,17 @@ class Guide {
   // 按步执行效果
   start () {
     this.toggleMask(true)
-    this.steps = this.stepFuncs(this.drama[this.mode])
     return this
   }
   // 按步执行，step为空的话就连续执行
   go (step) {
+    this.isPause = false
     return new Promise((resolve, reject) => {
       this.step(step, resolve, reject)
     })
+  }
+  pause () {
+    this.isPause = true
   }
   stop () {
     this.STs.forEach((i) => {

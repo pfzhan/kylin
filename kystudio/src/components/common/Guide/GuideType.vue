@@ -9,6 +9,7 @@
       <el-row :gutter="20">
         <el-col :span="12">
           <div class="guide-pic">
+            <img src="../../../assets/img/guide/expert_mode_big.png"/>
           </div>
           <div class="guide-title">Expert Mode Guide</div>
           <div class="guide-desc">Expert Mode will assist you to add data source and scratch tables to your own models from blank</div>
@@ -16,6 +17,7 @@
         </el-col>
         <el-col :span="12">
           <div class="guide-pic">
+            <img src="../../../assets/img/guide/smart_mode_big.png"/>
           </div>
           <div class="guide-title">Smart Mode Guide</div>
           <div class="guide-desc">Ecpert Mode will assist you to add data source and scratch tables to your own models from blank</div>
@@ -92,6 +94,10 @@
       background-color: @grey-4;
       margin: 0 auto;
       margin-top:40px;
+      img {
+        width:85px;
+        height:85px;
+      }
     }
     .guide-title{
       text-align: center;
