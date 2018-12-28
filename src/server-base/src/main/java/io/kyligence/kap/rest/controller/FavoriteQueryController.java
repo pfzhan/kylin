@@ -34,6 +34,7 @@ import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -47,7 +48,6 @@ import org.springframework.web.multipart.MultipartFile;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.request.AppendBlacklistSqlRequest;
 import io.kyligence.kap.rest.request.WhitelistUpdateRequest;
 import io.kyligence.kap.rest.response.FavoriteRuleResponse;

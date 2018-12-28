@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.controller;
 
 import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.config.AppInitializer;
 import io.kyligence.kap.rest.request.PasswordChangeRequest;
 import lombok.val;
@@ -43,6 +42,7 @@ import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.UserService;
 import org.apache.kylin.rest.util.AclEvaluate;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

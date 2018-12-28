@@ -195,4 +195,17 @@ public class NBasicController {
         }
     }
 
+    public void validateRange(String start, String end) {
+        validateRange(Long.parseLong(start), Long.parseLong(end));
+    }
+
+    public void validateRange(long start, long end) {
+        if (start < 0 || end < 0) {
+            throw new BadRequestException("Start or end of range must be greater than 0!");
+        }
+        if (start >= end) {
+            throw new BadRequestException("End of range must be greater than start!");
+        }
+    }
+
 }

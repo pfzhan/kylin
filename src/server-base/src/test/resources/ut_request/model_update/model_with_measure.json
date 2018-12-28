@@ -5,6 +5,7 @@
   "project": "default",
   "description": "",
   "fact_table": "DEFAULT.TEST_ORDER",
+  "management_type": "MODEL_BASED",
   "join_tables": [
     {
       "table": "DEFAULT.TEST_ACCOUNT",

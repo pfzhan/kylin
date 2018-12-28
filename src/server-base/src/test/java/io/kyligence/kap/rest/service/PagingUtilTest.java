@@ -47,8 +47,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import io.kyligence.kap.rest.PagingUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.junit.Assert;
 import org.junit.Test;
 

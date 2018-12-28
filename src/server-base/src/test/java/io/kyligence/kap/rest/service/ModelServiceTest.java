@@ -62,6 +62,8 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -160,6 +162,11 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         modelService.setSemanticUpdater(semanticService);
         modelService.setSegmentHelper(segmentHelper);
+        val prjManager = NProjectManager.getInstance(getTestConfig());
+        val prj = prjManager.getProject("default");
+        val copy = prjManager.copyForWrite(prj);
+        copy.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
+        prjManager.updateProject(copy);
     }
 
     @After
@@ -696,9 +703,31 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testCreateModel_AutoMaintain_Exception() {
+        val prjManager = NProjectManager.getInstance(getTestConfig());
+        val prj = prjManager.getProject("default");
+        val copy = prjManager.copyForWrite(prj);
+        copy.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
+        prjManager.updateProject(copy);
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        ModelRequest modelRequest = new ModelRequest(model);
+        modelRequest.setProject("default");
+        modelRequest.setName("new_model");
+        modelRequest.setAlias("new_model");
+        modelRequest.setLastModified(0L);
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Can not create model manually in SQL acceleration project!");
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+
+    }
+
+
+    @Test
     public void testCreateModel() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        model.setManagementType(ManagementType.MODEL_BASED);
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
         modelRequest.setName("new_model");
@@ -714,7 +743,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testCreateModelWithDefaultMeasures() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
-
+        model.setManagementType(ManagementType.MODEL_BASED);
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
         modelRequest.setName("new_model");

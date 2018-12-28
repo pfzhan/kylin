@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -558,13 +559,17 @@ public class ModelService extends BasicService {
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             modelRequest.setOwner(((UserDetails) authentication.getPrincipal()).getUsername());
         }
+        val prjManager = getProjectManager();
+        val prj = prjManager.getProject(project);
         checkAliasExist(modelRequest.getName(), modelRequest.getAlias(), project);
         //remove some attributes in modelResponse to fit NDataModel
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
+        if (prj.getMaintainModelType().equals(MaintainModelType.AUTO_MAINTAIN)
+                || dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
+            throw new BadRequestException("Can not create model manually in SQL acceleration project!");
+        }
         preProcessBeforeModelSave(dataModel, project);
         val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
-        syncPartitionDesc(model.getName(), project);
-
         val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val nCubePlan = new NCubePlan();

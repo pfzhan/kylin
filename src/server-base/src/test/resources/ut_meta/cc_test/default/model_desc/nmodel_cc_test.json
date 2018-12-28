@@ -546,6 +546,7 @@
   ],
   "last_modified": 0,
   "filter_condition": null,
+  "management_type": "MODEL_BASED",
   "partition_desc": {
     "partition_date_column": "DEFAULT.TEST_KYLIN_FACT.CAL_DT",
     "partition_date_start": 0,

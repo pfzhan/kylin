@@ -38,7 +38,6 @@ import java.util.Map;
 
 import javax.servlet.http.HttpServletResponse;
 
-import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.rest.response.QueryEngineStatisticsResponse;
 import io.kyligence.kap.rest.service.QueryHistoryService;
@@ -59,6 +58,7 @@ import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
 import org.apache.kylin.rest.response.SQLResponse;
 import io.kyligence.kap.rest.service.KapQueryService;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

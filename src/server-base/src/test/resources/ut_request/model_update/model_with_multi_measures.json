@@ -162,7 +162,7 @@
     "partition_date_start": 0,
     "partition_type": "APPEND"
   },
-  "management_type": "TABLE_ORIENTED",
+  "management_type": "MODEL_BASED",
   "canvas": {
     "coordinate": {
       "TEST_KYLIN_FACT": {

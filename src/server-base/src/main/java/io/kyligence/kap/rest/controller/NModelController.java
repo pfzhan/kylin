@@ -131,6 +131,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "start", required = false, defaultValue = "1") String start,
             @RequestParam(value = "end", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) String end) {
         checkProjectName(project);
+        validateRange(start, end);
         Segments<NDataSegment> segments = modelService.getSegments(modelName, project, start, end);
         HashMap<String, Object> response = getDataResponse("segments", segments, offset, limit);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
@@ -332,6 +333,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse buildSegmentsManually(@RequestBody BuildSegmentsRequest buildSegmentsRequest) {
         checkProjectName(buildSegmentsRequest.getProject());
+        validateRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), buildSegmentsRequest.getModel(),
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");

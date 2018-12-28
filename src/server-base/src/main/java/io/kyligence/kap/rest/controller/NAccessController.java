@@ -25,7 +25,6 @@
 package io.kyligence.kap.rest.controller;
 
 import com.google.common.collect.Lists;
-import io.kyligence.kap.rest.PagingUtil;
 import io.kyligence.kap.rest.request.AccessRequest;
 import lombok.val;
 import org.apache.kylin.common.persistence.AclEntity;
@@ -39,6 +38,7 @@ import org.apache.kylin.rest.security.ManagedUser;
 import org.apache.kylin.rest.service.AccessService;
 import org.apache.kylin.rest.service.IUserGroupService;
 import org.apache.kylin.rest.service.UserService;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.acls.model.Acl;

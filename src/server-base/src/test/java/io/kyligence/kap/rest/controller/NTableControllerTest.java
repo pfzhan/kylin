@@ -229,6 +229,34 @@ public class NTableControllerTest {
 
     }
 
+
+    @Test
+    public void testSetDateRang_lessThan0_exception() throws Exception {
+        final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
+        dateRangeRequest.setStart("-1");
+        Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(dateRangeRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
+
+    }
+
+    @Test
+    public void testSetDateRang_EndLessThanStart_exception() throws Exception {
+        final DateRangeRequest dateRangeRequest = mockDateRangeRequest();
+        dateRangeRequest.setStart("100");
+        dateRangeRequest.setEnd("1");
+        Mockito.doNothing().when(tableService).setDataRange("default", dateRangeRequest);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/data_range").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(dateRangeRequest))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
+
+    }
+
     @Test
     public void testSetTop() throws Exception {
         final TopTableRequest topTableRequest = mockTopTableRequest();

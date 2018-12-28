@@ -178,12 +178,13 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, loadTableResponse, "");
     }
 
-    @RequestMapping(value = "/data_range", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/data_range", method = {RequestMethod.POST}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
     public EnvelopeResponse setDateRanges(@RequestBody DateRangeRequest dateRangeRequest) throws IOException {
         checkProjectName(dateRangeRequest.getProject());
         checkRequiredArg(TABLE, dateRangeRequest.getTable());
+        validateRange(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
         tableService.setDataRange(dateRangeRequest.getProject(), dateRangeRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }
@@ -252,6 +253,7 @@ public class NTableController extends NBasicController {
         checkRequiredArg(TABLE, table);
         checkRequiredArg("start", start);
         checkRequiredArg("end", end);
+        validateRange(start, end);
         tableService.checkRefreshDataRangeReadiness(project, table, start, end);
         RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse(project, table, start, end,
                 ManagementType.TABLE_ORIENTED);
@@ -268,6 +270,7 @@ public class NTableController extends NBasicController {
         checkRequiredArg("refresh end", request.getRefreshEnd());
         checkRequiredArg("affected start", request.getAffectedStart());
         checkRequiredArg("affected end", request.getAffectedEnd());
+        validateRange(request.getRefreshStart(), request.getRefreshEnd());
         modelService.refreshSegments(request.getProject(), request.getTable(), request.getRefreshStart(),
                 request.getRefreshEnd(), request.getAffectedStart(), request.getAffectedEnd());
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
