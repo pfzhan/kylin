@@ -83,7 +83,7 @@ public class PartitionDesc implements Serializable {
 
     @EqualsAndHashCode.Include
     @JsonProperty("partition_date_format")
-    private String partitionDateFormat = DateFormat.DEFAULT_DATE_PATTERN;
+    private String partitionDateFormat;
 
     @EqualsAndHashCode.Include
     @JsonProperty("partition_time_format")

@@ -211,7 +211,7 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
         contextVisited = true;
 
         final TableDesc sourceTable = this.getOlapTable().getSourceTable();
-        state.merge(ContextVisitorState.of(false, true, sourceTable.isFact()));
+        state.merge(ContextVisitorState.of(false, true, sourceTable.isIncrementLoading()));
 
         if (olapContextImplementor.getFirstTableDesc() == null) {
             olapContextImplementor.setFirstTableDesc(sourceTable);

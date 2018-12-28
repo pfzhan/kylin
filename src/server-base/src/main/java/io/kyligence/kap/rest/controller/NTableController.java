@@ -53,7 +53,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
-import io.kyligence.kap.rest.request.FactTableRequest;
+import io.kyligence.kap.rest.request.PartitionKeyRequest;
 import io.kyligence.kap.rest.request.PushDownModeRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
@@ -125,22 +125,19 @@ public class NTableController extends NBasicController {
     }
 
     /**
-     * set table fact
+     * set table partition key
      *
      * @return
      * @throws IOException
      */
-    @RequestMapping(value = "/fact", method = { RequestMethod.POST }, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+    @RequestMapping(value = "/partition_key", method = {RequestMethod.POST}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse setTableFact(@RequestBody FactTableRequest factTableRequest) {
+    public EnvelopeResponse setPartitionKey(@RequestBody PartitionKeyRequest partitionKeyRequest) {
 
-        checkProjectName(factTableRequest.getProject());
-        if (factTableRequest.isFact()) {
-            checkRequiredArg("column", factTableRequest.getColumn());
-        }
-        tableService.setFact(factTableRequest.getTable(), factTableRequest.getProject(), factTableRequest.isFact(),
-                factTableRequest.getColumn(), factTableRequest.getPartitionDateFormat());
+        checkProjectName(partitionKeyRequest.getProject());
+        tableService.setPartitionKey(partitionKeyRequest.getTable(), partitionKeyRequest.getProject(),
+                partitionKeyRequest.getColumn());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -181,12 +178,22 @@ public class NTableController extends NBasicController {
     @RequestMapping(value = "/data_range", method = {RequestMethod.POST}, produces = {
             "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse setDateRanges(@RequestBody DateRangeRequest dateRangeRequest) throws IOException {
+    public EnvelopeResponse setDateRanges(@RequestBody DateRangeRequest dateRangeRequest) throws Exception {
         checkProjectName(dateRangeRequest.getProject());
         checkRequiredArg(TABLE, dateRangeRequest.getTable());
-        validateRange(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
+        validateRangeIfExist(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
         tableService.setDataRange(dateRangeRequest.getProject(), dateRangeRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/data_range/latest_data", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getLatestData(@RequestParam(value = "project") String project,
+                                            @RequestParam(value = "table") String table) throws Exception {
+        checkProjectName(project);
+        checkRequiredArg(TABLE, table);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableService.getLatestDataRange(project, table), "");
     }
 
     @RequestMapping(value = "/databases", method = { RequestMethod.GET }, produces = {

@@ -606,7 +606,7 @@ public class ModelService extends BasicService {
 
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         SegmentRange segmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(refreshStart, refreshEnd);
-        segmentHelper.refreshLoadingRange(project, table, segmentRange);
+        segmentHelper.refreshRelatedModelSegments(project, table, segmentRange);
     }
 
     @Transaction(project = 0)

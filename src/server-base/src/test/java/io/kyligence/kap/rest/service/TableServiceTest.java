@@ -43,11 +43,14 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -58,6 +61,7 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.source.jdbc.H2Database;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -147,8 +151,8 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(true, tables3.size() == 11);
         List<TableDesc> tables = tableService.getTableDesc("default", true, "TEST_KYLIN_FACT", "DEFAULT", true);
         Assert.assertEquals("TEST_KYLIN_FACT", tables.get(0).getName());
-        Assert.assertEquals(0, ((TableDescResponse) tables.get(0)).getStorageSize());
-        Assert.assertEquals(5633024, ((TableDescResponse) tables.get(0)).getTotalRecords());
+        Assert.assertEquals(5633024, ((TableDescResponse) tables.get(0)).getStorageSize());
+        Assert.assertEquals(0, ((TableDescResponse) tables.get(0)).getTotalRecords());
 
 
         List<TableDesc> table2 = tableService.getTableDesc("default", true, "country", "DEFAULT", true);
@@ -219,11 +223,20 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testSetFactAndSetDataRange() throws IOException {
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "");
+    public void testSetPartitionKeyAndSetDataRange() throws Exception {
+        setupPushdownEnv();
+        testSetPartitionKeyAndSetDataRangeWithoutException();
+        testGetLatestData();
+        testSetDateRangeException();
+        testSetDateRangeException3();
+        testSetDateRangeException4();
+    }
+
+    private void testSetPartitionKeyAndSetDataRangeWithoutException() throws Exception {
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "CAL_DT");
         List<TableDesc> tables = tableService.getTableDesc("default", false, "", "DEFAULT", true);
         //test set fact and table list order by fact
-        Assert.assertTrue(tables.get(0).getName().equals("TEST_KYLIN_FACT") && tables.get(0).isFact());
+        Assert.assertTrue(tables.get(0).getName().equals("TEST_KYLIN_FACT") && tables.get(0).isIncrementLoading());
         NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "default");
         NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
@@ -235,14 +248,34 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         dataLoadingRange.setWaterMarkEnd(0);
         NDataLoadingRange updateRange = rangeManager.copyForWrite(dataLoadingRange);
         rangeManager.updateDataLoadingRange(updateRange);
-        tableService.setDataRange("default", mockDateRangeRequest());
+        DateRangeRequest request = mockDateRangeRequest();
+        tableService.setDataRange("default", request);
         dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-        Assert.assertEquals(dataLoadingRange.getActualQueryStart(), 0);
+        Assert.assertEquals(dataLoadingRange.getActualQueryStart(), 1294364500000L);
         Assert.assertEquals(dataLoadingRange.getActualQueryEnd(), 1294364500000L);
+
+        // case of no start time
+        request.setStart(null);
+        request.setEnd("1328054400000");
+        tableService.setDataRange("default", request);
+        dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertEquals("0", dataLoadingRange.getCoveredSegmentRange().getStart().toString());
+        Assert.assertEquals("1328054400000", dataLoadingRange.getCoveredSegmentRange().getEnd().toString());
+
+        // case of load existing data
+        tableService.setDataRange("default", mockeDateRangeRequestWithoutTime());
+        dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
+        // 2014-01-01
+        String latestDateInEpoch = "1388534400000";
+        Assert.assertEquals(latestDateInEpoch, dataLoadingRange.getCoveredSegmentRange().getEnd().toString());
     }
 
-    @Test
-    public void testSetDateRangeException() throws IOException {
+    private void testGetLatestData() throws Exception {
+        ExistedDataRangeResponse response = tableService.getLatestDataRange("default", "DEFAULT.TEST_KYLIN_FACT");
+        Assert.assertEquals("1388534400000", response.getEndTime());
+    }
+
+    private void testSetDateRangeException() throws Exception {
         DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         dateRangeRequest.setTable("DEFAULT.TEST_ACCOUNT");
         thrown.expect(IllegalStateException.class);
@@ -250,10 +283,23 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         tableService.setDataRange("default", dateRangeRequest);
     }
 
-    @Test
-    public void testSetDateRangeException3() throws IOException {
+    private void setupPushdownEnv() throws Exception {
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "org.apache.kylin.query.adhoc.PushDownRunnerJdbcImpl");
+        // Load H2 Tables (inner join)
+        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa",
+                "");
+        H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
+        h2DB.loadAllTables();
+
+        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
+        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
+        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
+        System.setProperty("kylin.query.pushdown.jdbc.password", "");
+    }
+
+    private void testSetDateRangeException3() throws Exception {
         //test some building segments in tail,and set dataRange smaller
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "CAL_DT");
         NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "default");
         NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
@@ -288,10 +334,9 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         tableService.setDataRange("default", dateRangeRequest);
     }
 
-    @Test
-    public void testSetDateRangeException4() throws IOException {
+    private void testSetDateRangeException4() throws Exception {
         //test some building segments in header,and set dataRange smaller
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "default");
         NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
@@ -344,7 +389,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void checkRefreshDataRangeException1() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("There is no ready segment to refresh!");
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "YYMM");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "CAL_DT");
         tableService.checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0", "1294364500000");
     }
 
@@ -352,7 +397,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void checkRefreshDataRangeException2() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Data during refresh range must be ready!");
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "CAL_DT");
         NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "default");
         NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
@@ -381,7 +426,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         dataModel.setManagementType(ManagementType.TABLE_ORIENTED);
         NDataModel dataModelUpdate = modelManager.copyForWrite(dataModel);
         modelManager.updateDataModelDesc(dataModelUpdate);
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         //table oriented model
         AutoMergeConfigResponse response = tableService.getAutoMergeConfigByTable("default", "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertEquals(response.getVolatileRange().getVolatileRangeNumber(), 0);
@@ -407,7 +452,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         dataModel.setManagementType(ManagementType.TABLE_ORIENTED);
         NDataModel dataModelUpdate = modelManager.copyForWrite(dataModel);
         modelManager.updateDataModelDesc(dataModelUpdate);
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         AutoMergeRequest autoMergeRequest = mockAutoMergeRequest();
         tableService.setAutoMergeConfigByTable("default", autoMergeRequest);
         AutoMergeConfigResponse respone = tableService.getAutoMergeConfigByTable("default", "DEFAULT.TEST_KYLIN_FACT");
@@ -443,7 +488,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testSetPushDownMode() {
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         tableService.setPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT", true);
         boolean result = tableService.getPushDownMode("default", "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertTrue(result);
@@ -461,11 +506,11 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void testSetFact_NoRelatedModels_PASS() {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
         val dataloadingManager = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "", "");
-        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isFact());
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "");
+        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "");
-        Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isFact());
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "CAL_DT");
+        Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNotNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
     }
 
@@ -473,22 +518,22 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void testSetFact_NotRootFactTable_Exception() {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
         val dataloadingManager = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "", "");
-        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isFact());
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "");
+        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
                 "Can not set table 'DEFAULT.TEST_ACCOUNT' incrementing loading, due to another incrementing loading table existed in model 'all_fixed_length'!");
-        tableService.setFact("DEFAULT.TEST_ACCOUNT", "default", true, "CAL_DT", "");
+        tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default",  "CAL_DT");
     }
 
     @Test
     public void testSetFact_IncrementingExists_Exception() {
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "CAL_DT");
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
                 "Can not set table 'DEFAULT.TEST_ACCOUNT' incrementing loading, due to another incrementing loading table existed in model 'all_fixed_length'!");
-        tableService.setFact("DEFAULT.TEST_ACCOUNT", "default", true, "CAL_DT", "");
+        tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT");
     }
 
     @Test
@@ -496,23 +541,20 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
         val dataloadingManager = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "", "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "");
 
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", true, "CAL_DT", "Format1");
-        Assert.assertEquals(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT").getPartitionDateFormat(),
-                "Format1");
-        Assert.assertTrue(modelManager.getDataModelDesc("nmodel_basic").getPartitionDesc().getPartitionDateFormat()
-                .equals("Format1"));
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
+        Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertEquals(modelManager.getDataModelDesc("nmodel_basic").getPartitionDesc().getPartitionDateColumn(),
                 "TEST_KYLIN_FACT.CAL_DT");
 
-        Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isFact());
+        Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNotNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
 
         val eventDao = EventDao.getInstance(getTestConfig(), "default");
         eventDao.deleteAllEvents();
-        tableService.setFact("DEFAULT.TEST_KYLIN_FACT", "default", false, "", "");
-        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isFact());
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "");
+        Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
 
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         Assert.assertNull(modelManager.getDataModelDesc("nmodel_basic").getPartitionDesc());
@@ -551,8 +593,15 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     private DateRangeRequest mockDateRangeRequest() {
         DateRangeRequest request = new DateRangeRequest();
-        request.setStart("0");
+        request.setStart("1294364500000");
         request.setEnd("1294450900000");
+        request.setProject("default");
+        request.setTable("DEFAULT.TEST_KYLIN_FACT");
+        return request;
+    }
+
+    private DateRangeRequest mockeDateRangeRequestWithoutTime() {
+        DateRangeRequest request = new DateRangeRequest();
         request.setProject("default");
         request.setTable("DEFAULT.TEST_KYLIN_FACT");
         return request;

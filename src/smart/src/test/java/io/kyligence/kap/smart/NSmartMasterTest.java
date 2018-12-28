@@ -575,7 +575,7 @@ public class NSmartMasterTest extends NTestBase {
         // after cutting context, change "DEFAULT.KYLIN_CAL_DT" to be a incremental load table
         val tableManager = NTableMetadataManager.getInstance(kylinConfig, proj);
         val table = tableManager.getTableDesc("DEFAULT.KYLIN_CAL_DT");
-        table.setFact(true);
+        table.setIncrementLoading(true);
         tableManager.updateTableDesc(table);
 
         smartMaster.selectModel();

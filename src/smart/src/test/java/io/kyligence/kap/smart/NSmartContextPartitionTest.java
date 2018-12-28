@@ -193,7 +193,7 @@ public class NSmartContextPartitionTest extends NTestBase {
 
         val tableManager = NTableMetadataManager.getInstance(kylinConfig, proj);
         val kylinCountry = tableManager.getTableDesc("DEFAULT.KYLIN_COUNTRY");
-        kylinCountry.setFact(true);
+        kylinCountry.setIncrementLoading(true);
         tableManager.updateTableDesc(kylinCountry);
 
         smartMaster.runAll();
@@ -243,7 +243,7 @@ public class NSmartContextPartitionTest extends NTestBase {
         smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
 
         val kylinSales = tableManager.getTableDesc("DEFAULT.KYLIN_SALES");
-        kylinSales.setFact(true);
+        kylinSales.setIncrementLoading(true);
         tableManager.updateTableDesc(kylinSales);
 
         smartMaster.runAll();
@@ -295,8 +295,8 @@ public class NSmartContextPartitionTest extends NTestBase {
             Assert.assertEquals(5, accelerateInfoMap.get(sqls[0]).getRelatedLayouts().size());
         }
 
-        kylinCountry.setFact(false);
-        kylinSales.setFact(false);
+        kylinCountry.setIncrementLoading(false);
+        kylinSales.setIncrementLoading(false);
         tableManager.updateTableDesc(kylinCountry);
         tableManager.updateTableDesc(kylinSales);
     }
@@ -361,7 +361,7 @@ public class NSmartContextPartitionTest extends NTestBase {
 
         val tableManager = NTableMetadataManager.getInstance(kylinConfig, proj);
         val kylinSalesTable = tableManager.getTableDesc("DEFAULT.KYLIN_SALES");
-        kylinSalesTable.setFact(true);
+        kylinSalesTable.setIncrementLoading(true);
         tableManager.updateTableDesc(kylinSalesTable);
 
         smartMaster.runAll();
@@ -387,7 +387,7 @@ public class NSmartContextPartitionTest extends NTestBase {
         smartMaster = new NSmartMaster(kylinConfig, proj, sqls);
 
         val kylinCalDtTable = tableManager.getTableDesc("DEFAULT.KYLIN_CAL_DT");
-        kylinCalDtTable.setFact(true);
+        kylinCalDtTable.setIncrementLoading(true);
         tableManager.updateTableDesc(kylinCalDtTable);
 
         smartMaster.runAll();
@@ -400,8 +400,8 @@ public class NSmartContextPartitionTest extends NTestBase {
         }
 
         // reset to initial state
-        kylinSalesTable.setFact(false);
-        kylinCalDtTable.setFact(false);
+        kylinSalesTable.setIncrementLoading(false);
+        kylinCalDtTable.setIncrementLoading(false);
         tableManager.updateTableDesc(kylinSalesTable);
         tableManager.updateTableDesc(kylinCalDtTable);
     }

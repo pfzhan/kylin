@@ -49,7 +49,6 @@ import java.util.List;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
-import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.SegmentConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -76,7 +75,7 @@ public class NDataLoadingRange extends RootPersistentEntity {
     private String columnName;
 
     @JsonProperty("partition_date_format")
-    private String partitionDateFormat = DateFormat.DEFAULT_DATE_PATTERN;
+    private String partitionDateFormat;
 
     @JsonProperty("segment_ranges")
     private List<SegmentRange> segmentRanges = Lists.newArrayList();
@@ -98,6 +97,11 @@ public class NDataLoadingRange extends RootPersistentEntity {
 
     @Setter(AccessLevel.NONE)
     private String project;
+
+    public NDataLoadingRange(String tableName, String columnName) {
+        this.tableName = tableName;
+        this.columnName = columnName;
+    }
 
     public void initAfterReload(KylinConfig config, String p) {
         this.project = p;

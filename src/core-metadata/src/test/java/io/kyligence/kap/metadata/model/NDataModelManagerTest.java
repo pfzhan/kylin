@@ -230,7 +230,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         NDataModel nDataModel = mgrDefault.copyForWrite(mgrDefault.getDataModelDesc("nmodel_basic"));
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
         val table = tableManager.getTableDesc("DEFAULT.TEST_ACCOUNT");
-        table.setFact(true);
+        table.setIncrementLoading(true);
         tableManager.updateTableDesc(table);
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("Only one incrementing loading table can be setted in model!");

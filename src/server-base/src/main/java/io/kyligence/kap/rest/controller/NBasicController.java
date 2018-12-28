@@ -208,4 +208,20 @@ public class NBasicController {
         }
     }
 
+    public void validateRangeIfExist(String start, String end) {
+        if (StringUtils.isNotEmpty(start) && Long.parseLong(start) < 0)
+            throw new BadRequestException("Start of range must be greater than 0!");
+
+        if (StringUtils.isNotEmpty(end) && Long.parseLong(end) < 0)
+            throw new BadRequestException("End of range must be greater than 0!");
+
+        if (StringUtils.isNotEmpty(start) && StringUtils.isNotEmpty(end)) {
+            long startLong = Long.parseLong(start);
+            long endLong = Long.parseLong(end);
+
+            if (startLong >= endLong) {
+                throw new BadRequestException("End of range must be greater than start!");
+            }
+        }
+    }
 }

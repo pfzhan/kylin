@@ -32,6 +32,7 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.measure.hllc.HLLCSerializer;
 import org.apache.kylin.measure.hllc.HLLCounter;
 import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.junit.Assert;
@@ -67,6 +68,9 @@ public class ModelAnalyzerTest extends NLocalWithSparkSessionTest {
 
         // analysis round 1
         NDataSegment segment = buildDataSegment(segmentRanges, 1325347200000L, 1326124800000L);
+        PartitionDesc partitionDesc = dataModel.getPartitionDesc();
+        partitionDesc.setPartitionDateFormat("yyyy-MM-dd");
+        dataModel.setPartitionDesc(partitionDesc);
         modelAnalyzer.analyze(segment, ss);
         tableExtDesc = tableMetadataManager.getOrCreateTableExt(dataModel.getRootFactTableName());
         assertTableExtDescEquals(tableExtDesc, 101L, 11, segmentRanges);

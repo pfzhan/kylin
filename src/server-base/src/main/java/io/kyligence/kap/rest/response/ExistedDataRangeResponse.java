@@ -22,24 +22,21 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.response;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.apache.kylin.common.util.DateFormat;
 
 @Getter
 @Setter
-public class FactTableRequest {
-    @JsonProperty("table")
-    private String table;
-    @JsonProperty("project")
-    private String project;
-    @JsonProperty("column")
-    private String column;
-    @JsonProperty("fact")
-    private boolean fact;
-    @JsonProperty("partition_date_format")
-    private String partitionDateFormat = DateFormat.DEFAULT_DATE_PATTERN;
+@NoArgsConstructor
+@AllArgsConstructor
+public class ExistedDataRangeResponse {
+    @JsonProperty("start_time")
+    private String startTime;
+    @JsonProperty("end_time")
+    private String endTime;
 }

@@ -864,7 +864,7 @@ public class NDataModel extends RootPersistentEntity {
             return;
         }
         for (val table : this.getJoinTables()) {
-            if (table.getTableRef() != null && table.getTableRef().getTableDesc().isFact())
+            if (table.getTableRef() != null && table.getTableRef().getTableDesc().isIncrementLoading())
                 throw new IllegalStateException("Only one incrementing loading table can be setted in model!");
         }
     }

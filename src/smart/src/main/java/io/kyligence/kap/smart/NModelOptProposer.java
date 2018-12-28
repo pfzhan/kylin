@@ -87,7 +87,7 @@ class NModelOptProposer extends NAbstractProposer {
                 .filter(ctx -> ctx.getOrigModel() == null && ctx.getTargetModel() != null
                         && CollectionUtils.isEmpty(ctx.getTargetModel().getJoinTables())
                         && CollectionUtils.isEmpty(ctx.getTargetModel().getComputedColumnDescs())
-                        && !ctx.getTargetModel().getRootFactTable().getTableDesc().isFact())
+                        && !ctx.getTargetModel().getRootFactTable().getTableDesc().isIncrementLoading())
                 .collect(Collectors.toList());
 
         NDataflowManager manager = NDataflowManager.getInstance(smartContext.getKylinConfig(),

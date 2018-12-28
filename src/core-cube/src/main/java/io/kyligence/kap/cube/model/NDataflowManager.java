@@ -193,7 +193,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
         val rootTable = df.getModel().getRootFactTable();
         // if table is incremental load
-        if (rootTable.getTableDesc().isFact()) {
+        if (rootTable.getTableDesc().isIncrementLoading()) {
             String tableName = df.getModel().getRootFactTable().getTableIdentity();
             NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager
                     .getInstance(KylinConfig.getInstanceFromEnv(), project).getDataLoadingRange(tableName);

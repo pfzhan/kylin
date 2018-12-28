@@ -126,7 +126,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     private String dataGen;
 
     @JsonProperty("fact")
-    private boolean isFact;
+    private boolean incrementLoading;
 
     protected String project;
     private DatabaseDesc database = new DatabaseDesc();
@@ -143,7 +143,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.sourceType = other.sourceType;
         this.tableType = other.tableType;
         this.dataGen = other.dataGen;
-        this.isFact = other.isFact;
+        this.incrementLoading = other.incrementLoading;
         this.columns = new ColumnDesc[other.columns.length];
         for (int i = 0; i < other.columns.length; i++) {
             this.columns[i] = new ColumnDesc(other.columns[i]);
@@ -290,12 +290,12 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
         this.columns = columns;
     }
 
-    public boolean isFact() {
-        return isFact;
+    public boolean isIncrementLoading() {
+        return incrementLoading;
     }
 
-    public void setFact(boolean fact) {
-        isFact = fact;
+    public void setIncrementLoading(boolean incrementLoading) {
+        this.incrementLoading = incrementLoading;
     }
 
     public boolean isTop() {

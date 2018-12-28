@@ -151,6 +151,19 @@ public class PushDownUtil {
         return Pair.newPair(returnRows, returnColumnMeta);
     }
 
+    public static Pair<List<List<String>>, List<SelectedColumnMeta>> trySimplePushDownSelectQuery(String sql) throws Exception {
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        List<List<String>> returnRows = Lists.newArrayList();
+        List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
+
+        // pushdown
+        IPushDownRunner runner = (IPushDownRunner) ClassUtil.newInstance(kylinConfig.getPushDownRunnerClassName());
+        runner.init(kylinConfig);
+        runner.executeQuery(sql, returnRows, returnColumnMeta);
+
+        return Pair.newPair(returnRows, returnColumnMeta);
+    }
+
     private static boolean isExpectedCause(SQLException sqlException) {
         Preconditions.checkArgument(sqlException != null);
         Throwable rootCause = ExceptionUtils.getRootCause(sqlException);

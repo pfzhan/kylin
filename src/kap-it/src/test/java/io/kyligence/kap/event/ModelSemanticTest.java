@@ -139,7 +139,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
         val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val table = tableMgr.getTableDesc(tableName);
-        table.setFact(true);
+        table.setIncrementLoading(true);
         tableMgr.updateTableDesc(table);
 
         val update = new NDataflowUpdate(df.getName());

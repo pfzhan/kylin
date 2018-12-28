@@ -45,7 +45,7 @@ package io.kyligence.kap.rest.controller;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
-import io.kyligence.kap.rest.request.FactTableRequest;
+import io.kyligence.kap.rest.request.PartitionKeyRequest;
 import io.kyligence.kap.rest.request.PushDownModeRequest;
 import io.kyligence.kap.rest.request.RefreshSegmentsRequest;
 import io.kyligence.kap.rest.request.TableLoadRequest;
@@ -117,14 +117,12 @@ public class NTableControllerTest {
     public void tearDown() {
     }
 
-    private FactTableRequest mockFactTableRequest() {
-        final FactTableRequest factTableRequest = new FactTableRequest();
-        factTableRequest.setProject("default");
-        factTableRequest.setTable("table1");
-        factTableRequest.setColumn("CAL_DT");
-        factTableRequest.setPartitionDateFormat("YYYY-mm-DD");
-        factTableRequest.setFact(true);
-        return factTableRequest;
+    private PartitionKeyRequest mockFactTableRequest() {
+        final PartitionKeyRequest partitionKeyRequest = new PartitionKeyRequest();
+        partitionKeyRequest.setProject("default");
+        partitionKeyRequest.setTable("table1");
+        partitionKeyRequest.setColumn("CAL_DT");
+        return partitionKeyRequest;
     }
 
     private TableLoadRequest mockLoadTableRequest() {
@@ -191,30 +189,29 @@ public class NTableControllerTest {
     }
 
     @Test
-    public void testSetTableFact() throws Exception {
-        final FactTableRequest factTableRequest = mockFactTableRequest();
-        Mockito.doNothing().when(tableService).setFact(factTableRequest.getProject(), factTableRequest.getTable(),
-                factTableRequest.isFact(), factTableRequest.getColumn(), factTableRequest.getPartitionDateFormat());
+    public void testSetPartitionKey() throws Exception {
+        final PartitionKeyRequest partitionKeyRequest = mockFactTableRequest();
+        Mockito.doNothing().when(tableService).setPartitionKey(partitionKeyRequest.getProject(), partitionKeyRequest.getTable(), partitionKeyRequest.getColumn());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/fact").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(factTableRequest))
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/partition_key").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(partitionKeyRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nTableController).setTableFact(Mockito.any(FactTableRequest.class));
+        Mockito.verify(nTableController).setPartitionKey(Mockito.any(PartitionKeyRequest.class));
     }
 
     @Test
-    public void testSetTableFactException() throws Exception {
-        final FactTableRequest factTableRequest = mockFactTableRequest();
-        factTableRequest.setColumn("");
-        Mockito.doNothing().when(tableService).setFact(factTableRequest.getProject(), factTableRequest.getTable(),
-                factTableRequest.isFact(), factTableRequest.getColumn(), factTableRequest.getPartitionDateFormat());
+    public void testSetNoPartitionKey() throws Exception {
+        final PartitionKeyRequest partitionKeyRequest = mockFactTableRequest();
+        partitionKeyRequest.setColumn("");
+        Mockito.doNothing().when(tableService).setPartitionKey(partitionKeyRequest.getProject(), partitionKeyRequest.getTable(),
+                partitionKeyRequest.getColumn());
 
-        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/fact").contentType(MediaType.APPLICATION_JSON)
-                .content(JsonUtil.writeValueAsString(factTableRequest))
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/partition_key").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(partitionKeyRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
-        Mockito.verify(nTableController).setTableFact(Mockito.any(FactTableRequest.class));
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).setPartitionKey(Mockito.any(PartitionKeyRequest.class));
     }
 
     @Test
@@ -227,6 +224,16 @@ public class NTableControllerTest {
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).setDateRanges(Mockito.any(DateRangeRequest.class));
 
+    }
+
+    @Test
+    public void testGetLatestData() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/data_range/latest_data").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default")
+                .param("table", "DEFAULT.TEST_KYLIN_FACT")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).getLatestData("default", "DEFAULT.TEST_KYLIN_FACT");
     }
 
 

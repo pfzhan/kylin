@@ -85,7 +85,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
 
         val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val table = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-        table.setFact(true);
+        table.setIncrementLoading(true);
         tableMgr.updateTableDesc(table);
 
     }

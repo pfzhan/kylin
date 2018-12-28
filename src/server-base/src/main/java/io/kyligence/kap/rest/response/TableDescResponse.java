@@ -28,7 +28,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.kylin.metadata.model.SegmentRange;
-import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 
 import java.util.HashMap;
@@ -53,8 +52,8 @@ public class TableDescResponse extends TableDesc {
     Set<String> foreignKey = new HashSet<>();
     @JsonProperty("partitioned_column")
     private String partitionedColumn;
-    @JsonProperty("segment_ranges")
-    private Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
+    @JsonProperty("segment_range")
+    private SegmentRange segmentRange;
     //ready segments range
     @JsonProperty("ready_start")
     private long readyStart = -1;

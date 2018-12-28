@@ -25,6 +25,12 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -35,12 +41,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -50,6 +58,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -130,10 +139,10 @@ public class TableService extends BasicService {
 
     private int compareTableDesc(TableDesc table1, TableDesc table2) {
         if (table1.isTop() == table2.isTop()) {
-            if (table1.isFact() == table2.isFact()) {
+            if (table1.isIncrementLoading() == table2.isIncrementLoading()) {
                 return table1.getName().compareToIgnoreCase(table2.getName());
             } else {
-                return table1.isFact() && !table2.isFact() ? -1 : 1;
+                return table1.isIncrementLoading() && !table2.isIncrementLoading() ? -1 : 1;
             }
         } else {
             return table1.isTop() && !table2.isTop() ? -1 : 1;
@@ -161,7 +170,7 @@ public class TableService extends BasicService {
             } else {
                 nTableDesc.setUuid(origTable.getUuid());
                 nTableDesc.setLastModified(origTable.getLastModified());
-                nTableDesc.setFact(origTable.isFact());
+                nTableDesc.setIncrementLoading(origTable.isIncrementLoading());
             }
 
             tableMetaMgr.saveSourceTable(nTableDesc);
@@ -301,7 +310,7 @@ public class TableService extends BasicService {
                     .getDataLoadingRange(table.getIdentity());
             if (null != dataLoadingRange) {
                 rtableDesc.setPartitionedColumn(dataLoadingRange.getColumnName());
-                rtableDesc.setSegmentRanges(getSegmentRangesWithStatus(dataLoadingRange));
+                rtableDesc.setSegmentRange(dataLoadingRange.getCoveredSegmentRange());
                 rtableDesc.setActualQueryStart(dataLoadingRange.getActualQueryStart());
                 rtableDesc.setActualQueryEnd(dataLoadingRange.getActualQueryEnd());
                 SegmentRange segmentRange = dataLoadingRange.getCoveredReadySegmentRange();
@@ -406,42 +415,48 @@ public class TableService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public void setFact(String table, String project, boolean fact, String column, String dateFormat) {
+    public void setPartitionKey(String table, String project, String column) {
         NTableMetadataManager tableManager = getTableManager(project);
 
         val modelManager = getDataModelManager(project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
-        String tableName = table.substring(table.lastIndexOf(".") + 1);
-        String columnIdentity = tableName + "." + column;
-        boolean oldFact = tableDesc.isFact();
-        //toogle table type,remove all segments in related models
-        if (fact == oldFact) {
-            return;
-        } else if (fact) {
-            modelService.checkSingleIncrementingLoadingTable(project, table);
-            NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
-            dataLoadingRange.updateRandomUuid();
-            dataLoadingRange.setTableName(table);
-            dataLoadingRange.setColumnName(columnIdentity);
-            dataLoadingRange.setPartitionDateFormat(dateFormat);
-            dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
-            tableDesc.setFact(fact);
-            tableManager.updateTableDesc(tableDesc);
-
-        } else {
-            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
+        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
+        if (StringUtils.isEmpty(column)) {
+            if (dataLoadingRange == null) {
+                return;
+            }
             dataLoadingRangeManager.removeDataLoadingRange(dataLoadingRange);
-            tableDesc.setFact(fact);
+            tableDesc.setIncrementLoading(false);
+            tableManager.updateTableDesc(tableDesc);
+        } else {
+            String tableName = table.substring(table.lastIndexOf('.') + 1);
+            String columnIdentity = tableName + "." + column;
+            modelService.checkSingleIncrementingLoadingTable(project, table);
+            if (dataLoadingRange != null && dataLoadingRange.getColumnName().equals(columnIdentity))
+                return;
+
+            if (dataLoadingRange == null) {
+                dataLoadingRange = new NDataLoadingRange(table, columnIdentity);
+                dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);
+            } else {
+                val copy = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
+                copy.setPartitionDateFormat(null);
+                copy.setColumnName(columnIdentity);
+                dataLoadingRangeManager.updateDataLoadingRange(copy);
+            }
+
+            tableDesc.setIncrementLoading(true);
             tableManager.updateTableDesc(tableDesc);
         }
 
+        //toogle table type,remove all segments in related models
         val models = modelManager.getTableOrientedModelsUsingRootTable(tableDesc);
         for (val model : models) {
             //follow semanticVersion,#8196
             modelService.purgeModel(model, project);
             modelService.syncPartitionDesc(model, project);
-            if (!fact) {
+            if (StringUtils.isEmpty(column)) {
                 buildFullSegment(model, project);
             } else {
                 //await table's range being set in next REST call
@@ -476,27 +491,46 @@ public class TableService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws IOException {
+    public void setDataRange(String project, DateRangeRequest dateRangeRequest) throws Exception {
         String table = dateRangeRequest.getTable();
-        SegmentRange segmentRange = getSegmentRangeByTable(dateRangeRequest);
         NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(dateRangeRequest.getProject(),
-                dateRangeRequest.getTable());
+        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
+        SegmentRange readyRange = dataLoadingRange.getCoveredReadySegmentRange();
+        SegmentRange allRange = dataLoadingRange.getCoveredSegmentRange();
+
+        Pair<String, String> pushdownResult;
+        if (needPushdown(dateRangeRequest.getStart(), dateRangeRequest.getEnd(), dataLoadingRange)) {
+            pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
+
+            if (StringUtils.isEmpty(dateRangeRequest.getStart())) {
+                if (allRange == null)
+                    dateRangeRequest.setStart(pushdownResult.getFirst());
+                else
+                    dateRangeRequest.setStart(allRange.getEnd().toString());
+            }
+
+            if (StringUtils.isEmpty(dateRangeRequest.getEnd()))
+                dateRangeRequest.setEnd(pushdownResult.getSecond());
+        }
+
+        if (StringUtils.isEmpty(dateRangeRequest.getStart())) {
+            dateRangeRequest.setStart(dataLoadingRange.getCoveredSegmentRange().getEnd().toString());
+        }
+
+        if (allRange != null && allRange.getEnd().toString().equals(dateRangeRequest.getEnd()))
+            throw new IllegalStateException("There is no more new data to load");
+
+        // propose partition column date format if not exist
+        proposeAndSaveDateFormatIfNotExist(project, table);
+
         NTableMetadataManager tableManager = getTableManager(project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
         SegmentRange newSegmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(dateRangeRequest.getStart(),
                 dateRangeRequest.getEnd());
-        SegmentRange readyRange = dataLoadingRange.getCoveredReadySegmentRange();
-        SegmentRange allRange = dataLoadingRange.getCoveredSegmentRange();
 
-        //has some building segments
-        checkShrinkRangeInBuildingSide(allRange, readyRange, newSegmentRange);
-
-        List<SegmentRange> segmentRanges = getNewSegmentRanges(rangeManager.getDataLoadingRange(table), segmentRange);
-        for (SegmentRange seg : segmentRanges) {
-            dataLoadingRange = rangeManager.appendSegmentRange(dataLoadingRange, seg);
-            handleLoadingRangeUpdate(project, table, seg);
-        }
+        dataLoadingRange = getDataLoadingRange(project, table);
+        dataLoadingRange = rangeManager.appendSegmentRange(dataLoadingRange, newSegmentRange);
+        handleLoadingRangeUpdate(project, table, newSegmentRange);
 
         if (readyRange == null) {
             return;
@@ -515,6 +549,102 @@ public class TableService extends BasicService {
 
     }
 
+    private boolean needPushdown(String start, String end, NDataLoadingRange dataLoadingRange) {
+        if (StringUtils.isEmpty(start) && dataLoadingRange.getCoveredSegmentRange() == null)
+            return true;
+
+        if (StringUtils.isEmpty(end))
+            return true;
+
+        return false;
+    }
+
+    public ExistedDataRangeResponse getLatestDataRange(String project, String table) throws Exception {
+        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
+        String lastEnd;
+        Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
+
+        if (dataLoadingRange.getCoveredSegmentRange() != null)
+            lastEnd = dataLoadingRange.getCoveredSegmentRange().getEnd().toString();
+        else
+            lastEnd = pushdownResult.getFirst();
+
+        String currentMaxTime = pushdownResult.getSecond();
+
+        return new ExistedDataRangeResponse(lastEnd, currentMaxTime);
+    }
+
+    private String getFormattedDate(String date, String datePattern) {
+        DateTimeFormatter formatter = new DateTimeFormatterBuilder().append(DateTimeFormatter.ofPattern(datePattern))
+                .parseDefaulting(ChronoField.HOUR_OF_DAY, 0).parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+                .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0).toFormatter();
+        LocalDateTime localDateTime = LocalDateTime.parse(date, formatter);
+        ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneId.of("UTC"));
+        return String.valueOf(zonedDateTime.toInstant().toEpochMilli());
+    }
+
+    private Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String table)
+            throws Exception {
+        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
+        String partitionColumn = dataLoadingRange.getColumnName();
+        String sql = String.format("select min(%s), max(%s) from %s", partitionColumn, partitionColumn, table);
+
+        // pushdown
+        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql).getFirst();
+
+        if (returnRows.size() == 0 || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
+            throw new BadRequestException(String.format("There are no data in table %s", table));
+
+        String minTime = returnRows.get(0).get(0);
+        String maxTime = returnRows.get(0).get(1);
+
+        String dateFormat;
+        if (StringUtils.isEmpty(dataLoadingRange.getPartitionDateFormat()))
+            dateFormat = setPartitionColumnFormat(minTime, project, table);
+        else
+            dateFormat = dataLoadingRange.getPartitionDateFormat();
+
+        return new Pair<>(getFormattedDate(minTime, dateFormat), getFormattedDate(maxTime, dateFormat));
+    }
+
+    @Transaction(project = 1)
+    private String setPartitionColumnFormat(String time, String project, String table) {
+        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
+        NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
+
+        String format = DateFormat.proposeDateFormat(time);
+        val copy = rangeManager.copyForWrite(dataLoadingRange);
+        copy.setPartitionDateFormat(format);
+        rangeManager.updateDataLoadingRange(copy);
+
+        // sync to all related models
+        NDataModelManager modelManager = getDataModelManager(project);
+        TableDesc tableDesc = getTableManager(project).getTableDesc(table);
+        val models = modelManager.getTableOrientedModelsUsingRootTable(tableDesc);
+        for (val model : models) {
+            modelService.syncPartitionDesc(model, project);
+        }
+
+        return format;
+    }
+
+    private void proposeAndSaveDateFormatIfNotExist(String project, String table) throws Exception {
+        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
+        if (StringUtils.isNotEmpty(dataLoadingRange.getPartitionDateFormat()))
+            return;
+
+        String partitionColumn = dataLoadingRange.getColumnName();
+
+        String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn, table, partitionColumn);
+
+        // push down
+        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql).getFirst();
+        if (returnRows.size() == 0)
+            throw new BadRequestException(String.format("There are no data in table %s", table));
+
+        setPartitionColumnFormat(returnRows.get(0).get(0), project, table);
+    }
+
     private void handleLoadingRangeUpdate(String project, String tableName, SegmentRange segmentRange)
             throws IOException {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
@@ -530,8 +660,7 @@ public class TableService extends BasicService {
             NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
             for (String modelName : modelNames) {
 
-                NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName
-                );
+                NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName);
                 NDataflow df = dataflowManager.getDataflow(cubePlan.getName());
                 NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
                 AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
@@ -562,50 +691,6 @@ public class TableService extends BasicService {
         }
     }
 
-    private void checkShrinkRangeInBuildingSide(SegmentRange allRange, SegmentRange readyRange,
-            SegmentRange newSegmentRange) {
-        if (allRange == null) {
-            return;
-        } else {
-            //having some building segments in tail
-            if (readyRange == null || readyRange.getEnd().compareTo(allRange.getEnd()) < 0) {
-                if (newSegmentRange.getEnd().compareTo(allRange.getEnd()) < 0)
-                    throw new BadRequestException(
-                            "Some segments is building, can not set data range smaller than before");
-            }
-
-            //having some building segments in head
-            if (readyRange == null || readyRange.getStart().compareTo(allRange.getStart()) > 0) {
-                if (newSegmentRange.getStart().compareTo(allRange.getStart()) > 0)
-                    throw new BadRequestException(
-                            "Some segments is building, can not set data range smaller than before");
-            }
-        }
-    }
-
-    private List<SegmentRange> getNewSegmentRanges(NDataLoadingRange dataLoadingRange, SegmentRange newRange) {
-        List<SegmentRange> segmentRanges = new ArrayList<>();
-        SegmentRange oldSegmentRange = dataLoadingRange.getCoveredSegmentRange();
-        if (dataLoadingRange == null || null == oldSegmentRange || !oldSegmentRange.overlaps(newRange)) {
-            segmentRanges.add(newRange);
-            return segmentRanges;
-        }
-
-        if (oldSegmentRange.contains(newRange)) {
-            //do nothing but set range to new start and end
-            return segmentRanges;
-        }
-
-        if (newRange.getStart().compareTo(oldSegmentRange.getStart()) < 0) {
-
-            segmentRanges.add(newRange.getStartDeviation(oldSegmentRange));
-        }
-        if (newRange.getEnd().compareTo(oldSegmentRange.getEnd()) > 0) {
-            segmentRanges.add(oldSegmentRange.getEndDeviation(newRange));
-        }
-
-        return segmentRanges;
-    }
 
     public SegmentRange getSegmentRangeByTable(DateRangeRequest dateRangeRequest) {
         String project = dateRangeRequest.getProject();
@@ -651,13 +736,16 @@ public class TableService extends BasicService {
     }
 
     public void checkRefreshDataRangeReadiness(String project, String table, String start, String end) {
+        NTableMetadataManager tableMetadataManager = getTableManager(project);
+        TableDesc tableDesc = tableMetadataManager.getTableDesc(table);
+        if (!tableDesc.isIncrementLoading())
+            return;
+
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         SegmentRange readySegmentRange = dataLoadingRange.getCoveredReadySegmentRange();
         if (readySegmentRange == null) {
             throw new BadRequestException("There is no ready segment to refresh!");
         }
-        NTableMetadataManager tableMetadataManager = getTableManager(project);
-        TableDesc tableDesc = tableMetadataManager.getTableDesc(table);
         SegmentRange segmentRangeRefresh = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
 
         if (!readySegmentRange.contains(segmentRangeRefresh)) {

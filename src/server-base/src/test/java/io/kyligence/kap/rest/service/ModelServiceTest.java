@@ -239,7 +239,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Segments<NDataSegment> segs = new Segments();
         val seg = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         segments = modelService.getSegmentsResponse("nmodel_basic", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
-        Assert.assertEquals(1,segments.size());
+        Assert.assertEquals(1, segments.size());
         Assert.assertEquals("LOCKED", segments.get(0).getStatusToDisplay().toString());
 
         seg.setStatus(SegmentStatusEnum.READY);
@@ -250,7 +250,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         dataflow = dataflowManager.getDataflow("ncube_basic");
         dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
         segments = modelService.getSegmentsResponse("nmodel_basic", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
-        Assert.assertEquals(2,segments.size());
+        Assert.assertEquals(2, segments.size());
         Assert.assertEquals("REFRESHING", segments.get(1).getStatusToDisplay().toString());
 
         Segments<NDataSegment> segs2 = new Segments<>();
@@ -269,7 +269,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         dataflow = dataflowManager.getDataflow("ncube_basic");
         dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(0L, 20L));
         segments = modelService.getSegmentsResponse("nmodel_basic", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
-        Assert.assertEquals(3,segments.size());
+        Assert.assertEquals(3, segments.size());
         Assert.assertEquals("MERGING", segments.get(2).getStatusToDisplay().toString());
     }
 

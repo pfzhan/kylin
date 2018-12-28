@@ -59,7 +59,7 @@ import lombok.extern.slf4j.Slf4j;
 @Component
 public class SegmentHelper extends BasicService {
 
-    public void refreshLoadingRange(String project, String tableName, SegmentRange toBeRefreshSegmentRange) {
+    public void refreshRelatedModelSegments(String project, String tableName, SegmentRange toBeRefreshSegmentRange) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
 
         TableDesc tableDesc = NTableMetadataManager.getInstance(kylinConfig, project).getTableDesc(tableName);
@@ -67,13 +67,16 @@ public class SegmentHelper extends BasicService {
             throw new IllegalArgumentException("TableDesc '" + tableName + "' does not exist");
         }
 
-        NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager.getInstance(kylinConfig, project)
-                .getDataLoadingRange(tableName);
-        SegmentRange coveredReadySegmentRange = dataLoadingRange.getCoveredReadySegmentRange();
-        if (coveredReadySegmentRange == null || !coveredReadySegmentRange.contains(toBeRefreshSegmentRange)) {
-            throw new IllegalArgumentException("ToBeRefreshSegmentRange " + toBeRefreshSegmentRange
-                    + " is out of range the coveredReadySegmentRange of dataLoadingRange, the coveredReadySegmentRange is "
-                    + coveredReadySegmentRange);
+        if (tableDesc.isIncrementLoading()) {
+            // check if toBeRefreshSegmentRange is within covered ready segment range
+            NDataLoadingRange dataLoadingRange = NDataLoadingRangeManager.getInstance(kylinConfig, project)
+                    .getDataLoadingRange(tableName);
+            SegmentRange coveredReadySegmentRange = dataLoadingRange.getCoveredReadySegmentRange();
+            if (coveredReadySegmentRange == null || !coveredReadySegmentRange.contains(toBeRefreshSegmentRange)) {
+                throw new IllegalArgumentException("ToBeRefreshSegmentRange " + toBeRefreshSegmentRange
+                        + " is out of range the coveredReadySegmentRange of dataLoadingRange, the coveredReadySegmentRange is "
+                        + coveredReadySegmentRange);
+            }
         }
 
         List<String> modelNames = NDataModelManager.getInstance(kylinConfig, project)

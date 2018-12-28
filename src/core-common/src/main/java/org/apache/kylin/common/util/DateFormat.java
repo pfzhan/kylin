@@ -22,24 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
-/*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.apache.kylin.common.util;
 
 import java.text.ParseException;
@@ -48,22 +30,61 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.ConcurrentHashMap;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.time.FastDateFormat;
 
 public class DateFormat {
 
     public static final String COMPACT_DATE_PATTERN = "yyyyMMdd";
     public static final String DEFAULT_DATE_PATTERN = "yyyy-MM-dd";
+    public static final String DEFAULT_DATE_PATTERN_WITH_SLASH = "yyyy/MM/dd";
+    public static final String DEFAULT_DATE_PATTERN_WITH_DOT = "yyyy.MM.dd";
+    public static final String DATE_REVERSED_PATTERN = "dd-MM-yyyy";
+    public static final String DATE_REVERSED_PATTERN_WITH_DOT = "dd.MM.yyyy";
+    public static final String DATE_PATTERN_IN_AMERICAN_STYLE = "MM/dd/yyyy";
+
     public static final String DEFAULT_TIME_PATTERN = "HH:mm:ss";
+    public static final String DEFAULT_TIME_PATTERN_WITHOUT_SECONDS = "HH:mm";
+    public static final String DEFAULT_TIME_PATTERN_WITH_MILLISECONDS = "HH:mm:ss.SSS";
     public static final String DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS = "yyyy-MM-dd HH:mm:ss";
     public static final String DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS = "yyyy-MM-dd HH:mm:ss.SSS";
-    public static final String[] SUPPORTED_DATETIME_PATTERN = { //
-            DEFAULT_DATE_PATTERN, //
-            DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS, //
-            DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS, //
-            COMPACT_DATE_PATTERN };
 
     static final private Map<String, FastDateFormat> formatMap = new ConcurrentHashMap<String, FastDateFormat>();
+
+    private static final Map<String, String> dateFormatRegex = Maps.newHashMap();
+
+    static {
+        dateFormatRegex.put("^\\d{8}$", COMPACT_DATE_PATTERN);
+        dateFormatRegex.put("^\\d{4}-\\d{1,2}-\\d{1,2}$", DEFAULT_DATE_PATTERN);
+        dateFormatRegex.put("^\\d{4}/\\d{1,2}/\\d{1,2}$", DEFAULT_DATE_PATTERN_WITH_SLASH);
+        dateFormatRegex.put("^\\d{4}\\.\\d{1,2}\\.\\d{1,2}$", DEFAULT_DATE_PATTERN_WITH_DOT);
+        dateFormatRegex.put("^\\d{1,2}-\\d{1,2}-\\d{4}$", DATE_REVERSED_PATTERN);
+        dateFormatRegex.put("^\\d{1,2}\\.\\d{1,2}\\.\\d{4}$", DATE_REVERSED_PATTERN_WITH_DOT);
+        dateFormatRegex.put("^\\d{1,2}/\\d{1,2}/\\d{4}$", DATE_PATTERN_IN_AMERICAN_STYLE);
+        dateFormatRegex.put("^\\d{8}\\s\\d{1,2}:\\d{2}$", COMPACT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
+        dateFormatRegex.put("^\\d{4}-\\d{1,2}-\\d{1,2}\\s\\d{1,2}:\\d{2}$", DEFAULT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
+        dateFormatRegex.put("^\\d{4}/\\d{1,2}/\\d{1,2}\\s\\d{1,2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
+        dateFormatRegex.put("^\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\s\\d{1,2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
+        dateFormatRegex.put("^\\d{1,2}-\\d{1,2}-\\d{4}\\s\\d{1,2}:\\d{2}$", DATE_REVERSED_PATTERN + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
+        dateFormatRegex.put("^\\d{1,2}\\.\\d{1,2}\\.\\d{4}\\s\\d{1,2}:\\d{2}$", DATE_REVERSED_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
+        dateFormatRegex.put("^\\d{1,2}/\\d{1,2}/\\d{4}\\s\\d{1,2}:\\d{2}$", DATE_PATTERN_IN_AMERICAN_STYLE + " " + DEFAULT_TIME_PATTERN_WITHOUT_SECONDS);
+        dateFormatRegex.put("^\\d{8}\\s\\d{1,2}:\\d{2}:\\d{2}$", COMPACT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN);
+        dateFormatRegex.put("^\\d{4}-\\d{1,2}-\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN);
+        dateFormatRegex.put("^\\d{4}/\\d{1,2}/\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN);
+        dateFormatRegex.put("^\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}$", DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN);
+        dateFormatRegex.put("^\\d{1,2}-\\d{1,2}-\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}$", DATE_REVERSED_PATTERN + " " + DEFAULT_TIME_PATTERN);
+        dateFormatRegex.put("^\\d{1,2}\\.\\d{1,2}\\.\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}$", DATE_REVERSED_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN);
+        dateFormatRegex.put("^\\d{1,2}/\\d{1,2}/\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}$", DATE_PATTERN_IN_AMERICAN_STYLE + " " + DEFAULT_TIME_PATTERN);
+        dateFormatRegex.put("^\\d{8}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", COMPACT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{4}-\\d{1,2}-\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", DEFAULT_DATE_PATTERN + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{4}/\\d{1,2}/\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", DEFAULT_DATE_PATTERN_WITH_SLASH + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{4}\\.\\d{1,2}\\.\\d{1,2}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", DEFAULT_DATE_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{1,2}-\\d{1,2}-\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", DATE_REVERSED_PATTERN + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{1,2}\\.\\d{1,2}\\.\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", DATE_REVERSED_PATTERN_WITH_DOT + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+        dateFormatRegex.put("^\\d{1,2}/\\d{1,2}/\\d{4}\\s\\d{1,2}:\\d{2}:\\d{2}.\\d{3}$", DATE_PATTERN_IN_AMERICAN_STYLE + " " + DEFAULT_TIME_PATTERN_WITH_MILLISECONDS);
+    }
 
     public static FastDateFormat getDateFormat(String datePattern) {
         FastDateFormat r = formatMap.get(datePattern);
@@ -107,7 +128,7 @@ public class DateFormat {
     }
 
     public static Date stringToDate(String str, String pattern) {
-        Date date = null;
+        Date date;
         try {
             date = getDateFormat(pattern).parse(str);
         } catch (ParseException e) {
@@ -117,52 +138,39 @@ public class DateFormat {
     }
 
     public static long stringToMillis(String str) {
-        // try to be smart and guess the date format
-        if (isAllDigits(str)) {
-            if (str.length() == 8)
-                //TODO: might be prolematic if an actual ts happends to be 8 digits, e.g. 1970-01-01 10:00:01.123
-                return stringToDate(str, COMPACT_DATE_PATTERN).getTime();
-            else
-                return Long.parseLong(str);
-        } else if (str.length() == 10) {
-            return stringToDate(str, DEFAULT_DATE_PATTERN).getTime();
-        } else if (str.length() == 19) {
-            return stringToDate(str, DEFAULT_DATETIME_PATTERN_WITHOUT_MILLISECONDS).getTime();
-        } else if (str.length() > 19) {
-            return stringToDate(str, DEFAULT_DATETIME_PATTERN_WITH_MILLISECONDS).getTime();
-        } else {
-            throw new IllegalArgumentException("there is no valid date pattern for:" + str);
+        for (Map.Entry<String, String> regexToPattern : dateFormatRegex.entrySet()) {
+            if (str.matches(regexToPattern.getKey()))
+                return stringToDate(str, regexToPattern.getValue()).getTime();
         }
-    }
 
-    private static boolean isAllDigits(String str) {
-        for (int i = 0, n = str.length(); i < n; i++) {
-            if (!Character.isDigit(str.charAt(i))) {
-                if (i == 0 && str.charAt(0) == '-') {
-                    continue;
-                } else {
-                    return false;
-                }
-            }
-        }
-        return true;
+        throw new IllegalArgumentException("there is no valid date pattern for:" + str);
     }
 
     public static boolean isSupportedDateFormat(String dateStr) {
-        assert dateStr != null;
-        for (String formatStr : SUPPORTED_DATETIME_PATTERN) {
-            try {
-                if (dateStr.equals(dateToString(stringToDate(dateStr, formatStr), formatStr))) {
-                    return true;
-                }
-            } catch (Exception ex) {
-                continue;
-            }
+        Preconditions.checkArgument(dateStr != null);
+        for (Map.Entry<String, String> regexToPattern : dateFormatRegex.entrySet()) {
+            if (dateStr.matches(regexToPattern.getKey()))
+                return true;
         }
+
         return false;
     }
 
     public static boolean isDatePattern(String ptn) {
-        return COMPACT_DATE_PATTERN.equals(ptn) || DEFAULT_DATE_PATTERN.equals(ptn);
+        return COMPACT_DATE_PATTERN.equals(ptn) || DEFAULT_DATE_PATTERN.equals(ptn)
+                || DEFAULT_DATE_PATTERN_WITH_SLASH.equals(ptn)
+                || DEFAULT_DATE_PATTERN_WITH_DOT.equals(ptn)
+                || DATE_REVERSED_PATTERN.equals(ptn) || DATE_REVERSED_PATTERN_WITH_DOT.equals(ptn)
+                || DATE_PATTERN_IN_AMERICAN_STYLE.equals(ptn);
+    }
+
+    public static String proposeDateFormat(String sampleData) {
+        Preconditions.checkArgument(StringUtils.isNotEmpty(sampleData));
+        for (Map.Entry<String, String> patternMap : dateFormatRegex.entrySet()) {
+            if (sampleData.matches(patternMap.getKey()))
+                return patternMap.getValue();
+        }
+
+        throw new IllegalArgumentException("there is no valid date pattern for:" + sampleData);
     }
 }
