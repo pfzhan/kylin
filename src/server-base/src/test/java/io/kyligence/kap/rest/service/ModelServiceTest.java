@@ -160,8 +160,17 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void setup() {
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
+
         modelService.setSemanticUpdater(semanticService);
         modelService.setSegmentHelper(segmentHelper);
+        val result1 = new QueryTimesResponse();
+        result1.setModel("nmodel_basic");
+        result1.setQueryTimes(10);
+        QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
+        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(
+                Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(),
+                Mockito.any());
+        Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject("default");
         val copy = prjManager.copyForWrite(prj);
@@ -186,9 +195,12 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         List<NDataModelResponse> model4 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm",
                 "", "last_modify", true);
         Assert.assertEquals(1, model4.size());
+        Assert.assertEquals(0, model4.get(0).getStorage());
+        Assert.assertEquals(0, model4.get(0).getUsage());
         List<NDataModelResponse> model5 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm",
                 "DISABLED", "last_modify", true);
         Assert.assertEquals(0, model5.size());
+
 
     }
 

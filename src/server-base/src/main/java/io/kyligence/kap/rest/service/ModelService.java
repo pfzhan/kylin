@@ -153,6 +153,10 @@ public class ModelService extends BasicService {
             String owner, String status, String sortBy, boolean reverse) {
 
         List<NDataModel> models = getDataModelManager(projectName).getDataModels();
+        val dfManager = getDataflowManager(projectName);
+
+        val resultMap = getModelQueryTimesMap("*", projectName, "*", 0, 0);
+
         List<NDataModelResponse> filterModels = new ArrayList<>();
         for (NDataModel modelDesc : models) {
             boolean isModelNameMatch = StringUtils.isEmpty(modelName)
@@ -169,6 +173,10 @@ public class ModelService extends BasicService {
                 if (isModelStatusMatch) {
                     NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
                     nDataModelResponse.setStatus(modelStatus);
+                    nDataModelResponse.setStorage(dfManager.getDataflowByteSize(modelDesc.getName()));
+                    if (resultMap.containsKey(modelDesc.getName())) {
+                        nDataModelResponse.setUsage(resultMap.get(modelDesc.getName()).getQueryTimes());
+                    }
                     filterModels.add(nDataModelResponse);
                 }
             }
@@ -957,10 +965,7 @@ public class ModelService extends BasicService {
             modelInfoList.add(getModelInfoByModel(model, project));
         }
 
-        List<QueryTimesResponse> result = getQueryHistoryDao(project).getQueryTimesByModel(suite, model,
-                start, end, QueryTimesResponse.class);
-        Map<String, QueryTimesResponse> resultMap = result.stream()
-                .collect(Collectors.toMap(QueryTimesResponse::getModel, queryTimesResponse -> queryTimesResponse));
+        val resultMap = getModelQueryTimesMap(suite, project, model, start, end);
         for (val modelInfoResponse : modelInfoList) {
             if (resultMap.containsKey(modelInfoResponse.getModel())) {
                 modelInfoResponse.setQueryTimes(resultMap.get(modelInfoResponse.getModel()).getQueryTimes());
@@ -968,6 +973,12 @@ public class ModelService extends BasicService {
         }
 
         return modelInfoList;
+    }
+
+    private Map<String, QueryTimesResponse> getModelQueryTimesMap(String suite, String project, String model, long start, long end) {
+        List<QueryTimesResponse> result = getQueryHistoryDao(project).getQueryTimesByModel(suite, model,
+                start, end, QueryTimesResponse.class);
+        return result.stream().collect(Collectors.toMap(QueryTimesResponse::getModel, queryTimesResponse -> queryTimesResponse));
     }
 
     private List<ModelInfoResponse> getAllModelInfo() {

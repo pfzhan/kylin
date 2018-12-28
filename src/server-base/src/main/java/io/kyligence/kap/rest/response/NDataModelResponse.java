@@ -53,6 +53,12 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("simplified_measures")
     private List<SimplifiedMeasure> simplifiedMeasures;
 
+    @JsonProperty("storage")
+    private long storage;
+
+    @JsonProperty("usage")
+    private long usage;
+
     @JsonIgnore
     private NDataModel model;
 
