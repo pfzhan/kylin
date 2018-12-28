@@ -551,6 +551,13 @@ export function cacheLocalStorage (name, val) {
   }
   return localStorage.getItem(name, val)
 }
+export function delayMs (ms) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve()
+    }, ms)
+  })
+}
 export { set, get, push } from './object'
 export { handleError, handleSuccess, hasRole, hasPermission, kapConfirm, transToGmtTime, isDatePartitionType, isTimePartitionType, transToUTCMs, getGmtDateFromUtcLike } from './business'
 export { validate, validateTypes }

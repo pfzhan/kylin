@@ -32,7 +32,7 @@
               <i class="el-icon-ksd-table_assign" @click="editGroup('assign', scope.row)"></i>
             </el-tooltip>
             <el-tooltip :content="$t('kylinLang.common.drop')" effect="dark" placement="top" v-show="(scope.row.first!=='ROLE_ADMIN' && scope.row.first!=='ALL_USERS') && groupActions.includes('deleteGroup')">
-              <i class="el-icon-delete ksd-ml-10" @click="dropGroup(scope.row.first)"></i>
+              <i class="el-icon-ksd-table_delete ksd-ml-10" @click="dropGroup(scope.row.first)"></i>
             </el-tooltip>
           </template>
         </el-table-column>

@@ -46,13 +46,11 @@
             <li v-if="isAdmin"><canary></canary></li>
             <li v-if="showMenuByRole('admin')">
               <el-button
-                text
-                type="primary"
+                size="mini"
                 class="entry-admin"
                 :class="isAdminView ? 'active' : null"
                 @click="handleSwitchAdmin">
                 <span>{{$t('kylinLang.menu.admin')}}</span>
-                <i :class="isAdminView ? 'el-icon-ksd-admin_collapse' : 'el-icon-ksd-admin_extend'"></i>
               </el-button>
             </li>
             <li><help></help></li>
@@ -95,6 +93,10 @@
             </el-col>
           </div>
         </div>
+        <div class="global-mask" v-if="isGlobalMaskShow">
+          <div class="background"></div>
+          <div class="notify-contect font-medium">{{$t(notifyContect)}}</div>
+        </div>
       </el-col>
     </el-row>
     <el-dialog class="linsencebox"
@@ -135,7 +137,7 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 // import { handleSuccess, handleError, kapConfirm, hasRole } from '../../util/business'
 import { handleError, kapConfirm, hasRole, hasPermission } from '../../util/business'
-import { getQueryString, cacheSessionStorage, cacheLocalStorage } from '../../util/index'
+import { getQueryString, cacheSessionStorage, cacheLocalStorage, delayMs } from '../../util/index'
 import { permissions, menusData, speedInfoTimer } from '../../config'
 import { mapState, mapActions, mapMutations, mapGetters } from 'vuex'
 import projectSelect from '../project/project_select'
@@ -210,8 +212,8 @@ let MessageBox = ElementUI.MessageBox
     }
   },
   locales: {
-    'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Are you sure to exit?', validPeriod: 'Valid Period: ', overtip1: 'This License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know', speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> models! Do you want to apply it?', ignore: 'Ignore', apply: 'Apply', hello: 'Hi {user},'},
-    'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '我知道了', speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的模型有 <span class="ky-highlight-text">{modelCount}</span> 个！同意此次加速吗？', ignore: '忽略建议', apply: '同意', hello: '{user} 你好，'}
+    'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Are you sure to exit?', validPeriod: 'Valid Period: ', overtip1: 'This License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know', speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> models! Do you want to apply it?', ignore: 'Ignore', apply: 'Apply', hello: 'Hi {user},', leaveAdmin: 'You will leave Admin mode...', enterAdmin: 'You will enter Admin mode...'},
+    'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '我知道了', speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的模型有 <span class="ky-highlight-text">{modelCount}</span> 个！同意此次加速吗？', ignore: '忽略建议', apply: '同意', hello: '{user} 你好，', leaveAdmin: '你即将离开 Admin 模式...', enterAdmin: '你即将进入 Admin 模式...'}
   }
 })
 export default class LayoutLeftRightTop extends Vue {
@@ -244,6 +246,7 @@ export default class LayoutLeftRightTop extends Vue {
   btnLoadingCancel = false
   rotateVisibel = false
   isAnimation = false
+  isGlobalMaskShow = false
 
   get isAdminView () {
     const adminRegex = /^\/admin/
@@ -264,7 +267,18 @@ export default class LayoutLeftRightTop extends Vue {
       this.manualClose = true
     }
   }
-  handleSwitchAdmin () {
+  setGlobalMask (notifyContect) {
+    this.isGlobalMaskShow = true
+    this.notifyContect = this.$t(notifyContect)
+  }
+  hideGlobalMask () {
+    this.isGlobalMaskShow = false
+    this.notifyContect = ''
+  }
+  async handleSwitchAdmin () {
+    this.setGlobalMask(this.isAdminView ? 'leaveAdmin' : 'enterAdmin')
+    await delayMs(2000)
+
     if (this.isAdminView) {
       const nextLocation = this.cachedHistory ? this.cachedHistory : '/'
       this.isAnimation = true
@@ -280,6 +294,7 @@ export default class LayoutLeftRightTop extends Vue {
         this.isAnimation = false
       })
     }
+    this.hideGlobalMask()
   }
   loadSpeedInfo (loadingname) {
     if (!this.currentSelectedProject) {
@@ -836,14 +851,48 @@ export default class LayoutLeftRightTop extends Vue {
         }
       }
     }
-    .el-button.entry-admin {
-      padding: 0;
-      color: @text-title-color;
-      &.active {
-        color: @base-color;
-      }
+    .entry-admin {
+      border-radius: 2px;
+      font-size: 14px;
+      padding: 6px 12px;
+      box-shadow: inset 1px 1px 2px 0 @grey-1;
+      border-color: @text-disabled-color;
       &:hover {
-        color: @base-color-2;
+        background: @fff;
+        border-color: @base-color;
+      }
+    }
+    .entry-admin.active {
+      background-color: @line-border-color;
+      &:hover {
+        border-color: @base-color;
+        background-color: @line-border-color;
+      }
+    }
+    .global-mask {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      .background {
+        width: 100%;
+        height: 100%;
+        opacity: 0.7;
+        background-color: @000;
+      }
+      .notify-contect {
+        position: absolute;
+        top: 30%;
+        left: 50%;
+        transform: translateX(-50%);
+        height: 50px;
+        width: 300px;
+        line-height: 50px;
+        background: @base-color;
+        color: @fff;
+        text-align: center;
+        font-size: 16px;
       }
     }
   }

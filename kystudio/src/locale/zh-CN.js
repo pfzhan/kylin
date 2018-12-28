@@ -371,7 +371,7 @@ exports.default = {
     design: '建模',
     job: '任务',
     cluster: '集群',
-    admin: '管理员',
+    admin: '系统管理',
     user: '用户',
     group: '用户组',
     datasource: '数据源',
