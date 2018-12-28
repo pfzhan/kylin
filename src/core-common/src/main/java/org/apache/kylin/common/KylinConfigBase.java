@@ -243,7 +243,6 @@ abstract public class KylinConfigBase implements Serializable {
         return result;
     }
 
-
     // ============================================================================
     // ENV
     // ============================================================================
@@ -680,7 +679,7 @@ abstract public class KylinConfigBase implements Serializable {
     }
 
     public String[] getAdminDls() {
-        return getOptionalStringArray("kylin.job.notification-admin-emails", null);
+        return getOptionalStringArray("kylin.job.notification-admin-emails", new String[0]);
     }
 
     public int getJobRetry() {
@@ -1613,6 +1612,14 @@ abstract public class KylinConfigBase implements Serializable {
     public long getCuboidLayoutSurvivalTimeThreshold() {
         return TimeUtil.timeStringAs(getOptional("kylin.storage.garbage.cuboid-layout-survival-time-threshold", "7d"),
                 TimeUnit.MILLISECONDS);
+    }
+
+    public boolean getJobDataLoadEmptyNotificationEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.job.notification-on-empty-data-load", "true"));
+    }
+
+    public boolean getJobErrorNotificationEnabled() {
+        return Boolean.parseBoolean(getOptional("kylin.job.notification-on-job-error", "true"));
     }
 
 }

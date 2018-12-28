@@ -26,6 +26,7 @@ package io.kyligence.kap.event.handle;
 import java.io.IOException;
 import java.util.UUID;
 
+import io.kyligence.kap.cube.model.NSegmentConfigHelper;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -36,7 +37,6 @@ import org.apache.kylin.metadata.model.Segments;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
@@ -49,7 +49,6 @@ import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
-import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
@@ -166,24 +165,13 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
     private void autoMergeSegments(NDataflow df, String project, String modelName, String owner) {
         NDataModel model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getDataModelDesc(modelName);
-        NDataLoadingRangeManager dataLoadingRangeManager = NDataLoadingRangeManager
-                .getInstance(KylinConfig.getInstanceFromEnv(), project);
-
         Segments segments = df.getSegments();
         SegmentRange rangeToMerge = null;
         EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            rangeToMerge = segments.autoMergeSegments(model.isAutoMergeEnabled(), model.getName(),
-                    model.getAutoMergeTimeRanges(), model.getVolatileRange());
-        } else if (model.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager
-                    .getDataLoadingRange(model.getRootFactTableName());
-            if (dataLoadingRange == null) {
-                return;
-            }
-            rangeToMerge = segments.autoMergeSegments(dataLoadingRange.isAutoMergeEnabled(), model.getName(),
-                    dataLoadingRange.getAutoMergeTimeRanges(), dataLoadingRange.getVolatileRange());
-        }
+        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, model.getName());
+        Preconditions.checkState(segmentConfig != null);
+        rangeToMerge = segments.autoMergeSegments(segmentConfig.getAutoMergeEnabled(), model.getName(),
+                segmentConfig.getAutoMergeTimeRanges(), segmentConfig.getVolatileRange());
         if (rangeToMerge == null) {
             return;
         } else {

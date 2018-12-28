@@ -22,29 +22,28 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.model;
-
-import java.io.Serializable;
+package io.kyligence.kap.rest.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.RetentionRange;
+import io.kyligence.kap.metadata.model.VolatileRange;
+import lombok.Data;
 
-@Setter
-@Getter
-@AllArgsConstructor
-@NoArgsConstructor
-public class VolatileRange implements Serializable {
+import java.util.List;
 
-    @JsonProperty("volatile_range_number")
-    private long volatileRangeNumber = 0;
+@Data
+public class SegmentConfigRequest {
 
-    @JsonProperty("volatile_range_enabled")
-    private boolean volatileRangeEnabled = false;
-
-    @JsonProperty("volatile_range_type")
-    private AutoMergeTimeEnum volatileRangeType = AutoMergeTimeEnum.DAY;
+    @JsonProperty("project")
+    private String project;
+    @JsonProperty("auto_merge_enabled")
+    private Boolean autoMergeEnabled;
+    @JsonProperty("auto_merge_time_ranges")
+    private List<AutoMergeTimeEnum> autoMergeTimeRanges;
+    @JsonProperty("volatile_range")
+    private VolatileRange volatileRange;
+    @JsonProperty("retention_range")
+    private RetentionRange retentionRange;
 }

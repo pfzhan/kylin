@@ -64,6 +64,8 @@ import javax.annotation.Nullable;
 
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.rest.request.ModelConfigRequest;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -1888,6 +1890,26 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Model 'nmodel_basic2222' does not exist!");
         modelService.getModelInfo("*", "nmodel_basic2222", "default", 0, 0);
+    }
+
+    @Test
+    public void testUpdateAndGetModelConfig() {
+        val project = "default";
+        val model = "nmodel_basic";
+        val modelConfigRequest = new ModelConfigRequest();
+        modelConfigRequest.setProject(project);
+        modelConfigRequest.setAutoMergeEnabled(false);
+        modelConfigRequest.setAutoMergeTimeRanges(Lists.newArrayList(AutoMergeTimeEnum.WEEK));
+        modelService.updateModelConfig(project, model, modelConfigRequest);
+
+        val modelConfigResponses = modelService.getModelConfig(project);
+        modelConfigResponses.forEach(modelConfigResponse -> {
+            if (modelConfigResponse.getModel().equals(model)) {
+                Assert.assertEquals(false, modelConfigResponse.getAutoMergeEnabled());
+                Assert.assertEquals(1, modelConfigResponse.getAutoMergeTimeRanges().size());
+            }
+        });
+
     }
 
     private List<AbstractExecutable> mockJobs() {

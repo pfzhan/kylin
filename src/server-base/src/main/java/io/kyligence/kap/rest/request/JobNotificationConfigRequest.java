@@ -22,29 +22,24 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.model;
+package io.kyligence.kap.rest.request;
 
-import java.io.Serializable;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.Data;
 
-@Setter
-@Getter
-@AllArgsConstructor
-@NoArgsConstructor
-public class VolatileRange implements Serializable {
+@Data
+public class JobNotificationConfigRequest {
 
-    @JsonProperty("volatile_range_number")
-    private long volatileRangeNumber = 0;
+    @JsonProperty("project")
+    private String project;
+    @JsonProperty("job_error_notification_enabled")
+    private boolean jobErrorNotificationEnabled;
+    @JsonProperty("data_load_empty_notification_enabled")
+    private boolean dataLoadEmptyNotificationEnabled;
+    @JsonProperty("job_notification_emails")
+    private List<String> jobNotificationEmails;
 
-    @JsonProperty("volatile_range_enabled")
-    private boolean volatileRangeEnabled = false;
-
-    @JsonProperty("volatile_range_type")
-    private AutoMergeTimeEnum volatileRangeType = AutoMergeTimeEnum.DAY;
 }

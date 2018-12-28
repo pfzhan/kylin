@@ -46,13 +46,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
 import io.kyligence.kap.rest.request.FavoriteQueryThresholdRequest;
+import io.kyligence.kap.rest.request.PushDownConfigRequest;
+import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
+import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import io.kyligence.kap.rest.service.MetadataCleanupService;
 import io.kyligence.kap.rest.service.ProjectService;
+import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -218,5 +224,64 @@ public class NProjectControllerTest {
         Mockito.verify(nProjectController).cleanupProjectStorage("default");
     }
 
+    @Test
+    public void testUpdateJobNotificationConfig() throws Exception {
+        val request = new JobNotificationConfigRequest();
+        request.setProject("default");
+        Mockito.doNothing().when(projectService).updateJobNotificationConfig("default", request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/job_notification_config")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nProjectController).updateJobNotificationConfig(request);
+    }
+
+    @Test
+    public void testUpdatePushDownConfig() throws Exception {
+        val request = new PushDownConfigRequest();
+        request.setProject("default");
+        Mockito.doNothing().when(projectService).updatePushDownConfig("default", request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/push_down_config")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nProjectController).updatePushDownConfig(request);
+    }
+
+    @Test
+    public void testUpdateSegmentConfig() throws Exception {
+        val request = new SegmentConfigRequest();
+        request.setProject("default");
+        Mockito.doNothing().when(projectService).updateSegmentConfig("default", request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/segment_config")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nProjectController).updateSegmentConfig(request);
+    }
+
+    @Test
+    public void testUpdateProjectGeneralInfo() throws Exception {
+        val request = new ProjectGeneralInfoRequest();
+        request.setProject("default");
+        Mockito.doNothing().when(projectService).updateProjectGeneralInfo("default", request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/project_general_info")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+        Mockito.verify(nProjectController).updateProjectGeneralInfo(request);
+    }
+
+    @Test
+    public void testGetProjectConfig() throws Exception {
+        val response = new ProjectConfigResponse();
+        Mockito.doReturn(response).when(projectService).getProjectConfig("default");
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/projects/project_config")
+                .contentType(MediaType.APPLICATION_JSON).param("project", "default")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nProjectController).getProjectConfig("default");
+    }
 
 }

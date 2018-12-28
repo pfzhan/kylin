@@ -28,8 +28,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import io.kyligence.kap.rest.transaction.Transaction;
+import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.directory.api.util.Strings;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -40,27 +44,31 @@ import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.rest.util.AclEvaluate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.storage.ProjectStorageInfoCollector;
 import io.kyligence.kap.cube.storage.StorageInfoEnum;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
 import io.kyligence.kap.rest.request.ProjectRequest;
+import io.kyligence.kap.rest.request.PushDownConfigRequest;
+import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.response.FavoriteQueryThresholdResponse;
+import io.kyligence.kap.rest.response.ProjectConfigResponse;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
+import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
-
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
+import lombok.var;
 
 @Component("projectService")
 public class ProjectService extends BasicService {
@@ -179,9 +187,9 @@ public class ProjectService extends BasicService {
     @Transaction(project = 0)
     public void updateMantainModelType(String project, String maintainModelType) {
         val projectManager = getProjectManager();
-        val projectUpdate = projectManager.copyForWrite(projectManager.getProject(project));
-        projectUpdate.setMaintainModelType(MaintainModelType.valueOf(maintainModelType));
-        projectManager.updateProject(projectUpdate);
+        projectManager.updateProject(project, copyForWrite -> {
+            copyForWrite.setMaintainModelType(MaintainModelType.valueOf(maintainModelType));
+        });
     }
 
     public StorageVolumeInfoResponse getStorageVolumeInfoResponse(String project) {
@@ -220,7 +228,7 @@ public class ProjectService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void updateStorageQuotaConfig(String project, long storageQuotaSize) throws IOException {
+    public void updateStorageQuotaConfig(String project, long storageQuotaSize) {
         Map<String, String> overrideKylinProps = Maps.newHashMap();
         long storageQuotaSizeGB = storageQuotaSize / (1024 * 1024 * 1024);
         overrideKylinProps.put("kylin.storage.quota-in-giga-bytes", String.valueOf(storageQuotaSizeGB));
@@ -233,8 +241,92 @@ public class ProjectService extends BasicService {
         if (projectInstance == null) {
             throw new BadRequestException(String.format("Project '%s' does not exist!", project));
         }
-        val updateProject = projectManager.copyForWrite(projectInstance);
-        updateProject.getOverrideKylinProps().putAll(overrideKylinProps);
-        projectManager.updateProject(updateProject);
+        projectManager.updateProject(project, copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().putAll(overrideKylinProps);
+        });
     }
+
+    @Transaction(project = 0)
+    public void updateJobNotificationConfig(String project, JobNotificationConfigRequest jobNotificationConfigRequest) {
+        Map<String, String> overrideKylinProps = Maps.newHashMap();
+        overrideKylinProps.put("kylin.job.notification-on-empty-data-load",
+                String.valueOf(jobNotificationConfigRequest.isDataLoadEmptyNotificationEnabled()));
+        overrideKylinProps.put("kylin.job.notification-on-job-error",
+                String.valueOf(jobNotificationConfigRequest.isJobErrorNotificationEnabled()));
+        overrideKylinProps.put("kylin.job.notification-admin-emails",
+                convertToString(jobNotificationConfigRequest.getJobNotificationEmails()));
+        updateProjectOverrideKylinProps(project, overrideKylinProps);
+    }
+
+    private String convertToString(List<String> stringList) {
+        var strValue = "";
+        if (CollectionUtils.isEmpty(stringList)) {
+            return strValue;
+        }
+        strValue = String.join(",", Sets.newHashSet(stringList));
+        return strValue;
+    }
+
+    public ProjectConfigResponse getProjectConfig(String project) {
+        val response = new ProjectConfigResponse();
+        val projectInstance = getProjectManager().getProject(project);
+        val config = projectInstance.getConfig();
+
+        response.setProject(project);
+        response.setDescription(projectInstance.getDescription());
+        response.setMaintainModelType(projectInstance.getMaintainModelType());
+
+        response.setStorageQuotaSize(config.getStorageQuotaSize());
+
+        response.setPushDownEnabled(config.isPushDownEnabled());
+        response.setPushDownRangeLimited(projectInstance.isPushDownRangeLimited());
+
+        response.setAutoMergeEnabled(projectInstance.getSegmentConfig().getAutoMergeEnabled());
+        response.setAutoMergeTimeRanges(projectInstance.getSegmentConfig().getAutoMergeTimeRanges());
+        response.setVolatileRange(projectInstance.getSegmentConfig().getVolatileRange());
+        response.setRetentionRange(projectInstance.getSegmentConfig().getRetentionRange());
+
+        response.setFavoriteQueryThreshold(config.getFavoriteQueryAccelerateThreshold());
+        response.setFavoriteQueryBatchEnabled(config.getFavoriteQueryAccelerateThresholdBatchEnabled());
+        response.setFavoriteQueryAutoApply(config.getFavoriteQueryAccelerateThresholdAutoApply());
+
+        response.setDataLoadEmptyNotificationEnabled(config.getJobDataLoadEmptyNotificationEnabled());
+        response.setJobErrorNotificationEnabled(config.getJobErrorNotificationEnabled());
+        response.setJobNotificationEmails(Lists.newArrayList(config.getAdminDls()));
+        return response;
+    }
+
+    @Transaction(project = 0)
+    public void updatePushDownConfig(String project, PushDownConfigRequest pushDownConfigRequest) {
+        getProjectManager().updateProject(project, copyForWrite -> {
+            val config = getConfig();
+            if (pushDownConfigRequest.isPushDownEnabled()) {
+                val pushDownRunner = config.getPushDownRunnerClassName();
+                Preconditions.checkState(StringUtils.isNotBlank(pushDownRunner),
+                        "There is no default PushDownRunner, please check kylin.query.pushdown.runner-class-name in kylin.properties.");
+                copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name", pushDownRunner);
+            } else {
+                copyForWrite.getOverrideKylinProps().put("kylin.query.pushdown.runner-class-name", "");
+            }
+            copyForWrite.setPushDownRangeLimited(pushDownConfigRequest.isPushDownRangeLimited());
+        });
+    }
+
+    @Transaction(project = 0)
+    public void updateSegmentConfig(String project, SegmentConfigRequest segmentConfigRequest) {
+        getProjectManager().updateProject(project, copyForWrite -> {
+            copyForWrite.getSegmentConfig().setAutoMergeEnabled(segmentConfigRequest.getAutoMergeEnabled());
+            copyForWrite.getSegmentConfig().setAutoMergeTimeRanges(segmentConfigRequest.getAutoMergeTimeRanges());
+            copyForWrite.getSegmentConfig().setVolatileRange(segmentConfigRequest.getVolatileRange());
+            copyForWrite.getSegmentConfig().setRetentionRange(segmentConfigRequest.getRetentionRange());
+        });
+    }
+
+    @Transaction(project = 0)
+    public void updateProjectGeneralInfo(String project, ProjectGeneralInfoRequest projectGeneralInfoRequest) {
+        getProjectManager().updateProject(project, copyForWrite -> {
+            copyForWrite.setDescription(projectGeneralInfoRequest.getDescription());
+        });
+    }
+
 }

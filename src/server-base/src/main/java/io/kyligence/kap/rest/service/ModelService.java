@@ -36,6 +36,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.rest.request.ModelConfigRequest;
+import io.kyligence.kap.rest.response.ModelConfigResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -126,11 +128,8 @@ public class ModelService extends BasicService {
 
     private static final String MODEL = "Model '";
 
-    public static final char[] VALID_MODELNAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
+    public static final char[] VALID_MODEL_NAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
             .toCharArray();
-
-    @Autowired
-    private QueryHistoryService queryHistoryService;
 
     @Setter
     @Autowired
@@ -457,9 +456,10 @@ public class ModelService extends BasicService {
                     .getDataLoadingRange(nDataModel.getRootFactTable().getTableIdentity());
             NDataModel modelUpdate = dataModelManager.copyForWrite(nDataModel);
             if (dataLoadingRange != null) {
-                modelUpdate.setAutoMergeTimeRanges(dataLoadingRange.getAutoMergeTimeRanges());
-                modelUpdate.setAutoMergeEnabled(dataLoadingRange.isAutoMergeEnabled());
-                modelUpdate.setVolatileRange(dataLoadingRange.getVolatileRange());
+                val segmentConfig = dataLoadingRange.getSegmentConfig();
+                if (segmentConfig != null) {
+                    modelUpdate.setSegmentConfig(segmentConfig);
+                }
             }
             modelUpdate.setManagementType(ManagementType.MODEL_BASED);
             dataModelManager.updateDataModelDesc(modelUpdate);
@@ -679,7 +679,7 @@ public class ModelService extends BasicService {
             logger.info("Model name should not be empty.");
             throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
         }
-        if (!StringUtils.containsOnly(modelName, VALID_MODELNAME)) {
+        if (!StringUtils.containsOnly(modelName, VALID_MODEL_NAME)) {
             logger.info("Invalid Model name {}, only letters, numbers and underline supported.", modelDesc.getName());
             throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), modelName));
         }
@@ -1028,5 +1028,48 @@ public class ModelService extends BasicService {
 
     private boolean isSelectAll(String field) {
         return "*".equals(field);
+    }
+
+    public List<ModelConfigResponse> getModelConfig(String project) {
+        val responseList = Lists.<ModelConfigResponse>newArrayList();
+        getDataModelManager(project).getDataModels().forEach(dataModel -> {
+            val response = new ModelConfigResponse();
+            response.setModel(dataModel.getName());
+            response.setAlias(dataModel.getAlias());
+            val segmentConfig = dataModel.getSegmentConfig();
+            response.setAutoMergeEnabled(segmentConfig.getAutoMergeEnabled());
+            response.setAutoMergeTimeRanges(segmentConfig.getAutoMergeTimeRanges());
+            response.setVolatileRange(segmentConfig.getVolatileRange());
+            response.setRetentionRange(segmentConfig.getRetentionRange());
+            response.setConfigLastModified(dataModel.getConfigLastModified());
+            response.setConfigLastModifier(dataModel.getConfigLastModifier());
+            val cubePlan = getCubePlan(dataModel.getName(), project);
+            if (cubePlan != null) {
+                val cubePlanLevelProps = cubePlan.getOverrideProps();
+                response.getOverrideProps().putAll(cubePlanLevelProps);
+            }
+            responseList.add(response);
+        });
+        return responseList;
+    }
+
+    @Transaction(project = 0)
+    public void updateModelConfig(String project, String modelName, ModelConfigRequest request) {
+        val dataModelManager = getDataModelManager(project);
+        dataModelManager.updateDataModel(modelName, copyForWrite -> {
+            val segmentConfig = copyForWrite.getSegmentConfig();
+            segmentConfig.setAutoMergeEnabled(request.getAutoMergeEnabled());
+            segmentConfig.setAutoMergeTimeRanges(request.getAutoMergeTimeRanges());
+            segmentConfig.setVolatileRange(request.getVolatileRange());
+            segmentConfig.setRetentionRange(request.getRetentionRange());
+
+            copyForWrite.setConfigLastModified(System.currentTimeMillis());
+            copyForWrite.setConfigLastModifier(getUsername());
+        });
+        val cubePlan = getCubePlan(modelName, project);
+        val cubePlanManager = getCubePlanManager(project);
+        cubePlanManager.updateCubePlan(cubePlan.getName(), copyForWrite -> {
+            copyForWrite.setOverrideProps(request.getOverrideProps());
+        });
     }
 }

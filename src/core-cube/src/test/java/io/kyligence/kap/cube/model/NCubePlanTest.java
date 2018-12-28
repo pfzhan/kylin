@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -254,4 +255,13 @@ public class NCubePlanTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(31, tblCols.size());
     }
 
+    @Test
+    public void testGetConfig() {
+        val cubeDefaultMgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
+        val cubePlan = cubeDefaultMgr.getCubePlan("ncube_basic");
+        val config = (KylinConfigExt) cubePlan.getConfig();
+        Assert.assertEquals(getTestConfig(), config.base());
+        Assert.assertEquals(0, cubePlan.getOverrideProps().size());
+        Assert.assertEquals(1, config.getExtendedOverrides().size());
+    }
 }

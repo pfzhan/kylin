@@ -22,29 +22,42 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.metadata.model;
+package io.kyligence.kap.rest.response;
 
-import java.io.Serializable;
+import java.util.LinkedHashMap;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.Maps;
 
-import lombok.AllArgsConstructor;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.RetentionRange;
+import io.kyligence.kap.metadata.model.VolatileRange;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Setter
 @Getter
-@AllArgsConstructor
-@NoArgsConstructor
-public class VolatileRange implements Serializable {
+public class ModelConfigResponse {
 
-    @JsonProperty("volatile_range_number")
-    private long volatileRangeNumber = 0;
+    @JsonProperty("model")
+    private String model;
+    @JsonProperty("alias")
+    private String alias;
 
-    @JsonProperty("volatile_range_enabled")
-    private boolean volatileRangeEnabled = false;
+    @JsonProperty("auto_merge_enabled")
+    private Boolean autoMergeEnabled;
+    @JsonProperty("auto_merge_time_ranges")
+    private List<AutoMergeTimeEnum> autoMergeTimeRanges;
+    @JsonProperty("volatile_range")
+    private VolatileRange volatileRange;
+    @JsonProperty("retention_range")
+    private RetentionRange retentionRange;
+    @JsonProperty("config_last_modifier")
+    private String configLastModifier;
+    @JsonProperty("config_last_modified")
+    private long configLastModified;
 
-    @JsonProperty("volatile_range_type")
-    private AutoMergeTimeEnum volatileRangeType = AutoMergeTimeEnum.DAY;
+    @JsonProperty("override_props")
+    LinkedHashMap<String, String> overrideProps = Maps.newLinkedHashMap();
 }

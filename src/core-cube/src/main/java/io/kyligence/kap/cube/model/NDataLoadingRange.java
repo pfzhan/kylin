@@ -46,20 +46,19 @@ import static org.apache.kylin.common.persistence.ResourceStore.DATA_LOADING_RAN
 
 import java.util.List;
 
-import lombok.AccessLevel;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.metadata.model.SegmentConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.VolatileRange;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -94,17 +93,8 @@ public class NDataLoadingRange extends RootPersistentEntity {
     @JsonProperty("pushdown_range_limited")
     private boolean pushdownRangeLimited;
 
-    @JsonProperty("auto_merge_enabled")
-    private boolean autoMergeEnabled = true;
-
-    @JsonProperty("auto_merge_time_ranges")
-    private List<AutoMergeTimeEnum> autoMergeTimeRanges = Lists.newArrayList(AutoMergeTimeEnum.WEEK,
-            AutoMergeTimeEnum.MONTH);
-
-    @JsonProperty("volatile_range")
-    private VolatileRange volatileRange = new VolatileRange();
-
-
+    @JsonProperty("segment_config")
+    private SegmentConfig segmentConfig = new SegmentConfig();
 
     @Setter(AccessLevel.NONE)
     private String project;

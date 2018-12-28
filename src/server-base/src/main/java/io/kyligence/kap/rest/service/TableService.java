@@ -71,6 +71,7 @@ import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NSegmentConfigHelper;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
@@ -89,6 +90,7 @@ import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
 import lombok.val;
+import lombok.var;
 
 @Component("tableService")
 public class TableService extends BasicService {
@@ -574,7 +576,7 @@ public class TableService extends BasicService {
         nTableMetadataManager.updateTableDesc(tableDesc);
     }
 
-    public List<TablesAndColumnsResponse> getTableAndColomns(String project) {
+    public List<TablesAndColumnsResponse> getTableAndColumns(String project) {
         List<TableDesc> tables = getTableManager(project).listAllTables();
         List<TablesAndColumnsResponse> result = new ArrayList<>();
         for (TableDesc table : tables) {
@@ -634,23 +636,21 @@ public class TableService extends BasicService {
         if (model == null) {
             throw new BadRequestException("Model " + modelName + " does not exist in project " + project);
         }
-        if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            mergeConfig.setAutoMergeEnabled(model.isAutoMergeEnabled());
-            mergeConfig.setAutoMergeTimeRanges(model.getAutoMergeTimeRanges());
-            mergeConfig.setVolatileRange(model.getVolatileRange());
-        } else {
-            mergeConfig = getAutoMergeConfigByTable(project, model.getRootFactTable().getTableIdentity());
-        }
-
+        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelName);
+        Preconditions.checkState(segmentConfig != null);
+        mergeConfig.setAutoMergeEnabled(segmentConfig.getAutoMergeEnabled());
+        mergeConfig.setAutoMergeTimeRanges(segmentConfig.getAutoMergeTimeRanges());
+        mergeConfig.setVolatileRange(segmentConfig.getVolatileRange());
         return mergeConfig;
     }
 
     public AutoMergeConfigResponse getAutoMergeConfigByTable(String project, String tableName) {
         AutoMergeConfigResponse mergeConfig = new AutoMergeConfigResponse();
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, tableName);
-        mergeConfig.setAutoMergeEnabled(dataLoadingRange.isAutoMergeEnabled());
-        mergeConfig.setAutoMergeTimeRanges(dataLoadingRange.getAutoMergeTimeRanges());
-        mergeConfig.setVolatileRange(dataLoadingRange.getVolatileRange());
+        val segmentConfig = NSegmentConfigHelper.getTableSegmentConfig(project, tableName);
+        Preconditions.checkState(segmentConfig != null);
+        mergeConfig.setAutoMergeEnabled(segmentConfig.getAutoMergeEnabled());
+        mergeConfig.setAutoMergeTimeRanges(segmentConfig.getAutoMergeTimeRanges());
+        mergeConfig.setVolatileRange(segmentConfig.getVolatileRange());
         return mergeConfig;
     }
 
@@ -673,9 +673,10 @@ public class TableService extends BasicService {
         }
         if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
             NDataModel modelUpdate = dataModelManager.copyForWrite(model);
-            modelUpdate.setVolatileRange(volatileRange);
-            modelUpdate.setAutoMergeTimeRanges(autoMergeRanges);
-            modelUpdate.setAutoMergeEnabled(autoMergeRequest.isAutoMergeEnabled());
+            var segmentConfig = modelUpdate.getSegmentConfig();
+            segmentConfig.setVolatileRange(volatileRange);
+            segmentConfig.setAutoMergeTimeRanges(autoMergeRanges);
+            segmentConfig.setAutoMergeEnabled(autoMergeRequest.isAutoMergeEnabled());
             dataModelManager.updateDataModelDesc(modelUpdate);
 
         } else {
@@ -705,9 +706,10 @@ public class TableService extends BasicService {
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, tableName);
         NDataLoadingRange dataLoadingRangeUpdate = dataLoadingRangeManager.copyForWrite(dataLoadingRange);
-        dataLoadingRangeUpdate.setAutoMergeEnabled(autoMergeRequest.isAutoMergeEnabled());
-        dataLoadingRangeUpdate.setAutoMergeTimeRanges(autoMergeRanges);
-        dataLoadingRangeUpdate.setVolatileRange(volatileRange);
+        var segmentConfig = dataLoadingRangeUpdate.getSegmentConfig();
+        segmentConfig.setAutoMergeEnabled(autoMergeRequest.isAutoMergeEnabled());
+        segmentConfig.setAutoMergeTimeRanges(autoMergeRanges);
+        segmentConfig.setVolatileRange(volatileRange);
         dataLoadingRangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
     }
 

@@ -50,6 +50,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import lombok.val;
 
 public class NProjectManager {
     private static final Logger logger = LoggerFactory.getLogger(NProjectManager.class);
@@ -150,13 +151,13 @@ public class NProjectManager {
     public ProjectInstance updateProject(ProjectInstance project, String newName, String newDesc,
             LinkedHashMap<String, String> overrideProps) {
         Preconditions.checkArgument(project.getName().equals(newName));
-        project.setName(newName);
-        project.setDescription(newDesc);
-        project.setOverrideKylinProps(overrideProps);
-        if (project.getUuid() == null)
-            project.updateRandomUuid();
-
-        return save(project);
+        return updateProject(newName, copyForWrite -> {
+            copyForWrite.setName(newName);
+            copyForWrite.setDescription(newDesc);
+            copyForWrite.setOverrideKylinProps(overrideProps);
+            if (copyForWrite.getUuid() == null)
+                copyForWrite.updateRandomUuid();
+        });
     }
 
     public ProjectInstance updateProject(ProjectInstance project) {
@@ -233,4 +234,14 @@ public class NProjectManager {
         return ResourceStore.getKylinMetaStore(this.config);
     }
 
+    public interface NProjectUpdater {
+        void modify(ProjectInstance copyForWrite);
+    }
+
+    public ProjectInstance updateProject(String project, NProjectUpdater updater) {
+        val cached = getProject(project);
+        val copy = copyForWrite(cached);
+        updater.modify(copy);
+        return updateProject(copy);
+    }
 }

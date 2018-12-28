@@ -204,15 +204,15 @@ public class FavoriteQueryService extends BasicService {
             if (modelContext.getTargetCubePlan() != null)
                 targetCuboidLayouts = modelContext.getTargetCubePlan().getAllCuboidLayouts();
 
-            if (!doTwoCubiodLayoutsEqual(origCuboidLayouts, targetCuboidLayouts))
+            if (!doTwoCuboidLayoutsEqual(origCuboidLayouts, targetCuboidLayouts))
                 optimizedModelNum++;
         }
 
         return optimizedModelNum;
     }
 
-    private boolean doTwoCubiodLayoutsEqual(List<NCuboidLayout> origCuboidLayouts,
-            List<NCuboidLayout> targetCuboidLayouts) {
+    private boolean doTwoCuboidLayoutsEqual(List<NCuboidLayout> origCuboidLayouts,
+                                            List<NCuboidLayout> targetCuboidLayouts) {
         if (origCuboidLayouts.size() != targetCuboidLayouts.size())
             return false;
 

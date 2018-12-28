@@ -28,6 +28,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
+import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
+import io.kyligence.kap.rest.request.PushDownConfigRequest;
+import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.request.StorageQuotaRequest;
 import io.kyligence.kap.rest.service.MetadataCleanupService;
 import org.apache.commons.lang.StringUtils;
@@ -199,6 +203,61 @@ public class NProjectController extends NBasicController {
         long storageQuotaSize = storageQuotaRequest.getStorageQuotaSize();
         projectService.updateStorageQuotaConfig(project, storageQuotaSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, true, "");
+    }
+
+
+    @RequestMapping(value = "/job_notification_config", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    public EnvelopeResponse updateJobNotificationConfig(
+            @RequestBody JobNotificationConfigRequest jobNotificationConfigRequest) {
+        checkProjectName(jobNotificationConfigRequest.getProject());
+        projectService.updateJobNotificationConfig(jobNotificationConfigRequest.getProject(), jobNotificationConfigRequest);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/push_down_config", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    public EnvelopeResponse updatePushDownConfig(
+            @RequestBody PushDownConfigRequest pushDownConfigRequest) {
+        checkProjectName(pushDownConfigRequest.getProject());
+        projectService.updatePushDownConfig(pushDownConfigRequest.getProject(), pushDownConfigRequest);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/segment_config", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    public EnvelopeResponse updateSegmentConfig(
+            @RequestBody SegmentConfigRequest segmentConfigRequest) {
+        checkProjectName(segmentConfigRequest.getProject());
+        projectService.updateSegmentConfig(segmentConfigRequest.getProject(), segmentConfigRequest);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/project_general_info", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    @PreAuthorize(Constant.ACCESS_HAS_ROLE_ADMIN + " or hasPermission(#project, 'ADMINISTRATION')")
+    public EnvelopeResponse updateProjectGeneralInfo(
+            @RequestBody ProjectGeneralInfoRequest projectGeneralInfoRequest) {
+        checkProjectName(projectGeneralInfoRequest.getProject());
+        projectService.updateProjectGeneralInfo(projectGeneralInfoRequest.getProject(), projectGeneralInfoRequest);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    @RequestMapping(value = "/project_config", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getProjectConfig(
+            @RequestParam(value = "project", required = true) String project) {
+        checkProjectName(project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
+                projectService.getProjectConfig(project), "");
     }
 
 }

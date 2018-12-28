@@ -53,6 +53,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.cube.model.NBatchConstants;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
 /**
@@ -92,7 +94,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
-        final KylinConfig config = context.getConfig();
+        final KylinConfig config = wrapConfig(context);
 
         String sparkHome = KylinConfig.getSparkHome();
         if (StringUtils.isEmpty(sparkHome) && !config.isUTEnv())
@@ -129,6 +131,21 @@ public class NSparkExecutable extends AbstractExecutable {
         } else {
             return runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar, appArgs);
         }
+    }
+
+    protected KylinConfig wrapConfig(ExecutableContext context) {
+        KylinConfig config = context.getConfig();
+        val project = getProject();
+        Preconditions.checkState(StringUtils.isNotBlank(project), "job " + getId() + " project info is empty");
+        val dataflow = getParam(NBatchConstants.P_DATAFLOW_NAME);
+        if (StringUtils.isNotBlank(dataflow)) {
+            val dataflowManager = NDataflowManager.getInstance(config, project);
+            config = dataflowManager.getDataflow(dataflow).getConfig();
+        } else {
+            val projectInstance = NProjectManager.getInstance(config).getProject(project);
+            config = projectInstance.getConfig();
+        }
+        return config;
     }
 
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,

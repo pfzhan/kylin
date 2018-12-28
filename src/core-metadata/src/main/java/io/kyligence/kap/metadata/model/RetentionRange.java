@@ -21,30 +21,28 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package io.kyligence.kap.metadata.model;
 
-import java.io.Serializable;
-
 import com.fasterxml.jackson.annotation.JsonProperty;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Setter
+import java.io.Serializable;
+
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class VolatileRange implements Serializable {
+public class RetentionRange implements Serializable {
 
-    @JsonProperty("volatile_range_number")
-    private long volatileRangeNumber = 0;
+    @JsonProperty("retention_range_number")
+    private long retentionRangeNumber = 1;
 
-    @JsonProperty("volatile_range_enabled")
-    private boolean volatileRangeEnabled = false;
+    @JsonProperty("retention_range_enabled")
+    private boolean retentionRangeEnabled = false;
 
-    @JsonProperty("volatile_range_type")
-    private AutoMergeTimeEnum volatileRangeType = AutoMergeTimeEnum.DAY;
+    @JsonProperty("retention_range_type")
+    private AutoMergeTimeEnum retentionRangeType = AutoMergeTimeEnum.MONTH;
 }

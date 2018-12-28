@@ -174,16 +174,8 @@ public class NCubePlan extends RootPersistentEntity implements Serializable, IEn
         checkArgument(StringUtils.isNotBlank(modelName), "NCubePlan (%s) has blank model name", name);
 
         this.model = NDataModelManager.getInstance(config, project).getDataModelDesc(modelName);
-        ProjectInstance ownerPrj = NProjectManager.getInstance(config).getProject(project);
 
-        // cube inherit the project override props
-        Map<String, String> prjOverrideProps = ownerPrj.getOverrideKylinProps();
-        for (Map.Entry<String, String> entry : prjOverrideProps.entrySet()) {
-            if (!overrideProps.containsKey(entry.getKey())) {
-                overrideProps.put(entry.getKey(), entry.getValue());
-            }
-        }
-        this.config = KylinConfigExt.createInstance(config, overrideProps);
+        initConfig(config, overrideProps);
 
         checkNotNull(getModel(), "NDataModel(%s) not found", modelName);
 
@@ -193,6 +185,10 @@ public class NCubePlan extends RootPersistentEntity implements Serializable, IEn
         initAllColumns();
         initDimEncodings();
         initDictionaryDesc();
+    }
+
+    private void initConfig(KylinConfig config, LinkedHashMap<String, String> overrideProps) {
+        this.config = KylinConfigExt.createInstance(config, overrideProps);
     }
 
     private void initRuleBasedCuboids() {
@@ -303,7 +299,20 @@ public class NCubePlan extends RootPersistentEntity implements Serializable, IEn
     }
 
     public KylinConfig getConfig() {
-        return config;
+        if (config == null) {
+            return null;
+        }
+
+        ProjectInstance ownerPrj = NProjectManager.getInstance(config).getProject(project);
+        LinkedHashMap<String, String> overrideProps = Maps.newLinkedHashMap(this.overrideProps);
+        // cube inherit the project override props
+        Map<String, String> prjOverrideProps = ownerPrj.getOverrideKylinProps();
+        for (Map.Entry<String, String> entry : prjOverrideProps.entrySet()) {
+            if (!overrideProps.containsKey(entry.getKey())) {
+                overrideProps.put(entry.getKey(), entry.getValue());
+            }
+        }
+        return KylinConfigExt.createInstance(config, overrideProps);
     }
 
     public void addError(String message) {

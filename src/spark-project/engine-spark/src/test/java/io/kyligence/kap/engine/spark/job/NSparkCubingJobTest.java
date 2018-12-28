@@ -33,14 +33,14 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
+import org.apache.kylin.job.impl.threadpool.DefaultContext;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.job.lock.MockJobLock;
 import org.apache.kylin.measure.percentile.PercentileCounter;
@@ -58,11 +58,14 @@ import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
+import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
@@ -71,14 +74,17 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.builder.NDictionaryBuilder;
 import io.kyligence.kap.engine.spark.builder.NSnapshotBuilder;
+import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 
 @SuppressWarnings("serial")
@@ -691,5 +697,32 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         String targetSubject = job.getTargetModel();
         Assert.assertEquals(dataModel.getName(), targetSubject);
+    }
+
+    @Test
+    public void testSparkExecutable_WrapConfig() {
+        val project = "default";
+        ExecutableContext context = new DefaultContext(Maps.newConcurrentMap(), getTestConfig());
+        NSparkExecutable executable = new NSparkExecutable();
+        executable.setProject(project);
+
+        NProjectManager.getInstance(getTestConfig()).updateProject(project, copyForWrite -> {
+            copyForWrite.getOverrideKylinProps().put("kylin.engine.spark-conf.spark.locality.wait", "10");
+        });
+        // get SparkConfigOverride from project overrideProps
+        KylinConfig config = executable.wrapConfig(context);
+        Assert.assertEquals(getTestConfig(), config.base());
+        Assert.assertNull(getTestConfig().getSparkConfigOverride().get("spark.locality.wait"));
+        Assert.assertEquals("10", config.getSparkConfigOverride().get("spark.locality.wait"));
+
+        // get SparkConfigOverride from cubePlan overrideProps
+        executable.setParam(NBatchConstants.P_DATAFLOW_NAME, "ncube_basic");
+        NCubePlanManager.getInstance(getTestConfig(), project).updateCubePlan("ncube_basic", copyForWrite -> {
+            copyForWrite.getOverrideProps().put("kylin.engine.spark-conf.spark.locality.wait", "20");
+        });
+        config = executable.wrapConfig(context);
+        Assert.assertEquals(getTestConfig(), config.base());
+        Assert.assertNull(getTestConfig().getSparkConfigOverride().get("spark.locality.wait"));
+        Assert.assertEquals("20", config.getSparkConfigOverride().get("spark.locality.wait"));
     }
 }

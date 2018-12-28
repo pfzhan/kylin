@@ -57,6 +57,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.NDataModel;
+import lombok.val;
 
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
@@ -123,7 +124,8 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     }
 
     public KylinConfigExt getConfig() {
-        return config;
+        val cubePlan = NCubePlanManager.getInstance(config, project).getCubePlan(cubePlanName);
+        return (KylinConfigExt) cubePlan.getConfig();
     }
 
     public NDataflow copy() {

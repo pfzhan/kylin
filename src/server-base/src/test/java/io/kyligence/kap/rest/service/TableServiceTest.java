@@ -316,7 +316,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetTableAndColumns() {
-        List<TablesAndColumnsResponse> result = tableService.getTableAndColomns("default");
+        List<TablesAndColumnsResponse> result = tableService.getTableAndColumns("default");
         Assert.assertEquals(11, result.size());
     }
 

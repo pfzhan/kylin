@@ -61,7 +61,7 @@ public class NDataSegDetailsManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(details);
         Assert.assertEquals(segment.getId(), details.getUuid());
         Assert.assertEquals(8, details.getCuboids().size());
-        Assert.assertSame(segment.getConfig(), details.getConfig());
+        Assert.assertSame(segment.getConfig().base(), details.getConfig().base());
 
         details = mgr.upsertForSegment(details);
         details = mgr.getForSegment(segment);

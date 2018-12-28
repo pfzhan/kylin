@@ -204,7 +204,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         volatileRange.setVolatileRangeNumber(3);
         volatileRange.setVolatileRangeEnabled(true);
         volatileRange.setVolatileRangeType(AutoMergeTimeEnum.DAY);
-        modelUpdate.setVolatileRange(volatileRange);
+        modelUpdate.getSegmentConfig().setVolatileRange(volatileRange);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
 
@@ -251,7 +251,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         volatileRange.setVolatileRangeNumber(1);
         volatileRange.setVolatileRangeEnabled(true);
         volatileRange.setVolatileRangeType(AutoMergeTimeEnum.DAY);
-        modelUpdate.setVolatileRange(volatileRange);
+        modelUpdate.getSegmentConfig().setVolatileRange(volatileRange);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
 
@@ -467,7 +467,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         NDataModel modelUpdate = dataModelManager.copyForWrite(model);
         List<AutoMergeTimeEnum> ranges = new ArrayList<>();
         ranges.add(AutoMergeTimeEnum.HOUR);
-        modelUpdate.setAutoMergeTimeRanges(ranges);
+        modelUpdate.getSegmentConfig().setAutoMergeTimeRanges(ranges);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
 
@@ -501,7 +501,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         NDataModel modelUpdate = dataModelManager.copyForWrite(model);
         List<AutoMergeTimeEnum> ranges = new ArrayList<>();
         ranges.add(AutoMergeTimeEnum.MONTH);
-        modelUpdate.setAutoMergeTimeRanges(ranges);
+        modelUpdate.getSegmentConfig().setAutoMergeTimeRanges(ranges);
         dataModelManager.updateDataModelDesc(modelUpdate);
 
         //4week segment ,and four one day segment ,2010/12/01 - 2011/1/02
@@ -565,7 +565,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         NDataModel modelUpdate = dataModelManager.copyForWrite(model);
         List<AutoMergeTimeEnum> timeRanges = new ArrayList<>();
         timeRanges.add(AutoMergeTimeEnum.YEAR);
-        modelUpdate.setAutoMergeTimeRanges(timeRanges);
+        modelUpdate.getSegmentConfig().setAutoMergeTimeRanges(timeRanges);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
@@ -609,7 +609,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         NDataModel modelUpdate = dataModelManager.copyForWrite(model);
         List<AutoMergeTimeEnum> timeRanges = new ArrayList<>();
         timeRanges.add(AutoMergeTimeEnum.DAY);
-        modelUpdate.setAutoMergeTimeRanges(timeRanges);
+        modelUpdate.getSegmentConfig().setAutoMergeTimeRanges(timeRanges);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
@@ -667,7 +667,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         NDataModel modelUpdate = dataModelManager.copyForWrite(model);
         List<AutoMergeTimeEnum> timeRanges = new ArrayList<>();
         timeRanges.add(AutoMergeTimeEnum.WEEK);
-        modelUpdate.setAutoMergeTimeRanges(timeRanges);
+        modelUpdate.getSegmentConfig().setAutoMergeTimeRanges(timeRanges);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
         NDataflowUpdate update = new NDataflowUpdate(df.getName());
@@ -739,7 +739,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         autoMergeTimeEnumList.add(AutoMergeTimeEnum.MONTH);
         autoMergeTimeEnumList.add(AutoMergeTimeEnum.WEEK);
         autoMergeTimeEnumList.add(AutoMergeTimeEnum.DAY);
-        modelUpdate.setAutoMergeTimeRanges(autoMergeTimeEnumList);
+        modelUpdate.getSegmentConfig().setAutoMergeTimeRanges(autoMergeTimeEnumList);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
         int eventsMergeYear = 0;

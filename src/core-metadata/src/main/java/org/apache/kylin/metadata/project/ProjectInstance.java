@@ -48,6 +48,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.RetentionRange;
+import io.kyligence.kap.metadata.model.VolatileRange;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfigExt;
@@ -56,6 +62,7 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.model.ISourceAware;
+import org.apache.kylin.metadata.model.SegmentConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -110,6 +117,18 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
     @JsonProperty("override_kylin_properties")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private LinkedHashMap<String, String> overrideKylinProps;
+
+    @JsonProperty("push_down_range_limited")
+    @Getter
+    @Setter
+    private boolean pushDownRangeLimited = true;
+
+    @JsonProperty("segment_config")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @Getter
+    @Setter
+    private SegmentConfig segmentConfig = new SegmentConfig(true, Lists.newArrayList(AutoMergeTimeEnum.WEEK,
+            AutoMergeTimeEnum.MONTH), new VolatileRange(), new RetentionRange());
 
     @Override
     public String getResourcePath() {

@@ -59,6 +59,7 @@ import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
 import io.kyligence.kap.rest.request.ModelCheckRequest;
 import io.kyligence.kap.rest.request.ModelCloneRequest;
+import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
@@ -245,7 +246,7 @@ public class NModelController extends NBasicController {
         checkProjectName(modelRenameRequest.getProject());
         checkRequiredArg(MODEL_NAME, modelRenameRequest.getModelName());
         String newAlias = modelRenameRequest.getNewModelName();
-        if (!StringUtils.containsOnly(newAlias, ModelService.VALID_MODELNAME)) {
+        if (!StringUtils.containsOnly(newAlias, ModelService.VALID_MODEL_NAME)) {
             logger.info("Invalid Model name {}, only letters, numbers and underline supported.", newAlias);
             throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newAlias));
         }
@@ -307,7 +308,7 @@ public class NModelController extends NBasicController {
         String modelName = request.getModelName();
         checkRequiredArg(MODEL_NAME, modelName);
         checkRequiredArg(NEW_MODEL_NAME, newModelName);
-        if (!StringUtils.containsOnly(newModelName, ModelService.VALID_MODELNAME)) {
+        if (!StringUtils.containsOnly(newModelName, ModelService.VALID_MODEL_NAME)) {
             logger.info("Invalid Model name {}, only letters, numbers and underline supported.", newModelName);
             throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newModelName));
         }
@@ -369,4 +370,26 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
+    @RequestMapping(value = "config", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getModelConfig(@RequestParam(value = "model", required = false) String modelName,
+            @RequestParam(value = "project", required = true) String project,
+            @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
+        checkProjectName(project);
+        val modelConfigs = modelService.getModelConfig(project);
+        HashMap<String, Object> modelResponse = getDataResponse("model_config", modelConfigs, offset, limit);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelResponse, "");
+    }
+
+    @RequestMapping(value = "/{name}/config", method = { RequestMethod.PUT }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse updateModelConfig(@PathVariable("name") String modelName,
+            @RequestBody ModelConfigRequest request) {
+        checkProjectName(request.getProject());
+        modelService.updateModelConfig(request.getProject(), modelName, request);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
 }

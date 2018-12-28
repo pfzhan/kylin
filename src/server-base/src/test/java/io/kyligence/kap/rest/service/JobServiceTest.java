@@ -143,13 +143,13 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobFilter.setReverse(true);
         List<ExecutableResponse> jobs7 = jobService.listJobs(jobFilter);
         Assert.assertTrue(jobs7.size() == 3 && jobs7.get(0).getJobName().equals("sparkjob3"));
-//        jobFilter.setSortBy("exec_start_time");
+        //        jobFilter.setSortBy("exec_start_time");
         jobFilter.setReverse(false);
-//        List<ExecutableResponse> jobs8 = jobService.listJobs(jobFilter);
-//        Assert.assertTrue(jobs8.size() == 3 && jobs8.get(0).getJobName().equals("sparkjob2"));
-//        jobFilter.setSortBy("target_subject_alias");
-//        List<ExecutableResponse> jobs9 = jobService.listJobs(jobFilter);
-//        Assert.assertTrue(jobs9.size() == 3 && jobs9.get(0).getJobName().equals("sparkjob1"));
+        //        List<ExecutableResponse> jobs8 = jobService.listJobs(jobFilter);
+        //        Assert.assertTrue(jobs8.size() == 3 && jobs8.get(0).getJobName().equals("sparkjob2"));
+        //        jobFilter.setSortBy("target_subject_alias");
+        //        List<ExecutableResponse> jobs9 = jobService.listJobs(jobFilter);
+        //        Assert.assertTrue(jobs9.size() == 3 && jobs9.get(0).getJobName().equals("sparkjob1"));
         jobFilter.setStatus("");
         jobFilter.setSortBy("");
         List<ExecutableResponse> jobs10 = jobService.listJobs(jobFilter);
@@ -263,5 +263,4 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         jobs.add(job3);
         return jobs;
     }
-
 }

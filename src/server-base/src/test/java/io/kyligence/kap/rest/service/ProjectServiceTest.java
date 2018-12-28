@@ -73,8 +73,13 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.CuboidLayoutQueryTimes;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
+import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
+import io.kyligence.kap.rest.request.PushDownConfigRequest;
+import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import io.kyligence.kap.rest.response.StorageVolumeInfoResponse;
 import lombok.val;
+import lombok.var;
 
 public class ProjectServiceTest extends NLocalFileMetadataTestCase {
 
@@ -243,6 +248,70 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         cache.put(QueryHistoryDAO.class, prjCache);
         Mockito.doReturn(hotCuboidLayoutQueryTimesList).when(dao).getCuboidLayoutQueryTimes(5,
                 CuboidLayoutQueryTimes.class);
+
+    }
+
+    @Test
+    public void testGetProjectConfig() {
+        val project = "default";
+        val response = projectService.getProjectConfig(project);
+        Assert.assertEquals(20, response.getFavoriteQueryThreshold());
+        Assert.assertEquals(true, response.isAutoMergeEnabled());
+        Assert.assertEquals(false, response.getRetentionRange().isRetentionRangeEnabled());
+    }
+
+    @Test
+    public void testUpdateProjectConfig() {
+        val project = "default";
+
+        val description = "test description";
+        val request = new ProjectGeneralInfoRequest();
+        request.setProject(project);
+        request.setDescription(description);
+        projectService.updateProjectGeneralInfo(project, request);
+        var response = projectService.getProjectConfig(project);
+        Assert.assertEquals(description, response.getDescription());
+
+        val segmentConfigRequest = new SegmentConfigRequest();
+        segmentConfigRequest.setAutoMergeEnabled(false);
+        segmentConfigRequest.setProject(project);
+        projectService.updateSegmentConfig(project, segmentConfigRequest);
+        response = projectService.getProjectConfig(project);
+        Assert.assertEquals(false, response.isAutoMergeEnabled());
+
+        val jobNotificationConfigRequest = new JobNotificationConfigRequest();
+        jobNotificationConfigRequest.setProject(project);
+        jobNotificationConfigRequest.setDataLoadEmptyNotificationEnabled(false);
+        jobNotificationConfigRequest.setJobErrorNotificationEnabled(false);
+        jobNotificationConfigRequest.setJobNotificationEmails(
+                Lists.newArrayList("user1@kyligence.io", "user2@kyligence.io", "user2@kyligence.io"));
+        projectService.updateJobNotificationConfig(project, jobNotificationConfigRequest);
+        response = projectService.getProjectConfig(project);
+        Assert.assertEquals(2, response.getJobNotificationEmails().size());
+        Assert.assertEquals(false, response.isJobErrorNotificationEnabled());
+        Assert.assertEquals(false, response.isDataLoadEmptyNotificationEnabled());
+
+        val pushDownConfigRequest = new PushDownConfigRequest();
+        pushDownConfigRequest.setProject(project);
+        pushDownConfigRequest.setPushDownEnabled(false);
+        projectService.updatePushDownConfig(project, pushDownConfigRequest);
+        response = projectService.getProjectConfig(project);
+        Assert.assertEquals(false, response.isPushDownEnabled());
+
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
+                "io.kyligence.kap.smart.query.mockup.MockupPushDownRunner");
+        pushDownConfigRequest.setProject(project);
+        pushDownConfigRequest.setPushDownEnabled(true);
+        projectService.updatePushDownConfig(project, pushDownConfigRequest);
+        response = projectService.getProjectConfig(project);
+        Assert.assertEquals(true, response.isPushDownEnabled());
+
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
+        pushDownConfigRequest.setProject(project);
+        pushDownConfigRequest.setPushDownEnabled(true);
+        thrown.expectMessage(
+                "There is no default PushDownRunner, please check kylin.query.pushdown.runner-class-name in kylin.properties.");
+        projectService.updatePushDownConfig(project, pushDownConfigRequest);
 
     }
 

@@ -76,6 +76,7 @@ import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
+import org.apache.kylin.metadata.model.SegmentConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -139,6 +140,12 @@ public class NDataModel extends RootPersistentEntity {
     @JsonProperty("owner")
     private String owner;
 
+    @JsonProperty("config_last_modifier")
+    private String configLastModifier;
+
+    @JsonProperty("config_last_modified")
+    private long configLastModified;
+
     @EqualsAndHashCode.Include
     @JsonProperty("is_draft")
     private boolean isDraft;
@@ -175,17 +182,8 @@ public class NDataModel extends RootPersistentEntity {
     @JsonProperty("capacity")
     private RealizationCapacity capacity = RealizationCapacity.MEDIUM;
 
-    @EqualsAndHashCode.Include
-    @JsonProperty("auto_merge_enabled")
-    private boolean autoMergeEnabled = true;
-
-    @EqualsAndHashCode.Include
-    @JsonProperty("auto_merge_time_ranges")
-    private List<AutoMergeTimeEnum> autoMergeTimeRanges = Lists.newArrayList(AutoMergeTimeEnum.WEEK,
-            AutoMergeTimeEnum.MONTH);
-
-    @JsonProperty("volatile_range")
-    private VolatileRange volatileRange = new VolatileRange();
+    @JsonProperty("segment_config")
+    private SegmentConfig segmentConfig = new SegmentConfig();
 
     @JsonProperty("data_check_desc")
     private DataCheckDesc dataCheckDesc;
@@ -343,9 +341,7 @@ public class NDataModel extends RootPersistentEntity {
         this.mpColStrs = other.mpColStrs;
         this.computedColumnDescs = other.computedColumnDescs;
         this.managementType = other.managementType;
-        this.autoMergeEnabled = other.autoMergeEnabled;
-        this.autoMergeTimeRanges = other.autoMergeTimeRanges;
-        this.volatileRange = other.volatileRange;
+        this.segmentConfig = other.segmentConfig;
         this.dataCheckDesc = other.dataCheckDesc;
         this.canvas = other.canvas;
     }
@@ -365,30 +361,6 @@ public class NDataModel extends RootPersistentEntity {
 
     public void setManagementType(ManagementType managementType) {
         this.managementType = managementType;
-    }
-
-    public boolean isAutoMergeEnabled() {
-        return autoMergeEnabled;
-    }
-
-    public void setAutoMergeEnabled(boolean autoMergeEnabled) {
-        this.autoMergeEnabled = autoMergeEnabled;
-    }
-
-    public List<AutoMergeTimeEnum> getAutoMergeTimeRanges() {
-        return autoMergeTimeRanges;
-    }
-
-    public void setAutoMergeTimeRanges(List<AutoMergeTimeEnum> autoMergeTimeRanges) {
-        this.autoMergeTimeRanges = autoMergeTimeRanges;
-    }
-
-    public VolatileRange getVolatileRange() {
-        return volatileRange;
-    }
-
-    public void setVolatileRange(VolatileRange volatileRange) {
-        this.volatileRange = volatileRange;
     }
 
     public TableRef getRootFactTable() {

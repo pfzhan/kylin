@@ -26,6 +26,8 @@ package io.kyligence.kap.cube.model;
 
 import java.io.IOException;
 
+import lombok.val;
+import lombok.var;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
@@ -69,5 +71,25 @@ public class NDataflowTest extends NLocalFileMetadataTestCase {
             Assert.assertNotNull(seg);
             Assert.assertNotNull(seg.getName());
         }
+    }
+
+    @Test
+    public void getConfig() {
+        val cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
+        val cubePlan = cubePlanManager.getCubePlan("ncube_basic");
+        val cubePlanConfig = cubePlan.getConfig();
+        val dsMgr = NDataflowManager.getInstance(getTestConfig(), projectDefault);
+        val df = dsMgr.getDataflow("ncube_basic");
+        var config = df.getConfig();
+        Assert.assertEquals(cubePlanConfig.base(), config.base());
+        Assert.assertEquals(1, config.getExtendedOverrides().size());
+
+        cubePlanManager.updateCubePlan("ncube_basic", copyForWrite -> {
+            copyForWrite.getOverrideProps().put("test", "test");
+        });
+
+        config = df.getConfig();
+        Assert.assertEquals(cubePlanConfig.base(), config.base());
+        Assert.assertEquals(2, config.getExtendedOverrides().size());
     }
 }

@@ -355,7 +355,7 @@ public class NTableControllerTest {
 
     @Test
     public void testGetTablesAndColumns() throws Exception {
-        Mockito.doReturn(mockTableAndColumns()).when(tableService).getTableAndColomns("default");
+        Mockito.doReturn(mockTableAndColumns()).when(tableService).getTableAndColumns("default");
         mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/simple_table").contentType(MediaType.APPLICATION_JSON)
                 .param("project", "default").param("pageSize", "10").param("pageOffset", "0")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))

@@ -236,7 +236,7 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
-        List<TablesAndColumnsResponse> responses = tableService.getTableAndColomns(project);
+        List<TablesAndColumnsResponse> responses = tableService.getTableAndColumns(project);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS,
                 getDataResponse("tablesAndColumns", responses, offset, limit), "");
     }
