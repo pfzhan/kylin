@@ -41,68 +41,45 @@
         <span class="setting-value fixed">
           <el-switch
             class="ksd-switch"
-            v-model="project.data_load_empty_notification_enabled"
+            :value="project.data_load_empty_notification_enabled"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')"
             @input="value => handleSwitch('enable-empty-job-alert', value)">
           </el-switch>
         </span>
         <div class="setting-desc">{{$t('emptyDataLoadDesc')}}</div>
-        <div class="field-item">
-          <span class="setting-value">
-            <span class="setting-label font-medium">{{$t('emails')}}</span>
-            <template v-for="(email, index) in form.data_load_empty_notification_emails">
-              <span class="notice-email" v-if="email" :key="index">{{email}}</span>
-              <span v-else-if="index === 0 && !email" :key="index">{{$t('noData')}}</span>
-            </template>
-          </span>
-          <div class="setting-input">
-            <el-form ref="empty-job-alert" :model="form" size="small">
-              <div class="item-value" v-for="(email, index) in form.data_load_empty_notification_emails" :key="index">
-                <span class="setting-label font-medium email-fix-top">{{$t('emails')}}</span>
-                <el-form-item :prop="`data_load_empty_notification_emails.${index}`" :rules="validator">
-                  <el-input v-model="form.data_load_empty_notification_emails[index]"></el-input>
-                  <el-button icon="el-icon-plus" circle size="mini" @click="handleAddItem('data_load_empty_notification_emails', index)"></el-button>
-                  <el-button icon="el-icon-minus" circle size="mini" @click="handleRemoveItem('data_load_empty_notification_emails', index)"></el-button>
-                </el-form-item>
-              </div>
-            </el-form>
-          </div>
-        </div>
-      </div>
-      <!-- 报错任务邮件通知 -->
-      <div class="setting-item">
+        <div class="split"></div>
         <span class="setting-label font-medium">{{$t('errorJob')}}</span>
         <span class="setting-value fixed">
           <el-switch
             class="ksd-switch"
-            v-model="project.job_error_notification_enabled"
+            :value="project.job_error_notification_enabled"
             :active-text="$t('kylinLang.common.OFF')"
             :inactive-text="$t('kylinLang.common.ON')"
-            @input="value => handleSwitch('enable-empty-job-alert', value)">
+            @input="value => handleSwitch('enable-error-job-alert', value)">
           </el-switch>
         </span>
         <div class="setting-desc">{{$t('errorJobDesc')}}</div>
-        <div class="field-item">
-          <span class="setting-value">
-            <span class="setting-label font-medium">{{$t('emails')}}</span>
-            <template v-for="(email, index) in form.job_error_notification_emails">
-              <span class="notice-email" v-if="email" :key="index">{{email}}</span>
-              <span v-else-if="index === 0 && !email" :key="index">{{$t('noData')}}</span>
-            </template>
-          </span>
-          <div class="setting-input">
-            <el-form ref="error-job-alert" :model="form" size="small">
-              <div class="item-value" v-for="(email, index) in form.job_error_notification_emails" :key="index">
-                <span class="setting-label font-medium email-fix-top">{{$t('emails')}}</span>
-                <el-form-item :prop="`job_error_notification_emails.${index}`" :rules="validator">
-                  <el-input v-model="form.job_error_notification_emails[index]"></el-input>
-                  <el-button icon="el-icon-plus" circle size="mini" @click="handleAddItem('job_error_notification_emails', index)"></el-button>
-                  <el-button icon="el-icon-minus" circle size="mini" @click="handleRemoveItem('job_error_notification_emails', index)"></el-button>
-                </el-form-item>
-              </div>
-            </el-form>
-          </div>
+      </div>
+      <div class="setting-item">
+        <span class="setting-value">
+          <span class="setting-label font-medium">{{$t('emails')}}</span>
+          <template v-for="(email, index) in form.job_notification_emails">
+            <span class="notice-email" v-if="email" :key="index">{{email}}</span>
+            <span v-else-if="index === 0 && !email" :key="index">{{$t('noData')}}</span>
+          </template>
+        </span>
+        <div class="setting-input">
+          <el-form ref="job-alert" :model="form" size="small">
+            <div class="item-value" v-for="(email, index) in form.job_notification_emails" :key="index">
+              <span class="setting-label font-medium email-fix-top">{{$t('emails')}}</span>
+              <el-form-item :prop="`job_notification_emails.${index}`" :rules="validator">
+                <el-input v-model="form.job_notification_emails[index]"></el-input>
+                <el-button icon="el-icon-plus" circle size="mini" @click="handleAddItem('job_notification_emails', index)"></el-button>
+                <el-button icon="el-icon-minus" circle size="mini" @click="handleRemoveItem('job_notification_emails', index)"></el-button>
+              </el-form-item>
+            </div>
+          </el-form>
         </div>
       </div>
     </EditableBlock>
@@ -147,10 +124,9 @@ export default class SettingAdvanced extends Vue {
     auto_apply: false,
     batch_enabled: true,
     threshold: 20,
-    job_error_notification_emails: [],
     job_error_notification_enabled: true,
     data_load_empty_notification_enabled: true,
-    data_load_empty_notification_emails: []
+    job_notification_emails: []
   }
   validator = [
     { required: true, message: '请输入邮箱地址', trigger: 'blur' },
@@ -207,9 +183,7 @@ export default class SettingAdvanced extends Vue {
         }
         case 'job-alert': {
           const submitData = _getJobAlertSettings(this.form)
-          const isVaild1 = await this.$refs['empty-job-alert'].validate()
-          const isVaild2 = await this.$refs['error-job-alert'].validate()
-          isVaild = isVaild1 && isVaild2
+          const isVaild = await this.$refs['job-alert'].validate()
           isVaild && await this.updateJobAlertSettings(submitData); break
         }
       }
@@ -273,6 +247,9 @@ export default class SettingAdvanced extends Vue {
     position: relative;
     top: 7px;
     vertical-align: top;
+  }
+  .split {
+    margin-top: 15px;
   }
 }
 </style>

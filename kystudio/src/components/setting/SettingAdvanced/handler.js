@@ -8,19 +8,16 @@ export function _getAccelerationSettings (data) {
 }
 
 export function _getJobAlertSettings (data, isArrayDefaultValue) {
-  let errorJobEmails = data.job_error_notification_emails
-  let emptyJobEamils = data.data_load_empty_notification_emails
+  let jobEmails = data.job_notification_emails
 
   if (isArrayDefaultValue) {
-    !errorJobEmails.length && errorJobEmails.push('')
-    !emptyJobEamils.length && emptyJobEamils.push('')
+    !jobEmails.length && jobEmails.push('')
   }
 
   return {
     project: data.project,
     job_error_notification_enabled: data.job_error_notification_enabled,
-    job_error_notification_emails: errorJobEmails,
     data_load_empty_notification_enabled: data.data_load_empty_notification_enabled,
-    data_load_empty_notification_emails: emptyJobEamils
+    job_notification_emails: jobEmails
   }
 }
