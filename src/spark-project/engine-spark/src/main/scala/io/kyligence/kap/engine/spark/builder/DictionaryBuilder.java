@@ -67,7 +67,7 @@ public class DictionaryBuilder {
         lock = KylinConfig.getInstanceFromEnv().getDistributedLockFactory().lockForCurrentThread();
     }
 
-    public NDataSegment buildDictionary() throws Exception {
+    public NDataSegment buildDictionary() throws IOException {
 
         logger.info("building global dictionaries V2 for seg {}", seg);
 
@@ -143,8 +143,7 @@ public class DictionaryBuilder {
                 seg.getConfig().getGlobalDictV2VersionTTL());
     }
 
-    private static Set<TblColRef> extractGlobalColumns(NDataSegment seg, NSpanningTree toBuildTree, Boolean isBuild)
-            throws IOException {
+    private static Set<TblColRef> extractGlobalColumns(NDataSegment seg, NSpanningTree toBuildTree, Boolean isBuild) {
 
         Collection<NCuboidDesc> toBuildCuboidDescs = toBuildTree.getAllCuboidDescs();
         List<NCuboidLayout> toBuildCuboids = Lists.newArrayList();
@@ -160,40 +159,36 @@ public class DictionaryBuilder {
             }
         }
 
-        Set<TblColRef> toBuildColRefSet = Sets.newHashSet();
-        Set<TblColRef> buildedColRefSet = Sets.newHashSet();
+        List<NCuboidLayout> buildedLayouts = Lists.newArrayList();
         if (seg.getSegDetails() != null && isBuild) {
             for (NDataCuboid cuboid : seg.getSegDetails().getCuboids()) {
-                NCuboidLayout layout = cuboid.getCuboidLayout();
-                for (MeasureDesc measureDesc : layout.getCuboidDesc().getEffectiveMeasures().values()) {
-                    if (NDictionaryBuilder.needGlobalDictionary(measureDesc) == null)
-                        continue;
-                    TblColRef col = measureDesc.getFunction().getParameter().getColRef();
-                    buildedColRefSet.add(col);
-                }
+                buildedLayouts.add(cuboid.getCuboidLayout());
             }
         }
+        Set<TblColRef> buildedColRefSet = findNeedDictCols(buildedLayouts);
+        Set<TblColRef> toBuildColRefSet = findNeedDictCols(toBuildCuboids);
+        toBuildColRefSet.removeIf(col -> buildedColRefSet.contains(col));
+        return toBuildColRefSet;
+    }
 
-        for (NCuboidLayout layout : toBuildCuboids) {
+    private static Set<TblColRef> findNeedDictCols(List<NCuboidLayout> layouts) {
+        Set<TblColRef> dictColSet = Sets.newHashSet();
+        for (NCuboidLayout layout : layouts) {
             for (MeasureDesc measureDesc : layout.getCuboidDesc().getEffectiveMeasures().values()) {
                 if (NDictionaryBuilder.needGlobalDictionary(measureDesc) == null)
                     continue;
                 TblColRef col = measureDesc.getFunction().getParameter().getColRef();
-                if (!buildedColRefSet.contains(col)) {
-                    toBuildColRefSet.add(col);
-                }
+                dictColSet.add(col);
             }
         }
-        return toBuildColRefSet;
+        return dictColSet;
     }
 
-    public static Set<TblColRef> extractGlobalDictColumns(NDataSegment seg, NSpanningTree toBuildTree)
-            throws IOException {
+    public static Set<TblColRef> extractGlobalDictColumns(NDataSegment seg, NSpanningTree toBuildTree) {
         return extractGlobalColumns(seg, toBuildTree, true);
     }
 
-    public static Set<TblColRef> extractGlobalEncodeColumns(NDataSegment seg, NSpanningTree toBuildTree)
-            throws IOException {
+    public static Set<TblColRef> extractGlobalEncodeColumns(NDataSegment seg, NSpanningTree toBuildTree) {
         return extractGlobalColumns(seg, toBuildTree, false);
     }
 
