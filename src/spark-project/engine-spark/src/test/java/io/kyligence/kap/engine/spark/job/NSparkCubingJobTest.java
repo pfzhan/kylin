@@ -77,8 +77,8 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.builder.DFSnapshotBuilder;
 import io.kyligence.kap.engine.spark.builder.NDictionaryBuilder;
-import io.kyligence.kap.engine.spark.builder.NSnapshotBuilder;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -163,7 +163,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         NDataSegment seg = df.copy().getLastSegment();
         seg.setSnapshots(null);
         Assert.assertEquals(0, seg.getSnapshots().size());
-        NSnapshotBuilder builder = new NSnapshotBuilder(seg, ss);
+        DFSnapshotBuilder builder = new DFSnapshotBuilder(seg, ss);
         seg = builder.buildSnapshot();
 
         Assert.assertEquals(7, seg.getSnapshots().size());

@@ -67,7 +67,7 @@ class DFChooser(toBuildTree: NSpanningTree,
           }
         } else {
           if (flatTableSource == null) {
-            val snapshotBuilder = new NSnapshotBuilder(seg, ss)
+            val snapshotBuilder = new DFSnapshotBuilder(seg, ss)
             seg = snapshotBuilder.buildSnapshot
             flatTableSource = getFlatTable()
           }
