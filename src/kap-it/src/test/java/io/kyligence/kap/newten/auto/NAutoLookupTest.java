@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.apache.spark.SparkContext;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -43,6 +44,7 @@ public class NAutoLookupTest extends NAutoTestBase {
     }
 
     @Test
+    @Ignore
     public void testLookup() throws Exception {
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use(getProject());
@@ -102,6 +104,7 @@ public class NAutoLookupTest extends NAutoTestBase {
     }
 
     @Test
+    @Ignore
     public void testLookupByStep() {
         {
             String modelQuery = "select sum(ITEM_COUNT) as ITEM_CNT\n" //

@@ -304,7 +304,7 @@ public class NCuboidRefresherTest extends NTestBase {
         //------------t2: line B propose-------------------------
         String draftVersionB = UUID.randomUUID().toString();
         String[] otherSqls = new String[] {
-                "select part_dt, lstg_format_name, price from kylin_sales where part_dt < '2012-01-02'" };
+                "select part_dt, lstg_format_name, price from kylin_sales where lstg_format_name = 'xxx'" };
         initFQData(otherSqls);
         NSmartMaster smartMasterB = new NSmartMaster(kylinConfig, proj, otherSqls, draftVersionB);
         smartMasterB.runAll();
@@ -357,14 +357,12 @@ public class NCuboidRefresherTest extends NTestBase {
 
             final List<NCuboidLayout> layoutsAfterRefreshA = cuboidDescs.get(0).getLayouts();
             final NCuboidLayout layout = layoutsAfterRefreshA.get(0);
-            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
-            Assert.assertEquals("unexpected override indices", 1, layout.getLayoutOverrideIndices().size());
+            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout.getId());
             Assert.assertEquals("unexpected draft version", draftVersionB, layout.getDraftVersion());
 
             final NCuboidLayout layout2 = layoutsAfterRefreshA.get(1);
             Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout2.getColOrder().toString());
-            Assert.assertEquals("unexpected override indices", 0, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
 
@@ -408,13 +406,11 @@ public class NCuboidRefresherTest extends NTestBase {
 
             final NCuboidLayout layout = layoutsAfterRefreshB.get(0);
             Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
-            Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
 
             final NCuboidLayout layout2 = layoutsAfterRefreshB.get(1);
-            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout2.getColOrder().toString());
-            Assert.assertEquals("unexpected override indices", 1, layout2.getLayoutOverrideIndices().size());
+            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 4, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
 
@@ -457,7 +453,7 @@ public class NCuboidRefresherTest extends NTestBase {
         //------------t2: line B propose-------------------------
         String draftVersionB = UUID.randomUUID().toString();
         String[] otherSqls = new String[] {
-                "select part_dt, lstg_format_name, price from kylin_sales where part_dt <= '2012-01-02'" };
+                "select part_dt, lstg_format_name, price from kylin_sales where lstg_format_name = 'xxx'" };
         initFQData(otherSqls);
         NSmartMaster smartMasterB = new NSmartMaster(kylinConfig, proj, otherSqls, draftVersionB);
         smartMasterB.runAll();
@@ -504,8 +500,7 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unexpected draft id", draftVersionA, layout.getDraftVersion());
 
             final NCuboidLayout layout2 = layoutsAfterRefreshB.get(1);
-            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout2.getColOrder().toString());
-            Assert.assertEquals("unexpected override indices", 1, layout2.getLayoutOverrideIndices().size());
+            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
 
@@ -547,14 +542,12 @@ public class NCuboidRefresherTest extends NTestBase {
             Assert.assertEquals("unmatched layouts size", 2, layoutsAfterRefreshA.size());
 
             final NCuboidLayout layout = layoutsAfterRefreshA.get(0);
-            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
-            Assert.assertEquals("unexpected override indices", 1, layout.getLayoutOverrideIndices().size());
+            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout.getColOrder().toString());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
 
             final NCuboidLayout layout2 = layoutsAfterRefreshA.get(1);
             Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout2.getColOrder().toString());
-            Assert.assertEquals("unexpected override indices", 0, layout2.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
 
@@ -637,7 +630,7 @@ public class NCuboidRefresherTest extends NTestBase {
         //------------t3: line B propose-------------------------
         String draftVersionB = UUID.randomUUID().toString();
         String[] otherSqls = new String[] {
-                "select part_dt, lstg_format_name, price from kylin_sales where part_dt <= '2012-01-02'" };
+                "select part_dt, lstg_format_name, price from kylin_sales where lstg_format_name = 'xxx'" };
         initFQData(otherSqls);
         NSmartMaster smartMasterB = new NSmartMaster(kylinConfig, proj, otherSqls, draftVersionB);
         smartMasterB.runAll();
@@ -677,13 +670,11 @@ public class NCuboidRefresherTest extends NTestBase {
 
             final NCuboidLayout layout = layoutsAfterRefreshB.get(0);
             Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout.getColOrder().toString());
-            Assert.assertEquals("unexpected override indices", 0, layout.getLayoutOverrideIndices().size());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 1, layout.getId());
             Assert.assertNull("not published error", layout.getDraftVersion());
 
             final NCuboidLayout layout2 = layoutsAfterRefreshB.get(1);
-            Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout2.getColOrder().toString());
-            Assert.assertEquals("unexpected override indices", 1, layout2.getLayoutOverrideIndices().size());
+            Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout2.getColOrder().toString());
             Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout2.getId());
             Assert.assertNull("not published error", layout2.getDraftVersion());
 
@@ -1023,7 +1014,7 @@ public class NCuboidRefresherTest extends NTestBase {
         master.runAll();
 
         String[] otherSqls = new String[] {
-                "select part_dt, lstg_format_name, price from kylin_sales where part_dt < '2012-01-02'" };
+                "select part_dt, lstg_format_name, price from kylin_sales where lstg_format_name = 'xxx'" };
         initFQData(otherSqls);
         String draftVersionB = "b";
         NSmartMaster masterB = new NSmartMaster(getTestConfig(), proj, otherSqls, draftVersionB);
@@ -1063,14 +1054,12 @@ public class NCuboidRefresherTest extends NTestBase {
         Assert.assertEquals("unmatched layouts size", 2, allLayouts.size());
 
         final NCuboidLayout layout1 = allLayouts.get(0);
-        Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout1.getColOrder().toString());
-        Assert.assertEquals("unexpected override indices", 1, layout1.getLayoutOverrideIndices().size());
+        Assert.assertEquals("unexpected colOrder", "[3, 7, 8]", layout1.getColOrder().toString());
         Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 2, layout1.getId());
         Assert.assertNull("not published error", layout1.getDraftVersion());
 
         final NCuboidLayout layout2 = allLayouts.get(1);
         Assert.assertEquals("unexpected colOrder", "[7, 3, 8]", layout2.getColOrder().toString());
-        Assert.assertEquals("unexpected override indices", 0, layout2.getLayoutOverrideIndices().size());
         Assert.assertEquals("unexpected id", NCuboidDesc.TABLE_INDEX_START_ID + 3, layout2.getId());
         Assert.assertNull("not published error", layout2.getDraftVersion());
 

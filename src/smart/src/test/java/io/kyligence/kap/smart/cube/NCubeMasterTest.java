@@ -26,12 +26,9 @@ package io.kyligence.kap.smart.cube;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.junit.Assert;
 import org.junit.Test;
-
-import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCuboidDesc;
@@ -89,10 +86,6 @@ public class NCubeMasterTest extends NTestBase {
                     NCuboidLayout c12 = c.getLayouts().get(1);
                     Assert.assertSame(c12.getCuboidDesc(), c);
                     Assert.assertEquals(4, c12.getColOrder().size());
-                    Set<String> indices = Sets.newHashSet();
-                    indices.add(c12.getColIndexType(3));
-                    indices.add(c12.getColIndexType(7));
-                    Assert.assertEquals(2, indices.size());
 
                 } else if (c.getLayouts().size() == 1 && c.getMeasures().size() > 0) {
                     Assert.assertFalse(c.isTableIndex());

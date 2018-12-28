@@ -24,13 +24,13 @@
 
 package io.kyligence.kap.cube.cuboid;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 
 import javax.annotation.Nullable;
 
@@ -79,9 +79,7 @@ public class NQueryLayoutChooser {
             logger.info("Exclude this segments because there are no ready segments");
             return null;
         }
-        Ordering<NLayoutCandidate> ordering = Ordering.natural().onResultOf(L1Comparator(segment))
-                .compound(L2Comparator(ImmutableSet.copyOf(sqlDigest.filterColumns), segment.getConfig()));
-        TreeSet<NLayoutCandidate> candidates = new TreeSet<>(ordering);
+        List<NLayoutCandidate> candidates = new ArrayList<>();
 
         Map<NLayoutCandidate, CapabilityResult> candidateCapabilityResultMap = Maps.newHashMap();
         for (NDataCuboid cuboid : segment.getSegDetails().getCuboids()) {
@@ -107,7 +105,7 @@ public class NQueryLayoutChooser {
             if (matched) {
                 NCuboidLayout layout = cuboid.getCuboidLayout();
                 NLayoutCandidate candidate = new NLayoutCandidate(layout);
-                candidate.setCost(cuboid.getRows());
+                candidate.setCost(cuboid.getRows() * (tempResult.influences.size() + 1.0));
                 if (!needDerive.isEmpty()) {
                     candidate.setDerivedToHostMap(needDerive);
                 }
@@ -119,7 +117,11 @@ public class NQueryLayoutChooser {
         if (candidates.isEmpty()) {
             return null;
         } else {
-            NLayoutCandidate chosenCandidate = candidates.first();
+            Ordering<NLayoutCandidate> ordering = Ordering.natural().onResultOf(L1Comparator())
+                    .compound(L2Comparator(ImmutableSet.copyOf(sqlDigest.filterColumns), segment.getConfig()))
+                    .compound(L3Comparator());
+            candidates.sort(ordering);
+            NLayoutCandidate chosenCandidate = candidates.get(0);
             return new Pair<>(chosenCandidate, candidateCapabilityResultMap.get(chosenCandidate).influences);
         }
     }
@@ -207,20 +209,28 @@ public class NQueryLayoutChooser {
                 influencingMeasures.add(measure.getName() + "@" + measureType.getClass());
             }
         }
-        if (influencingMeasures.size() != 0)
+        if (!influencingMeasures.isEmpty()) {
             logger.info("NDataflow {} CapabilityInfluences: {}", cuboidDesc.getCubePlan().getName(),
                     StringUtils.join(influencingMeasures, ","));
+        }
     }
 
-    private static Function<NLayoutCandidate, Comparable> L1Comparator(final NDataSegment segment) {
+    private static Function<NLayoutCandidate, Comparable> L1Comparator() {
         return new Function<NLayoutCandidate, Comparable>() {
             //L1 comparator, compare cuboid rows
-            @Nullable
             @Override
-            public Comparable apply(@Nullable NLayoutCandidate input) {
-                Preconditions.checkNotNull(input);
-                long id = input.getCuboidLayout().getId();
-                return segment.getSegDetails().getCuboidRowsMap().get(id).doubleValue();
+            public Comparable apply(NLayoutCandidate input) {
+                return input.getCost();
+            }
+        };
+    }
+
+    private static Comparator<NLayoutCandidate> L3Comparator() {
+        //L3 comparator, compare cuboid columns
+        return new Comparator<NLayoutCandidate>() {
+            @Override
+            public int compare(NLayoutCandidate o1, NLayoutCandidate o2) {
+                return o1.getCuboidLayout().getColOrder().size() - o2.getCuboidLayout().getColOrder().size();
             }
         };
     }

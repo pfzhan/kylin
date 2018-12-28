@@ -39,7 +39,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 import io.kyligence.kap.metadata.model.NDataModel.TableKind;
 
 public class JoinDescUtil {
-    
+
     private JoinDescUtil() {
         throw new IllegalStateException("Utility class");
     }
@@ -104,9 +104,9 @@ public class JoinDescUtil {
             TableRef table = joinDesc.getPKSide();
             String tableAlias = table.getAlias();
             //            if (fkTables.containsKey(tableAlias)) {
-            //                tableKindByJoins.add(new Pair<JoinDesc, TableKind>(joinDesc, TableKind.FACT));
+            tableKindByJoins.add(new Pair<JoinDesc, TableKind>(joinDesc, TableKind.FACT));
             //            } else {
-            tableKindByJoins.add(new Pair<JoinDesc, TableKind>(joinDesc, TableKind.LOOKUP));
+            //            tableKindByJoins.add(new Pair<JoinDesc, TableKind>(joinDesc, TableKind.LOOKUP));
             //            }
         }
         return tableKindByJoins;

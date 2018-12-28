@@ -337,7 +337,7 @@ public class RealizationChooser {
 
         @Override
         public int compareTo(RealizationCost o) {
-                return this.cost - o.cost;
+            return this.cost - o.cost;
         }
     }
 }

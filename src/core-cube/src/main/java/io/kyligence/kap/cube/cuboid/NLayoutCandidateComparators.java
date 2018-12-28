@@ -33,8 +33,6 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.DeriveInfo;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
@@ -44,7 +42,9 @@ import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NLayoutCandidateComparators {
 
-    private static final Logger logger = LoggerFactory.getLogger(NLayoutCandidateComparators.class);
+    private NLayoutCandidateComparators() {
+
+    }
 
     public static Comparator<NLayoutCandidate> simple() {
         return (o1, o2) -> o2.getCuboidLayout().getOrderedDimensions().size()
@@ -98,33 +98,30 @@ public class NLayoutCandidateComparators {
     }
 
     private static Comparator<TblColRef> filterColComparator(NLayoutCandidate candidate, KylinConfig config) {
-        return new Comparator<TblColRef>() {
-            @Override
-            public int compare(TblColRef o1, TblColRef o2) {
-                // priority desc
-                int res = o2.getFilterLevel().getPriority() - o1.getFilterLevel().getPriority();
-                if (res == 0) {
-                    NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config,
-                            candidate.getCuboidLayout().getModel().getProject());
-                    TableExtDesc tableExtDesc1 = tableMetadataManager
-                            .getOrCreateTableExt(o1.getTableRef().getTableDesc());
-                    TableExtDesc.ColumnStats ret1 = tableExtDesc1.getColumnStats()
-                            .get(o1.getColumnDesc().getZeroBasedIndex());
-                    TableExtDesc tableExtDesc2 = tableMetadataManager
-                            .getOrCreateTableExt(o2.getTableRef().getTableDesc());
-                    TableExtDesc.ColumnStats ret2 = tableExtDesc2.getColumnStats()
-                            .get(o2.getColumnDesc().getZeroBasedIndex());
+        return (o1, o2) -> {
+            // priority desc
+            int res = o2.getFilterLevel().getPriority() - o1.getFilterLevel().getPriority();
+            if (res == 0) {
+                NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(config,
+                        candidate.getCuboidLayout().getModel().getProject());
+                TableExtDesc tableExtDesc1 = tableMetadataManager
+                        .getOrCreateTableExt(o1.getTableRef().getTableDesc());
+                TableExtDesc.ColumnStats ret1 = tableExtDesc1.getColumnStats()
+                        .get(o1.getColumnDesc().getZeroBasedIndex());
+                TableExtDesc tableExtDesc2 = tableMetadataManager
+                        .getOrCreateTableExt(o2.getTableRef().getTableDesc());
+                TableExtDesc.ColumnStats ret2 = tableExtDesc2.getColumnStats()
+                        .get(o2.getColumnDesc().getZeroBasedIndex());
 
-                    //null last
-                    if (ret2 == null)
-                        return (ret1 == null) ? 0 : -1;
-                    if (ret1 == null)
-                        return 1;
-                    // getCardinality desc
-                    res = Long.compare(ret2.getCardinality(), ret1.getCardinality());
-                }
-                return res;
+                //null last
+                if (ret2 == null)
+                    return (ret1 == null) ? 0 : -1;
+                if (ret1 == null)
+                    return 1;
+                // getCardinality desc
+                res = Long.compare(ret2.getCardinality(), ret1.getCardinality());
             }
+            return res;
         };
     }
 }

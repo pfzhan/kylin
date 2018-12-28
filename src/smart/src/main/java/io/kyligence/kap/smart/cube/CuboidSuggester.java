@@ -294,7 +294,7 @@ class CuboidSuggester {
 
         NCuboidLayout layout = new NCuboidLayout();
         layout.setId(suggestLayoutId(cuboidDesc));
-        layout.setLayoutOverrideIndices(suggestIndexMap(ctx, dimScores, model.getEffectiveColsMap()));
+        //        layout.setLayoutOverrideIndices(suggestIndexMap(ctx, dimScores, model.getEffectiveColsMap()));
         layout.setColOrder(suggestColOrder(dimScores, measureIds));
         layout.setCuboidDesc(cuboidDesc);
         layout.setShardByColumns(shardBy);
