@@ -17,11 +17,11 @@
         </div>
       </div>
       <div v-if="showGif">
-        <img src="../../assets/img/merge1.gif" width="735px" alt=""><img src="../../assets/img/acc_light.png" width="85px" alt="">
+        <img src="../../assets/img/merge1.gif" width="735px" alt=""><img src="../../assets/img/acc_light.png" class="ksd-ml-10" width="85px" alt="">
         <!-- <img src="../../assets/img/acc_01.gif" width="245px" alt=""><img src="../../assets/img/acc_02.gif" width="245px" alt=""><img src="../../assets/img/acc_03.gif" width="245px" height="48px" alt=""> -->
       </div>
       <div v-else>
-        <img src="../../assets/img/bg1.jpg" width="735px" alt=""><img src="../../assets/img/acc_light.png" width="85px" alt="">
+        <img src="../../assets/img/bg1.jpg" width="735px" alt=""><img src="../../assets/img/acc_light.png" class="ksd-ml-10" width="85px" alt="">
         <!-- <img src="../../assets/img/acc_01.jpg" width="245px" alt=""><img src="../../assets/img/acc_02.jpg" width="245px" alt=""><img src="../../assets/img/acc_03.jpg" width="245px" height="48px" alt=""> -->
       </div>
       <div class="btn-groups ksd-mt-10">
@@ -836,18 +836,20 @@ export default class FavoriteQuery extends Vue {
       width: 850px;
       .label-groups {
         position: relative;
+        margin-bottom: 5px;
         > span {
           margin-left: 105px;
+          line-height: 18px;
           &.ongoing-label {
             margin-left: 175px;
           }
         }
         .pattern-num {
           position: absolute;
-          right: 30px;
+          right: 12px;
           top: 18px;
           display: inline-block;
-          width: 85px;
+          width: 95px;
           text-align: center;
           line-height: 18px;
           p {
