@@ -69,7 +69,7 @@ public class AfterMergeOrRefreshResourceMerger {
 
         // only add layouts which still in segments, others maybe deleted by user
         List<NDataSegment> toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, mergedSegment);
-        val livedLayouts = toRemoveSegments.get(toRemoveSegments.size() - 1).getCuboidsMap().values().stream()
+        val livedLayouts = mgr.getDataflow(dataflowName).getLastSegment().getCuboidsMap().values().stream()
                 .map(NDataCuboid::getCuboidLayoutId).collect(Collectors.toSet());
         toUpdateCuboids.addAll(mergedSegment.getSegDetails().getCuboids().stream()
                 .filter(c -> livedLayouts.contains(c.getCuboidLayoutId())).collect(Collectors.toList()));
