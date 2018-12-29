@@ -98,7 +98,7 @@
             <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
              <div v-show="isAdmin || hasPermissionOfProject()">
               <common-tip :content="$t('kylinLang.common.edit')"><i class="el-icon-ksd-table_edit ksd-fs-16" @click="handleEditModel(scope.row.alias)"></i></common-tip>
-              <common-tip :content="$t('build')" class="ksd-ml-10"  v-if="scope.row.management_type!=='TABLE_ORIENTED'"><i class="el-icon-ksd-data_range ksd-fs-16" @click="setModelBuldRange(scope.row)"></i></common-tip>
+              <common-tip :content="$t('build')" v-if="scope.row.partition_desc && scope.row.partition_desc.partition_date_column && scope.row.management_type!=='TABLE_ORIENTED'" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16" @click="setModelBuldRange(scope.row)"></i></common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="!scope.row.is_draft">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
@@ -275,7 +275,7 @@ export default class ModelList extends Vue {
       }).then((res) => {
         if (res.isSubmit) {
           modelDesc.project = this.currentSelectedProject
-          this.handleSaveModel(modelDesc)
+          this.handleSaveModel(cloneModelDesc)
         }
       })
     } else if (command === 'rename') {
@@ -305,6 +305,7 @@ export default class ModelList extends Vue {
   handleSaveModel (modelDesc) {
     this.updataModel(modelDesc).then(() => {
       kapMessage(this.$t('kylinLang.common.saveSuccess'))
+      this.loadModelsList()
     }, (res) => {
       handleError(res)
     })

@@ -273,6 +273,8 @@ export default class ModelPartitionModal extends Vue {
     let hasSetDate = this.partitionMeta.table && this.partitionMeta.column
     if (this.modelDesc && this.partitionMeta.table && this.partitionMeta.column) {
       this.modelDesc.partition_desc.partition_date_column = hasSetDate ? this.partitionMeta.table + '.' + this.partitionMeta.column : ''
+    } else {
+      this.modelDesc.partition_desc.partition_date_column = ''
     }
     this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
     this.modelDesc.filter_condition = this.filterCondition
@@ -292,7 +294,7 @@ export default class ModelPartitionModal extends Vue {
       this.resetModalForm()
       this.callback && this.callback({
         isSubmit: isSubmit,
-        data: this.partitionMeta
+        data: this.modelDesc
       })
     }, 300)
   }

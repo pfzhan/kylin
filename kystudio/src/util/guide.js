@@ -113,7 +113,6 @@ class Guide {
           searchFuc(resolve, reject)
         }, 300)
       } else {
-        console.log(result, targetResult)
         return resolve({dom: result, target: targetResult})
       }
     }

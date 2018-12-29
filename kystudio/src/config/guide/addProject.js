@@ -31,7 +31,7 @@ export function addProjectDrama () {
     {
       eventID: 1,
       done: false,
-      tip: '选择project类型，分为自动模式和专家模式',
+      tip: '选择project类型，分为手动设计模型和SQL加速项目',
       target: 'changeMunalProjectType' // 鼠标移动到选择类型
     },
     {

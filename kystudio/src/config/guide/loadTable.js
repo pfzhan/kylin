@@ -9,7 +9,7 @@ export function loadTableDrama () {
     {
       eventID: 1,
       done: false,
-      tip: '点击添加数据源头按钮',
+      tip: '点击添加数据源按钮',
       target: 'addDatasource' // 鼠标移动到添加数据源
     },
     {
