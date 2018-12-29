@@ -44,9 +44,18 @@ export function _getLoadDataForm (that) {
 export function _getRefreshDataForm (that) {
   const { form, project, table } = that
   return {
-    project: project.name,
-    table: `${table.database}.${table.name}`,
-    start: transToUTCMs(form.freshDataRange[0]),
-    end: transToUTCMs(form.freshDataRange[1])
+    projectName: project.name,
+    tableFullName: `${table.database}.${table.name}`,
+    startTime: transToUTCMs(form.freshDataRange[0]),
+    endTime: transToUTCMs(form.freshDataRange[1]),
+    affected_start: '',
+    affected_end: ''
+  }
+}
+
+export function _getNewestTableRange (project, table) {
+  return {
+    projectName: project.name,
+    tableFullName: `${table.database}.${table.name}`
   }
 }

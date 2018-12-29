@@ -196,8 +196,8 @@ export default {
   fetchChangeTypeInfo (project, table, fact) {
     return Vue.resource(apiUrl + `models/affected_models`).get({ project, table, fact })
   },
-  fetchRangeFreshInfo (body) {
-    return Vue.resource(apiUrl + `tables/affected_data_range`).get(body)
+  fetchRangeFreshInfo (project, table, start, end) {
+    return Vue.resource(apiUrl + `tables/affected_data_range`).get({ project, table, start, end })
   },
   freshRangeData (project, table, refreshStart, refreshEnd, affectedStart, affectedEnd) {
     return Vue.resource(apiUrl + `tables/data_range`).update({ project, table, refreshStart, refreshEnd, affectedStart, affectedEnd })
@@ -216,5 +216,8 @@ export default {
   },
   discardTableModel (project, modelName, status) {
     return Vue.resource(apiUrl + `models/management_type`).update({ project, modelName })
+  },
+  fetchNewestTableRange (project, table) {
+    return Vue.resource(apiUrl + `tables/data_range/latest_data`).get({ project, table })
   }
 }

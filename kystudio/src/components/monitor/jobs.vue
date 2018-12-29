@@ -67,7 +67,7 @@
         show-overflow-tooltip>
         <template slot-scope="scope">
           <span v-if="scope.row.data_range_end==9223372036854776000">{{$t('fullLoad')}}</span>
-          <span v-else>{{transToGmtTime(scope.row.data_range_start)}} - {{transToGmtTime(scope.row.data_range_end)}}</span>
+          <span v-else>{{scope.row.data_range_start | utcTime}} - {{scope.row.data_range_end | utcTime}}</span>
         </template>
       </el-table-column>
       <el-table-column

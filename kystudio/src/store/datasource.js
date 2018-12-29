@@ -235,11 +235,11 @@ export default {
     [types.FETCH_CHANGE_TYPE_INFO]: function ({commit}, para) {
       return api.datasource.fetchChangeTypeInfo(para.projectName, para.tableName, para.isSelectFact)
     },
-    [types.FETCH_RANGE_FRESH_INFO]: function ({commit}, body) {
-      return api.datasource.fetchRangeFreshInfo(body)
+    [types.FETCH_RANGE_FRESH_INFO]: function ({commit}, para) {
+      return api.datasource.fetchRangeFreshInfo(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime))
     },
     [types.FRESH_RANGE_DATA]: function ({commit}, para) {
-      return api.datasource.freshRangeData(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime), para.affectedStart, para.affectedEnd)
+      return api.datasource.freshRangeData(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime), para.affected_start, para.affected_end)
     },
     [types.FETCH_MERGE_CONFIG]: function ({commit}, para) {
       return api.datasource.fetchMergeConfig(para.projectName, para.modelName, para.tableFullName)
@@ -252,6 +252,9 @@ export default {
     },
     [types.DISCARD_TABLE_MODEL]: function ({commit}, para) {
       return api.datasource.discardTableModel(para.projectName, para.modelName)
+    },
+    [types.FETCH_NEWEST_TABLE_RANGE]: function ({commit}, para) {
+      return api.datasource.fetchNewestTableRange(para.projectName, para.tableFullName)
     }
   }
 }

@@ -39,7 +39,8 @@
           size="small"
           class="ksd-ml-10"
           :disabled="isDisabled || form.isLoadExisted"
-          icon="el-icon-ksd-data_range_search">
+          icon="el-icon-ksd-data_range_search"
+          @click="handleLoadNewestRange">
         </el-button>
       </el-form-item>
       <el-form-item class="custom-load" prop="freshDataRange" v-if="_isFieldShow('freshDataRange')">
@@ -81,8 +82,8 @@ import vuex from '../../../store'
 import locales from './locales'
 import store, { types } from './store'
 import { set } from '../../../util/object'
-import { handleError, handleSuccessAsync } from '../../../util'
-import { fieldVisiableMaps, titleMaps, validate, fieldTypes, editTypes, _getLoadDataForm, _getRefreshDataForm } from './handler'
+import { handleError, handleSuccessAsync, getGmtDateFromUtcLike } from '../../../util'
+import { fieldVisiableMaps, titleMaps, validate, fieldTypes, editTypes, _getLoadDataForm, _getRefreshDataForm, _getNewestTableRange } from './handler'
 
 const { LOAD_DATA_RANGE } = fieldTypes
 
@@ -110,7 +111,8 @@ vuex.registerModule(['modals', 'SourceTableModal'], store)
     ...mapActions({
       saveLoadRange: 'SAVE_DATA_RANGE',
       fetchFreshInfo: 'FETCH_RANGE_FRESH_INFO',
-      freshDataRange: 'FRESH_RANGE_DATA'
+      freshDataRange: 'FRESH_RANGE_DATA',
+      fetchNewestTableRange: 'FETCH_NEWEST_TABLE_RANGE'
     })
   },
   locales
@@ -145,6 +147,14 @@ export default class SourceTableModal extends Vue {
   }
   handleInputDate (key, value) {
     this.handleInput(key, value)
+  }
+  async handleLoadNewestRange () {
+    const submitData = _getNewestTableRange(this.project, this.table)
+    const response = await this.fetchNewestTableRange(submitData)
+    const result = await handleSuccessAsync(response)
+    const startTime = +result.start_time
+    const endTime = +result.end_time
+    this.handleInputDate('loadDataRange', [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ])
   }
   async handleSubmit () {
     this._showLoading()

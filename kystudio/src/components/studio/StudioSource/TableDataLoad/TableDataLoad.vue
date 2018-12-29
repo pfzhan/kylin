@@ -72,7 +72,7 @@ import { mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
 import locales from './locales'
-import { _getPartitionInfo, _getFullLoadInfo } from './handler'
+import { _getPartitionInfo, _getFullLoadInfo, _getRefreshFullLoadInfo } from './handler'
 import { handleSuccessAsync, handleError } from '../../../../util'
 
 @Component({
@@ -93,7 +93,9 @@ import { handleSuccessAsync, handleError } from '../../../../util'
       fetchRelatedModels: 'FETCH_RELATED_MODELS',
       fetchChangeTypeInfo: 'FETCH_CHANGE_TYPE_INFO',
       fetchRelatedModelStatus: 'FETCH_RELATED_MODEL_STATUS',
-      fetchFullLoadInfo: 'FETCH_FULL_LOAD_INFO'
+      fetchFullLoadInfo: 'FETCH_FULL_LOAD_INFO',
+      fetchFreshInfo: 'FETCH_RANGE_FRESH_INFO',
+      freshDataRange: 'FRESH_RANGE_DATA'
     })
   },
   locales
@@ -105,19 +107,31 @@ export default class TableDataLoad extends Vue {
     isSubmit && this.$emit('fresh-tables')
   }
   async handleLoadFullData () {
+    const { modelCount, modelSize } = await this._getAffectedModelCountAndSize()
+    if (modelCount || modelSize) {
+      await this._showAffectModelConfirm(modelCount, modelSize)
+    }
     const submitData = _getFullLoadInfo(this.project, this.table)
-    const { storageSize } = await this.fetchFullLoadInfo(submitData)
-    await this._showAffectFullDataConfirm(storageSize)
-    return await this.saveLoadRange(submitData)
+    const response = await this.fetchFreshInfo(_getRefreshFullLoadInfo(this.project, this.table))
+    const result = await handleSuccessAsync(response)
+    submitData.affected_start = result.affected_start
+    submitData.affected_end = result.affected_end
+    await this.freshDataRange(submitData)
+    this.$emit('fresh-tables')
+    this.$message({ type: 'success', message: this.$t('kylinLang.common.saveSuccess') })
   }
   async handleLoadData () {
-    const { project, table } = this
-    if (table.partitionColumn) {
-      const isSubmit = await this.callSourceTableModal({ editType: 'loadData', project, table })
-      isSubmit && this.$emit('fresh-tables')
-    } else {
-      await this.handleLoadFullData()
-      this.$emit('fresh-tables')
+    try {
+      const { project, table } = this
+      if (table.partitionColumn) {
+        const isSubmit = await this.callSourceTableModal({ editType: 'loadData', project, table })
+        isSubmit && this.$emit('fresh-tables')
+      } else {
+        await this.handleLoadFullData()
+        this.$emit('fresh-tables')
+      }
+    } catch (e) {
+      handleError(e)
     }
   }
   async handleChangePartition (value) {
