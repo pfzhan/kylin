@@ -1,0 +1,1 @@
+select * from edw.test_cal_dt
