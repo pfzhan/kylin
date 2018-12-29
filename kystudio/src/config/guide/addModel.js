@@ -209,7 +209,7 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      tip: '添加measure',
+      tip: '添加Measure',
       target: 'measurePanelShowBtn' // 飞向打开measure面板的按钮
     },
     {

@@ -109,7 +109,7 @@ export function renderModelAddTableData (tables, links, factTableName) {
   })
   let factguid = guidMap[factTableName]
   result.push({
-    tip: '设置fact表',
+    tip: '设置Fact表',
     eventID: 1,
     done: false,
     target: factguid, // 飞向设置
