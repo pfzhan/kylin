@@ -43,7 +43,7 @@
         </el-select>
         </el-col>
       </el-form-item>
-      <el-form-item :label="$t('dateFormat')">
+      <!-- <el-form-item :label="$t('dateFormat')">
         <el-select v-guide.partitionFormat  size="medium" v-model="partitionMeta.format" style="width:248px" :placeholder="$t('kylinLang.common.pleaseSelect')">
           <el-option
             v-for="item in formatList"
@@ -52,7 +52,7 @@
             :value="item.value">
           </el-option>
         </el-select>
-      </el-form-item>
+      </el-form-item> -->
       <!-- <el-form-item :label="$t('buildRange')" prop="dataRangeVal">
         <el-date-picker
           v-model="modelBuildMeta.dataRangeVal"
