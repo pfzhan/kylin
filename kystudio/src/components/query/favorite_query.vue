@@ -177,7 +177,7 @@
     </el-dialog>
     <el-dialog
       :visible.sync="ruleSettingVisible"
-      width="1180px"
+      width="780px"
       :title="$t('ruleSetting')"
       class="ruleSettingDialog">
       <div class="conds">

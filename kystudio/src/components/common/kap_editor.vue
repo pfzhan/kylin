@@ -141,7 +141,7 @@ export default {
     border: 1px solid @text-secondary-color;
     background-color: @aceditor-bg-color;
     .smyles_editor {
-      width: calc(~'100% - 50px') !important;
+      // width: calc(~'100% - 50px') !important;
       border: none;
     }
     .smyles_dragbar {
@@ -157,6 +157,7 @@ export default {
       right: 5px;
       top: 5px;
       z-index: 9;
+      background-color: rgba(255,255,255,0.2);
     }
     .el-popover {
       right: 5px;
