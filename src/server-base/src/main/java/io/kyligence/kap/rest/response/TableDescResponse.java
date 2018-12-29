@@ -65,9 +65,13 @@ public class TableDescResponse extends TableDesc {
     private long actualQueryStart = -1;
     @JsonProperty("actual_query_end")
     private long actualQueryEnd = -1;
-
+    @JsonProperty("storage_size")
+    private long storageSize = -1;
+    @JsonProperty("total_records")
+    private long totalRecords;
     public TableDescResponse(TableDesc table) {
         super(table);
     }
+
 
 }

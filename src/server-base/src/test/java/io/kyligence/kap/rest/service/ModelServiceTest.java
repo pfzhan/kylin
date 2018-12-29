@@ -66,6 +66,7 @@ import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -216,10 +217,60 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetSegments() {
-
-        Segments<NDataSegment> segments = modelService.getSegments("nmodel_basic", "default", "0", "" + Long.MAX_VALUE);
+    public void testGetSegmentsByRange() {
+        Segments<NDataSegment> segments = modelService.getSegmentsByRange("nmodel_basic", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertEquals(1, segments.size());
+    }
+
+    @Test
+    public void testGetSegmentsResponse() {
+        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse("nmodel_basic", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
+        Assert.assertEquals(1, segments.size());
+        Assert.assertEquals(3380224, segments.get(0).getBytesSize());
+        Assert.assertEquals("16", segments.get(0).getAdditionalInfo().get("file_count"));
+        Assert.assertEquals("ONLINE", segments.get(0).getStatusToDisplay().toString());
+
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
+        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
+        dataflowManager.updateDataflow(dataflowUpdate);
+
+        Segments<NDataSegment> segs = new Segments();
+        val seg = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        segments = modelService.getSegmentsResponse("nmodel_basic", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
+        Assert.assertEquals(1,segments.size());
+        Assert.assertEquals("LOCKED", segments.get(0).getStatusToDisplay().toString());
+
+        seg.setStatus(SegmentStatusEnum.READY);
+        segs.add(seg);
+        dataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        dataflowUpdate.setToUpdateSegs(segs.toArray(new NDataSegment[segs.size()]));
+        dataflowManager.updateDataflow(dataflowUpdate);
+        dataflow = dataflowManager.getDataflow("ncube_basic");
+        dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
+        segments = modelService.getSegmentsResponse("nmodel_basic", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
+        Assert.assertEquals(2,segments.size());
+        Assert.assertEquals("REFRESHING", segments.get(1).getStatusToDisplay().toString());
+
+        Segments<NDataSegment> segs2 = new Segments<>();
+        Segments<NDataSegment> segs3 = new Segments<>();
+
+        dataflow = dataflowManager.getDataflow("ncube_basic");
+        val seg2 = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(10L, 20L));
+        seg2.setStatus(SegmentStatusEnum.READY);
+        segs3.add(seg2);
+        val segToRemove = dataflow.getSegment(segments.get(1).getId());
+        segs2.add(segToRemove);
+        dataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        dataflowUpdate.setToRemoveSegs(segs2.toArray(new NDataSegment[segs2.size()]));
+        dataflowUpdate.setToUpdateSegs(segs3.toArray(new NDataSegment[segs3.size()]));
+        dataflowManager.updateDataflow(dataflowUpdate);
+        dataflow = dataflowManager.getDataflow("ncube_basic");
+        dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(0L, 20L));
+        segments = modelService.getSegmentsResponse("nmodel_basic", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
+        Assert.assertEquals(3,segments.size());
+        Assert.assertEquals("MERGING", segments.get(2).getStatusToDisplay().toString());
     }
 
     @Test
@@ -342,7 +393,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);
         modelService.purgeModelManually("test_encoding", "default");
-        List<NDataSegment> segments = modelService.getSegments("test_encoding", "default", "0", "" + Long.MAX_VALUE);
+        List<NDataSegment> segments = modelService.getSegmentsByRange("test_encoding", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
     }
 
@@ -362,7 +413,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testGetAffectedSegmentsResponse_NoSegments_Exception() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("No segments to refresh, please select new range and try again!");
-        List<NDataSegment> segments = modelService.getSegments("test_encoding", "default", "0", "" + Long.MAX_VALUE);
+        List<NDataSegment> segments = modelService.getSegmentsByRange("test_encoding", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
         RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse("default",
                 "DEFAULT.TEST_ENCODING", "0", "12223334", ManagementType.TABLE_ORIENTED);

@@ -128,6 +128,18 @@ public class ModelService extends BasicService {
 
     private static final String MODEL = "Model '";
 
+    private static final String SEGMENT_PATH = "segment_path";
+
+    private static final String FILE_COUNT = "file_count";
+
+    private static final String CREATE_TIME = "create_time";
+
+    private static final String START_TIME = "start_time";
+
+    private static final String END_TIME = "end_time";
+
+    private static final String STORAGE = "storage";
+
     public static final char[] VALID_MODEL_NAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
             .toCharArray();
 
@@ -199,7 +211,7 @@ public class ModelService extends BasicService {
     private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {
         NDataModelResponse nDataModelResponse = new NDataModelResponse(modelDesc);
         if (modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            Segments<NDataSegment> segments = getSegments(modelDesc.getName(), projectName, "0", "" + Long.MAX_VALUE);
+            Segments<NDataSegment> segments = getSegmentsByRange(modelDesc.getName(), projectName, "0", "" + Long.MAX_VALUE);
             if (CollectionUtils.isNotEmpty(segments)) {
                 NDataSegment lastSegment = segments.get(segments.size() - 1);
                 nDataModelResponse.setLastBuildEnd(lastSegment.getSegRange().getEnd().toString());
@@ -220,24 +232,59 @@ public class ModelService extends BasicService {
         }
     }
 
-    public Segments<NDataSegment> getSegments(String modelName, String project, String start, String end) {
-        val cubePlan = getCubePlan(modelName, project);
+    public List<NDataSegmentResponse> getSegmentsResponse(String modelName, String project, String start, String end, String sortBy, boolean reverse, String status) {
         NDataflowManager dataflowManager = getDataflowManager(project);
-        SegmentRange filterRange = getSegmentRangeByModel(project, modelName, start, end);
-        Segments<NDataSegment> segments = new Segments<NDataSegment>();
-        NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
-        for (NDataSegment segment : dataflow.getSegments()) {
-            if (segment.getSegRange().overlaps(filterRange)) {
-                long segmentSize = dataflowManager.getSegmentSize(segment);
-                NDataSegmentResponse nDataSegmentResponse = new NDataSegmentResponse(segment);
-                nDataSegmentResponse.setBytesSize(segmentSize);
-                segments.add(nDataSegmentResponse);
+        List<NDataSegmentResponse> segmentResponse = Lists.newArrayList();
+        NDataflow dataflow = dataflowManager.getDataflowByModelName(modelName);
+        val segs = getSegmentsByRange(modelName, project, start, end);
+        for (NDataSegment segment : segs) {
+            if (StringUtils.isNotEmpty(status) && status.equalsIgnoreCase(segs.getSegmentStatusToDisplay(segment).toString())) {
+                continue;
             }
-
+            long segmentSize = dataflowManager.getSegmentSize(segment);
+            NDataSegmentResponse nDataSegmentResponse = new NDataSegmentResponse(segment);
+            nDataSegmentResponse.setBytesSize(segmentSize);
+            nDataSegmentResponse.getAdditionalInfo().put(SEGMENT_PATH, dataflow.getSegmentHdfsPath(segment.getId()));
+            nDataSegmentResponse.getAdditionalInfo().put(FILE_COUNT, dataflowManager.getSegmentFileCount(segment) + "");
+            nDataSegmentResponse.setStatusToDisplay(dataflow.getSegments().getSegmentStatusToDisplay(segment));
+            segmentResponse.add(nDataSegmentResponse);
         }
-
-        return segments;
+        sortSegments(segmentResponse, sortBy);
+        if (reverse) {
+            segmentResponse = Lists.reverse(segmentResponse);
+        }
+        return segmentResponse;
     }
+
+    private void sortSegments(List<NDataSegmentResponse> segments, String sortBy) {
+        var comp = Comparator.<NDataSegmentResponse>comparingLong(r -> -r.getCreateTimeUTC());
+
+        switch (sortBy) {
+            case CREATE_TIME:
+                comp = Comparator.<NDataSegmentResponse>comparingLong(r -> -r.getCreateTimeUTC());
+                break;
+            case START_TIME:
+                comp = Comparator.<NDataSegmentResponse>comparingLong(r -> -Long.parseLong(r.getSegRange().getStart().toString()));
+                break;
+            case END_TIME:
+                comp = Comparator.<NDataSegmentResponse>comparingLong(r -> -Long.parseLong(r.getSegRange().getEnd().toString()));
+                break;
+            case STORAGE:
+                comp = Comparator.<NDataSegmentResponse>comparingLong(r -> -r.getBytesSize());
+                break;
+            default:
+                break;
+        }
+        Collections.sort(segments, comp);
+    }
+
+    public Segments<NDataSegment> getSegmentsByRange(String modelName, String project, String start, String end) {
+        NDataflowManager dataflowManager = getDataflowManager(project);
+        val df = dataflowManager.getDataflowByModelName(modelName);
+        SegmentRange filterRange = getSegmentRangeByModel(project, modelName, start, end);
+        return df.getSegmentsByRange(filterRange);
+    }
+
 
     public List<CuboidDescResponse> getAggIndices(String modelName, String project) {
         List<NCuboidDesc> cuboidDescs = getCuboidDescs(modelName, project);
@@ -318,7 +365,7 @@ public class ModelService extends BasicService {
             if (StringUtils.isEmpty(modelName)
                     || dataModelDesc.getAlias().toLowerCase().contains(modelName.toLowerCase())) {
                 RelatedModelResponse relatedModelResponse = new RelatedModelResponse(dataModelDesc);
-                Segments<NDataSegment> segments = getSegments(model, project, "", "");
+                Segments<NDataSegment> segments = getSegmentsByRange(model, project, "", "");
                 for (NDataSegment segment : segments) {
                     segmentRanges.put(segment.getSegRange(), segment.getStatus());
                 }
@@ -511,14 +558,15 @@ public class ModelService extends BasicService {
     }
 
     public RefreshAffectedSegmentsResponse getAffectedSegmentsResponse(String project, String table, String start,
-            String end, ManagementType managementType) {
+                                                                       String end, ManagementType managementType) {
         Segments<NDataSegment> segments = new Segments<>();
+        val dfManager = getDataflowManager(project);
         RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
         long byteSize = 0L;
         List<RelatedModelResponse> models = getRelateModels(project, table, "");
         for (NDataModel model : models) {
             if (model.getManagementType().equals(managementType)) {
-                segments.addAll(getSegments(model.getName(), project, start, end));
+                segments.addAll(getSegmentsByRange(model.getName(), project, start, end));
             }
         }
 
@@ -528,7 +576,7 @@ public class ModelService extends BasicService {
             String affectedStart = segments.getFirstSegment().getSegRange().getStart().toString();
             String affectedEnd = segments.getLatestReadySegment().getSegRange().getEnd().toString();
             for (NDataSegment segment : segments) {
-                byteSize += ((NDataSegmentResponse) segment).getBytesSize();
+                byteSize += dfManager.getSegmentSize(segment);
             }
             response.setAffectedStart(affectedStart);
             response.setAffectedEnd(affectedEnd);
@@ -549,7 +597,7 @@ public class ModelService extends BasicService {
 
         List<RelatedModelResponse> models = getRelateModels(project, table, "");
         for (NDataModel model : models) {
-            Segments<NDataSegment> segments = getSegments(model.getName(), project, refreshStart, refreshEnd);
+            Segments<NDataSegment> segments = getSegmentsByRange(model.getName(), project, refreshStart, refreshEnd);
             if (segments.getBuildingSegments().size() > 0) {
                 throw new BadRequestException(
                         "Can not refresh, some segments is building within the range you want to refresh!");
@@ -651,7 +699,7 @@ public class ModelService extends BasicService {
     }
 
     private void checkSegmentToBuildOverlapsBuilt(String project, String model, SegmentRange segmentRangeToBuild) {
-        Segments<NDataSegment> segments = getSegments(model, project, "0", "" + Long.MAX_VALUE);
+        Segments<NDataSegment> segments = getSegmentsByRange(model, project, "0", "" + Long.MAX_VALUE);
         if (CollectionUtils.isEmpty(segments)) {
             return;
         } else {

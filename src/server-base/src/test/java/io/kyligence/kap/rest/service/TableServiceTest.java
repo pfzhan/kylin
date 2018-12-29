@@ -48,6 +48,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.rest.response.TableDescResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.model.ColumnDesc;
@@ -136,7 +137,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testGetTableDesc() {
+    public void testGetTableDesc() throws IOException {
 
         List<TableDesc> tableDesc = tableService.getTableDesc("default", true, "", "DEFAULT", true);
         Assert.assertEquals(true, tableDesc.size() == 8);
@@ -144,8 +145,12 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, tableDesc2.size());
         List<TableDesc> tables3 = tableService.getTableDesc("default", true, "", "", true);
         Assert.assertEquals(true, tables3.size() == 11);
-        List<TableDesc> tables = tableService.getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", true);
-        Assert.assertEquals(true, tables.get(0).getName().equals("TEST_COUNTRY"));
+        List<TableDesc> tables = tableService.getTableDesc("default", true, "TEST_KYLIN_FACT", "DEFAULT", true);
+        Assert.assertEquals("TEST_KYLIN_FACT", tables.get(0).getName());
+        Assert.assertEquals(0, ((TableDescResponse) tables.get(0)).getStorageSize());
+        Assert.assertEquals(5633024, ((TableDescResponse) tables.get(0)).getTotalRecords());
+
+
         List<TableDesc> table2 = tableService.getTableDesc("default", true, "country", "DEFAULT", true);
         Assert.assertEquals(true, table2.get(0).getName().equals("TEST_COUNTRY"));
     }
@@ -159,7 +164,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testLoadTableToProject() {
+    public void testLoadTableToProject() throws IOException {
         List<TableDesc> tables = tableService.getTableDesc("default", true, "TEST_COUNTRY", "DEFAULT", true);
         TableDesc nTableDesc = new TableDesc(tables.get(0));
         TableExtDesc tableExt = new TableExtDesc();

@@ -390,6 +390,15 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return size;
     }
 
+    public long getSegmentFileCount(NDataSegment segment) {
+        long fileCount = 0L;
+        Collection<NDataCuboid> nDataCuboids = segment.getCuboidsMap().values();
+        for (NDataCuboid nDataCuboid : nDataCuboids) {
+            fileCount += nDataCuboid.getFileCount();
+        }
+        return fileCount;
+    }
+
     public long getDataflowByteSize(String model) {
         var byteSize = 0L;
         val dataflow = getDataflowByModelName(model);

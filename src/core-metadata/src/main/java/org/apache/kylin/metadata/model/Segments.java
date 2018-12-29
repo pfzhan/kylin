@@ -51,6 +51,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.TimeZone;
 
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
@@ -652,5 +653,32 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
             return segRange.getStart() + "_" + segRange.getEnd();
         }
 
+    }
+
+    public Segments getSegmentsByRange(SegmentRange range) {
+        val result = new Segments<T>();
+        for (val seg : this) {
+            if (seg.getSegRange().overlaps(range)) {
+                result.add(seg);
+            }
+        }
+        return result;
+    }
+
+    public SegmentStatusEnumToDisplay getSegmentStatusToDisplay(T segment) {
+        if (segment.getStatus().equals(SegmentStatusEnum.READY)) {
+            return SegmentStatusEnumToDisplay.ONLINE;
+        }
+        Segments<T> overlapSegs = getSegmentsByRange(segment.getSegRange());
+        overlapSegs.remove(segment);
+        if (CollectionUtils.isEmpty(overlapSegs)) {
+            return SegmentStatusEnumToDisplay.LOCKED;
+        } else {
+            if (overlapSegs.get(0).getSegRange().entireOverlaps(segment.getSegRange())) {
+                return SegmentStatusEnumToDisplay.REFRESHING;
+            } else {
+                return SegmentStatusEnumToDisplay.MERGING;
+            }
+        }
     }
 }

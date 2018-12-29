@@ -98,7 +98,7 @@ public class NTableController extends NBasicController {
             @RequestParam(value = "database", required = false) String database,
             @RequestParam(value = "isFuzzy", required = false, defaultValue = "true") boolean isFuzzy,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
-            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
+            @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) throws IOException {
 
         checkProjectName(project);
         List<TableDesc> tableDescs = new ArrayList<>();

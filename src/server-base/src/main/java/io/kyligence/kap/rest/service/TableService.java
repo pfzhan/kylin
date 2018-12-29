@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +37,9 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
 import org.apache.kylin.common.util.Pair;
@@ -103,7 +105,7 @@ public class TableService extends BasicService {
     private ModelService modelService;
 
     public List<TableDesc> getTableDesc(String project, boolean withExt, final String tableName, final String database,
-            boolean isFuzzy) {
+            boolean isFuzzy) throws IOException {
         NTableMetadataManager nTableMetadataManager = getTableManager(project);
         List<TableDesc> tables = new ArrayList<>();
         //get table not fuzzy,can use getTableDesc(tableName)
@@ -245,9 +247,12 @@ public class TableService extends BasicService {
     }
 
     private TableDescResponse getTableResponse(TableDesc table, String project) {
-        TableExtDesc tableExtDesc = getTableManager(project).getOrCreateTableExt(table.getIdentity());
-        // get TableDescResponse
         TableDescResponse tableDescResponse = new TableDescResponse(table);
+        TableExtDesc tableExtDesc = getTableManager(project).getTableExtIfExists(table);
+        if (tableExtDesc == null) {
+            return tableDescResponse;
+        }
+        // get TableDescResponse
         Map<String, Long> cardinality = new HashMap<String, Long>();
         Map<String, String> dataSourceProp = new HashMap<>();
         String cardinalityString = tableExtDesc.getCardinality();
@@ -266,13 +271,11 @@ public class TableService extends BasicService {
         return tableDescResponse;
     }
 
-    private List<TableDesc> getTablesResponse(List<TableDesc> tables, String project, boolean withExt) {
+    private List<TableDesc> getTablesResponse(List<TableDesc> tables, String project, boolean withExt) throws IOException {
         List<TableDesc> descs = new ArrayList<TableDesc>();
         NDataModelManager dataModelManager = getDataModelManager(project);
-        Iterator<TableDesc> it = tables.iterator();
-        while (it.hasNext()) {
+        for (val table : tables) {
             TableDescResponse rtableDesc;
-            TableDesc table = it.next();
             List<String> models = dataModelManager.getModelsUsingRootTable(table);
             List<String> modelsUsingTable = dataModelManager.getModelsUsingTable(table);
             if (withExt) {
@@ -280,10 +283,18 @@ public class TableService extends BasicService {
             } else {
                 rtableDesc = new TableDescResponse(table);
             }
+
+            TableExtDesc tableExtDesc = getTableManager(project).getTableExtIfExists(table);
+            if (tableExtDesc != null) {
+                rtableDesc.setTotalRecords(tableExtDesc.getTotalRows());
+            }
+
             if (CollectionUtils.isNotEmpty(models)) {
                 rtableDesc.setRootFact(true);
+                rtableDesc.setStorageSize(getStorageSize(project, models));
             } else if (CollectionUtils.isNotEmpty(modelsUsingTable)) {
                 rtableDesc.setLookup(true);
+                rtableDesc.setStorageSize(getSnapshotSize(project, modelsUsingTable, table.getIdentity()));
             }
             Pair<Set<String>, Set<String>> tableColumnType = getTableColumnType(table, project);
             NDataLoadingRange dataLoadingRange = getDataLoadingRangeManager(project)
@@ -306,6 +317,51 @@ public class TableService extends BasicService {
         }
 
         return descs;
+    }
+
+    private long getSnapshotSize(String project, List<String> modelsUsingTable, String table) throws IOException {
+        val dfManager = getDataflowManager(project);
+        var hasReadySegs = false;
+        var size = 0;
+        val df = dfManager.getDataflowByModelName(modelsUsingTable.get(0));
+        val lastSeg = df.getLatestReadySegment();
+        if (lastSeg != null) {
+            hasReadySegs = true;
+            val snapShots = lastSeg.getSnapshots();
+            if (snapShots.containsKey(table)) {
+                FileSystem fs = HadoopUtil.getReadFileSystem();
+                val path = new Path(snapShots.get(table));
+                if (fs.exists(path)) {
+                    ContentSummary cs = fs.getContentSummary(path);
+                    size += cs.getLength();
+                }
+            }
+        }
+        if (!hasReadySegs) {
+            return -1;
+        } else {
+            return size;
+        }
+    }
+
+
+    private long getStorageSize(String project, List<String> models) {
+        val dfManger = getDataflowManager(project);
+        boolean hasReadySegs = false;
+        long size = 0;
+        for (val model : models) {
+            val df = dfManger.getDataflowByModelName(model);
+            val readySegs = df.getSegments(SegmentStatusEnum.READY);
+            if (CollectionUtils.isNotEmpty(readySegs)) {
+                hasReadySegs = true;
+                size += dfManger.getDataflowByteSize(model);
+            }
+        }
+        if (!hasReadySegs) {
+            return -1;
+        } else {
+            return size;
+        }
     }
 
     private Map<SegmentRange, SegmentStatusEnum> getSegmentRangesWithStatus(NDataLoadingRange dataLoadingRange) {

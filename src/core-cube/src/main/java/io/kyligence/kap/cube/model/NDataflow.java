@@ -32,6 +32,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.StringUtil;
@@ -40,6 +41,7 @@ import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.IStorageAware;
 import org.apache.kylin.metadata.model.MeasureDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableRef;
@@ -293,6 +295,16 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         } else {
             return existing.get(existing.size() - 1);
         }
+    }
+
+    public String getSegmentHdfsPath(String segmentId) {
+        String hdfsWorkingDir = KapConfig.wrap(config).getReadHdfsWorkingDirectory();
+        String path = hdfsWorkingDir + "parquet/" + getUuid() + "/" + segmentId;
+        return path;
+    }
+
+    public Segments getSegmentsByRange(SegmentRange range) {
+        return segments.getSegmentsByRange(range);
     }
 
     @Override

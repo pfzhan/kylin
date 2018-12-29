@@ -58,11 +58,9 @@ public class NSparkCleanupAfterMergeStep extends AbstractExecutable {
         String[] segmentIds = StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS));
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflow dataflow = NDataflowManager.getInstance(config, getProject()).getDataflow(name);
-        String hdfsWorkingDir = KapConfig.wrap(config).getReadHdfsWorkingDirectory();
 
         for (String segmentId : segmentIds) {
-            String path = hdfsWorkingDir + "parquet/" + dataflow.getUuid() + "/" + segmentId;
-
+            String path = dataflow.getSegmentHdfsPath(segmentId);
             try {
                 HadoopUtil.deletePath(HadoopUtil.getCurrentConfiguration(), new Path(path));
             } catch (IOException e) {

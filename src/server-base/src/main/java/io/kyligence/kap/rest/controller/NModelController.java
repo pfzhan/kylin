@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.model.Segments;
@@ -53,7 +54,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
@@ -127,13 +127,16 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getSegments(@RequestParam(value = "model", required = true) String modelName,
             @RequestParam(value = "project", required = true) String project,
+            @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit,
             @RequestParam(value = "start", required = false, defaultValue = "1") String start,
-            @RequestParam(value = "end", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) String end) {
+            @RequestParam(value = "end", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) String end,
+            @RequestParam(value = "sortBy", required = false, defaultValue = "last_modify") String sortBy,
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse){
         checkProjectName(project);
         validateRange(start, end);
-        Segments<NDataSegment> segments = modelService.getSegments(modelName, project, start, end);
+        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelName, project, start, end, sortBy, reverse, status);
         HashMap<String, Object> response = getDataResponse("segments", segments, offset, limit);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
     }

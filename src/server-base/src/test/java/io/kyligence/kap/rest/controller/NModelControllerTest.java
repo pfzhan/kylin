@@ -43,9 +43,27 @@
 package io.kyligence.kap.rest.controller;
 
 import java.util.ArrayList;
+
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.request.BuildSegmentsRequest;
+import io.kyligence.kap.rest.request.ModelCheckRequest;
+import io.kyligence.kap.rest.request.ModelCloneRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.SegmentsRequest;
+import io.kyligence.kap.rest.request.UnlinkModelRequest;
+import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.NSpanningTreeResponse;
+import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.service.ModelService;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -67,26 +85,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.request.BuildSegmentsRequest;
-import io.kyligence.kap.rest.request.ModelCheckRequest;
-import io.kyligence.kap.rest.request.ModelCloneRequest;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
-import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.request.ModelUpdateRequest;
-import io.kyligence.kap.rest.request.SegmentsRequest;
-import io.kyligence.kap.rest.request.UnlinkModelRequest;
-import io.kyligence.kap.rest.response.CuboidDescResponse;
+
 import io.kyligence.kap.rest.response.ModelConfigResponse;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NSpanningTreeResponse;
-import io.kyligence.kap.rest.response.RelatedModelResponse;
-import io.kyligence.kap.rest.service.ModelService;
 import lombok.val;
 
 public class NModelControllerTest extends NLocalFileMetadataTestCase {
@@ -200,13 +201,13 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetSegments() throws Exception {
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(432L, 2234L);
-        Mockito.when(modelService.getSegments("nmodel_basic", "default", "432", "2234")).thenReturn(mockSegments());
+        Mockito.when(modelService.getSegmentsResponse("nmodel_basic", "default", "432", "2234", "end_time", true, "")).thenReturn(mockSegments());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
                 .param("offset", "0").param("project", "default").param("model", "nmodel_basic").param("limit", "10")
-                .param("start", "432").param("end", "2234")
+                .param("start", "432").param("end", "2234").param("sortBy", "end_time").param("reverse", "true").param("status", "")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getSegments("nmodel_basic", "default", 0, 10, "432", "2234");
+        Mockito.verify(nModelController).getSegments("nmodel_basic", "default", "", 0, 10, "432", "2234", "end_time", true);
     }
 
     @Test
@@ -483,9 +484,9 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         return nCuboidDescs;
     }
 
-    private Segments<NDataSegment> mockSegments() {
-        final Segments<NDataSegment> nDataSegments = new Segments<NDataSegment>();
-        NDataSegment segment = new NDataSegment();
+    private Segments<NDataSegmentResponse> mockSegments() {
+        final Segments<NDataSegmentResponse> nDataSegments = new Segments<>();
+        NDataSegmentResponse segment = new NDataSegmentResponse();
         segment.setId(UUID.randomUUID().toString());
         segment.setName("seg1");
         nDataSegments.add(segment);
