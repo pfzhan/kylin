@@ -115,7 +115,7 @@ public class NModelController extends NBasicController {
 
     @RequestMapping(value = "", method = { RequestMethod.POST }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse createModel(@RequestBody ModelRequest modelRequest) {
+    public EnvelopeResponse createModel(@RequestBody ModelRequest modelRequest) throws Exception {
         checkProjectName(modelRequest.getProject());
         modelService.createModel(modelRequest.getProject(), modelRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
@@ -332,11 +332,13 @@ public class NModelController extends NBasicController {
     }
 
     @RequestMapping(value = "/segments", method = RequestMethod.POST, produces = {
-            "application/vnd.apache.kylin-v2+json" })
+            "application/vnd.apache.kylin-v2+json"})
     @ResponseBody
-    public EnvelopeResponse buildSegmentsManually(@RequestBody BuildSegmentsRequest buildSegmentsRequest) {
+    public EnvelopeResponse buildSegmentsManually(@RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
-        validateRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        if (StringUtils.isNotEmpty(buildSegmentsRequest.getStart()) && StringUtils.isNotEmpty(buildSegmentsRequest.getEnd())) {
+            validateRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
+        }
         modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), buildSegmentsRequest.getModel(),
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");

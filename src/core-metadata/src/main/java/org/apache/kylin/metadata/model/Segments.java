@@ -196,6 +196,21 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
         return this;
     }
 
+    public Segments<T> getFlatSegments() {
+        Segments<T> result = new Segments<>(this);
+        val buildingSegs = result.getBuildingSegments();
+        val readySegs = result.getSegments(SegmentStatusEnum.READY);
+        for (T segment : readySegs) {
+            for (val buildingSeg : buildingSegs) {
+                if (segment.getSegRange().overlaps(buildingSeg.getSegRange())) {
+                    result.remove(segment);
+                    break;
+                }
+            }
+        }
+        return result;
+    }
+
     public Segments<T> getMergingSegments(T mergedSegment) {
         Segments<T> result = new Segments();
         if (mergedSegment == null)

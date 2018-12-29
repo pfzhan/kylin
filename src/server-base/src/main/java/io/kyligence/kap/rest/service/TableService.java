@@ -25,12 +25,6 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -574,16 +568,9 @@ public class TableService extends BasicService {
         return new ExistedDataRangeResponse(lastEnd, currentMaxTime);
     }
 
-    private String getFormattedDate(String date, String datePattern) {
-        DateTimeFormatter formatter = new DateTimeFormatterBuilder().append(DateTimeFormatter.ofPattern(datePattern))
-                .parseDefaulting(ChronoField.HOUR_OF_DAY, 0).parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
-                .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0).toFormatter();
-        LocalDateTime localDateTime = LocalDateTime.parse(date, formatter);
-        ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneId.of("UTC"));
-        return String.valueOf(zonedDateTime.toInstant().toEpochMilli());
-    }
 
-    private Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String table)
+
+    public Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String table)
             throws Exception {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         String partitionColumn = dataLoadingRange.getColumnName();
@@ -604,7 +591,7 @@ public class TableService extends BasicService {
         else
             dateFormat = dataLoadingRange.getPartitionDateFormat();
 
-        return new Pair<>(getFormattedDate(minTime, dateFormat), getFormattedDate(maxTime, dateFormat));
+        return new Pair<>(DateFormat.getFormattedDate(minTime, dateFormat), DateFormat.getFormattedDate(maxTime, dateFormat));
     }
 
     @Transaction(project = 1)

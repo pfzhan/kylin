@@ -200,26 +200,26 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             if (dataLoadingRange != null) {
                 List<SegmentRange> segmentRanges = dataLoadingRange.getSegmentRanges();
                 if (CollectionUtils.isNotEmpty(segmentRanges)) {
-                    Segments<NDataSegment> segs = new Segments<>();
-
-                    segmentRanges.forEach(segRange -> {
-                        NDataSegment newSegment = newSegment(df, segRange);
-                        newSegment.setStatus(SegmentStatusEnum.READY);
-                        segs.add(newSegment);
-                    });
-                    val update = new NDataflowUpdate(df.getName());
-                    update.setToAddSegs(segs.toArray(new NDataSegment[0]));
-                    updateDataflow(update);
+                    fillDfWithNewRanges(df, segmentRanges);
                 }
             }
         } else {
-            // if table is full load
-            NDataSegment newSegment = newSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-            newSegment.setStatus(SegmentStatusEnum.READY);
-            val update = new NDataflowUpdate(df.getName());
-            update.setToAddSegs(newSegment);
-            updateDataflow(update);
+            fillDfWithNewRanges(df, Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));
+
         }
+    }
+
+    public void fillDfWithNewRanges(NDataflow df, List<SegmentRange> segmentRanges) {
+        Segments<NDataSegment> segs = new Segments<>();
+
+        segmentRanges.forEach(segRange -> {
+            NDataSegment newSegment = newSegment(df, segRange);
+            newSegment.setStatus(SegmentStatusEnum.READY);
+            segs.add(newSegment);
+        });
+        val update = new NDataflowUpdate(df.getName());
+        update.setToAddSegs(segs.toArray(new NDataSegment[0]));
+        updateDataflow(update);
     }
 
     public NDataSegment appendSegment(NDataflow df, SegmentRange segRange) {
@@ -368,6 +368,16 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
     public NDataflow copy(NDataflow df) {
         return crud.copyBySerialization(df);
+    }
+
+    public void fillDfManually(NDataflow df, List<SegmentRange> ranges) {
+        if (df.getModel().getManagementType() == ManagementType.TABLE_ORIENTED) {
+            return;
+        }
+        if (CollectionUtils.isEmpty(ranges)) {
+            return;
+        }
+        fillDfWithNewRanges(df, ranges);
     }
 
     public interface NDataflowUpdater {

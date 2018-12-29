@@ -375,7 +375,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateModelWithMultipleMeasures() throws IOException {
+    public void testCreateModelWithMultipleMeasures() throws Exception {
         val request = JsonUtil.readValue(
                 getClass().getResourceAsStream("/ut_request/model_update/model_with_multi_measures.json"),
                 ModelRequest.class);

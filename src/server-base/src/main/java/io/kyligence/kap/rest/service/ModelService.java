@@ -41,7 +41,9 @@ import io.kyligence.kap.rest.response.ModelConfigResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -51,6 +53,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
+import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
@@ -610,7 +613,7 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void createModel(String project, ModelRequest modelRequest) {
+    public void createModel(String project, ModelRequest modelRequest) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             modelRequest.setOwner(((UserDetails) authentication.getPrincipal()).getUsername());
@@ -634,20 +637,80 @@ public class ModelService extends BasicService {
         nCubePlan.setName(modelRequest.getName() + "_cube");
         nCubePlan.setModelName(modelRequest.getName());
         cubePlanManager.createCubePlan(nCubePlan);
-        dataflowManager.createDataflow(nCubePlan.getName(), nCubePlan, model.getOwner());
-
+        val df = dataflowManager.createDataflow(nCubePlan.getName(), nCubePlan, model.getOwner());
+        SegmentRange range = null;
+        if (model.getPartitionDesc() == null || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
+            range = SegmentRange.TimePartitionedSegmentRange.createInfinite();
+        } else if (StringUtils.isEmpty(modelRequest.getStart()) || StringUtils.isEmpty(modelRequest.getEnd())) {
+            //load existing data
+            val pushDownResponse = getMaxAndMinTimeInPartitionColumnByPushdown(project, model.getName());
+            range = getSegmentRangeByModel(project, model.getName(), pushDownResponse.getFirst(), pushDownResponse.getSecond());
+        } else {
+            range = getSegmentRangeByModel(project, model.getName(), modelRequest.getStart(), modelRequest.getEnd());
+        }
+        if (range != null) {
+            dataflowManager.fillDfManually(df, Lists.newArrayList(range));
+        }
     }
 
+    private Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String model)
+            throws Exception {
+        val modelManager = getDataModelManager(project);
+        val modelDesc = modelManager.getDataModelDesc(model);
+        val table = modelDesc.getRootFactTableName();
+
+        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumn();
+        String sql = String.format("select min(%s), max(%s) from %s", partitionColumn, partitionColumn, table);
+
+        // pushdown
+        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql).getFirst();
+
+        if (returnRows.size() == 0 || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
+            throw new BadRequestException(String.format("There are no data in table %s", table));
+
+        String minTime = returnRows.get(0).get(0);
+        String maxTime = returnRows.get(0).get(1);
+
+        String dateFormat;
+        if (StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateFormat())) {
+            val copy = modelManager.copyForWrite(modelDesc);
+            dateFormat = DateFormat.proposeDateFormat(minTime);
+            copy.getPartitionDesc().setPartitionDateFormat(dateFormat);
+            modelManager.updateDataModelDesc(copy);
+        } else {
+            dateFormat = modelDesc.getPartitionDesc().getPartitionDateFormat();
+        }
+
+        return new Pair<>(DateFormat.getFormattedDate(minTime, dateFormat), DateFormat.getFormattedDate(maxTime, dateFormat));
+    }
+
+
     @Transaction(project = 0)
-    public void buildSegmentsManually(String project, String model, String start, String end) {
+    public void buildSegmentsManually(String project, String model, String start, String end) throws Exception {
         NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(model);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             throw new BadRequestException("Table oriented model '" + model + "' can not build segments manually!");
+        }
+        if (modelDesc.getPartitionDesc() == null || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
+            throw new BadRequestException("Model '" + modelDesc.getAlias() + "' has no partition column!");
         }
         val cubePlan = getCubePlan(model, project);
         if (cubePlan == null) {
             throw new BadRequestException(
                     "Can not build segments, please define table index or aggregate index first!");
+        }
+        val df = getDataflowManager(project).getDataflowByModelName(model);
+        if (StringUtils.isEmpty(start) || StringUtils.isEmpty(end)) {
+            val response = getMaxAndMinTimeInPartitionColumnByPushdown(project, model);
+            val lastSeg = df.getLastSegment();
+            if (lastSeg != null) {
+                start = lastSeg.getSegRange().getEnd().toString();
+            } else {
+                start = response.getFirst();
+            }
+            if (StringUtils.isEmpty(end)) {
+                end = response.getSecond();
+            }
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);

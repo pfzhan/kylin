@@ -41,6 +41,12 @@ public class ModelRequest extends NDataModel {
     @JsonProperty("project")
     private String project;
 
+    @JsonProperty("start")
+    private String start;
+
+    @JsonProperty("end")
+    private String end;
+
     @JsonProperty("simplified_measures")
     private List<SimplifiedMeasure> simplifiedMeasures;
 

@@ -25,6 +25,12 @@
 package org.apache.kylin.common.util;
 
 import java.text.ParseException;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Date;
 import java.util.Map;
 import java.util.TimeZone;
@@ -172,5 +178,14 @@ public class DateFormat {
         }
 
         throw new IllegalArgumentException("there is no valid date pattern for:" + sampleData);
+    }
+
+    public static String getFormattedDate(String date, String datePattern) {
+        DateTimeFormatter formatter = new DateTimeFormatterBuilder().append(DateTimeFormatter.ofPattern(datePattern))
+                .parseDefaulting(ChronoField.HOUR_OF_DAY, 0).parseDefaulting(ChronoField.MINUTE_OF_HOUR, 0)
+                .parseDefaulting(ChronoField.SECOND_OF_MINUTE, 0).toFormatter();
+        LocalDateTime localDateTime = LocalDateTime.parse(date, formatter);
+        ZonedDateTime zonedDateTime = ZonedDateTime.of(localDateTime, ZoneId.of("UTC"));
+        return String.valueOf(zonedDateTime.toInstant().toEpochMilli());
     }
 }

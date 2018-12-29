@@ -35,6 +35,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.model.NDataSegment;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -42,6 +43,7 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -377,10 +379,16 @@ public class ModelSemanticHelper extends BasicService {
     private void handleReloadData(NDataModel model, NDataflowManager dataflowManager, KylinConfig config,
             String project) {
         var df = dataflowManager.getDataflowByModelName(model.getName());
+        Segments<NDataSegment> segs = df.getFlatSegments();
         df = dataflowManager.updateDataflow(df.getName(), copyForWrite -> {
             copyForWrite.setSegments(new Segments<>());
         });
-        dataflowManager.fillDf(df);
+        List<SegmentRange> ranges = Lists.newArrayList();
+        if (model.getPartitionDesc() == null || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
+            //full load
+            ranges.add(SegmentRange.TimePartitionedSegmentRange.createInfinite());
+        }
+        dataflowManager.fillDfManually(df, ranges);
 
         EventManager eventManager = EventManager.getInstance(config, project);
 

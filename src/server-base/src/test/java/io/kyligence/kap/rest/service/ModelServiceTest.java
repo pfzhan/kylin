@@ -755,7 +755,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateModel_ExistedAlias_Exception() {
+    public void testCreateModel_ExistedAlias_Exception() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
         thrown.expect(BadRequestException.class);
@@ -768,7 +768,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testCreateModel_AutoMaintain_Exception() {
+    public void testCreateModel_AutoMaintain_Exception() throws Exception {
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject("default");
         val copy = prjManager.copyForWrite(prj);
@@ -789,9 +789,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
 
     @Test
-    public void testCreateModel() {
+    public void testCreateModel() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        model.setPartitionDesc(null);
         model.setManagementType(ManagementType.MODEL_BASED);
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
@@ -801,11 +802,16 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelService.createModel(modelRequest.getProject(), modelRequest);
         NDataModel newModel = modelManager.getDataModelDesc("new_model");
         Assert.assertEquals("new_model", newModel.getName());
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val df = dfManager.getDataflowByModelName("new_model");
+        Assert.assertEquals(1, df.getSegments().size());
+        Assert.assertTrue(df.getSegments().get(0).getSegRange().isInfinite());
+
         modelManager.dropModel(newModel);
     }
 
     @Test
-    public void testCreateModelWithDefaultMeasures() {
+    public void testCreateModelWithDefaultMeasures() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
         model.setManagementType(ManagementType.MODEL_BASED);
@@ -823,7 +829,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testBuildSegmentsManually_TableOrientedModel_Exception() {
+    public void testBuildSegmentsManually_TableOrientedModel_Exception() throws Exception {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Table oriented model 'nmodel_basic' can not build segments manually!");
         modelService.buildSegmentsManually("default", "nmodel_basic", "0", "100");
@@ -1034,7 +1040,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testNewModelAddSameExprSameNameOnDifferentAliasTableCannotProvideAdvice() throws IOException {
+    public void testNewModelAddSameExprSameNameOnDifferentAliasTableCannotProvideAdvice() throws Exception {
 
         expectedEx.expect(new BaseMatcher() {
             @Override
@@ -1081,7 +1087,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testSeekAdviseOnLookTable() throws IOException {
+    public void testSeekAdviseOnLookTable() throws Exception {
 
         expectedEx.expect(new BaseMatcher() {
             @Override
@@ -1710,7 +1716,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     /**
      * testSeekAdviseOnLookTable
      */
-    public void testSeekAdviceWontAffectTableDesc() throws IOException {
+    public void testSeekAdviceWontAffectTableDesc() throws Exception {
 
         try {
             //save nmodel_cc_test, which is a model defining cc on lookup table
@@ -1793,7 +1799,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     @Ignore("will create cube with model")
-    public void testBuildSegmentsManuallyException1() {
+    public void testBuildSegmentsManuallyException1() throws Exception {
         NDataModel model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "match")
                 .getDataModelDesc("match");
         ModelRequest modelRequest = new ModelRequest(model);
@@ -1809,7 +1815,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testBuildSegmentsManuallyException2() {
+    public void testBuildSegmentsManuallyException2() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel modelDesc = modelManager.getDataModelDesc("nmodel_full_measure_test");
         NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
@@ -1822,7 +1828,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testBuildSegmentsManually() {
+    public void testBuildSegmentsManually() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel modelDesc = modelManager.getDataModelDesc("nmodel_basic");
         NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
