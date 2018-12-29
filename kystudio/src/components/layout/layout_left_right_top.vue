@@ -10,7 +10,12 @@
             <template v-for="(item,index) in menus">
               <el-menu-item :index="item.path" v-if="!item.children && showMenuByRole(item.name)" :key="index">
                 <i :class="item.icon" class="ksd-fs-16"></i>
-                <span slot="title">{{$t('kylinLang.menu.' + item.name)}}</span>
+                <span slot="title" v-if="item.name === 'model'">
+                  {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.model')}}
+                </span>
+                <span slot="title" v-else>
+                  {{$t('kylinLang.menu.' + item.name)}}
+                </span>
               </el-menu-item>
               <el-submenu :index="item.path" v-if="item.children && showMenuByRole(item.name)" :id="item.name" :key="index">
                 <template slot="title">
@@ -19,11 +24,18 @@
                 </template>
                 <el-menu-item-group>
                   <el-menu-item :index="child.path" v-for="child in item.children" :key="child.path" v-if="showMenuByRole(child.name)">
-                    <span style="position:relative;">
-                      {{$t('kylinLang.menu.' + child.name)}}
-                      <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'favorite_query'"></span>
-                    </span>
-                    <div class="number-icon" v-if="child.name === 'model'  && reachThreshold">1</div>
+                    <template v-if="child.name !== 'model'">
+                      <span style="position:relative;">
+                        {{$t('kylinLang.menu.' + child.name)}}
+                        <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'favorite_query'"></span>
+                      </span>
+                    </template>
+                    <template v-else>
+                      <span style="position:relative;">
+                        {{isAutoProject ? $t('kylinLang.menu.index') : $t('kylinLang.menu.model')}}
+                      </span>
+                      <div class="number-icon" v-if="reachThreshold">1</div>
+                    </template>
                   </el-menu-item>
                 </el-menu-item-group>
               </el-submenu>
@@ -34,9 +46,6 @@
           <i class="ksd-fs-14" :class="[!briefMenuGet ? 'el-icon-ksd-grid_01' : 'el-icon-ksd-grid_02']" @click="toggleLeftMenu"></i>
           <template v-if="!isAdminView">
             <project_select v-on:changePro="changeProject" ref="projectSelect"></project_select>
-            <el-button v-show='gloalProjectSelectShow' :title="$t('kylinLang.project.projectList')" :class="{'project-page':defaultActive==='projectActive'}" @click="goToProjectList" size="medium">
-              <i class="el-icon-ksd-project_list"></i>
-            </el-button>
             <el-button v-guide.addProjectBtn :title="$t('kylinLang.project.addProject')" @click="addProject" v-show="isAdmin" size="medium">
               <i class="el-icon-plus"></i>
             </el-button>
@@ -375,11 +384,6 @@ export default class LayoutLeftRightTop extends Vue {
   created () {
     // this.reloadRouter()
     this.defaultActive = this.$route.path || '/dashboard'
-    if (this.isAutoProject) {
-      this.menus[2].children[2].name = 'index'
-    } else {
-      this.menus[2].children[2].name = 'model'
-    }
   }
   showMenuByRole (menuName) {
     return this.availableMenus.includes(menuName)
@@ -919,16 +923,27 @@ export default class LayoutLeftRightTop extends Vue {
     .dot-icon {
       margin-left:0;
     }
+    > [role='menuitem']:not(:last-child) {
+      margin-bottom: 1px;
+    }
   }
   .el-menu--popup {
     margin-left: 1px;
     padding: 0px;
     background-color: @text-title-color!important;
+    &.el-menu {
+      min-width: 100px;
+    }
     .el-menu-item-group__title {
       display: none;
     }
     .el-menu-item {
       color: @text-placeholder-color;
+      height: 32px;
+      line-height: 32px;
+      &:not(:last-child) {
+        margin-bottom: 1px;
+      }
     }
     .el-menu-item.is-active {
       color: @base-color-1;

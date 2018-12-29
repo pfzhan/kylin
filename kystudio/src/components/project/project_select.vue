@@ -1,15 +1,21 @@
 <template>
-   <el-select class="project_select" filterable  :placeholder="$t('kylinLang.project.selectProject')" v-model="selected_project" @change="changeProject" size="medium">
+   <el-select
+    size="medium"
+    class="project_select"
+    filterable
+    :placeholder="$t('kylinLang.project.selectProject')"
+    v-model="selected_project"
+    @change="changeProject">
+    <span slot="prefix" class="el-input__icon" :class="isAutoProject ? 'el-icon-ksd-sql_acceleration' : 'el-icon-ksd-model_designer'"></span>
     <el-option
       v-for="item in projectList" :key="item.name"
       :label="item.name"
-      :value="item.name"
-      >
+      :value="item.name">
       </el-option>
     </el-select>
 </template>
 <script>
-import { mapActions, mapMutations } from 'vuex'
+import { mapActions, mapMutations, mapGetters } from 'vuex'
 export default {
   name: 'projectselect',
   data () {
@@ -35,6 +41,9 @@ export default {
     }
   },
   computed: {
+    ...mapGetters([
+      'isAutoProject'
+    ]),
     projectList () {
       return this.$store.state.project.allProject || ''
     }
