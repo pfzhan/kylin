@@ -55,7 +55,6 @@ class HLLCCountEnc(dataType: DataType) extends MeasureEncoder[Any, HLLCounter](d
     }
     current
   }
-
 }
 
 class BitmapCountEnc(dataType: DataType) extends MeasureEncoder[Any, BitmapCounter](dataType: DataType) with Serializable {
@@ -71,5 +70,4 @@ class BitmapCountEnc(dataType: DataType) extends MeasureEncoder[Any, BitmapCount
     }
     current
   }
-
 }

@@ -42,7 +42,7 @@
     {
       "id": "7",
       "name": "price3",
-      "datatype": "decimal(19,6)",
+      "datatype": "decimal(19,4)",
       "index": "T"
     },
     {

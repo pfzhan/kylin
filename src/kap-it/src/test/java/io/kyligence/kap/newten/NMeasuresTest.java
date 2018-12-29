@@ -114,19 +114,22 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         populateSSWithCSVData(config, "default", kapSparkSession);
 
         String querySql = fetchQuerySql();
-        Assert.assertEquals("select ID1,COUNT(*),SUM(1),SUM(ID1),SUM(ID2),SUM(ID3),SUM(ID4),SUM(PRICE1),SUM(PRICE2),"
-                + "SUM(PRICE3),SUM(PRICE5),SUM(PRICE6),SUM(PRICE7),SUM(NAME4),MAX(ID1),MAX(ID2),MAX(ID3),"
-                + "MAX(ID4),MAX(PRICE1),MAX(PRICE2),MAX(PRICE3),MAX(PRICE5),MAX(PRICE6),MAX(PRICE7),MAX(NAME1),"
-                + "MAX(NAME2),MAX(NAME3),MAX(NAME4),MAX(TIME1),MAX(TIME2),MAX(FLAG),MIN(ID1),MIN(ID2),MIN(ID3),"
-                + "MIN(ID4),MIN(PRICE1),MIN(PRICE2),MIN(PRICE3),MIN(PRICE5),MIN(PRICE6),MIN(PRICE7),MIN(NAME1),"
-                + "MIN(NAME2),MIN(NAME3),MIN(NAME4),MIN(TIME1),MIN(TIME2),MIN(FLAG),COUNT(ID1),COUNT(ID2),"
-                + "COUNT(ID3),COUNT(ID4),COUNT(PRICE1),COUNT(PRICE2),COUNT(PRICE3),COUNT(PRICE5),COUNT(PRICE6),"
-                + "COUNT(PRICE7),COUNT(NAME1),COUNT(NAME2),COUNT(NAME3),COUNT(NAME4),COUNT(TIME1),COUNT(TIME2),"
-                + "COUNT(FLAG),count(distinct ID1),count(distinct ID2),count(distinct ID3),count(distinct ID4),"
-                + "count(distinct PRICE1),count(distinct PRICE2),count(distinct PRICE3),count(distinct PRICE5),"
-                + "count(distinct PRICE6),count(distinct PRICE7),count(distinct NAME1),count(distinct NAME2),"
-                + "count(distinct NAME3),count(distinct NAME4),count(distinct TIME1),count(distinct TIME2),"
-                + "count(distinct FLAG), 1 from TEST_MEASURE  group by ID1", querySql);
+        Assert.assertEquals(
+                "select ID1,COUNT(*),SUM(1),SUM(ID1),SUM(ID2),SUM(ID3),SUM(ID4),SUM(PRICE1),SUM(PRICE2),"
+                        + "SUM(PRICE3),SUM(PRICE5),SUM(PRICE6),SUM(PRICE7),SUM(NAME4),MAX(ID1),MAX(ID2),MAX(ID3),"
+                        + "MAX(ID4),MAX(PRICE1),MAX(PRICE2),MAX(PRICE3),MAX(PRICE5),MAX(PRICE6),MAX(PRICE7),MAX(NAME1),"
+                        + "MAX(NAME2),MAX(NAME3),MAX(NAME4),MAX(TIME1),MAX(TIME2),MAX(FLAG),MIN(ID1),MIN(ID2),MIN(ID3),"
+                        + "MIN(ID4),MIN(PRICE1),MIN(PRICE2),MIN(PRICE3),MIN(PRICE5),MIN(PRICE6),MIN(PRICE7),MIN(NAME1),"
+                        + "MIN(NAME2),MIN(NAME3),MIN(NAME4),MIN(TIME1),MIN(TIME2),MIN(FLAG),COUNT(ID1),COUNT(ID2),"
+                        + "COUNT(ID3),COUNT(ID4),COUNT(PRICE1),COUNT(PRICE2),COUNT(PRICE3),COUNT(PRICE5),COUNT(PRICE6),"
+                        + "COUNT(PRICE7),COUNT(NAME1),COUNT(NAME2),COUNT(NAME3),COUNT(NAME4),COUNT(TIME1),COUNT(TIME2),"
+                        + "COUNT(FLAG),count(distinct ID1),count(distinct ID2),count(distinct ID3),count(distinct ID4),"
+                        + "count(distinct PRICE1),count(distinct PRICE2),count(distinct PRICE3),count(distinct PRICE5),"
+                        + "count(distinct PRICE6),count(distinct PRICE7),count(distinct NAME1),count(distinct NAME2),"
+                        + "count(distinct NAME3),count(distinct NAME4),count(distinct TIME1),count(distinct TIME2),"
+                        + "count(distinct FLAG),count(distinct ID1,ID2,ID3,ID4,PRICE1,PRICE2,PRICE3,PRICE5,PRICE6,"
+                        + "PRICE7,NAME1,NAME2,NAME3,NAME4,TIME1,TIME2,FLAG), 1 from TEST_MEASURE  group by ID1",
+                querySql);
         Pair<String, String> pair = new Pair<>("sql", querySql);
 
         NExecAndComp.execAndCompare(newArrayList(pair), kapSparkSession, NExecAndComp.CompareLevel.SAME, "left");
@@ -142,8 +145,12 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         for (NDataModel.Measure mea : cubePlan.getEffectiveMeasures().values()) {
             if (mea.getFunction().getParameter().isColumnType()) {
                 if (mea.getFunction().getExpression().equalsIgnoreCase(FUNC_COUNT_DISTINCT)) {
-                    sqlBuilder.append(String.format("%s(%s)", "count",
-                            "distinct " + mea.getFunction().getParameter().getColRef().getName())).append(",");
+                    String countDistinctString = "distinct";
+                    for (TblColRef col : mea.getFunction().getParameter().getColRefs()) {
+                        countDistinctString = countDistinctString + "," + col.getName();
+                    }
+                    countDistinctString = countDistinctString.replaceFirst(",", " ");
+                    sqlBuilder.append(String.format("%s(%s)", "count", countDistinctString)).append(",");
                 } else {
                     sqlBuilder.append(String.format("%s(%s)", mea.getFunction().getExpression(),
                             mea.getFunction().getParameter().getColRef().getName())).append(",");
@@ -191,6 +198,11 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
                 measureList.add(measure);
             }
         }
+
+        NDataModel.Measure measure = CubeUtils.newMeasure(FunctionDesc.newInstance(FUNC_COUNT_DISTINCT,
+                ParameterDesc.newInstance(columnList.toArray()), "hllc(10)"), meaStart + "_" + FUNC_COUNT_DISTINCT,
+                meaStart++);
+        measureList.add(measure);
 
         return measureList;
     }

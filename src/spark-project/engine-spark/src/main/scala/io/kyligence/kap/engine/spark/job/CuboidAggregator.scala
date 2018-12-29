@@ -30,6 +30,7 @@ import io.kyligence.kap.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.engine.spark.builder.DFFlatTableEncoder
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.kylin.measure.bitmap.BitmapMeasureType
+import org.apache.kylin.measure.hllc.HLLCMeasureType
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.functions.{col, _}
 import org.apache.spark.sql.types.{StringType, _}
@@ -116,6 +117,8 @@ object CuboidAggregator {
               var col = columns.head
               if (function.getReturnDataType.getName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
                 col = wrapEncodeColumn(parameters.head.getColRef, columns.head)
+              } else if (columns.length > 1 && function.getReturnDataType.getName.startsWith(HLLCMeasureType.DATATYPE_HLLC)) {
+                col = wrapMutilHllcColumn(columns: _*)
               }
               callUDF(udfName, col.cast(StringType))
                 .as(measureEntry._1.toString)
@@ -160,5 +163,15 @@ object CuboidAggregator {
 
   def wrapEncodeColumn(ref: TblColRef, column: Column): Column = {
     new Column(column.toString() + DFFlatTableEncoder.ENCODE_SUFFIX)
+  }
+
+  def wrapMutilHllcColumn(columns: Column*): Column = {
+    var col: Column = when(isnull(columns.head), null)
+    for (inputCol <- columns.drop(1)) {
+      col = col.when(isnull(inputCol), null)
+    }
+
+    col = col.otherwise(hash(columns: _*))
+    col
   }
 }
