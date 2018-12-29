@@ -64,6 +64,11 @@ export function addIndexDrama () {
       eventID: 2,
       done: false,
       target: 'saveAggBtn' // 点击保存Agg的按钮
+    },
+    {
+      eventID: 5,
+      done: false,
+      target: 'saveAggBtn' // 点击保存Agg的按钮
     }
   ]
 }

@@ -145,7 +145,7 @@
       </div>
       <div class="right">
         <el-button size="medium" @click="handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button size="medium" v-guide.saveAggBtn plain type="primary" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
+        <el-button size="medium" v-if="isShow" v-guide.saveAggBtn plain type="primary" @click="handleSubmit">{{$t('kylinLang.common.submit')}}</el-button>
       </div>
     </div>
   </el-dialog>

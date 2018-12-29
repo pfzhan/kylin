@@ -1,4 +1,4 @@
-import { addProjectDrama, projectGroup } from './addProject'
+import { addProjectDrama } from './addProject'
 import { loadTableDrama } from './loadTable'
 import { addModelDrama } from './addModel'
 import { monitorDrama } from './monitor'
@@ -8,7 +8,6 @@ export const drama = {
   manual_1: () => [...addProjectDrama(), ...loadTableDrama(), ...addModelDrama(), ...addIndexDrama()],
   manual: () => [...addProjectDrama(), ...loadTableDrama()],
   project: () => [...addProjectDrama()],
-  projectStepTips: () => [...projectGroup()],
   loadTable: () => [...loadTableDrama()],
   addModel: () => [...addModelDrama(), ...addIndexDrama()],
   monitor: () => [...monitorDrama()]

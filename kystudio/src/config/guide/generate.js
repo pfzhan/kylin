@@ -1,23 +1,29 @@
 import { sampleGuid } from 'util/index'
-
+import { highGuideSpeed, normalGuideSpeed } from './config'
+function switchGuideSpeed (i) {
+  return i === 0 ? normalGuideSpeed : highGuideSpeed
+}
 export function renderModelAddTableData (tables, links, factTableName) {
   let guidMap = {}
   let result = []
-  tables.forEach((t) => {
+  tables.forEach((t, i) => {
     let guid = sampleGuid()
     guidMap[t.name] = guid
+    let timer = switchGuideSpeed(i)
     result.push(
       {
         eventID: 6,
         done: false,
         target: 'modelDataSourceTreeScrollBox', // 进入可视区域
-        search: '.guide-' + t.name.replace('.', '')
+        search: '.guide-' + t.name.replace('.', ''),
+        timer: timer
       },
       {
         eventID: 1,
         done: false,
         target: 'modelDataSourceTree', // 点击模型添加左侧树
-        search: '.guide-' + t.name.replace('.', '')
+        search: '.guide-' + t.name.replace('.', ''),
+        timer: timer
       },
       {
         eventID: 11,
@@ -25,7 +31,8 @@ export function renderModelAddTableData (tables, links, factTableName) {
         pos: {
           left: t.x,
           top: t.y
-        }
+        },
+        timer: timer
       },
       {
         eventID: 2,
@@ -34,26 +41,41 @@ export function renderModelAddTableData (tables, links, factTableName) {
         val: {
           action: 'addTable',
           data: {tableName: t.name, x: t.x, y: t.y, guid: guid}
-        }
+        },
+        timer: timer
       }
     )
+  })
+  result.push({
+    eventID: 2,
+    done: false,
+    target: 'moveGuidePanelBtn', // 移动guide面板
+    val: {
+      left: 22,
+      top: 10
+    }
   })
   links.forEach((link, i) => {
     let fguid = guidMap[link.ftable]
     let fcolumn = link.fcolumn
     let pguid = guidMap[link.ptable]
     let pcolumn = link.pcolumn
+    let timer = switchGuideSpeed(i)
     result.push(
       {
         eventID: 1,
         tip: i === 0 ? '拖动表中列到另外一张表的列来建立关系' : null,
         done: false,
-        target: fguid + fcolumn // 连接列
+        offsetX: -100,
+        target: fguid + fcolumn, // 连接列
+        timer: timer
       },
       {
         eventID: 11,
+        offsetX: -100,
         done: false,
-        target: pguid + pcolumn // 连接列
+        target: pguid + pcolumn, // 连接列
+        timer: timer
       },
       {
         eventID: 2,
@@ -68,17 +90,20 @@ export function renderModelAddTableData (tables, links, factTableName) {
             fColumnName: fcolumn,
             pColumnName: pcolumn
           }
-        }
+        },
+        timer: timer
       },
       {
         eventID: 1,
         done: false,
-        target: 'saveJoinBtn' // 飞向保存join按钮
+        target: 'saveJoinBtn', // 飞向保存join按钮
+        timer: timer
       },
       {
         eventID: 2,
         done: false,
-        target: 'saveJoinBtn' // 点击保存join按钮
+        target: 'saveJoinBtn', // 点击保存join按钮
+        timer: timer
       }
     )
   })
@@ -99,31 +124,85 @@ export function renderModelAddTableData (tables, links, factTableName) {
 }
 export function renderDimensionData (dimensions) {
   let result = []
-  dimensions.forEach((d) => {
+  result.push({
+    eventID: 2,
+    done: false,
+    target: 'moveGuidePanelBtn', // 移动guide面板
+    val: {
+      right: 10,
+      top: 10
+    }
+  })
+  dimensions.forEach((d, i) => {
     let fullWordName = d.replace('.', '')
+    let timer = switchGuideSpeed(i)
     result.push({
       eventID: 6,
       done: false,
       target: 'dimensionScroll', // 进入可视区域
-      search: '.guide-' + fullWordName
+      search: '.guide-' + fullWordName,
+      timer: timer
     }, {
       eventID: 1,
       done: false,
       target: 'batchAddDimensionBox', // 点击dimension 批量弹出按钮按钮
-      search: '.guide-' + fullWordName
+      search: '.guide-' + fullWordName,
+      offsetX: -910,
+      timer: timer
     }, {
       eventID: 2,
       done: false,
       target: 'batchAddDimensionBox', // 点击dimension 批量弹出按钮按钮
-      search: '.guide-' + fullWordName
+      search: '.guide-' + fullWordName,
+      offsetX: -910,
+      timer: timer
     })
   })
   return result
 }
 
+export function renderLoadHiveTables (tables) {
+  let result = []
+  for (let i in tables) {
+    result.push({
+      eventID: 1,
+      done: false,
+      tip: '选择需要加载的表',
+      target: 'hiveTree', // 飞向指定的database
+      search: '.guide-' + i,
+      offsetX: -370
+    }, {
+      eventID: 2,
+      done: false,
+      target: 'hiveTree', // 点击指定的database
+      search: '.guide-' + i,
+      offsetX: -370
+    })
+    tables[i].forEach((t, i) => {
+      let timer = switchGuideSpeed(i)
+      result.push({
+        eventID: 1,
+        done: false,
+        target: 'hiveTree', // 飞向指定的列
+        search: '.guide-' + t,
+        offsetX: -370,
+        timer: timer
+      }, {
+        eventID: 2,
+        done: false,
+        target: 'hiveTree', // 点击指定的列
+        search: '.guide-' + t,
+        offsetX: -370,
+        timer: timer
+      })
+    })
+  }
+  return result
+}
+
 export function renderMeasuresData (measures) {
   let result = []
-  measures.forEach((measure) => {
+  measures.forEach((measure, i) => {
     result.push(
       {
         eventID: 1,
@@ -145,7 +224,7 @@ export function renderMeasuresData (measures) {
         eventID: 3,
         done: false,
         target: 'measureNameInput', // 点击measure的按钮
-        val: 'testMeasure' + sampleGuid()
+        val: 'testMeasure' + i
       },
       {
         eventID: 1,

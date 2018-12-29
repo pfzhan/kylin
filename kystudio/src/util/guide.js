@@ -2,18 +2,20 @@ import TWEEN from '@tweenjs/tween.js'
 import store from '../store'
 import { drama } from '../config/guide/index.js'
 import Scrollbar from 'smooth-scrollbar'
+import { normalGuideSpeed, queryLimit } from '../config/guide/config'
 class Guide {
   constructor (options, _) {
     this.vm = _
     this.systemStore = store.state.system.guideConfig
     this.mode = options.mode || 'manual' // 模式
     this.steps = null
+    this.guiding = false
     this.stepsInfo = []
     this._mount = _.guideMount
     this.promiseObj = null
     this.STs = []
-    this.stepSpeed = 1000
-    this.waitLimit = 2000 // 等待查询的次数限制
+    this.stepSpeed = normalGuideSpeed
+    this.waitLimit = queryLimit // 等待查询的次数限制
     this.waitCount = 0 // 等待次数
     this.currentStep = null
     this.isPause = false
@@ -21,15 +23,13 @@ class Guide {
       {id: 1, info: '鼠标移动到指定位置', action: 'mouse'},
       {id: 11, info: '鼠标移动到指定位置', action: 'drag'},
       {id: 2, info: '点击', action: 'click'},
+      {id: 21, info: '点击执行无点击效果', action: 'fakeclick'},
       {id: 3, info: '打字机输入', action: 'input'},
       {id: 31, info: '直接输入', action: 'inputonce'},
       {id: 32, info: '直接输入(非响应)', action: 'inputwithnoresponse'},
-      {id: 4, info: '拖动', action: 'click'},
       {id: 5, info: '检查dom不存在', action: 'checkAbsent'},
       {id: 51, info: '检查dom存在', action: 'check'},
       {id: 6, info: '元素进入可视区域', action: 'inView'},
-      {id: 7, info: '展开树', action: 'click'},
-      {id: 71, info: '点击树', action: 'extendTree'},
       {id: 8, info: '跳转路由', action: 'go'}
     ]
     this.drama = {
@@ -59,6 +59,10 @@ class Guide {
       el._isVue ? el.$emit('click', stepInfo.val) : el.click(stepInfo.val)
       resolve()
     }, 100)
+  }
+  _fakeclick (el, stepInfo, resolve) {
+    el._isVue ? el.$emit('click', stepInfo.val) : el.click(stepInfo.val)
+    resolve()
   }
   _focus (el) {
     el.focus()
@@ -145,10 +149,21 @@ class Guide {
     } else {
       this.systemStore.globalMouseVisible = true
     }
-    let {left, top, width = 0, height = 0} = stepInfo.pos || el && el.getBoundingClientRect() || {}
+    let l = 0
+    let t = 0
+    if (stepInfo.pos) {
+      l = stepInfo.pos.left
+      t = stepInfo.pos.top
+    } else {
+      let calSize = el && el.getBoundingClientRect() || {}
+      l = calSize.right
+      t = calSize.bottom
+    }
+    let offsetX = stepInfo.offsetX || 0
+    let offsetY = stepInfo.offsetY || 0
     new TWEEN.Tween(this.systemStore.mousePos).to({
-      x: left + width - 37,
-      y: top + height - 30
+      x: l - 40 + offsetX,
+      y: t - 40 + offsetY
     }, 200).onComplete(() => {
       resolve()
     }).start()
@@ -180,15 +195,27 @@ class Guide {
     fuc()
   }
   _inView (dom, targetDom, stepInfo, resolve) {
+    let scrollInstance = Scrollbar.get(targetDom)
+    scrollInstance.scrollIntoView(dom)
     setTimeout(() => {
       if (targetDom) {
         targetDom = targetDom.$el ? targetDom.$el : targetDom
       }
-      let scrollInstance = Scrollbar.get(targetDom)
       if (scrollInstance && dom) {
-        scrollInstance.scrollIntoView(dom)
+        let listener = (status) => {
+          if (scrollInstance.isVisible(dom)) {
+            resolve()
+            scrollInstance.removeListener(listener)
+          }
+        }
+        scrollInstance.addListener(listener)
+        scrollInstance.scrollIntoView(dom, {
+          onlyScrollIfNeeded: true
+        })
+        listener() // 无滚动情况下直接执行
+      } else {
+        resolve()
       }
-      resolve()
     }, 10)
   }
   renderFuc (_event, stepInfo) {
@@ -208,6 +235,10 @@ class Guide {
           })
         } else if (dom && _event.action === 'click') {
           this._click(dom, stepInfo, () => {
+            resolve(stepInfo)
+          })
+        } else if (dom && _event.action === 'fakeclick') {
+          this._fakeclick(dom, stepInfo, () => {
             resolve(stepInfo)
           })
         } else if (dom && _event.action === 'input') {
@@ -275,11 +306,12 @@ class Guide {
           if ((step === undefined || isNaN(step) || step - 1 > 0) && !this.isPause) {
             let st = setTimeout(() => {
               this.step(step - 1, resolve)
-            }, this.stepSpeed)
+            }, stepInfo.timer || this.stepSpeed)
             this.STs.push(st)
           }
         })
       } else {
+        this.guiding = false
         resolve()
         console.log('完成了！')
       }
@@ -298,6 +330,7 @@ class Guide {
   }
   // 按步执行，step为空的话就连续执行
   go (step) {
+    this.guiding = true
     this.isPause = false
     return new Promise((resolve, reject) => {
       this.step(step, resolve, reject)

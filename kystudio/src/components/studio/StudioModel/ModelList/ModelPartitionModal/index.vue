@@ -63,10 +63,10 @@
         </el-date-picker>
       </el-form-item>
     </el-form>
-    <div class="ky-line"></div>
+    <!-- <div class="ky-line"></div>
     <div class="ky-list-title ksd-mt-16">Where 条件设置</div>
     <el-input type="textarea" class="where-area" v-model="filterCondition"></el-input>
-    <div class="ksd-mt-10">Please input : “column_name = value”, i.e. Region = Beijing</div>
+    <div class="ksd-mt-10">Please input : “column_name = value”, i.e. Region = Beijing</div> -->
     <div slot="footer" class="dialog-footer">
       <!-- <span class="ksd-fleft up-performance"><i class="el-icon-ksd-arrow_up"></i>提升<i>5%</i></span> -->
       <!-- <span class="ksd-fleft down-performance"><i class="el-icon-ksd-arrow_down"></i>下降<span>5%</span></span> -->
@@ -229,7 +229,7 @@ export default class ModelPartitionModal extends Vue {
   }
   @Watch('isShow')
   initModeDesc () {
-    if (this.isShow && this.modelDesc && this.modelDesc.partition_desc.partition_date_column) {
+    if (this.isShow && this.modelDesc && this.modelDesc.partition_desc && this.modelDesc.partition_desc.partition_date_column) {
       let named = this.modelDesc.partition_desc.partition_date_column.split('.')
       this.partitionMeta.table = named[0]
       this.partitionMeta.column = named[1]

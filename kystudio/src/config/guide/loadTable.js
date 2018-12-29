@@ -1,3 +1,4 @@
+import { renderLoadHiveTables } from './generate'
 export function loadTableDrama () {
   return [
     {
@@ -38,79 +39,9 @@ export function loadTableDrama () {
       done: false,
       target: 'saveSourceType' // 鼠标点击保存hive数据源按钮
     },
-    {
-      eventID: 1,
-      done: false,
-      tip: '选择需要加载的表',
-      target: 'hiveTree', // 展开指定的database
-      search: '.guide-SSB'
-    },
-    {
-      eventID: 7,
-      done: false,
-      target: 'hiveTree', // 展开指定的database
-      search: '.guide-SSB'
-    },
-    {
-      eventID: 1,
-      done: false,
-      target: 'hiveTree', // 展开指定的database
-      search: '.guide-SSBCUSTOMER'
-    },
-    {
-      eventID: 2,
-      done: false,
-      target: 'hiveTree', // 展开指定的database
-      search: '.guide-SSBCUSTOMER'
-    },
-    {
-      eventID: 1,
-      done: false,
-      target: 'hiveTree', // 展开指定的database
-      search: '.guide-SSBDATES'
-    },
-    {
-      eventID: 2,
-      done: false,
-      target: 'hiveTree', // 展开指定的database
-      search: '.guide-SSBDATES'
-    },
-    {
-      eventID: 1,
-      done: false,
-      target: 'hiveTree', // 展开指定的database
-      search: '.guide-SSBP_LINEORDER'
-    },
-    {
-      eventID: 2,
-      done: false,
-      target: 'hiveTree', // 展开指定的database
-      search: '.guide-SSBP_LINEORDER'
-    },
-    {
-      eventID: 1,
-      done: false,
-      target: 'hiveTree', // 展开指定的database
-      search: '.guide-SSBPART'
-    },
-    {
-      eventID: 2,
-      done: false,
-      target: 'hiveTree', // 展开指定的database
-      search: '.guide-SSBPART'
-    },
-    {
-      eventID: 1,
-      done: false,
-      target: 'hiveTree', // 展开指定的database
-      search: '.guide-SSBSUPPLIER'
-    },
-    {
-      eventID: 2,
-      done: false,
-      target: 'hiveTree', // 展开指定的database
-      search: '.guide-SSBSUPPLIER'
-    },
+    ...renderLoadHiveTables({
+      'SSB': ['SSBCUSTOMER', 'SSBDATES', 'SSBPART', 'SSBP_LINEORDER', 'SSBSUPPLIER']
+    }),
     {
       eventID: 1,
       done: false,
@@ -121,6 +52,11 @@ export function loadTableDrama () {
       eventID: 2,
       done: false,
       target: 'saveSourceType' // 鼠标点击加载数据源按钮
+    },
+    {
+      eventID: 5,
+      done: false,
+      target: 'selectHiveTables' // 鼠标点击加载数据源按钮
     }
   ]
 }

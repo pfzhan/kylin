@@ -124,6 +124,15 @@ export function addModelDrama () {
     }], 'SSB.P_LINEORDER'),
     // end
     {
+      eventID: 21,
+      done: false,
+      target: 'moveGuidePanelBtn',
+      val: {
+        left: 22,
+        top: 10
+      }
+    },
+    {
       eventID: 1,
       done: false,
       target: 'modelActionPanel', // 飞向模型表操作区域
@@ -189,6 +198,15 @@ export function addModelDrama () {
       target: 'saveBatchDimensionBtn' // 点击保存批量dimension的按钮
     },
     {
+      eventID: 2,
+      done: false,
+      target: 'moveGuidePanelBtn', // 移动guide面板
+      val: {
+        left: 22,
+        top: 10
+      }
+    },
+    {
       eventID: 1,
       done: false,
       tip: '添加measure',
@@ -212,6 +230,12 @@ export function addModelDrama () {
       expression: 'COUNT_DISTINCT',
       parameter: 'P_LINEORDER.LO_LINENUMBER'
     }]),
+    {
+      eventID: 2,
+      done: false,
+      target: 'moveGuidePanelBtn', // 恢复面板位置
+      val: null
+    },
     // 保存模型
     {
       eventID: 1,

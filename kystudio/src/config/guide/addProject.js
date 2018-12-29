@@ -2,6 +2,12 @@ export function addProjectDrama () {
   return [
     // 添加project
     {
+      eventID: 8,
+      done: false,
+      tip: '点击添加project',
+      router: 'Dashboard' // 鼠标移动到添加project按钮
+    },
+    {
       eventID: 1,
       done: false,
       tip: '点击添加project',
