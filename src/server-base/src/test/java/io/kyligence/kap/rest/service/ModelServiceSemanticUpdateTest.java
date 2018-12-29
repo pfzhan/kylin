@@ -498,8 +498,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val originModel = getTestInnerModel();
         modelMgr.updateDataModel(originModel.getName(),
                 model -> model.setAllMeasures(model.getAllMeasures().stream().peek(m -> {
-                    if (m.id == 1011) {
-                        m.id = 1017;
+                    if (m.id == 1017) {
+                        m.id = 1018;
                     }
                 }).collect(Collectors.toList())));
 
@@ -507,11 +507,11 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
         val cube = cubeMgr.getCubePlan("ncube_basic_inner");
         for (NCuboidLayout layout : cube.getWhitelistCuboidLayouts()) {
-            Assert.assertTrue(!layout.getColOrder().contains(1011));
-            Assert.assertTrue(!layout.getCuboidDesc().getMeasures().contains(1011));
+            Assert.assertTrue(!layout.getColOrder().contains(1017));
+            Assert.assertTrue(!layout.getCuboidDesc().getMeasures().contains(1017));
         }
         val newRule = cube.getRuleBasedCuboidsDesc();
-        Assert.assertTrue(!newRule.getMeasures().contains(1011));
+        Assert.assertTrue(!newRule.getMeasures().contains(1017));
     }
 
     @Test

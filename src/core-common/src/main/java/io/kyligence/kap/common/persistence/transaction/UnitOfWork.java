@@ -50,10 +50,13 @@ import io.kyligence.kap.common.persistence.event.ResourceRelatedEvent;
 import io.kyligence.kap.common.persistence.event.StartUnit;
 import io.kyligence.kap.common.persistence.transaction.mq.MQPublishFailureException;
 import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class UnitOfWork {
     public static final String GLOBAL_UNIT = "@global";
 
@@ -119,8 +122,10 @@ public class UnitOfWork {
                     }
 
                     if (threadLocals.get() != null) {
-                        threadLocals.get().done();
+                        UnitOfWork work = threadLocals.get();
+                        work.done();
                         threadLocals.remove();
+                        log.debug("UnitOfWork for {} is done", work.project);
                     }
                 }
             }
@@ -137,18 +142,13 @@ public class UnitOfWork {
         Preconditions.checkState(!lock.isHeldByCurrentThread());
         lock.lock();
 
-        UnitOfWork unitOfWork = new UnitOfWork(project, useSandboxStore);
+        UnitOfWork unitOfWork = new UnitOfWork(project);
         unitOfWork.currentLock = lock;
         threadLocals.set(unitOfWork);
-        return unitOfWork;
-    }
-
-    private UnitOfWork(String project, boolean useSandboxStore) {
-        this.project = project;
 
         if (!useSandboxStore) {
-            this.localConfig = null;
-            return;
+            unitOfWork.localConfig = null;
+            return unitOfWork;
         }
 
         //only for UT
@@ -165,9 +165,11 @@ public class UnitOfWork {
         //TODO check underlying rs is never changed since here
         ThreadViewResourceStore rs = new ThreadViewResourceStore((InMemResourceStore) underlying, configCopy);
         ResourceStore.setRS(configCopy, rs);
-        this.localConfig = KylinConfig.setAndUnsetThreadLocalConfig(configCopy);
+        unitOfWork.localConfig = KylinConfig.setAndUnsetThreadLocalConfig(configCopy);
 
         log.info("sandbox RS {} now takes place for main RS {}", rs, underlying);
+
+        return unitOfWork;
     }
 
     private void done() {

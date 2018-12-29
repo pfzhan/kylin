@@ -125,8 +125,8 @@ public class NFavoriteScheduler {
                 .getProject(project);
 
         // init schedulers
-        autoFavoriteScheduler = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NFavoriteScheduler"));
-        updateFavoriteScheduler = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NFavoriteScheduler"));
+        autoFavoriteScheduler = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NAutoFavoriteScheduler-" + project));
+        updateFavoriteScheduler = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NUpdateFavoriteScheduler-" + project));
 
         // init frequency status
         autoFavoriteScheduler.schedule(this::initFrequencyStatus, 0, TimeUnit.SECONDS);
