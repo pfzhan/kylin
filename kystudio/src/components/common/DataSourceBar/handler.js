@@ -1,8 +1,6 @@
 import dayjs from 'dayjs'
 import { sourceTypes, sourceNameMapping, pageSizeMapping } from '../../../config'
 import { getGmtDateFromUtcLike } from '../../../util'
-import { getUserRange, getAllSegmentsRange } from '../../../util/UtilTable'
-
 export const render = {
   datasource: {
     render (h, { node, data, store }) {
@@ -151,9 +149,8 @@ export function getTableObj (that, database, table) {
     ...(table.lookup ? ['L'] : []),
     ...(!table.root_fact && !table.lookup ? ['N'] : [])
   ]
-  const allRange = getAllSegmentsRange(table)
-  const dateRange = getUserRange(table)
-  const dateRangeStr = getDateRangeStr(that, dateRange.length ? dateRange : allRange)
+  const dataRange = _getSegmentRange(table)
+  const dateRangeStr = _getDateRangeStr(that, dataRange)
   const tableObj = {
     id: table.uuid,
     label: table.name,
@@ -225,19 +222,6 @@ export function getFirstTableData (datasourceTree) {
   }
 }
 
-function getDateRangeStr (that, userRange) {
-  const [ startTime, endTime ] = userRange
-  if (startTime !== undefined || endTime !== undefined) {
-    const startStr = dayjs(getGmtDateFromUtcLike(startTime)).format('YYYY-MM-DD')
-    const endStr = dayjs(getGmtDateFromUtcLike(endTime)).format('YYYY-MM-DD')
-    return startStr !== 'NaN-NaN-NaN' &&
-      endStr !== 'NaN-NaN-NaN' &&
-      `${startStr} ${that.$t('to')} ${endStr}`
-  } else {
-    return ''
-  }
-}
-
 export function freshTreeOrder (that) {
   that.datasources.forEach(datasource => {
     datasource.children.sort((itemA, itemB) => itemA.label > itemB.label ? 1 : -1)
@@ -259,4 +243,26 @@ export function freshTreeOrder (that) {
     })
   })
   that.datasources = [...that.datasources]
+}
+
+function _getDateRangeStr (that, userRange) {
+  const [ startTime, endTime ] = userRange
+  if (startTime !== undefined && endTime !== undefined) {
+    const startStr = dayjs(getGmtDateFromUtcLike(startTime)).format('YYYY-MM-DD')
+    const endStr = dayjs(getGmtDateFromUtcLike(endTime)).format('YYYY-MM-DD')
+    return `${startStr} ${that.$t('to')} ${endStr}`
+  } else {
+    return ''
+  }
+}
+
+function _getSegmentRange (table) {
+  const segmentRange = table.segment_range
+  if (segmentRange) {
+    const startTime = segmentRange.date_range_start
+    const endTime = segmentRange.date_range_end
+    return [ startTime, endTime ]
+  } else {
+    return []
+  }
 }

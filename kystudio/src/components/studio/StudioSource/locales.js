@@ -1,40 +1,20 @@
 export default {
   'en': {
     updateAt: 'Last update :',
-    changeType: 'Change Table Type',
-    reload: 'Update Metadata',
-    sampling: 'Sampling',
-    pushdownRange: 'Query Range',
-    unload: 'Delete',
+    delete: 'Delete',
     dataLoad: 'Data Load',
     columns: 'Columns',
     sample: 'Sample',
-    statistics: 'Statistics',
-    extendInformation: 'Extend Information',
-    access: 'Access',
-    reloadTable: 'Are you sure to update metadata?',
-    reloadSuccess: 'Update metadata successfully.',
     unloadTable: 'Are you sure to delete table?',
-    unloadSuccess: 'Delete Table successfully.',
-    emptyTable: 'No Data'
+    unloadSuccess: 'Delete Table successfully.'
   },
   'zh-cn': {
     updateAt: '上次更新时间 :',
-    changeType: '改变源表类型',
-    reload: '更新元数据',
-    sampling: '源表采样',
-    pushdownRange: '查询范围',
-    unload: '删除',
+    delete: '删除',
     dataLoad: '数据加载信息',
     columns: '列级信息',
     sample: '样例数据',
-    statistics: '统计信息',
-    extendInformation: '额外信息',
-    access: '源表权限',
-    reloadTable: '确定要更新元数据？',
-    reloadSuccess: '更新元数据成功',
     unloadTable: '确定要删除源表？',
-    unloadSuccess: '删除成功',
-    emptyTable: '没有数据'
+    unloadSuccess: '删除成功'
   }
 }

@@ -205,11 +205,11 @@ export default {
     [types.PREVIEW_ACL_SET_ROW_SQL]: function ({commit}, para) {
       return api.datasource.previewAclSetOfRowSql(para.tableName, para.project, para.userName, para.conditions)
     },
-    [types.SAVE_FACT_TABLE]: function ({commit}, para) {
-      return api.datasource.saveFactTable(para.projectName, para.tableFullName, para.isIncremental, para.column, para.format)
+    [types.SAVE_TABLE_PARTITION]: function ({commit}, body) {
+      return api.datasource.saveTablePartition(body)
     },
-    [types.SAVE_DATA_RANGE]: function ({commit}, para) {
-      return api.datasource.saveDataRange(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime))
+    [types.SAVE_DATA_RANGE]: function ({commit}, body) {
+      return api.datasource.saveDataRange(body)
     },
     [types.FETCH_RELATED_MODELS]: function ({commit}, para) {
       return api.datasource.fetchRelatedModels(para.projectName, para.tableFullName, para.modelName, para.pageOffset, para.pageSize)
@@ -220,7 +220,7 @@ export default {
     [types.FETCH_TABLES]: function ({commit}, para) {
       return api.datasource.fetchTables(para.projectName, para.databaseName, para.tableName, para.pageOffset, para.pageSize, para.isFuzzy, para.isExt)
         .then((response) => {
-          if (!para.isFuzzy) {
+          if (!para.isFuzzy && !para.isDisableCache) {
             commit(types.CACHE_DATASOURCE, { data: response.data.data, project: para.projectName, isReset: para.pageOffset === 0 })
           }
           return response
@@ -235,8 +235,8 @@ export default {
     [types.FETCH_CHANGE_TYPE_INFO]: function ({commit}, para) {
       return api.datasource.fetchChangeTypeInfo(para.projectName, para.tableName, para.isSelectFact)
     },
-    [types.FETCH_RANGE_FRESH_INFO]: function ({commit}, para) {
-      return api.datasource.fetchRangeFreshInfo(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime))
+    [types.FETCH_RANGE_FRESH_INFO]: function ({commit}, body) {
+      return api.datasource.fetchRangeFreshInfo(body)
     },
     [types.FRESH_RANGE_DATA]: function ({commit}, para) {
       return api.datasource.freshRangeData(para.projectName, para.tableFullName, String(para.startTime), String(para.endTime), para.affectedStart, para.affectedEnd)

@@ -1,5 +1,5 @@
 import Vue from 'vue'
-import { getGmtDateFromUtcLike } from '../util'
+import { getGmtDateFromUtcLike, transToGmtTime } from '../util'
 Vue.filter('nullValFilter', function (value) {
   return value == null ? 'null' : value
 })
@@ -176,3 +176,6 @@ Vue.filter('arrayToStr', function (data) {
   }
 })
 
+Vue.filter('timestamp2GmtDate', function (data) {
+  return transToGmtTime(data)
+})

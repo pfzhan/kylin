@@ -1,6 +1,8 @@
+import $ from 'jquery'
+
 export function get (object, pathStr = '') {
   try {
-    const newObject = JSON.parse(JSON.stringify(object))
+    const newObject = $.extend(true, {}, object)
     const pathArray = pathStr.split('.')
 
     let curObject = newObject
@@ -18,7 +20,7 @@ export function get (object, pathStr = '') {
 
 export function set (object, pathStr = '', value) {
   try {
-    const newObject = JSON.parse(JSON.stringify(object))
+    const newObject = $.extend(true, {}, object)
     const pathArray = pathStr.split('.')
 
     let curObject = newObject
@@ -27,6 +29,9 @@ export function set (object, pathStr = '', value) {
       if (index === pathArray.length - 1) {
         curObject[path] = value
       } else {
+        if (!curObject[path]) {
+          curObject[path] = {}
+        }
         curObject = curObject[path]
       }
     })
@@ -40,7 +45,7 @@ export function set (object, pathStr = '', value) {
 
 export function push (object, pathStr = '', value) {
   try {
-    const newObject = JSON.parse(JSON.stringify(object))
+    const newObject = $.extend(true, {}, object)
     const pathArray = pathStr.split('.')
 
     let curObject = newObject

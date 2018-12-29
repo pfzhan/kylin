@@ -11,60 +11,40 @@
         :is-show-selected="true"
         :is-expand-on-click-node="false"
         :is-first-select="true"
+        :is-show-source-switch="true"
         :expand-node-types="['datasource', 'database']"
         :searchable-node-types="['table', 'column']"
-        @click="handleClick">
+        @click="handleClick"
+        @show-source="handleShowSourcePage">
       </DataSourceBar>
       <!-- Source Table展示 -->
       <div class="layout-right">
         <template v-if="selectedTable">
           <!-- Source Table标题信息 -->
           <div class="table-header">
-            <h1
-              class="table-name"
-              :title="`${selectedTable.database}.${selectedTable.name}`">
-              {{selectedTable.database}}.{{selectedTable.name}}
-            </h1>
-            <h2 class="table-update-at">{{$t('updateAt')}} {{updateAt}}</h2>
+            <h1 class="table-name" :title="selectedTable.fullName">{{selectedTable.fullName}}</h1>
+            <h2 class="table-update-at">{{$t('updateAt')}} {{selectedTable.updateAt | timestamp2GmtDate}}</h2>
             <div class="table-actions">
-              <el-button size="small" icon="el-icon-ksd-restart" @click="handleReload">{{$t('reload')}}</el-button>
-              <el-button size="small" icon="el-icon-ksd-unload" @click="handleUnload">{{$t('unload')}}</el-button>
-              <el-button size="small" icon="el-icon-ksd-sync" @click="handlePushdownRange">{{$t('pushdownRange')}}</el-button>
+              <el-button size="small" icon="el-icon-ksd-unload" @click="handleDelete">{{$t('delete')}}</el-button>
             </div>
           </div>
           <!-- Source Table详细信息 -->
-          <div class="table-details">
-            <el-tabs v-model="viewType">
-              <el-tab-pane :label="$t('dataLoad')" :name="viewTypes.DATA_LOAD">
-                <TableDataLoad :project="currentProjectData" :table="selectedTable" @fresh-tables="handleFreshTable"></TableDataLoad>
-              </el-tab-pane>
-              <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS">
-                <TableColumns :table="selectedTable"></TableColumns>
-              </el-tab-pane>
-              <!-- <el-tab-pane :label="$t('sample')" :name="viewTypes.SAMPLE">
-                <TableSamples :table="selectedTable"></TableSamples>
-              </el-tab-pane> -->
-              <el-tab-pane :label="$t('statistics')" :name="viewTypes.STATISTICS" v-if="isShowStatistic">
-                <TableStatistics :table="selectedTable"></TableStatistics>
-              </el-tab-pane>
-              <el-tab-pane :label="$t('extendInformation')" :name="viewTypes.EXTEND_INFORMATION">
-                <TableExtInfo :table="selectedTable"></TableExtInfo>
-              </el-tab-pane>
-              <!-- <el-tab-pane :label="$t('kylinLang.dataSource.kafkaCluster')" :name="viewTypes.KAFKA" v-if="isShowKafka">
-                <el-button type="primary" plain size="medium" icon="edit" @click="handleKafkaClick" class="ksd-fright">{{$t('kylinLang.common.edit')}}</el-button>
-                <ViewKafka ref="addkafkaForm" @validSuccess="kafkaValidSuccess" :streamingData="currentStreamingTableData" :tableName="currentStreamingTable" ></ViewKafka>
-              </el-tab-pane> -->
-              <!-- <el-tab-pane :label="$t('access')" :name="viewTypes.ACCESS">
-                <Access></Access>
-              </el-tab-pane> -->
-            </el-tabs>
-          </div>
+          <el-tabs class="table-details" v-model="viewType">
+            <el-tab-pane :label="$t('dataLoad')" :name="viewTypes.DATA_LOAD">
+              <TableDataLoad :project="currentProjectData" :table="selectedTable" @fresh-tables="handleFreshTable" @input="fakeHandleInput"></TableDataLoad>
+            </el-tab-pane>
+            <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS">
+              <TableColumns :table="selectedTable"></TableColumns>
+            </el-tab-pane>
+          </el-tabs>
         </template>
         <!-- Table空页 -->
         <div class="empty-page" v-if="!selectedTable">
-          <el-row class="center"><img :src="emptyImg" /></el-row>
-          <el-row class="center">{{$t('emptyTable')}}</el-row>
+          <EmptyData />
         </div>
+        <transition name="slide">
+          <SourceManagement v-if="isShowSourcePage" :project="currentProjectData"></SourceManagement>
+        </transition>
       </div>
     </div>
   </div>
@@ -72,33 +52,26 @@
 
 <script>
 import Vue from 'vue'
-import { mapGetters, mapActions, mapMutations } from 'vuex'
+import { mapGetters, mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 
-import emptyImg from './empty.svg'
 import locales from './locales'
-import { viewTypes, getSelectedTableDetail } from './handler'
+import { viewTypes } from './handler'
 import DataSourceBar from '../../common/DataSourceBar/index.vue'
 import TableDataLoad from './TableDataLoad/TableDataLoad.vue'
-import TableColumns from './TableColumns/index.vue'
-import TableSamples from './TableSamples/index.vue'
-import TableStatistics from './TableStatistics/index.vue'
-import TableExtInfo from './TableExtInfo/index.vue'
-import ViewKafka from '../../kafka/view_kafka.vue'
-// import Access from '../../datasource/access.vue'
-import { sourceTypes } from '../../../config'
-import { handleSuccessAsync, transToGmtTime, handleError } from '../../../util'
+import TableColumns from './TableColumns/TableColumns.vue'
+import SourceManagement from './SourceManagement/SourceManagement.vue'
+import EmptyData from '../../common/EmptyData/EmptyData.vue'
+import { handleSuccessAsync, handleError } from '../../../util'
+import { getFormattedTable } from '../../../util/UtilTable'
 
 @Component({
   components: {
+    EmptyData,
     DataSourceBar,
     TableDataLoad,
     TableColumns,
-    TableSamples,
-    TableStatistics,
-    TableExtInfo,
-    ViewKafka
-    // Access
+    SourceManagement
   },
   computed: {
     ...mapGetters([
@@ -107,12 +80,6 @@ import { handleSuccessAsync, transToGmtTime, handleError } from '../../../util'
     ])
   },
   methods: {
-    ...mapActions('SourceTableModal', {
-      callSourceTableModal: 'CALL_MODAL'
-    }),
-    ...mapMutations({
-      setCurrentTableData: 'SET_CURRENT_TABLE'
-    }),
     ...mapActions({
       fetchTables: 'FETCH_TABLES',
       importTable: 'LOAD_HIVE_IN_PROJECT',
@@ -122,115 +89,79 @@ import { handleSuccessAsync, transToGmtTime, handleError } from '../../../util'
   locales
 })
 export default class StudioSource extends Vue {
-  viewType = ''
-  selectedTable = null
-  tableDetail = null
-
+  selectedTableData = null
+  viewType = viewTypes.DATA_LOAD
   viewTypes = viewTypes
-  emptyImg = emptyImg
+  isShowSourcePage = false
+  get selectedTable () {
+    return this.selectedTableData ? getFormattedTable(this.selectedTableData) : null
+  }
+  handleShowSourcePage (value) {
+    this.isShowSourcePage = value
+  }
+  async handleClick (data = {}) {
+    if (data.type !== 'table') return
 
-  get isShowStatistic () {
-    const { source_type: sourceType } = this.selectedTable
-    return sourceType === 0 || sourceType === 8 || sourceType === 16
-  }
-  get isShowKafka () {
-    return this.selectedTable.source_type === 1
-  }
-  get updateAt () {
-    return transToGmtTime(this.selectedTable.last_modified, this)
-  }
-
-  async mounted () {
-    this.viewType = viewTypes.DATA_LOAD
-  }
-  handleClick (data) {
-    this.fetchTableDetail(data)
-  }
-  handleKafkaClick () {
-    const { currentProjectData: project } = this
-    this.callDataSourceModal({ sourceType: sourceTypes.KAFKA, project })
-  }
-  handleReload () {
-    this.$confirm(this.$t('reloadTable'), this.$t('kylinLang.common.notice'), {
-      confirmButtonText: this.$t('kylinLang.common.ok'),
-      cancelButtonText: this.$t('kylinLang.common.cancel'),
-      type: 'warning'
-    }).then(() => {
-      const databaseName = this.selectedTable.database
-      const tableName = this.selectedTable.name
-
-      const projectName = this.currentSelectedProject
-      const sourceType = this.selectedTable.source_type
-      const tableFullName = `${databaseName}.${tableName}`
-      return this.importTable({ projectName, sourceType, tableNames: [tableFullName] })
-    }).then(() => {
-      const databaseName = this.selectedTable.database
-      const tableName = this.selectedTable.name
-
-      this.$message({
-        type: 'success',
-        message: this.$t('reloadSuccess')
-      })
-      return this.fetchTableDetail({ label: tableName, database: databaseName, type: 'table' })
-    }).catch((e) => {
-      handleError(e)
-    })
-  }
-  handleSampling () {
-    this.$refs['SampleModal'].showModal()
-  }
-  handleUnload () {
-    this.$confirm(this.$t('unloadTable'), this.$t('kylinLang.common.notice'), {
-      confirmButtonText: this.$t('kylinLang.common.ok'),
-      cancelButtonText: this.$t('kylinLang.common.cancel'),
-      type: 'warning'
-    }).then(() => {
-      const projectName = this.currentSelectedProject
-      const databaseName = this.selectedTable.database
-      const tableName = this.selectedTable.name
-      return this.deleteTable({ projectName, databaseName, tableName })
-    }).then(() => {
-      this.$message({
-        type: 'success',
-        message: this.$t('unloadSuccess')
-      })
-      return this.handleFreshTable({ isSetToDefault: true })
-    }).catch((e) => {
-      handleError(e)
-    })
-  }
-  async handlePushdownRange () {
-    const projectName = this.currentSelectedProject
-    const table = this.selectedTable
-    const isSubmit = await this.callSourceTableModal({ editType: 'pushdownConfig', table, projectName })
-    isSubmit && this.$emit('fresh-tables')
-  }
-  async handleFreshTable (options) {
     try {
-      const { isSetToDefault } = options || {}
-      await this.$refs['datasource-bar'].loadTables({ isReset: true })
-
-      if (isSetToDefault) {
-        this.$refs['datasource-bar'].selectFirstTable()
-      } else {
-        const { name, database } = this.selectedTable
-        await this.fetchTableDetail({ label: name, database, type: 'table' })
-      }
+      const tableName = data.label
+      const databaseName = data.database
+      await this.fetchTableDetail({ tableName, databaseName })
     } catch (e) {
       handleError(e)
     }
   }
-  async fetchTableDetail (data) {
-    if (data.type === 'table') {
+  showDeleteTableComfirm () {
+    const comfirmTitle = this.$t('kylinLang.common.notice')
+    const comfirmText = this.$t('unloadTable')
+    const confirmButtonText = this.$t('kylinLang.common.ok')
+    const cancelButtonText = this.$t('kylinLang.common.cancel')
+    const comfirmParams = { confirmButtonText, cancelButtonText, type: 'warning' }
+
+    return this.$confirm(comfirmText, comfirmTitle, comfirmParams)
+  }
+  async handleDelete () {
+    try {
       const projectName = this.currentSelectedProject
-      const tableName = data.label
-      const databaseName = data.database
+      const databaseName = this.selectedTable.database
+      const tableName = this.selectedTable.name
+
+      await this.showDeleteTableComfirm()
+      await this.deleteTable({ projectName, databaseName, tableName })
+
+      this.$message({ type: 'success', message: this.$t('unloadSuccess') })
+      await this.handleFreshTable({ isSetToDefault: true })
+    } catch (e) {
+      handleError(e)
+    }
+  }
+  async handleFreshTable (options = {}) {
+    try {
+      const { isSetToDefault } = options
+      const tableName = this.selectedTable.name
+      const databaseName = this.selectedTable.database
+      await this.$refs['datasource-bar'].loadTables({ isReset: true })
+
+      isSetToDefault
+        ? this.$refs['datasource-bar'].selectFirstTable()
+        : await this.fetchTableDetail({ tableName, databaseName })
+    } catch (e) {
+      handleError(e)
+    }
+  }
+  async fetchTableDetail ({ tableName, databaseName }) {
+    try {
+      const projectName = this.currentSelectedProject
       const res = await this.fetchTables({ projectName, databaseName, tableName, isExt: true, isFuzzy: false })
       const tableDetail = await handleSuccessAsync(res)
 
-      this.selectedTable = getSelectedTableDetail(tableDetail.tables[0])
-      this.setCurrentTableData({ tableData: this.selectedTable })
+      this.selectedTableData = tableDetail.tables[0]
+    } catch (e) {
+      handleError(e)
     }
+  }
+
+  fakeHandleInput (key, value) {
+    this.selectedTableData = JSON.parse(JSON.stringify({ ...this.selectedTableData, [key]: value }))
   }
 }
 </script>
@@ -292,8 +223,18 @@ export default class StudioSource extends Vue {
       margin-bottom: 20px;
     }
   }
+  .el-tabs__header {
+    margin-bottom: 10px;
+  }
   .el-tabs__content {
-    overflow: visible;
+    padding: 20px 0;
+  }
+  .slide-enter-active, .slide-leave-active {
+    transition: transform .5s;
+    transform: translateX(0);
+  }
+  .slide-enter, .slide-leave-to {
+    transform: translateX(-100%);
   }
 }
 </style>

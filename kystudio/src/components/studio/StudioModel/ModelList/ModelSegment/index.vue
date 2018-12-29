@@ -45,20 +45,20 @@
     </div>
 
     <div class="segment-views">
-      <el-table border :data="segments" @selection-change="handleSelectSegments">
+      <el-table border :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="35" align="center">
         </el-table-column>
         <el-table-column prop="id" label="Segment Id">
         </el-table-column>
         <el-table-column prop="status" :label="$t('kylinLang.common.status')" width="155" align="center">
         </el-table-column>
-        <el-table-column :label="$t('storageSize')" width="145" header-align="center" align="right">
+        <el-table-column :label="$t('storageSize')" width="145" header-align="center" align="right" prop="storage" sortable>
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.startTime')" align="center">
+        <el-table-column :label="$t('kylinLang.common.startTime')" align="center" prop="start_time" sortable>
           <template slot-scope="scope">{{scope.row.startTime | utcTime}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.endTime')" align="center">
+        <el-table-column :label="$t('kylinLang.common.endTime')" align="center" prop="end_time" sortable>
           <template slot-scope="scope">{{scope.row.endTime | utcTime}}</template>
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.action')" width="100" align="center">
@@ -86,7 +86,7 @@
         </tr>
         <tr class="ksd-tr">
           <th>{{$t('segmentPath')}}</th>
-          <td>{{detailSegment.path}}</td>
+          <td>{{detailSegment.segmentPath}}</td>
         </tr>
         <tr class="ksd-tr">
           <th>{{$t('fileNumber')}}</th>
@@ -104,18 +104,6 @@
           <th>{{$t('endTime')}}</th>
           <td>{{detailSegment.endTime | utcTime}}</td>
         </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('tableIndexSegmentPath')}}</th>
-          <td>{{detailSegment.tableIndexPath}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('tableIndexFileNumber')}}</th>
-          <td>{{detailSegment.tableIndexFileNumber}}</td>
-        </tr>
-        <tr class="ksd-tr">
-          <th>{{$t('tableIndexStorageSize')}}</th>
-          <td>{{detailSegment.tableIndexStorageSize}}</td>
-        </tr>
       </table>
     </el-dialog>
   </div>
@@ -130,7 +118,6 @@ import locales from './locales'
 import { pageCount } from '../../../../../config'
 import { handleSuccessAsync, handleError, transToUTCMs } from '../../../../../util'
 import { formatSegments } from './handler'
-// import { getMockSegments } from './mock'
 
 @Component({
   props: {
@@ -162,7 +149,9 @@ export default class ModelSegment extends Vue {
   filter = {
     mpValues: '',
     startDate: '',
-    endDate: ''
+    endDate: '',
+    reverse: true,
+    sortBy: 'last_modify'
   }
   pagination = {
     pageOffset: 0,
@@ -178,6 +167,8 @@ export default class ModelSegment extends Vue {
   }
   @Watch('filter.startDate')
   @Watch('filter.endDate')
+  @Watch('filter.sortBy')
+  @Watch('filter.reverse')
   onDateRangeChange (val) {
     this.loadSegments()
   }
@@ -190,6 +181,14 @@ export default class ModelSegment extends Vue {
   getEndDateLimit (time) {
     return this.filter.startDate ? time.getTime() < this.filter.startDate.getTime() : false
   }
+  handleSortChange ({ column, prop, order }) {
+    if (order === 'ascending') {
+      this.filter.reverse = false
+    } else {
+      this.filter.reverse = true
+    }
+    this.filter.sortBy = prop
+  }
   handleCurrentChange (pager, count) {
     this.pagination.pageOffset = pager
     this.pagination.pageSize = count
@@ -197,14 +196,14 @@ export default class ModelSegment extends Vue {
   }
   async loadSegments () {
     try {
-      const { startDate, endDate } = this.filter
+      const { startDate, endDate, sortBy, reverse } = this.filter
       const projectName = this.currentSelectedProject
       const modelName = this.model.name
       const startTime = startDate && transToUTCMs(startDate)
       const endTime = endDate && transToUTCMs(endDate)
 
       this.isSegmentLoading = true
-      const res = await this.fetchSegments({ projectName, modelName, startTime, endTime, ...this.pagination })
+      const res = await this.fetchSegments({ projectName, modelName, startTime, endTime, sortBy, reverse, ...this.pagination })
       const { size, segments } = await handleSuccessAsync(res)
       const formatedSegments = formatSegments(this, segments)
       this.segments = formatedSegments
@@ -229,7 +228,10 @@ export default class ModelSegment extends Vue {
         const customClass = 'pre'
         await this.$confirm(confirmMessage, confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText, customClass })
         const isSubmit = await this.refreshSegments({ projectName, modelName, segmentIds })
-        isSubmit && this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+        if (isSubmit) {
+          await this.loadSegments()
+          this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
+        }
       } else {
         this.$message(this.$t('pleaseSelectSegments'))
       }
@@ -321,6 +323,10 @@ export default class ModelSegment extends Vue {
     font-size: 16px;
     color: #263238;
     margin: 20px 0 10px 0;
+  }
+  .ksd-table td {
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 }
 </style>

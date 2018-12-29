@@ -149,6 +149,8 @@ exports.default = {
     back: 'Back',
     startTime: 'Start Time',
     endTime: 'End Time',
+    startTime1: 'Start Time:',
+    endTime1: 'End Time:',
     pleaseChoose: 'Please Choose',
     ON: 'ON',
     OFF: 'OFF',
@@ -351,7 +353,10 @@ exports.default = {
     collectStatice: 'The higher the sampling percentage, the more accurate the stats information, the more resources engaging.',
     dataSourceHasJob: 'This table has a running job of cube build, thus the action is disabled.',
     topic: 'Kafka Topic:',
-    kafkaCluster: 'Kafka Cluster'
+    kafkaCluster: 'Kafka Cluster',
+    full: 'Full Load',
+    incremental: 'Incremental Load',
+    snapshot: 'Snapshot'
   },
   login: {
     signIn: 'Kyligence Account | Sign In'

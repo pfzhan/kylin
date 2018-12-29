@@ -29,7 +29,7 @@
         :label="$t('kylinLang.dataSource.columnName')">
       </el-table-column>
       <el-table-column
-        prop="datatype"
+        prop="dataType"
         sortable
         align="left"
         min-width="150px"

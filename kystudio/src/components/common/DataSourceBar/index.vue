@@ -2,7 +2,10 @@
   <aside class="data-source-bar">
     <section class="header clearfix" v-if="isShowActionGroup">
       <div class="header-text font-medium">
-        {{$t('kylinLang.common.dataSource')}}
+        <span>{{$t('kylinLang.common.dataSource')}}</span>
+        <div class="header-icon" v-if="isShowSourceSwitch" @click="handleSwitchSource">
+          <i :class="!isSwitchSource ? 'el-icon-ksd-more_03' : 'el-icon-ksd-more_04'"></i>
+        </div>
       </div>
       <div class="header-icons">
         <i class="el-icon-ksd-table_setting" v-if="isShowSettings" @click="importDataSource(sourceTypes.SETTING, currentProjectData)"></i>
@@ -79,6 +82,10 @@ import { handleSuccessAsync } from '../../../util'
       type: Boolean,
       default: true
     },
+    isShowSourceSwitch: {
+      type: Boolean,
+      default: false
+    },
     isShowSettings: {
       type: Boolean,
       default: false
@@ -137,6 +144,7 @@ export default class DataSourceBar extends Vue {
   defaultExpandedKeys = []
   draggableNodeKeys = []
   timer = null
+  isSwitchSource = false
 
   get databaseArray () {
     const allData = this.datasources.reduce((databases, datasource) => [...databases, ...datasource.children], [])
@@ -303,6 +311,10 @@ export default class DataSourceBar extends Vue {
     data.isTopSet = isTopSet
     freshTreeOrder(this)
   }
+  handleSwitchSource () {
+    this.isSwitchSource = !this.isSwitchSource
+    this.$emit('show-source', this.isSwitchSource)
+  }
   setSelectedTable (data) {
     for (const table of this.tableArray) {
       table.isSelected = data.id === table.id
@@ -361,11 +373,36 @@ export default class DataSourceBar extends Vue {
   }
   .header-text {
     float: left;
+    span {
+      line-height: 20px;
+    }
+  }
+  .header-icon {
+    display: inline-block;
+    font-size: 14px;
+    padding: 3px;
+    border-radius: 50%;
+    color: @base-color;
+    &:hover {
+      background: @grey-3;
+    }
+    .el-icon-ksd-more_03 {
+      display: block;
+      position: relative;
+      left: 1px;
+    }
+    .el-icon-ksd-more_04 {
+      display: block;
+      position: relative;
+      left: -1px;
+    }
   }
   .header-icons {
-    float: right;
     position: relative;
     transform: translateY(4px);
+    &.right {
+      float: right;
+    }
     i {
       margin-right: 4px;
     }

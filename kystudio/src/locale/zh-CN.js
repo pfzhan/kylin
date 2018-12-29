@@ -148,6 +148,8 @@ exports.default = {
     back: '返回',
     startTime: '开始时间',
     endTime: '结束时间',
+    startTime1: '开始时间：',
+    endTime1: '结束时间：',
     pleaseChoose: '请选择',
     ON: '开',
     OFF: '关',
@@ -347,7 +349,10 @@ exports.default = {
     totalRow: '总行数：',
     collectStatice: '采样比例越高时，收集的统计信息较准确，同时会需要较多资源。',
     topic: 'Kafka 主题：',
-    kafkaCluster: 'Kafka 集群'
+    kafkaCluster: 'Kafka 集群',
+    full: '全量加载',
+    incremental: '增量加载',
+    snapshot: '快照'
   },
   login: {
     signIn: 'Kyligence 帐号 | 登录'

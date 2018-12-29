@@ -1,211 +1,72 @@
 <template>
-  <el-dialog class="source-table-modal" width="440px"
+  <el-dialog class="source-table-modal" width="560px"
     :title="$t(modalTitle)"
     :visible="isShow"
-    @close="isShow && closeHandler(false)">
-    <el-form :model="form" :rules="rules" ref="form" v-if="isFormShow" label-position="top">
-      <!-- Partition Column Selector -->
-      <el-form-item class="margin-bottom-20" prop="partitionColumn" v-if="isFieldShow('partitionColumn')">
-        <span class="font-medium" slot="label">
-          {{$t('partitionColumn')}}
-          <i class="el-icon-ksd-what"></i>
-        </span>
-        <el-row>
-          <el-col :span="13">
-            <el-select
-              class="margin-top-5"
-              filterable
-              size="medium"
-              :value="form.partitionColumn"
-              :disabled="disabled"
-              :placeholder="$t('kylinLang.common.pleaseChoose')"
-              @input="value => handleInput('partitionColumn', value)">
-              <el-option
-                v-for="column in partitionColumns"
-                :key="column.name"
-                :label="column.name"
-                :value="column.name">
-              </el-option>
-            </el-select>
-          </el-col>
-        </el-row>
+    @open="handleOpen"
+    @close="() => handleClose()"
+    @closed="handleClosed">
+    <el-form :model="form" :rules="rules" ref="form" size="medium" v-if="isFormShow" label-position="top">
+      <el-form-item prop="isLoadExisted" v-if="_isFieldShow('isLoadExisted')">
+        <el-radio class="font-medium" :value="form.isLoadExisted" :label="true" @input="value => handleInput('isLoadExisted', value)">
+          {{$t('loadExistingData')}}
+        </el-radio>
+        <div class="item-desc">{{$t('loadExistingDataDesc')}}</div>
       </el-form-item>
-      <!-- Partition Column Format -->
-      <el-form-item class="margin-bottom-20" prop="partitionFormat" v-if="isFieldShow('partitionFormat')">
-        <span class="font-medium" slot="label">
-          {{$t('partitionFormat')}}
-        </span>
-        <el-row>
-          <el-col :span="13">
-            <el-select
-              class="margin-top-5"
-              filterable
-              size="medium"
-              :value="form.partitionFormat"
-              :disabled="disabled"
-              :placeholder="$t('kylinLang.common.pleaseChoose')"
-              @input="value => handleInput('partitionFormat', value)">
-              <el-option
-                v-for="format in partitionFormats"
-                :key="format.name"
-                :label="format.value"
-                :value="format.value">
-              </el-option>
-            </el-select>
-          </el-col>
-        </el-row>
+      <el-form-item class="custom-load" prop="loadDataRange" v-if="_isFieldShow('loadDataRange')">
+        <el-radio class="font-medium" :value="form.isLoadExisted" :label="false" @input="value => handleInput('isLoadExisted', value)">
+          {{$t('customLoadRange')}}
+        </el-radio>
+        <el-date-picker
+          type="datetime"
+          :value="form.loadDataRange[0]"
+          :is-auto-complete="true"
+          :disabled="isDisabled || form.isLoadExisted"
+          :picker-options="{ disabledDate: time => time.getTime() > form.loadDataRange[1] }"
+          :placeholder="$t('kylinLang.common.startTime')"
+          @input="value => handleInputDate('loadDataRange.0', value)">
+        </el-date-picker>
+        <span>-</span>
+        <el-date-picker
+          type="datetime"
+          :value="form.loadDataRange[1]"
+          :is-auto-complete="true"
+          :disabled="isDisabled || form.isLoadExisted"
+          :picker-options="{ disabledDate: time => time.getTime() < form.loadDataRange[0] }"
+          :placeholder="$t('kylinLang.common.endTime')"
+          @input="value => handleInputDate('loadDataRange.1', value)">
+        </el-date-picker>
+        <el-button
+          size="small"
+          class="ksd-ml-10"
+          :disabled="isDisabled || form.isLoadExisted"
+          icon="el-icon-ksd-data_range_search">
+        </el-button>
       </el-form-item>
-      <!-- New/Change Data Range Picker -->
-      <el-form-item class="margin-bottom-0" prop="newDataRange" v-if="isFieldShow('newDataRange')">
-        <span class="font-medium" slot="label">
-          {{$t('loadingRange')}}
-        </span>
-        <el-row class="data-range-row">
-          <el-col :span="22">
-            <el-date-picker
-              class="margin-top-5"
-              size="medium"
-              type="datetimerange"
-              range-separator="-"
-              :value="form.newDataRange"
-              :is-auto-complete="true"
-              :disabled="disabled"
-              :start-placeholder="$t('kylinLang.common.startTime')"
-              :end-placeholder="$t('kylinLang.common.endTime')"
-              @input="value => handleInputDate('newDataRange', value)">
-            </el-date-picker>
-          </el-col>
-          <el-col class="data-range-sync" :span="2">
-            <el-tooltip effect="dark" :content="$t('selectAll')" placement="top">
-              <div class="el-icon-ksd-data_range_search"></div>
-            </el-tooltip>
-          </el-col>
-        </el-row>
+      <el-form-item class="custom-load" prop="freshDataRange" v-if="_isFieldShow('freshDataRange')">
+        <div class="item-desc">{{$t('refreshRangeDesc')}}</div>
+        <el-date-picker
+          type="datetime"
+          :value="form.freshDataRange[0]"
+          :is-auto-complete="true"
+          :disabled="isDisabled"
+          :picker-options="{ disabledDate: time => time.getTime() > form.freshDataRange[1] }"
+          :placeholder="$t('kylinLang.common.startTime')"
+          @input="value => handleInputDate('freshDataRange.0', value)">
+        </el-date-picker>
+        <span>-</span>
+        <el-date-picker
+          type="datetime"
+          :value="form.freshDataRange[1]"
+          :is-auto-complete="true"
+          :disabled="isDisabled"
+          :picker-options="{ disabledDate: time => time.getTime() < form.freshDataRange[0] }"
+          :placeholder="$t('kylinLang.common.endTime')"
+          @input="value => handleInputDate('freshDataRange.1', value)">
+        </el-date-picker>
       </el-form-item>
-      <!-- Refresh Data Range Picker -->
-      <el-form-item class="margin-bottom-0" prop="freshDataRange" v-if="isFieldShow('freshDataRange')">
-        <span class="font-medium" slot="label">
-          {{$t('refreshRange')}}
-          <el-tooltip effect="dark" :content="$t('refreshRangeTip')" placement="top" popper-class="source-table-modal-tooltip">
-            <i class="el-icon-ksd-what"></i>
-          </el-tooltip>
-        </span>
-        <el-row>
-          <el-col :span="22">
-            <el-date-picker
-              class="margin-top-5"
-              size="medium"
-              type="datetimerange"
-              range-separator="-"
-              :value="form.freshDataRange"
-              :disabled="disabled"
-              :is-auto-complete="true"
-              :start-placeholder="$t('kylinLang.common.startTime')"
-              :end-placeholder="$t('kylinLang.common.endTime')"
-              @input="value => handleInputDate('freshDataRange', value)">
-            </el-date-picker>
-          </el-col>
-        </el-row>
-      </el-form-item>
-      <!-- Data Merge Switcher -->
-      <el-form-item class="start-merge" prop="isMergeable" v-if="isFieldShow('isMergeable')">
-        <span class="font-medium el-form-item__label no-padding">
-          {{$t('isMergeable')}}
-        </span>
-        <el-switch
-          :value="form.isMergeable"
-          :active-text="$t('OFF')"
-          :inactive-text="$t('ON')"
-          @input="value => handleInput('isMergeable', value)">
-        </el-switch>
-      </el-form-item>
-      <!-- Auto Merge Configs -->
-      <template v-if="isFieldShow('autoMergeConfigs')">
-        <!-- <el-row class="el-form-item__label margin-bottom-5">{{$t('mergePreference')}}</el-row> -->
-        <el-form-item class="margin-bottom-5" prop="autoMergeConfigs">
-          <el-row class="font-medium el-form-item__label">
-            {{$t('autoMerge')}}
-            <el-tooltip effect="dark" :content="$t('autoMergeTip')" placement="top" popper-class="source-table-modal-tooltip">
-              <i class="el-icon-ksd-what"></i>
-            </el-tooltip>
-          </el-row>
-          <el-row v-for="(autoMergeConfig, index) in form.autoMergeConfigs" :key="index" :gutter="10">
-            <el-col :span="17">
-              <el-select
-                size="medium"
-                class="padding-bottom-10"
-                :value="autoMergeConfig"
-                @input="value => handleInput(`autoMergeConfigs.${index}`, value)">
-                <el-option
-                  v-for="autoMergeType in autoMergeTypes"
-                  :key="autoMergeType"
-                  :label="$t(autoMergeType)"
-                  :value="autoMergeType"
-                  :disabled="form.autoMergeConfigs.includes(autoMergeType)">
-                </el-option>
-              </el-select>
-            </el-col>
-            <el-col :span="4">
-              <el-button v-if="index === 0 && form.autoMergeConfigs.length < autoMergeTypes.length" size="medium" circle @click="handleAddConfig('autoMergeConfigs')">
-                <i class="el-icon-ksd-add_2"></i>
-              </el-button>
-              <el-button v-else-if="index !== 0" size="medium" circle @click="handleRemoveConfig('autoMergeConfigs', index)">
-                <i class="el-icon-ksd-table_delete"></i>
-              </el-button>
-            </el-col>
-          </el-row>
-        </el-form-item>
-      </template>
-      <!-- Volatile Config -->
-      <template v-if="isFieldShow('volatileConfig')">
-        <el-row class="el-form-item__label margin-bottom-5">
-          {{$t('volatile')}}
-          <el-tooltip effect="dark" :content="$t('volatileTip')" placement="top" popper-class="source-table-modal-tooltip">
-            <i class="el-icon-ksd-what"></i>
-          </el-tooltip>
-        </el-row>
-        <el-row class="margin-bottom-10">
-          <el-col class="margin-right-5" :span="8">
-            <el-form-item class="margin-bottom-0" prop="volatileConfig.value">
-              <el-input
-                size="medium"
-                :value="form.volatileConfig.value"
-                :placeholder="$t('kylinLang.common.pleaseInput')"
-                @input="value => !isNaN(+value) && handleInput('volatileConfig.value', +value)">
-              </el-input>
-            </el-form-item>
-          </el-col>
-          <el-col :span="11">
-            <el-form-item class="margin-bottom-0" prop="volatileConfig.type">
-              <el-select
-                size="medium"
-                :value="form.volatileConfig.type"
-                :placeholder="$t('kylinLang.common.pleaseChoose')"
-                @input="value => handleInput('volatileConfig.type', value)">
-                <el-option
-                  v-for="volatileType in volatileTypes"
-                  :key="volatileType"
-                  :label="$t(volatileType)"
-                  :value="volatileType">
-                </el-option>
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-      </template>
-      <!-- Pushdown Config -->
-      <template v-if="isFieldShow('isAsyncPushDown')">
-        <div class="item-desc margin-bottom-10">{{$t('pushdownDesc')}}</div>
-        <el-form-item class="margin-bottom-0" prop="isMergeable">
-          <el-radio-group :value="form.isPushdownSync" @input="value => handleInput('isPushdownSync', value)">
-            <div class="item-desc margin-bottom-10"><el-radio :label="true">{{$t('isPushdown')}}</el-radio></div>
-            <div class="item-desc margin-bottom-0"><el-radio :label="false">{{$t('notPushdown')}}</el-radio></div>
-          </el-radio-group>
-        </el-form-item>
-      </template>
     </el-form>
     <div slot="footer" class="dialog-footer">
-      <el-button size="medium" @click="closeHandler(false)">{{$t('kylinLang.common.cancel')}}</el-button>
+      <el-button size="medium" @click="() => handleClose()">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button size="medium" plain type="primary" @click="handleSubmit" :loading="isLoading">{{$t('kylinLang.common.save')}}</el-button>
     </div>
   </el-dialog>
@@ -214,201 +75,128 @@
 <script>
 import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
-import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
+import { mapState, mapMutations, mapActions } from 'vuex'
 
 import vuex from '../../../store'
 import locales from './locales'
 import store, { types } from './store'
 import { set } from '../../../util/object'
-import { handleError, handleSuccessAsync, transToUTCMs } from '../../../util'
-import { fieldVisiableMaps, titleMaps, editTypes, autoMergeTypes, volatileTypes, validate, validateTypes } from './handler'
+import { handleError, handleSuccessAsync } from '../../../util'
+import { fieldVisiableMaps, titleMaps, validate, fieldTypes, editTypes, _getLoadDataForm, _getRefreshDataForm } from './handler'
 
-const {
-  INCREMENTAL_SETTING,
-  INCREMENTAL_LOADING,
-  REFRESH_RANGE,
-  DATA_MERGE,
-  PUSHDOWN_CONFIG
-} = editTypes
-
-const { NEW_DATA_RANGE, PARTITION_COLUMN, PARTITION_FORMAT, VOLATILE_VALUE } = validateTypes
+const { LOAD_DATA_RANGE } = fieldTypes
 
 vuex.registerModule(['modals', 'SourceTableModal'], store)
 
 @Component({
-  props: {
-    projectName: {
-      type: String
-    }
-  },
   computed: {
     ...mapState('SourceTableModal', {
       form: state => state.form,
       isShow: state => state.isShow,
-      disabled: state => state.disabled,
       editType: state => state.editType,
       callback: state => state.callback,
-      table: state => state.table
-    }),
-    ...mapGetters('SourceTableModal', [
-      'modelName',
-      'tableFullName',
-      'partitionColumns',
-      'partitionFormats'
-    ])
+      project: state => state.project,
+      table: state => state.table,
+      model: state => state.model
+    })
   },
   methods: {
     ...mapMutations('SourceTableModal', {
       setModal: types.SET_MODAL,
       hideModal: types.HIDE_MODAL,
       setModalForm: types.SET_MODAL_FORM,
-      resetModalForm: types.RESET_MODAL_FORM
+      initForm: types.INIT_FORM
     }),
     ...mapActions({
-      saveIncrementalTable: 'SAVE_FACT_TABLE',
-      saveDataRange: 'SAVE_DATA_RANGE',
-      fetchRangeFreshInfo: 'FETCH_RANGE_FRESH_INFO',
-      freshRangeData: 'FRESH_RANGE_DATA',
-      updateMergeConfig: 'UPDATE_MERGE_CONFIG',
-      updatePushdownConfig: 'UPDATE_PUSHDOWN_CONFIG'
+      saveLoadRange: 'SAVE_DATA_RANGE',
+      fetchFreshInfo: 'FETCH_RANGE_FRESH_INFO',
+      freshDataRange: 'FRESH_RANGE_DATA'
     })
   },
   locales
 })
 export default class SourceTableModal extends Vue {
-  isFormShow = false
   isLoading = false
-  autoMergeTypes = autoMergeTypes
-  volatileTypes = volatileTypes
+  isDisabled = false
+  isFormShow = false
   rules = {
-    [NEW_DATA_RANGE]: [{ validator: this.validate(NEW_DATA_RANGE), trigger: 'blur' }],
-    [PARTITION_COLUMN]: [{ validator: this.validate(PARTITION_COLUMN), trigger: 'blur' }],
-    [PARTITION_FORMAT]: [{ validator: this.validate(PARTITION_FORMAT), trigger: 'blur' }],
-    [VOLATILE_VALUE]: [{ validator: this.validate(VOLATILE_VALUE), trigger: 'blur' }]
+    [LOAD_DATA_RANGE]: [{ validator: this.validate(LOAD_DATA_RANGE), trigger: 'blur' }]
+  }
+  @Watch('form.isLoadExisted')
+  onIsLoadExistedChange () {
+    this.$refs['form'].clearValidate('loadDataRange')
   }
   get modalTitle () {
     return titleMaps[this.editType]
   }
-  @Watch('isShow')
-  onModalShow (newVal, oldVal) {
-    newVal ? (this.isFormShow = true) : setTimeout(() => (this.isFormShow = false), 300)
+  handleOpen () {
+    this._showForm()
   }
-  @Watch('form.isMergeable')
-  onMergeableChange (newValue) {
-    this.handleInput('isAutoMerge', newValue)
-    this.handleInput('isVolatile', newValue)
-  }
-  isFieldShow (fieldName) {
-    return fieldVisiableMaps[this.editType].includes(fieldName)
-  }
-  handleInput (path, value) {
-    const newForm = set(this.form, path, value)
-    this.setModalForm(newForm)
-  }
-  handleInputDate (path, value) {
-    this.handleInput(path, value)
-  }
-  handleAddConfig (path) {
-    const newConfigs = ['', ...this.form[path]]
-    this.setModalForm({ [path]: newConfigs })
-  }
-  handleRemoveConfig (path, index) {
-    const newConfigs = [...this.form[path]]
-    newConfigs.splice(index, 1)
-    this.setModalForm({ [path]: newConfigs })
-  }
-  closeHandler (isSubmit) {
+  handleClose (isSubmit = false) {
     this.hideModal()
-    setTimeout(() => {
-      this.resetModalForm()
-      this.callback && this.callback(isSubmit)
-    }, 200)
+    this.callback && this.callback(isSubmit)
+  }
+  handleClosed () {
+    this._hideForm()
+    this.initForm()
+  }
+  handleInput (key, value) {
+    this.setModalForm(set(this.form, key, value))
+  }
+  handleInputDate (key, value) {
+    this.handleInput(key, value)
   }
   async handleSubmit () {
-    this.isLoading = true
+    this._showLoading()
     try {
       await this.$refs['form'].validate()
+      await this._submit()
 
-      const data = this.getSubmitData()
-      const message = this.$t('kylinLang.common.saveSuccess')
-      await this.submit(data)
-      this.$message({ type: 'success', message })
-      this.closeHandler(true)
+      this._notifySuccess()
+      this.handleClose(true)
     } catch (e) {
       handleError(e)
     }
-    this.isLoading = false
+    this._hideLoading()
   }
-  async submit (data) {
+  async _submit () {
     switch (this.editType) {
-      case INCREMENTAL_SETTING:
-        await this.saveIncrementalTable(data.settings)
-        return await this.saveDataRange(data.ranges)
-      case INCREMENTAL_LOADING:
-        return this.saveDataRange(data)
-      case REFRESH_RANGE: {
-        const response = await this.fetchRangeFreshInfo(data)
-        const result = await handleSuccessAsync(response)
-        // const storageSize = result.byte_size
-        const affectedStart = result.affected_start
-        const affectedEnd = result.affected_end
-        // const confirmTitle = this.$t('kylinLang.common.notice')
-        // const confirmMessage = this.$t('freshStorageCost', { storageSize: Vue.filter('dataSize')(storageSize) })
-        // await this.$confirm(confirmMessage, confirmTitle, {
-        //   confirmButtonText: this.$t('kylinLang.common.ok'),
-        //   cancelButtonText: this.$t('kylinLang.common.cancel'),
-        //   type: 'warning'
-        // })
-        data.affectedStart = affectedStart
-        data.affectedEnd = affectedEnd
-        return await this.freshRangeData(data)
+      case editTypes.LOAD_DATA: {
+        const submitData = _getLoadDataForm(this)
+        return await this.saveLoadRange(submitData)
       }
-      case DATA_MERGE:
-        return this.updateMergeConfig(data)
-      case PUSHDOWN_CONFIG:
-        return this.updatePushdownConfig(data)
+      case editTypes.REFRESH_DATA: {
+        const submitData = _getRefreshDataForm(this)
+        const response = await this.fetchFreshInfo(submitData)
+        const result = await handleSuccessAsync(response)
+        submitData.affected_start = result.affected_start
+        submitData.affected_end = result.affected_end
+        return await this.freshDataRange(submitData)
+      }
     }
   }
-  getSubmitData () {
-    const { editType, tableFullName, form, projectName, modelName } = this
-
-    switch (editType) {
-      case INCREMENTAL_SETTING: {
-        const startTime = transToUTCMs(form.newDataRange[0])
-        const endTime = transToUTCMs(form.newDataRange[1])
-        const column = form.partitionColumn
-        const format = form.partitionFormat
-        const isIncremental = true
-        return {
-          settings: { projectName, tableFullName, isIncremental, column, format },
-          ranges: { projectName, tableFullName, startTime, endTime }
-        }
-      }
-      case INCREMENTAL_LOADING: {
-        const startTime = transToUTCMs(form.newDataRange[0])
-        const endTime = transToUTCMs(form.newDataRange[1])
-        return { projectName, tableFullName, startTime, endTime }
-      }
-      case REFRESH_RANGE: {
-        const startTime = transToUTCMs(form.freshDataRange[0])
-        const endTime = transToUTCMs(form.freshDataRange[1])
-        return { projectName, tableFullName, startTime, endTime }
-      }
-      case DATA_MERGE: {
-        const { isAutoMerge, autoMergeConfigs, isVolatile, volatileConfig } = form
-        const newAutoMergeConfigs = autoMergeConfigs.filter(autoMergeConfig => autoMergeConfig)
-        return { projectName, tableFullName, modelName, isAutoMerge, autoMergeConfigs: newAutoMergeConfigs, isVolatile, volatileConfig }
-      }
-      case PUSHDOWN_CONFIG: {
-        const { isPushdownSync } = form
-        return { projectName, tableFullName, isPushdownSync }
-      }
-      default:
-        return null
-    }
+  _isFieldShow (fieldName) {
+    return fieldVisiableMaps[this.editType].includes(fieldName)
   }
   validate (type) {
     return validate[type].bind(this)
+  }
+  _notifySuccess () {
+    this.$message({ type: 'success', message: this.$t('kylinLang.common.saveSuccess') })
+  }
+  _hideForm () {
+    this.isFormShow = false
+  }
+  _showForm () {
+    this.isFormShow = true
+  }
+  _hideLoading () {
+    this.isLoading = false
+    this.isDisabled = false
+  }
+  _showLoading () {
+    this.isLoading = true
+    this.isDisabled = true
   }
 }
 </script>
@@ -421,79 +209,29 @@ export default class SourceTableModal extends Vue {
     font-weight: 500;
     color: #263238;
   }
-  .el-form-item__label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #263238;
-  }
-  .el-icon-ksd-what {
-    color: @text-normal-color;
-  }
-  .el-date-editor--datetimerange.el-input__inner {
-    width: 100%;
-    .el-range-input {
-      width: 53%;
-    }
-  }
-  .item-desc {
-    font-size: 14px;
-    color: #263238;
-    line-height: 21px;
-  }
-  .el-switch {
-    transform: scale(0.91);
-    transform-origin: left;
-  }
-  .el-select {
-    width: 100%;
-  }
-  .start-merge {
-    margin: -10px 0 10px 0;
-  }
-  .el-form-item__label.no-padding,
-  .no-padding {
-    padding: 0;
-  }
-  .margin-top-5 {
-    margin-top: 5px;
-  }
-  .padding-bottom-10 {
-    padding-bottom: 10px;
-  }
-  .margin-bottom-0 {
-    margin-bottom: 0;
-  }
-  .margin-bottom-5 {
-    margin-bottom: 5px;
-  }
-  .margin-bottom-10 {
-    margin-bottom: 10px;
-  }
-  .margin-bottom-20 {
+  .el-form-item {
     margin-bottom: 20px;
   }
-  .margin-right-5 {
-    margin-right: 5px;
+  .el-form-item:last-child {
+    margin-bottom: 0;
   }
-  .data-range-row {
-    position: relative;
+  .el-form-item--medium .el-form-item__content, .el-form-item__content * {
+    line-height: initial;
   }
-  .data-range-sync {
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    right: 0;
+  .item-desc {
+    font-size: 12px;
   }
-  .el-icon-ksd-data_range_search {
-    position: absolute;
-    top: 50%;
-    right: 10px;
-    transform: translateY(-35%);
-    cursor: not-allowed;
-    color: @text-disabled-color;
+  .item-desc:first-child {
+    margin-bottom: 20px;
   }
-}
-.source-table-modal-tooltip {
-  max-width: 300px;
+  .item-desc:not(:first-child) {
+    margin-top: 5px;
+  }
+  .custom-load {
+    .el-radio {
+      display: block;
+      margin-bottom: 8px;
+    }
+  }
 }
 </style>

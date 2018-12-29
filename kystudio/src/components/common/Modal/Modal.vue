@@ -1,6 +1,7 @@
 <template>
   <div class="modals">
     <UserEditModal />
+    <BatchLoadModal />
     <DataSourceModal />
     <ProjectEditModal />
     <SourceTableModal :project-name="currentSelectedProject" />
@@ -12,9 +13,10 @@ import Vue from 'vue'
 import { mapGetters } from 'vuex'
 import { Component } from 'vue-property-decorator'
 import UserEditModal from '../UserEditModal/index.vue'
+import BatchLoadModal from '../BatchLoadModal/BatchLoadModal.vue'
+import ProjectEditModal from '../ProjectEditModal/ProjectEditModal.vue'
 import DataSourceModal from '../DataSourceModal/index.vue'
 import SourceTableModal from '../SourceTableModal/SourceTableModal.vue'
-import ProjectEditModal from '../ProjectEditModal/ProjectEditModal.vue'
 
 @Component({
   computed: {
@@ -24,6 +26,7 @@ import ProjectEditModal from '../ProjectEditModal/ProjectEditModal.vue'
   },
   components: {
     UserEditModal,
+    BatchLoadModal,
     DataSourceModal,
     SourceTableModal,
     ProjectEditModal

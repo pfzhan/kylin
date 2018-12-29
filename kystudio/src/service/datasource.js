@@ -172,11 +172,11 @@ export default {
   previewAclSetOfRowSql: (tableName, project, userName, conditions) => {
     return Vue.resource(apiUrl + 'acl/row/preview/' + project + '/' + tableName).save(conditions)
   },
-  saveFactTable (project, table, fact, column, format) {
-    return Vue.resource(apiUrl + 'tables/fact').save({project, table, fact, column, partition_date_format: format})
+  saveTablePartition (body) {
+    return Vue.resource(apiUrl + 'tables/partition_key').save(body)
   },
-  saveDataRange (project, table, start, end) {
-    return Vue.resource(apiUrl + 'tables/data_range').save({project, table, start, end})
+  saveDataRange (body) {
+    return Vue.resource(apiUrl + 'tables/data_range').save(body)
   },
   fetchRelatedModels (project, table, model, pageOffset, pageSize) {
     return Vue.resource(apiUrl + 'models').get({project, table, model, pageOffset, pageSize, withJobStatus: false})
@@ -196,8 +196,8 @@ export default {
   fetchChangeTypeInfo (project, table, fact) {
     return Vue.resource(apiUrl + `models/affected_models`).get({ project, table, fact })
   },
-  fetchRangeFreshInfo (project, table, start, end) {
-    return Vue.resource(apiUrl + `tables/affected_data_range`).get({ project, table, start, end })
+  fetchRangeFreshInfo (body) {
+    return Vue.resource(apiUrl + `tables/affected_data_range`).get(body)
   },
   freshRangeData (project, table, refreshStart, refreshEnd, affectedStart, affectedEnd) {
     return Vue.resource(apiUrl + `tables/data_range`).update({ project, table, refreshStart, refreshEnd, affectedStart, affectedEnd })

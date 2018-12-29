@@ -1,87 +1,52 @@
 import { transToUTCMs } from '../../../util'
 
 export const editTypes = {
-  INCREMENTAL_SETTING: 'changeTableType',
-  INCREMENTAL_LOADING: 'changeDataRange',
-  REFRESH_RANGE: 'refreshData',
-  DATA_MERGE: 'dataMerge',
-  PUSHDOWN_CONFIG: 'pushdownConfig'
+  LOAD_DATA: 'loadData',
+  REFRESH_DATA: 'refreshData'
 }
-
+export const fieldTypes = {
+  IS_LOAD_EXISTED: 'isLoadExisted',
+  LOAD_DATA_RANGE: 'loadDataRange',
+  REFRESH_DATA_RANGE: 'freshDataRange'
+}
 export const fieldVisiableMaps = {
-  [editTypes.INCREMENTAL_SETTING]: ['partitionColumn', 'partitionFormat', 'newDataRange'],
-  [editTypes.INCREMENTAL_LOADING]: ['newDataRange'],
-  [editTypes.REFRESH_RANGE]: ['freshDataRange'],
-  [editTypes.DATA_MERGE]: ['isMergeable', 'autoMergeConfigs', 'volatileConfig'],
-  [editTypes.PUSHDOWN_CONFIG]: ['isAsyncPushDown']
+  [editTypes.LOAD_DATA]: [ fieldTypes.IS_LOAD_EXISTED, fieldTypes.LOAD_DATA_RANGE ],
+  [editTypes.REFRESH_DATA]: [ fieldTypes.REFRESH_DATA_RANGE ]
 }
-
 export const titleMaps = {
-  [editTypes.INCREMENTAL_SETTING]: 'incrementalLoading',
-  [editTypes.INCREMENTAL_LOADING]: 'incrementalLoading',
-  [editTypes.REFRESH_RANGE]: 'refreshData',
-  [editTypes.DATA_MERGE]: 'dataMerge',
-  [editTypes.PUSHDOWN_CONFIG]: 'pushdownRange'
+  [editTypes.LOAD_DATA]: 'loadData',
+  [editTypes.REFRESH_DATA]: 'refreshData'
 }
-
-export const autoMergeTypes = [
-  'HOUR',
-  'DAY',
-  'WEEK',
-  'MONTH',
-  'YEAR'
-]
-
-export const volatileTypes = [
-  'HOUR',
-  'DAY',
-  'WEEK',
-  'MONTH',
-  'YEAR'
-]
-
-export const validateTypes = {
-  NEW_DATA_RANGE: 'newDataRange',
-  PARTITION_COLUMN: 'partitionColumn',
-  PARTITION_FORMAT: 'partitionFormat',
-  VOLATILE_VALUE: 'volatileConfig.value'
-}
-
 export const validate = {
-  [validateTypes.NEW_DATA_RANGE] (rule, value, callback) {
-    const { isMinRangeDisabled, isMaxRangeDisabled, userRange } = this.table
-    const [ minUserRange, maxUserRange ] = userRange
-    const [ minValue, maxValue ] = value || []
+  [fieldTypes.LOAD_DATA_RANGE] (rule, value, callback) {
+    const [ startValue, endValue ] = value
+    const { isLoadExisted } = this.form
 
-    if (!minValue && !maxValue) {
-      callback(new Error(this.$t('emptyInput')))
-    } else if (isMinRangeDisabled && transToUTCMs(minValue) > minUserRange) {
-      callback(new Error(this.$t('minValueInvaild')))
-    } else if (isMaxRangeDisabled && transToUTCMs(maxValue) < maxUserRange) {
-      callback(new Error(this.$t('maxValueInvaild')))
+    if ((!startValue || !endValue || transToUTCMs(startValue) >= transToUTCMs(endValue)) && !isLoadExisted) {
+      callback(new Error(this.$t('invaildDate')))
     } else {
       callback()
     }
-  },
-  [validateTypes.PARTITION_COLUMN] (rule, value, callback) {
-    if (!value) {
-      callback(new Error(this.$t('kylinLang.common.pleaseSelect')))
-    } else {
-      callback()
-    }
-  },
-  [validateTypes.PARTITION_FORMAT] (rule, value, callback) {
-    if (!value) {
-      callback(new Error(this.$t('kylinLang.common.pleaseSelect')))
-    } else {
-      callback()
-    }
-  },
-  [validateTypes.VOLATILE_VALUE] (rule, value, callback) {
-    if (~[undefined, null, ''].indexOf(value)) {
-      callback(new Error(this.$t('kylinLang.common.pleaseInput')))
-    } else {
-      callback()
-    }
+  }
+}
+
+export function _getLoadDataForm (that) {
+  const { form, project, table } = that
+  const { isLoadExisted, loadDataRange } = form
+  return {
+    project: project.name,
+    table: `${table.database}.${table.name}`,
+    isLoadExisted: isLoadExisted,
+    start: !isLoadExisted ? String(transToUTCMs(loadDataRange[0])) : undefined,
+    end: !isLoadExisted ? String(transToUTCMs(loadDataRange[1])) : undefined
+  }
+}
+export function _getRefreshDataForm (that) {
+  const { form, project, table } = that
+  return {
+    project: project.name,
+    table: `${table.database}.${table.name}`,
+    start: transToUTCMs(form.freshDataRange[0]),
+    end: transToUTCMs(form.freshDataRange[1])
   }
 }

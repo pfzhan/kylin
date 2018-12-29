@@ -107,8 +107,8 @@ export default {
   getAutoModelSql: (para) => {
     return Vue.resource(apiUrl + 'smart/' + para.modelName + '/model_sqls').get()
   },
-  fetchSegments: (model, project, start, end, pageOffset, pageSize) => {
-    return Vue.resource(`${apiUrl}models/segments`).get({model, project, start, end, pageOffset, pageSize})
+  fetchSegments: (model, project, start, end, sortBy, reverse, pageOffset, pageSize) => {
+    return Vue.resource(`${apiUrl}models/segments`).get({model, project, start, end, sortBy, reverse, pageOffset, pageSize})
   },
   fetchAggregates: (model, project) => {
     return Vue.resource(`${apiUrl}models/agg_indexs`).get({model, project})

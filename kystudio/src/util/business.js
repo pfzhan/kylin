@@ -340,13 +340,15 @@ export function isTimePartitionType (type) {
 }
 
 export function getGmtDateFromUtcLike (value) {
-  const isDate = value instanceof Date
-  var dateObj = isDate ? value : new Date(value)
-  var year = dateObj.getUTCFullYear()
-  var month = dateObj.getUTCMonth()
-  var date = dateObj.getUTCDate()
-  var hour = dateObj.getUTCHours()
-  var mins = dateObj.getUTCMinutes()
-  var seconds = dateObj.getUTCSeconds()
-  return new Date(year, month, date, hour, mins, seconds)
+  if (value !== undefined) {
+    const isDate = value instanceof Date
+    const dateObj = isDate ? value : new Date(value)
+    const year = dateObj.getUTCFullYear()
+    const month = dateObj.getUTCMonth()
+    const date = dateObj.getUTCDate()
+    const hour = dateObj.getUTCHours()
+    const mins = dateObj.getUTCMinutes()
+    const seconds = dateObj.getUTCSeconds()
+    return new Date(year, month, date, hour, mins, seconds)
+  }
 }
