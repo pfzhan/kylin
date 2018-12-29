@@ -9,18 +9,20 @@
     </div>
     <div class="img-groups">
       <div class="label-groups">
-        <span>{{$t('kylinLang.query.wartingAcce')}} {{modelSpeedEvents}}</span>
+        <span>{{$t('kylinLang.query.wartingAcce')}}: {{modelSpeedEvents}}</span>
         <span v-if="showGif" class="ongoing-label">{{$t('kylinLang.query.ongoingAcce')}}</span>
         <div class="pattern-num">
           <p>{{patternNum}}</p>
           <p class="">{{$t('acceleratedSQL')}}</p>
         </div>
       </div>
-      <div v-if="!showGif">
-        <img src="../../assets/img/acc_01.gif" width="245px" alt=""><img src="../../assets/img/acc_02.gif" width="245px" alt=""><img src="../../assets/img/acc_03.gif" width="245px" height="48px" alt=""><img src="../../assets/img/acc_light.png" width="85px" alt="">
+      <div v-if="showGif">
+        <img src="../../assets/img/merge1.gif" width="735px" alt=""><img src="../../assets/img/acc_light.png" width="85px" alt="">
+        <!-- <img src="../../assets/img/acc_01.gif" width="245px" alt=""><img src="../../assets/img/acc_02.gif" width="245px" alt=""><img src="../../assets/img/acc_03.gif" width="245px" height="48px" alt=""> -->
       </div>
       <div v-else>
-        <img src="../../assets/img/acc_01.jpg" width="245px" alt=""><img src="../../assets/img/acc_02.jpg" width="245px" alt=""><img src="../../assets/img/acc_03.jpg" width="245px" height="48px" alt=""><img src="../../assets/img/acc_light.png" width="85px" alt="">
+        <img src="../../assets/img/bg1.jpg" width="735px" alt=""><img src="../../assets/img/acc_light.png" width="85px" alt="">
+        <!-- <img src="../../assets/img/acc_01.jpg" width="245px" alt=""><img src="../../assets/img/acc_02.jpg" width="245px" alt=""><img src="../../assets/img/acc_03.jpg" width="245px" height="48px" alt=""> -->
       </div>
       <div class="btn-groups ksd-mt-10">
         <el-button size="mini" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
@@ -100,7 +102,7 @@
         <el-col :span="8">
           <div class="ky-list-title ksd-mt-10 ksd-fs-16">{{$t('sqlBox')}}</div>
           <div class="query_panel_box ksd-mt-10">
-            <kap-editor ref="whiteInputBox" :height="inputHeight" lang="sql" theme="chrome" v-model="whiteSql">
+            <kap-editor ref="whiteInputBox" :height="inputHeight" :isFormatter="true" lang="sql" theme="chrome" v-model="whiteSql">
             </kap-editor>
             <div class="operatorBox" v-show="isEditSql">
               <div class="btn-group ksd-fright">
@@ -160,7 +162,7 @@
         <el-col :span="8" v-if="blackSqlList.size">
           <div class="ky-list-title ksd-mt-10 ksd-fs-16">{{$t('sqlBox')}}</div>
           <div class="query_panel_box ksd-mt-10">
-            <kap-editor ref="blackInputBox" :height="inputHeight" lang="sql" theme="chrome" v-model="blackSql">
+            <kap-editor ref="blackInputBox" :height="inputHeight" :isFormatter="true" lang="sql" theme="chrome" v-model="blackSql">
             </kap-editor>
           </div>
         </el-col>
@@ -265,7 +267,6 @@ import { mapActions, mapGetters } from 'vuex'
 import $ from 'jquery'
 import { handleSuccessAsync, handleError } from '../../util/index'
 import { handleSuccess, transToGmtTime, kapConfirm } from '../../util/business'
-import sqlFormatter from 'sql-formatter'
 import favoriteTable from './favorite_table'
 @Component({
   methods: {
@@ -536,10 +537,6 @@ export default class FavoriteQuery extends Vue {
     this.importSqlVisible = true
   }
 
-  getFormatterSql (sql) {
-    return sqlFormatter.format(sql)
-  }
-
   getFrequencyObj () {
     if (this.currentSelectedProject) {
       this.getFrequency({project: this.currentSelectedProject}).then((res) => {
@@ -654,7 +651,7 @@ export default class FavoriteQuery extends Vue {
   }
 
   activeSql (sqlObj) {
-    this.whiteSql = this.formatterSql(sqlObj.sql)
+    this.whiteSql = sqlObj.sql
     this.isEditSql = false
     if (sqlObj.capable) {
       this.isWhiteErrorMessage = false
@@ -679,7 +676,7 @@ export default class FavoriteQuery extends Vue {
       this.isWhiteErrorMessage = true
       this.inputHeight = 522 - 150
     }
-    this.whiteSql = this.formatterSql(sqlObj.sql)
+    this.whiteSql = sqlObj.sql
     this.activeSqlObj = sqlObj
     this.$refs.whiteInputBox.$refs.kapEditor.editor.setReadOnly(false)
   }
@@ -757,7 +754,7 @@ export default class FavoriteQuery extends Vue {
   }
 
   viewBlackSql (row) {
-    this.blackSql = this.formatterSql(row.sql)
+    this.blackSql = row.sql
     setTimeout(() => {
       this.$refs.blackInputBox.$refs.kapEditor.editor.setReadOnly(true)
     }, 0)
@@ -793,10 +790,6 @@ export default class FavoriteQuery extends Vue {
         handleError(res)
       })
     })
-  }
-
-  formatterSql (sql) {
-    return this.getFormatterSql(sql)
   }
 
   transformSql (sql) {

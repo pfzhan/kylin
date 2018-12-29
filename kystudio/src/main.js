@@ -27,7 +27,6 @@ import commonPopover from 'components/common/common_popover'
 import fakeProgress from 'components/common/fake_progress'
 import pagerSelect from 'components/common/pager_filter_select'
 import kapEditor from 'components/common/kap_editor'
-import kapValidateEditor from 'components/common/kap_validate_editor'
 import kapLoading from 'components/common/kap_loading'
 import editor from 'vue2-ace-editor'
 import VueClipboard from 'vue-clipboard2'
@@ -55,7 +54,6 @@ Vue.component('fake_progress', fakeProgress)
 Vue.component('kap-filter-select', pagerSelect)
 Vue.component('kap-editor', kapEditor)
 Vue.component('kap-tab', tab)
-Vue.component('kap-validate-editor', kapValidateEditor)
 Vue.component('kap-loading', kapLoading)
 import { getQueryString, cacheSessionStorage, cacheLocalStorage } from './util'
 // Vue.component('draggable', draggable)

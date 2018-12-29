@@ -1,18 +1,34 @@
 <template>
   <div class="smyles_editor_wrap" :style="{width: width? width: '100%'}">
-    <editor class="smyles_editor" v-model="editorData" ref="kapEditor" :height="height? height: '100%'" width="100%" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
+    <editor class="smyles_editor" v-model="editorData" ref="kapEditor" :height="height? height: '100%'" :lang="lang" :theme="theme" @change="changeInput" @input="changeInput"></editor>
     <div class="smyles_dragbar"></div>
+    <el-popover
+      placement="top"
+      title=""
+      trigger="click"
+      v-model="showCopyStatus">
+      <i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span>
+    </el-popover>
+    <el-button size="mini" class="edit-copy-btn" plain
+      :disabled="!editorData"
+      v-clipboard:copy="editorData"
+      v-clipboard:success="onCopy"
+      v-clipboard:error="onError">
+      {{$t('kylinLang.common.copy')}}
+    </el-button>
   </div>
 </template>
 <script>
 import $ from 'jquery'
+import sqlFormatter from 'sql-formatter'
 export default {
   name: 'kapEditor',
-  props: ['height', 'lang', 'theme', 'value', 'width', 'dragbar'],
+  props: ['height', 'lang', 'theme', 'value', 'width', 'dragbar', 'isFormatter'],
   data () {
     return {
-      editorData: this.value,
-      dragging: false
+      editorData: this.isFormatter ? sqlFormatter.format(this.value) : this.value,
+      dragging: false,
+      showCopyStatus: false
     }
   },
   methods: {
@@ -31,6 +47,15 @@ export default {
     getValue () {
       var editor = this.$refs.kapEditor.editor
       return editor.getValue()
+    },
+    onCopy () {
+      this.showCopyStatus = true
+      setTimeout(() => {
+        this.showCopyStatus = false
+      }, 1000)
+    },
+    onError () {
+      this.$message(this.$t('kylinLang.common.copyfail'))
     }
   },
   mounted () {
@@ -104,18 +129,42 @@ export default {
   },
   watch: {
     value (val) {
-      this.editorData = val
+      this.editorData = this.isFormatter ? sqlFormatter.format(val) : val
     }
   }
 }
 </script>
 <style lang="less">
+  @import '../../assets/styles/variables.less';
   .smyles_editor_wrap {
+    position: relative;
+    border: 1px solid @text-secondary-color;
+    background-color: @aceditor-bg-color;
+    .smyles_editor {
+      width: calc(~'100% - 50px') !important;
+      border: none;
+    }
     .smyles_dragbar {
       width: 100%;
-      height: 4px;
+      height: 1px;
       cursor: row-resize;
       opacity: 1;
+      position: relative;
+      bottom: -1px;
+    }
+    .edit-copy-btn {
+      position: absolute;
+      right: 5px;
+      top: 5px;
+      z-index: 9;
+    }
+    .el-popover {
+      right: 5px;
+      top: -40px;
+      min-width: 80px;
+      .el-icon-circle-check {
+        color: @normal-color-1;
+      }
     }
   }
 </style>
