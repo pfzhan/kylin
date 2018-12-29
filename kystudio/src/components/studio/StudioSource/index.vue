@@ -27,7 +27,7 @@
             </h1>
             <h2 class="table-update-at">{{$t('updateAt')}} {{updateAt}}</h2>
             <div class="table-actions">
-              <el-button size="small" icon="el-icon-ksd-table_resure" @click="handleReload">{{$t('reload')}}</el-button>
+              <el-button size="small" icon="el-icon-ksd-restart" @click="handleReload">{{$t('reload')}}</el-button>
               <el-button size="small" icon="el-icon-ksd-unload" @click="handleUnload">{{$t('unload')}}</el-button>
               <el-button size="small" icon="el-icon-ksd-sync" @click="handlePushdownRange">{{$t('pushdownRange')}}</el-button>
             </div>

@@ -318,11 +318,11 @@ exports.default = {
     rate: 'Success Rate',
     frequency: 'Frequency',
     avgDuration: 'Average Duration',
-    fullyAcce: 'accelerated',
-    partlyAcce: 'partial accelerated',
-    ongoingAcce: 'is accelerating',
-    wartingAcce: 'to be accelerated',
-    unAcce1: 'not accelerated',
+    fullyAcce: 'Accelerated',
+    partlyAcce: 'Partial accelerated',
+    ongoingAcce: 'Is accelerating',
+    wartingAcce: 'To be accelerated',
+    unAcce1: 'Not accelerated',
     unAcce: 'Not accelerated yet, click to mark it as favorite query'
   },
   job: {

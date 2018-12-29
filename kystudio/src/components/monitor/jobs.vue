@@ -12,10 +12,10 @@
           </el-option>
         </el-select>
         <el-button-group class="action_groups ksd-ml-10">
-          <el-button plain size="medium" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
-          <el-button plain size="medium" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
-          <el-button plain size="medium" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
-          <el-button plain size="medium" :disabled="!batchBtnsEnabled.drop" @click="batchDrop">{{$t('jobDrop')}}</el-button>
+          <el-button plain size="medium" icon="el-icon-ksd-table_resume" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
+          <el-button plain size="medium" icon="el-icon-ksd-restart" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
+          <el-button plain size="medium" icon="el-icon-ksd-pause" :disabled="!batchBtnsEnabled.pause" @click="batchPause">{{$t('jobPause')}}</el-button>
+          <el-button plain size="medium" icon="el-icon-ksd-table_delete" :disabled="!batchBtnsEnabled.drop" @click="batchDrop">{{$t('jobDrop')}}</el-button>
         </el-button-group>
         <el-button plain size="medium" class="ksd-ml-20" icon="el-icon-refresh" @click="refreshJobs">{{$t('kylinLang.common.refresh')}}</el-button>
       </el-col>
@@ -102,13 +102,13 @@
         width="100">
         <template slot-scope="scope">
           <common-tip :content="$t('jobDrop')" v-if="scope.row.job_status=='DISCARDED' || scope.row.job_status=='FINISHED'">
-            <i class="el-icon-delete ksd-fs-16" @click.stop="drop([scope.row.id])"></i>
+            <i class="el-icon-ksd-table_delete ksd-fs-16" @click.stop="drop([scope.row.id])"></i>
           </common-tip>
           <common-tip :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'">
             <i class="el-icon-ksd-table_discard ksd-fs-16" @click.stop="restart([scope.row.id])"></i>
           </common-tip>
           <common-tip :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
-            <i class="el-icon-ksd-table_resure ksd-fs-16" @click.stop="resume([scope.row.id])"></i>
+            <i class="el-icon-ksd-table_resume ksd-fs-16" @click.stop="resume([scope.row.id])"></i>
           </common-tip>
           <common-tip :content="$t('jobPause')" v-if="scope.row.job_status=='RUNNING'|| scope.row.job_status=='PENDING'">
             <i class="el-icon-ksd-pause ksd-fs-16" @click.stop="pause([scope.row.id])"></i>
@@ -578,8 +578,9 @@ export default class JobsList extends Vue {
       this.reCallPolling()
     }
   }
-  currentChange (val) {
-    this.filter.pageOffset = val
+  currentChange (size, count) {
+    this.filter.pageOffset = size
+    this.filter.pageSize = count
     this.refreshJobs()
   }
   closeIt () {

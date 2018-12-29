@@ -7,18 +7,39 @@
         <i class="el-icon-ksd-what ksd-fs-14"></i>
       </el-tooltip>
     </div>
+    <div class="img-groups">
+      <div class="label-groups">
+        <span>{{$t('kylinLang.query.wartingAcce')}} {{modelSpeedEvents}}</span>
+        <span v-if="showGif" class="ongoing-label">{{$t('kylinLang.query.ongoingAcce')}}</span>
+        <div class="pattern-num">
+          <p>{{patternNum}}</p>
+          <p class="">{{$t('acceleratedSQL')}}</p>
+        </div>
+      </div>
+      <div v-if="!showGif">
+        <img src="../../assets/img/acc_01.gif" width="245px" alt=""><img src="../../assets/img/acc_02.gif" width="245px" alt=""><img src="../../assets/img/acc_03.gif" width="245px" height="48px" alt=""><img src="../../assets/img/acc_light.png" width="85px" alt="">
+      </div>
+      <div v-else>
+        <img src="../../assets/img/acc_01.jpg" width="245px" alt=""><img src="../../assets/img/acc_02.jpg" width="245px" alt=""><img src="../../assets/img/acc_03.jpg" width="245px" height="48px" alt=""><img src="../../assets/img/acc_light.png" width="85px" alt="">
+      </div>
+      <div class="btn-groups ksd-mt-10">
+        <el-button size="mini" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
+        <el-button size="mini" type="primary" plain :disabled="!modelSpeedEvents" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
+      </div>
+    </div>
     <div class="fav-tables">
       <div class="btn-group">
-        <el-button size="mini" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
         <el-button size="mini" type="primary" icon="el-icon-ksd-setting" plain @click="openRuleSetting">{{$t('ruleSetting')}}</el-button>
         <el-button size="mini" type="primary" icon="el-icon-ksd-table_discard" plain @click="openBlackList">{{$t('blackList')}}</el-button>
       </div>
       <el-tabs v-model="activeList" @tab-click="handleClick">
-        <el-tab-pane :label="$t('kylinLang.query.wartingAcce')" name="wartingAcce">
+        <el-tab-pane name="wartingAcce">
+          <span slot="label">{{$t('kylinLang.query.unAcce1')}}({{unAcceListSize}})</span>
           <favorite_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" :filterFav="filterFav"></favorite_table>
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
-        <el-tab-pane :label="$t('kylinLang.query.fullyAcce')" name="accelerated">
+        <el-tab-pane name="accelerated">
+          <span slot="label">{{$t('kylinLang.query.fullyAcce')}}({{patternNum}})</span>
           <favorite_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" :filterFav="filterFav" :isAccelerated="true"></favorite_table>
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
@@ -276,14 +297,17 @@ import favoriteTable from './favorite_table'
     'favorite_table': favoriteTable
   },
   locales: {
-    'en': {importSql: 'Import SQL', pleImport: 'Please Import Files', sqlFiles: 'SQL Files', createdTime: 'Create Time', selectedQuery: 'Selected Query', sqlBox: 'SQL Box', blackList: 'Black List', ruleSetting: 'Rule-based Setting', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query.<br/> Favorite query represent your main business analysis scenarios and critical decision point.<br/> System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', submitterDesc: 'Optimize queries from critical users and groups', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the edit?', whiteListDesc: 'White list helps to manage user manually defined favorite SQLs, especially for SQLs from query history list and imported SQL files.', blackListDesc: 'Black list helps to manage SQLs which are undesired for accelerating, especially for those SQLs will require unreasonable large storage or computing resource to accelerate.', ruleImpact: 'Rules Impact', ruleImpactDesc: 'Percentage of SQL queries selected by the favorite rule.', thereAre: 'There are {modelSpeedEvents} SQLs waiting for acceleration on the threshold of <span class="highlight">{threshold}</span>.', accelerateNow: 'Accelerate now', openTips: 'Expand this block to set the "Acceleration Rule"', messages: 'Error Messages:', suggestion: 'Suggestion:', from: 'From', to: 'to', secondes: 'secondes'},
-    'zh-cn': {importSql: '导入SQL', pleImport: '请导入文件', sqlFiles: 'SQL文件', createdTime: '创建时间', selectedQuery: '已选择的SQL', sqlBox: 'SQL窗口', blackList: '禁用名单', ruleSetting: '规则设置', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。<br/>这类查询可以代表最主要的业务分析和重要的业务决策点。<br/>系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', submitterDesc: '优化重要⽤用户或⽤用户组发出的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？', whiteListDesc: '本列表管理用户人为指定加速的SQL查询。一般指用户从查询历史指定或导入的查询文件。', blackListDesc: '本列表管理用户不希望被加速的SQL查询。一般是指加速时对存储空间、计算力需求过大的查询。', ruleImpact: '加速规则影响⼒', ruleImpactDesc: '被加速规则选出的SQL查询的百分⽐。', thereAre: '已有{modelSpeedEvents}条SQL查询等待加速(阈值为<span class="highlight">{threshold}</span>条SQL)', accelerateNow: '立即加速', openTips: '展开此区块可设定"加速规则"', messages: '错误信息：', suggestion: '修改建议：', from: '从', to: '至', secondes: '秒'}
+    'en': {importSql: 'Import SQL', pleImport: 'Please Import Files', sqlFiles: 'SQL Files', createdTime: 'Create Time', selectedQuery: 'Selected Query', sqlBox: 'SQL Box', blackList: 'Black List', ruleSetting: 'Rule-based Setting', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query.<br/> Favorite query represent your main business analysis scenarios and critical decision point.<br/> System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', submitterDesc: 'Optimize queries from critical users and groups', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the edit?', whiteListDesc: 'White list helps to manage user manually defined favorite SQLs, especially for SQLs from query history list and imported SQL files.', blackListDesc: 'Black list helps to manage SQLs which are undesired for accelerating, especially for those SQLs will require unreasonable large storage or computing resource to accelerate.', ruleImpact: 'Rules Impact', ruleImpactDesc: 'Percentage of SQL queries selected by the favorite rule.', thereAre: 'There are {modelSpeedEvents} SQLs waiting for acceleration on the threshold of <span class="highlight">{threshold}</span>.', accelerateNow: 'Accelerate now', openTips: 'Expand this block to set the "Acceleration Rule"', messages: 'Error Messages:', suggestion: 'Suggestion:', from: 'From', to: 'to', secondes: 'secondes', acceleratedSQL: 'Accelerated SQL'},
+    'zh-cn': {importSql: '导入SQL', pleImport: '请导入文件', sqlFiles: 'SQL文件', createdTime: '创建时间', selectedQuery: '已选择的SQL', sqlBox: 'SQL窗口', blackList: '禁用名单', ruleSetting: '规则设置', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。<br/>这类查询可以代表最主要的业务分析和重要的业务决策点。<br/>系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', submitterDesc: '优化重要⽤用户或⽤用户组发出的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？', whiteListDesc: '本列表管理用户人为指定加速的SQL查询。一般指用户从查询历史指定或导入的查询文件。', blackListDesc: '本列表管理用户不希望被加速的SQL查询。一般是指加速时对存储空间、计算力需求过大的查询。', ruleImpact: '加速规则影响⼒', ruleImpactDesc: '被加速规则选出的SQL查询的百分⽐。', thereAre: '已有{modelSpeedEvents}条SQL查询等待加速(阈值为<span class="highlight">{threshold}</span>条SQL)', accelerateNow: '立即加速', openTips: '展开此区块可设定"加速规则"', messages: '错误信息：', suggestion: '修改建议：', from: '从', to: '至', secondes: '秒', acceleratedSQL: '已加速SQL'}
   }
 })
 export default class FavoriteQuery extends Vue {
   favQueList = {}
   checkedStatus = ['WAITING', 'ACCELERATING', 'BLOCKED']
   activeList = 'wartingAcce'
+  showGif = false
+  unAcceListSize = 0
+  patternNum = 0
   importSqlVisible = false
   isUploaded = false
   toShowList = false
@@ -330,11 +354,6 @@ export default class FavoriteQuery extends Vue {
     label: this.$t('kylinLang.menu.group'),
     options: ['ALL_USERS', 'ROLE_ADMIN', 'ROLE_ANALYST', 'ROLE_MODELER']
   }]
-  // oldFrequencyValue = 0
-  // oldSubmitterUsers = ['ADMIN']
-  // oldDurationValue1 = 0
-  // oldDurationValue2 = 0
-  // impactRatio = 0
   handleClick () {
     this.checkedStatus = this.activeList === 'wartingAcce' ? ['WAITING', 'ACCELERATING', 'BLOCKED'] : ['FULLY_ACCELERATED']
     this.loadFavoriteList()
@@ -343,6 +362,7 @@ export default class FavoriteQuery extends Vue {
     this.applySpeedInfo({size: this.modelSpeedEvents, project: this.currentSelectedProject}).then(() => {
       this.flyEvent(event)
       this.getSpeedInfo(this.currentSelectedProject)
+      this.showGif = true
     }, (res) => {
       handleError(res)
     })
@@ -501,6 +521,11 @@ export default class FavoriteQuery extends Vue {
     })
     const data = await handleSuccessAsync(res)
     this.favQueList = data
+    if (this.activeList === 'wartingAcce') {
+      this.unAcceListSize = data.size
+    } else {
+      this.patternNum = data.size
+    }
   }
 
   formatTooltip (val) {
@@ -552,8 +577,18 @@ export default class FavoriteQuery extends Vue {
     }
   }
 
-  created () {
+  async created () {
     this.loadFavoriteList()
+    const res = await this.getFavoriteList({
+      project: this.currentSelectedProject || null,
+      limit: 10,
+      offset: 0,
+      status: ['FULLY_ACCELERATED'],
+      sortBy: this.filterData.sortBy,
+      reverse: this.filterData.reverse
+    })
+    const data = await handleSuccessAsync(res)
+    this.patternNum = data.size
     if (this.currentSelectedProject) {
       this.getSpeedInfo(this.currentSelectedProject)
     }
@@ -801,6 +836,43 @@ export default class FavoriteQuery extends Vue {
         right: 0;
         top: 8px;
         z-index: 999;
+      }
+    }
+    .img-groups {
+      margin: 0 auto;
+      width: 850px;
+      .label-groups {
+        position: relative;
+        > span {
+          margin-left: 105px;
+          &.ongoing-label {
+            margin-left: 175px;
+          }
+        }
+        .pattern-num {
+          position: absolute;
+          right: 30px;
+          top: 18px;
+          display: inline-block;
+          width: 85px;
+          text-align: center;
+          line-height: 18px;
+          p {
+            font-size: 18px;
+            font-weight: 500;
+            &:last-child {
+              font-size: 12px;
+            }
+          }
+        }
+      }
+      .btn-groups {
+        .el-button {
+          margin-left: 100px;
+          &:last-child {
+            margin-left: 160px;
+          }
+        }
       }
     }
     .importSqlDialog,
