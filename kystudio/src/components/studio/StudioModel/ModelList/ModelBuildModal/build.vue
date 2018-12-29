@@ -72,7 +72,7 @@
     btnLoading = false
     modelBuildMeta = {
       dataRangeVal: '',
-      isLoadExisted: false
+      isLoadExisted: true
     }
     rules = {
       dataRangeVal: [

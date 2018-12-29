@@ -157,11 +157,11 @@ export default class ModelPartitionModal extends Vue {
   partitionMeta = {
     table: '',
     column: '',
-    format: '',
-    isLoadExisted: false
+    format: ''
   }
   modelBuildMeta = {
-    dataRangeVal: []
+    dataRangeVal: [],
+    isLoadExisted: true
   }
   @Watch('isShow')
   initModelBuldRange () {
