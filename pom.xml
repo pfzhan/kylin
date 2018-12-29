@@ -43,6 +43,9 @@
         <!-- Spark versions -->
         <spark.version>2.4.0-kylin-r1</spark.version>
         <!--<spark.version>2.2.1-kylin-r5</spark.version>-->
+
+        <roaring.version>0.7.36-kylin-r1</roaring.version>
+
         <kryo.version>4.0.0</kryo.version>
 
         <!-- <reflections.version>0.9.10</reflections.version> -->
@@ -90,7 +93,7 @@
         <xalan.version>2.7.2</xalan.version>
         <ehcache.version>2.10.2.2.21</ehcache.version>
         <apache-httpclient.version>4.2.5</apache-httpclient.version>
-        <roaring.version>0.6.18</roaring.version>
+
         <cglib.version>3.2.4</cglib.version>
         <supercsv.version>2.4.0</supercsv.version>
         <cors.version>2.5</cors.version>

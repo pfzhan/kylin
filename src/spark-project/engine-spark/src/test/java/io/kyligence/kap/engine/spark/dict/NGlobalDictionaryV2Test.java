@@ -55,7 +55,7 @@ import io.kyligence.kap.engine.spark.builder.NGlobalDictMetadata;
 import io.kyligence.kap.engine.spark.builder.NGlobalDictStore;
 import io.kyligence.kap.engine.spark.builder.NGlobalDictionaryV2;
 import io.kyligence.kap.engine.spark.builder.NHashPartitioner;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 import scala.Tuple2;
 
 public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
@@ -181,10 +181,10 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
             NBucketDictionary bucket1 = dict1.loadBucketDictionary(i);
             NBucketDictionary bucket2 = dict2.loadBucketDictionary(i);
 
-            Object2IntMap<String> map1 = bucket1.getAbsoluteDictMap();
-            Object2IntMap<String> map2 = bucket2.getAbsoluteDictMap();
-            for (Object2IntMap.Entry<String> entry : map1.object2IntEntrySet()) {
-                Assert.assertEquals(entry.getIntValue(), map2.getInt(entry.getKey()));
+            Object2LongMap<String> map1 = bucket1.getAbsoluteDictMap();
+            Object2LongMap<String> map2 = bucket2.getAbsoluteDictMap();
+            for (Object2LongMap.Entry<String> entry : map1.object2LongEntrySet()) {
+                Assert.assertEquals(entry.getLongValue(), map2.getLong(entry.getKey()));
             }
         }
     }

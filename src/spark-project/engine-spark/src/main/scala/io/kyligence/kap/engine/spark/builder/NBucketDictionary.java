@@ -23,12 +23,13 @@
  */
 package io.kyligence.kap.engine.spark.builder;
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import java.io.IOException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
 public class NBucketDictionary {
 
@@ -36,9 +37,9 @@ public class NBucketDictionary {
 
     private String workingDir;
 
-    private Object2IntMap<String> absoluteDictMap;
+    private Object2LongMap<String> absoluteDictMap;
     // Relative dictionary needs to calculate dictionary code according to NGlobalDictMetadata's offset
-    private Object2IntMap<String> relativeDictMap;
+    private Object2LongMap<String> relativeDictMap;
 
     NBucketDictionary(String baseDir, String workingDir, int bucketId, NGlobalDictMetadata metadata)
             throws IOException {
@@ -46,17 +47,17 @@ public class NBucketDictionary {
         final NGlobalDictStore globalDictStore = new NGlobalDictHDFSStore(baseDir);
         Long[] versions = globalDictStore.listAllVersions();
         if (versions.length == 0) {
-            this.absoluteDictMap = new Object2IntOpenHashMap<>();
+            this.absoluteDictMap = new Object2LongOpenHashMap<>();
         } else {
             this.absoluteDictMap = globalDictStore.getBucketDict(versions[versions.length - 1], metadata, bucketId);
         }
-        this.relativeDictMap = new Object2IntOpenHashMap<>();
+        this.relativeDictMap = new Object2LongOpenHashMap<>();
     }
 
     NBucketDictionary(String baseDir, String workingDir, int bucketId) {
         this.workingDir = workingDir;
-        this.absoluteDictMap = new Object2IntOpenHashMap<>();
-        this.relativeDictMap = new Object2IntOpenHashMap<>();
+        this.absoluteDictMap = new Object2LongOpenHashMap<>();
+        this.relativeDictMap = new Object2LongOpenHashMap<>();
     }
 
     public void addRelativeValue(String value) {
@@ -69,12 +70,12 @@ public class NBucketDictionary {
         relativeDictMap.put(value, relativeDictMap.size() + 1);
     }
 
-    public void addAbsoluteValue(String value, int encodeValue) {
+    public void addAbsoluteValue(String value, long encodeValue) {
         absoluteDictMap.put(value, encodeValue);
     }
 
-    public int encode(Object value) {
-        return absoluteDictMap.getInt(value.toString());
+    public long encode(Object value) {
+        return absoluteDictMap.getLong(value.toString());
     }
 
     public void saveBucketDict(int bucketId) throws IOException {
@@ -96,7 +97,7 @@ public class NBucketDictionary {
         globalDictStore.writeBucketCurrDict(workingDir, bucketId, relativeDictMap);
     }
 
-    public Object2IntMap<String> getAbsoluteDictMap() {
+    public Object2LongMap<String> getAbsoluteDictMap() {
         return absoluteDictMap;
     }
 

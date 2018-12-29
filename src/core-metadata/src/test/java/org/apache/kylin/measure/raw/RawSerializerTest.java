@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -74,51 +73,6 @@ public class RawSerializerTest {
     @After
     public void after() throws Exception {
         cleanMetadataHelper.tearDown();
-    }
-
-    @Test
-    public void testPeekLength() {
-        ByteBuffer out = ByteBuffer.allocate(1024 * 1024 * 128);
-        int size = 127;
-        List<ByteArray> input = getValueList(size);
-        rawSerializer.serialize(input, out);
-        out.rewind();
-        assertEquals(size * 2 + 1, rawSerializer.peekLength(out));
-
-        size = 128;
-        out.clear();
-        input = getValueList(size);
-        rawSerializer.serialize(input, out);
-        out.rewind();
-        assertEquals(size * 2 + 2, rawSerializer.peekLength(out));
-
-        size = 255;
-        out.clear();
-        input = getValueList(size);
-        rawSerializer.serialize(input, out);
-        out.rewind();
-        assertEquals(size * 2 + 2, rawSerializer.peekLength(out));
-
-        size = 256;
-        out.clear();
-        input = getValueList(size);
-        rawSerializer.serialize(input, out);
-        out.rewind();
-        assertEquals(size * 2 + 3, rawSerializer.peekLength(out));
-
-        size = 1024 * 63;
-        out.clear();
-        input = getValueList(size);
-        rawSerializer.serialize(input, out);
-        out.rewind();
-        assertEquals(size * 2 + 3, rawSerializer.peekLength(out));
-
-        size = 1024 * 64;
-        out.clear();
-        input = getValueList(size);
-        rawSerializer.serialize(input, out);
-        out.rewind();
-        assertEquals(size * 2 + 4, rawSerializer.peekLength(out));
     }
 
     @Test

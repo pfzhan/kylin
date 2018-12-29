@@ -105,17 +105,6 @@ public class MeasureCodec implements java.io.Serializable {
         return nMeasures;
     }
 
-    public int[] getPeekLength(ByteBuffer buf) {
-        int[] length = new int[nMeasures];
-        int offset = buf.position();
-        for (int i = 0; i < nMeasures; i++) {
-            length[i] = serializers[i].peekLength(buf);
-            offset += length[i];
-            buf.position(offset);
-        }
-        return length;
-    }
-
     public int[] getMaxLength() {
         int[] maxLen = new int[nMeasures];
         for (int i = 0; i < nMeasures; i++) {

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -49,7 +48,7 @@ import java.nio.ByteBuffer;
 public interface BitmapCounterFactory {
     BitmapCounter newBitmap();
 
-    BitmapCounter newBitmap(int... values);
+    BitmapCounter newBitmap(long... values);
 
     BitmapCounter newBitmap(long counter);
 

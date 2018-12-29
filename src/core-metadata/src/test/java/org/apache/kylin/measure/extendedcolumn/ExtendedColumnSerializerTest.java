@@ -84,8 +84,6 @@ public class ExtendedColumnSerializerTest {
         ByteBuffer buffer = ByteBuffer.allocate(serializer.maxLength());
         serializer.serialize(array, buffer);
         buffer.flip();
-        int length = serializer.peekLength(buffer);
-        Assert.assertTrue(length == 1);
         ByteArray des = serializer.deserialize(buffer);
         Assert.assertTrue(new ByteArray().equals(des));
     }

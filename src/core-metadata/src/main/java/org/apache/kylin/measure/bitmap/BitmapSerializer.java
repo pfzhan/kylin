@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,11 +42,11 @@
 
 package org.apache.kylin.measure.bitmap;
 
-import org.apache.kylin.metadata.datatype.DataType;
-import org.apache.kylin.metadata.datatype.DataTypeSerializer;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
+
+import org.apache.kylin.metadata.datatype.DataType;
+import org.apache.kylin.metadata.datatype.DataTypeSerializer;
 
 public class BitmapSerializer extends DataTypeSerializer<BitmapCounter> {
     private static final BitmapCounterFactory factory = RoaringBitmapCounterFactory.INSTANCE;
@@ -72,13 +71,7 @@ public class BitmapSerializer extends DataTypeSerializer<BitmapCounter> {
     @Override
     public BitmapCounter deserialize(ByteBuffer in) {
         try {
-            //The length of RoaringBitmap is larger than 12
-            if (peekLength(in) == RESULT_SIZE) {
-                int flag = in.getInt();
-                return factory.newBitmap(in.getLong());
-            } else {
-                return factory.newBitmap(in);
-            }
+            return factory.newBitmap(in);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

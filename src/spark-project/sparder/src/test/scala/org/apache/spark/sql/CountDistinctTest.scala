@@ -88,7 +88,7 @@ class CountDistinctTest extends SparderBaseFunSuite with SharedSparkSession {
     )
   }
 
-  private def getBitmapArray(values: Int*): Array[Byte] = {
+  private def getBitmapArray(values: Long*): Array[Byte] = {
     val buffer = ByteBuffer.allocate(1024)
     val count = new RoaringBitmapCounter
     values.foreach(count.add)

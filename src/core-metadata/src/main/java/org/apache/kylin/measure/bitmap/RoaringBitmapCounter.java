@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -40,10 +39,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.apache.kylin.measure.bitmap;
 
 import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.Serializable;
@@ -51,23 +50,23 @@ import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 
+import org.apache.kylin.common.util.ByteBufferBackedInputStream;
 import org.apache.kylin.common.util.ByteBufferOutputStream;
-import org.roaringbitmap.buffer.ImmutableRoaringBitmap;
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
+import org.roaringbitmap.longlong.Roaring64NavigableMap;
 
 /**
  * A {@link BitmapCounter} based on roaring bitmap.
  */
 public class RoaringBitmapCounter implements BitmapCounter, Serializable {
 
-    private ImmutableRoaringBitmap bitmap;
+    private Roaring64NavigableMap bitmap;
     private Long counter;
 
     public RoaringBitmapCounter() {
-        bitmap = new MutableRoaringBitmap();
+        bitmap = new Roaring64NavigableMap();
     }
 
-    RoaringBitmapCounter(ImmutableRoaringBitmap bitmap) {
+    RoaringBitmapCounter(Roaring64NavigableMap bitmap) {
         this.bitmap = bitmap;
     }
 
@@ -75,27 +74,11 @@ public class RoaringBitmapCounter implements BitmapCounter, Serializable {
         this.counter = counter;
     }
 
-
-    private MutableRoaringBitmap getMutableBitmap() {
-        if (bitmap instanceof MutableRoaringBitmap) {
-            return (MutableRoaringBitmap) bitmap;
-        }
-        // convert to mutable bitmap
-        MutableRoaringBitmap result = bitmap.toMutableRoaringBitmap();
-        bitmap = result;
-        return result;
-    }
-
-    @Override
-    public void add(int value) {
-        getMutableBitmap().add(value);
-    }
-
     @Override
     public void orWith(BitmapCounter another) {
         if (another instanceof RoaringBitmapCounter) {
             RoaringBitmapCounter input = (RoaringBitmapCounter) another;
-            getMutableBitmap().or(input.bitmap);
+            bitmap.or(input.bitmap);
             return;
         }
         throw new IllegalArgumentException("Unsupported type: " + another.getClass().getCanonicalName());
@@ -105,43 +88,43 @@ public class RoaringBitmapCounter implements BitmapCounter, Serializable {
     public void andWith(BitmapCounter another) {
         if (another instanceof RoaringBitmapCounter) {
             RoaringBitmapCounter input = (RoaringBitmapCounter) another;
-            getMutableBitmap().and(input.bitmap);
+            bitmap.and(input.bitmap);
             return;
         }
         throw new IllegalArgumentException("Unsupported type: " + another.getClass().getCanonicalName());
     }
 
     @Override
-    public void clear() {
-        bitmap = new MutableRoaringBitmap();
+    public void add(long value) {
+        bitmap.add(value);
     }
 
-    @Override
+    public void clear() {
+        bitmap = new Roaring64NavigableMap();
+    }
+
     public long getCount() {
         if (counter != null) {
             return counter;
         }
 
-        return bitmap.getCardinality();
+        return bitmap.getLongCardinality();
     }
 
-    @Override
     public int getMemBytes() {
         return bitmap.getSizeInBytes();
     }
 
-    @Override
-    public Iterator<Integer> iterator() {
+    public Iterator<Long> iterator() {
         return bitmap.iterator();
     }
 
-    @Override
     public void write(ByteBuffer out) throws IOException {
-        if (bitmap instanceof MutableRoaringBitmap) {
-            getMutableBitmap().runOptimize();
+        if (bitmap instanceof Roaring64NavigableMap) {
+            bitmap.runOptimize();
         }
 
-        if (out.remaining() < bitmap.serializedSizeInBytes()) {
+        if (out.remaining() < bitmap.getSizeInBytes()) {
             throw new BufferOverflowException();
         }
         try (DataOutputStream dos = new DataOutputStream(new ByteBufferOutputStream(out))) {
@@ -149,44 +132,30 @@ public class RoaringBitmapCounter implements BitmapCounter, Serializable {
         }
     }
 
-    @Override
     public void write(ByteArrayOutputStream baos) throws IOException {
         try (DataOutputStream dos = new DataOutputStream(baos)) {
             bitmap.serialize(dos);
         }
     }
 
-    @Override
     public void readFields(ByteBuffer in) throws IOException {
-        int size = peekLength(in);
-        // make a copy of the content to be safe
-        byte[] dst = new byte[size];
-        in.get(dst);
-
-        // ImmutableRoaringBitmap only maps the buffer, thus faster than constructing a MutableRoaringBitmap.
-        // we'll convert to MutableRoaringBitmap later when mutate is needed
-        bitmap = new ImmutableRoaringBitmap(ByteBuffer.wrap(dst));
+        ByteBufferBackedInputStream bbi = new ByteBufferBackedInputStream(in);
+        bitmap.deserialize(new DataInputStream(bbi));
     }
 
-    @Override
     public int peekLength(ByteBuffer in) {
-        // only look at the metadata of the bitmap, no deserialization happens
-        ImmutableRoaringBitmap bitmap = new ImmutableRoaringBitmap(in);
-        return bitmap.serializedSizeInBytes();
+        // The current peeklength method has no meaning
+        throw new UnsupportedOperationException();
     }
 
-    @Override
     public boolean equals(Object obj) {
-        return (obj instanceof RoaringBitmapCounter) &&
-                bitmap.equals(((RoaringBitmapCounter) obj).bitmap);
+        return (obj instanceof RoaringBitmapCounter) && bitmap.equals(((RoaringBitmapCounter) obj).bitmap);
     }
 
-    @Override
     public int hashCode() {
         return bitmap.hashCode();
     }
 
-    @Override
     public String toString() {
         return "RoaringBitmapCounter[" + getCount() + "]";
     }

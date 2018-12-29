@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,16 +42,17 @@
 
 package org.apache.kylin.measure.bitmap;
 
-import org.roaringbitmap.buffer.MutableRoaringBitmap;
-
 import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 
+import org.roaringbitmap.longlong.Roaring64NavigableMap;
+
 public class RoaringBitmapCounterFactory implements BitmapCounterFactory, Serializable {
     public static final BitmapCounterFactory INSTANCE = new RoaringBitmapCounterFactory();
 
-    private RoaringBitmapCounterFactory() {}
+    private RoaringBitmapCounterFactory() {
+    }
 
     @Override
     public BitmapCounter newBitmap() {
@@ -60,8 +60,8 @@ public class RoaringBitmapCounterFactory implements BitmapCounterFactory, Serial
     }
 
     @Override
-    public BitmapCounter newBitmap(int... values) {
-        return new RoaringBitmapCounter(MutableRoaringBitmap.bitmapOf(values));
+    public BitmapCounter newBitmap(long... values) {
+        return new RoaringBitmapCounter(Roaring64NavigableMap.bitmapOf(values));
     }
 
     @Override

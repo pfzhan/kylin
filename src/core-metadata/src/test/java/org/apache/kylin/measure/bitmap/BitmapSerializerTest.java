@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -46,6 +45,7 @@ package org.apache.kylin.measure.bitmap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 
@@ -56,7 +56,7 @@ import org.junit.Test;
 public class BitmapSerializerTest {
 
     @Test
-    public void testBitmapSerDe() {
+    public void testBitmapSerDe() throws IOException {
         BitmapSerializer serializer = new BitmapSerializer(DataType.ANY);
 
         BitmapCounter counter = RoaringBitmapCounterFactory.INSTANCE.newBitmap(1, 1234, 5678, 100000);
@@ -66,7 +66,6 @@ public class BitmapSerializerTest {
         int size = buffer.position();
         buffer.flip();
 
-        assertEquals(size, serializer.peekLength(buffer));
         assertEquals(0, buffer.position()); // peek doesn't change buffer
 
         BitmapCounter counter2 = serializer.deserialize(buffer);

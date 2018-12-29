@@ -65,9 +65,9 @@ object NGlobalDictionaryBuilderAssist {
     val rd = paralRdd.flatMap { bucketId =>
       val gDict: NGlobalDictionaryV2 = broadcastDict.value
       val bucketDict: NBucketDictionary = gDict.loadBucketDictionary(bucketId)
-      val tuple2List = new util.ArrayList[(String, Int)](bucketDict.getAbsoluteDictMap.size)
-      for (entry <- bucketDict.getAbsoluteDictMap.object2IntEntrySet.asScala) {
-        val tuple2 = (entry.getKey, entry.getIntValue)
+      val tuple2List = new util.ArrayList[(String, Long)](bucketDict.getAbsoluteDictMap.size)
+      for (entry <- bucketDict.getAbsoluteDictMap.object2LongEntrySet.asScala) {
+        val tuple2 = (entry.getKey, entry.getLongValue)
         tuple2List.add(tuple2)
       }
       tuple2List.asScala.iterator

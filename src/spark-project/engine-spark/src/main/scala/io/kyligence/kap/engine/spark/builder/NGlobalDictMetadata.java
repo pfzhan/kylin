@@ -33,16 +33,16 @@ import lombok.Setter;
 public class NGlobalDictMetadata implements Serializable {
 
     private int bucketSize;
-    private int[] offset;
-    private int dictCount;
+    private long[] offset;
+    private long dictCount;
 
-    NGlobalDictMetadata(int bucketSize, int[] offset, int dictCount) {
+    NGlobalDictMetadata(int bucketSize, long[] offset, long dictCount) {
         this.bucketSize = bucketSize;
         this.offset = offset;
         this.dictCount = dictCount;
     }
 
-    int getPointOffset(int point) {
+    long getPointOffset(int point) {
         return offset[point];
     }
 }

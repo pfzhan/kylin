@@ -50,13 +50,13 @@ import java.util.Iterator;
 /**
  * An implementation-agnostic bitmap type.
  */
-public interface BitmapCounter extends Iterable<Integer> {
+public interface BitmapCounter extends Iterable<Long> {
 
     /**
      * Add the value to the bitmap (set the value to "true"), whether it already appears or not.
      * @param value integer value
      */
-    void add(int value);
+    void add(long value);
 
     /**
      * In-place bitwise OR (union) operation. The current bitmap is modified.
@@ -88,7 +88,7 @@ public interface BitmapCounter extends Iterable<Integer> {
     /**
      * @return a iterator of the ints stored in this counter.
      */
-    Iterator<Integer> iterator();
+    Iterator<Long> iterator();
 
     /**
      * Serialize this counter. The current counter is not modified.

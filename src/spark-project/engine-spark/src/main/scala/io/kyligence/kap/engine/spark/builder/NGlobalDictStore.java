@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,10 +42,11 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
+import java.io.IOException;
+
 import org.apache.hadoop.fs.Path;
 
-import java.io.IOException;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
 
 public abstract class NGlobalDictStore {
 
@@ -64,11 +64,14 @@ public abstract class NGlobalDictStore {
 
     public abstract NGlobalDictMetadata getMetadata(long version) throws IOException;
 
-    public abstract Object2IntMap<String> getBucketDict(long version, NGlobalDictMetadata metadata, int bucketId) throws IOException;
+    public abstract Object2LongMap<String> getBucketDict(long version, NGlobalDictMetadata metadata, int bucketId)
+            throws IOException;
 
-    public abstract void writeBucketCurrDict(String workingPath, int bucketId, Object2IntMap<String> openHashMap) throws IOException;
+    public abstract void writeBucketCurrDict(String workingPath, int bucketId, Object2LongMap<String> openHashMap)
+            throws IOException;
 
-    public abstract void writeBucketPrevDict(String workingPath, int bucketId, Object2IntMap<String> openHashMap) throws IOException;
+    public abstract void writeBucketPrevDict(String workingPath, int bucketId, Object2LongMap<String> openHashMap)
+            throws IOException;
 
     public abstract void writeMetaDict(int bucketSize, String workingDir) throws IOException;
 

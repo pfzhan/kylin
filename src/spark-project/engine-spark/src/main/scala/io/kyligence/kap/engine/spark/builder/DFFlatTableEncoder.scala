@@ -28,7 +28,7 @@ import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.broadcast.Broadcast
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.types.IntegerType
+import org.apache.spark.sql.types.LongType
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 
 import scala.collection.JavaConverters._
@@ -51,7 +51,7 @@ object DFFlatTableEncoder extends Logging {
       for (ref: TblColRef <- cols.asScala) {
         val columnIndex: Int = flatTableDesc.getColumnIndex(ref)
 
-        structType = structType.add(structType.apply(columnIndex).name + ENCODE_SUFFIX, IntegerType)
+        structType = structType.add(structType.apply(columnIndex).name + ENCODE_SUFFIX, LongType)
         val globalDict = new NGlobalDictionaryV2(ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
 
         val bucketPartitionSize = globalDict.getBucketSizeOrDefault(seg.getConfig.getGlobalDictV2HashPartitions)

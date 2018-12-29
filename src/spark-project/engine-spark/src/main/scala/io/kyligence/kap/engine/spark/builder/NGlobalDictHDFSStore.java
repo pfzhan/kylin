@@ -56,8 +56,8 @@ import org.apache.kylin.common.util.HadoopUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+import it.unimi.dsi.fastutil.objects.Object2LongMap;
+import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
 
 public class NGlobalDictHDFSStore extends NGlobalDictStore {
 
@@ -132,10 +132,10 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
         NGlobalDictMetadata metadata;
         try (FSDataInputStream is = fileSystem.open(metaPath)) {
             int bucketSize = is.readInt();
-            int[] offset = new int[bucketSize];
-            int dictCount = is.readInt();
+            long[] offset = new long[bucketSize];
+            long dictCount = is.readLong();
             for (int i = 0; i < bucketSize; i++) {
-                offset[i] = is.readInt();
+                offset[i] = is.readLong();
             }
             metadata = new NGlobalDictMetadata(bucketSize, offset, dictCount);
         }
@@ -144,9 +144,9 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
     }
 
     @Override
-    public Object2IntMap<String> getBucketDict(long version, NGlobalDictMetadata metadata, int bucketId)
+    public Object2LongMap<String> getBucketDict(long version, NGlobalDictMetadata metadata, int bucketId)
             throws IOException {
-        Object2IntMap<String> object2IntMap = new Object2IntOpenHashMap<>();
+        Object2LongMap<String> object2IntMap = new Object2LongOpenHashMap<>();
         Path versionDir = getVersionDir(version);
         FileStatus[] bucketFiles = fileSystem.listStatus(versionDir, path -> path.getName().endsWith("_" + bucketId));
 
@@ -162,12 +162,12 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
         return object2IntMap;
     }
 
-    private Object2IntMap<String> getBucketDict(Path dictPath, int offset) throws IOException {
-        Object2IntMap<String> object2IntMap = new Object2IntOpenHashMap<>();
+    private Object2LongMap<String> getBucketDict(Path dictPath, long offset) throws IOException {
+        Object2LongMap<String> object2IntMap = new Object2LongOpenHashMap<>();
         try (FSDataInputStream is = fileSystem.open(dictPath)) {
             int elementCnt = is.readInt();
             for (int i = 0; i < elementCnt; i++) {
-                int value = is.readInt();
+                long value = is.readLong();
                 int bytesLength = is.readInt();
                 byte[] bytes = new byte[bytesLength];
                 IOUtils.readFully(is, bytes, 0, bytes.length);
@@ -179,28 +179,28 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
     }
 
     @Override
-    public void writeBucketCurrDict(String workingPath, int bucketId, Object2IntMap<String> openHashMap)
+    public void writeBucketCurrDict(String workingPath, int bucketId, Object2LongMap<String> openHashMap)
             throws IOException {
         Path dictPath = new Path(workingPath, DICT_CURR_PREFIX + bucketId);
         writeBucketDict(dictPath, openHashMap);
     }
 
     @Override
-    public void writeBucketPrevDict(String workingPath, int bucketId, Object2IntMap<String> openHashMap)
+    public void writeBucketPrevDict(String workingPath, int bucketId, Object2LongMap<String> openHashMap)
             throws IOException {
         Path dictPath = new Path(workingPath, DICT_PREV_PREFIX + bucketId);
         writeBucketDict(dictPath, openHashMap);
     }
 
-    private void writeBucketDict(Path dictPath, Object2IntMap<String> openHashMap) throws IOException {
+    private void writeBucketDict(Path dictPath, Object2LongMap<String> openHashMap) throws IOException {
         if (fileSystem.exists(dictPath)) {
             fileSystem.delete(dictPath, true);
         }
         logger.info("write dict path: {}", dictPath);
         try (FSDataOutputStream dos = fileSystem.create(dictPath)) {
             dos.writeInt(openHashMap.size());
-            for (Object2IntMap.Entry<String> entry : openHashMap.object2IntEntrySet()) {
-                dos.writeInt(entry.getIntValue());
+            for (Object2LongMap.Entry<String> entry : openHashMap.object2LongEntrySet()) {
+                dos.writeLong(entry.getLongValue());
                 byte[] bytes = entry.getKey().getBytes();
                 dos.writeInt(bytes.length);
                 dos.write(bytes);
@@ -224,14 +224,14 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
         FileStatus[] dictCurrFiles = fileSystem.listStatus(workPath,
                 path -> StringUtils.contains(path.getName(), DICT_CURR_PREFIX));
 
-        int dictCount = 0;
+        long dictCount = 0;
         for (FileStatus fileStatus : dictPrevFiles) {
             try (FSDataInputStream is = fileSystem.open(fileStatus.getPath())) {
                 dictCount = dictCount + is.readInt();
             }
         }
 
-        int[] offset = new int[bucketSize];
+        long[] offset = new long[bucketSize];
 
         try (FSDataOutputStream dos = fileSystem.create(metaPath)) {
             dos.writeInt(bucketSize);
@@ -245,10 +245,10 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
                     offset[Integer.parseInt(bucketId)] = cnt;
                 }
             }
-            dos.writeInt(dictCount + currDictCnt);
+            dos.writeLong(dictCount + currDictCnt);
 
-            for (int i : offset) {
-                dos.writeInt(dictCount);
+            for (long i : offset) {
+                dos.writeLong(dictCount);
                 dictCount = dictCount + i;
             }
             dos.flush();
