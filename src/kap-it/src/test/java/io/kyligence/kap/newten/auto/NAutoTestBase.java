@@ -76,6 +76,11 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         overwriteSystemProp("kap.smart.conf.model.inner-join.exactly-match", "true");
     }
 
+    @Override
+    public String getProject() {
+        return "newten";
+    }
+
     void overwriteSystemProp(String key, String value) {
         systemProp.put(key, System.getProperty(key));
         System.setProperty(key, value);
@@ -84,7 +89,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     private void restoreAllSystemProp() {
         systemProp.forEach((prop, value) -> {
             if (value == null) {
-                logger.info("CLear {}", prop);
+                logger.info("Clear {}", prop);
                 System.clearProperty(prop);
             } else {
                 logger.info("restore {}", prop);
@@ -95,7 +100,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     }
 
     @After
-    public void after() throws Exception {
+    public void tearDown() throws Exception {
         NDefaultScheduler.destroyInstance();
         super.cleanupTestMetadata();
         ResourceStore.clearCache(kylinConfig);
@@ -112,13 +117,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     protected void executeTestScenario(TestScenario... testScenarios) throws Exception {
 
         // 1. execute auto-modeling propose
-        List<String> sqlList = Lists.newArrayList();
-        for (TestScenario testScenario : testScenarios) {
-            testScenario.collectQueries();
-            final List<String> tmpSqls = testScenario.queries.stream().map(Pair::getSecond)
-                    .collect(Collectors.toList());
-            sqlList.addAll(tmpSqls);
-        }
+        List<String> sqlList = collectQueries(testScenarios);
 
         Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
 
@@ -178,6 +177,28 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
     }
 
+    private void normalizeSql(JoinType joinType, List<Pair<String, String>> queries) {
+        queries.forEach(pair -> {
+            String transformedQuery = QueryUtil.massageSql(pair.getSecond(), getProject(), 0, 0, "DEFAULT");
+            transformedQuery = QueryUtil.removeCommentInSql(transformedQuery);
+            String tmp = KylinTestBase.changeJoinType(transformedQuery, joinType.name());
+            // tmp = QueryPatternUtil.normalizeSQLPattern(tmp); // something wrong with sqlPattern, skip this step
+            pair.setSecond(tmp);
+        });
+    }
+
+    List<String> collectQueries(TestScenario... tests) throws IOException {
+        List<String> allQueries = Lists.newArrayList();
+        for (TestScenario test : tests) {
+            List<Pair<String, String>> queries = fetchQueries(test.folderName, test.fromIndex, test.toIndex);
+            normalizeSql(test.joinType, queries);
+            test.queries = test.exclusionList == null ? queries : NExecAndComp.doFilter(queries, test.exclusionList);
+            allQueries.addAll(test.queries.stream().map(Pair::getSecond)
+                    .collect(Collectors.toList()));
+        }
+        return allQueries;
+    }
+
     public class TestScenario {
 
         String folderName;
@@ -189,7 +210,15 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         private Set<String> exclusionList;
 
         // value when execute
-        private List<Pair<String, String>> queries;
+        List<Pair<String, String>> queries;
+
+        TestScenario(String folderName) {
+            this(CompareLevel.SAME, folderName);
+        }
+
+        TestScenario(String folderName, int fromIndex, int toIndex) {
+            this(CompareLevel.SAME, folderName, fromIndex, toIndex);
+        }
 
         TestScenario(CompareLevel compareLevel, String folder) {
             this(compareLevel, JoinType.DEFAULT, folder);
@@ -212,7 +241,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         }
 
         private TestScenario(CompareLevel compareLevel, JoinType joinType, boolean isLimit, String folderName,
-                int fromIndex, int toIndex, Set<String> exclusionList) {
+                             int fromIndex, int toIndex, Set<String> exclusionList) {
             this.compareLevel = compareLevel;
             this.folderName = folderName;
             this.joinType = joinType;
@@ -224,22 +253,6 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
 
         public void execute() throws Exception {
             executeTestScenario(this);
-        }
-
-        void collectQueries() throws IOException {
-            queries = fetchQueries(folderName, fromIndex, toIndex);
-            normalizeSql(joinType, queries);
-            queries = exclusionList == null ? queries : NExecAndComp.doFilter(queries, exclusionList);
-        }
-
-        private void normalizeSql(JoinType joinType, List<Pair<String, String>> queries) {
-            queries.forEach(pair -> {
-                String transformedQuery = QueryUtil.massageSql(pair.getSecond(), getProject(), 0, 0, "DEFAULT");
-                transformedQuery = QueryUtil.removeCommentInSql(transformedQuery);
-                String tmp = KylinTestBase.changeJoinType(transformedQuery, joinType.name());
-                // tmp = QueryPatternUtil.normalizeSQLPattern(tmp); // something wrong with sqlPattern, skip this step
-                pair.setSecond(tmp);
-            });
         }
 
     } // end TestScenario

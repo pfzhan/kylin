@@ -34,11 +34,6 @@ import io.kyligence.kap.newten.auto.NAutoTestBase;
 
 public class NCleanWorkingDirTest extends NAutoTestBase {
 
-    @Override
-    public String getProject() {
-        return "newten";
-    }
-
     @Test
     public void testCleanWorkingDir() throws Exception {
         new TestScenario(CompareLevel.SAME, "sql", 0, 1).execute();

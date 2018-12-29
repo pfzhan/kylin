@@ -30,11 +30,6 @@ import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 
 public class NAutoTpchTest extends NAutoTestBase {
 
-    @Override
-    public String getProject() {
-        return "tpch";
-    }
-
     //KAP#7892 fix this
     @Test
     public void testTpch() throws Exception {

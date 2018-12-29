@@ -28,10 +28,6 @@ import org.junit.Test;
 import io.kyligence.kap.newten.NExecAndComp;
 
 public class NAutoSinaiPocTest extends NAutoTestBase {
-    @Override
-    public String getProject() {
-        return "sinai_poc";
-    }
 
     @Test
     public void testSinai() throws Exception {

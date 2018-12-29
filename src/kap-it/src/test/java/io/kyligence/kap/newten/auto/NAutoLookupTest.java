@@ -38,11 +38,6 @@ import io.kyligence.kap.spark.KapSparkSession;
 
 public class NAutoLookupTest extends NAutoTestBase {
 
-    @Override
-    public String getProject() {
-        return "newten";
-    }
-
     @Test
     @Ignore
     public void testLookup() throws Exception {

@@ -46,11 +46,6 @@ import io.kyligence.kap.spark.KapSparkSession;
 
 public class NAutoBasicTest extends NAutoTestBase {
 
-    @Override
-    public String getProject() {
-        return "newten";
-    }
-
     @Test
     public void testAutoSingleModel() throws Exception {
 

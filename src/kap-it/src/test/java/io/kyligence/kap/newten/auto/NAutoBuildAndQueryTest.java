@@ -36,11 +36,6 @@ import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
 @SuppressWarnings("serial")
 public class NAutoBuildAndQueryTest extends NAutoTestBase {
 
-    @Override
-    public String getProject() {
-        return "newten";
-    }
-
     @Test
     public void testAllQueries() throws Exception {
         executeTestScenario(

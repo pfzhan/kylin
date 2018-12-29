@@ -83,7 +83,7 @@ public class CognosParenthesesEscapeTest {
     @Test
     public void proguardTest() throws IOException {
         CognosParenthesesEscape escape = new CognosParenthesesEscape();
-        Collection<File> files = FileUtils.listFiles(new File("../../src/kap-it/src/test/resources"),
+        Collection<File> files = FileUtils.listFiles(new File("../../src/kap-it/src/test/resources/query"),
                 new String[] {"sql"}, true);
         for (File f : files) {
             System.out.println("checking " + f.getAbsolutePath());

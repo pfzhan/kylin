@@ -185,7 +185,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                 case SELF_CONFLICT:
                     // updating CC auto index to resolve name conflict
                     String ccName = ccDesc.getColumnName();
-                    ccDesc.setColumnName(increateIndex(ccName));
+                    ccDesc.setColumnName(incrementIndex(ccName));
                     break;
                 case SAME_EXPR_DIFF_NAME:
                     ccDesc.setColumnName(e.getAdvise());
@@ -206,7 +206,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         return false;
     }
 
-    private static String increateIndex(String oldAlias) {
+    private static String incrementIndex(String oldAlias) {
         if (oldAlias == null || !oldAlias.startsWith(CC_NAME_PRIFIX) || oldAlias.equals(CC_NAME_PRIFIX)) {
             return DEFAULT_CC_NAME;
         }

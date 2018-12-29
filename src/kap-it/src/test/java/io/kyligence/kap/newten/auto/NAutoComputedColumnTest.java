@@ -41,7 +41,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     public void testComputedColumnsWontImpactFavoriteQuery() {
         // test all named columns rename
         String query = "SELECT SUM(CASE WHEN PRICE > 100 THEN 100 ELSE PRICE END), CAL_DT FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, "newten", new String[] { query });
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
         smartMaster.runAll();
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
@@ -74,7 +74,7 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
     public void testComputedColumnWithLikeClause() {
         String query = "SELECT 100.00 * SUM(CASE WHEN LSTG_FORMAT_NAME LIKE 'VIP%' THEN 100 ELSE 120 END), CAL_DT "
                 + "FROM TEST_KYLIN_FACT GROUP BY CAL_DT";
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, "newten", new String[] { query });
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), new String[] { query });
         smartMaster.runAll();
 
         NDataModel model = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
