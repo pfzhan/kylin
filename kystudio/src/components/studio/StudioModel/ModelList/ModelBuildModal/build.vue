@@ -2,9 +2,22 @@
   <!-- 模型构建 -->
     <el-dialog :title="$t('modelBuild')" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <div>
-        <el-form :model="modelBuildMeta" :rules="rules" ref="buildForm" label-width="100px">
-          <el-form-item :label="$t('buildRange')" prop="dataRangeVal">
+        <el-form :model="modelBuildMeta" :rules="rules" ref="buildForm" label-position="top">
+          <div class="ky-list-title ksd-mt-14">{{$t('buildRange')}}</div>
+          <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2">
+            <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
+              {{$t('loadExistingData')}}
+            </el-radio>
+            <!-- <div class="item-desc">{{$t('loadExistingDataDesc')}}</div> -->
+          </el-form-item>
+          <el-form-item prop="dataRangeVal">
+            <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
+              {{$t('customLoadRange')}}
+            </el-radio>
+            <br/>
             <el-date-picker
+              class="ksd-ml-24"
+             :disabled="modelBuildMeta.isLoadExisted"
               v-model="modelBuildMeta.dataRangeVal"
               type="datetimerange"
               :range-separator="$t('to')"
@@ -58,7 +71,8 @@
   export default class ModelBuildModal extends Vue {
     btnLoading = false
     modelBuildMeta = {
-      dataRangeVal: ''
+      dataRangeVal: '',
+      isLoadExisted: false
     }
     rules = {
       dataRangeVal: [
@@ -94,8 +108,12 @@
       this.$refs.buildForm.validate((valid) => {
         if (!valid) { return }
         this.btnLoading = true
-        let start = transToUTCMs(this.modelBuildMeta.dataRangeVal[0])
-        let end = transToUTCMs(this.modelBuildMeta.dataRangeVal[1])
+        let start = null
+        let end = null
+        if (!this.modelBuildMeta.isLoadExisted) {
+          start = transToUTCMs(this.modelBuildMeta.dataRangeVal[0]) || null
+          end = transToUTCMs(this.modelBuildMeta.dataRangeVal[1]) || null
+        }
         this.buildModel({
           model: this.modelDesc.name,
           start: start,
@@ -105,6 +123,7 @@
           this.btnLoading = false
           kapMessage(this.$t('构建成功'))
           this.closeModal(true)
+          this.$emit('refreshModelList')
         }, (res) => {
           this.btnLoading = false
           res && handleError(res)

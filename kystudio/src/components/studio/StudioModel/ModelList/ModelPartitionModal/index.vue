@@ -53,7 +53,7 @@
           </el-option>
         </el-select>
       </el-form-item>
-      <el-form-item :label="$t('buildRange')" prop="dataRangeVal">
+      <!-- <el-form-item :label="$t('buildRange')" prop="dataRangeVal">
         <el-date-picker
           v-model="modelBuildMeta.dataRangeVal"
           type="datetimerange"
@@ -61,7 +61,31 @@
           :start-placeholder="$t('startDate')"
           :end-placeholder="$t('endDate')">
         </el-date-picker>
+      </el-form-item> -->
+    <template v-if="!(modelInstance && modelInstance.uuid) && partitionMeta.table && partitionMeta.column">
+      <div class="ky-list-title ksd-mt-14">{{$t('loadRange')}}</div>
+      <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2">
+        <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
+          {{$t('loadExistingData')}}
+        </el-radio>
+        <!-- <div class="item-desc">{{$t('loadExistingDataDesc')}}</div> -->
       </el-form-item>
+      <el-form-item class="custom-load" prop="loadDataRange">
+        <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
+          {{$t('customLoadRange')}}
+        </el-radio>
+        <br/>
+        <el-date-picker 
+        class="ksd-ml-24"
+          :disabled="modelBuildMeta.isLoadExisted"
+          v-model="modelBuildMeta.dataRangeVal"
+          type="datetimerange"
+          :range-separator="$t('to')"
+          :start-placeholder="$t('startDate')"
+          :end-placeholder="$t('endDate')">
+        </el-date-picker>
+      </el-form-item>
+      </template>
     </el-form>
     <!-- <div class="ky-line"></div>
     <div class="ky-list-title ksd-mt-16">Where 条件设置</div>
@@ -88,7 +112,7 @@ import { timeDataType } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
 import { isDatePartitionType } from '../../../../../util'
-import { getGmtDateFromUtcLike } from 'util/business'
+import { transToUTCMs } from 'util/business'
 
 vuex.registerModule(['modals', 'ModelPartitionModal'], store)
 
@@ -133,22 +157,15 @@ export default class ModelPartitionModal extends Vue {
   partitionMeta = {
     table: '',
     column: '',
-    format: ''
+    format: '',
+    isLoadExisted: false
   }
   modelBuildMeta = {
-    dataRangeVal: ''
+    dataRangeVal: []
   }
   @Watch('isShow')
   initModelBuldRange () {
     if (this.isShow) {
-      this.modelBuildMeta.dataRangeVal = []
-      if (this.modelDesc.last_build_end) {
-        let lastBuildDate = getGmtDateFromUtcLike(+this.modelDesc.last_build_end)
-        if (lastBuildDate) {
-          this.modelBuildMeta.dataRangeVal.push(lastBuildDate, lastBuildDate)
-        }
-      }
-    } else {
       this.modelBuildMeta.dataRangeVal = []
     }
   }
@@ -252,14 +269,22 @@ export default class ModelPartitionModal extends Vue {
     this.filterCondition = ''
   }
   savePartition () {
+    this.modelDesc.partition_desc = this.modelDesc.partition_desc || {}
     let hasSetDate = this.partitionMeta.table && this.partitionMeta.column
-    if (this.modelDesc) {
+    if (this.modelDesc && this.partitionMeta.table && this.partitionMeta.column) {
       this.modelDesc.partition_desc.partition_date_column = hasSetDate ? this.partitionMeta.table + '.' + this.partitionMeta.column : ''
-      this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
-      this.modelDesc.filter_condition = this.filterCondition
-      this.modelDesc.project = this.currentSelectedProject
-      this.handleClose(true)
     }
+    this.modelDesc.partition_desc.partition_date_format = this.partitionMeta.format
+    this.modelDesc.filter_condition = this.filterCondition
+    this.modelDesc.project = this.currentSelectedProject
+    if (this.modelBuildMeta.isLoadExisted) {
+      this.modelDesc.start = null
+      this.modelDesc.end = null
+    } else {
+      this.modelDesc.start = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[0])) || null
+      this.modelDesc.end = (+transToUTCMs(this.modelBuildMeta.dataRangeVal[1])) || null
+    }
+    this.handleClose(true)
   }
   handleClose (isSubmit) {
     this.hideModal()

@@ -140,7 +140,7 @@
     <!-- 模型检查 -->
     <ModelCheckDataModal/>
     <!-- 模型构建 -->
-    <ModelBuildModal/>
+    <ModelBuildModal @refreshModelList="loadModelsList"/>
     <!--  数据分区设置 -->
     <ModelPartitionModal/>
     <!-- 模型重命名 -->
