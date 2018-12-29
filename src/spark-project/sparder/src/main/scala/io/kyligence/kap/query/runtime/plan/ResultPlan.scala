@@ -60,15 +60,13 @@ object ResultPlan extends Logging {
     val resultTypes = rowType.getFieldList.asScala
     val jobGroup = Thread.currentThread().getName
     val sparkContext = SparderEnv.getSparkSession.sparkContext
-    // touch, so that scan exec can be executed.
-    df.queryExecution.sparkPlan
-
     val kapConfig = KapConfig.getInstanceFromEnv
     var pool = "heavy_tasks"
     val partitionsNum = QueryContext.current().getSourceScanBytes / PARTITION_SPLIT_BYTES + 1
+    logInfo(s"partition is : $partitionsNum , bytes is ${QueryContext.current().getSourceScanBytes}"  )
     // set priority
     sparkContext.setLocalProperty("spark.scheduler.pool", pool)
-    sparkContext.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
+    df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", partitionsNum.toString)
 
     sparkContext.setJobGroup(jobGroup,
       QueryContext.current().getSql,
@@ -114,7 +112,7 @@ object ResultPlan extends Logging {
     val r = body
     // remember clear local properties.
     df.sparkSession.sparkContext.setLocalProperty("spark.scheduler.pool", null)
-    df.sparkSession.sparkContext.setLocalProperty("spark.sql.shuffle.partitions", null)
+    df.sparkSession.sessionState.conf.setLocalProperty("spark.sql.shuffle.partitions", null)
     SparderEnv.setDF(df)
     r
   }

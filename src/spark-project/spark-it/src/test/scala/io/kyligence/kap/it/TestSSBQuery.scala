@@ -27,8 +27,9 @@ import io.kyligence.kap.common.{JobSupport, LocalToYarnSupport, QuerySupport}
 import io.kyligence.kap.query.runtime.CalciteToSparkPlaner
 import io.kyligence.kap.query.runtime.plan.{ResultPlan, ResultType}
 import io.kyligence.kap.query.{MockContext, QueryConstants, QueryFetcher}
+import org.apache.kylin.common.util.ClassUtil
 import org.apache.spark.internal.Logging
-import org.apache.spark.sql.common.{LocalMetadata, ParquetSSBSource, SparderBaseFunSuite}
+import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
 
 class TestSSBQuery
   extends SparderBaseFunSuite
@@ -36,14 +37,32 @@ class TestSSBQuery
     with JobSupport
     with LocalToYarnSupport
     with QuerySupport
-//    with ParquetSSBSource
     with Logging {
   override val master = "yarn"
   override val schedulerInterval = "30"
   override val DEFAULT_PROJECT = "ssb_loadtest"
   System.setProperty("kylin.env.hdfs-working-dir", "hdfs://slave1.kcluster/tmp/ssb_loadtest")
+  System.setProperty("kylin.engine.spark.job-jar", "../../assembly/target/kap-assembly-4.0.0-SNAPSHOT-job.jar")
+//  System.setProperty("kylin.hadoop.conf.dir", System.getenv("HADOOP_CONF_DIR"))
+  ClassUtil.addClasspath(System.getenv("HADOOP_CONF_DIR"))
+
+
+  init
+
+  private def init = {
+    conf.set("spark.eventLog.enabled", "true")
+    conf.set("spark.eventLog.dir",
+      "hdfs://slave1.kcluster:8020/tpch_spark_history")
+    conf.set("spark.executor.cores", "5")
+    conf.set("spark.executor.instances", "4")
+    conf.set("spark.executor.memory", "8g")
+    conf.set("spark.locality.wait", "0")
+    conf.set("spark.ui.liveUpdate.period", "1000ms")
+    conf.set("spark.ui.retainedStages", "300")
+  }
 
   val querys: Array[String] = QueryFetcher
+//    .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + "temp")
     .fetchQueries(QueryConstants.KAP_SQL_BASE_DIR + "sql_ssb_loadtest")
     .map(tp => tp._2)
 
@@ -91,12 +110,17 @@ class TestSSBQuery
   }
 
   test("ssb - all") {
-    val helper = new BenchmarkHelper(200, 1 * 60 * 1000)
+    querys.map { query =>
+       singleQuery(query, DEFAULT_PROJECT)
+    }
+    Thread.sleep(1000000L)
+  }
 
-    helper.setTasks(querys.map { query =>
-      () => singleQuery(query, DEFAULT_PROJECT)
-    })
-    helper.runTest()
+  test("ssb - all1") {
+
+    val query = querys.head
+    singleQuery(query, DEFAULT_PROJECT)
+    singleQuery(query, DEFAULT_PROJECT)
   }
 
   test("ssb - all2") {

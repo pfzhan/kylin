@@ -48,7 +48,6 @@ public final class ClassLoaderUtils {
 
     public static ClassLoader getSparkClassLoader() {
         if (sparkClassLoader == null) {
-            logger.error("sparkClassLoader not init");
             return Thread.currentThread().getContextClassLoader();
         } else {
             return sparkClassLoader;

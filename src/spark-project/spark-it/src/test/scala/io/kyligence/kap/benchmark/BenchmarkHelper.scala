@@ -31,12 +31,15 @@ class BenchmarkHelper(threadNum: Int, interval: Long) extends Logging {
   private val totalQueryCount = new AtomicLong(0)
   private var tasks = Seq.empty[Runnable]
   private val pool: ExecutorService = Executors.newFixedThreadPool(threadNum)
-  private val logThread = new Thread(new LogQPS())
+  private var monitorRunner: Runnable = _
   private val semaphore = new Semaphore(threadNum)
   private var logQPSInterval = 10L
+  private var startTime: Long = _
 
   def runTest(): Unit = {
-    logThread.start()
+    startTime = System.currentTimeMillis()
+    new Thread(monitorRunner).start()
+    new Thread(new LogQPS).start()
     if (tasks.isEmpty) {
       logWarning("Tasks is Empty!")
     } else {
@@ -49,7 +52,6 @@ class BenchmarkHelper(threadNum: Int, interval: Long) extends Logging {
           counter += 1
         }
       } finally {
-        logThread.interrupt()
         pool.shutdown()
       }
     }
@@ -59,6 +61,11 @@ class BenchmarkHelper(threadNum: Int, interval: Long) extends Logging {
     tasks = functions.map(new RunTask(_))
   }
 
+  def setMonitor(monitor : () => Unit) : Unit = {
+    monitorRunner = new Runnable {
+      override def run(): Unit = monitor.apply()
+    }
+  }
   def setLogQPSInterval(seconds: Long): Unit = {
     logQPSInterval = seconds
   }
@@ -77,7 +84,8 @@ class BenchmarkHelper(threadNum: Int, interval: Long) extends Logging {
       var lastQueryCount = 0L
       while (true) {
         Thread.sleep(logQPSInterval * 1000)
-        logInfo(s"QPS: ${(totalQueryCount.get() - lastQueryCount) * 1.0 / logQPSInterval} ")
+        println(s"QPS: ${(totalQueryCount.get() - lastQueryCount) * 1.0 / logQPSInterval} ")
+        println(s"Avg QPS: ${(totalQueryCount.get()) * 1.0 / ((System.currentTimeMillis() - startTime) /1000)} ")
         lastQueryCount = totalQueryCount.get()
       }
     }
