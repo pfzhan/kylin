@@ -81,7 +81,7 @@ public class UnitOfWork {
             try {
                 T ret;
                 log.debug("start unit of work for project {}", unitName);
-
+                f.preProcess();
                 if (threadLocals.get() != null) {
 
                     if (!threadLocals.get().project.equals(unitName)) {
@@ -93,7 +93,6 @@ public class UnitOfWork {
                     isIndependentTransaction = false;
                     retry = 100; // don't retry even sth go wrong
                     ret = f.process();
-
                 } else {
                     startTime = System.currentTimeMillis();
                     UnitOfWork.startTransaction(unitName, true);
@@ -109,6 +108,7 @@ public class UnitOfWork {
                 throw new TransactionException("transaction failed due to Message Queue problem", mqe);
             } catch (Throwable throwable) {
                 if (retry >= maxRetry) {
+                    f.onProcessError(throwable);
                     throw new TransactionException(
                             "exhausted max retry times, transaction failed due to inconsistent state", throwable);
                 }
@@ -278,6 +278,22 @@ public class UnitOfWork {
     }
 
     public interface Callback<T> {
+        /**
+         * Pre-process stage (before transaction)
+         */
+        default void preProcess() {
+        }
+
+        /**
+         * Process stage (within transaction)
+         */
         T process() throws Exception;
+
+        /**
+         * Handle error of process stage
+         * @param throwable
+         */
+        default void onProcessError(Throwable throwable) {
+        }
     }
 }

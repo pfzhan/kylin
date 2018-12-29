@@ -74,7 +74,7 @@ public abstract class NTestBase {
         localConfig = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig);
         favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
     }
-    
+
     public KylinConfig getTestConfig() {
         return localConfig.get();
     }
@@ -131,22 +131,22 @@ public abstract class NTestBase {
         KylinConfig oldKylinConfig = localConfig.get();
         val resourceStore = ResourceStore.getKylinMetaStore(oldKylinConfig);
         ResourceStore.dumpResources(oldKylinConfig, tmpMeta, resourceStore.listResourcesRecursively("/"));
-        
+
         reAddMetadataTableExd();
-        localConfig.close();
-        
+
         KylinConfig kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
         kylinConfig.setProperty("kylin.env", "UT");
+        localConfig.close();
         localConfig = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig);
         favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
     }
 
     protected void hideTableExdInfo() throws IOException {
         deleteMetadataTableExd();
-        localConfig.close();
 
         KylinConfig kylinConfig = Utils.smartKylinConfig(tmpMeta.getCanonicalPath());
         kylinConfig.setProperty("kylin.env", "UT");
+        localConfig.close();
         localConfig = KylinConfig.setAndUnsetThreadLocalConfig(kylinConfig);
         favoriteQueryManager = FavoriteQueryManager.getInstance(kylinConfig, proj);
     }

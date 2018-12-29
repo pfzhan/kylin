@@ -28,24 +28,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NCuboidDesc;
 import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
@@ -294,88 +287,6 @@ public class NSmartMasterTest extends NTestBase {
         final List<NCuboidLayout> layouts = collectAllLayouts(allCuboids);
         val fqRealizationsAfter = collectFavoriteQueryRealizations(layouts);
         Assert.assertEquals(2, fqRealizationsAfter.size());
-    }
-
-    /**
-     * Refer to: <ref>NCuboidRefresherTest.testParallelTimeLineRetryWithMultiThread()</ref>
-     */
-    @Test
-    public void testRefreshCubePlanWithRetry() throws ExecutionException, InterruptedException {
-        KylinConfig kylinConfig = getTestConfig();
-        String[] sqlsA = new String[] {
-                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
-                        + "where part_dt = '2012-01-01' group by part_dt, lstg_format_name",
-                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
-                        + "where part_dt = '2012-01-02' group by part_dt, lstg_format_name",
-                "select part_dt, lstg_format_name, sum(price) from kylin_sales "
-                        + "where lstg_format_name > 'ABIN' group by part_dt, lstg_format_name",
-                "select part_dt, sum(item_count), count(*) from kylin_sales group by part_dt",
-                "select part_dt, lstg_format_name, price from kylin_sales where part_dt = '2012-01-01'" };
-        String draftVersionA = UUID.randomUUID().toString();
-        NSmartMaster smartMasterA = new NSmartMaster(kylinConfig, proj, sqlsA, draftVersionA);
-        smartMasterA.runAll();
-
-        String draftVersionB = UUID.randomUUID().toString();
-        String[] sqlsB = new String[] {
-
-                "select lstg_format_name, part_dt, price from kylin_sales where part_dt = '2012-01-01'",
-                "select lstg_format_name, part_dt, price, item_count from kylin_sales where part_dt = '2012-01-01'" };
-        NSmartMaster smartMasterB = new NSmartMaster(kylinConfig, proj, sqlsB, draftVersionB);
-        smartMasterB.runAll();
-
-        String draftVersionC = UUID.randomUUID().toString();
-        String[] sqlsC = new String[] {
-
-                "select lstg_format_name, price from kylin_sales where price = 100" };
-        NSmartMaster smartMasterC = new NSmartMaster(kylinConfig, proj, sqlsC, draftVersionC);
-        smartMasterC.runAll();
-
-        ExecutorService service = Executors.newCachedThreadPool();
-        Future<?> futureA = service.submit(() -> {
-            try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
-                    .setAndUnsetThreadLocalConfig(kylinConfig)) {
-                smartMasterA.refreshCubePlanWithRetry();
-            }
-        });
-        Future<?> futureB = service.submit(() -> {
-            try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
-                    .setAndUnsetThreadLocalConfig(kylinConfig)) {
-                smartMasterB.refreshCubePlanWithRetry();
-            }
-        });
-        Future<?> futureC = service.submit(() -> {
-            try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig
-                    .setAndUnsetThreadLocalConfig(kylinConfig)) {
-                smartMasterC.refreshCubePlanWithRetry();
-            }
-        });
-
-        futureA.get();
-        futureB.get();
-        futureC.get();
-
-        final NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig, proj);
-        final List<NCubePlan> cubePlans = cubePlanManager.listAllCubePlans();
-        Assert.assertEquals(1, cubePlans.size());
-
-        final List<NCuboidDesc> allCuboids = cubePlans.get(0).getAllCuboids();
-        Assert.assertEquals(5, allCuboids.size());
-        Assert.assertEquals(6, collectAllLayouts(allCuboids).size());
-    }
-
-    @Ignore
-    @Test
-    public void testRefreshCubePlanWithRetryFail() {
-        KylinConfig kylinConfig = getTestConfig();
-        kylinConfig.setProperty("kap.smart.conf.propose.retry-max", "0");
-        try {
-
-            testRefreshCubePlanWithRetry();
-            Assert.fail();
-        } catch (Exception e) {
-            Assert.assertTrue(e instanceof ExecutionException);
-            Assert.assertTrue(e.getCause() instanceof IllegalStateException);
-        }
     }
 
     @Test

@@ -38,7 +38,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 
 class NLocalQueryRunnerBuilder {
 
@@ -68,7 +67,6 @@ class NLocalQueryRunnerBuilder {
 
     private void prepareResources(String projectName, Set<String> dumpResources,
             Map<String, RootPersistentEntity> mockupResources, List<NDataModel> dataModels) {
-        NProjectManager projectManager = NProjectManager.getInstance(srcKylinConfig);
 
         ProjectInstance dumpProj = new ProjectInstance();
         dumpProj.setName(projectName);
@@ -78,8 +76,6 @@ class NLocalQueryRunnerBuilder {
         NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(srcKylinConfig, projectName);
         metadataManager.listAllTables().forEach(tableDesc -> dumpResources.add(tableDesc.getResourcePath()));
 
-        dataModels.forEach(dataModel -> {
-            mockupResources.put(dataModel.getResourcePath(), dataModel);
-        });
+        dataModels.forEach(dataModel -> mockupResources.put(dataModel.getResourcePath(), dataModel));
     }
 }

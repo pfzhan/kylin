@@ -29,9 +29,6 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.persistence.VersionConflictException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -47,8 +44,6 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 
 public class NSmartMaster {
-
-    private static final Logger logger = LoggerFactory.getLogger(NSmartMaster.class);
 
     private static final String MODEL_NAME_PREFIX = "AUTO_MODEL_";
 
@@ -127,34 +122,12 @@ public class NSmartMaster {
         }
     }
 
-    public void refreshCubePlan() {
-        proposerProvider.getCubePlanRefreshProposer().propose();
-    }
-
-    public void refreshCubePlanWithRetry() {
-        int maxRetry = context.getSmartConfig().getProposeRetryMax();
-        for (int i = 0; i <= maxRetry; i++) {
-            try {
-                selectModelAndCubePlan();
-                refreshCubePlan();
-                saveCubePlan();
-                saveAccelerateInfo();
-                logger.debug("save successfully after refresh, {}", context.getDraftVersion());
-                return;
-            } catch (IllegalStateException | VersionConflictException e) {
-                logger.warn("save error after refresh, have retried " + i + " times", e);
-            }
-        }
-
-        throw new IllegalStateException("refreshCubePlanWithRetry exceed max retry count: " + maxRetry);
-    }
-
     public void selectModelAndCubePlan() {
         analyzeSQLs();
         selectModel();
         selectCubePlan();
     }
-    
+
     public void selectAndOptimize() {
         analyzeSQLs();
         selectModel();
@@ -162,27 +135,56 @@ public class NSmartMaster {
         selectCubePlan();
         optimizeCubePlan();
     }
-    
-    public void save(Consumer<NSmartContext> hook) {
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            renameModel();
-            saveModel();
-            saveCubePlan(); 
-            saveAccelerateInfo();
-            if (hook != null) {
-                hook.accept(getContext());
-            }
-            return null;
-        }, project);
+
+    private void save() {
+        renameModel();
+        saveModel();
+        saveCubePlan();
     }
 
+    // this method now only used for testing
     public void runAll() {
         runAllAndForContext(null);
     }
 
     public void runAllAndForContext(Consumer<NSmartContext> hook) {
-        selectAndOptimize();
-        save(hook);
+        try {
+            UnitOfWork.doInTransactionWithRetry(new UnitOfWork.Callback<Object>() {
+                @Override
+                public void preProcess() {
+                    selectAndOptimize();
+                }
+
+                @Override
+                public Object process() {
+                    save();
+                    if (hook != null) {
+                        hook.accept(getContext());
+                    }
+                    return null;
+                }
+
+                @Override
+                public void onProcessError(Throwable throwable) {
+                    recordError(throwable);
+                }
+            }, project);
+        } finally {
+            UnitOfWork.doInTransactionWithRetry(new UnitOfWork.Callback<Object>() {
+                @Override
+                public Object process() throws Exception {
+                    saveAccelerateInfo();
+                    return null;
+                }
+            }, project);
+        }
+    }
+
+    private void recordError(Throwable throwable) {
+        context.getAccelerateInfoMap().forEach((key, value) -> {
+            value.getRelatedLayouts().clear();
+            value.setBlockingCause(throwable);
+        });
     }
 
     public void saveCubePlan() {
