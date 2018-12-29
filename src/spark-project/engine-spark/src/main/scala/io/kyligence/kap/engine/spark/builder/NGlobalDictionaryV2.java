@@ -39,18 +39,21 @@ public class NGlobalDictionaryV2 implements Serializable {
 
     private final static String WORKING_DIR = "working";
 
+    private String project;
     private String sourceTable;
     private String sourceColumn;
 
     public String getResourceDir() {
-        return ResourceStore.GLOBAL_DICT_RESOURCE_ROOT + "/" + sourceTable + "/" + sourceColumn + "/";
+        return "/" + project + ResourceStore.GLOBAL_DICT_RESOURCE_ROOT + "/" + sourceTable + "/" + sourceColumn + "/";
     }
 
     private String getWorkingDir() {
         return baseDir + WORKING_DIR;
     }
 
-    public NGlobalDictionaryV2(String sourceTable, String sourceColumn, String baseDir) throws IOException {
+    public NGlobalDictionaryV2(String project, String sourceTable, String sourceColumn, String baseDir)
+            throws IOException {
+        this.project = project;
         this.sourceTable = sourceTable;
         this.sourceColumn = sourceColumn;
         this.baseDir = baseDir + getResourceDir();

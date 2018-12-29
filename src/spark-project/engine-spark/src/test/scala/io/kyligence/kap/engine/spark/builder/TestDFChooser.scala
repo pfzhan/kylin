@@ -121,17 +121,17 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
 
     val nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(seg.getCubePlan.getAllCuboidLayouts, dfName)
 
-    var dictColSet = DictionaryBuilder.extractGlobalDictColumns(seg, nSpanningTree)
+    val dictColSet = DictionaryBuilder.extractGlobalDictColumns(seg, nSpanningTree)
     Assert.assertEquals(expectColSize, dictColSet.size())
     val dictionaryBuilder = new DictionaryBuilder(seg, afterJoin, dictColSet)
     val segDict = dictionaryBuilder.buildDictionary
     dictColSet.asScala.foreach(
       col => {
-        val dict1 = new NGlobalDictionaryV2(col.getTable, col.getName, segDict.getConfig.getHdfsWorkingDirectory)
+        val dict1 = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, segDict.getConfig.getHdfsWorkingDirectory)
         val meta1 = dict1.getMetaDict;
         NGlobalDictionaryBuilderAssist.resize(col, segDict, (seg.getConfig.getGlobalDictV2HashPartitions + 10),
           spark.sparkContext)
-        val dict2 = new NGlobalDictionaryV2(col.getTable, col.getName, segDict.getConfig.getHdfsWorkingDirectory)
+        val dict2 = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, segDict.getConfig.getHdfsWorkingDirectory)
         Assert.assertEquals(meta1.getDictCount, dict2.getMetaDict.getDictCount)
         Assert.assertEquals(meta1.getBucketSize + 10, dict2.getMetaDict.getBucketSize)
       }

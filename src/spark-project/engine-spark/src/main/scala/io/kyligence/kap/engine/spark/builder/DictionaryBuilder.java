@@ -104,7 +104,7 @@ public class DictionaryBuilder {
     }
 
     private boolean needResize(TblColRef col) throws IOException {
-        NGlobalDictionaryV2 globalDict = new NGlobalDictionaryV2(col.getTable(), col.getName(),
+        NGlobalDictionaryV2 globalDict = new NGlobalDictionaryV2(seg.getProject(), col.getTable(), col.getName(),
                 seg.getConfig().getHdfsWorkingDirectory());
         int bucketPartitionSize = globalDict.getBucketSizeOrDefault(seg.getConfig().getGlobalDictV2HashPartitions());
         int globalDictPartitions = seg.getConfig().getGlobalDictV2HashPartitions();
@@ -114,7 +114,7 @@ public class DictionaryBuilder {
     private void build(TblColRef col, int bucketPartitionSize, Dataset<Row> afterDistinct) throws IOException {
         logger.info("building global dict V2 for column {}", col.getTable() + "_" + col.getName());
 
-        NGlobalDictionaryV2 globalDict = new NGlobalDictionaryV2(col.getTable(), col.getName(),
+        NGlobalDictionaryV2 globalDict = new NGlobalDictionaryV2(seg.getProject(), col.getTable(), col.getName(),
                 seg.getConfig().getHdfsWorkingDirectory());
         globalDict.prepareWrite();
         Broadcast<NGlobalDictionaryV2> broadcastDict = afterDistinct.sparkSession().sparkContext().broadcast(globalDict,
@@ -193,7 +193,7 @@ public class DictionaryBuilder {
     }
 
     private String getLockPath(String pathName) {
-        return ResourceStore.GLOBAL_DICT_RESOURCE_ROOT + "/" + pathName + "/lock";
+        return "/" + seg.getProject() + ResourceStore.GLOBAL_DICT_RESOURCE_ROOT + "/" + pathName + "/lock";
     }
 
 }

@@ -56,7 +56,7 @@ object NGlobalDictionaryBuilderAssist {
 
   @throws[IOException]
   def resize(col: TblColRef, seg: NDataSegment, bucketPartitionSize: Int, sc: SparkContext): Unit = {
-    val globalDict = new NGlobalDictionaryV2(col.getTable, col.getName, seg.getConfig.getHdfsWorkingDirectory)
+    val globalDict = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, seg.getConfig.getHdfsWorkingDirectory)
     val broadcastDict = sc.broadcast(globalDict)
     val paralRdd = sc.parallelize(Range(0, bucketPartitionSize), bucketPartitionSize)
 

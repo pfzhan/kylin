@@ -90,8 +90,8 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
     private void roundTest(int size) throws IOException {
         System.out.println("NGlobalDictionaryV2Test -> roundTest -> " + System.currentTimeMillis());
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        NGlobalDictionaryV2 dict1 = new NGlobalDictionaryV2("a", "spark", config.getHdfsWorkingDirectory());
-        NGlobalDictionaryV2 dict2 = new NGlobalDictionaryV2("a", "local", config.getHdfsWorkingDirectory());
+        NGlobalDictionaryV2 dict1 = new NGlobalDictionaryV2("t1", "a", "spark", config.getHdfsWorkingDirectory());
+        NGlobalDictionaryV2 dict2 = new NGlobalDictionaryV2("t2", "a", "local", config.getHdfsWorkingDirectory());
         List<String> stringList = generateRandomData(size);
         Collections.sort(stringList);
         runWithSparkBuildGlobalDict(dict1, stringList);
