@@ -42,6 +42,6 @@ export default {
     return Vue.resource(apiUrl + 'jobs/statistics/count').get(para)
   },
   loadJobBulidChartData: (para) => {
-    return Vue.resource(apiUrl + 'jobs/statistics/duration_per_mb').get(para)
+    return Vue.resource(apiUrl + 'jobs/statistics/duration_per_byte').get(para)
   }
 }

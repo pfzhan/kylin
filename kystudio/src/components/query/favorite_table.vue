@@ -20,7 +20,7 @@
         {{props.row.success_rate * 100 | number(2)}}%
       </template>
     </el-table-column>
-    <el-table-column :label="$t('kylinLang.query.frequency')" prop="frequency" sortable align="center" width="120" v-if="isAccelerated"></el-table-column>
+    <el-table-column :label="$t('kylinLang.query.frequency')" prop="total_count" sortable align="center" width="120" v-if="isAccelerated"></el-table-column>
     <el-table-column :label="$t('kylinLang.query.avgDuration')" prop="average_duration" sortable align="center" width="160" v-if="isAccelerated">
       <template slot-scope="props">
         <span v-if="props.row.average_duration < 1000"> &lt; 1s</span>

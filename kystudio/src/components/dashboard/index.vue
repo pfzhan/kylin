@@ -358,7 +358,7 @@ export default class Dashboard extends Vue {
     const resLine = await this.loadJobBulidChartData({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime(), dimension: this.dateUnit})
     const resDataLine = await handleSuccessAsync(resLine)
     Object.keys(resDataLine).forEach(k => {
-      resDataLine[k] = (resDataLine[k] / 1000).toFixed(2)
+      resDataLine[k] = (resDataLine[k] * 1024 * 1024 / 1000).toFixed(2)
     })
     this.lineChartDara = resDataLine
   }
@@ -511,7 +511,7 @@ export default class Dashboard extends Vue {
     const resJob = await this.loadDashboardJobInfo({project: this.currentSelectedProject, start_time: this.daterange[0].getTime(), end_time: this.daterange[1].getTime()})
     const resDataJob = await handleSuccessAsync(resJob)
     this.jobCount = resDataJob.count || 0
-    this.avgBulidTime = resDataJob.duration_per_mb ? (resDataJob.duration_per_mb / 1000).toFixed(2) : 0
+    this.avgBulidTime = resDataJob.duration_per_byte ? (resDataJob.duration_per_byte * 1024 * 1024 / 1000).toFixed(2) : 0
   }
 }
 </script>

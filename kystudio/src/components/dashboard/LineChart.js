@@ -13,7 +13,7 @@ export default {
   mounted () {
     nv.addGraph(() => {
       const chart = nv.models.lineChart()
-        .margin({top: 20, right: 40, bottom: 60, left: 30})
+        .margin({top: 20, right: 40, bottom: 60, left: 35})
         .color(this.colors)
         .showLegend(false)
         .noData(this.$t('kylinLang.common.noData'))
