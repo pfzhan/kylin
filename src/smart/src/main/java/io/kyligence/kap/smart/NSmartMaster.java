@@ -42,7 +42,9 @@ import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NSmartMaster {
 
     private static final String MODEL_NAME_PREFIX = "AUTO_MODEL_";
@@ -122,12 +124,6 @@ public class NSmartMaster {
         }
     }
 
-    public void selectModelAndCubePlan() {
-        analyzeSQLs();
-        selectModel();
-        selectCubePlan();
-    }
-
     public void selectAndOptimize() {
         analyzeSQLs();
         selectModel();
@@ -170,6 +166,12 @@ public class NSmartMaster {
                 }
             }, project);
         } finally {
+            saveAccelerationInfoInTransaction();
+        }
+    }
+
+    private void saveAccelerationInfoInTransaction() {
+        try {
             UnitOfWork.doInTransactionWithRetry(new UnitOfWork.Callback<Object>() {
                 @Override
                 public Object process() throws Exception {
@@ -177,6 +179,8 @@ public class NSmartMaster {
                     return null;
                 }
             }, project);
+        } catch (Exception e) {
+            log.error("save acceleration info error", e);
         }
     }
 
