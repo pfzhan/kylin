@@ -113,6 +113,10 @@ public class QueryContext {
         return queryStartMillis;
     }
 
+    public void setQueryStartMillis(long queryStartMillis) {
+        this.queryStartMillis = queryStartMillis;
+    }
+
     public static void reset() {
         contexts.remove();
     }

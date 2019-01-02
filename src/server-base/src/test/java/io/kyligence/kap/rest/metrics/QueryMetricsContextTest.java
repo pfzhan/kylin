@@ -148,6 +148,8 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
         try {
             String sql = "select * from test_with_otherError";
             final QueryContext queryContext = QueryContext.current();
+            // 2018-01-01
+            queryContext.setQueryStartMillis(1514764800000L);
             queryContext.setCorrectedSql(sql);
             QueryMetricsContext.start(queryContext.getQueryId());
             Assert.assertEquals(true, QueryMetricsContext.isStarted());
@@ -166,7 +168,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             Assert.assertFalse(influxdbTags.containsKey("error_type"));
 
             // assert month
-            Assert.assertEquals("2018-12", influxdbTags.get("month"));
+            Assert.assertEquals("2018-01", influxdbTags.get("month"));
 
         } finally {
             QueryContext.reset();
