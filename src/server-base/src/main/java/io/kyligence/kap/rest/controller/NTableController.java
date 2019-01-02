@@ -196,6 +196,26 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableService.getLatestDataRange(project, table), "");
     }
 
+    @RequestMapping(value = "/batch_load", method = { RequestMethod.GET }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getBatchLoadTables(@RequestParam(value = "project") String project) {
+        checkProjectName(project);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableService.getBatchLoadTables(project), "");
+    }
+
+    @RequestMapping(value = "/batch_load", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse batchLoad(@RequestBody List<DateRangeRequest> requests) throws Exception {
+        if (requests.isEmpty())
+            return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+
+        checkArgsAndValidateRangeForBatchLoad(requests);
+        tableService.batchLoadDataRange(requests.get(0).getProject(), requests);
+        return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
     @RequestMapping(value = "/databases", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody

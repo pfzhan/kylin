@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.RawResource;
@@ -125,6 +126,17 @@ public class NTableMetadataManager {
             ret.put(tableIdentity, getTableDesc(tableIdentity));
         }
         return ret;
+    }
+
+    public List<TableDesc> getAllIncrementalLoadTables() {
+        List<TableDesc> result = Lists.newArrayList();
+
+        for (TableDesc table: srcTableCrud.listAll()) {
+            if (table.isIncrementLoading())
+                result.add(table);
+        }
+
+        return result;
     }
 
     /**

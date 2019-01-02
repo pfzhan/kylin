@@ -42,6 +42,7 @@
 
 package io.kyligence.kap.rest.controller;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
@@ -234,6 +235,55 @@ public class NTableControllerTest {
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
         Mockito.verify(nTableController).getLatestData("default", "DEFAULT.TEST_KYLIN_FACT");
+    }
+
+    @Test
+    public void getGetBatchLoadTables() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/tables/batch_load").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).getBatchLoadTables("default");
+    }
+
+    @Test
+    public void batchLoadTablesWithEmptyRequest() throws Exception {
+        List<DateRangeRequest> requests = Lists.newArrayList();
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(requests))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nTableController).batchLoad(Mockito.anyList());
+    }
+
+    @Test
+    public void batchLoadTables_DateRange_LessThan0_Exception() throws Exception {
+        DateRangeRequest request = new DateRangeRequest();
+        request.setProject("project");
+        request.setTable("DEFAULT.TEST_KYLIN_FACT");
+        request.setStart("-1");
+        request.setEnd("-1");
+        List<DateRangeRequest> requests = Lists.newArrayList(request);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(requests))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nTableController).batchLoad(Mockito.anyList());
+    }
+
+    @Test
+    public void batchLoadTables_DateRange_EndLessThanStart_Exception() throws Exception {
+        DateRangeRequest request = new DateRangeRequest();
+        request.setProject("project");
+        request.setTable("DEFAULT.TEST_KYLIN_FACT");
+        request.setStart("100");
+        request.setEnd("1");
+        List<DateRangeRequest> requests = Lists.newArrayList(request);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/tables/batch_load").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(requests))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+        Mockito.verify(nTableController).batchLoad(Mockito.anyList());
     }
 
 

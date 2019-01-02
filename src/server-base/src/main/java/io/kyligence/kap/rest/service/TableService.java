@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
+import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
@@ -647,6 +648,36 @@ public class TableService extends BasicService {
         return SourceFactory.getSource(tableDesc).getSegmentRange(dateRangeRequest.getStart(),
                 dateRangeRequest.getEnd());
 
+    }
+
+    public List<BatchLoadTableResponse> getBatchLoadTables(String project) {
+        final List<TableDesc> incrementalLoadTables = getTableManager(project).getAllIncrementalLoadTables();
+        final List<BatchLoadTableResponse> result = Lists.newArrayList();
+
+        for (TableDesc table : incrementalLoadTables) {
+            String tableIdentity = table.getIdentity();
+            int relatedIndexNum = getRelatedIndexNumOfATable(table, project);
+            result.add(new BatchLoadTableResponse(tableIdentity, relatedIndexNum));
+        }
+
+        return result;
+    }
+
+    private int getRelatedIndexNumOfATable(TableDesc tableDesc, String project) {
+        int result = 0;
+        NDataModelManager modelManager = getDataModelManager(project);
+        for (String model : modelManager.getTableOrientedModelsUsingRootTable(tableDesc)) {
+            NCubePlan cubePlan = getCubePlanManager(project).findMatchingCubePlan(model);
+            result += cubePlan.getAllCuboids().size();
+        }
+
+        return result;
+    }
+
+    public void batchLoadDataRange(String project, List<DateRangeRequest> requests) throws Exception {
+        for (DateRangeRequest request : requests) {
+            setDataRange(project, request);
+        }
     }
 
     @Transaction(project = 0)

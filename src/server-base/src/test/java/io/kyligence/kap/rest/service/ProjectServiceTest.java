@@ -219,7 +219,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         StorageVolumeInfoResponse storageVolumeInfoResponse = projectService.getStorageVolumeInfoResponse("default");
 
         Assert.assertEquals(1024 * 1024 * 1024L, storageVolumeInfoResponse.getStorageQuotaSize());
-        Assert.assertEquals(5633024L, storageVolumeInfoResponse.getGarbageStorageSize());
+        Assert.assertEquals(4442112L, storageVolumeInfoResponse.getGarbageStorageSize());
     }
 
     @Test

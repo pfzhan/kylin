@@ -50,6 +50,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import org.apache.kylin.common.KylinConfig;
@@ -224,11 +225,26 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSetPartitionKeyAndSetDataRange() throws Exception {
         setupPushdownEnv();
+        testGetBatchLoadTablesBefore();
         testSetPartitionKeyAndSetDataRangeWithoutException();
+        testGetBatchLoadTablesAfter();
         testSetDataRangeWhenNoNewData();
         testSetDataRangeOverlapOrGap();
         testGetLatestData();
         cleanPushdownEnv();
+    }
+
+    private void testGetBatchLoadTablesBefore() {
+        List<BatchLoadTableResponse> responses = tableService.getBatchLoadTables("default");
+        Assert.assertEquals(0, responses.size());
+    }
+
+    private void testGetBatchLoadTablesAfter() {
+        List<BatchLoadTableResponse> responses = tableService.getBatchLoadTables("default");
+        Assert.assertEquals(1, responses.size());
+        BatchLoadTableResponse response = responses.get(0);
+        Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", response.getTable());
+        Assert.assertEquals(61, response.getRelatedIndexNum());
     }
 
     private void testSetPartitionKeyAndSetDataRangeWithoutException() throws Exception {

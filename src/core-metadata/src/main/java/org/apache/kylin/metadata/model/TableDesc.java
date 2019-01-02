@@ -125,7 +125,7 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String dataGen;
 
-    @JsonProperty("fact")
+    @JsonProperty("increment_loading")
     private boolean incrementLoading;
 
     protected String project;

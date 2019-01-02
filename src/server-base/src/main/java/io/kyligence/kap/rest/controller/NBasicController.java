@@ -54,6 +54,7 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import io.kyligence.kap.rest.request.DateRangeRequest;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
@@ -222,6 +223,14 @@ public class NBasicController {
             if (startLong >= endLong) {
                 throw new BadRequestException("End of range must be greater than start!");
             }
+        }
+    }
+
+    public void checkArgsAndValidateRangeForBatchLoad(List<DateRangeRequest> requests) {
+        for (DateRangeRequest request : requests) {
+            checkProjectName(request.getProject());
+            checkRequiredArg("table", request.getTable());
+            validateRange(request.getStart(), request.getEnd());
         }
     }
 }
