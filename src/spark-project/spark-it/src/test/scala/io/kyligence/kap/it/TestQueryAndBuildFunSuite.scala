@@ -25,7 +25,6 @@ package io.kyligence.kap.it
 import java.io.File
 
 import io.kyligence.kap.common.{CompareSupport, JobSupport, QuerySupport, SSSource}
-import io.kyligence.kap.engine.spark.utils.JobMetricsUtils
 import io.kyligence.kap.query.{QueryConstants, QueryFetcher}
 import io.netty.util.internal.ThrowableUtil
 import org.apache.spark.internal.Logging

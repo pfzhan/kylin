@@ -34,6 +34,7 @@ import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.Column
+import org.apache.spark.sql.catalyst.expressions.Cast
 import org.apache.spark.sql.functions._
 
 object SparderTypeUtil extends Logging {
@@ -362,13 +363,22 @@ object SparderTypeUtil extends Logging {
   }
 
   def alignDataType(origin: StructType, goal: StructType): Array[Column] = {
-    origin.zip(goal).map {
-      case (sparkField, kylinField) =>
-        if (!sparkField.dataType.sameType(kylinField.dataType)) {
-          col(sparkField.name).cast(kylinField.dataType)
+   val columns = origin.zip(goal).map {
+      case (sparkField, goalField) =>
+        val sparkDataType = sparkField.dataType
+        val goalDataType = goalField.dataType
+        if (!sparkDataType.sameType(goalDataType)) {
+          if (Cast.canCast(sparkDataType, goalDataType)) {
+            col(sparkField.name).cast(goalDataType)
+          } else {
+            logError(s"Error for cast datatype from  $sparkDataType to $goalDataType with column name is : ${sparkField.name}")
+            col(sparkField.name)
+          }
         } else {
           col(sparkField.name)
         }
     }.toArray
+    logInfo(s"Align data type is ${columns.mkString(",")}")
+    columns
   }
 }

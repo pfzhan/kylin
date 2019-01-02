@@ -233,7 +233,11 @@ public class TableDesc extends RootPersistentEntity implements Serializable, ISo
 
     public String getIdentity() {
         if (identity == null) {
-            identity = String.format("%s.%s", this.getDatabase().toUpperCase(), this.getName()).toUpperCase();
+            if (this.getDatabase().equals("null")) {
+                identity = String.format("%s", this.getName()).toUpperCase();
+            } else {
+                identity = String.format("%s.%s", this.getDatabase().toUpperCase(), this.getName()).toUpperCase();
+            }
         }
         return identity;
     }

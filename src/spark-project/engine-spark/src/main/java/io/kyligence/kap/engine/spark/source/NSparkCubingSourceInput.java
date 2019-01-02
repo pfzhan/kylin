@@ -37,10 +37,14 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.sql.util.SparderTypeUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 
 public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingSource {
+    private static final Logger logger = LoggerFactory.getLogger(NSparkCubingSourceInput.class);
+
     @Override
     public Dataset<Row> getSourceData(TableDesc table, SparkSession ss, Map<String, String> getSourceData) {
         ColumnDesc[] columnDescs = table.getColumns();
@@ -48,7 +52,7 @@ public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingS
         StructType kylinSchema = new StructType();
         for (ColumnDesc columnDesc : columnDescs) {
             if (!columnDesc.isComputedColumn()) {
-                kylinSchema.add(columnDesc.getName(), SparderTypeUtil.toSparkType(columnDesc.getType(), false), true);
+                kylinSchema = kylinSchema.add(columnDesc.getName(), SparderTypeUtil.toSparkType(columnDesc.getType(), false), true);
                 tblColNames.add(columnDesc.getName());
             }
         }
@@ -57,6 +61,8 @@ public class NSparkCubingSourceInput implements NSparkCubingEngine.NSparkCubingS
         String sql = String.format("select %s from %s", colString, table.getIdentity());
         Dataset<Row> df = ss.sql(sql);
         StructType sparkSchema = df.schema();
+        logger.info("Source data sql is: " + sql);
+        logger.info("Kylin schema " + kylinSchema.treeString());
         return df.select(SparderTypeUtil.alignDataType(sparkSchema, kylinSchema));
     }
 }
