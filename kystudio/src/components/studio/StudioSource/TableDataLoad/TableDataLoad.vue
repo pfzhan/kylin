@@ -31,7 +31,7 @@
       </div>
       <div class="info-row">
         <span class="info-label font-medium">{{$t('storageSize')}}</span>
-        <span class="info-value" v-if="table.storageType">{{table.storageSize | dataSize}}</span>
+        <span class="info-value" v-if="table.storageSize !== null">{{table.storageSize | dataSize}}</span>
         <span class="info-value empty" v-else>{{$t('notLoadYet')}}</span>
       </div>
       <div class="info-row" v-if="!~['incremental'].indexOf(table.storageType)">
@@ -138,7 +138,7 @@ export default class TableDataLoad extends Vue {
     try {
       const { modelCount, modelSize } = await this._getAffectedModelCountAndSize()
       if (modelCount || modelSize) {
-        await this._showAffectModelConfirm(modelCount, modelSize)
+        await this._showPartitionConfirm({ modelSize, newPartitionKey: value })
       }
       await this._changePartitionKey(value)
       await this._showDataRangeConfrim()
@@ -163,6 +163,31 @@ export default class TableDataLoad extends Vue {
     const confirmButtonText = this.$t('kylinLang.common.ok')
     const type = 'warning'
     return this.$alert(confirmMessage, confirmTitle, { confirmButtonText, type })
+  }
+  _showPartitionConfirm ({ modelSize, newPartitionKey }) {
+    const storageSize = Vue.filter('dataSize')(modelSize)
+    const tableName = this.table.name
+    const oldPartitionKey = this.table.partitionColumn
+    const confirmTitle = this.$t('changePartitionTitle')
+    const contentVal = { tableName, newPartitionKey, oldPartitionKey, storageSize }
+    const confirmMessage1 = this.$t('changePartitionContent1', contentVal)
+    const confirmMessage2 = this.$t('changePartitionContent2', contentVal)
+    const confirmMessage3 = this.$t('changePartitionContent3', contentVal)
+    const confirmMessage = _render(this.$createElement)
+    const confirmButtonText = this.$t('kylinLang.common.ok')
+    const cancelButtonText = this.$t('kylinLang.common.cancel')
+    const type = 'warning'
+    return this.$confirm(confirmMessage, confirmTitle, { confirmButtonText, cancelButtonText, type })
+
+    function _render (h) {
+      return (
+        <div>
+          <p class="break-all">{confirmMessage1}</p>
+          <p>{confirmMessage2}</p>
+          <p>{confirmMessage3}</p>
+        </div>
+      )
+    }
   }
   _showAffectModelConfirm (modelCount, modelSize) {
     const storageSize = Vue.filter('dataSize')(modelSize)
