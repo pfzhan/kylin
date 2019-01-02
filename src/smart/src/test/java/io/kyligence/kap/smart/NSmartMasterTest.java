@@ -589,7 +589,7 @@ public class NSmartMasterTest extends NTestBase {
         Assert.assertEquals(1, accelerateInfoMap.values().size());
         final AccelerateInfo accelerateInfo = Lists.newArrayList(accelerateInfoMap.values()).get(0);
         Assert.assertTrue(accelerateInfo.isBlocked());
-        Assert.assertEquals("Only one incrementing loading table can be setted in model!",
+        Assert.assertEquals("Only one incremental loading table can be set in model!",
                 accelerateInfo.getBlockingCause().getMessage());
     }
 

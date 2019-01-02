@@ -233,7 +233,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         table.setIncrementLoading(true);
         tableManager.updateTableDesc(table);
         thrown.expect(IllegalStateException.class);
-        thrown.expectMessage("Only one incrementing loading table can be setted in model!");
+        thrown.expectMessage("Only one incremental loading table can be set in model!");
         mgrDefault.updateDataModelDesc(nDataModel);
     }
 }

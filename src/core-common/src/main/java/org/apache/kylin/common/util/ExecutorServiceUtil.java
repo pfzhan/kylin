@@ -41,7 +41,7 @@ public class ExecutorServiceUtil {
                 threadPool.shutdownNow();
             }
         } catch (InterruptedException ex) {
-            logger.info("interrrupted while shutting down");
+            logger.info("Interrupted while shutting down");
             threadPool.shutdownNow();
             Thread.currentThread().interrupt();
         }
