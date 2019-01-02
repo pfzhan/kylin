@@ -37,7 +37,7 @@ public class NAutoTpchTest extends NAutoTestBase {
         new TestScenario(CompareLevel.SAME, "sql_tpch", 0, 5).execute();
         new TestScenario(CompareLevel.SAME, "sql_tpch", 5, 10).execute();
         new TestScenario(CompareLevel.SAME, "sql_tpch", 10, 15).execute();
-        new TestScenario(CompareLevel.SAME, "sql_tpch", 15, 20).execute();
+        new TestScenario(CompareLevel.SAME, "sql_tpch", 15, 22).execute();
     }
 
     @Test
