@@ -15,7 +15,7 @@ const initialState = JSON.stringify({
   callback: null,
   form: {
     name: '',
-    type: 'MANUAL_MAINTAIN',
+    type: 'AUTO_MAINTAIN',
     description: '',
     properties: []
   }

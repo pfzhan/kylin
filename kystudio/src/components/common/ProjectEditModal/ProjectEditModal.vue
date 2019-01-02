@@ -26,7 +26,7 @@
             </div> -->
             <div class="project-type-button">
               <div class="project-type-icon" @click="inputHandler('type', 'MANUAL_MAINTAIN')" v-guide.changeMunalProjectType>
-                <i class="el-icon-ksd-model_designer"></i>
+                <i class="el-icon-ksd-expert_mode"></i>
               </div>
               <div class="project-type-text">
                 <span class="font-medium">{{$t('projectType2')}}</span>
@@ -40,7 +40,7 @@
             </div> -->
             <div class="project-type-button">
               <div class="project-type-icon" @click="inputHandler('type', 'AUTO_MAINTAIN')" v-guide.changeAutoProjectType>
-                <i class="el-icon-ksd-sql_acceleration"></i>
+                <i class="el-icon-ksd-smart_mode"></i>
               </div>
               <div class="project-type-text">
                 <span class="font-medium">{{$t('projectType4')}}</span>
@@ -359,7 +359,7 @@ export default class ProjectEditModal extends Vue {
     text-align: center;
     line-height: 90px;
     border-radius: 6px;
-    font-size: 42px;
+    font-size: 55px;
     overflow: hidden;
     color: @base-color;
     cursor: pointer;
