@@ -105,6 +105,9 @@ public abstract class NDataflowJob extends AbstractApplication {
         try {
             config = KylinConfig.loadKylinConfigFromHdfs(hdfsMetalUrl);
             KylinConfig.setKylinConfigThreadLocal(config);
+            if (!config.isUTEnv()) {
+                System.setProperty("kylin.env", config.getDeployEnv());
+            }
             doExecute(optionsHelper);
             // Output metadata to another folder
             val resourceStore = ResourceStore.getKylinMetaStore(config);
@@ -114,6 +117,7 @@ public abstract class NDataflowJob extends AbstractApplication {
         } finally {
             KylinConfig.removeKylinConfigThreadLocal();
             if (ss != null && !ss.conf().get("spark.master").startsWith("local")) {
+                JobMetricsUtils.unRegisterListener(ss);
                 ss.stop();
             }
         }

@@ -114,16 +114,9 @@ object TableScanPlan extends Logging {
           }.toArray
           val meaFields = cuboidLayout.getOrderedMeasures.asScala.map {
             entity =>
-              entity._2.getFunction.getExpression.toUpperCase match {
-                case "SUM" =>
-                val dataType = SparderTypeUtil.toSparkType(entity._2.getFunction.getReturnDataType,true)
-                  StructField(entity._1.toString, dataType)
-                case "COUNT" =>
-                  StructField(entity._1.toString, LongType)
-                case _ =>
-                  val dataType = SparderTypeUtil.toSparkType(entity._2.getFunction.getReturnDataType)
-                  StructField(entity._1.toString, dataType)
-              }
+              val function = entity._2.getFunction
+              val dataType = generateFunctionReturnDataType(function)
+              StructField(entity._1.toString, dataType)
           }.toArray
 
           val parquetSchema = new StructType(dimFields ++ meaFields)
@@ -194,6 +187,20 @@ object TableScanPlan extends Logging {
       .reduce(_.union(_))
     logInfo(s"Gen table scan cost Time :${System.currentTimeMillis() - start} ")
     cuboidDF
+  }
+
+  def generateFunctionReturnDataType(function: FunctionDesc) = {
+    function.getExpression.toUpperCase match {
+      case "SUM" =>
+        val parameter = function.getParameter
+        if (parameter.isColumnType) {
+          SparderTypeUtil.toSparkType(function.getParameter.getColRef.getType, true)
+        } else {
+          SparderTypeUtil.toSparkType(function.getReturnDataType, true)
+        }
+      case "COUNT" => LongType
+      case _ => SparderTypeUtil.toSparkType(function.getReturnDataType)
+    }
   }
 
   private def processTopN(topNMetric: FunctionDesc, df: DataFrame, topNFieldIndex: Int, tupleInfo: TupleInfo, tableName: String, relation: CubeRelation): (DataFrame, Map[Int, Column]) = {

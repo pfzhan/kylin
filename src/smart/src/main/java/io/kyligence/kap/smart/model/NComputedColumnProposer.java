@@ -43,6 +43,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.util.SparderTypeUtil;
 
 import com.google.common.collect.Sets;
@@ -118,7 +119,12 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
                     .selectExpr(expressions.stream().map(NSparkCubingUtil::convertFromDot).toArray(String[]::new));
             for (int i = 0; i < validCCs.size(); i++) {
                 SqlTypeName typeName = SparderTypeUtil.convertSparkTypeToSqlType(ds.schema().fields()[i].dataType());
-                validCCs.get(i).setDatatype(typeName.getName());
+                String dataType = typeName.getName();
+                if (dataType.equalsIgnoreCase("DECIMAL")) {
+                    DecimalType decimalType = (DecimalType) ds.schema().fields()[i].dataType();
+                    dataType += "(" + decimalType.precision() + "," + decimalType.scale() + ")";
+                }
+                validCCs.get(i).setDatatype(dataType);
             }
         } catch (Exception e) {
             // Fail directly if error in validating SQL

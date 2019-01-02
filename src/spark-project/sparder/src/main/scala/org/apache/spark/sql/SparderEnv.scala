@@ -80,6 +80,9 @@ object SparderEnv extends Logging {
 
   def getAsyncResultCore: Int = {
     val sparkConf = getSparkSession.sparkContext.getConf
+    if(sparkConf.get("spark.master").startsWith("local")){
+      return 1
+    }
     val instances = sparkConf.get("spark.executor.instances").toInt
     val cores = sparkConf.get("spark.executor.cores").toInt
     Math.round(instances * cores / 3)

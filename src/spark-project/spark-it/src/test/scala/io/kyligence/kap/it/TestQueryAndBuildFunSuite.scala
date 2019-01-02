@@ -91,7 +91,6 @@ class TestQueryAndBuildFunSuite
   override def beforeAll(): Unit = {
     super.beforeAll()
     SparderEnv.skipCompute()
-    JobMetricsUtils.registerListener(spark)
     build()
   }
 

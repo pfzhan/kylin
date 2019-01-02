@@ -31,7 +31,6 @@ import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
-import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.Getter;
 import lombok.val;
@@ -79,7 +78,6 @@ public class KapSparkSession extends SparkSession {
 
     public KapSparkSession(SparkContext sc) {
         super(sc);
-        JobMetricsUtils.registerListener(this);
         SparderEnv.setSparkSession(this);
     }
 

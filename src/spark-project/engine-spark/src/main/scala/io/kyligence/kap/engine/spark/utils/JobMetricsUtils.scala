@@ -38,7 +38,7 @@ object JobMetricsUtils extends Logging {
   private val aggs = List(classOf[HashAggregateExec], classOf[SortAggregateExec], classOf[ObjectHashAggregateExec])
   private val joins = List(classOf[BroadcastHashJoinExec], classOf[ShuffledHashJoinExec], classOf[SortMergeJoinExec],
     classOf[BroadcastNestedLoopJoinExec], classOf[StreamingSymmetricHashJoinExec])
-
+  var sparkListener : SparkListener = _
   def collectMetrics(executionId: String): JobMetrics = {
     var metrics = new JobMetrics
     val execution = QueryExecutionCache.getQueryExecution(executionId)
@@ -85,17 +85,26 @@ object JobMetricsUtils extends Logging {
 
   // to get actual QueryExecution when write parquet, more info in issue #8212
   def registerListener(ss: SparkSession): Unit = {
-    ss.sparkContext.addSparkListener(new SparkListener {
+    sparkListener = new SparkListener {
       override def onJobStart(jobStart: SparkListenerJobStart): Unit = {
         val executionIdStr = jobStart.properties.getProperty(SQLExecution.EXECUTION_ID_KEY)
         if (executionIdStr != null) {
           val queryId = jobStart.properties.getProperty(QueryExecutionCache.N_EXECUTION_ID_KEY)
           QueryExecutionCache.setQueryExecution(queryId, SQLExecution.getQueryExecution(executionIdStr.toLong))
         } else {
-          logWarning("executionIdStr is null, can't get QueryExecution from SQLExecution.")
+          if ("PROD".equals(System.getProperty("kylin.env"))) {
+            logDebug("executionIdStr is null, can't get QueryExecution from SQLExecution.")
+          }
         }
       }
-    })
+    }
+    ss.sparkContext.addSparkListener(sparkListener)
+  }
+
+  def unRegisterListener(ss: SparkSession) : Unit = {
+    if (sparkListener != null) {
+      ss.sparkContext.removeSparkListener(sparkListener)
+    }
   }
 }
 
