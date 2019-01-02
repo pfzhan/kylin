@@ -20,7 +20,7 @@
           type="datetime"
           :value="form.loadDataRange[0]"
           :is-auto-complete="true"
-          :disabled="isDisabled || form.isLoadExisted"
+          :disabled="isDisabled || form.isLoadExisted || isLoadingNewRange"
           :picker-options="{ disabledDate: time => time.getTime() > form.loadDataRange[1] }"
           :placeholder="$t('kylinLang.common.startTime')"
           @input="value => handleInputDate('loadDataRange.0', value)">
@@ -30,7 +30,7 @@
           type="datetime"
           :value="form.loadDataRange[1]"
           :is-auto-complete="true"
-          :disabled="isDisabled || form.isLoadExisted"
+          :disabled="isDisabled || form.isLoadExisted || isLoadingNewRange"
           :picker-options="{ disabledDate: time => time.getTime() < form.loadDataRange[0] }"
           :placeholder="$t('kylinLang.common.endTime')"
           @input="value => handleInputDate('loadDataRange.1', value)">
@@ -39,6 +39,7 @@
           size="small"
           class="ksd-ml-10"
           :disabled="isDisabled || form.isLoadExisted"
+          :loading="isLoadingNewRange"
           icon="el-icon-ksd-data_range_search"
           @click="handleLoadNewestRange">
         </el-button>
@@ -124,6 +125,7 @@ export default class SourceTableModal extends Vue {
   rules = {
     [LOAD_DATA_RANGE]: [{ validator: this.validate(LOAD_DATA_RANGE), trigger: 'blur' }]
   }
+  isLoadingNewRange = false
   @Watch('form.isLoadExisted')
   onIsLoadExistedChange () {
     this.$refs['form'].clearValidate('loadDataRange')
@@ -149,12 +151,14 @@ export default class SourceTableModal extends Vue {
     this.handleInput(key, value)
   }
   async handleLoadNewestRange () {
+    this.isLoadingNewRange = true
     const submitData = _getNewestTableRange(this.project, this.table)
     const response = await this.fetchNewestTableRange(submitData)
     const result = await handleSuccessAsync(response)
     const startTime = +result.start_time
     const endTime = +result.end_time
     this.handleInputDate('loadDataRange', [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ])
+    this.isLoadingNewRange = false
   }
   async handleSubmit () {
     this._showLoading()
@@ -179,10 +183,38 @@ export default class SourceTableModal extends Vue {
         const submitData = _getRefreshDataForm(this)
         const response = await this.fetchFreshInfo(submitData)
         const result = await handleSuccessAsync(response)
+        const modelSize = result.byte_size
         submitData.affected_start = result.affected_start
         submitData.affected_end = result.affected_end
+        if (modelSize) {
+          await this._showRefreshConfirm({ modelSize })
+        }
         return await this.freshDataRange(submitData)
       }
+    }
+  }
+  _showRefreshConfirm ({ modelSize }) {
+    const storageSize = Vue.filter('dataSize')(modelSize)
+    const tableName = this.table.name
+    const contentVal = { tableName, storageSize }
+    const confirmTitle = this.$t('refreshTitle')
+    const confirmMessage1 = this.$t('refreshContent1', contentVal)
+    const confirmMessage2 = this.$t('refreshContent2', contentVal)
+    const confirmMessage3 = this.$t('refreshContent3', contentVal)
+    const confirmMessage = _render(this.$createElement)
+    const confirmButtonText = this.$t('kylinLang.common.ok')
+    const cancelButtonText = this.$t('kylinLang.common.cancel')
+    const type = 'warning'
+    return this.$confirm(confirmMessage, confirmTitle, { confirmButtonText, cancelButtonText, type })
+
+    function _render (h) {
+      return (
+        <div>
+          <p class="break-all">{confirmMessage1}</p>
+          <p>{confirmMessage2}</p>
+          <p>{confirmMessage3}</p>
+        </div>
+      )
     }
   }
   _isFieldShow (fieldName) {
