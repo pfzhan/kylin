@@ -820,6 +820,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelRequest.setName("new_model");
         modelRequest.setAlias("new_model");
         modelRequest.setLastModified(0L);
+        modelRequest.setStart("0");
+        modelRequest.setEnd("100");
         modelService.createModel(modelRequest.getProject(), modelRequest);
         NDataModel newModel = modelManager.getDataModelDesc("new_model");
         Assert.assertEquals("new_model", newModel.getName());
@@ -1071,6 +1073,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
         val request = new ModelRequest(deserialized);
         request.setProject("default");
+        request.setStart("0");
+        request.setEnd("100");
         modelService.createModel(request.getProject(), request);
 
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_cc_test", "default", true, null, null,
@@ -1119,6 +1123,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         //        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         val request = new ModelRequest(deserialized);
         request.setProject("default");
+        request.setStart("0");
+        request.setEnd("100");
         modelService.createModel(request.getProject(), request);
         //TODO modelService.updateModelToResourceStore(deserialized, "default");
 
@@ -1727,6 +1733,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
             InputStream bais = IOUtils.toInputStream(contents, Charset.defaultCharset());
             NDataModel deserialized = serializer.deserialize(new DataInputStream(bais));
             val request = new ModelRequest(deserialized);
+            request.setStart("0");
+            request.setEnd("100");
             request.setProject("default");
             modelService.createModel(request.getProject(), request);
             //TODO modelService.updateModelToResourceStore(deserialized, "default");

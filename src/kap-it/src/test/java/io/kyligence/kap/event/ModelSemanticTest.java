@@ -27,8 +27,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.model.ManagementType;
 import org.apache.hadoop.util.Shell;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
@@ -55,8 +55,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataLoadingRange;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
@@ -123,19 +121,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
         val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         var df = dfManager.getDataflowByModelName(MODEL_NAME);
-
         String tableName = df.getModel().getRootFactTable().getTableIdentity();
-        NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
-        dataLoadingRange.setUuid(UUID.randomUUID().toString());
-        dataLoadingRange.setTableName(tableName);
-        dataLoadingRange.setColumnName(df.getModel().getPartitionDesc().getPartitionDateColumn());
-        dataLoadingRange.setSegmentRanges(Lists.newArrayList(
-                new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-01-01"),
-                        SegmentRange.dateToLong("2012-03-01")),
-                new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-03-01"),
-                        SegmentRange.dateToLong("2012-05-01"))));
-        NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT)
-                .createDataLoadingRange(dataLoadingRange);
 
         val tableMgr = NTableMetadataManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val table = tableMgr.getTableDesc(tableName);
@@ -146,10 +132,17 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dfManager.updateDataflow(update);
 
+        dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-01-01"),
+                SegmentRange.dateToLong("2012-03-01")));
+        df = dfManager.getDataflowByModelName(MODEL_NAME);
+        dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-03-01"),
+                SegmentRange.dateToLong("2012-05-01")));
+
         val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         modelManager.updateDataModel(MODEL_NAME, copyForWrite -> {
             copyForWrite.setAllMeasures(
                     copyForWrite.getAllMeasures().stream().filter(m -> m.id != 1011).collect(Collectors.toList()));
+            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
         });
     }
 
@@ -167,7 +160,6 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
     public void testSemanticChangedHappy() throws Exception {
         val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         changeModelRequest();
-
         val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val firstStepEvents = eventDao.getEvents();
         Assert.assertEquals(2, firstStepEvents.size());

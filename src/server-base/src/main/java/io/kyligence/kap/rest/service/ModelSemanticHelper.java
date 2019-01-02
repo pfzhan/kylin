@@ -35,7 +35,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.cube.model.NDataSegment;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -296,7 +295,7 @@ public class ModelSemanticHelper extends BasicService {
             removeUselessDimensions(matchingCubePlan, newModel.getEffectiveDimenionsMap().keySet(), false, config);
             modelMgr.updateDataModel(newModel.getName(),
                     copyForWrite -> copyForWrite.setSemanticVersion(copyForWrite.getSemanticVersion() + 1));
-            handleReloadData(newModel, dataflowManager, config, project);
+            handleReloadData(newModel, originModel, dataflowManager, config, project);
             return;
         }
         val dimensionsOnlyAdded = newModel.getEffectiveDimenionsMap().keySet()
@@ -376,10 +375,10 @@ public class ModelSemanticHelper extends BasicService {
         }
     }
 
-    private void handleReloadData(NDataModel model, NDataflowManager dataflowManager, KylinConfig config,
-            String project) {
+    private void handleReloadData(NDataModel model, NDataModel oriModel, NDataflowManager dataflowManager, KylinConfig config,
+                                  String project) {
         var df = dataflowManager.getDataflowByModelName(model.getName());
-        Segments<NDataSegment> segs = df.getFlatSegments();
+        val segments = df.getFlatSegments();
         df = dataflowManager.updateDataflow(df.getName(), copyForWrite -> {
             copyForWrite.setSegments(new Segments<>());
         });
@@ -387,7 +386,12 @@ public class ModelSemanticHelper extends BasicService {
         if (model.getPartitionDesc() == null || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
             //full load
             ranges.add(SegmentRange.TimePartitionedSegmentRange.createInfinite());
+        } else if (Objects.equals(model.getPartitionDesc(), oriModel.getPartitionDesc())) {
+            for (val seg : segments) {
+                ranges.add(seg.getSegRange());
+            }
         }
+
         dataflowManager.fillDfManually(df, ranges);
 
         EventManager eventManager = EventManager.getInstance(config, project);

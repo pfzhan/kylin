@@ -624,6 +624,7 @@
   "partition_desc": {
     "partition_date_column": "DEFAULT.TEST_KYLIN_FACT.CAL_DT",
     "partition_date_start": 0,
+    "partition_date_format": "yyyy-MM-dd",
     "partition_type": "APPEND"
   }
 }
