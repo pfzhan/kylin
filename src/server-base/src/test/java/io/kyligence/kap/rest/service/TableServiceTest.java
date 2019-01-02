@@ -154,7 +154,6 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(5633024, ((TableDescResponse) tables.get(0)).getStorageSize());
         Assert.assertEquals(0, ((TableDescResponse) tables.get(0)).getTotalRecords());
 
-
         List<TableDesc> table2 = tableService.getTableDesc("default", true, "country", "DEFAULT", true);
         Assert.assertEquals(true, table2.get(0).getName().equals("TEST_COUNTRY"));
     }
@@ -226,14 +225,14 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void testSetPartitionKeyAndSetDataRange() throws Exception {
         setupPushdownEnv();
         testSetPartitionKeyAndSetDataRangeWithoutException();
+        testSetDataRangeWhenNoNewData();
+        testSetDataRangeOverlapOrGap();
         testGetLatestData();
         testSetDateRangeException();
-        testSetDateRangeException3();
-        testSetDateRangeException4();
     }
 
     private void testSetPartitionKeyAndSetDataRangeWithoutException() throws Exception {
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         List<TableDesc> tables = tableService.getTableDesc("default", false, "", "DEFAULT", true);
         //test set fact and table list order by fact
         Assert.assertTrue(tables.get(0).getName().equals("TEST_KYLIN_FACT") && tables.get(0).isIncrementLoading());
@@ -270,6 +269,47 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(latestDateInEpoch, dataLoadingRange.getCoveredSegmentRange().getEnd().toString());
     }
 
+    private void testSetDataRangeWhenNoNewData() {
+        DateRangeRequest request = mockDateRangeRequest();
+        // case of no more new data
+        request.setStart(null);
+        request.setEnd(null);
+        try {
+            tableService.setDataRange("default", request);
+        } catch (Exception ex) {
+            Assert.assertEquals(IllegalStateException.class, ex.getClass());
+            Assert.assertEquals("There is no more new data to load", ex.getMessage());
+        }
+    }
+
+    private void testSetDataRangeOverlapOrGap() {
+        DateRangeRequest request = mockDateRangeRequest();
+        // 2012-02-01
+        request.setStart("1328054400000");
+        // 2012-03-01
+        request.setEnd("1330560000000");
+        try {
+            tableService.setDataRange("default", request);
+        } catch (Exception ex) {
+            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
+            Assert.assertEquals(
+                    "NDataLoadingRange appendSegmentRange TimePartitionedSegmentRange[1328054400000,1330560000000) has overlaps/gap with existing segmentRanges TimePartitionedSegmentRange[0,1388534400000)",
+                    ex.getMessage());
+        }
+
+        // case of having gap with current loading range
+        request.setStart("1388534500000");
+        request.setEnd("1388534600000");
+        try {
+            tableService.setDataRange("default", request);
+        } catch (Exception ex) {
+            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
+            Assert.assertEquals(
+                    "NDataLoadingRange appendSegmentRange TimePartitionedSegmentRange[1388534500000,1388534600000) has overlaps/gap with existing segmentRanges TimePartitionedSegmentRange[0,1388534400000)",
+                    ex.getMessage());
+        }
+    }
+
     private void testGetLatestData() throws Exception {
         ExistedDataRangeResponse response = tableService.getLatestDataRange("default", "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertEquals("1388534400000", response.getEndTime());
@@ -284,10 +324,10 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private void setupPushdownEnv() throws Exception {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "org.apache.kylin.query.adhoc.PushDownRunnerJdbcImpl");
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
+                "org.apache.kylin.query.adhoc.PushDownRunnerJdbcImpl");
         // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa",
-                "");
+        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
         H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
         h2DB.loadAllTables();
 
@@ -295,73 +335,6 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
         System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
         System.setProperty("kylin.query.pushdown.jdbc.password", "");
-    }
-
-    private void testSetDateRangeException3() throws Exception {
-        //test some building segments in tail,and set dataRange smaller
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "CAL_DT");
-        NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                "default");
-        NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-        List<SegmentRange> segmentRanges = new ArrayList<>();
-        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(0L, 1294364500000L);
-        segmentRanges.add(segmentRange);
-        SegmentRange segmentRange2 = new SegmentRange.TimePartitionedSegmentRange(0L, 1294364600000L);
-        segmentRanges.add(segmentRange2);
-        dataLoadingRange.setSegmentRanges(segmentRanges);
-        dataLoadingRange.setWaterMarkStart(-1);
-        //segment2 building
-        dataLoadingRange.setWaterMarkEnd(0);
-        NDataLoadingRange updateRange = rangeManager.copyForWrite(dataLoadingRange);
-        rangeManager.updateDataLoadingRange(updateRange);
-        DateRangeRequest dateRangeRequest = mockDateRangeRequest();
-        dateRangeRequest.setStart("0");
-        dateRangeRequest.setEnd("1294364700000");
-        tableService.setDataRange("default", dateRangeRequest);
-        dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-        Assert.assertEquals(0, dataLoadingRange.getActualQueryStart());
-        Assert.assertEquals(1294364500000L, dataLoadingRange.getActualQueryEnd());
-        //shrink head
-        dateRangeRequest.setStart("100");
-        tableService.setDataRange("default", dateRangeRequest);
-        dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-        Assert.assertEquals(100, dataLoadingRange.getActualQueryStart());
-        Assert.assertEquals(1294364500000L, dataLoadingRange.getActualQueryEnd());
-        //shrink tail
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Some segments is building, can not set data range smaller than before");
-        dateRangeRequest.setEnd("1294364600000");
-        tableService.setDataRange("default", dateRangeRequest);
-    }
-
-    private void testSetDateRangeException4() throws Exception {
-        //test some building segments in header,and set dataRange smaller
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
-        NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
-                "default");
-        NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-        List<SegmentRange> segmentRanges = new ArrayList<>();
-        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(1294364400000L, 1294364500000L);
-        segmentRanges.add(segmentRange);
-        SegmentRange segmentRange2 = new SegmentRange.TimePartitionedSegmentRange(1294364500000L, 1294364600000L);
-        segmentRanges.add(segmentRange2);
-        dataLoadingRange.setSegmentRanges(segmentRanges);
-        dataLoadingRange.setWaterMarkStart(0);
-        //segment1 is building
-        dataLoadingRange.setWaterMarkEnd(1);
-        NDataLoadingRange updateRange = rangeManager.copyForWrite(dataLoadingRange);
-        rangeManager.updateDataLoadingRange(updateRange);
-        DateRangeRequest dateRangeRequest = mockDateRangeRequest();
-        dateRangeRequest.setStart("1294364300000");
-        dateRangeRequest.setEnd("1294364700000");
-        tableService.setDataRange("default", dateRangeRequest);
-        dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-        Assert.assertEquals(1294364500000L, dataLoadingRange.getActualQueryStart());
-        Assert.assertEquals(1294364600000L, dataLoadingRange.getActualQueryEnd());
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Some segments is building, can not set data range smaller than before");
-        dateRangeRequest.setStart("1294364350000");
-        tableService.setDataRange("default", dateRangeRequest);
     }
 
     @Test
@@ -389,7 +362,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void checkRefreshDataRangeException1() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("There is no ready segment to refresh!");
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         tableService.checkRefreshDataRangeReadiness("default", "DEFAULT.TEST_KYLIN_FACT", "0", "1294364500000");
     }
 
@@ -397,7 +370,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void checkRefreshDataRangeException2() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Data during refresh range must be ready!");
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         NDataLoadingRangeManager rangeManager = NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 "default");
         NDataLoadingRange dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
@@ -506,10 +479,10 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     public void testSetFact_NoRelatedModels_PASS() {
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
         val dataloadingManager = NDataLoadingRangeManager.getInstance(getTestConfig(), "default");
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "");
         Assert.assertFalse(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         Assert.assertTrue(tableManager.getTableDesc("DEFAULT.TEST_KYLIN_FACT").isIncrementLoading());
         Assert.assertNotNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
     }
@@ -524,12 +497,12 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
                 "Can not set table 'DEFAULT.TEST_ACCOUNT' incrementing loading, due to another incrementing loading table existed in model 'all_fixed_length'!");
-        tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default",  "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT");
     }
 
     @Test
     public void testSetFact_IncrementingExists_Exception() {
-        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default",  "CAL_DT");
+        tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
                 "Can not set table 'DEFAULT.TEST_ACCOUNT' incrementing loading, due to another incrementing loading table existed in model 'all_fixed_length'!");
@@ -561,8 +534,8 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         val events = eventDao.getEvents();
         Assert.assertEquals(8, events.size());
         // TODO check other events
-//        Assert.assertEquals(0L, Long.parseLong(events.get(0).getSegmentRange().getStart().toString()));
-//        Assert.assertEquals(Long.MAX_VALUE, Long.parseLong(events.get(0).getSegmentRange().getEnd().toString()));
+        //        Assert.assertEquals(0L, Long.parseLong(events.get(0).getSegmentRange().getStart().toString()));
+        //        Assert.assertEquals(Long.MAX_VALUE, Long.parseLong(events.get(0).getSegmentRange().getEnd().toString()));
     }
 
     @Test
