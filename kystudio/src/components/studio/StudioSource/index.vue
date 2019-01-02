@@ -15,7 +15,8 @@
         :expand-node-types="['datasource', 'database']"
         :searchable-node-types="['table', 'column']"
         @click="handleClick"
-        @show-source="handleShowSourcePage">
+        @show-source="handleShowSourcePage"
+        @tables-loaded="handleTablesLoaded">
       </DataSourceBar>
       <!-- Source Table展示 -->
       <div class="layout-right">
@@ -31,7 +32,7 @@
           <!-- Source Table详细信息 -->
           <el-tabs class="table-details" v-model="viewType">
             <el-tab-pane :label="$t('dataLoad')" :name="viewTypes.DATA_LOAD">
-              <TableDataLoad :project="currentProjectData" :table="selectedTable" @fresh-tables="handleFreshTable" @input="fakeHandleInput"></TableDataLoad>
+              <TableDataLoad :project="currentProjectData" :table="selectedTable" @fresh-tables="handleFreshTable"></TableDataLoad>
             </el-tab-pane>
             <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS">
               <TableColumns :table="selectedTable"></TableColumns>
@@ -159,9 +160,15 @@ export default class StudioSource extends Vue {
       handleError(e)
     }
   }
-
-  fakeHandleInput (key, value) {
-    this.selectedTableData = JSON.parse(JSON.stringify({ ...this.selectedTableData, [key]: value }))
+  handleTablesLoaded () {
+    this._showDataRangeConfrim()
+  }
+  _showDataRangeConfrim () {
+    const confirmTitle = this.$t('kylinLang.common.notice')
+    const confirmMessage = this.$t('remindLoadRange')
+    const confirmButtonText = this.$t('kylinLang.common.ok')
+    const type = 'warning'
+    return this.$alert(confirmMessage, confirmTitle, { confirmButtonText, type })
   }
 }
 </script>

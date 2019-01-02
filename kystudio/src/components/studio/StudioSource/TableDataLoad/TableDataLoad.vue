@@ -101,25 +101,6 @@ import { handleSuccessAsync, handleError } from '../../../../util'
   locales
 })
 export default class TableDataLoad extends Vue {
-  async handleRefreshData () {
-    const { project, table } = this
-    const isSubmit = await this.callSourceTableModal({ editType: 'refreshData', project, table })
-    isSubmit && this.$emit('fresh-tables')
-  }
-  async handleLoadFullData () {
-    const { modelCount, modelSize } = await this._getAffectedModelCountAndSize()
-    if (modelCount || modelSize) {
-      await this._showAffectModelConfirm(modelCount, modelSize)
-    }
-    const submitData = _getFullLoadInfo(this.project, this.table)
-    const response = await this.fetchFreshInfo(_getRefreshFullLoadInfo(this.project, this.table))
-    const result = await handleSuccessAsync(response)
-    submitData.affected_start = result.affected_start
-    submitData.affected_end = result.affected_end
-    await this.freshDataRange(submitData)
-    this.$emit('fresh-tables')
-    this.$message({ type: 'success', message: this.$t('kylinLang.common.saveSuccess') })
-  }
   async handleLoadData () {
     try {
       const { project, table } = this
@@ -134,40 +115,68 @@ export default class TableDataLoad extends Vue {
       handleError(e)
     }
   }
+  async handleRefreshData () {
+    const { project, table } = this
+    const isSubmit = await this.callSourceTableModal({ editType: 'refreshData', project, table })
+    isSubmit && this.$emit('fresh-tables')
+  }
+  async handleLoadFullData () {
+    const { modelCount, modelSize } = await this._getAffectedModelCountAndSize()
+    if (modelCount || modelSize) {
+      await this._showFullDataLoadConfirm({ modelSize })
+    }
+    const submitData = _getFullLoadInfo(this.project, this.table)
+    const response = await this.fetchFreshInfo(_getRefreshFullLoadInfo(this.project, this.table))
+    const result = await handleSuccessAsync(response)
+    submitData.affected_start = result.affected_start
+    submitData.affected_end = result.affected_end
+    await this.freshDataRange(submitData)
+    this.$emit('fresh-tables')
+    this.$message({ type: 'success', message: this.$t('kylinLang.common.saveSuccess') })
+  }
   async handleChangePartition (value) {
     try {
       const { modelCount, modelSize } = await this._getAffectedModelCountAndSize()
       if (modelCount || modelSize) {
-        await this._showPartitionConfirm({ modelSize, newPartitionKey: value })
+        await this._showPartitionConfirm({ modelSize, partitionKey: value })
       }
       await this._changePartitionKey(value)
-      await this._showDataRangeConfrim()
-
       this.$emit('fresh-tables')
     } catch (e) {
       handleError(e)
     }
   }
-  _showAffectFullDataConfirm (size) {
-    const storageSize = Vue.filter('dataSize')(size)
-    const confirmTitle = this.$t('kylinLang.common.notice')
-    const confirmMessage = this.$t('changePartitionCost', { storageSize })
+  _showFullDataLoadConfirm ({ modelSize }) {
+    const storageSize = Vue.filter('dataSize')(modelSize)
+    const tableName = this.table.name
+    const contentVal = { tableName, storageSize }
+    const confirmTitle = this.$t('fullLoadDataTitle')
+    const confirmMessage1 = this.$t('fullLoadDataContent1', contentVal)
+    const confirmMessage2 = this.$t('fullLoadDataContent2', contentVal)
+    const confirmMessage3 = this.$t('fullLoadDataContent3', contentVal)
+    const confirmMessage4 = this.$t('fullLoadDataContent4', contentVal)
+    const confirmMessage = _render(this.$createElement)
     const confirmButtonText = this.$t('kylinLang.common.ok')
     const cancelButtonText = this.$t('kylinLang.common.cancel')
     const type = 'warning'
     return this.$confirm(confirmMessage, confirmTitle, { confirmButtonText, cancelButtonText, type })
+
+    function _render (h) {
+      return (
+        <div>
+          <p class="break-all">{confirmMessage1}</p>
+          <p>{confirmMessage2}</p>
+          <p>{confirmMessage3}</p>
+          <p>{confirmMessage4}</p>
+        </div>
+      )
+    }
   }
-  _showDataRangeConfrim () {
-    const confirmTitle = this.$t('kylinLang.common.notice')
-    const confirmMessage = this.$t('remindLoadRange')
-    const confirmButtonText = this.$t('kylinLang.common.ok')
-    const type = 'warning'
-    return this.$alert(confirmMessage, confirmTitle, { confirmButtonText, type })
-  }
-  _showPartitionConfirm ({ modelSize, newPartitionKey }) {
+  _showPartitionConfirm ({ modelSize, partitionKey }) {
     const storageSize = Vue.filter('dataSize')(modelSize)
     const tableName = this.table.name
-    const oldPartitionKey = this.table.partitionColumn
+    const oldPartitionKey = this.table.partitionColumn || this.$t('noPartition')
+    const newPartitionKey = partitionKey || this.$t('noPartition')
     const confirmTitle = this.$t('changePartitionTitle')
     const contentVal = { tableName, newPartitionKey, oldPartitionKey, storageSize }
     const confirmMessage1 = this.$t('changePartitionContent1', contentVal)
@@ -188,15 +197,6 @@ export default class TableDataLoad extends Vue {
         </div>
       )
     }
-  }
-  _showAffectModelConfirm (modelCount, modelSize) {
-    const storageSize = Vue.filter('dataSize')(modelSize)
-    const confirmTitle = this.$t('kylinLang.common.notice')
-    const confirmMessage = this.$t('changePartitionCost', { modelCount, storageSize })
-    const confirmButtonText = this.$t('kylinLang.common.ok')
-    const cancelButtonText = this.$t('kylinLang.common.cancel')
-    const type = 'warning'
-    return this.$confirm(confirmMessage, confirmTitle, { confirmButtonText, cancelButtonText, type })
   }
   _changePartitionKey (value) {
     const submitData = _getPartitionInfo(this.project, this.table, value)
