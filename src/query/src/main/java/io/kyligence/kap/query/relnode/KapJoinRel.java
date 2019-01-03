@@ -206,7 +206,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
             if (this.isPreCalJoin && !(this.getCondition() instanceof RexCall))
                 throw new NotSupportedSQLException("Cartesian Join is not supported");
             this.context.allOlapJoins.add(this);
-            this.isTopPreCalcJoin = this.isPreCalJoin && !this.context.isHasPreCalcJoin();
+            this.isTopPreCalcJoin = !this.isPreCalJoin || !this.context.isHasPreCalcJoin();
             this.context.setHasJoin(true);
             this.context.setHasPreCalcJoin(this.context.isHasPreCalcJoin() || this.isPreCalJoin);
         }
