@@ -92,6 +92,7 @@ class TestJobMetricsUtils extends SparderBaseFunSuite with SharedSparkSession wi
   }
 
   test("collectMetrics - mock parallel write parquet") {
+    JobMetricsUtils.registerListener(spark)
     val service = Executors.newFixedThreadPool(2)
     service.execute(new NRunnable(path1, id1))
     service.execute(new NRunnable(path2, id2))

@@ -43,8 +43,8 @@ class TestSSBQuery
   override val master = "yarn"
   override val schedulerInterval = "30"
   override val DEFAULT_PROJECT = "ssb_loadtest"
-  System.setProperty("kylin.env.hdfs-working-dir", "hdfs://slave1.kcluster/tmp/ssb_loadtest")
-  System.setProperty("kylin.engine.spark.job-jar", "../../assembly/target/kap-assembly-4.0.0-SNAPSHOT-job.jar")
+//  System.setProperty("kylin.env.hdfs-working-dir", "hdfs://slave1.kcluster/tmp/ssb_loadtest")
+//  System.setProperty("kylin.engine.spark.job-jar", "../../assembly/target/kap-assembly-4.0.0-SNAPSHOT-job.jar")
 //  System.setProperty("kylin.hadoop.conf.dir", System.getenv("HADOOP_CONF_DIR"))
 //  ClassUtil.addClasspath(System.getenv("HADOOP_CONF_DIR"))
                                     
