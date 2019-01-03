@@ -152,12 +152,16 @@ export default class SourceTableModal extends Vue {
   }
   async handleLoadNewestRange () {
     this.isLoadingNewRange = true
-    const submitData = _getNewestTableRange(this.project, this.table)
-    const response = await this.fetchNewestTableRange(submitData)
-    const result = await handleSuccessAsync(response)
-    const startTime = +result.start_time
-    const endTime = +result.end_time
-    this.handleInputDate('loadDataRange', [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ])
+    try {
+      const submitData = _getNewestTableRange(this.project, this.table)
+      const response = await this.fetchNewestTableRange(submitData)
+      const result = await handleSuccessAsync(response)
+      const startTime = +result.start_time
+      const endTime = +result.end_time
+      this.handleInputDate('loadDataRange', [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ])
+    } catch (e) {
+      handleError(e)
+    }
     this.isLoadingNewRange = false
   }
   async handleSubmit () {
