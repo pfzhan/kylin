@@ -228,7 +228,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         testSetDataRangeWhenNoNewData();
         testSetDataRangeOverlapOrGap();
         testGetLatestData();
-        testSetDateRangeException();
+        cleanPushdownEnv();
     }
 
     private void testSetPartitionKeyAndSetDataRangeWithoutException() throws Exception {
@@ -250,8 +250,6 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         DateRangeRequest request = mockDateRangeRequest();
         tableService.setDataRange("default", request);
         dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-        Assert.assertEquals(dataLoadingRange.getActualQueryStart(), 1294364500000L);
-        Assert.assertEquals(dataLoadingRange.getActualQueryEnd(), 1294364500000L);
 
         // case of no start time
         request.setStart(null);
@@ -315,7 +313,8 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("1388534400000", response.getEndTime());
     }
 
-    private void testSetDateRangeException() throws Exception {
+    @Test
+    public void testSetDateRangeException() throws Exception {
         DateRangeRequest dateRangeRequest = mockDateRangeRequest();
         dateRangeRequest.setTable("DEFAULT.TEST_ACCOUNT");
         thrown.expect(IllegalStateException.class);
@@ -578,5 +577,19 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setTable("DEFAULT.TEST_KYLIN_FACT");
         return request;
+    }
+
+    private void cleanPushdownEnv() throws Exception {
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
+        // Load H2 Tables (inner join)
+        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa",
+                "");
+        H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
+        h2DB.dropAllTables();
+        h2Connection.close();
+        System.clearProperty("kylin.query.pushdown.jdbc.url");
+        System.clearProperty("kylin.query.pushdown.jdbc.driver");
+        System.clearProperty("kylin.query.pushdown.jdbc.username");
+        System.clearProperty("kylin.query.pushdown.jdbc.password");
     }
 }

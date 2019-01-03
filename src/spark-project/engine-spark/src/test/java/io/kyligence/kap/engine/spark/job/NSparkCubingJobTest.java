@@ -96,6 +96,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         ss.sparkContext().setLogLevel("ERROR");
         System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+
         NDefaultScheduler.destroyInstance();
         NDefaultScheduler scheduler = NDefaultScheduler.getInstance(getProject());
         scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
@@ -368,6 +369,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testCancelMergingJob() throws Exception {
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
+
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
         NDataflow df = dsMgr.getDataflow("ncube_basic");

@@ -641,7 +641,7 @@ public class ModelService extends BasicService {
         SegmentRange range = null;
         if (model.getPartitionDesc() == null || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
             range = SegmentRange.TimePartitionedSegmentRange.createInfinite();
-        } else if (StringUtils.isEmpty(modelRequest.getStart()) || StringUtils.isEmpty(modelRequest.getEnd())) {
+        } else if (PushDownUtil.needPushdown(modelRequest.getStart(), modelRequest.getEnd())) {
             //load existing data
             val pushDownResponse = getMaxAndMinTimeInPartitionColumnByPushdown(project, model.getName());
             range = getSegmentRangeByModel(project, model.getName(), pushDownResponse.getFirst(), pushDownResponse.getSecond());
@@ -659,29 +659,19 @@ public class ModelService extends BasicService {
         val modelDesc = modelManager.getDataModelDesc(model);
         val table = modelDesc.getRootFactTableName();
 
-        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumn();
-        String sql = String.format("select min(%s), max(%s) from %s", partitionColumn, partitionColumn, table);
-
-        // pushdown
-        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql).getFirst();
-
-        if (returnRows.size() == 0 || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
-            throw new BadRequestException(String.format("There are no data in table %s", table));
-
-        String minTime = returnRows.get(0).get(0);
-        String maxTime = returnRows.get(0).get(1);
+        val minAndMaxTime = PushDownUtil.getMaxAndMinTime(modelDesc.getPartitionDesc().getPartitionDateColumn(), table);
 
         String dateFormat;
         if (StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateFormat())) {
             val copy = modelManager.copyForWrite(modelDesc);
-            dateFormat = DateFormat.proposeDateFormat(minTime);
+            dateFormat = DateFormat.proposeDateFormat(minAndMaxTime.getFirst());
             copy.getPartitionDesc().setPartitionDateFormat(dateFormat);
             modelManager.updateDataModelDesc(copy);
         } else {
             dateFormat = modelDesc.getPartitionDesc().getPartitionDateFormat();
         }
 
-        return new Pair<>(DateFormat.getFormattedDate(minTime, dateFormat), DateFormat.getFormattedDate(maxTime, dateFormat));
+        return new Pair<>(DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat), DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
     }
 
 
@@ -700,17 +690,11 @@ public class ModelService extends BasicService {
                     "Can not build segments, please define table index or aggregate index first!");
         }
         val df = getDataflowManager(project).getDataflowByModelName(model);
-        if (StringUtils.isEmpty(start) || StringUtils.isEmpty(end)) {
+        if (PushDownUtil.needPushdown(start, end)) {
             val response = getMaxAndMinTimeInPartitionColumnByPushdown(project, model);
-            val lastSeg = df.getLastSegment();
-            if (lastSeg != null) {
-                start = lastSeg.getSegRange().getEnd().toString();
-            } else {
-                start = response.getFirst();
-            }
-            if (StringUtils.isEmpty(end)) {
-                end = response.getSecond();
-            }
+            val startAndEnd = PushDownUtil.CalcStartAndEnd(response, start, end, df.getCoveredRange());
+            start = startAndEnd.getFirst();
+            end = startAndEnd.getSecond();
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);

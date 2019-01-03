@@ -66,12 +66,14 @@ import org.apache.calcite.sql.SqlWithItem;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.util.SqlVisitor;
 import org.apache.calcite.sql.validate.SqlValidatorException;
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.text.StrBuilder;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.tool.CalciteParser;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
@@ -82,6 +84,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+
+import javax.ws.rs.BadRequestException;
 
 public class PushDownUtil {
     private static final Logger logger = LoggerFactory.getLogger(PushDownUtil.class);
@@ -151,6 +155,31 @@ public class PushDownUtil {
         return Pair.newPair(returnRows, returnColumnMeta);
     }
 
+    public static Pair<String, String> getMaxAndMinTime(String partitionColumn, String table)
+            throws Exception {
+        String sql = String.format("select min(%s), max(%s) from %s", partitionColumn, partitionColumn, table);
+        Pair<String, String> result = new Pair<>();
+        // pushdown
+        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql).getFirst();
+
+        if (returnRows.size() == 0 || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
+            throw new BadRequestException(String.format("There are no data in table %s", table));
+
+        result.setFirst(returnRows.get(0).get(0));
+        result.setSecond(returnRows.get(0).get(1));
+        return result;
+
+    }
+
+
+    public static boolean needPushdown(String start, String end) {
+        if (StringUtils.isEmpty(start) || StringUtils.isEmpty(end))
+            return true;
+        else
+            return false;
+    }
+
+
     public static Pair<List<List<String>>, List<SelectedColumnMeta>> trySimplePushDownSelectQuery(String sql) throws Exception {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
         List<List<String>> returnRows = Lists.newArrayList();
@@ -219,6 +248,20 @@ public class PushDownUtil {
             afterConvert.replace(pos.getFirst(), pos.getSecond(), tableWithSchema);
         }
         return afterConvert.toString();
+    }
+
+    public static Pair<String, String> CalcStartAndEnd(Pair<String, String> response, String start, String end, SegmentRange coveredRange) {
+        if (coveredRange != null) {
+            start = coveredRange.getEnd().toString();
+        } else {
+            start = response.getFirst();
+        }
+        if (StringUtils.isEmpty(end)) {
+            end = response.getSecond();
+        }
+        response.setFirst(start);
+        response.setSecond(end);
+        return response;
     }
 
     /**

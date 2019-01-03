@@ -52,6 +52,8 @@ import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -85,6 +87,7 @@ import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.BadRequestException;
+import org.apache.kylin.source.jdbc.H2Database;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
@@ -789,7 +792,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
 
     @Test
-    public void testCreateModel() throws Exception {
+    public void testCreateModel_PartitionIsNull() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
         model.setPartitionDesc(null);
@@ -807,6 +810,34 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, df.getSegments().size());
         Assert.assertTrue(df.getSegments().get(0).getSegRange().isInfinite());
 
+        modelManager.dropModel(newModel);
+    }
+
+    @Test
+    public void testCreateModelAndBuildManully() throws Exception {
+        setupPushdownEnv();
+        testCreateModel_PartitionNotNull();
+        testBuildSegmentsManually_WithPushDown();
+        cleanPushdownEnv();
+    }
+
+    public void testCreateModel_PartitionNotNull() throws Exception {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        model.setManagementType(ManagementType.MODEL_BASED);
+        ModelRequest modelRequest = new ModelRequest(model);
+        modelRequest.setProject("default");
+        modelRequest.setName("new_model");
+        modelRequest.setAlias("new_model");
+        modelRequest.setLastModified(0L);
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+        NDataModel newModel = modelManager.getDataModelDesc("new_model");
+        Assert.assertEquals("new_model", newModel.getName());
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val df = dfManager.getDataflowByModelName("new_model");
+        Assert.assertEquals(1, df.getSegments().size());
+        Assert.assertEquals(1325376000000L, df.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(1388534400000L, df.getSegments().get(0).getSegRange().getEnd());
         modelManager.dropModel(newModel);
     }
 
@@ -1859,6 +1890,60 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         events.sort(Event::compareTo);
 
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
+        dataflow = dataflowManager.getDataflow("ncube_basic");
+        Assert.assertEquals(1, dataflow.getSegments().size());
+        Assert.assertEquals(0L, dataflow.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(100L, dataflow.getSegments().get(0).getSegRange().getEnd());
+    }
+
+    public void testBuildSegmentsManually_WithPushDown() throws Exception {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel modelDesc = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        modelManager.updateDataModelDesc(modelUpdate);
+
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
+        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
+        dataflowManager.updateDataflow(dataflowUpdate);
+        modelService.buildSegmentsManually("default", "nmodel_basic", "", "");
+        EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+
+        val events = eventDao.getEvents();
+        events.sort(Event::compareTo);
+
+        Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
+        dataflow = dataflowManager.getDataflow("ncube_basic");
+        Assert.assertEquals(1, dataflow.getSegments().size());
+        Assert.assertEquals(1325376000000L, dataflow.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(1388534400000L, dataflow.getSegments().get(0).getSegRange().getEnd());
+
+    }
+
+    @Test
+    public void testBuildSegmentsManually_NoPartition_Exception() throws Exception {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel modelDesc = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        modelManager.updateDataModelDesc(modelUpdate);
+
+        modelManager.updateDataModel("nmodel_basic", copyForWrite -> {
+            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
+            copyForWrite.setPartitionDesc(null);
+        });
+
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
+        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
+        dataflowManager.updateDataflow(dataflowUpdate);
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Model 'nmodel_basic' has no partition column!");
+        modelService.buildSegmentsManually("default", "nmodel_basic", "", "");
+
     }
 
     @Test
@@ -1998,5 +2083,33 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         jobs.add(job2);
         jobs.add(job3);
         return jobs;
+    }
+
+    private void setupPushdownEnv() throws Exception {
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "org.apache.kylin.query.adhoc.PushDownRunnerJdbcImpl");
+        // Load H2 Tables (inner join)
+        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa",
+                "");
+        H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
+        h2DB.loadAllTables();
+
+        System.setProperty("kylin.query.pushdown.jdbc.url", "jdbc:h2:mem:db_default;SCHEMA=DEFAULT");
+        System.setProperty("kylin.query.pushdown.jdbc.driver", "org.h2.Driver");
+        System.setProperty("kylin.query.pushdown.jdbc.username", "sa");
+        System.setProperty("kylin.query.pushdown.jdbc.password", "");
+    }
+
+    private void cleanPushdownEnv() throws Exception {
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
+        // Load H2 Tables (inner join)
+        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa",
+                "");
+        H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
+        h2DB.dropAllTables();
+        h2Connection.close();
+        System.clearProperty("kylin.query.pushdown.jdbc.url");
+        System.clearProperty("kylin.query.pushdown.jdbc.driver");
+        System.clearProperty("kylin.query.pushdown.jdbc.username");
+        System.clearProperty("kylin.query.pushdown.jdbc.password");
     }
 }

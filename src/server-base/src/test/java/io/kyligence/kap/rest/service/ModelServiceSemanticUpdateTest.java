@@ -30,6 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.metadata.model.ManagementType;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -97,6 +98,11 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val projectInstance = projectManager.copyForWrite(projectManager.getProject("default"));
         projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         projectManager.updateProject(projectInstance);
+
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        modelMgr.updateDataModel(MODEL_NAME, model -> {
+            model.setManagementType(ManagementType.MODEL_BASED);
+        });
     }
 
     @Before
@@ -440,9 +446,36 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         events.sort(Event::compareTo);
 
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
+        val df = dfMgr.getDataflowByModelName(MODEL_NAME);
+
+        Assert.assertEquals(0, df.getSegments().size());
+
         //        val savedIds = ((AddCuboidEvent) events.get(1)).getLayoutIds();
         //        Assert.assertTrue(CollectionUtils.isEqualCollection(savedIds,
         //                Arrays.<Long> asList(1000001L, 1L, 1001L, 1002L, 2001L, 3001L, 20000001001L)));
+    }
+
+    @Test
+    public void testChangePartitionDesc_SetNULL() {
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
+        val originModel = getTestBasicModel();
+        val cube = dfMgr.getDataflowByModelName(originModel.getName()).getCubePlan();
+        val ids = cube.getAllCuboidLayouts().stream().map(NCuboidLayout::getId).collect(Collectors.toList());
+
+        modelMgr.updateDataModel(MODEL_NAME, model -> {
+            model.setPartitionDesc(null);
+        });
+        semanticService.handleSemanticUpdate("default", originModel.getName(), originModel);
+
+        val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
+        events.sort(Event::compareTo);
+
+        val df = dfMgr.getDataflowByModelName(MODEL_NAME);
+        Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
+        Assert.assertEquals(1, df.getSegments().size());
+        Assert.assertEquals(true, df.getSegments().get(0).getSegRange().isInfinite());
+
     }
 
     @Test

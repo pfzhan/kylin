@@ -301,6 +301,15 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         }
     }
 
+    public SegmentRange getCoveredRange() {
+        List<NDataSegment> segs = getFlatSegments();
+        if (segs.isEmpty()) {
+            return null;
+        } else {
+            return segs.get(0).getSegRange().coverWith(segs.get(segs.size() - 1).getSegRange());
+        }
+    }
+
     public String getSegmentHdfsPath(String segmentId) {
         String hdfsWorkingDir = KapConfig.wrap(config).getReadHdfsWorkingDirectory();
         String path = hdfsWorkingDir + "parquet/" + getUuid() + "/" + segmentId;

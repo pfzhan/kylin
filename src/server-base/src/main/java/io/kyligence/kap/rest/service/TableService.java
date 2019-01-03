@@ -489,29 +489,20 @@ public class TableService extends BasicService {
         String table = dateRangeRequest.getTable();
         NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        SegmentRange readyRange = dataLoadingRange.getCoveredReadySegmentRange();
         SegmentRange allRange = dataLoadingRange.getCoveredSegmentRange();
 
+        var start = dateRangeRequest.getStart();
+        var end = dateRangeRequest.getEnd();
+
         Pair<String, String> pushdownResult;
-        if (needPushdown(dateRangeRequest.getStart(), dateRangeRequest.getEnd(), dataLoadingRange)) {
+        if (PushDownUtil.needPushdown(start, end)) {
             pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
-
-            if (StringUtils.isEmpty(dateRangeRequest.getStart())) {
-                if (allRange == null)
-                    dateRangeRequest.setStart(pushdownResult.getFirst());
-                else
-                    dateRangeRequest.setStart(allRange.getEnd().toString());
-            }
-
-            if (StringUtils.isEmpty(dateRangeRequest.getEnd()))
-                dateRangeRequest.setEnd(pushdownResult.getSecond());
+            val startAndEnd = PushDownUtil.CalcStartAndEnd(pushdownResult, start, end, allRange);
+            start = startAndEnd.getFirst();
+            end = startAndEnd.getSecond();
         }
 
-        if (StringUtils.isEmpty(dateRangeRequest.getStart())) {
-            dateRangeRequest.setStart(dataLoadingRange.getCoveredSegmentRange().getEnd().toString());
-        }
-
-        if (allRange != null && allRange.getEnd().toString().equals(dateRangeRequest.getEnd()))
+        if (allRange != null && allRange.getEnd().toString().equals(end))
             throw new IllegalStateException("There is no more new data to load");
 
         // propose partition column date format if not exist
@@ -519,39 +510,14 @@ public class TableService extends BasicService {
 
         NTableMetadataManager tableManager = getTableManager(project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
-        SegmentRange newSegmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(dateRangeRequest.getStart(),
-                dateRangeRequest.getEnd());
+        SegmentRange newSegmentRange = SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
 
         dataLoadingRange = getDataLoadingRange(project, table);
-        dataLoadingRange = rangeManager.appendSegmentRange(dataLoadingRange, newSegmentRange);
+        rangeManager.appendSegmentRange(dataLoadingRange, newSegmentRange);
         handleLoadingRangeUpdate(project, table, newSegmentRange);
 
-        if (readyRange == null) {
-            return;
-        } else {
-            NDataLoadingRange dataLoadingRangeUpdate = rangeManager.copyForWrite(dataLoadingRange);
-            long start = newSegmentRange.getStart().compareTo(readyRange.getStart()) < 0
-                    ? Long.parseLong(readyRange.getStart().toString())
-                    : Long.parseLong(newSegmentRange.getStart().toString());
-            long end = newSegmentRange.getEnd().compareTo(readyRange.getEnd()) < 0
-                    ? Long.parseLong(newSegmentRange.getEnd().toString())
-                    : Long.parseLong(readyRange.getEnd().toString());
-            dataLoadingRangeUpdate.setActualQueryStart(start);
-            dataLoadingRangeUpdate.setActualQueryEnd(end);
-            rangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
-        }
-
     }
 
-    private boolean needPushdown(String start, String end, NDataLoadingRange dataLoadingRange) {
-        if (StringUtils.isEmpty(start) && dataLoadingRange.getCoveredSegmentRange() == null)
-            return true;
-
-        if (StringUtils.isEmpty(end))
-            return true;
-
-        return false;
-    }
 
     public ExistedDataRangeResponse getLatestDataRange(String project, String table) throws Exception {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
@@ -569,29 +535,19 @@ public class TableService extends BasicService {
     }
 
 
-
     public Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String table)
             throws Exception {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         String partitionColumn = dataLoadingRange.getColumnName();
-        String sql = String.format("select min(%s), max(%s) from %s", partitionColumn, partitionColumn, table);
 
-        // pushdown
-        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql).getFirst();
-
-        if (returnRows.size() == 0 || returnRows.get(0).get(0) == null || returnRows.get(0).get(1) == null)
-            throw new BadRequestException(String.format("There are no data in table %s", table));
-
-        String minTime = returnRows.get(0).get(0);
-        String maxTime = returnRows.get(0).get(1);
-
+        val maxAndMinTime = PushDownUtil.getMaxAndMinTime(partitionColumn, table);
         String dateFormat;
         if (StringUtils.isEmpty(dataLoadingRange.getPartitionDateFormat()))
-            dateFormat = setPartitionColumnFormat(minTime, project, table);
+            dateFormat = setPartitionColumnFormat(maxAndMinTime.getFirst(), project, table);
         else
             dateFormat = dataLoadingRange.getPartitionDateFormat();
 
-        return new Pair<>(DateFormat.getFormattedDate(minTime, dateFormat), DateFormat.getFormattedDate(maxTime, dateFormat));
+        return new Pair<>(DateFormat.getFormattedDate(maxAndMinTime.getFirst(), dateFormat), DateFormat.getFormattedDate(maxAndMinTime.getSecond(), dateFormat));
     }
 
     @Transaction(project = 1)

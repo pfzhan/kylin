@@ -105,6 +105,13 @@ public class H2Database {
         }
     }
 
+    public void dropAllTables() throws SQLException {
+        for (String tableName : ALL_TABLES) {
+            dropTable(tableName);
+        }
+    }
+
+
     private void loadH2Table(String tableName) throws SQLException {
         NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(config, project);
         TableDesc tableDesc = metaMgr.getTableDesc(tableName.toUpperCase());
@@ -138,6 +145,26 @@ public class H2Database {
             throw new IllegalStateException(e);
         }
     }
+
+    private void dropTable(String tableName) {
+        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(config, project);
+        TableDesc tableDesc = metaMgr.getTableDesc(tableName.toUpperCase());
+
+        try (Statement stmt = h2Connection.createStatement()) {
+            String sql = generateDropH2TableSql(tableDesc);
+            stmt.executeUpdate(sql);
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private String generateDropH2TableSql(TableDesc tableDesc) {
+        StringBuilder ddl = new StringBuilder();
+        ddl.append("DROP TABLE " + tableDesc.getIdentity() + " if exists");
+
+        return ddl.toString();
+    }
+
 
     private String path(TableDesc tableDesc) {
         if ("EDW.TEST_SELLER_TYPE_DIM".equals(tableDesc.getIdentity())) // it is a view of table below
