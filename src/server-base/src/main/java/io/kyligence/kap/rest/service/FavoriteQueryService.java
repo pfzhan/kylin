@@ -23,7 +23,6 @@
  */
 package io.kyligence.kap.rest.service;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
@@ -35,19 +34,21 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.UUID;
 
+import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
+import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
+import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.service.BasicService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 import com.google.common.base.Preconditions;
@@ -62,7 +63,6 @@ import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
-import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.rest.transaction.Transaction;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -81,49 +81,41 @@ public class FavoriteQueryService extends BasicService {
     private static final String TOTAL_COUNT = "total_count";
     private static final String AVERAGE_DURATION = "average_duration";
 
-    @Autowired
-    @Qualifier("favoriteRuleService")
-    FavoriteRuleService favoriteRuleService;
-
-    void markFavoriteAndAccelerate(Set<String> sqlPatterns, String project, String user) {
-        List<String> sqlsToAccelerate = Lists.newArrayList();
-        List<FavoriteQuery> favoriteQueriesToInsert = Lists.newArrayList();
-
-        for (String sqlPattern : sqlPatterns) {
-            FavoriteQuery existFavorite = getFavoriteQueryManager(project).get(sqlPattern);
-            if (existFavorite != null && !existFavorite.getStatus().equals(FavoriteQueryStatusEnum.WAITING))
-                continue;
-
-            sqlsToAccelerate.add(sqlPattern);
-
-            if (existFavorite == null) {
-                FavoriteQuery newFavoriteQuery = new FavoriteQuery(sqlPattern);
-                newFavoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_WHITE_LIST);
-                favoriteQueriesToInsert.add(newFavoriteQuery);
-            }
-        }
-
-        getFavoriteQueryManager(project).create(favoriteQueriesToInsert);
-        // accelerate sqls right now
-        if (!sqlsToAccelerate.isEmpty())
-            handleAccelerate(project, sqlsToAccelerate, user);
-    }
+    private static final String DEFAULT_SCHEMA = "default";
 
     @Transaction(project = 0)
-    public void manualFavorite(String project, FavoriteRequest request) throws IOException {
-        Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
-        if (QueryHistory.QUERY_HISTORY_FAILED.equals(request.getQueryStatus()))
-            return;
+    public void createFavoriteQuery(String project, FavoriteRequest request) {
+        Set<FavoriteQuery> favoriteQueries = new HashSet<>();
+        for (String sql : request.getSqls()) {
+            String correctedSql = QueryUtil.massageSql(sql, project, 0, 0, DEFAULT_SCHEMA);
+            String sqlPattern = QueryPatternUtil.normalizeSQLPattern(correctedSql);
 
-        String sqlPattern = request.getSqlPattern();
-        Set<String> sqlPatterns = new HashSet<>();
-        sqlPatterns.add(sqlPattern);
-        favoriteRuleService.appendSqlToWhitelist(request.getSql(), sqlPattern.hashCode(), request.getProject());
-        val user = getUsername();
-        markFavoriteAndAccelerate(sqlPatterns, project, user);
+            if (getFavoriteQueryManager(project).contains(sqlPattern) || isInBlacklist(sqlPattern, project))
+                continue;
+
+            FavoriteQuery favoriteQuery = new FavoriteQuery(sqlPattern);
+            favoriteQuery.setChannel(FavoriteQuery.CHANNEL_FROM_IMPORTED);
+            favoriteQueries.add(favoriteQuery);
+        }
+
+        getFavoriteQueryManager(project).create(favoriteQueries);
     }
 
-    public List<FavoriteQuery> filterAndSortFavoriteQueries(String project, String sortBy, boolean reverse, List<String> status) {
+    private boolean isInBlacklist(String sqlPattern, String project) {
+        FavoriteRule blacklist = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
+                .getByName(FavoriteRule.BLACKLIST_NAME);
+        List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
+
+        for (FavoriteRule.AbstractCondition condition : conditions) {
+            if (sqlPattern.equalsIgnoreCase(((FavoriteRule.SQLCondition) condition).getSqlPattern()))
+                return true;
+        }
+
+        return false;
+    }
+
+    public List<FavoriteQuery> filterAndSortFavoriteQueries(String project, String sortBy, boolean reverse,
+            List<String> status) {
         List<FavoriteQuery> favoriteQueries = getFavoriteQueryManager(project).getAll();
         if (CollectionUtils.isNotEmpty(status)) {
             favoriteQueries = favoriteQueries.stream()
@@ -142,22 +134,22 @@ public class FavoriteQueryService extends BasicService {
 
         Comparator comparator;
         switch (sortBy) {
-            case LAST_QUERY_TIME:
-                comparator = Comparator.comparingLong(FavoriteQuery::getLastQueryTime);
-                break;
-            case SUCCESS_RATE:
-                comparator = Comparator.comparing(FavoriteQuery::getSuccessRate);
-                break;
-            case TOTAL_COUNT:
-                comparator = Comparator.comparingInt(FavoriteQuery::getTotalCount);
-                break;
-            case AVERAGE_DURATION:
-                comparator = Comparator.comparing(FavoriteQuery::getAverageDuration);
-                break;
-            default:
-                comparator = Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed();
-                favoriteQueries.sort(comparator);
-                return favoriteQueries;
+        case LAST_QUERY_TIME:
+            comparator = Comparator.comparingLong(FavoriteQuery::getLastQueryTime);
+            break;
+        case SUCCESS_RATE:
+            comparator = Comparator.comparing(FavoriteQuery::getSuccessRate);
+            break;
+        case TOTAL_COUNT:
+            comparator = Comparator.comparingInt(FavoriteQuery::getTotalCount);
+            break;
+        case AVERAGE_DURATION:
+            comparator = Comparator.comparing(FavoriteQuery::getAverageDuration);
+            break;
+        default:
+            comparator = Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed();
+            favoriteQueries.sort(comparator);
+            return favoriteQueries;
         }
 
         if (reverse)

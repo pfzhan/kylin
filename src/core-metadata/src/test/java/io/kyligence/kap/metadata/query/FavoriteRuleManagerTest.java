@@ -33,8 +33,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
 
 public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
@@ -53,9 +51,9 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testBasics() throws IOException {
+    public void testBasics() {
         List<FavoriteRule> rules = manager.getAll();
-        Assert.assertEquals(5, rules.size());
+        Assert.assertEquals(4, rules.size());
 
         FavoriteRule.Condition cond1 = new FavoriteRule.Condition();
         cond1.setRightThreshold("100");
@@ -67,14 +65,14 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
         FavoriteRule newRule = new FavoriteRule(conds, "new_rule", true);
 
         manager.createRule(newRule);
-        Assert.assertEquals(6, manager.getAll().size());
+        Assert.assertEquals(5, manager.getAll().size());
 
         cond1.setLeftThreshold("10");
         conds = Lists.newArrayList(cond1, cond2);
         newRule.setConds(conds);
         manager.updateRule(conds, true, newRule.getName());
 
-        Assert.assertEquals(6, manager.getAll().size());
+        Assert.assertEquals(5, manager.getAll().size());
         FavoriteRule updatedNewRule = manager.getByName("new_rule");
         conds = updatedNewRule.getConds();
         Assert.assertEquals(2, conds.size());
@@ -87,133 +85,33 @@ public class FavoriteRuleManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testAppendSqls() throws IOException, FavoriteRuleManager.RuleConditionExistException {
-        // add two sqls to whitelist
-        FavoriteRule.SQLCondition sqlCondition1 = new FavoriteRule.SQLCondition("test_sql1", "test_sql1".hashCode(), false);
-        FavoriteRule.SQLAdvice sqlAdvice = new FavoriteRule.SQLAdvice("table not found", "please load table xx");
-        sqlCondition1.setSqlAdvices(new HashSet<FavoriteRule.SQLAdvice>(){{add(sqlAdvice);}});
-        FavoriteRule.SQLCondition sqlCondition2 = new FavoriteRule.SQLCondition("test_sql2", "test_sql2".hashCode(), false);
-        manager.appendSqlConditions(Lists.newArrayList(sqlCondition1, sqlCondition2), FavoriteRule.WHITELIST_NAME);
+    public void testAppendSqlsToBlacklist() {
+        // add a sql to blacklist
+        FavoriteRule.SQLCondition sqlCondition = new FavoriteRule.SQLCondition("test_sql1");
+        manager.appendSqlPatternToBlacklist(sqlCondition);
 
-        FavoriteRule whitelist = manager.getByName(FavoriteRule.WHITELIST_NAME);
-        Assert.assertEquals(4, whitelist.getConds().size());
-        FavoriteRule.SQLCondition firstAppendSql = null;
-        for (FavoriteRule.AbstractCondition condition : whitelist.getConds()) {
-            FavoriteRule.SQLCondition sqlCondition = (FavoriteRule.SQLCondition) condition;
-            if (sqlCondition.getSql().equals("test_sql1"))
-                firstAppendSql = sqlCondition;
-        }
-
-        Assert.assertEquals(1, firstAppendSql.getSqlAdvices().size());
-        Assert.assertEquals("table not found", firstAppendSql.getSqlAdvices().iterator().next().getIncapableReason());
-        Assert.assertEquals("please load table xx", firstAppendSql.getSqlAdvices().iterator().next().getSuggestion());
-
-        // add the two sqls to blacklist
-        sqlCondition1 = new FavoriteRule.SQLCondition("test_sql3", "test_sql3".hashCode(), false);
-        sqlCondition2 = new FavoriteRule.SQLCondition("test_sql4", "test_sql4".hashCode(), false);
-        manager.appendSqlConditions(Lists.newArrayList(sqlCondition1, sqlCondition2), FavoriteRule.BLACKLIST_NAME);
         FavoriteRule blacklist = manager.getByName(FavoriteRule.BLACKLIST_NAME);
-        Assert.assertEquals(3, blacklist.getConds().size());
+        Assert.assertEquals(2, blacklist.getConds().size());
 
-        // append an existing sql to whitelist
-        FavoriteRule.SQLCondition existSql = new FavoriteRule.SQLCondition("select * from test_account", 722730360, false);
-        manager.appendSqlConditions(Lists.newArrayList(existSql), FavoriteRule.WHITELIST_NAME);
-        whitelist = manager.getByName(FavoriteRule.WHITELIST_NAME);
-        Assert.assertEquals(4, whitelist.getConds().size());
-
-        // append a blacklist sql to whitelist
-        FavoriteRule.SQLCondition blacklistSql = new FavoriteRule.SQLCondition("select * from test_country", -410461279, false);
-        try {
-            manager.appendSqlConditions(Lists.newArrayList(blacklistSql), FavoriteRule.WHITELIST_NAME);
-        } catch (Throwable ex) {
-            Assert.assertEquals(FavoriteRuleManager.RuleConditionExistException.class, ex.getClass());
-        }
-
-        // append a whitelist sql to blacklist
-        try {
-            manager.appendSqlConditions(Lists.newArrayList(existSql), FavoriteRule.BLACKLIST_NAME);
-        } catch (Throwable ex) {
-            Assert.assertEquals(FavoriteRuleManager.RuleConditionExistException.class, ex.getClass());
-        }
+        // append a existed sql to blacklist
+        sqlCondition.setSqlPattern("SELECT *\nFROM \"TEST_KYLIN_FACT\"");
+        manager.appendSqlPatternToBlacklist(sqlCondition);
+        blacklist = manager.getByName(FavoriteRule.BLACKLIST_NAME);
+        Assert.assertEquals(2, blacklist.getConds().size());
     }
 
     @Test
-    public void testRemoveSql() throws IOException, FavoriteRuleManager.RuleConditionExistException {
+    public void testRemoveSqlFromBlacklist() {
         // first append a new sql
-        FavoriteRule.SQLCondition newSql = new FavoriteRule.SQLCondition("new_sql", "new_sql".hashCode(), false);
-        manager.appendSqlConditions(Lists.newArrayList(newSql), FavoriteRule.WHITELIST_NAME);
-        FavoriteRule whitelist = manager.getByName(FavoriteRule.WHITELIST_NAME);
-        Assert.assertEquals(3, whitelist.getConds().size());
+        FavoriteRule.SQLCondition newSql = new FavoriteRule.SQLCondition("new_sql");
+        manager.appendSqlPatternToBlacklist(newSql);
+        FavoriteRule blacklist = manager.getByName(FavoriteRule.BLACKLIST_NAME);
+        Assert.assertEquals(2, blacklist.getConds().size());
 
         // remove new added sql
-        manager.removeSqlCondition(newSql.getId(), FavoriteRule.WHITELIST_NAME);
-        whitelist = manager.getByName(FavoriteRule.WHITELIST_NAME);
-        Assert.assertEquals(2, whitelist.getConds().size());
-    }
-
-    @Test
-    public void testUpdateWhitelistSql() throws IOException, FavoriteRuleManager.RuleConditionExistException {
-        // first append a new sql
-        FavoriteRule.SQLCondition newSql = new FavoriteRule.SQLCondition("new_sql", "new_sql".hashCode(), false);
-        manager.appendSqlConditions(Lists.newArrayList(newSql), FavoriteRule.WHITELIST_NAME);
-        FavoriteRule whitelist = manager.getByName(FavoriteRule.WHITELIST_NAME);
-        Assert.assertEquals(3, whitelist.getConds().size());
-
-        // update new added sql
-        FavoriteRule.SQLCondition updatedSql = new FavoriteRule.SQLCondition("updated_sql", "updated_sql".hashCode(), false);
-        updatedSql.setId(newSql.getId());
-        manager.updateWhitelistSql(updatedSql);
-        whitelist = manager.getByName(FavoriteRule.WHITELIST_NAME);
-        Assert.assertEquals(3, whitelist.getConds().size());
-        Assert.assertEquals("updated_sql", ((FavoriteRule.SQLCondition) whitelist.getConds().get(2)).getSql());
-
-        // when sql condition not found
-        updatedSql.setId("not_exist_id");
-        FavoriteRule.SQLCondition result = manager.updateWhitelistSql(updatedSql);
-        Assert.assertNull(result);
-
-        // when sql already exists
-        updatedSql.setSql("new_sql");
-        result = manager.updateWhitelistSql(updatedSql);
-        Assert.assertNull(result);
-
-        // update a sql already in blacklist
-        FavoriteRule.SQLCondition blacklistSql = new FavoriteRule.SQLCondition("select * from test_country", -410461279, false);
-        blacklistSql.setId(newSql.getId());
-        try {
-            manager.updateWhitelistSql(blacklistSql);
-        } catch (Throwable ex) {
-            Assert.assertEquals(FavoriteRuleManager.RuleConditionExistException.class, ex.getClass());
-        }
-    }
-
-    @Test
-    public void testAppendSimilarSqlConditions() throws IOException, FavoriteRuleManager.RuleConditionExistException {
-        int originWhitelistSqlSize = manager.getByName(FavoriteRule.WHITELIST_NAME).getConds().size();
-        String similarSql1 = "   select   \u001C\u001D\n  sum(price)\nfrom\n  KYLIN_SALES\nLIMIT\n\t\f  500\n ;";
-        String similarSql2 = "\n select sum(price)\u001E\u001F from KYLIN_SALES limit 500;";
-        FavoriteRule.SQLCondition sqlCondition1 = new FavoriteRule.SQLCondition(similarSql1, similarSql1.hashCode(), true);
-        FavoriteRule.SQLCondition sqlCondition2 = new FavoriteRule.SQLCondition(similarSql2, similarSql2.hashCode(), true);
-
-        manager.appendSqlConditions(Lists.newArrayList(sqlCondition1, sqlCondition2), FavoriteRule.WHITELIST_NAME);
-
-        // not loaded to whitelist
-        Assert.assertEquals(originWhitelistSqlSize + 1, manager.getByName(FavoriteRule.WHITELIST_NAME).getConds().size());
-    }
-
-    @Test
-    public void testUpdateSimilarSqlToWhitelist() throws IOException, FavoriteRuleManager.RuleConditionExistException {
-        FavoriteRule whitelist = manager.getByName(FavoriteRule.WHITELIST_NAME);
-        String originSql = ((FavoriteRule.SQLCondition) whitelist.getConds().get(0)).getSql();
-
-        // the sql already in whitelist is "select * from test_account"
-        String similarSqlInWhitelist = "  select  \n *\n from\n TEST_ACCOUNT\n\t\f ;\n\u001C\u001D\u001E\u001F";
-
-        FavoriteRule.SQLCondition sqlCondition = manager.updateWhitelistSql(new FavoriteRule.SQLCondition(similarSqlInWhitelist, similarSqlInWhitelist.hashCode(), true));
-        Assert.assertNull(sqlCondition);
-
-        // update failed
-        whitelist = manager.getByName(FavoriteRule.WHITELIST_NAME);
-        Assert.assertEquals(originSql, ((FavoriteRule.SQLCondition) whitelist.getConds().get(0)).getSql());
+        manager.removeSqlPatternFromBlacklist(newSql.getId());
+        blacklist = manager.getByName(FavoriteRule.BLACKLIST_NAME);
+        Assert.assertEquals(1, blacklist.getConds().size());
+        Assert.assertEquals("SELECT *\nFROM \"TEST_KYLIN_FACT\"", ((FavoriteRule.SQLCondition) blacklist.getConds().get(0)).getSqlPattern());
     }
 }

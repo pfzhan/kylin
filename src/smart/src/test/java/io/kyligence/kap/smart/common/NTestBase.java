@@ -26,6 +26,7 @@ package io.kyligence.kap.smart.common;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -117,7 +118,7 @@ public abstract class NTestBase {
     }
 
     protected void initFQData(String[] sqls) {
-        List<FavoriteQuery> favoriteQueries = Lists.newArrayList();
+        Set<FavoriteQuery> favoriteQueries = new HashSet<>();
         for (String sql : sqls) {
             FavoriteQuery fq = new FavoriteQuery(sql);
             favoriteQueries.add(fq);

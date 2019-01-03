@@ -128,14 +128,10 @@ public class ProjectService extends BasicService {
                 false);
         getFavoriteRuleManager(projectName).createRule(durationRule);
 
-        // create blacklist and whitelist
+        // create blacklist
         FavoriteRule blacklist = new FavoriteRule();
         blacklist.setName(FavoriteRule.BLACKLIST_NAME);
         getFavoriteRuleManager(projectName).createRule(blacklist);
-
-        FavoriteRule whitelist = new FavoriteRule();
-        whitelist.setName(FavoriteRule.WHITELIST_NAME);
-        getFavoriteRuleManager(projectName).createRule(whitelist);
     }
 
     public List<ProjectInstance> getReadableProjects(final String projectName) {

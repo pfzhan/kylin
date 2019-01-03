@@ -78,7 +78,7 @@ public class MockedQueryHistoryDao extends QueryHistoryDAO {
             queryHistory.setInsertTime(currentTime + 30 * i * 1000L);
             queryHistory.setAnsweredBy("HIVE");
             if (i == 4)
-                queryHistory.setSqlPattern("SELECT *\nFROM \"TEST_COUNTRY\"\nLIMIT 1");
+                queryHistory.setSqlPattern("SELECT *\nFROM \"TEST_KYLIN_FACT\"");
             if (i == 5)
                 queryHistory.setQueryStatus(QueryHistory.QUERY_HISTORY_FAILED);
             overallQueryHistories.add(queryHistory);

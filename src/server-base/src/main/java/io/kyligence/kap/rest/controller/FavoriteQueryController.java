@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.rest.request.SQLValidateRequest;
 import org.apache.kylin.rest.request.FavoriteRequest;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.response.EnvelopeResponse;
@@ -48,9 +49,6 @@ import org.springframework.web.multipart.MultipartFile;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.rest.request.AppendBlacklistSqlRequest;
-import io.kyligence.kap.rest.request.WhitelistUpdateRequest;
-import io.kyligence.kap.rest.response.FavoriteRuleResponse;
 import io.kyligence.kap.rest.service.FavoriteQueryService;
 import io.kyligence.kap.rest.service.FavoriteRuleService;
 
@@ -66,8 +64,9 @@ public class FavoriteQueryController extends NBasicController {
 
     @RequestMapping(value = "", method = RequestMethod.POST)
     @ResponseBody
-    public EnvelopeResponse manualFavorite(@RequestBody FavoriteRequest request) throws IOException {
-        favoriteQueryService.manualFavorite(request.getProject(), request);
+    public EnvelopeResponse createFavoriteQuery(@RequestBody FavoriteRequest request) {
+        checkProjectName(request.getProject());
+        favoriteQueryService.createFavoriteQuery(request.getProject(), request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
@@ -86,6 +85,15 @@ public class FavoriteQueryController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
     }
 
+    @RequestMapping(value = "", method = RequestMethod.DELETE)
+    @ResponseBody
+    public EnvelopeResponse deleteFavoriteQuery(@RequestParam(value = "project") String project,
+                                                @RequestParam(value = "uuid") String uuid) {
+        checkProjectName(project);
+        favoriteRuleService.deleteFavoriteQuery(project, uuid);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
+    }
+
     @RequestMapping(value = "/threshold", method = RequestMethod.GET)
     @ResponseBody
     public EnvelopeResponse getAccelerateTips(@RequestParam(value = "project") String project) {
@@ -95,7 +103,8 @@ public class FavoriteQueryController extends NBasicController {
     @RequestMapping(value = "/accept", method = RequestMethod.PUT)
     @ResponseBody
     public EnvelopeResponse acceptAccelerate(@RequestParam(value = "project") String project,
-            @RequestParam(value = "accelerateSize") int accelerateSize) throws Exception {
+            @RequestParam(value = "accelerateSize") int accelerateSize) {
+        checkProjectName(project);
         favoriteQueryService.acceptAccelerate(project, accelerateSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -103,6 +112,7 @@ public class FavoriteQueryController extends NBasicController {
     @RequestMapping(value = "/ignore/{project}", method = RequestMethod.PUT)
     @ResponseBody
     public EnvelopeResponse ignoreAccelerate(@PathVariable(value = "project") String project) {
+        checkProjectName(project);
         favoriteQueryService.ignoreAccelerate(project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -110,24 +120,28 @@ public class FavoriteQueryController extends NBasicController {
     @RequestMapping(value = "/rules/frequency", method = RequestMethod.GET)
     @ResponseBody
     public EnvelopeResponse getFrequencyRule(@RequestParam(value = "project") String project) {
+        checkProjectName(project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteRuleService.getFrequencyRule(project), "");
     }
 
     @RequestMapping(value = "/rules/submitter", method = RequestMethod.GET)
     @ResponseBody
     public EnvelopeResponse getSubmitterRule(@RequestParam(value = "project") String project) {
+        checkProjectName(project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteRuleService.getSubmitterRule(project), "");
     }
 
     @RequestMapping(value = "/rules/duration", method = RequestMethod.GET)
     @ResponseBody
     public EnvelopeResponse getDurationRule(@RequestParam(value = "project") String project) {
+        checkProjectName(project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, favoriteRuleService.getDurationRule(project), "");
     }
 
     @RequestMapping(value = "/rules/frequency", method = RequestMethod.PUT)
     @ResponseBody
     public EnvelopeResponse updateFrequencyRule(@RequestBody FavoriteRuleUpdateRequest request) throws IOException {
+        checkProjectName(request.getProject());
         favoriteRuleService.updateRegularRule(request.getProject(), request, FavoriteRule.FREQUENCY_RULE_NAME);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -135,6 +149,7 @@ public class FavoriteQueryController extends NBasicController {
     @RequestMapping(value = "/rules/submitter", method = RequestMethod.PUT)
     @ResponseBody
     public EnvelopeResponse updateSubmitterRule(@RequestBody FavoriteRuleUpdateRequest request) throws IOException {
+        checkProjectName(request.getProject());
         favoriteRuleService.updateRegularRule(request.getProject(), request, FavoriteRule.SUBMITTER_RULE_NAME);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
@@ -142,15 +157,9 @@ public class FavoriteQueryController extends NBasicController {
     @RequestMapping(value = "/rules/duration", method = RequestMethod.PUT)
     @ResponseBody
     public EnvelopeResponse updateDurationRule(@RequestBody FavoriteRuleUpdateRequest request) throws IOException {
+        checkProjectName(request.getProject());
         favoriteRuleService.updateRegularRule(request.getProject(), request, FavoriteRule.DURATION_RULE_NAME);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
-    }
-
-    @RequestMapping(value = "/blacklist", method = RequestMethod.POST)
-    @ResponseBody
-    public EnvelopeResponse appendSqlToBlacklist(@RequestBody AppendBlacklistSqlRequest request) throws IOException {
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                favoriteRuleService.appendSqlToBlacklist(request.getSql(), request.getProject()), "");
     }
 
     @RequestMapping(value = "/blacklist", method = RequestMethod.GET)
@@ -158,8 +167,9 @@ public class FavoriteQueryController extends NBasicController {
     public EnvelopeResponse getBlacklist(@RequestParam("project") String project,
             @RequestParam(value = "offset", required = false, defaultValue = "0") int offset,
             @RequestParam(value = "limit", required = false, defaultValue = "10") int limit) {
+        checkProjectName(project);
         Map<String, Object> data = Maps.newHashMap();
-        List<FavoriteRuleResponse> blacklistSqls = favoriteRuleService.getBlacklistSqls(project);
+        List<FavoriteRule.SQLCondition> blacklistSqls = favoriteRuleService.getBlacklistSqls(project);
         data.put("sqls", PagingUtil.cutPage(blacklistSqls, offset, limit));
         data.put("size", blacklistSqls.size());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
@@ -167,45 +177,27 @@ public class FavoriteQueryController extends NBasicController {
 
     @RequestMapping(value = "/blacklist", method = RequestMethod.DELETE)
     @ResponseBody
-    public EnvelopeResponse removeBlacklistSql(@RequestParam("id") String id, @RequestParam("project") String project)
-            throws IOException {
+    public EnvelopeResponse removeBlacklistSql(@RequestParam("id") String id, @RequestParam("project") String project) {
+        checkProjectName(project);
         favoriteRuleService.removeBlacklistSql(id, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
     }
 
-    @RequestMapping(value = "/whitelist", method = RequestMethod.POST)
+    @RequestMapping(value = "/sql_files", method = RequestMethod.POST)
     @ResponseBody
-    public EnvelopeResponse loadSqlsToWhitelist(@RequestParam("file") MultipartFile file,
-            @RequestParam("project") String project) throws IOException {
-        favoriteRuleService.loadSqlsToWhitelist(file, project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
+    public EnvelopeResponse importSqls(@RequestParam("files") MultipartFile[] files,
+                                       @RequestParam("project") String project) {
+        checkProjectName(project);
+        Map<String, Object> data = favoriteRuleService.importSqls(files, project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, (String) data.get("msg"));
     }
 
-    @RequestMapping(value = "/whitelist", method = RequestMethod.PUT)
+    @RequestMapping(value = "/sql_validation", method = RequestMethod.PUT)
     @ResponseBody
-    public EnvelopeResponse updateWhitelist(@RequestBody WhitelistUpdateRequest request) throws IOException {
+    public EnvelopeResponse sqlValidate(@RequestBody SQLValidateRequest request) {
+        checkProjectName(request.getProject());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS,
-                favoriteRuleService.updateWhitelistSql(request.getSql(), request.getId(), request.getProject()), "");
-    }
-
-    @RequestMapping(value = "/whitelist", method = RequestMethod.GET)
-    @ResponseBody
-    public EnvelopeResponse getWhitelist(@RequestParam("project") String project,
-            @RequestParam(value = "offset", required = false, defaultValue = "0") int offset,
-            @RequestParam(value = "limit", required = false, defaultValue = "10") int limit) {
-        Map<String, Object> data = Maps.newHashMap();
-        List<FavoriteRuleResponse> whitelistSqls = favoriteRuleService.getWhitelist(project);
-        data.put("sqls", PagingUtil.cutPage(whitelistSqls, offset, limit));
-        data.put("size", whitelistSqls.size());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
-    }
-
-    @RequestMapping(value = "/whitelist", method = RequestMethod.DELETE)
-    @ResponseBody
-    public EnvelopeResponse removeWhitelistSql(@RequestParam("id") String id, @RequestParam("project") String project)
-            throws IOException {
-        favoriteRuleService.removeWhitelistSql(id, project);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, "", "");
+                favoriteRuleService.sqlValidate(request.getProject(), request.getSql()), "");
     }
 
     @RequestMapping(value = "/accelerate_ratio", method = RequestMethod.GET)

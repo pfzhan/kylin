@@ -26,13 +26,12 @@ package io.kyligence.kap.rest.service;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
-import io.kyligence.kap.rest.response.FavoriteRuleResponse;
-import io.kyligence.kap.rest.response.UpdateWhitelistResponse;
-import io.kyligence.kap.smart.query.validator.SQLValidateResult;
+import io.kyligence.kap.rest.response.ImportSqlResponse;
 import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.exception.NotFoundException;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
@@ -40,12 +39,11 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -54,14 +52,10 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
     private static final String PROJECT_NEWTEN = "newten";
-
-    @Mock
-    private FavoriteQueryService favoriteQueryService = Mockito.mock(FavoriteQueryService.class);
 
     @InjectMocks
     private FavoriteRuleService favoriteRuleService = Mockito.spy(new FavoriteRuleService());
@@ -69,223 +63,80 @@ public class FavoriteRuleServiceTest extends NLocalFileMetadataTestCase {
     @Before
     public void setUp() {
         createTestMetadata();
-        getTestConfig().setProperty("kylin.favorite.storage-url", "kylin_favorite@jdbc,url=jdbc:h2:mem:db_default;MODE=MySQL,username=sa,password=,driverClassName=org.h2.Driver");
-        ReflectionTestUtils.setField(favoriteRuleService, "favoriteQueryService", favoriteQueryService);
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
     }
 
     @Test
-    public void testBlacklistCRUD() throws IOException {
-        List<FavoriteRuleResponse> sqls = favoriteRuleService.getBlacklistSqls(PROJECT);
+    public void testBlacklistBasics() {
+        final String sqlPattern1 = "test sql pattern 1";
+        final String sqlPattern2 = "test sql pattern 2";
+
+        FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
+        FavoriteQuery favoriteQuery1 = new FavoriteQuery(sqlPattern1);
+        favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
+        FavoriteQuery favoriteQuery2 = new FavoriteQuery(sqlPattern2);
+        favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_IMPORTED);
+        favoriteQueryManager.create(new HashSet(){{add(favoriteQuery1);add(favoriteQuery2);}});
+        List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
+        Assert.assertEquals(2, favoriteQueries.size());
+        List<FavoriteRule.SQLCondition> sqls = favoriteRuleService.getBlacklistSqls(PROJECT);
         Assert.assertEquals(1, sqls.size());
-        // case of sql grammar is correct
-        String validateSql = "select count(*) from test_kylin_fact";
-        SQLValidateResult result = favoriteRuleService.appendSqlToBlacklist(validateSql, PROJECT);
-        Assert.assertTrue(result.isCapable());
+
+        // append sql pattern1 to blacklist from rule-based channel and delete FQ
+        favoriteRuleService.deleteFavoriteQuery(PROJECT, favoriteQueryManager.get(sqlPattern1).getUuid());
         sqls = favoriteRuleService.getBlacklistSqls(PROJECT);
         Assert.assertEquals(2, sqls.size());
+        favoriteQueries = favoriteQueryManager.getAll();
+        Assert.assertEquals(1, favoriteQueries.size());
 
-        // case of sql grammar is incorrect
-        String inValidateSql = "select count(*) from not_exist_table";
-        result = favoriteRuleService.appendSqlToBlacklist(inValidateSql, PROJECT);
-        Assert.assertFalse(result.isCapable());
-        Assert.assertEquals("Table 'NOT_EXIST_TABLE' not found.", result.getSqlAdvices().iterator().next().getIncapableReason());
+        // append sql pattern2 to blacklist from imported channel and delete FQ
+        favoriteRuleService.deleteFavoriteQuery(PROJECT, favoriteQueryManager.get(sqlPattern2).getUuid());
         sqls = favoriteRuleService.getBlacklistSqls(PROJECT);
         Assert.assertEquals(2, sqls.size());
+        favoriteQueries = favoriteQueryManager.getAll();
+        Assert.assertEquals(0, favoriteQueries.size());
 
-        // case of having the same sql in whitelist
-        String sameSqlInWhitelist = "select count(*) from test_account";
-        try {
-            favoriteRuleService.appendSqlToBlacklist(sameSqlInWhitelist, PROJECT);
-        } catch (Exception ex) {
-            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
-            Assert.assertEquals(MsgPicker.getMsg().getSQL_ALREADY_IN_WHITELIST(), ex.getMessage());
-        }
-
-        // case of already having a same sql in blacklist
-        String sameSqlInBlacklist = "select * from test_country";
-        result = favoriteRuleService.appendSqlToBlacklist(sameSqlInBlacklist, PROJECT);
-        Assert.assertTrue(result.isCapable());
+        // append same sql to blacklist
+        FavoriteQuery sqlPattern1FQ = new FavoriteQuery(sqlPattern1);
+        sqlPattern1FQ.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
+        favoriteQueryManager.create(new HashSet(){{add(sqlPattern1FQ);}});
+        favoriteRuleService.deleteFavoriteQuery(PROJECT, favoriteQueryManager.get(sqlPattern1).getUuid());
         sqls = favoriteRuleService.getBlacklistSqls(PROJECT);
+        favoriteQueries = favoriteQueryManager.getAll();
         Assert.assertEquals(2, sqls.size());
+        Assert.assertEquals(0, favoriteQueries.size());
 
-        // remove sql from blacklist
-        FavoriteRule blacklist = favoriteRuleService.getFavoriteRuleManager(PROJECT).getByName(FavoriteRule.BLACKLIST_NAME);
-        List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
-        FavoriteRule.SQLCondition firstCond = (FavoriteRule.SQLCondition) conditions.get(0);
-        favoriteRuleService.removeBlacklistSql(firstCond.getId(), PROJECT);
+        // returned blacklist sql is sorted by create time
+        FavoriteRule.SQLCondition sqlCondition1 = sqls.get(0);
+        FavoriteRule.SQLCondition sqlCondition2 = sqls.get(1);
+        Assert.assertTrue(sqlCondition1.getCreateTime() > sqlCondition2.getCreateTime());
+
+        // remove sql pattern from blacklist
+        favoriteRuleService.removeBlacklistSql(sqls.get(0).getId(), PROJECT);
         sqls = favoriteRuleService.getBlacklistSqls(PROJECT);
         Assert.assertEquals(1, sqls.size());
-        Assert.assertNotEquals(firstCond.getId(), sqls.get(0).getId());
-        Assert.assertNotEquals(firstCond.getSql(), sqls.get(0).getSql());
     }
 
     @Test
-    public void testUpdateWhitelist() throws IOException {
-        // case of updated sql is valid
-        List<FavoriteRuleResponse> sqls = favoriteRuleService.getWhitelist(PROJECT);
-        Assert.assertEquals(2, sqls.size());
-        String updatedSql = "select count(*) from test_country";
-        favoriteRuleService.updateWhitelistSql(updatedSql, sqls.get(0).getId(), PROJECT);
-        sqls = favoriteRuleService.getWhitelist(PROJECT);
-        Assert.assertEquals(2, sqls.size());
-        Assert.assertEquals(updatedSql, sqls.get(0).getSql());
-        // triggered accelerate
-        Mockito.verify(favoriteQueryService).markFavoriteAndAccelerate(Mockito.anySet(), Mockito.anyString(), Mockito.anyString());
+    public void testLoadSqls() throws IOException {
+        // import multiple files
+        MockMultipartFile file1 = new MockMultipartFile("sqls1.sql", "sqls1.sql", "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls1.sql")));
+        MockMultipartFile file2 = new MockMultipartFile("sqls2.txt", "sqls2.txt", "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls2.txt")));
+        MockMultipartFile exceptionFile = new MockMultipartFile("exception_file.sql", "exception_file.sql", "text/plain", "".getBytes());
 
-        // case of updated sql is invalid
-        String invalidSql = "select * from not_exist_table";
-        UpdateWhitelistResponse response = favoriteRuleService.updateWhitelistSql(invalidSql, sqls.get(0).getId(), PROJECT);
-        Assert.assertFalse(response.isCapable());
-        Assert.assertEquals(2, sqls.size());
-        Assert.assertEquals(updatedSql, sqls.get(0).getSql());
+        Mockito.when(favoriteRuleService.transformFileToSqls(exceptionFile)).thenThrow(IOException.class);
 
-        // case of having the same sql in blacklist
-        String sameSqlInBlacklist = "select * from test_country";
-        try {
-            favoriteRuleService.updateWhitelistSql(sameSqlInBlacklist, sqls.get(0).getId(), PROJECT);
-        } catch (Exception ex) {
-            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
-            Assert.assertEquals(MsgPicker.getMsg().getSQL_ALREADY_IN_BLACKLIST(), ex.getMessage());
-        }
-
-        // case of having the same sql in whitelist
-        sqls = favoriteRuleService.getWhitelist(PROJECT);
-        String origSql = sqls.get(0).getSql();
-        String sameSqlInWhitelist = "select count(*) from test_account";
-        try {
-            favoriteRuleService.updateWhitelistSql(sameSqlInWhitelist, sqls.get(0).getId(), PROJECT);
-        } catch (Exception ex) {
-            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
-            Assert.assertEquals(MsgPicker.getMsg().getSQL_IN_WHITELIST_OR_ID_NOT_FOUND(), ex.getMessage());
-        }
-        sqls = favoriteRuleService.getWhitelist(PROJECT);
-        Assert.assertEquals(2, sqls.size());
-        Assert.assertEquals(origSql, sqls.get(0).getSql());
-    }
-
-    @Test
-    public void testRemoveWhitelist() throws IOException {
-        // originally, there are two sqls in white list
-        List<FavoriteRuleResponse> sqls = favoriteRuleService.getWhitelist(PROJECT);
-        // remove first one
-        favoriteRuleService.removeWhitelistSql(sqls.get(0).getId(), PROJECT);
-        sqls = favoriteRuleService.getWhitelist(PROJECT);
-        Assert.assertEquals(1, sqls.size());
-        // remove last one
-        favoriteRuleService.removeWhitelistSql(sqls.get(0).getId(), PROJECT);
-        // now the white list is empty
-        sqls = favoriteRuleService.getWhitelist(PROJECT);
-        Assert.assertEquals(0, sqls.size());
-    }
-
-    @Test
-    public void testAppendSqlToWhitelist() throws IOException {
-        // case of having conflict with blacklist
-        String conflictSql = "select * from test_country";
-        int sqlPatternHash = 1965162027;
-        try {
-            favoriteRuleService.appendSqlToWhitelist(conflictSql, sqlPatternHash, PROJECT);
-        } catch (Exception ex) {
-            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
-            Assert.assertEquals(MsgPicker.getMsg().getSQL_ALREADY_IN_BLACKLIST(), ex.getMessage());
-        }
-
-        // case of having the same sql in whitelist
-        String sameSqlInWhitelist = "select * from test_account";
-        favoriteRuleService.appendSqlToWhitelist(sameSqlInWhitelist, sameSqlInWhitelist.hashCode(), PROJECT);
-        FavoriteRule whitelist = favoriteRuleService.getFavoriteRule(PROJECT, FavoriteRule.WHITELIST_NAME);
-        Assert.assertEquals(2, whitelist.getConds().size());
-
-        // case of append a sql to whitelist
-        String sql = "test_sql";
-        favoriteRuleService.appendSqlToWhitelist(sql, sql.hashCode(), PROJECT);
-        whitelist = favoriteRuleService.getFavoriteRule(PROJECT, FavoriteRule.WHITELIST_NAME);
-        Assert.assertEquals(3, whitelist.getConds().size());
-    }
-
-    @Test
-    public void testLoadSqlsToWhitelist() throws IOException {
-        // case of wrong file type
-        MockMultipartFile file = new MockMultipartFile("wrong_file_type.csv", "wrong_file_type.csv", "text/plain", "".getBytes());
-        try {
-            favoriteRuleService.loadSqlsToWhitelist(file, PROJECT);
-        } catch (Exception ex) {
-            Assert.assertEquals(InternalErrorException.class, ex.getClass());
-            Assert.assertEquals(MsgPicker.getMsg().getUPLOADED_FILE_TYPE_OR_SIZE_IS_NOT_DESIRED(), ex.getMessage());
-        }
-
-        // case of empty file
-        file = new MockMultipartFile("empty_content.sql", "empty_content.sql", "text/plain", "".getBytes());
-        try {
-            favoriteRuleService.loadSqlsToWhitelist(file, PROJECT);
-        } catch (Exception ex) {
-            Assert.assertEquals(InternalErrorException.class, ex.getClass());
-            Assert.assertEquals(MsgPicker.getMsg().getNO_SQL_FOUND(), ex.getMessage());
-        }
-
-        // case of sqls length is 0
-        file = new MockMultipartFile("empty_sqls.sql", "empty_sqls.sql", "text/plain", ";;".getBytes());
-        try {
-            favoriteRuleService.loadSqlsToWhitelist(file, PROJECT);
-        } catch (Exception ex) {
-            Assert.assertEquals(InternalErrorException.class, ex.getClass());
-            Assert.assertEquals(MsgPicker.getMsg().getNO_SQL_FOUND(), ex.getMessage());
-        }
-
-        // case of sql length if 0 after trim
-        file = new MockMultipartFile("empty_sqls_after_trim.sql", "empty_sqls_after_trim.sql", "text/plain", ";\n;\n;\n".getBytes());
-        favoriteRuleService.loadSqlsToWhitelist(file, PROJECT);
-        List<FavoriteRuleResponse> sqls = favoriteRuleService.getWhitelist(PROJECT);
-        Assert.assertEquals(2, sqls.size());
-
-        // case of having conflct with sqls in blacklist
-        file = new MockMultipartFile("sqls_conflict_with_blacklist.sql", "sqls_conflict_with_blacklist.sql", "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls_conflict_with_blacklist.sql")));
-        try {
-            favoriteRuleService.loadSqlsToWhitelist(file, PROJECT);
-        } catch (Exception ex) {
-            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
-            Assert.assertEquals(MsgPicker.getMsg().getSQL_ALREADY_IN_BLACKLIST(), ex.getMessage());
-        }
-
-        // case of already have the same sql in whitelist
-        file = new MockMultipartFile("sqls_already_in_whitelist.sql", "sqls_already_in_whitelist.sql", "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls_already_in_whitelist.sql")));
-        favoriteRuleService.loadSqlsToWhitelist(file, PROJECT);
-        sqls = favoriteRuleService.getWhitelist(PROJECT);
-        Assert.assertEquals(3, sqls.size());
-        Mockito.verify(favoriteQueryService).markFavoriteAndAccelerate(Mockito.anySet(), Mockito.anyString(), Mockito.anyString());
-
-        // case of having 8 total sqls, and 2 of them are valid
-        file = new MockMultipartFile("sqls.sql", "sqls.sql", "text/plain", new FileInputStream(new File("./src/test/resources/ut_sqls_file/sqls.sql")));
-        favoriteRuleService.loadSqlsToWhitelist(file, PROJECT);
-        sqls = favoriteRuleService.getWhitelist(PROJECT);
-        Assert.assertEquals(11, sqls.size());
-        int capableSqlSize = 0;
-        for (FavoriteRuleResponse response : sqls) {
-            if (response.isCapable())
-                capableSqlSize ++;
-        }
-        Assert.assertEquals(3, capableSqlSize);
-        Assert.assertEquals(11, sqls.size());
-
-        // two capable sqls in sqls.sql file
-        String capableSqlPattern1 = "SELECT \"CAL_DT\", \"LSTG_FORMAT_NAME\", SUM(\"PRICE\")\n" +
-                "FROM \"TEST_KYLIN_FACT\"\n" +
-                "WHERE \"CAL_DT\" = '2010-01-01'\n" +
-                "GROUP BY \"CAL_DT\", \"LSTG_FORMAT_NAME\"\n" +
-                "LIMIT 1";
-        String capableSqlPattern2 = "SELECT \"CAL_DT\", SUM(\"PRICE\")\n" +
-                "FROM \"TEST_KYLIN_FACT\"\n" +
-                "WHERE \"CAL_DT\" = '2010-01-01'\n" +
-                "GROUP BY \"CAL_DT\"\n" +
-                "LIMIT 1";
-        Set<String> capableSqlPatterns = new HashSet<>();
-        capableSqlPatterns.add(capableSqlPattern1);
-        capableSqlPatterns.add(capableSqlPattern2);
-
-        // only insert capable sql pattern to DAO
-        Mockito.verify(favoriteQueryService).markFavoriteAndAccelerate(capableSqlPatterns, PROJECT, "ADMIN");
+        Map<String, Object> result = favoriteRuleService.importSqls(new MultipartFile[]{file1, file2, exceptionFile}, PROJECT);
+        List<ImportSqlResponse> responses = (List<ImportSqlResponse>) result.get("data");
+        Assert.assertEquals(9, responses.size());
+        Assert.assertFalse(responses.get(0).isCapable());
+        Assert.assertTrue(responses.get(8).isCapable());
+        Assert.assertEquals(9, result.get("size"));
+        Assert.assertEquals(3, result.get("capable_sql_num"));
+        String failedFilesMsg = (String) result.get("msg");
+        Assert.assertNotNull(failedFilesMsg);
+        Assert.assertEquals("exception_file.sql parse failed", failedFilesMsg);
     }
 
     @Test

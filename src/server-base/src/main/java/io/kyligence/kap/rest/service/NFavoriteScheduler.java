@@ -265,7 +265,7 @@ public class NFavoriteScheduler {
 
     private boolean isQualifiedCandidate(QueryHistory queryHistory) {
         String sqlPattern = queryHistory.getSqlPattern();
-        if (isInBlacklist(sqlPattern.hashCode(), project))
+        if (isInBlacklist(sqlPattern, project))
             return false;
 
         // query with constants, 1 <> 1
@@ -278,7 +278,7 @@ public class NFavoriteScheduler {
     private void internalFavorite(final Set<FavoriteQuery> favoriteQueries) {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         FavoriteQueryManager manager = FavoriteQueryManager.getInstance(config, project);
-        manager.create(Lists.newArrayList(favoriteQueries));
+        manager.create(favoriteQueries);
 
         ProjectInstance projectInstance = NProjectManager.getInstance(config).getProject(project);
         if ((projectInstance.getConfig().getFavoriteQueryAccelerateThresholdBatchEnabled())
@@ -385,13 +385,13 @@ public class NFavoriteScheduler {
         return false;
     }
 
-    private boolean isInBlacklist(int sqlPatternHash, String project) {
+    private boolean isInBlacklist(String sqlPattern, String project) {
         FavoriteRule blacklist = FavoriteRuleManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
                 .getByName(FavoriteRule.BLACKLIST_NAME);
         List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
 
         for (FavoriteRule.AbstractCondition condition : conditions) {
-            if (sqlPatternHash == ((FavoriteRule.SQLCondition) condition).getSqlPatternHash())
+            if (sqlPattern.equalsIgnoreCase(((FavoriteRule.SQLCondition) condition).getSqlPattern()))
                 return true;
         }
 

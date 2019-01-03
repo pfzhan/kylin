@@ -35,11 +35,11 @@ import java.util.Set;
 @Getter
 @Setter
 @NoArgsConstructor
-public class UpdateWhitelistResponse {
+public class SQLValidateResponse {
     private boolean capable;
     private Set<SQLAdvice> sqlAdvices = Sets.newHashSet();
 
-    public UpdateWhitelistResponse(boolean capable, Set<SQLAdvice> sqlAdvices) {
+    public SQLValidateResponse(boolean capable, Set<SQLAdvice> sqlAdvices) {
         this.capable = capable;
         this.sqlAdvices = sqlAdvices;
     }

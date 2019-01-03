@@ -22,17 +22,27 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.request;
+package io.kyligence.kap.rest.response;
 
+import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-@Setter
+import java.util.HashSet;
+import java.util.Set;
+
 @Getter
+@Setter
 @NoArgsConstructor
-public class WhitelistUpdateRequest {
+public class ImportSqlResponse {
+    private int id;
     private String sql;
-    private String id;
-    private String project;
+    private boolean capable;
+    private Set<SQLAdvice> sqlAdvices = new HashSet<>();
+
+    public ImportSqlResponse(String sql, boolean capable) {
+        this.sql = sql;
+        this.capable = capable;
+    }
 }

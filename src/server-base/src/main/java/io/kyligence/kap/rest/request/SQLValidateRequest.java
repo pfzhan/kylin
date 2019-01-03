@@ -22,27 +22,18 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package io.kyligence.kap.rest.response;
+package io.kyligence.kap.rest.request;
 
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.util.HashSet;
-import java.util.Set;
-
 @Getter
 @Setter
 @NoArgsConstructor
-public class FavoriteRuleResponse {
-    private String id;
+@AllArgsConstructor
+public class SQLValidateRequest {
+    private String project;
     private String sql;
-    private boolean capable;
-    private Set<FavoriteRule.SQLAdvice> sqlAdvices = new HashSet<>();
-
-    public FavoriteRuleResponse(String id, String sql) {
-        this.id = id;
-        this.sql = sql;
-    }
 }

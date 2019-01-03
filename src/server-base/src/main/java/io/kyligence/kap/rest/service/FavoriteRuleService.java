@@ -26,24 +26,23 @@ package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.stream.Collectors;
 
+import com.google.common.base.Joiner;
 import io.kyligence.kap.metadata.query.AccelerateRatio;
 import io.kyligence.kap.metadata.query.AccelerateRatioManager;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.query.util.QueryUtil;
 import org.apache.kylin.rest.exception.InternalErrorException;
 import org.apache.kylin.rest.exception.NotFoundException;
-import org.apache.kylin.rest.msg.Message;
 import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.request.FavoriteRuleUpdateRequest;
 import org.apache.kylin.rest.service.BasicService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -51,12 +50,9 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.query.util.QueryPatternUtil;
-import io.kyligence.kap.rest.response.FavoriteRuleResponse;
-import io.kyligence.kap.rest.response.UpdateWhitelistResponse;
+import io.kyligence.kap.rest.response.ImportSqlResponse;
+import io.kyligence.kap.rest.response.SQLValidateResponse;
 import io.kyligence.kap.rest.transaction.Transaction;
-import io.kyligence.kap.smart.query.advisor.SQLAdvice;
 import io.kyligence.kap.smart.query.mockup.MockupQueryExecutor;
 import io.kyligence.kap.smart.query.validator.AbstractSQLValidator;
 import io.kyligence.kap.smart.query.validator.SQLValidateResult;
@@ -64,26 +60,7 @@ import io.kyligence.kap.smart.query.validator.SqlSyntaxValidator;
 
 @Component("favoriteRuleService")
 public class FavoriteRuleService extends BasicService {
-
-    private static final long MB = 1024 * (long) 1024;
-    private static final Set<String> DESIRED_TYPES = new HashSet<>();
-    static {
-        DESIRED_TYPES.add("txt");
-        DESIRED_TYPES.add("sql");
-    }
-    private static final Set<String> CONTENT_TYPE = new HashSet<>();
-    static {
-        CONTENT_TYPE.add("text/plain");
-        CONTENT_TYPE.add("application/octet-stream");
-    }
-
-    private static final int DEFAULT_LIMIT = 500;
-    private static final int DEFAULT_OFFSET = 0;
-    private static final String DEFAULT_SCHEMA = "default";
-
-    @Autowired
-    @Qualifier("favoriteQueryService")
-    FavoriteQueryService favoriteQueryService;
+    private static final Logger logger = LoggerFactory.getLogger(FavoriteRuleService.class);
 
     public Map<String, Object> getFrequencyRule(String project) {
         FavoriteRule frequencyRule = getFavoriteRule(project, FavoriteRule.FREQUENCY_RULE_NAME);
@@ -137,9 +114,7 @@ public class FavoriteRuleService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void updateRegularRule(String project, FavoriteRuleUpdateRequest request, String ruleName) throws IOException {
-        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
-
+    public void updateRegularRule(String project, FavoriteRuleUpdateRequest request, String ruleName) {
         FavoriteRule rule = getFavoriteRule(project, ruleName);
         rule.setEnabled(request.isEnable());
 
@@ -177,44 +152,24 @@ public class FavoriteRuleService extends BasicService {
         favoriteScheduler.scheduleAutoFavorite();
     }
 
-    @Transaction(project = 1)
-    public SQLValidateResult appendSqlToBlacklist(String sql, String project) throws IOException {
-        //sql validation
-        Map<String, SQLValidateResult> map = sqlValidate(Lists.newArrayList(sql), project);
-        SQLValidateResult result = map.get(sql);
-
-        if (!result.isCapable())
-            return result;
-
-        //save rule to meta store
-        String correctedSql = getMassageSql(sql, project);
-        String sqlPattern = QueryPatternUtil.normalizeSQLPattern(correctedSql);
-        int sqlPatternHash = sqlPattern.hashCode();
-
-        FavoriteRule.SQLCondition sqlCondition = new FavoriteRule.SQLCondition(sql, sqlPatternHash, result.isCapable());
-
-        try {
-            getFavoriteRuleManager(project).appendSqlConditions(Lists.newArrayList(sqlCondition),
-                    FavoriteRule.BLACKLIST_NAME);
-        } catch (FavoriteRuleManager.RuleConditionExistException ex) {
-            throw new IllegalArgumentException(MsgPicker.getMsg().getSQL_ALREADY_IN_WHITELIST());
-        }
-
-        getFavoriteQueryManager(project).delete(sqlPattern);
-        return result;
+    @Transaction(project = 0)
+    public void deleteFavoriteQuery(String project, String uuid) {
+        getFavoriteQueryManager(project).delete(uuid);
     }
 
-    public List<FavoriteRuleResponse> getBlacklistSqls(String project) {
-        return getSqlList(project, FavoriteRule.BLACKLIST_NAME);
+    public List<FavoriteRule.SQLCondition> getBlacklistSqls(String project) {
+        FavoriteRule blacklist = getFavoriteRuleManager(project).getByName(FavoriteRule.BLACKLIST_NAME);
+        return blacklist.getConds().stream().map(cond -> (FavoriteRule.SQLCondition) cond)
+                .sorted(Comparator.comparingLong(FavoriteRule.SQLCondition::getCreateTime).reversed())
+                .collect(Collectors.toList());
     }
 
     @Transaction(project = 1)
-    public void removeBlacklistSql(String id, String project) throws IOException {
-        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
-        getFavoriteRuleManager(project).removeSqlCondition(id, FavoriteRule.BLACKLIST_NAME);
+    public void removeBlacklistSql(String id, String project) {
+        getFavoriteRuleManager(project).removeSqlPatternFromBlacklist(id);
     }
 
-    private Map<String, SQLValidateResult> sqlValidate(List<String> sqls, String project) {
+    private Map<String, SQLValidateResult> batchSqlValidate(List<String> sqls, String project) {
         Map<String, SQLValidateResult> map;
         try {
             AbstractSQLValidator sqlValidator = new SqlSyntaxValidator(getConfig(), project, new MockupQueryExecutor());
@@ -226,87 +181,84 @@ public class FavoriteRuleService extends BasicService {
         return map;
     }
 
-    @Transaction(project = 2)
-    public void appendSqlToWhitelist(String sql, int sqlPatternHash, String project) throws IOException {
-        FavoriteRule.SQLCondition newSqlCondition = new FavoriteRule.SQLCondition(sql, sqlPatternHash, true);
-        try {
-            getFavoriteRuleManager(project).appendSqlConditions(Lists.newArrayList(newSqlCondition),
-                    FavoriteRule.WHITELIST_NAME);
-        } catch (FavoriteRuleManager.RuleConditionExistException ex) {
-            throw new IllegalArgumentException(MsgPicker.getMsg().getSQL_ALREADY_IN_BLACKLIST());
-        }
-    }
+    public Map<String, Object> importSqls(MultipartFile[] files, String project) {
+        Map<String, Object> result = Maps.newHashMap();
+        List<String> sqls = Lists.newArrayList();
+        List<String> filesParseFailed = Lists.newArrayList();
 
-    @Transaction(project = 1)
-    public void loadSqlsToWhitelist(MultipartFile file, String project) throws IOException {
-        List<String> sqls = transferFileToSqls(file);
+        // parse file to sqls
+        for (MultipartFile file : files) {
+            try {
+                sqls.addAll(transformFileToSqls(file));
+            } catch (Exception ex) {
+                logger.error("Error caught when parsing file {} because {} ", file.getOriginalFilename(), ex.getMessage());
+                filesParseFailed.add(file.getOriginalFilename());
+            }
+        }
+
         if (sqls.isEmpty())
-            return;
+            return null;
+
+        List<ImportSqlResponse> sqlData = Lists.newArrayList();
+        int capableSqlNum = 0;
 
         //sql validation
-        Map<String, SQLValidateResult> map = sqlValidate(sqls, project);
-
-        List<FavoriteRule.SQLCondition> conditions = Lists.newArrayList();
-        Set<String> capableSqlPatterns = new HashSet<>();
+        Map<String, SQLValidateResult> map = batchSqlValidate(sqls, project);
+        int id = 0;
 
         for (Map.Entry<String, SQLValidateResult> entry : map.entrySet()) {
             String sql = entry.getKey();
-            SQLValidateResult result = entry.getValue();
+            SQLValidateResult validateResult = entry.getValue();
 
-            String sqlPattern = QueryPatternUtil.normalizeSQLPattern(getMassageSql(sql, project));
-            int sqlPatternHash = sqlPattern.hashCode();
+            if (validateResult.isCapable())
+                capableSqlNum++;
 
-            FavoriteRule.SQLCondition newSqlCondition = new FavoriteRule.SQLCondition(sql, sqlPatternHash,
-                    result.isCapable());
+            ImportSqlResponse sqlResponse = new ImportSqlResponse(sql, validateResult.isCapable());
+            sqlResponse.setId(id);
+            sqlResponse.setSqlAdvices(validateResult.getSqlAdvices());
+            sqlData.add(sqlResponse);
 
-            if (result.isCapable()) {
-                capableSqlPatterns.add(sqlPattern);
-            } else {
-                Set<FavoriteRule.SQLAdvice> sqlAdvices = new HashSet<>();
-                for (SQLAdvice sqlAdvice : result.getSqlAdvices()) {
-                    sqlAdvices
-                            .add(new FavoriteRule.SQLAdvice(sqlAdvice.getIncapableReason(), sqlAdvice.getSuggestion()));
-                }
-                newSqlCondition.setSqlAdvices(sqlAdvices);
-            }
-
-            conditions.add(newSqlCondition);
+            id ++;
         }
 
-        try {
-            getFavoriteRuleManager(project).appendSqlConditions(conditions, FavoriteRule.WHITELIST_NAME);
-        } catch (FavoriteRuleManager.RuleConditionExistException ex) {
-            throw new IllegalArgumentException(MsgPicker.getMsg().getSQL_ALREADY_IN_BLACKLIST());
+        // make sql grammar failed sqls ordered first
+        sqlData.sort((object1, object2) -> {
+            boolean capable1 = object1.isCapable();
+            boolean capable2 = object2.isCapable();
+
+            if (capable1 && !capable2)
+                return 1;
+
+            if (capable2 && !capable1)
+                return -1;
+
+            return 0;
+        });
+
+        result.put("data", sqlData);
+        result.put("size", sqlData.size());
+        result.put("capable_sql_num", capableSqlNum);
+
+        if (!filesParseFailed.isEmpty()) {
+            result.put("msg", Joiner.on(",").join(filesParseFailed) + " parse failed");
         }
 
-        // put to favorite query list and accelerate these sqls
-        favoriteQueryService.markFavoriteAndAccelerate(capableSqlPatterns, project, getUsername());
+        return result;
     }
 
-    private List<String> transferFileToSqls(MultipartFile file) {
-        Message msg = MsgPicker.getMsg();
+    List<String> transformFileToSqls(MultipartFile file) throws IOException {
+        List<String> sqls = new ArrayList<>();
 
-        String content = "";
-        String contentType = file.getContentType();
-        String fileType = FilenameUtils.getExtension(file.getOriginalFilename());
-        if (!CONTENT_TYPE.contains(contentType) || file.getSize() >= MB || !DESIRED_TYPES.contains(fileType)) {
-            throw new InternalErrorException(msg.getUPLOADED_FILE_TYPE_OR_SIZE_IS_NOT_DESIRED());
-        }
+        String content = new String(file.getBytes(), "UTF-8");
 
-        try {
-            content = new String(file.getBytes(), "UTF-8");
-        } catch (IOException e) {
-            throw new InternalErrorException(msg.getFAIL_TO_VERIFY_SQL(), e);
-        }
         if (content.isEmpty()) {
-            throw new InternalErrorException(msg.getNO_SQL_FOUND());
+            return sqls;
         }
         content = QueryUtil.removeCommentInSql(content);
         String[] sqlsArray = content.split(";");
         if (sqlsArray == null || sqlsArray.length == 0) {
-            throw new InternalErrorException(msg.getNO_SQL_FOUND());
+            return sqls;
         }
-        List<String> sqls = new ArrayList<>();
         for (String sql : sqlsArray) {
             if (sql == null || sql.length() == 0 || sql.replace('\n', ' ').trim().length() == 0) {
                 continue;
@@ -317,74 +269,12 @@ public class FavoriteRuleService extends BasicService {
         return sqls;
     }
 
-    private String getMassageSql(String sql, String project) {
-        return QueryUtil.massageSql(sql, project, DEFAULT_LIMIT, DEFAULT_OFFSET, DEFAULT_SCHEMA);
-    }
-
-    @Transaction(project = 2)
-    public UpdateWhitelistResponse updateWhitelistSql(String updatedSql, String id, String project) throws IOException {
-        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
-
+    public SQLValidateResponse sqlValidate(String project, String sql) {
         // sql validation
-        Map<String, SQLValidateResult> map = sqlValidate(Lists.newArrayList(updatedSql), project);
+        Map<String, SQLValidateResult> map = batchSqlValidate(Lists.newArrayList(sql), project);
+        SQLValidateResult result = map.get(sql);
 
-        SQLValidateResult result = map.get(updatedSql);
-
-        UpdateWhitelistResponse response = new UpdateWhitelistResponse(result.isCapable(), result.getSqlAdvices());
-
-        if (!response.isCapable())
-            return response;
-
-        // update to whitelist
-        String updatedSqlPattern = QueryPatternUtil.normalizeSQLPattern(getMassageSql(updatedSql, project));
-        int updatedSqlPatternHash = updatedSqlPattern.hashCode();
-
-        FavoriteRule.SQLCondition updatedCondition = new FavoriteRule.SQLCondition(updatedSql, updatedSqlPatternHash,
-                result.isCapable());
-        updatedCondition.setId(id);
-
-        try {
-            FavoriteRule.SQLCondition actualUpdatedCondition = getFavoriteRuleManager(project)
-                    .updateWhitelistSql(updatedCondition);
-            if (actualUpdatedCondition == null)
-                throw new IllegalArgumentException(MsgPicker.getMsg().getSQL_IN_WHITELIST_OR_ID_NOT_FOUND());
-        } catch (FavoriteRuleManager.RuleConditionExistException ex) {
-            throw new IllegalArgumentException(MsgPicker.getMsg().getSQL_ALREADY_IN_BLACKLIST());
-        }
-
-        // put to favorite query and accelerate right now
-        Set<String> sqlPatternSet = new HashSet<>();
-        sqlPatternSet.add(updatedSqlPattern);
-        favoriteQueryService.markFavoriteAndAccelerate(sqlPatternSet, project, getUsername());
-
-        return response;
-    }
-
-    private List<FavoriteRuleResponse> getSqlList(String project, String ruleName) {
-        List<FavoriteRuleResponse> result = Lists.newArrayList();
-        FavoriteRule rule = getFavoriteRule(project, ruleName);
-
-        for (FavoriteRule.AbstractCondition condition : rule.getConds()) {
-            FavoriteRule.SQLCondition sqlCondition = (FavoriteRule.SQLCondition) condition;
-            FavoriteRuleResponse response = new FavoriteRuleResponse(sqlCondition.getId(), sqlCondition.getSql());
-            response.setCapable(sqlCondition.isCapable());
-            if (!sqlCondition.isCapable()) {
-                response.setSqlAdvices(sqlCondition.getSqlAdvices());
-            }
-            result.add(response);
-        }
-
-        return result;
-    }
-
-    public List<FavoriteRuleResponse> getWhitelist(String project) {
-        return getSqlList(project, FavoriteRule.WHITELIST_NAME);
-    }
-
-    @Transaction(project = 1)
-    public void removeWhitelistSql(String id, String project) throws IOException {
-        Preconditions.checkArgument(project != null && StringUtils.isNotEmpty(project));
-        getFavoriteRuleManager(project).removeSqlCondition(id, FavoriteRule.WHITELIST_NAME);
+        return new SQLValidateResponse(result.isCapable(), result.getSqlAdvices());
     }
 
     public double getAccelerateRatio(String project) {

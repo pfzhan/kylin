@@ -31,7 +31,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -51,7 +53,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         // when favorite query initial total count is 0
         FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql1", 1000, 0, 0);
-        favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_WHITE_LIST);
+        favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_IMPORTED);
         FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql2", 1001, 0, 0);
         favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         FavoriteQuery favoriteQuery3 = new FavoriteQuery("sql3", 1002, 0, 0);
@@ -59,13 +61,20 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
 
         // when favorite query initial total count is not 0
         FavoriteQuery favoriteQuery4 = new FavoriteQuery("sql4", 1003, 10, 2000);
-        favoriteQuery4.setChannel(FavoriteQuery.CHANNEL_FROM_WHITE_LIST);
+        favoriteQuery4.setChannel(FavoriteQuery.CHANNEL_FROM_IMPORTED);
         FavoriteQuery favoriteQuery5 = new FavoriteQuery("sql5", 1004, 10, 2000);
         favoriteQuery5.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
         FavoriteQuery favoriteQuery6 = new FavoriteQuery("sql6", 1005, 10, 2000);
         favoriteQuery6.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        favoriteQueryManager.create(Lists.newArrayList(favoriteQuery1, favoriteQuery2, favoriteQuery3, favoriteQuery4, favoriteQuery5, favoriteQuery6));
+        Set<FavoriteQuery> set = new HashSet<>();
+        set.add(favoriteQuery1);
+        set.add(favoriteQuery2);
+        set.add(favoriteQuery3);
+        set.add(favoriteQuery4);
+        set.add(favoriteQuery5);
+        set.add(favoriteQuery6);
+        favoriteQueryManager.create(set);
         // assert if sql patterns exist
         Assert.assertTrue(favoriteQueryManager.contains("sql1"));
         Assert.assertTrue(favoriteQueryManager.contains("sql2"));
@@ -78,6 +87,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         // case of map size is zero
         favoriteQueryManager.clearFavoriteQueryMap();
         Assert.assertNull(favoriteQueryManager.getFavoriteQueryMap());
+        favoriteQueryManager.updateFavoriteQueryMap(favoriteQuery1);
         Assert.assertTrue(favoriteQueryManager.contains("sql1"));
 
         // get not exist favorite query
@@ -137,7 +147,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         favoriteQueryManager.updateStatus("not_exist_sql_pattern", FavoriteQueryStatusEnum.FULLY_ACCELERATED, null);
 
         // delete
-        favoriteQueryManager.delete("sql1");
+        favoriteQueryManager.delete(favoriteQueryManager.get("sql1").getUuid());
         Assert.assertEquals(5, favoriteQueryManager.getAll().size());
 
         // delete not exist sql pattern
@@ -167,7 +177,10 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         realization2.setLayoutId(1);
         favoriteQuery2.setRealizations(Lists.newArrayList(realization1, realization2));
 
-        favoriteQueryManager.create(Lists.newArrayList(favoriteQuery1, favoriteQuery2));
+        Set<FavoriteQuery> set = new HashSet<>();
+        set.add(favoriteQuery1);
+        set.add(favoriteQuery2);
+        favoriteQueryManager.create(set);
         Assert.assertEquals(2, favoriteQueryManager.getAll().size());
         Assert.assertEquals(2, favoriteQueryManager.get("sql1").getRealizations().size());
 

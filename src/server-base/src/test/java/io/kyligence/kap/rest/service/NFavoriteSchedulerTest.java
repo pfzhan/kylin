@@ -129,7 +129,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         favoriteQuery3.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
         favoriteQuery3.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        favoriteQueryManager.create(Lists.newArrayList(favoriteQuery1, favoriteQuery2, favoriteQuery3));
+        favoriteQueryManager.create(new HashSet(){{add(favoriteQuery1);add(favoriteQuery2);add(favoriteQuery3);}});
     }
 
     private void createUnacceleratedFavoriteQueries() {
@@ -152,7 +152,7 @@ public class NFavoriteSchedulerTest extends NLocalFileMetadataTestCase {
         favoriteQuery3.setLastQueryTime(10003);
         favoriteQuery3.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        favoriteQueryManager.create(Lists.newArrayList(favoriteQuery1, favoriteQuery2, favoriteQuery3));
+        favoriteQueryManager.create(new HashSet(){{add(favoriteQuery1);add(favoriteQuery2);add(favoriteQuery3);}});
     }
 
     @Test

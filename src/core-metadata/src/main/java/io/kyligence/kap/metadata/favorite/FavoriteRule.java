@@ -34,7 +34,6 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 import java.io.Serializable;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 @Getter
@@ -45,7 +44,6 @@ public class FavoriteRule extends RootPersistentEntity {
     public static final String SUBMITTER_RULE_NAME = "submitter";
 
     public static final String BLACKLIST_NAME = "blacklist";
-    public static final String WHITELIST_NAME = "whitelist";
 
     public static final String ENABLE = "enable";
 
@@ -90,20 +88,25 @@ public class FavoriteRule extends RootPersistentEntity {
     @Setter
     public static class SQLCondition extends AbstractCondition {
         private String id;
-        private String sql;
-        private int sqlPatternHash;
-        private boolean capable;
-        private Set<SQLAdvice> sqlAdvices;
+        @JsonProperty("sql_pattern")
+        private String sqlPattern;
+        @JsonProperty("create_time")
+        private long createTime;
 
         public SQLCondition() {
             this.id = UUID.randomUUID().toString();
         }
 
-        public SQLCondition(String sql, int sqlPatternHash, boolean capable) {
+        public SQLCondition(String sqlPattern) {
             this.id = UUID.randomUUID().toString();
-            this.sql = formatSql(sql);
-            this.sqlPatternHash = sqlPatternHash;
-            this.capable = capable;
+            this.sqlPattern = sqlPattern;
+            this.createTime = System.currentTimeMillis();
+        }
+
+        public SQLCondition(String id, String sqlPattern) {
+            this.id = id;
+            this.sqlPattern = sqlPattern;
+            this.createTime = System.currentTimeMillis();
         }
 
         @Override
@@ -115,36 +118,12 @@ public class FavoriteRule extends RootPersistentEntity {
                 return false;
 
             SQLCondition that = (SQLCondition) obj;
-            return this.sql.toUpperCase().equals(that.getSql().toUpperCase());
+            return this.sqlPattern.equalsIgnoreCase(that.getSqlPattern());
         }
 
         @Override
         public int hashCode() {
-            return this.sql.hashCode();
-        }
-
-        // basic format, ignore whitespace and semicolons
-        private String formatSql(String sql) {
-            // replace all Java recognized whitespaces
-            String formattedSql = sql.trim().replaceAll("[\t|\n|\f|\r|\u001C|\u001D|\u001E|\u001F\" \"]+", " ");
-
-            while (formattedSql.endsWith(";"))
-                formattedSql = formattedSql.substring(0, formattedSql.length() - 1);
-
-            return formattedSql.trim();
-        }
-    }
-
-    @Getter
-    @Setter
-    @NoArgsConstructor
-    public static class SQLAdvice implements Serializable {
-        private String incapableReason;
-        private String suggestion;
-
-        public SQLAdvice(String incapableReason, String suggestion) {
-            this.incapableReason = incapableReason;
-            this.suggestion = suggestion;
+            return this.sqlPattern.hashCode();
         }
     }
 }

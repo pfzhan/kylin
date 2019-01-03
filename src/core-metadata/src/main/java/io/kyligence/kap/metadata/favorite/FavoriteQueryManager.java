@@ -33,6 +33,7 @@ import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class FavoriteQueryManager implements IKeepNames {
@@ -87,17 +88,25 @@ public class FavoriteQueryManager implements IKeepNames {
         return favoriteQueryMap.containsKey(sqlPattern);
     }
 
-    public void create(final List<FavoriteQuery> favoriteQueries) {
+    public void create(final Set<FavoriteQuery> favoriteQueries) {
         favoriteQueries.forEach(favoriteQuery -> {
             favoriteQueryMap.put(favoriteQuery.getSqlPattern(), crud.save(favoriteQuery));
         });
     }
 
-    public void delete(String sqlPattern) {
-        FavoriteQuery fq = get(sqlPattern);
+    public void delete(String uuid) {
+        FavoriteQuery fq = crud.get(uuid);
         if (fq != null) {
+            String channel = fq.getChannel();
+            String sqlPattern = fq.getSqlPattern();
+            // put to blacklist
+            if (channel.equals(FavoriteQuery.CHANNEL_FROM_RULE)) {
+                FavoriteRule.SQLCondition sqlCondition = new FavoriteRule.SQLCondition(sqlPattern);
+                FavoriteRuleManager ruleManager = FavoriteRuleManager.getInstance(kylinConfig, project);
+                ruleManager.appendSqlPatternToBlacklist(sqlCondition);
+            }
             crud.delete(fq);
-            favoriteQueryMap.remove(sqlPattern);
+            favoriteQueryMap.remove(fq.getSqlPattern());
         }
     }
 
@@ -142,8 +151,15 @@ public class FavoriteQueryManager implements IKeepNames {
         favoriteQueryMap.put(sqlPattern, crud.save(copyForWrite));
     }
 
+    // for ut
     public Map<String, FavoriteQuery> getFavoriteQueryMap() {
         return favoriteQueryMap;
+    }
+
+    public void updateFavoriteQueryMap(FavoriteQuery favoriteQuery) {
+        if (favoriteQueryMap == null)
+            reloadSqlPatternMap();
+        favoriteQueryMap.put(favoriteQuery.getSqlPattern(), favoriteQuery);
     }
 
     public List<FavoriteQuery> getAll() {

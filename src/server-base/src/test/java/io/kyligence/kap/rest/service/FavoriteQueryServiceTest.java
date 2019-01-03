@@ -24,12 +24,24 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Lists;
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.query.util.QueryPatternUtil;
+import io.kyligence.kap.smart.NSmartMaster;
+import lombok.val;
+import lombok.var;
 import org.apache.kylin.job.exception.PersistentException;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.rest.constant.Constant;
@@ -43,27 +55,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.TestingAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import com.google.common.collect.Lists;
-
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.event.manager.EventDao;
-import io.kyligence.kap.event.model.AddCuboidEvent;
-import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.metadata.favorite.FavoriteQuery;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
-import io.kyligence.kap.metadata.favorite.FavoriteRule;
-import io.kyligence.kap.metadata.favorite.FavoriteRuleManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.smart.NSmartMaster;
-import lombok.val;
-import lombok.var;
+import java.util.Comparator;
 
 public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -81,26 +74,26 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
     private void createTestFavoriteQuery() {
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
-        FavoriteQuery favoriteQuery1 = new FavoriteQuery(sqls[0]);
+        FavoriteQuery favoriteQuery1 = new FavoriteQuery(QueryPatternUtil.normalizeSQLPattern(sqls[0]));
         favoriteQuery1.setTotalCount(1);
         favoriteQuery1.setSuccessCount(1);
         favoriteQuery1.setLastQueryTime(10001);
         favoriteQuery1.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        FavoriteQuery favoriteQuery2 = new FavoriteQuery(sqls[1]);
+        FavoriteQuery favoriteQuery2 = new FavoriteQuery(QueryPatternUtil.normalizeSQLPattern(sqls[1]));
         favoriteQuery2.setTotalCount(1);
         favoriteQuery2.setSuccessCount(1);
         favoriteQuery2.setLastQueryTime(10002);
         favoriteQuery2.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        FavoriteQuery favoriteQuery3 = new FavoriteQuery(sqls[2]);
+        FavoriteQuery favoriteQuery3 = new FavoriteQuery(QueryPatternUtil.normalizeSQLPattern(sqls[2]));
         favoriteQuery3.setTotalCount(1);
         favoriteQuery3.setSuccessCount(1);
         favoriteQuery3.setLastQueryTime(10003);
         favoriteQuery3.setStatus(FavoriteQueryStatusEnum.ACCELERATING);
         favoriteQuery3.setChannel(FavoriteQuery.CHANNEL_FROM_RULE);
 
-        favoriteQueryManager.create(Lists.newArrayList(favoriteQuery1, favoriteQuery2, favoriteQuery3));
+        favoriteQueryManager.create(new HashSet(){{add(favoriteQuery1);add(favoriteQuery2);add(favoriteQuery3);}});
     }
 
     @Before
@@ -109,8 +102,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
         SecurityContextHolder.getContext()
                 .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-        ReflectionTestUtils.setField(favoriteQueryService, "favoriteRuleService",
-                Mockito.spy(new FavoriteRuleService()));
         for (ProjectInstance projectInstance : NProjectManager.getInstance(getTestConfig()).listAllProjects()) {
             NFavoriteScheduler favoriteScheduler = NFavoriteScheduler.getInstance(projectInstance.getName());
             favoriteScheduler.init();
@@ -250,86 +241,28 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testManualFavorite() throws NoSuchFieldException, IllegalAccessException, IOException {
+    public void testCreateFavoriteQuery() {
         createTestFavoriteQuery();
-        getTestConfig().setProperty("kylin.server.mode", "query");
         // when sql pattern not exists
-        String sqlPattern = "select CAL_DT, LSTG_FORMAT_NAME, sum(PRICE), sum(ITEM_COUNT) from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME";
-        favoriteQueryService.markFavoriteAndAccelerate(new HashSet<String>(){{add(sqlPattern);}}, PROJECT, "ADMIN");
+        String sqlPattern = "select count(*) from test_kylin_fact";
+        FavoriteRequest request = new FavoriteRequest(PROJECT, Lists.newArrayList(sqls[0], sqls[1], sqlPattern));
+        favoriteQueryService.createFavoriteQuery(PROJECT, request);
 
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         List<FavoriteQuery> favoriteQueries = favoriteQueryManager.getAll();
+        Assert.assertEquals(4, favoriteQueries.size());
         favoriteQueries.sort(Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed());
         FavoriteQuery newCreated = favoriteQueries.get(0);
-        Assert.assertEquals(sqlPattern, newCreated.getSqlPattern());
-        Assert.assertEquals(FavoriteQuery.CHANNEL_FROM_WHITE_LIST, newCreated.getChannel());
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, newCreated.getStatus());
+        Assert.assertEquals(QueryPatternUtil.normalizeSQLPattern(sqlPattern), newCreated.getSqlPattern());
+        Assert.assertEquals(FavoriteQuery.CHANNEL_FROM_IMPORTED, newCreated.getChannel());
+        Assert.assertEquals(FavoriteQueryStatusEnum.WAITING, newCreated.getStatus());
 
-        // sql pattern exists but not accelerating
-        favoriteQueryService.markFavoriteAndAccelerate(new HashSet<String>(){{add(sqls[0]);}}, PROJECT, "ADMIN");
+        // sql pattern in blaclist
+        sqlPattern = "select * from test_kylin_fact";
+        request.setSqls(Lists.newArrayList(sqlPattern));
+        favoriteQueryService.createFavoriteQuery(PROJECT, request);
         favoriteQueries = favoriteQueryManager.getAll();
-        favoriteQueries.sort(Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed());
-        FavoriteQuery favoriteQueryWithSql0 = favoriteQueries.get(favoriteQueries.size() - 1);
-        Assert.assertEquals(favoriteQueries.size(), favoriteQueries.size());
-        Assert.assertEquals(FavoriteQueryStatusEnum.ACCELERATING, favoriteQueryWithSql0.getStatus());
-
-        // sql pattern exists and is accelerating
-        favoriteQueryService.markFavoriteAndAccelerate(new HashSet<String>() {
-            {
-                add(sqls[2]);
-            }
-        }, PROJECT, "ADMIN");
-
-        // if accelerate sql is blocked
-        NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
-        ProjectInstance projectInstance = projectManager.getProject(PROJECT);
-        projectInstance = projectManager.copyForWrite(projectInstance);
-        projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
-        projectManager.updateProject(projectInstance);
-
-        NDataModel dataModel = NDataModelManager.getInstance(getTestConfig(), PROJECT).getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-
-        for (NDataModel.NamedColumn namedColumn : dataModel.getAllNamedColumns()) {
-            if (namedColumn.getId() == 16) {
-                Class<?> clazz = namedColumn.getClass();
-                Field field = clazz.getDeclaredField("status");
-                field.setAccessible(true);
-                field.set(namedColumn, NDataModel.ColumnStatus.EXIST);
-            }
-        }
-
-        NDataModelManager.getInstance(getTestConfig(), PROJECT).updateDataModelDesc(dataModel.copy());
-
-
-        String blockedSql = "select CAL_DT, LSTG_FORMAT_NAME, max(SLR_SEGMENT_CD) " +
-                "from TEST_KYLIN_FACT where CAL_DT = '2012-01-02' group by CAL_DT, LSTG_FORMAT_NAME";
-        favoriteQueryService.markFavoriteAndAccelerate(new HashSet<String>(){{add(blockedSql);}}, PROJECT, "ADMIN");
-        Assert.assertEquals(5, favoriteQueryManager.getAll().size());
-        favoriteQueries = favoriteQueryManager.getAll();
-        favoriteQueries.sort(Comparator.comparingLong(FavoriteQuery::getLastQueryTime).reversed());
-        newCreated = favoriteQueries.get(0);
-        Assert.assertEquals(blockedSql, newCreated.getSqlPattern());
-        Assert.assertEquals(FavoriteQueryStatusEnum.BLOCKED, newCreated.getStatus());
-
-        FavoriteRuleManager favoriteRuleManager = FavoriteRuleManager.getInstance(getTestConfig(), PROJECT);
-        FavoriteRule whitelist = favoriteRuleManager.getByName(FavoriteRule.WHITELIST_NAME);
-        int originSqlSize = whitelist.getConds().size();
-
-        // when query history is failed
-        FavoriteRequest request = new FavoriteRequest(PROJECT, "test_sql", "test_sql_pattern", 1000,
-                QueryHistory.QUERY_HISTORY_FAILED);
-        favoriteQueryService.manualFavorite(PROJECT, request);
-        // not saved to whitelist
-        Assert.assertEquals(originSqlSize, whitelist.getConds().size());
-
-        // when query history is succeeded
-        request.setQueryStatus(QueryHistory.QUERY_HISTORY_SUCCEEDED);
-        favoriteQueryService.manualFavorite(PROJECT, request);
-        // saved to whitelist
-        whitelist = favoriteRuleManager.getByName(FavoriteRule.WHITELIST_NAME);
-        Assert.assertEquals(originSqlSize + 1, whitelist.getConds().size());
-
-        getTestConfig().setProperty("kylin.server.mode", "all");
+        Assert.assertEquals(4, favoriteQueries.size());
     }
 
     @Test
@@ -356,7 +289,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         favoriteQuery3.setStatus(FavoriteQueryStatusEnum.FULLY_ACCELERATED);
 
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
-        favoriteQueryManager.create(Lists.newArrayList(favoriteQuery1, favoriteQuery2, favoriteQuery3));
+        favoriteQueryManager.create(new HashSet(){{add(favoriteQuery1);add(favoriteQuery2);add(favoriteQuery3);}});
 
         // filter status
         List<FavoriteQuery> filteredFavoriteQueries = favoriteQueryService.filterAndSortFavoriteQueries(PROJECT, null, false,

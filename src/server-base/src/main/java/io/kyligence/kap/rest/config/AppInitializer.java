@@ -26,8 +26,6 @@ package io.kyligence.kap.rest.config;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Map;
-
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.RawResource;
@@ -150,9 +148,7 @@ public class AppInitializer {
 
             // update favorite query map
             val project = term[1];
-            FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(config, project);
-            Map<String, FavoriteQuery> favoriteQueryMap = favoriteQueryManager.getFavoriteQueryMap();
-            favoriteQueryMap.put(favoriteQuery.getSqlPattern(), favoriteQuery);
+            FavoriteQueryManager.getInstance(config, project).updateFavoriteQueryMap(favoriteQuery);
         }
 
         @Override

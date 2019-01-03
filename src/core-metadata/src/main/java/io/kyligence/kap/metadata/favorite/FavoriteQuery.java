@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -37,9 +38,10 @@ import java.util.List;
 @Getter
 @Setter
 @ToString
+@NoArgsConstructor
 public class FavoriteQuery extends RootPersistentEntity {
-    public static final String CHANNEL_FROM_RULE = "rule-based";
-    public static final String CHANNEL_FROM_WHITE_LIST = "whitelist-based";
+    public static final String CHANNEL_FROM_RULE = "Rule-based";
+    public static final String CHANNEL_FROM_IMPORTED = "Imported";
 
     @JsonProperty("sql_pattern")
     private String sqlPattern;
@@ -69,19 +71,13 @@ public class FavoriteQuery extends RootPersistentEntity {
     @JsonManagedReference
     private List<FavoriteQueryRealization> realizations = Lists.newArrayList();
 
-    public FavoriteQuery() {
-        updateRandomUuid();
-    }
-
     public FavoriteQuery(final String sqlPattern) {
-        updateRandomUuid();
         this.sqlPattern = sqlPattern;
         this.lastQueryTime = System.currentTimeMillis();
         this.status = FavoriteQueryStatusEnum.WAITING;
     }
 
     public FavoriteQuery(final String sqlPattern, long lastQueryTime, int totalCount, long totalDuration) {
-        updateRandomUuid();
         this.sqlPattern = sqlPattern;
         this.lastQueryTime = lastQueryTime;
         this.totalCount = totalCount;

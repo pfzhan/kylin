@@ -24,6 +24,7 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.stream.Collectors;
 
 import io.kyligence.kap.cube.model.NIndexPlanManager;
@@ -78,7 +79,7 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
         modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> copyForWrite.setSemanticVersion(2));
 
         val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
-        val mocks = Lists.<FavoriteQuery> newArrayList();
+        val mocks = new HashSet<FavoriteQuery>();
         for (int i = 0; i < 3 * 8; i++) {
             val fq = new FavoriteQuery("sql" + i);
             fq.setTotalCount(1);

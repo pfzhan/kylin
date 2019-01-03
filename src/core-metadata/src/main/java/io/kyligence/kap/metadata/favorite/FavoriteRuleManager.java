@@ -26,7 +26,6 @@ package io.kyligence.kap.metadata.favorite;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -35,7 +34,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 public class FavoriteRuleManager {
     private static final Logger logger = LoggerFactory.getLogger(FavoriteRuleManager.class);
@@ -45,13 +43,6 @@ public class FavoriteRuleManager {
     private final KylinConfig kylinConfig;
 
     private CachedCrudAssist<FavoriteRule> crud;
-
-    protected static final Map<String, String> REVERSE_RULE_NAME_MAP = Maps.newHashMap();
-
-    static {
-        REVERSE_RULE_NAME_MAP.put(FavoriteRule.WHITELIST_NAME, FavoriteRule.BLACKLIST_NAME);
-        REVERSE_RULE_NAME_MAP.put(FavoriteRule.BLACKLIST_NAME, FavoriteRule.WHITELIST_NAME);
-    }
 
     public static FavoriteRuleManager getInstance(KylinConfig kylinConfig, String project) {
         return kylinConfig.getManager(project, FavoriteRuleManager.class);
@@ -89,35 +80,20 @@ public class FavoriteRuleManager {
         return crud.save(rule);
     }
 
-    public void appendSqlConditions(List<FavoriteRule.SQLCondition> newConditions, String ruleName)
-            throws RuleConditionExistException {
-        FavoriteRule rule = crud.copyBySerialization(getByName(ruleName));
-        List<FavoriteRule.AbstractCondition> conditions = rule.getConds();
+    public void appendSqlPatternToBlacklist(FavoriteRule.SQLCondition newCondition) {
+        FavoriteRule blacklist = crud.copyForWrite(getByName(FavoriteRule.BLACKLIST_NAME));
+        List<FavoriteRule.AbstractCondition> conditions = blacklist.getConds();
 
-        for (FavoriteRule.SQLCondition newCondition : newConditions) {
-            checkIfInOppositeList(newCondition, REVERSE_RULE_NAME_MAP.get(ruleName));
+        if (conditions.contains(newCondition))
+            return;
 
-            if (conditions.contains(newCondition))
-                continue;
-
-            conditions.add(newCondition);
-        }
-
-        rule.setConds(conditions);
-        crud.save(rule);
+        conditions.add(newCondition);
+        blacklist.setConds(conditions);
+        crud.save(blacklist);
     }
 
-    private void checkIfInOppositeList(FavoriteRule.SQLCondition sqlCondition, String ruleName)
-            throws RuleConditionExistException {
-        FavoriteRule rule = getByName(ruleName);
-        for (FavoriteRule.AbstractCondition condition : rule.getConds()) {
-            if (sqlCondition.getSqlPatternHash() == ((FavoriteRule.SQLCondition) condition).getSqlPatternHash())
-                throw new RuleConditionExistException();
-        }
-    }
-
-    public void removeSqlCondition(String id, String ruleName) {
-        FavoriteRule rule = crud.copyBySerialization(getByName(ruleName));
+    public void removeSqlPatternFromBlacklist(String id) {
+        FavoriteRule rule = crud.copyForWrite(getByName(FavoriteRule.BLACKLIST_NAME));
         List<FavoriteRule.AbstractCondition> conditions = rule.getConds();
 
         for (int i = 0; i < conditions.size(); i++) {
@@ -129,38 +105,6 @@ public class FavoriteRuleManager {
 
         rule.setConds(conditions);
         crud.save(rule);
-    }
-
-    public FavoriteRule.SQLCondition updateWhitelistSql(FavoriteRule.SQLCondition updatedCondition)
-            throws RuleConditionExistException {
-        checkIfInOppositeList(updatedCondition, REVERSE_RULE_NAME_MAP.get(FavoriteRule.WHITELIST_NAME));
-
-        FavoriteRule whitelist = crud.copyBySerialization(getByName(FavoriteRule.WHITELIST_NAME));
-
-        List<FavoriteRule.AbstractCondition> conditions = whitelist.getConds();
-        int index = 0;
-        boolean idExist = false;
-        // need to loop over all conditions to check if updated sql exists in whitelist
-        for (int i = 0; i < conditions.size(); i++) {
-            FavoriteRule.SQLCondition sqlCondition = (FavoriteRule.SQLCondition) conditions.get(i);
-            // when updated sql already exists in white list
-            if (updatedCondition.getSql().equals(sqlCondition.getSql()))
-                return null;
-
-            if (updatedCondition.getId().equals(sqlCondition.getId())) {
-                idExist = true;
-                index = i;
-            }
-        }
-
-        if (!idExist)
-            return null;
-
-        conditions.set(index, updatedCondition);
-        whitelist.setConds(conditions);
-        crud.save(whitelist);
-
-        return updatedCondition;
     }
 
     public void updateRule(List<FavoriteRule.AbstractCondition> conditions, boolean isEnabled, String ruleName) {
@@ -206,11 +150,5 @@ public class FavoriteRuleManager {
         }
 
         return null;
-    }
-
-    public class RuleConditionExistException extends Exception {
-        public RuleConditionExistException() {
-            super();
-        }
     }
 }

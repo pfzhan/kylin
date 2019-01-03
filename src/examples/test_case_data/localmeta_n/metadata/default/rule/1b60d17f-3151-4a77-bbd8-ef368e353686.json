@@ -5,8 +5,9 @@
   "enabled" : "false",
   "conds" : [ {
     "@class" : "io.kyligence.kap.metadata.favorite.FavoriteRule$SQLCondition",
-    "sql" : "select * from test_country",
-    "sqlPatternHash" : 1965162027
+    "id": "1",
+    "sql_pattern" : "SELECT *\nFROM \"TEST_KYLIN_FACT\"",
+    "create_time" : 1514764800000
   } ],
   "name" : "blacklist"
 }
