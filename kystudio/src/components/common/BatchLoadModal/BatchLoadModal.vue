@@ -28,7 +28,7 @@
                   :clearable="false"
                   :is-auto-complete="true"
                   :disabled="isDisabled"
-                  :picker-options="{ disabledDate: time => time.getTime() > tempForm.editDate[1] }"
+                  :picker-options="{ disabledDate: time => time.getTime() > tempForm.editDate[1] && tempForm.editDate[1] !== null }"
                   :placeholder="$t('kylinLang.common.startTime')">
                 </el-date-picker>
               </el-form-item>
@@ -40,7 +40,7 @@
                   :clearable="false"
                   :is-auto-complete="true"
                   :disabled="isDisabled"
-                  :picker-options="{ disabledDate: time => time.getTime() < tempForm.editDate[0] }"
+                  :picker-options="{ disabledDate: time => time.getTime() < tempForm.editDate[0] && tempForm.editDate[0] !== null }"
                   :placeholder="$t('kylinLang.common.endTime')">
                 </el-date-picker>
               </el-form-item>

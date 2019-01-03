@@ -21,7 +21,7 @@
           :value="form.loadDataRange[0]"
           :is-auto-complete="true"
           :disabled="isDisabled || form.isLoadExisted || isLoadingNewRange"
-          :picker-options="{ disabledDate: time => time.getTime() > form.loadDataRange[1] }"
+          :picker-options="{ disabledDate: time => time.getTime() > form.loadDataRange[1] && form.loadDataRange[1] !== null }"
           :placeholder="$t('kylinLang.common.startTime')"
           @input="value => handleInputDate('loadDataRange.0', value)">
         </el-date-picker>
@@ -31,7 +31,7 @@
           :value="form.loadDataRange[1]"
           :is-auto-complete="true"
           :disabled="isDisabled || form.isLoadExisted || isLoadingNewRange"
-          :picker-options="{ disabledDate: time => time.getTime() < form.loadDataRange[0] }"
+          :picker-options="{ disabledDate: time => time.getTime() < form.loadDataRange[0] && form.loadDataRange[0] !== null }"
           :placeholder="$t('kylinLang.common.endTime')"
           @input="value => handleInputDate('loadDataRange.1', value)">
         </el-date-picker>
@@ -51,7 +51,7 @@
           :value="form.freshDataRange[0]"
           :is-auto-complete="true"
           :disabled="isDisabled"
-          :picker-options="{ disabledDate: time => time.getTime() > form.freshDataRange[1] }"
+          :picker-options="{ disabledDate: time => time.getTime() > form.freshDataRange[1] && form.loadDataRange[1] !== null }"
           :placeholder="$t('kylinLang.common.startTime')"
           @input="value => handleInputDate('freshDataRange.0', value)">
         </el-date-picker>
@@ -61,7 +61,7 @@
           :value="form.freshDataRange[1]"
           :is-auto-complete="true"
           :disabled="isDisabled"
-          :picker-options="{ disabledDate: time => time.getTime() < form.freshDataRange[0] }"
+          :picker-options="{ disabledDate: time => time.getTime() < form.freshDataRange[0] && form.loadDataRange[0] !== null }"
           :placeholder="$t('kylinLang.common.endTime')"
           @input="value => handleInputDate('freshDataRange.1', value)">
         </el-date-picker>

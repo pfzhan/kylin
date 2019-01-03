@@ -19,6 +19,7 @@
         </el-table-column>
         <el-table-column
           :label="$t('usersCount')"
+          prop="second"
           show-overflow-tooltip
           sortable>
           <template slot-scope="scope">
