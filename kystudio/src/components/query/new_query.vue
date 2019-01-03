@@ -13,46 +13,22 @@
       </div>
       <div class="layout-right">
         <div class="ksd_right_box">
-          <div class="ksd-title-label ksd-mb-10">{{$t('queryBox')}}</div>
-          <div class="query_panel_box ksd-mb-20">
-            <kap-editor ref="insightBox" height="170" lang="sql" theme="chrome" @keydown.meta.enter.native="submitQuery" @keydown.ctrl.enter.native="submitQuery" v-model="sourceSchema">
-            </kap-editor>
-            <div class="clearfix operatorBox">
-              <p class="tips_box">
-                <el-button size="small" plain="plain" icon="el-icon-ksd-sql" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}</el-button>
-                <el-button size="small" plain="plain" @click.native="resetQuery" style="display:inline-block">{{$t('kylinLang.query.clear')}}</el-button>
-              </p>
-              <p class="operator">
-                <el-form :inline="true" class="demo-form-inline">
-                  <el-form-item v-show="showHtrace">
-                    <el-checkbox v-model="isHtrace" @change="changeTrace">{{$t('trace')}}</el-checkbox>
-                   </el-form-item>
-                  <el-form-item>
-                    <el-checkbox v-model="hasLimit" @change="changeLimit">Limit</el-checkbox>
-                  </el-form-item>
-                  <el-form-item>
-                    <el-input placeholder="" size="small" style="width:90px;" @input="handleInputChange" v-model="listRows" class="limit-input"></el-input>
-                  </el-form-item>
-                  <el-form-item>
-                    <el-button type="primary" plain size="small" @click.native.prevent="submitQuery">{{$t('kylinLang.common.submit')}}</el-button>
-                  </el-form-item>
-                </el-form>
-              </p>
+          <div class="query_result_box ksd-border-tab">
+            <div class="btn-group">
+              <el-button size="mini" plain="plain" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button>
+              <el-button size="mini" plain="plain" icon="el-icon-ksd-sql" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}</el-button>
             </div>
-            <div class="submit-tips">
-              <span>{{$t('kylinLang.common.notice')}}: </span>
-              <i class="el-icon-ksd-keyboard ksd-fs-16" ></i>
-              control / command + Enter = <span>{{$t('kylinLang.common.submit')}}</span></div>
-          </div>
-          <!-- <div class="line" style="margin: 20px 0;" v-show='editableTabs&&editableTabs.length'></div> -->
-          <div class="query_result_box ksd-border-tab" v-show='editableTabs&&editableTabs.length'>
-            <tab type="card" class="insight_tab" v-on:addtab="addTab" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu"  v-on:removetab="delTab">
+            <tab class="insight_tab" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu"  v-on:removetab="delTab">
               <template slot-scope="props">
-                <component :is="props.item.content" v-on:changeView="changeTab" :extraoption="props.item.extraoption"></component>
+                <queryTab
+                  v-on:addTab="addTab"
+                  v-on:changeView="changeTab"
+                  :completeData="completeData"
+                  :tipsName="tipsName"
+                  :tabsItem="props.item"></queryTab>
               </template>
             </tab>
           </div>
-          <save_query_dialog v-if="extraoptionObj" :show="saveQueryFormVisible" :extraoption="extraoptionObj" v-on:closeModal="closeModal"></save_query_dialog>
           <el-dialog
             :title="$t('savedQueries')"
             width="660px"
@@ -107,70 +83,56 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import tab from '../common/tab'
-import querypanel from './query_panel'
-import queryresult from './query_result'
-import saveQueryDialog from './save_query_dialog'
+import queryTab from './query_tab'
 import DataSourceBar from '../common/DataSourceBar'
-import { kapConfirm, hasRole, hasPermission, handleSuccess, handleError } from '../../util/business'
-import { mapActions, mapGetters } from 'vuex'
-import { permissions, insightKeyword } from '../../config'
+import { kapConfirm, hasRole, handleSuccess, handleError } from '../../util/business'
+import { mapActions, mapMutations, mapGetters } from 'vuex'
+import { insightKeyword } from '../../config'
 @Component({
   methods: {
     ...mapActions({
       getSavedQueries: 'GET_SAVE_QUERIES',
       delQuery: 'DELETE_QUERY',
       loadDataSourceByProject: 'LOAD_DATASOURCE'
+    }),
+    ...mapMutations({
+      saveTabs: 'SET_QUERY_TABS'
     })
   },
   components: {
-    querypanel,
-    queryresult,
     tab,
-    'save_query_dialog': saveQueryDialog,
+    queryTab,
     DataSourceBar
   },
   computed: {
     ...mapGetters([
-      'currentSelectedProject'
+      'currentSelectedProject',
+      'getQueryTabs'
     ])
   },
   locales: {
-    'en': {dialogHiveTreeNoData: 'Please click data source to load source tables', trace: 'Trace', savedQueries: 'Save Queries', queryBox: 'Query Box', more: 'More'},
-    'zh-cn': {dialogHiveTreeNoData: '请点击数据源来加载源表', trace: '追踪', savedQueries: '保存的查询', queryBox: '查询窗口', more: '更多'}
+    'en': {dialogHiveTreeNoData: 'Please click data source to load source tables', trace: 'Trace', savedQueries: 'Save Queries', queryBox: 'Query Box', more: 'More', closeAll: 'Close All'},
+    'zh-cn': {dialogHiveTreeNoData: '请点击数据源来加载源表', trace: '追踪', savedQueries: '保存的查询', queryBox: '查询窗口', more: '更多', closeAll: '关闭全部'}
   }
 })
 export default class NewQuery extends Vue {
-  hasLimit = true
-  listRows = 500
-  project = localStorage.getItem('selected_project')
-  sourceSchema = ''
-  isHtrace = false
-  tableData = []
-  saveQueryFormVisible = false
   savedQueryListVisible = false
   editableTabs = []
-  activeSubMenu = 'Query1'
+  activeSubMenu = 'NewQuery'
   savedQuriesSize = 0
   queryCurrentPage = 1
-  extraoptionObj = null
   datasource = []
   savedList = []
   savedSize = 0
   checkedQueryList = []
+  completeData = []
+  tipsName = ''
 
   handleAutoComplete (data) {
-    this.setCompleteData([...data, ...insightKeyword])
+    this.completeData = [...data, ...insightKeyword]
   }
   toggleDetail (index) {
     this.savedList[index].isShow = !this.savedList[index].isShow
-  }
-  resetQuery () {
-    this.sourceSchema = ''
-  }
-  handleInputChange (value) {
-    this.$nextTick(() => {
-      this.listRows = (isNaN(value) || value === '' || value < 0) ? 0 : Number(value)
-    })
   }
   loadSavedQuery (pageIndex) {
     this.getSavedQueries({
@@ -189,31 +151,27 @@ export default class NewQuery extends Vue {
       handleError(res)
     })
   }
-  addTab (targetName, componentName, extraData) {
-    this.extraoptionObj = extraData
-    let tabs = this.editableTabs
-    let hasTab = false
-    tabs.forEach((tab, index) => {
-      if (tab.name === targetName) {
-        this.activeSubMenu = targetName
-        hasTab = true
-      }
-    })
-    if (!hasTab) {
-      var tabIndex = this.editableTabs.length ? this.editableTabs[this.editableTabs.length - 1].index + 1 : 1
-      extraData.index = tabIndex
-      var tabName = targetName + tabIndex
-      this.editableTabs.push({
-        title: tabName,
-        name: tabName,
-        content: componentName,
+  addTab (targetName, queryObj) {
+    if (this.editableTabs[0].queryObj) { // 不是第一次查询
+      var tabIndex = this.editableTabs[0].index + 1
+      var tabName = targetName + (tabIndex - 1)
+      this.editableTabs.unshift({
+        title: 'Work Space',
+        name: 'NewQuery',
         icon: 'el-icon-loading',
         spin: true,
-        extraoption: extraData,
+        extraoption: null,
+        queryErrorInfo: '',
+        queryObj: queryObj,
         index: tabIndex
       })
-      this.activeSubMenu = tabName
+      this.editableTabs[1].title = tabName
+      this.editableTabs[1].name = tabName
+    } else { // 第一次查询，当前tab显示结果
+      this.editableTabs[0].icon = 'el-icon-loading'
+      this.editableTabs[0].queryObj = queryObj
     }
+    this.saveTabs({tabs: this.editableTabs})
   }
   delTab (targetName) {
     let tabs = this.editableTabs
@@ -230,27 +188,26 @@ export default class NewQuery extends Vue {
     }
     this.editableTabs = tabs.filter(tab => tab.name !== targetName)
     this.activeSubMenu = activeName
+    this.saveTabs({tabs: this.editableTabs})
   }
   clickTable (leaf) {
     if (leaf) {
-      var tipsName = leaf.label
-      var editor = this.$refs.insightBox
-      editor.$emit('focus')
-      editor.$emit('insert', tipsName)
-      this.sourceSchema = editor.getValue()
+      this.tipsName = leaf.label
     }
   }
-  changeLimit () {
-    if (this.hasLimit) {
-      this.listRows = 500
-    } else {
-      this.listRows = 0
-    }
-  }
-  changeTrace () {
-    if (this.isHtrace) {
-      kapConfirm(this.$t('htraceTips'))
-    }
+  closeAllTabs () {
+    this.editableTabs = [{
+      title: 'Work Space',
+      name: 'NewQuery',
+      icon: '',
+      spin: true,
+      extraoption: null,
+      queryErrorInfo: '',
+      queryObj: null,
+      index: 1,
+      submitImmediately: false
+    }]
+    this.saveTabs({tabs: this.editableTabs})
   }
   pageCurrentChange () {
     this.queryCurrentPage++
@@ -281,30 +238,28 @@ export default class NewQuery extends Vue {
           project: this.currentSelectedProject,
           sql: this.savedList[index].sql
         }
-        this.addTab('query', 'querypanel', queryObj)
+        this.addTab('query', queryObj)
       })
     }
     this.savedQueryListVisible = false
   }
-  changeTab (index, data, icon, componentName) {
+  changeTab (index, data, errorInfo) {
     let tabs = this.editableTabs
     for (var k = 0; k < tabs.length; k++) {
       if (tabs[k].index === index) {
-        tabs[k].content = componentName || 'queryresult'
-        tabs[k].icon = icon || 'el-icon-success'
-        tabs[k].spin = icon === 'circle-o-notch'
-        tabs[k].extraoption.data = data
+        tabs[k].icon = errorInfo ? 'el-icon-ksd-error_01' : 'el-icon-ksd-good_health'
+        tabs[k].spin = errorInfo === 'circle-o-notch'
+        tabs[k].extraoption = data
+        tabs[k].queryErrorInfo = errorInfo
         break
       }
     }
+    this.saveTabs({tabs: this.editableTabs})
   }
   openSaveQueryDialog () {
     this.$nextTick(() => {
       this.saveQueryFormVisible = true
     })
-  }
-  closeModal () {
-    this.saveQueryFormVisible = false
   }
   openSaveQueryListDialog () {
     this.savedQueryListVisible = true
@@ -312,36 +267,11 @@ export default class NewQuery extends Vue {
     this.savedList = []
     this.loadSavedQuery()
   }
-  submitQuery () {
-    var queryObj = {
-      acceptPartial: true,
-      limit: this.listRows,
-      offset: 0,
-      project: this.currentSelectedProject,
-      sql: this.sourceSchema,
-      backdoorToggles: {
-        DEBUG_TOGGLE_HTRACE_ENABLED: this.isHtrace
-      }
-    }
-    this.addTab('query', 'querypanel', queryObj)
-  }
-  hasProjectAdminPermission () {
-    return hasPermission(this, permissions.ADMINISTRATION.mask)
-  }
-  setCompleteData (data) {
-    this.$refs.insightBox.$emit('setAutoCompleteData', data)
-  }
   get isAdmin () {
     return hasRole(this, 'ROLE_ADMIN')
   }
-  get showHtrace () {
-    return this.$store.state.system.showHtrace === 'true'
-  }
-  async mounted () {
-    if (!this.currentSelectedProject) {
-      return
-    }
-    this.$refs.insightBox.$emit('focus')
+  created () {
+    this.editableTabs = this.getQueryTabs
   }
 }
 </script>
@@ -351,6 +281,10 @@ export default class NewQuery extends Vue {
   #newQuery {
     position: relative;
     height: 100%;
+    #tab-NewQuery .el-icon-close {
+      visibility: hidden;
+      display: none;
+    }
     .saved_query_dialog {
       .el-dialog__body {
         padding: 0;
@@ -398,7 +332,7 @@ export default class NewQuery extends Vue {
           }
           .btn-group {
             position: absolute;
-            bottom: 10px;
+            top: 65px;
             right: 20px;
             .remove_query_btn {
               color: @text-normal-color;
@@ -455,26 +389,43 @@ export default class NewQuery extends Vue {
       .el-tabs__new-tab{
         display: none;
       }
+      .el-tabs__header {
+        margin-bottom: 0;
+      }
     }
     .query_result_box{
       border: 0;
+      position: relative;
+      > .btn-group {
+        position: absolute;
+        right: 10px;
+        top: 5px;
+        z-index: 99;
+      }
       h3{
         margin: 20px;
       }
       .el-tabs{
-        margin-top: 12px;
+        margin-top: 3px;
+        .el-tabs__nav-wrap {
+          width: calc(~'100% - 250px');
+          &::after {
+            background-color: transparent;
+          }
+        }
         .el-tabs__nav{
-          margin-left: 20px;
+          margin-left: 0px;
         }
         .el-tabs__content{
           padding: 0px;
+          border-top: 1px solid @line-border-color;
           .el-tab-pane{
-            padding: 10px 20px 20px 20px;
+            padding-top: 20px;
           }
         }
       }
     }
-    .el-icon-success {
+    .el-icon-ksd-good_health {
       color: @color-success;
       font-size: 12px;
     }

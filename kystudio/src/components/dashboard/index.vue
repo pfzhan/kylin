@@ -5,7 +5,7 @@
         <div class="dash-card">
           <div class="cart-title clearfix">
             <span>{{$t('storageQuota')}}</span>
-            <el-button plain size="mini" class="ksd-fright">{{$t('viewDetail')}}</el-button>
+            <el-button plain size="mini" class="ksd-fright" @click="gotoSetting">{{$t('viewDetail')}}</el-button>
           </div>
           <el-row :gutter="35" class="quota-row">
             <el-col :span="12">
@@ -248,6 +248,9 @@ export default class Dashboard extends Vue {
   }
   gotoJoblist () {
     this.$router.push('/monitor/job')
+  }
+  gotoSetting () {
+    this.$router.push('/setting')
   }
   resetShow () {
     this.showQueryChart = false

@@ -28,7 +28,7 @@ import { mapActions } from 'vuex'
 import { NamedRegex } from 'config'
 import { handleError } from '../../util/business'
 @Component({
-  props: ['show', 'extraoption'],
+  props: ['show', 'project', 'sql'],
   methods: {
     ...mapActions({
       saveQueryToServer: 'SAVE_QUERY'
@@ -45,8 +45,8 @@ export default class saveQueryDialog extends Vue {
   saveQueryMeta = {
     name: '',
     description: '',
-    project: this.extraoption.project,
-    sql: this.extraoption.sql
+    project: this.project,
+    sql: this.sql
   }
 
   saveQuery () {
@@ -79,8 +79,8 @@ export default class saveQueryDialog extends Vue {
   @Watch('show')
   onShowChange (v) {
     this.saveQueryFormVisible = v
-    this.saveQueryMeta.project = this.extraoption.project
-    this.saveQueryMeta.sql = this.extraoption.sql
+    this.saveQueryMeta.project = this.project
+    this.saveQueryMeta.sql = this.sql
   }
 }
 </script>

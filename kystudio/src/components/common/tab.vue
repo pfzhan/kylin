@@ -1,9 +1,9 @@
 <template>
 <div class="ksd-tab">
-  <el-tabs v-model="activeName" :type="type||'card'" :editable="editable" :addable="false" @tab-click="handleClick" @edit="handleTabsEdit">
+  <el-tabs v-model="activeName" :type="type||''" :editable="editable" :addable="false" @tab-click="handleClick" @edit="handleTabsEdit">
     <slot name="defaultPane"></slot>
     <el-tab-pane
-      v-for="(item, index) in tabs" :key="item.name"
+      v-for="item in tabs" :key="item.name"
       :label="item.i18n? item.title.replace(item.i18n,$t('kylinLang.common.'+item.i18n)): item.title"
       :name="item.name"
       :closable="item.closable"> 

@@ -181,7 +181,8 @@ let MessageBox = ElementUI.MessageBox
       resetProjectState: 'RESET_PROJECT_STATE',
       resetMonitorState: 'RESET_MONITOR_STATE',
       toggleMenu: 'TOGGLE_MENU',
-      cacheHistory: 'CACHE_HISTORY'
+      cacheHistory: 'CACHE_HISTORY',
+      saveTabs: 'SET_QUERY_TABS'
     }),
     ...mapActions('UserEditModal', {
       callUserEditModal: 'CALL_MODAL'
@@ -465,6 +466,7 @@ export default class LayoutLeftRightTop extends Vue {
             // reset 所有的project信息
             this.resetProjectState()
             this.resetMonitorState()
+            this.resetQueryTabs()
             this.$router.push({name: 'Login', params: { ignoreIntercept: true }})
           })
         })
@@ -476,10 +478,25 @@ export default class LayoutLeftRightTop extends Vue {
           // reset 所有的project信息
           this.resetProjectState()
           this.resetMonitorState()
+          this.resetQueryTabs()
           this.$router.push({name: 'Login'})
         })
       })
     }
+  }
+  resetQueryTabs () {
+    const editableTabs = [{
+      title: 'New Query',
+      name: 'NewQuery',
+      icon: '',
+      spin: true,
+      extraoption: null,
+      queryErrorInfo: '',
+      queryObj: null,
+      index: 1,
+      submitImmediately: false
+    }]
+    this.saveTabs({tabs: editableTabs})
   }
   handleCommand (command) {
     if (command === 'loginout') {

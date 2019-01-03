@@ -6,9 +6,22 @@ export default {
     encodings: null,
     encodingMatchs: null,
     encodingCache: {},
-    currentShowTableData: null
+    currentShowTableData: null,
+    editableTabs: [{
+      title: 'Work Space',
+      name: 'NewQuery',
+      icon: '',
+      spin: true,
+      extraoption: null,
+      queryErrorInfo: '',
+      queryObj: null,
+      index: 1
+    }]
   },
   getters: {
+    getQueryTabs (state) {
+      return state.editableTabs
+    }
   },
   mutations: {
     [types.CACHE_DATASOURCE]: function (state, { data, project, isReset = true }) {
@@ -28,6 +41,9 @@ export default {
     },
     [types.SET_CURRENT_TABLE] (state, { tableData }) {
       state.currentShowTableData = tableData
+    },
+    [types.SET_QUERY_TABS] (state, { tabs }) {
+      state.editableTabs = tabs
     }
   },
   actions: {
