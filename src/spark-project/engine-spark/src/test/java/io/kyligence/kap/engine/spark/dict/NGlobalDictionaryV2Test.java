@@ -140,15 +140,12 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
         dict.prepareWrite();
         NHashPartitioner partitioner = new NHashPartitioner(BUCKET_SIZE);
         Map<Integer, List<String>> vmap = new HashMap<>();
+        for (int i = 0; i < BUCKET_SIZE; i++) {
+            vmap.put(i, Lists.newArrayList());
+        }
         for (String string : stringSet) {
             int bucketId = partitioner.getPartition(string);
-            if (vmap.containsKey(bucketId)) {
-                vmap.get(bucketId).add(string);
-            } else {
-                List<String> list = Lists.newArrayList();
-                list.add(string);
-                vmap.put(bucketId, list);
-            }
+            vmap.get(bucketId).add(string);
         }
 
         for (Map.Entry<Integer, List<String>> entry : vmap.entrySet()) {
