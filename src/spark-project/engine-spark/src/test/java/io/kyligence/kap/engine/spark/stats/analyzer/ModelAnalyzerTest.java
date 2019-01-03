@@ -52,7 +52,7 @@ public class ModelAnalyzerTest extends NLocalWithSparkSessionTest {
 
     @Before
     public void setup() {
-        dataModel = NDataModelManager.getInstance(getTestConfig(), "default").getDataModelDesc("nmodel_basic");
+        dataModel = NDataModelManager.getInstance(getTestConfig(), "default").getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
     }
 
     @Test

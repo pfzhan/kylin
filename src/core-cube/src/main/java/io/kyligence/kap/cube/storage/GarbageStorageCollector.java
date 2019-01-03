@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -38,8 +39,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -72,7 +72,7 @@ public class GarbageStorageCollector implements StorageInfoCollector {
         }
         cuboidLayoutQueryTimesList.forEach(qt -> {
             val modelId = qt.getModelId();
-            val cuboidLayoutIdStr = qt.getCuboidLayoutId();
+            val cuboidLayoutIdStr = qt.getLayoutId();
             var cuboidLayoutIdSet = modelIndexMap.get(modelId);
             if (CollectionUtils.isEmpty(cuboidLayoutIdSet)) {
                 cuboidLayoutIdSet = Sets.newHashSet();
@@ -94,26 +94,26 @@ public class GarbageStorageCollector implements StorageInfoCollector {
         long cuboidSurvivalTimeThreshold = config.getCuboidLayoutSurvivalTimeThreshold();
 
         for (NDataModel model : models) {
-            val modelId = model.getName();
-            val dataflow = dataflowManager.getDataflowByModelName(modelId);
+            val modelId = model.getId();
+            val dataflow = dataflowManager.getDataflow(modelId);
             val firstReadySegment = getFirstBuildAndReadySegment(dataflow);
             if (firstReadySegment == null) {
                 continue;
             }
 
-            val dataCuboids = firstReadySegment.getCuboidsMap().values();
+            val dataCuboids = firstReadySegment.getLayoutsMap().values();
             var hotCuboidLayoutIdSet = hotModelIndexMap.get(modelId);
             if (CollectionUtils.isEmpty(hotCuboidLayoutIdSet)) {
                 hotCuboidLayoutIdSet = Sets.newHashSet();
             }
-            val cubePlan = dataflow.getCubePlan();
+            val indexPlan = dataflow.getIndexPlan();
             // ruleBaseCuboidLayouts will not be identified as garbage for the moment
-            val ruleBaseCuboidLayoutIdSet = cubePlan.getRuleBaseCuboidLayouts().stream().map(NCuboidLayout::getId)
+            val ruleBaseCuboidLayoutIdSet = indexPlan.getRuleBaseLayouts().stream().map(LayoutEntity::getId)
                     .collect(Collectors.toSet());
             val finalHotCuboidLayoutIdSet = hotCuboidLayoutIdSet;
             val cuboidLayoutIdSet = dataCuboids.stream()
                     .filter(dc -> (System.currentTimeMillis() - dc.getCreateTime()) > cuboidSurvivalTimeThreshold)
-                    .map(NDataCuboid::getCuboidLayoutId).filter(id -> !finalHotCuboidLayoutIdSet.contains(id))
+                    .map(NDataLayout::getLayoutId).filter(id -> !finalHotCuboidLayoutIdSet.contains(id))
                     .filter(id -> !ruleBaseCuboidLayoutIdSet.contains(id)).collect(Collectors.toSet());
             if (CollectionUtils.isNotEmpty(cuboidLayoutIdSet)) {
                 garbageStorageSize += calculateLayoutSize(cuboidLayoutIdSet, dataflow);
@@ -142,7 +142,7 @@ public class GarbageStorageCollector implements StorageInfoCollector {
         long cuboidLayoutSize = 0L;
         for (NDataSegment segment : dataflow.getSegments(SegmentStatusEnum.READY)) {
             for (Long cuboidLayoutId : cuboidLayoutIdSet) {
-                NDataCuboid dataCuboid = segment.getSegDetails().getCuboidById(cuboidLayoutId);
+                NDataLayout dataCuboid = segment.getSegDetails().getLayoutById(cuboidLayoutId);
                 if (dataCuboid != null) {
                     cuboidLayoutSize += dataCuboid.getByteSize();
                 }

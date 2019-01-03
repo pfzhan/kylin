@@ -306,8 +306,8 @@ public class QueryMetricsContext {
         return builder.build();
     }
 
-    public static RealizationMetrics createRealizationMetrics(String cuboidLayoutId, String realizationType, String modelName) {
-        return new RealizationMetrics(cuboidLayoutId, realizationType, modelName);
+    public static RealizationMetrics createRealizationMetrics(String cuboidLayoutId, String realizationType, String modelId) {
+        return new RealizationMetrics(cuboidLayoutId, realizationType, modelId);
     }
 
     @Getter
@@ -324,19 +324,19 @@ public class QueryMetricsContext {
 
         private String realizationType;
 
-        private String modelName;
+        private String modelId;
 
-        public RealizationMetrics(String cuboidLayoutId, String realizationType, String modelName) {
+        public RealizationMetrics(String cuboidLayoutId, String realizationType, String modelId) {
             this.cuboidLayoutId = cuboidLayoutId;
             this.realizationType = realizationType;
-            this.modelName = modelName;
+            this.modelId = modelId;
         }
 
         public Map<String, String> getInfluxdbTags() {
             return ImmutableMap.<String, String> builder() //
                     .put(QueryHistory.SUITE, suite) //
-                    .put(QueryHistory.MODEL, modelName) //
-                    .put(QueryHistory.CUBOID_LAYOUT_ID, cuboidLayoutId) //
+                    .put(QueryHistory.MODEL, modelId) //
+                    .put(QueryHistory.LAYOUT_ID, cuboidLayoutId) //
                     .put(QueryHistory.REALIZATION_TYPE, realizationType) //
                     .build();
         }

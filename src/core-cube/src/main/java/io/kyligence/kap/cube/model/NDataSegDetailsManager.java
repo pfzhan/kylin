@@ -51,7 +51,7 @@ import io.kyligence.kap.common.obf.IKeepNames;
  * Public use goes through NDataflowManager.
  */
 class NDataSegDetailsManager implements IKeepNames {
-    private static final Serializer<NDataSegDetails> DATA_SEG_CUBOID_INSTANCES_SERIALIZER = new JsonSerializer<>(
+    private static final Serializer<NDataSegDetails> DATA_SEG_LAYOUT_INSTANCES_SERIALIZER = new JsonSerializer<>(
             NDataSegDetails.class);
 
     private static final Logger logger = LoggerFactory.getLogger(NDataSegDetailsManager.class);
@@ -86,8 +86,8 @@ class NDataSegDetailsManager implements IKeepNames {
     }
 
     private NDataSegDetails getForSegment(NDataflow df, String segId) {
-        NDataSegDetails instances = getStore().getResource(getResourcePathForSegment(df.getName(), segId),
-                DATA_SEG_CUBOID_INSTANCES_SERIALIZER);
+        NDataSegDetails instances = getStore().getResource(getResourcePathForSegment(df.getUuid(), segId),
+                DATA_SEG_LAYOUT_INSTANCES_SERIALIZER);
         if (instances != null) {
             instances.setConfig(df.getConfig());
             instances.setProject(project);
@@ -103,13 +103,13 @@ class NDataSegDetailsManager implements IKeepNames {
 
         // figure out all impacted segments
         Set<String> allSegIds = new TreeSet<>();
-        Map<String, List<NDataCuboid>> toUpsert = new TreeMap<>();
-        Map<String, List<NDataCuboid>> toRemove = new TreeMap<>();
+        Map<String, List<NDataLayout>> toUpsert = new TreeMap<>();
+        Map<String, List<NDataLayout>> toRemove = new TreeMap<>();
         if (update.getToAddOrUpdateCuboids() != null) {
             Arrays.stream(update.getToAddOrUpdateCuboids()).forEach(c -> {
                 val segId = c.getSegDetails().getUuid();
                 allSegIds.add(segId);
-                List<NDataCuboid> list = toUpsert.computeIfAbsent(segId, k -> new ArrayList<>());
+                List<NDataLayout> list = toUpsert.computeIfAbsent(segId, k -> new ArrayList<>());
                 list.add(c);
             });
         }
@@ -117,7 +117,7 @@ class NDataSegDetailsManager implements IKeepNames {
             Arrays.stream(update.getToRemoveCuboids()).forEach(c -> {
                 val segId = c.getSegDetails().getUuid();
                 allSegIds.add(segId);
-                List<NDataCuboid> list = toRemove.computeIfAbsent(segId, k -> new ArrayList<>());
+                List<NDataLayout> list = toRemove.computeIfAbsent(segId, k -> new ArrayList<>());
                 list.add(c);
             });
         }
@@ -132,14 +132,14 @@ class NDataSegDetailsManager implements IKeepNames {
                 details = NDataSegDetails.newSegDetails(df, segId);
 
             if (toUpsert.containsKey(segId)) {
-                for (NDataCuboid c : toUpsert.get(segId)) {
+                for (NDataLayout c : toUpsert.get(segId)) {
                     c.setSegDetails(details);
-                    details.addCuboid(c);
+                    details.addLayout(c);
                 }
             }
             if (toRemove.containsKey(segId)) {
-                for (NDataCuboid c : toRemove.get(segId)) {
-                    details.removeCuboid(c);
+                for (NDataLayout c : toRemove.get(segId)) {
+                    details.removeLayout(c);
                 }
             }
 
@@ -158,7 +158,7 @@ class NDataSegDetailsManager implements IKeepNames {
             return upsertForSegment(details);
         } catch (Exception e) {
             logger.error("Failed to insert/update NDataSegDetails for segment {}",
-                    details.getDataflowName() + "." + details.getUuid(), e);
+                    details.getDataflowId() + "." + details.getUuid(), e);
             return null;
         }
     }
@@ -166,7 +166,7 @@ class NDataSegDetailsManager implements IKeepNames {
     NDataSegDetails upsertForSegment(NDataSegDetails details) {
         Preconditions.checkNotNull(details, "NDataSegDetails cannot be null.");
 
-        getStore().checkAndPutResource(details.getResourcePath(), details, DATA_SEG_CUBOID_INSTANCES_SERIALIZER);
+        getStore().checkAndPutResource(details.getResourcePath(), details, DATA_SEG_LAYOUT_INSTANCES_SERIALIZER);
         return details;
     }
 
@@ -174,16 +174,16 @@ class NDataSegDetailsManager implements IKeepNames {
         try {
             removeForSegment(df, segId);
         } catch (Exception e) {
-            logger.error("Failed to remove NDataSegDetails for segment {}", df.getName() + "." + segId, e);
+            logger.error("Failed to remove NDataSegDetails for segment {}", df + "." + segId, e);
         }
     }
 
     void removeForSegment(NDataflow df, String segId) {
-        getStore().deleteResource(getResourcePathForSegment(df.getName(), segId));
+        getStore().deleteResource(getResourcePathForSegment(df.getUuid(), segId));
     }
 
-    private String getResourcePathForSegment(String dataflowName, String segId) {
-        return "/" + project + NDataSegDetails.DATAFLOW_DETAILS_RESOURCE_ROOT + "/" + dataflowName + "/" + segId
+    private String getResourcePathForSegment(String dataflowId, String segId) {
+        return "/" + project + NDataSegDetails.DATAFLOW_DETAILS_RESOURCE_ROOT + "/" + dataflowId + "/" + segId
                 + MetadataConstants.FILE_SURFIX;
     }
 }

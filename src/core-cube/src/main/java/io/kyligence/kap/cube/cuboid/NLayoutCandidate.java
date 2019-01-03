@@ -29,6 +29,7 @@ import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.kylin.common.util.Array;
 import org.apache.kylin.metadata.model.DeriveInfo;
@@ -38,27 +39,27 @@ import org.apache.kylin.metadata.realization.IRealizationCandidate;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NCuboidLayout;
 import lombok.Setter;
 
 public class NLayoutCandidate implements IRealizationCandidate  {
-    private @Nonnull NCuboidLayout cuboidLayout;
+    private @Nonnull
+    LayoutEntity cuboidLayout;
     @Setter
     private double cost;
 
     // derived
     private @Nonnull Map<TblColRef, DeriveInfo> derivedToHostMap = Maps.newHashMap();
 
-    public NLayoutCandidate(@Nonnull NCuboidLayout cuboidLayout) {
+    public NLayoutCandidate(@Nonnull LayoutEntity cuboidLayout) {
         this.cuboidLayout = cuboidLayout;
     }
 
     @Nonnull
-    public NCuboidLayout getCuboidLayout() {
+    public LayoutEntity getCuboidLayout() {
         return cuboidLayout;
     }
 
-    public void setCuboidLayout(@Nonnull NCuboidLayout cuboidLayout) {
+    public void setCuboidLayout(@Nonnull LayoutEntity cuboidLayout) {
         this.cuboidLayout = cuboidLayout;
     }
 

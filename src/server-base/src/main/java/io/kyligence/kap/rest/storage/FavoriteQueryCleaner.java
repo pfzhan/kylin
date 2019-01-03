@@ -28,14 +28,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -63,10 +63,10 @@ public class FavoriteQueryCleaner implements GarbageCleaner {
         val cube = getCube(model);
         val layoutIds = getLayouts(cube);
 
-        val allRealizations = favoriteQueryManager.getRealizationsByConditions(model.getId(), cube.getId(), null);
+        val allRealizations = favoriteQueryManager.getRealizationsByConditions(model.getId(), null);
 
         val outdatedRealizations = allRealizations.stream().filter(
-                r -> r.getSemanticVersion() != model.getSemanticVersion() || !layoutIds.contains(r.getCuboidLayoutId()))
+                r -> r.getSemanticVersion() != model.getSemanticVersion() || !layoutIds.contains(r.getLayoutId()))
                 .collect(Collectors.toList());
 
         val outdatedFqsInModel = new HashSet<String>();
@@ -76,8 +76,8 @@ public class FavoriteQueryCleaner implements GarbageCleaner {
         }
 
         val usedIds = allRealizations.stream().filter(r -> !outdatedRealizations.contains(r))
-                .map(FavoriteQueryRealization::getCuboidLayoutId).collect(Collectors.toSet());
-        usedLayouts.add(new CubeCleanInfo(cube.getName(), usedIds));
+                .map(FavoriteQueryRealization::getLayoutId).collect(Collectors.toSet());
+        usedLayouts.add(new CubeCleanInfo(cube.getUuid(), usedIds));
 
         inactiveFavoriteSqlPatterns.addAll(outdatedFqsInModel);
     }
@@ -91,14 +91,14 @@ public class FavoriteQueryCleaner implements GarbageCleaner {
             fqManager.removeRealizations(sqlPattern);
         }
 
-        val cubeManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName());
+        val cubeManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName());
         for (CubeCleanInfo entry : usedLayouts) {
-            cubeManager.updateCubePlan(entry.getCubeName(), copyForWrite -> {
-                val autoLayoutIds = copyForWrite.getWhitelistCuboidLayouts().stream().filter(NCuboidLayout::isAuto)
-                        .map(NCuboidLayout::getId).collect(Collectors.toSet());
+            cubeManager.updateIndexPlan(entry.getCubeName(), copyForWrite -> {
+                val autoLayoutIds = copyForWrite.getWhitelistLayouts().stream().filter(LayoutEntity::isAuto)
+                        .map(LayoutEntity::getId).collect(Collectors.toSet());
                 autoLayoutIds.removeAll(entry.getUsedIds());
                 log.debug("these layouts are useless {}", autoLayoutIds);
-                copyForWrite.removeLayouts(autoLayoutIds, NCuboidLayout::equals, true, false);
+                copyForWrite.removeLayouts(autoLayoutIds, LayoutEntity::equals, true, false);
             });
         }
     }

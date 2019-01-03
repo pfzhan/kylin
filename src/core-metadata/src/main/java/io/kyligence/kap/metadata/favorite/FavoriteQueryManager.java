@@ -168,8 +168,8 @@ public class FavoriteQueryManager implements IKeepNames {
         favoriteQueryMap = null;
     }
 
-    public List<FavoriteQueryRealization> getRealizationsByConditions(String modelId, String cubePlanName,
-            Long cuboidLayoutId) {
+    public List<FavoriteQueryRealization> getRealizationsByConditions(String modelId,
+                                                                      Long cuboidLayoutId) {
         List<FavoriteQueryRealization> realizations = Lists.newArrayList();
         List<FavoriteQuery> favoriteQueries = crud.listAll();
         favoriteQueries.forEach(fq -> {
@@ -178,10 +178,7 @@ public class FavoriteQueryManager implements IKeepNames {
                 if (StringUtils.isNotBlank(modelId) && !modelId.equals(fqr.getModelId()))
                     continue;
 
-                if (StringUtils.isNotBlank(cubePlanName) && !cubePlanName.equals(fqr.getCubePlanId()))
-                    continue;
-
-                if (cuboidLayoutId != null && cuboidLayoutId != fqr.getCuboidLayoutId())
+                if (cuboidLayoutId != null && cuboidLayoutId != fqr.getLayoutId())
                     continue;
 
                 realizations.add(fqr);

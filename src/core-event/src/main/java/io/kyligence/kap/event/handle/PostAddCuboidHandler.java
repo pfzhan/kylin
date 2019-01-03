@@ -73,7 +73,7 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
         val tasks = executable.getTasks();
         Preconditions.checkState(tasks.size() > 1, "job " + jobId + " steps is not enough");
         val buildTask = tasks.get(1);
-        val dataflowName = ExecutableUtils.getDataflowName(buildTask);
+        val dataflowId = ExecutableUtils.getDataflowId(buildTask);
         val segmentIds = ExecutableUtils.getSegmentIds(buildTask);
         val layoutIds = ExecutableUtils.getLayoutIds(buildTask);
 
@@ -81,15 +81,15 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
         val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask);
         try {
             UnitOfWork.doInTransactionWithRetry(() -> {
-                if (!checkSubjectExists(project, event.getCubePlanName(), null, event)) {
+                if (!checkSubjectExists(project, event.getModelId(), null, event)) {
                     finishEvent(project, event.getId());
                     return null;
                 }
 
                 val kylinConfig = KylinConfig.getInstanceFromEnv();
                 val merger = new AfterBuildResourceMerger(kylinConfig, project);
-                val addedCuboids = merger.mergeAfterCatchup(dataflowName, segmentIds, layoutIds, buildResourceStore);
-                merger.mergeAnalysis(dataflowName, analysisResourceStore);
+                val addedCuboids = merger.mergeAfterCatchup(dataflowId, segmentIds, layoutIds, buildResourceStore);
+                merger.mergeAnalysis(dataflowId, analysisResourceStore);
 
                 recordDownJobStats(buildTask, addedCuboids);
 
@@ -111,7 +111,7 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
         List<String> sqlList = event.getSqlPatterns();
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            if (!checkSubjectExists(project, event.getCubePlanName(), null, event)) {
+            if (!checkSubjectExists(project, event.getModelId(), null, event)) {
                 finishEvent(project, event.getId());
                 return null;
             }

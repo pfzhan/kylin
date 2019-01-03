@@ -68,7 +68,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.CuboidLayoutQueryTimes;
@@ -227,8 +227,8 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         val project = "default";
         mockHotModelLayouts();
         projectService.cleanupProjectGarbageIndex(project);
-        val cubePlan = NCubePlanManager.getInstance(getTestConfig(), project).getCubePlan("ncube_basic");
-        Assert.assertEquals(1L, cubePlan.getAllCuboidLayouts().size());
+        val indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(1L, indexPlan.getAllLayouts().size());
     }
 
     private void mockHotModelLayouts() throws NoSuchFieldException, IllegalAccessException {

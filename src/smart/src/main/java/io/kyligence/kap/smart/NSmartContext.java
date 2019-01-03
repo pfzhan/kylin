@@ -29,17 +29,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -77,7 +77,7 @@ public class NSmartContext {
      * @param layout the layout need erase
      * @return corresponding sqlPatterns of this layout
      */
-    public Set<String> eraseLayoutInAccelerateInfo(NCuboidLayout layout) {
+    public Set<String> eraseLayoutInAccelerateInfo(LayoutEntity layout) {
 
         Preconditions.checkNotNull(layout);
         Set<String> sqlPatterns = Sets.newHashSet();
@@ -116,10 +116,9 @@ public class NSmartContext {
             if (accelerateInfoMap.containsKey(sqlPattern)) {
                 val queryRelatedLayouts = accelerateInfoMap.get(sqlPattern).getRelatedLayouts();
                 String modelId = fqRealization.getModelId();
-                String cubePlanId = fqRealization.getCubePlanId();
-                long layoutId = fqRealization.getCuboidLayoutId();
+                long layoutId = fqRealization.getLayoutId();
                 int semanticVersion = fqRealization.getSemanticVersion();
-                val queryLayoutRelation = new AccelerateInfo.QueryLayoutRelation(sqlPattern, modelId, cubePlanId, layoutId,
+                val queryLayoutRelation = new AccelerateInfo.QueryLayoutRelation(sqlPattern, modelId, layoutId,
                         semanticVersion);
                 queryRelatedLayouts.add(queryLayoutRelation);
             }
@@ -137,9 +136,9 @@ public class NSmartContext {
         private NDataModel origModel; // used when update existing models
 
         @Setter(AccessLevel.PACKAGE)
-        private NCubePlan targetCubePlan;
+        private IndexPlan targetIndexPlan;
         @Setter(AccessLevel.PACKAGE)
-        private NCubePlan origCubePlan;
+        private IndexPlan origIndexPlan;
 
         private NSmartContext smartContext;
 

@@ -87,7 +87,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     // computed fields below
 
     private transient NDataSegDetails segDetails; // transient, not required by spark cubing
-    private transient Map<Long, NDataCuboid> cuboidsMap = Collections.emptyMap(); // transient, not required by spark cubing
+    private transient Map<Long, NDataLayout> layoutsMap = Collections.emptyMap(); // transient, not required by spark cubing
 
     public NDataSegment() {
     }
@@ -114,10 +114,10 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
         segDetails.setCachedAndShared(dataflow.isCachedAndShared());
 
-        List<NDataCuboid> cuboids = segDetails.getCuboids();
-        cuboidsMap = new HashMap<>(cuboids.size());
-        for (NDataCuboid i : cuboids) {
-            cuboidsMap.put(i.getCuboidLayoutId(), i);
+        List<NDataLayout> cuboids = segDetails.getLayouts();
+        layoutsMap = new HashMap<>(cuboids.size());
+        for (NDataLayout i : cuboids) {
+            layoutsMap.put(i.getLayoutId(), i);
         }
     }
 
@@ -166,16 +166,16 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
         return dataflow.getModel();
     }
 
-    public NDataCuboid getCuboid(long cuboidLayoutId) {
-        return cuboidsMap.get(cuboidLayoutId);
+    public NDataLayout getLayout(long layoutId) {
+        return layoutsMap.get(layoutId);
     }
 
-    public Map<Long, NDataCuboid> getCuboidsMap() {
-        return cuboidsMap;
+    public Map<Long, NDataLayout> getLayoutsMap() {
+        return layoutsMap;
     }
 
-    public NCubePlan getCubePlan() {
-        return dataflow.getCubePlan();
+    public IndexPlan getIndexPlan() {
+        return dataflow.getIndexPlan();
     }
 
     @Override
@@ -185,7 +185,7 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     public Map<TblColRef, Dictionary<String>> buildDictionaryMap() {
         Map<TblColRef, Dictionary<String>> result = Maps.newHashMap();
-        for (TblColRef col : getCubePlan().getAllColumnsHaveDictionary()) {
+        for (TblColRef col : getIndexPlan().getAllColumnsHaveDictionary()) {
             result.put(col, getDictionary(col));
         }
         return result;
@@ -206,8 +206,8 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     }
 
     public Dictionary<String> getDictionary(TblColRef col) {
-        NCubePlan cubePlan = getCubePlan();
-        TblColRef reuseCol = cubePlan.getDictionaryReuseColumn(col);
+        IndexPlan indexPlan = getIndexPlan();
+        TblColRef reuseCol = indexPlan.getDictionaryReuseColumn(col);
         NDictionaryInfo info = null;
         try {
             NDictionaryManager dictMgr = NDictionaryManager.getInstance(getConfig(), this.dataflow.getProject());
@@ -395,6 +395,6 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
 
     @Override
     public String toString() {
-        return "NDataSegment [" + dataflow.getName() + "," + id + "," + segmentRange + "]";
+        return "NDataSegment [" + dataflow.getUuid() + "," + id + "," + segmentRange + "]";
     }
 }

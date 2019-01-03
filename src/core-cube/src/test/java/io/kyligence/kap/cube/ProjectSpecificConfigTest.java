@@ -26,8 +26,8 @@ package io.kyligence.kap.cube;
 import static org.junit.Assert.assertEquals;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import org.apache.kylin.common.KylinConfig;
@@ -51,14 +51,14 @@ public class ProjectSpecificConfigTest extends NLocalFileMetadataTestCase {
     @Test
     public void testProject1() {
         KylinConfig baseConfig = KylinConfig.getInstanceFromEnv();
-        NCubePlan cubePlan = NCubePlanManager.getInstance(baseConfig, DEFAULT_PROJECT).getCubePlan("ncube_basic");
-        verifyProjectOverride(baseConfig, cubePlan.getConfig());
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(baseConfig, DEFAULT_PROJECT).getIndexPlanByModelAlias("nmodel_basic");
+        verifyProjectOverride(baseConfig, indexPlan.getConfig());
     }
 
     @Test
     public void testProject2() {
         KylinConfig baseConfig = KylinConfig.getInstanceFromEnv();
-        NDataflow dataflow = NDataflowManager.getInstance(baseConfig, DEFAULT_PROJECT).getDataflow("ncube_basic");
+        NDataflow dataflow = NDataflowManager.getInstance(baseConfig, DEFAULT_PROJECT).getDataflowByModelAlias("nmodel_basic");
         verifyProjectOverride(baseConfig, dataflow.getConfig());
     }
 

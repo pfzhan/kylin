@@ -52,7 +52,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
 
     private NDataModelManager mgrDefault;
     private String projectDefault = "default";
-    private String modelBasic = "nmodel_basic";
+    private String modelBasic = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
     private String modelTest = "model_test";
     private String ownerTest = "owner_test";
 
@@ -100,7 +100,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetDataModelDesc() {
         NDataModel dataModel = mgrDefault.getDataModelDesc(modelBasic);
-        Assert.assertEquals(modelBasic, dataModel.getName());
+        Assert.assertEquals(modelBasic, dataModel.getUuid());
         Assert.assertEquals(projectDefault, dataModel.getProject());
     }
 
@@ -112,7 +112,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         NDataModelManager mgrSsb;
         mgrSsb = NDataModelManager.getInstance(getTestConfig(), "ssb");
         List<NDataModel> models2 = mgrSsb.getDataModels();
-        Assert.assertEquals(1, models2.size());
+        Assert.assertEquals(0, models2.size());
     }
 
     @Test
@@ -147,8 +147,8 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
 
     private NDataModel mockModel() {
         NDataModel model = new NDataModel();
-        model.setName(modelTest);
-        model.setUuid(UUID.randomUUID().toString());
+        model.setAlias(modelTest);
+        model.setUuid(modelTest);
         model.setOwner(ownerTest);
         model.setRootFactTableName("DEFAULT.TEST_KYLIN_FACT");
         Measure measure = new Measure();
@@ -164,7 +164,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     public void createDataModelDesc_duplicateModelName_fail() throws IOException {
         thrown.expect(IllegalArgumentException.class);
         thrown.expectMessage("DataModelDesc 'nmodel_basic' already exists");
-        NDataModel nDataModel = JsonUtil.deepCopy((NDataModel) mgrDefault.getDataModelDesc("nmodel_basic"),
+        NDataModel nDataModel = JsonUtil.deepCopy((NDataModel) mgrDefault.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 NDataModel.class);
 
         mgrDefault.createDataModelDesc(nDataModel, "root");
@@ -173,10 +173,10 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void createDataModelDesc_simpleModel_succeed() throws IOException {
         int modelNum = mgrDefault.getDataModels().size();
-        NDataModel nDataModel = JsonUtil.deepCopy((NDataModel) mgrDefault.getDataModelDesc("nmodel_basic"),
+        NDataModel nDataModel = JsonUtil.deepCopy((NDataModel) mgrDefault.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 NDataModel.class);
 
-        nDataModel.setName("nmodel_basic2");
+        nDataModel.setAlias("nmodel_basic2");
         nDataModel.setUuid(UUID.randomUUID().toString());
         nDataModel.setLastModified(0L);
         nDataModel.setMvcc(-1);
@@ -190,10 +190,10 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         thrown.expect(IllegalArgumentException.class);
         thrown.expectMessage("Multiple entries with same value");
 
-        NDataModel nDataModel = JsonUtil.deepCopy((NDataModel) mgrDefault.getDataModelDesc("nmodel_basic"),
+        NDataModel nDataModel = JsonUtil.deepCopy((NDataModel) mgrDefault.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 NDataModel.class);
 
-        nDataModel.setName("nmodel_basic2");
+        nDataModel.setAlias("nmodel_basic2");
         nDataModel.setUuid(UUID.randomUUID().toString());
         nDataModel.setLastModified(0L);
 
@@ -209,10 +209,10 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void createDataModelDesc_duplicateNameColumnName_succeed() throws IOException {
 
-        NDataModel nDataModel = JsonUtil.deepCopy((NDataModel) mgrDefault.getDataModelDesc("nmodel_basic"),
+        NDataModel nDataModel = JsonUtil.deepCopy((NDataModel) mgrDefault.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 NDataModel.class);
 
-        nDataModel.setName("nmodel_basic2");
+        nDataModel.setAlias("nmodel_basic2");
         nDataModel.setUuid(UUID.randomUUID().toString());
         nDataModel.setLastModified(0L);
         nDataModel.setMvcc(-1);
@@ -227,7 +227,7 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void saveDataModelDesc_MultipleDataLoadingRange_exception() throws IOException {
 
-        NDataModel nDataModel = mgrDefault.copyForWrite(mgrDefault.getDataModelDesc("nmodel_basic"));
+        NDataModel nDataModel = mgrDefault.copyForWrite(mgrDefault.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         val tableManager = NTableMetadataManager.getInstance(getTestConfig(), "default");
         val table = tableManager.getTableDesc("DEFAULT.TEST_ACCOUNT");
         table.setIncrementLoading(true);

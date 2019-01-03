@@ -47,7 +47,7 @@ public class NSparkAnalysisStep extends NSparkExecutable {
     @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {
         final Set<String> dumpList = Sets.newHashSet();
-        NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow(getDataflowName());
+        NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow(getDataflowId());
         dumpList.addAll(df.collectPrecalculationResource());
 
         // dump table ext
@@ -62,16 +62,16 @@ public class NSparkAnalysisStep extends NSparkExecutable {
         return dumpList;
     }
 
-    void setDataflowName(String dataflowName) {
-        this.setParam(NBatchConstants.P_DATAFLOW_NAME, dataflowName);
+    void setDataflowId(String dataflowId) {
+        this.setParam(NBatchConstants.P_DATAFLOW_ID, dataflowId);
     }
 
     void setJobId(String jobId) {
         this.setParam(NBatchConstants.P_JOB_ID, jobId);
     }
 
-    public String getDataflowName() {
-        return this.getParam(NBatchConstants.P_DATAFLOW_NAME);
+    public String getDataflowId() {
+        return this.getParam(NBatchConstants.P_DATAFLOW_ID);
     }
 
     void setSegmentIds(Set<String> segmentIds) {
@@ -83,11 +83,11 @@ public class NSparkAnalysisStep extends NSparkExecutable {
     }
 
     void setCuboidLayoutIds(Set<Long> clIds) {
-        this.setParam(NBatchConstants.P_CUBOID_LAYOUT_IDS, NSparkCubingUtil.ids2Str(clIds));
+        this.setParam(NBatchConstants.P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(clIds));
     }
 
     public Set<Long> getCuboidLayoutIds() {
-        return NSparkCubingUtil.str2Longs(this.getParam(NBatchConstants.P_CUBOID_LAYOUT_IDS));
+        return NSparkCubingUtil.str2Longs(this.getParam(NBatchConstants.P_LAYOUT_IDS));
     }
 
 }

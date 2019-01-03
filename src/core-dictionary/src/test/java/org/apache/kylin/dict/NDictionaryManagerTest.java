@@ -77,7 +77,7 @@ public class NDictionaryManagerTest extends NLocalFileMetadataTestCase {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDictionaryManager dictMgr = NDictionaryManager.getInstance(config, projectDefault);
 
-        NDataModel dataModel = NDataModelManager.getInstance(config, projectDefault).getDataModelDesc("nmodel_basic");
+        NDataModel dataModel = NDataModelManager.getInstance(config, projectDefault).getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         TblColRef col = dataModel.findColumn("LSTG_FORMAT_NAME");
 
         // non-exist input returns null;

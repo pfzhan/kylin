@@ -38,7 +38,7 @@ public class NModelAnalysisJob extends NDataflowJob {
 
     @Override
     protected void doExecute(OptionsHelper optionsHelper) throws Exception {
-        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
+        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_ID);
         project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
         val segmentIds = StringUtils.split(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS));
 
@@ -47,7 +47,7 @@ public class NModelAnalysisJob extends NDataflowJob {
         final NDataModel dataModel = dataflow.getModel();
 
         final ModelAnalyzer modelAnalyzer = new ModelAnalyzer(dataModel, config);
-        logger.info("Start to analysis model {}", dataflow.getName());
+        logger.info("Start to analysis model {}", dataflow);
         for (String segId : segmentIds) {
             NDataSegment seg = dataflow.getSegment(segId);
             logger.info("Analysis segment {}", seg.getName());

@@ -27,7 +27,7 @@ import java.util.{Objects, UUID}
 
 import com.google.common.collect.{Lists, Maps, Sets}
 import io.kyligence.kap.common.persistence.metadata.MetadataStore
-import io.kyligence.kap.cube.model.{NCuboidLayout, NDataSegment, NDataflow, NDataflowManager, NDataflowUpdate}
+import io.kyligence.kap.cube.model._
 import io.kyligence.kap.engine.spark.ExecutableUtils
 import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob}
 import io.kyligence.kap.engine.spark.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
@@ -105,13 +105,13 @@ trait JobSupport
     // ready dataflow, segment, cuboid layout
     var df: NDataflow = dsMgr.getDataflow(dfName)
     // cleanup all segments first
-    val update: NDataflowUpdate = new NDataflowUpdate(df.getName)
+    val update: NDataflowUpdate = new NDataflowUpdate(df.getUuid)
     update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
     dsMgr.updateDataflow(update)
     df = dsMgr.getDataflow(dfName)
-    val layouts: java.util.List[NCuboidLayout] =
-      df.getCubePlan.getAllCuboidLayouts
-    val round1: java.util.List[NCuboidLayout] = Lists.newArrayList(layouts)
+    val layouts: java.util.List[LayoutEntity] =
+      df.getIndexPlan.getAllLayouts
+    val round1: java.util.List[LayoutEntity] = Lists.newArrayList(layouts)
     builCuboid(dfName,
                SegmentRange.TimePartitionedSegmentRange.createInfinite,
                Sets.newLinkedHashSet(round1),
@@ -121,7 +121,7 @@ trait JobSupport
   @throws[Exception]
   protected def builCuboid(cubeName: String,
                            segmentRange: SegmentRange[_ <: Comparable[_]],
-                           toBuildLayouts: java.util.Set[NCuboidLayout],
+                           toBuildLayouts: java.util.Set[LayoutEntity],
                            prj: String): Unit = {
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, prj)
@@ -148,8 +148,8 @@ trait JobSupport
     val buildStore: ResourceStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep)
     val merger: AfterBuildResourceMerger = new AfterBuildResourceMerger(config, prj)
     val layoutIds: java.util.Set[java.lang.Long] = toBuildLayouts.asScala.map(c => new java.lang.Long(c.getId)).asJava
-    merger.mergeAfterIncrement(df.getName, oneSeg.getId, layoutIds, buildStore)
-    merger.mergeAnalysis(df.getName, analysisStore)
+    merger.mergeAfterIncrement(df.getUuid, oneSeg.getId, layoutIds, buildStore)
+    merger.mergeAnalysis(df.getUuid, analysisStore)
   }
 
   @throws[InterruptedException]
@@ -174,14 +174,14 @@ trait JobSupport
     var df = dsMgr.getDataflow(dfName)
     Assert.assertTrue(config.getHdfsWorkingDirectory.startsWith("file:"))
     // cleanup all segments first
-    val update = new NDataflowUpdate(df.getName)
+    val update = new NDataflowUpdate(df.getUuid)
     update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
     dsMgr.updateDataflow(update)
 
     /**
       * Round1. Build 4 segment
       */
-    val layouts = df.getCubePlan.getAllCuboidLayouts
+    val layouts = df.getIndexPlan.getAllLayouts
     var start = SegmentRange.dateToLong("2010-01-01")
     var end = SegmentRange.dateToLong("2012-06-01")
     builCuboid(dfName,
@@ -225,7 +225,7 @@ trait JobSupport
     Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob))
     val merger = new AfterMergeOrRefreshResourceMerger(config, prj)
     var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkCubingStep)
-    merger.mergeAfterJob(df.getName, firstMergeSeg.getId, mergeStore)
+    merger.mergeAfterJob(df.getUuid, firstMergeSeg.getId, mergeStore)
 
     df = dsMgr.getDataflow(dfName)
     val secondMergeSeg = dsMgr.mergeSegments(
@@ -240,7 +240,7 @@ trait JobSupport
     execMgr.addJob(secondMergeJob)
     Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob))
     mergeStore = ExecutableUtils.getRemoteStore(config, secondMergeJob.getSparkCubingStep)
-    merger.mergeAfterJob(df.getName, secondMergeSeg.getId, mergeStore)
+    merger.mergeAfterJob(df.getUuid, secondMergeSeg.getId, mergeStore)
 
     /**
       * validate cube segment info
@@ -271,25 +271,25 @@ trait JobSupport
     var df = dsMgr.getDataflow(dfName)
     Assert.assertTrue(config.getHdfsWorkingDirectory.startsWith("file:"))
     // cleanup all segments first
-    val update = new NDataflowUpdate(df.getName)
+    val update = new NDataflowUpdate(df.getUuid)
     update.setToRemoveSegsWithArray(df.getSegments.asScala.toArray)
     dsMgr.updateDataflow(update)
 
     /**
       * Round1. Build 4 segment
       */
-    val layouts = df.getCubePlan.getAllCuboidLayouts
+    val layouts = df.getIndexPlan.getAllLayouts
     var start = SegmentRange.dateToLong("2010-01-01")
     var end = SegmentRange.dateToLong("2013-01-01")
     builCuboid(dfName,
                new SegmentRange.TimePartitionedSegmentRange(start, end),
-               Sets.newLinkedHashSet[NCuboidLayout](layouts),
+               Sets.newLinkedHashSet[LayoutEntity](layouts),
                prj)
     start = SegmentRange.dateToLong("2013-01-01")
     end = SegmentRange.dateToLong("2015-01-01")
     builCuboid(dfName,
                new SegmentRange.TimePartitionedSegmentRange(start, end),
-               Sets.newLinkedHashSet[NCuboidLayout](layouts),
+               Sets.newLinkedHashSet[LayoutEntity](layouts),
                prj)
 
     /**
@@ -310,7 +310,7 @@ trait JobSupport
     Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob))
     val merger = new AfterMergeOrRefreshResourceMerger(config, prj)
     val mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkCubingStep)
-    merger.mergeAfterJob(df.getName, firstMergeSeg.getId, mergeStore)
+    merger.mergeAfterJob(df.getUuid, firstMergeSeg.getId, mergeStore)
 
     /**
       * validate cube segment info
@@ -327,7 +327,7 @@ trait JobSupport
   def buildAll(): Unit = {
     val config: KylinConfig = KylinConfig.getInstanceFromEnv
     val manager = NDataflowManager.getInstance(config, DEFAULT_PROJECT)
-    val allModel = manager.listAllDataflows().asScala.map(_.getName).toList
+    val allModel = manager.listAllDataflows().asScala.map(_.getUuid).toList
     buildCubes(allModel)
   }
 

@@ -34,9 +34,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.IndexPlan;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -47,7 +47,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class NSmartMaster {
 
-    private static final String MODEL_NAME_PREFIX = "AUTO_MODEL_";
+    private static final String MODEL_ALIAS_PREFIX = "AUTO_MODEL_";
 
     private NSmartContext context;
     private NProposerProvider proposerProvider;
@@ -81,16 +81,16 @@ public class NSmartMaster {
         proposerProvider.getModelOptProposer().propose();
     }
 
-    public void selectCubePlan() {
-        proposerProvider.getCubePlanSelectProposer().propose();
+    public void selectIndexPlan() {
+        proposerProvider.getIndexPlanSelectProposer().propose();
     }
 
-    public void optimizeCubePlan() {
-        proposerProvider.getCubePlanOptProposer().propose();
+    public void optimizeIndexPlan() {
+        proposerProvider.getIndexPlanOptProposer().propose();
     }
 
-    public void shrinkCubePlan() {
-        proposerProvider.getCubePlanShrinkProposer().propose();
+    public void shrinkIndexPlan() {
+        proposerProvider.getIndexPlanShrinkProposer().propose();
     }
 
     public void shrinkModel() {
@@ -116,7 +116,7 @@ public class NSmartMaster {
             NDataModel targetModel = modelCtx.getTargetModel();
             if (originalModel == null) {
                 String rootTableAlias = targetModel.getRootFactTable().getAlias();
-                String modelName = getModelName(MODEL_NAME_PREFIX + rootTableAlias, usedNames);
+                String modelName = getModelName(MODEL_ALIAS_PREFIX + rootTableAlias, usedNames);
                 targetModel.setAlias(modelName);
             } else {
                 targetModel.setAlias(originalModel.getAlias());
@@ -128,14 +128,14 @@ public class NSmartMaster {
         analyzeSQLs();
         selectModel();
         optimizeModel();
-        selectCubePlan();
-        optimizeCubePlan();
+        selectIndexPlan();
+        optimizeIndexPlan();
     }
 
     private void save() {
         renameModel();
         saveModel();
-        saveCubePlan();
+        saveIndexPlan();
     }
 
     // this method now only used for testing
@@ -191,21 +191,21 @@ public class NSmartMaster {
         });
     }
 
-    public void saveCubePlan() {
+    public void saveIndexPlan() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 context.getProject());
-        NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
+        NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(),
                 context.getProject());
         for (NSmartContext.NModelContext modelCtx : context.getModelContexts()) {
             if (modelCtx.withoutTargetModel()) {
                 continue;
             }
-            NCubePlan cubePlan = modelCtx.getTargetCubePlan();
-            if (cubePlanManager.getCubePlan(cubePlan.getName()) == null) {
-                cubePlanManager.createCubePlan(cubePlan);
-                dataflowManager.createDataflow(cubePlan.getName(), cubePlan, cubePlan.getModel().getOwner());
+            IndexPlan indexPlan = modelCtx.getTargetIndexPlan();
+            if (indexPlanManager.getIndexPlan(indexPlan.getUuid()) == null) {
+                indexPlanManager.createIndexPlan(indexPlan);
+                dataflowManager.createDataflow(indexPlan, indexPlan.getModel().getOwner());
             } else {
-                cubePlanManager.updateCubePlan(cubePlan);
+                indexPlanManager.updateIndexPlan(indexPlan);
             }
         }
     }
@@ -222,8 +222,7 @@ public class NSmartMaster {
             for (val layout : accelerateInfo.getRelatedLayouts()) {
                 FavoriteQueryRealization realization = new FavoriteQueryRealization();
                 realization.setModelId(layout.getModelId());
-                realization.setCubePlanId(layout.getCubePlanId());
-                realization.setCuboidLayoutId(layout.getLayoutId());
+                realization.setLayoutId(layout.getLayoutId());
                 favoriteQueryRealizations.add(realization);
             }
             favoriteQueryManager.resetRealizations(sqlPattern, favoriteQueryRealizations);
@@ -237,7 +236,7 @@ public class NSmartMaster {
                 continue;
             }
             NDataModel model = modelCtx.getTargetModel();
-            if (dataModelManager.getDataModelDesc(model.getName()) != null) {
+            if (dataModelManager.getDataModelDesc(model.getUuid()) != null) {
                 dataModelManager.updateDataModelDesc(model);
             } else {
                 dataModelManager.createDataModelDesc(model, model.getOwner());

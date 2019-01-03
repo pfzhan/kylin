@@ -138,7 +138,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     }
 
     private boolean checkTargetSegmentExists(String segmentId) {
-        NDataflow dataflow = NDataflowManager.getInstance(config, getProject()).getDataflowByModelName(targetModel);
+        NDataflow dataflow = NDataflowManager.getInstance(config, getProject()).getDataflow(targetModel);
         if (dataflow == null) {
             return false;
         }

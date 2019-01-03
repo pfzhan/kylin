@@ -35,12 +35,13 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.rest.request.ModelConfigRequest;
-import io.kyligence.kap.rest.response.ModelConfigResponse;
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
@@ -79,10 +80,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -98,6 +96,7 @@ import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;
@@ -105,10 +104,12 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
-import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.IndexEntityResponse;
+import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
@@ -143,7 +144,7 @@ public class ModelService extends BasicService {
 
     private static final String STORAGE = "storage";
 
-    public static final char[] VALID_MODEL_NAME = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
+    public static final char[] VALID_MODEL_ALIAS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
             .toCharArray();
 
     @Setter
@@ -154,16 +155,16 @@ public class ModelService extends BasicService {
     @Autowired
     private SegmentHelper segmentHelper;
 
-    private NDataModel getNDataModelByModelName(String modelName, String project) {
+    private NDataModel getModelById(String modelId, String project) {
         NDataModelManager modelManager = getDataModelManager(project);
-        NDataModel nDataModel = modelManager.getDataModelDesc(modelName);
+        NDataModel nDataModel = modelManager.getDataModelDesc(modelId);
         if (null == nDataModel) {
-            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelName));
+            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelId));
         }
         return nDataModel;
     }
 
-    public List<NDataModelResponse> getModels(final String modelName, final String projectName, boolean exactMatch,
+    public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
             String owner, String status, String sortBy, boolean reverse) {
 
         List<NDataModel> models = getDataModelManager(projectName).getDataModels();
@@ -173,19 +174,19 @@ public class ModelService extends BasicService {
 
         List<NDataModelResponse> filterModels = new ArrayList<>();
         for (NDataModel modelDesc : models) {
-            boolean isModelNameMatch = isArgMatch(modelName, exactMatch, modelDesc.getAlias());
+            boolean isModelNameMatch = isArgMatch(modelAlias, exactMatch, modelDesc.getAlias());
             boolean isModelOwnerMatch = isArgMatch(owner, exactMatch, modelDesc.getOwner());
             if (isModelNameMatch && isModelOwnerMatch) {
-                RealizationStatusEnum modelStatus = getModelStatus(modelDesc.getName(), projectName);
+                RealizationStatusEnum modelStatus = getModelStatus(modelDesc.getUuid(), projectName);
                 boolean isModelStatusMatch = StringUtils.isEmpty(status)
                         || (modelStatus != null && modelStatus.name().equalsIgnoreCase(status));
 
                 if (isModelStatusMatch) {
                     NDataModelResponse nDataModelResponse = enrichModelResponse(modelDesc, projectName);
                     nDataModelResponse.setStatus(modelStatus);
-                    nDataModelResponse.setStorage(dfManager.getDataflowByteSize(modelDesc.getName()));
-                    if (resultMap.containsKey(modelDesc.getName())) {
-                        nDataModelResponse.setUsage(resultMap.get(modelDesc.getName()).getQueryTimes());
+                    nDataModelResponse.setStorage(dfManager.getDataflowByteSize(modelDesc.getUuid()));
+                    if (resultMap.containsKey(modelDesc.getUuid())) {
+                        nDataModelResponse.setUsage(resultMap.get(modelDesc.getUuid()).getQueryTimes());
                     }
                     filterModels.add(nDataModelResponse);
                 }
@@ -216,7 +217,8 @@ public class ModelService extends BasicService {
     private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {
         NDataModelResponse nDataModelResponse = new NDataModelResponse(modelDesc);
         if (modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            Segments<NDataSegment> segments = getSegmentsByRange(modelDesc.getName(), projectName, "0", "" + Long.MAX_VALUE);
+            Segments<NDataSegment> segments = getSegmentsByRange(modelDesc.getUuid(), projectName, "0",
+                    "" + Long.MAX_VALUE);
             if (CollectionUtils.isNotEmpty(segments)) {
                 NDataSegment lastSegment = segments.get(segments.size() - 1);
                 nDataModelResponse.setLastBuildEnd(lastSegment.getSegRange().getEnd().toString());
@@ -228,22 +230,24 @@ public class ModelService extends BasicService {
         return nDataModelResponse;
     }
 
-    private RealizationStatusEnum getModelStatus(String modelName, String projectName) {
-        val cubePlan = getCubePlan(modelName, projectName);
-        if (cubePlan != null) {
-            return getDataflowManager(projectName).getDataflow(cubePlan.getName()).getStatus();
+    private RealizationStatusEnum getModelStatus(String modelId, String projectName) {
+        val indexPlan = getIndexPlan(modelId, projectName);
+        if (indexPlan != null) {
+            return getDataflowManager(projectName).getDataflow(indexPlan.getUuid()).getStatus();
         } else {
             return null;
         }
     }
 
-    public List<NDataSegmentResponse> getSegmentsResponse(String modelName, String project, String start, String end, String sortBy, boolean reverse, String status) {
+    public List<NDataSegmentResponse> getSegmentsResponse(String modelId, String project, String start, String end,
+            String sortBy, boolean reverse, String status) {
         NDataflowManager dataflowManager = getDataflowManager(project);
         List<NDataSegmentResponse> segmentResponse = Lists.newArrayList();
-        NDataflow dataflow = dataflowManager.getDataflowByModelName(modelName);
-        val segs = getSegmentsByRange(modelName, project, start, end);
+        NDataflow dataflow = dataflowManager.getDataflow(modelId);
+        val segs = getSegmentsByRange(modelId, project, start, end);
         for (NDataSegment segment : segs) {
-            if (StringUtils.isNotEmpty(status) && status.equalsIgnoreCase(segs.getSegmentStatusToDisplay(segment).toString())) {
+            if (StringUtils.isNotEmpty(status)
+                    && status.equalsIgnoreCase(segs.getSegmentStatusToDisplay(segment).toString())) {
                 continue;
             }
             long segmentSize = dataflowManager.getSegmentSize(segment);
@@ -262,113 +266,114 @@ public class ModelService extends BasicService {
     }
 
     private void sortSegments(List<NDataSegmentResponse> segments, String sortBy) {
-        var comp = Comparator.<NDataSegmentResponse>comparingLong(r -> -r.getCreateTimeUTC());
+        var comp = Comparator.<NDataSegmentResponse> comparingLong(r -> -r.getCreateTimeUTC());
 
         switch (sortBy) {
-            case CREATE_TIME:
-                comp = Comparator.<NDataSegmentResponse>comparingLong(r -> -r.getCreateTimeUTC());
-                break;
-            case START_TIME:
-                comp = Comparator.<NDataSegmentResponse>comparingLong(r -> -Long.parseLong(r.getSegRange().getStart().toString()));
-                break;
-            case END_TIME:
-                comp = Comparator.<NDataSegmentResponse>comparingLong(r -> -Long.parseLong(r.getSegRange().getEnd().toString()));
-                break;
-            case STORAGE:
-                comp = Comparator.<NDataSegmentResponse>comparingLong(r -> -r.getBytesSize());
-                break;
-            default:
-                break;
+        case CREATE_TIME:
+            comp = Comparator.<NDataSegmentResponse> comparingLong(r -> -r.getCreateTimeUTC());
+            break;
+        case START_TIME:
+            comp = Comparator
+                    .<NDataSegmentResponse> comparingLong(r -> -Long.parseLong(r.getSegRange().getStart().toString()));
+            break;
+        case END_TIME:
+            comp = Comparator
+                    .<NDataSegmentResponse> comparingLong(r -> -Long.parseLong(r.getSegRange().getEnd().toString()));
+            break;
+        case STORAGE:
+            comp = Comparator.<NDataSegmentResponse> comparingLong(r -> -r.getBytesSize());
+            break;
+        default:
+            break;
         }
         Collections.sort(segments, comp);
     }
 
-    public Segments<NDataSegment> getSegmentsByRange(String modelName, String project, String start, String end) {
+    public Segments<NDataSegment> getSegmentsByRange(String modelId, String project, String start, String end) {
         NDataflowManager dataflowManager = getDataflowManager(project);
-        val df = dataflowManager.getDataflowByModelName(modelName);
-        SegmentRange filterRange = getSegmentRangeByModel(project, modelName, start, end);
+        val df = dataflowManager.getDataflow(modelId);
+        SegmentRange filterRange = getSegmentRangeByModel(project, modelId, start, end);
         return df.getSegmentsByRange(filterRange);
     }
 
-
-    public List<CuboidDescResponse> getAggIndices(String modelName, String project) {
-        List<NCuboidDesc> cuboidDescs = getCuboidDescs(modelName, project);
-        List<CuboidDescResponse> result = new ArrayList<CuboidDescResponse>();
-        for (NCuboidDesc cuboidDesc : cuboidDescs) {
-            if (cuboidDesc.getId() < NCuboidDesc.TABLE_INDEX_START_ID) {
-                CuboidDescResponse cuboidDescResponse = new CuboidDescResponse(cuboidDesc);
-                result.add(cuboidDescResponse);
+    public List<IndexEntityResponse> getAggIndices(String modelId, String project) {
+        List<IndexEntity> indexEntities = getIndexEntities(modelId, project);
+        List<IndexEntityResponse> result = new ArrayList<>();
+        for (IndexEntity indexEntity : indexEntities) {
+            if (indexEntity.getId() < IndexEntity.TABLE_INDEX_START_ID) {
+                IndexEntityResponse indexEntityResponse = new IndexEntityResponse(indexEntity);
+                result.add(indexEntityResponse);
             }
         }
         return result;
     }
 
-    public List<CuboidDescResponse> getTableIndices(String modelName, String project) {
-        List<NCuboidDesc> cuboidDescs = getCuboidDescs(modelName, project);
-        List<CuboidDescResponse> result = new ArrayList<CuboidDescResponse>();
-        for (NCuboidDesc cuboidDesc : cuboidDescs) {
-            if (cuboidDesc.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
-                CuboidDescResponse cuboidDescResponse = new CuboidDescResponse(cuboidDesc);
-                result.add(cuboidDescResponse);
+    public List<IndexEntityResponse> getTableIndices(String modelId, String project) {
+        List<IndexEntity> indexEntities = getIndexEntities(modelId, project);
+        List<IndexEntityResponse> result = new ArrayList<IndexEntityResponse>();
+        for (IndexEntity indexEntity : indexEntities) {
+            if (indexEntity.getId() >= IndexEntity.TABLE_INDEX_START_ID) {
+                IndexEntityResponse indexEntityResponse = new IndexEntityResponse(indexEntity);
+                result.add(indexEntityResponse);
             }
         }
         return result;
     }
 
-    public List<NCuboidDesc> getCuboidDescs(String modelName, String project) {
-        val cubePlan = getCubePlan(modelName, project);
-        List<NCuboidDesc> cuboidDescs = new ArrayList<NCuboidDesc>();
-        cuboidDescs.addAll(cubePlan.getAllCuboids());
+    public List<IndexEntity> getIndexEntities(String modelId, String project) {
+        val indexPlan = getIndexPlan(modelId, project);
+        List<IndexEntity> cuboidDescs = new ArrayList<IndexEntity>();
+        cuboidDescs.addAll(indexPlan.getAllIndexes());
         return cuboidDescs;
     }
 
-    public CuboidDescResponse getCuboidById(String modelName, String project, Long cuboidId) {
-        NCubePlan cubePlan = getCubePlan(modelName, project);
-        NCuboidDesc cuboidDesc = cubePlan.getCuboidDesc(cuboidId);
-        return new CuboidDescResponse(cuboidDesc);
+    public IndexEntityResponse getCuboidById(String modelId, String project, Long cuboidId) {
+        IndexPlan indexPlan = getIndexPlan(modelId, project);
+        IndexEntity cuboidDesc = indexPlan.getIndexEntity(cuboidId);
+        return new IndexEntityResponse(cuboidDesc);
     }
 
-    public String getModelJson(String modelName, String project) throws JsonProcessingException {
-        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelName);
+    public String getModelJson(String modelId, String project) throws JsonProcessingException {
+        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         return JsonUtil.writeValueAsIndentString(modelDesc);
     }
 
-    public List<NSpanningTree> getModelRelations(String modelName, String project) {
-        val cubeplan = getCubePlan(modelName, project);
+    public List<NSpanningTree> getModelRelations(String modelId, String project) {
+        val indexPlan = getIndexPlan(modelId, project);
         List<NSpanningTree> result = new ArrayList<>();
-        val allLayouts = Lists.<NCuboidLayout> newArrayList();
-        if (cubeplan.getRuleBasedCuboidsDesc() != null) {
-            val rule = cubeplan.getRuleBasedCuboidsDesc();
+        val allLayouts = Lists.<LayoutEntity> newArrayList();
+        if (indexPlan.getRuleBasedIndex() != null) {
+            val rule = indexPlan.getRuleBasedIndex();
             allLayouts.addAll(rule.genCuboidLayouts());
         }
-        val autoLayouts = cubeplan.getWhitelistCuboidLayouts().stream()
-                .filter(layout -> layout.getId() < NCuboidDesc.TABLE_INDEX_START_ID).collect(Collectors.toList());
+        val autoLayouts = indexPlan.getWhitelistLayouts().stream()
+                .filter(layout -> layout.getId() < IndexEntity.TABLE_INDEX_START_ID).collect(Collectors.toList());
         allLayouts.addAll(autoLayouts);
-        val tree = NSpanningTreeFactory.fromCuboidLayouts(allLayouts, cubeplan.getName());
+        val tree = NSpanningTreeFactory.fromLayouts(allLayouts, indexPlan.getUuid());
         result.add(tree);
         return result;
     }
 
-    public List<NSpanningTreeResponse> getSimplifiedModelRelations(String modelName, String project) {
-        val model = getDataModelManager(project).getDataModelDesc(modelName);
+    public List<NSpanningTreeResponse> getSimplifiedModelRelations(String modelId, String project) {
+        val model = getDataModelManager(project).getDataModelDesc(modelId);
         List<NSpanningTreeResponse> result = Lists.newArrayList();
-        for (NSpanningTree spanningTree : getModelRelations(modelName, project)) {
+        for (NSpanningTree spanningTree : getModelRelations(modelId, project)) {
             result.add(new NSpanningTreeResponse((NForestSpanningTree) spanningTree, model));
         }
         return result;
     }
 
-    public List<RelatedModelResponse> getRelateModels(String project, String table, String modelName) {
+    public List<RelatedModelResponse> getRelateModels(String project, String table, String modelId) {
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
         NDataModelManager dataModelManager = getDataModelManager(project);
-        List<String> models = dataModelManager.getTableOrientedModelsUsingRootTable(tableDesc);
+        val models = dataModelManager.getTableOrientedModelsUsingRootTable(tableDesc);
         List<RelatedModelResponse> relatedModel = new ArrayList<>();
         val errorExecutables = getExecutableManager(project).getExecutablesByStatus(ExecutableState.ERROR);
-        for (String model : models) {
+        for (var dataModelDesc : models) {
             Map<SegmentRange, SegmentStatusEnum> segmentRanges = new HashMap<>();
-            NDataModel dataModelDesc = dataModelManager.getDataModelDesc(model);
-            if (StringUtils.isEmpty(modelName)
-                    || dataModelDesc.getAlias().toLowerCase().contains(modelName.toLowerCase())) {
+            val model = dataModelDesc.getUuid();
+            if (StringUtils.isEmpty(modelId)
+                    || dataModelDesc.getAlias().toLowerCase().contains(modelId.toLowerCase())) {
                 RelatedModelResponse relatedModelResponse = new RelatedModelResponse(dataModelDesc);
                 Segments<NDataSegment> segments = getSegmentsByRange(model, project, "", "");
                 for (NDataSegment segment : segments) {
@@ -387,16 +392,16 @@ public class ModelService extends BasicService {
         return relatedModel;
     }
 
-    private NCubePlan getCubePlan(String modelName, String project) {
-        NCubePlanManager cubePlanManager = getCubePlanManager(project);
-        return cubePlanManager.findMatchingCubePlan(modelName);
+    private IndexPlan getIndexPlan(String modelId, String project) {
+        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
+        return indexPlanManager.getIndexPlan(modelId);
     }
 
-    private void checkAliasExist(String modelName, String newAlias, String project) {
+    private void checkAliasExist(String modelId, String newAlias, String project) {
         NDataModelManager dataModelManager = getDataModelManager(project);
         List<NDataModel> models = dataModelManager.getDataModels();
         for (NDataModel model : models) {
-            if (!StringUtils.isNotEmpty(modelName) && model.getName().equals(modelName)) {
+            if (!StringUtils.isNotEmpty(modelId) && model.getUuid().equals(modelId)) {
                 continue;
             } else if (model.getAlias().equals(newAlias)) {
                 throw new BadRequestException("Model alias " + newAlias + " already exists!");
@@ -405,28 +410,28 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public void dropModel(String model, String project) {
-        NDataModel dataModelDesc = getNDataModelByModelName(model, project);
-        NCubePlanManager cubePlanManager = getCubePlanManager(project);
+    public void dropModel(String modelId, String project) {
+        NDataModel dataModelDesc = getModelById(modelId, project);
+        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
         NDataflowManager dataflowManager = getDataflowManager(project);
-        NCubePlan cubePlan = getCubePlan(model, project);
-        Segments<NDataSegment> segments = dataflowManager.getDataflow(cubePlan.getName()).getSegments();
+        IndexPlan indexPlan = getIndexPlan(modelId, project);
+        Segments<NDataSegment> segments = dataflowManager.getDataflow(indexPlan.getUuid()).getSegments();
         if (CollectionUtils.isNotEmpty(segments)) {
             throw new IllegalStateException("You should purge your model first before you drop it!");
         }
-        cubePlanManager.removeCubePlan(cubePlan);
-        dataflowManager.dropDataflow(cubePlan.getName());
+        indexPlanManager.removeIndexPlan(indexPlan);
+        dataflowManager.dropDataflow(indexPlan.getUuid());
         getDataModelManager(project).dropModel(dataModelDesc);
     }
 
     @Transaction(project = 1)
-    public void purgeModel(String model, String project) {
+    public void purgeModel(String modelId, String project) {
         NDataflowManager dataflowManager = getDataflowManager(project);
-        val cubePlan = getCubePlan(model, project);
+        val indexPlan = getIndexPlan(modelId, project);
         List<NDataSegment> segments = new ArrayList<>();
-        if (cubePlan != null) {
-            NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
-            NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        if (indexPlan != null) {
+            NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
+            NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
             segments.addAll(dataflow.getSegments());
             NDataSegment[] segmentsArray = new NDataSegment[segments.size()];
             NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
@@ -437,19 +442,20 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public void purgeModelManually(String model, String project) {
-        NDataModel dataModelDesc = getNDataModelByModelName(model, project);
+    public void purgeModelManually(String modelId, String project) {
+        NDataModel dataModelDesc = getModelById(modelId, project);
         if (dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new BadRequestException(MODEL + model + "' is table oriented, can not pruge the model!!");
+            throw new BadRequestException(
+                    MODEL + dataModelDesc.getAlias() + "' is table oriented, can not pruge the model!!");
         }
-        purgeModel(model, project);
+        purgeModel(modelId, project);
     }
 
     @Transaction(project = 2)
-    public void cloneModel(String modelName, String newModelName, String project) {
+    public void cloneModel(String modelId, String newModelName, String project) {
         checkAliasExist("", newModelName, project);
         NDataModelManager dataModelManager = getDataModelManager(project);
-        NDataModel dataModelDesc = getNDataModelByModelName(modelName, project);
+        NDataModel dataModelDesc = getModelById(modelId, project);
         //copyForWrite nDataModel do init,but can not set new modelname
         NDataModel nDataModel;
         try {
@@ -457,52 +463,49 @@ public class ModelService extends BasicService {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        nDataModel.setName(UUID.randomUUID().toString());
+        nDataModel.setUuid(UUID.randomUUID().toString());
         nDataModel.setAlias(newModelName);
         nDataModel.setLastModified(0L);
         nDataModel.setMvcc(-1);
-        dataModelManager.createDataModelDesc(nDataModel, nDataModel.getOwner());
-        cloneCubePlan(modelName, nDataModel.getName(), project, nDataModel.getOwner());
+        val newModel = dataModelManager.createDataModelDesc(nDataModel, nDataModel.getOwner());
+        cloneIndexPlan(modelId, project, nDataModel.getOwner(), newModel.getUuid());
     }
 
-    private void cloneCubePlan(String modelName, String newModelName, String project, String owner) {
-        NCubePlanManager cubePlanManager = getCubePlanManager(project);
-        NCubePlan cubePlan = cubePlanManager.findMatchingCubePlan(modelName);
+    private void cloneIndexPlan(String modelId, String project, String owner, String newModelId) {
+        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
+        IndexPlan indexPlan = indexPlanManager.getIndexPlan(modelId);
         NDataflowManager dataflowManager = getDataflowManager(project);
-        NCubePlan copy = cubePlanManager.copy(cubePlan);
-        copy.setModelName(newModelName);
+        IndexPlan copy = indexPlanManager.copy(indexPlan);
+        copy.setUuid(newModelId);
         copy.setSegmentRangeStart(0L);
         copy.setSegmentRangeEnd(0L);
-        copy.updateRandomUuid();
-        copy.setName(copy.getUuid());
         copy.setLastModified(0L);
         copy.setMvcc(-1);
-        cubePlanManager.createCubePlan(copy);
+        indexPlanManager.createIndexPlan(copy);
         NDataflow nDataflow = new NDataflow();
         nDataflow.setStatus(RealizationStatusEnum.OFFLINE);
-        nDataflow.setCubePlanName(cubePlan.getName());
-        dataflowManager.createDataflow(copy.getName(), copy, owner);
+        dataflowManager.createDataflow(copy, owner);
     }
 
     @Transaction(project = 0)
-    public void renameDataModel(String project, String modelName, String newAlias) {
+    public void renameDataModel(String project, String modelId, String newAlias) {
         NDataModelManager modelManager = getDataModelManager(project);
-        NDataModel nDataModel = getNDataModelByModelName(modelName, project);
+        NDataModel nDataModel = getModelById(modelId, project);
         //rename
-        checkAliasExist(modelName, newAlias, project);
+        checkAliasExist(modelId, newAlias, project);
         nDataModel.setAlias(newAlias);
         NDataModel modelUpdate = modelManager.copyForWrite(nDataModel);
         modelManager.updateDataModelDesc(modelUpdate);
     }
 
     @Transaction(project = 1)
-    public void unlinkModel(String modelName, String project) {
+    public void unlinkModel(String modelId, String project) {
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         NDataModelManager dataModelManager = getDataModelManager(project);
 
-        NDataModel nDataModel = getNDataModelByModelName(modelName, project);
+        NDataModel nDataModel = getModelById(modelId, project);
         if (nDataModel.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            throw new IllegalStateException("Model " + modelName + " is model based, can not unlink it!");
+            throw new IllegalStateException("Model " + nDataModel.getAlias() + " is model based, can not unlink it!");
         } else {
             NDataLoadingRange dataLoadingRange = dataLoadingRangeManager
                     .getDataLoadingRange(nDataModel.getRootFactTable().getTableIdentity());
@@ -520,18 +523,18 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public void updateDataModelStatus(String modelName, String project, String status) {
-        NDataModel nDataModel = getNDataModelByModelName(modelName, project);
-        NCubePlan cubePlan = getCubePlan(nDataModel.getName(), project);
+    public void updateDataModelStatus(String modelId, String project, String status) {
+        NDataModel nDataModel = getModelById(modelId, project);
+        IndexPlan indexPlan = getIndexPlan(nDataModel.getUuid(), project);
         NDataflowManager dataflowManager = getDataflowManager(project);
-        NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
-        checkDataflowStatus(dataflow, modelName);
+        NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
+        checkDataflowStatus(dataflow, modelId);
         boolean needChangeStatus = (status.equals(RealizationStatusEnum.OFFLINE.name())
                 && dataflow.getStatus().equals(RealizationStatusEnum.ONLINE))
                 || (status.equals(RealizationStatusEnum.ONLINE.name())
                         && dataflow.getStatus().equals(RealizationStatusEnum.OFFLINE));
         if (needChangeStatus) {
-            NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
+            NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
             if (status.equals(RealizationStatusEnum.OFFLINE.name())) {
                 nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
             } else if (status.equals(RealizationStatusEnum.ONLINE.name())) {
@@ -541,14 +544,14 @@ public class ModelService extends BasicService {
         }
     }
 
-    private void checkDataflowStatus(NDataflow dataflow, String modelName) {
+    private void checkDataflowStatus(NDataflow dataflow, String modelId) {
         if (dataflow.getStatus().equals(RealizationStatusEnum.DESCBROKEN)) {
-            throw new BadRequestException("DescBroken model " + modelName + " can not online or offline!");
+            throw new BadRequestException("DescBroken model " + modelId + " can not online or offline!");
         }
     }
 
-    public SegmentRange getSegmentRangeByModel(String project, String modelName, String start, String end) {
-        TableRef tableRef = getDataModelManager(project).getDataModelDesc(modelName).getRootFactTable();
+    public SegmentRange getSegmentRangeByModel(String project, String modelId, String start, String end) {
+        TableRef tableRef = getDataModelManager(project).getDataModelDesc(modelId).getRootFactTable();
         TableDesc tableDesc = getTableManager(project).getTableDesc(tableRef.getTableIdentity());
         return SourceFactory.getSource(tableDesc).getSegmentRange(start, end);
     }
@@ -558,12 +561,12 @@ public class ModelService extends BasicService {
                 .size() > 0;
     }
 
-    public List<String> getModelsUsingTable(String table, String project) {
+    public List<NDataModel> getModelsUsingTable(String table, String project) {
         return getDataModelManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table));
     }
 
     public RefreshAffectedSegmentsResponse getAffectedSegmentsResponse(String project, String table, String start,
-                                                                       String end, ManagementType managementType) {
+            String end, ManagementType managementType) {
         Segments<NDataSegment> segments = new Segments<>();
         val dfManager = getDataflowManager(project);
         RefreshAffectedSegmentsResponse response = new RefreshAffectedSegmentsResponse();
@@ -571,7 +574,7 @@ public class ModelService extends BasicService {
         List<RelatedModelResponse> models = getRelateModels(project, table, "");
         for (NDataModel model : models) {
             if (model.getManagementType().equals(managementType)) {
-                segments.addAll(getSegmentsByRange(model.getName(), project, start, end));
+                segments.addAll(getSegmentsByRange(model.getUuid(), project, start, end));
             }
         }
 
@@ -602,7 +605,7 @@ public class ModelService extends BasicService {
 
         List<RelatedModelResponse> models = getRelateModels(project, table, "");
         for (NDataModel model : models) {
-            Segments<NDataSegment> segments = getSegmentsByRange(model.getName(), project, refreshStart, refreshEnd);
+            Segments<NDataSegment> segments = getSegmentsByRange(model.getUuid(), project, refreshStart, refreshEnd);
             if (segments.getBuildingSegments().size() > 0) {
                 throw new BadRequestException(
                         "Can not refresh, some segments is building within the range you want to refresh!");
@@ -615,14 +618,14 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void createModel(String project, ModelRequest modelRequest) throws Exception {
+    public NDataModel createModel(String project, ModelRequest modelRequest) throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
             modelRequest.setOwner(((UserDetails) authentication.getPrincipal()).getUsername());
         }
         val prjManager = getProjectManager();
         val prj = prjManager.getProject(project);
-        checkAliasExist(modelRequest.getName(), modelRequest.getAlias(), project);
+        checkAliasExist(modelRequest.getUuid(), modelRequest.getAlias(), project);
         //remove some attributes in modelResponse to fit NDataModel
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
         if (prj.getMaintainModelType().equals(MaintainModelType.AUTO_MAINTAIN)
@@ -631,35 +634,34 @@ public class ModelService extends BasicService {
         }
         preProcessBeforeModelSave(dataModel, project);
         val model = getDataModelManager(project).createDataModelDesc(dataModel, dataModel.getOwner());
-        val cubePlanManager = NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
+        val indexPlanManager = NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-        val nCubePlan = new NCubePlan();
-        nCubePlan.setUuid(UUID.randomUUID().toString());
-        nCubePlan.setModelName(modelRequest.getName());
-        nCubePlan.setName(modelRequest.getName() + "_cube");
-        nCubePlan.setModelName(modelRequest.getName());
-        cubePlanManager.createCubePlan(nCubePlan);
-        val df = dataflowManager.createDataflow(nCubePlan.getName(), nCubePlan, model.getOwner());
+        val indexPlan = new IndexPlan();
+        indexPlan.setUuid(model.getUuid());
+        indexPlanManager.createIndexPlan(indexPlan);
+        val df = dataflowManager.createDataflow(indexPlan, model.getOwner());
         SegmentRange range = null;
-        if (model.getPartitionDesc() == null || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
+        if (model.getPartitionDesc() == null
+                || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
             range = SegmentRange.TimePartitionedSegmentRange.createInfinite();
         } else if (PushDownUtil.needPushdown(modelRequest.getStart(), modelRequest.getEnd())) {
             //load existing data
-            val pushDownResponse = getMaxAndMinTimeInPartitionColumnByPushdown(project, model.getName());
+            val pushDownResponse = getMaxAndMinTimeInPartitionColumnByPushdown(project, model.getUuid());
             val startAndEnd = PushDownUtil.calcStartAndEnd(pushDownResponse, modelRequest.getStart(), modelRequest.getEnd(), null);
-            range = getSegmentRangeByModel(project, model.getName(), startAndEnd.getFirst(), startAndEnd.getSecond());
+            range = getSegmentRangeByModel(project, model.getUuid(), startAndEnd.getFirst(), startAndEnd.getSecond());
         } else {
-            range = getSegmentRangeByModel(project, model.getName(), modelRequest.getStart(), modelRequest.getEnd());
+            range = getSegmentRangeByModel(project, model.getUuid(), modelRequest.getStart(), modelRequest.getEnd());
         }
-        proposeAndSaveDateFormatIfNotExist(project, model.getName());
+        proposeAndSaveDateFormatIfNotExist(project, model.getUuid());
         if (range != null) {
             dataflowManager.fillDfManually(df, Lists.newArrayList(range));
         }
+        return getDataModelManager(project).getDataModelDesc(model.getUuid());
     }
 
-    private void proposeAndSaveDateFormatIfNotExist(String project, String modelName) throws Exception {
+    private void proposeAndSaveDateFormatIfNotExist(String project, String modelId) throws Exception {
         val modelManager = getDataModelManager(project);
-        NDataModel modelDesc = modelManager.getDataModelDesc(modelName);
+        NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
         val partitionDesc = modelDesc.getPartitionDesc();
         if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn()) || StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat()))
             return;
@@ -667,7 +669,7 @@ public class ModelService extends BasicService {
 
         val date = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn);
         val format = DateFormat.proposeDateFormat(date);
-        modelManager.updateDataModel(modelName, model -> {
+        modelManager.updateDataModel(modelId, model -> {
             model.getPartitionDesc().setPartitionDateFormat(format);
         });
     }
@@ -693,24 +695,24 @@ public class ModelService extends BasicService {
         return new Pair<>(DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat), DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
     }
 
-
     @Transaction(project = 0)
-    public void buildSegmentsManually(String project, String model, String start, String end) throws Exception {
-        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(model);
+    public void buildSegmentsManually(String project, String modelId, String start, String end) throws Exception {
+        NDataModel modelDesc = getDataModelManager(project).getDataModelDesc(modelId);
         if (!modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
-            throw new BadRequestException("Table oriented model '" + model + "' can not build segments manually!");
+            throw new BadRequestException(
+                    "Table oriented model '" + modelDesc.getAlias() + "' can not build segments manually!");
         }
         if (modelDesc.getPartitionDesc() == null || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
             throw new BadRequestException(MODEL + modelDesc.getAlias() + "' has no partition column!");
         }
-        val cubePlan = getCubePlan(model, project);
-        if (cubePlan == null) {
+        val indexPlan = getIndexPlan(modelId, project);
+        if (indexPlan == null) {
             throw new BadRequestException(
                     "Can not build segments, please define table index or aggregate index first!");
         }
-        val df = getDataflowManager(project).getDataflowByModelName(model);
+        val df = getDataflowManager(project).getDataflow(modelId);
         if (PushDownUtil.needPushdown(start, end)) {
-            val response = getMaxAndMinTimeInPartitionColumnByPushdown(project, model);
+            val response = getMaxAndMinTimeInPartitionColumnByPushdown(project, modelId);
             val startAndEnd = PushDownUtil.calcStartAndEnd(response, start, end, df.getCoveredRange());
             start = startAndEnd.getFirst();
             end = startAndEnd.getSecond();
@@ -720,23 +722,21 @@ public class ModelService extends BasicService {
         TableDesc table = getTableManager(project).getTableDesc(modelDesc.getRootFactTableName());
         SegmentRange segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, end);
 
-        checkSegmentToBuildOverlapsBuilt(project, model, segmentRangeToBuild);
+        checkSegmentToBuildOverlapsBuilt(project, modelId, segmentRangeToBuild);
 
-        NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+        NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         NDataSegment newSegment = dataflowManager.appendSegment(dataflow, segmentRangeToBuild);
 
         AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
         addSegmentEvent.setSegmentId(newSegment.getId());
-        addSegmentEvent.setCubePlanName(cubePlan.getName());
-        addSegmentEvent.setModelName(model);
+        addSegmentEvent.setModelId(modelId);
         addSegmentEvent.setJobId(UUID.randomUUID().toString());
         addSegmentEvent.setOwner(getUsername());
         eventManager.post(addSegmentEvent);
 
         PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
-        postAddSegmentEvent.setCubePlanName(cubePlan.getName());
         postAddSegmentEvent.setSegmentId(newSegment.getId());
-        postAddSegmentEvent.setModelName(model);
+        postAddSegmentEvent.setModelId(modelId);
         postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
         postAddSegmentEvent.setOwner(getUsername());
         eventManager.post(postAddSegmentEvent);
@@ -787,15 +787,15 @@ public class ModelService extends BasicService {
             throw new BadRequestException(msg.getINVALID_MODEL_DEFINITION());
         }
 
-        String modelName = modelDesc.getAlias();
+        String modelAlias = modelDesc.getAlias();
 
-        if (StringUtils.isEmpty(modelName)) {
+        if (StringUtils.isEmpty(modelAlias)) {
             logger.info("Model name should not be empty.");
             throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
         }
-        if (!StringUtils.containsOnly(modelName, VALID_MODEL_NAME)) {
-            logger.info("Invalid Model name {}, only letters, numbers and underline supported.", modelDesc.getName());
-            throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), modelName));
+        if (!StringUtils.containsOnly(modelAlias, VALID_MODEL_ALIAS)) {
+            logger.info("Invalid Model name {}, only letters, numbers and underline supported.", modelDesc.getUuid());
+            throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), modelAlias));
         }
     }
 
@@ -804,7 +804,7 @@ public class ModelService extends BasicService {
         List<NDataModel> models = getDataModelManager(project).getDataModels();
         for (NDataModel model : models) {
             for (ComputedColumnDesc computedColumnDesc : model.getComputedColumnDescs()) {
-                ret.addUsage(computedColumnDesc, model.getName());
+                ret.addUsage(computedColumnDesc, model.getUuid());
             }
         }
         return ret;
@@ -822,7 +822,7 @@ public class ModelService extends BasicService {
             dataModelDesc.updateRandomUuid();
 
         dataModelDesc.init(getConfig(), getTableManager(project).getAllTablesMap(),
-                getDataModelManager(project).getDataModels(), false, project);
+                getDataModelManager(project).getDataModels(), project);
 
         if (dataModelDesc.isSeekingCCAdvice()) {
             // if it's seeking for advice, it should have thrown exceptions by far
@@ -866,7 +866,7 @@ public class ModelService extends BasicService {
     public void preProcessBeforeModelSave(NDataModel model, String project) {
 
         model.init(getConfig(), getTableManager(project).getAllTablesMap(),
-                getDataModelManager(project).getDataModels(), false, project);
+                getDataModelManager(project).getDataModels(), project);
 
         // Update CC expression from query transformers
         for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
@@ -876,12 +876,12 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void updateModelDataCheckDesc(String project, String modelName, long checkOptions, long faultThreshold,
+    public void updateModelDataCheckDesc(String project, String modelId, long checkOptions, long faultThreshold,
             long faultActions) {
 
-        final NDataModel dataModel = getDataModelManager(project).getDataModelDesc(modelName);
+        final NDataModel dataModel = getDataModelManager(project).getDataModelDesc(modelId);
         if (dataModel == null) {
-            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelName));
+            throw new BadRequestException(String.format(msg.getMODEL_NOT_FOUND(), modelId));
         }
 
         dataModel.setDataCheckDesc(DataCheckDesc.valueOf(checkOptions, faultThreshold, faultActions));
@@ -892,13 +892,14 @@ public class ModelService extends BasicService {
     public void deleteSegmentById(String model, String project, String[] ids) {
         NDataModel dataModel = getDataModelManager(project).getDataModelDesc(model);
         if (dataModel.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-            throw new BadRequestException(MODEL + model + "' is table oriented, can not remove segments manually!");
+            throw new BadRequestException(
+                    MODEL + dataModel.getAlias() + "' is table oriented, can not remove segments manually!");
         }
         NDataflowManager dataflowManager = getDataflowManager(project);
         checkSegmentsOverlapWithBuilding(model, project, ids);
         checkDeleteSegmentLegally(model, project, ids);
-        val cubePlan = getCubePlan(model, project);
-        NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+        val indexPlan = getIndexPlan(model, project);
+        NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         Set<String> idsToDelete = Sets.newHashSet();
         for (String id : ids) {
             if (dataflow.getSegment(id) != null) {
@@ -908,13 +909,13 @@ public class ModelService extends BasicService {
                         String.format("segment %s not found on model %s", id, dataflow.getModelAlias()));
             }
         }
-        segmentHelper.removeSegment(project, dataflow.getName(), idsToDelete);
+        segmentHelper.removeSegment(project, dataflow.getUuid(), idsToDelete);
     }
 
     private void checkSegmentsOverlapWithBuilding(String model, String project, String[] ids) {
         NDataflowManager dataflowManager = getDataflowManager(project);
-        NCubePlan cubePlan = getCubePlan(model, project);
-        NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+        IndexPlan indexPlan = getIndexPlan(model, project);
+        NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         Segments<NDataSegment> buildingSegments = dataflow.getSegments().getBuildingSegments();
         if (buildingSegments.size() > 0) {
             for (NDataSegment segment : buildingSegments) {
@@ -931,9 +932,9 @@ public class ModelService extends BasicService {
 
     private void checkDeleteSegmentLegally(String model, String project, String[] ids) {
         NDataflowManager dataflowManager = getDataflowManager(project);
-        val cubePlan = getCubePlan(model, project);
+        val indexPlan = getIndexPlan(model, project);
         List<String> idsToDelete = Lists.newArrayList(ids);
-        NDataflow dataflow = dataflowManager.getDataflow(cubePlan.getName());
+        NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         Segments<NDataSegment> allSegments = dataflow.getSegments();
         if (allSegments.size() <= 2) {
             return;
@@ -957,13 +958,13 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public void refreshSegmentById(String modelName, String project, String[] ids) {
+    public void refreshSegmentById(String modelId, String project, String[] ids) {
         NDataflowManager dfMgr = getDataflowManager(project);
         EventManager eventManager = getEventManager(project);
-        NCubePlan cubePlan = getCubePlan(modelName, project);
-        NDataflow df = dfMgr.getDataflow(cubePlan.getName());
+        IndexPlan indexPlan = getIndexPlan(modelId, project);
+        NDataflow df = dfMgr.getDataflow(indexPlan.getUuid());
 
-        checkSegmentsOverlapWithBuilding(modelName, project, ids);
+        checkSegmentsOverlapWithBuilding(modelId, project, ids);
 
         for (String id : ids) {
             NDataSegment segment = df.getSegment(id);
@@ -976,16 +977,14 @@ public class ModelService extends BasicService {
 
             val event = new RefreshSegmentEvent();
             event.setSegmentId(newSeg.getId());
-            event.setModelName(modelName);
-            event.setCubePlanName(segment.getCubePlan().getName());
+            event.setModelId(modelId);
             event.setOwner(getUsername());
             event.setJobId(UUID.randomUUID().toString());
             eventManager.post(event);
 
             val event2 = new PostMergeOrRefreshSegmentEvent();
             event2.setSegmentId(newSeg.getId());
-            event2.setModelName(modelName);
-            event2.setCubePlanName(segment.getCubePlan().getName());
+            event2.setModelId(modelId);
             event2.setOwner(getUsername());
             event2.setJobId(event.getJobId());
             eventManager.post(event2);
@@ -996,33 +995,33 @@ public class ModelService extends BasicService {
     @Transaction(project = 0)
     public void updateDataModelSemantic(String project, ModelRequest request) {
         val modelManager = getDataModelManager(project);
-        val cubeManager = getCubePlanManager(project);
+        val cubeManager = getIndexPlanManager(project);
         val dataflowManager = getDataflowManager(project);
-        val originModel = modelManager.getDataModelDesc(request.getName());
+        val originModel = modelManager.getDataModelDesc(request.getUuid());
 
-        val df = dataflowManager.getDataflowByModelName(request.getName());
+        val df = dataflowManager.getDataflow(request.getUuid());
         val copyModel = modelManager.copyForWrite(originModel);
         semanticUpdater.updateModelColumns(copyModel, request);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
-        copyModel.init(modelManager.getConfig(), allTables, modelManager.getDataModels(), false, project);
+        copyModel.init(modelManager.getConfig(), allTables, modelManager.getDataModels(), project);
 
-        val cubePlan = cubeManager.findMatchingCubePlan(request.getName());
+        val indexPlan = cubeManager.getIndexPlan(request.getUuid());
         // check agg group contains removed dimensions
-        val rule = cubePlan.getRuleBasedCuboidsDesc();
+        val rule = indexPlan.getRuleBasedIndex();
         if (rule != null && !copyModel.getEffectiveDimenionsMap().keySet().containsAll(rule.getDimensions())) {
             val allDimensions = rule.getDimensions();
             val dimensionNames = allDimensions.stream()
                     .filter(id -> !copyModel.getEffectiveDimenionsMap().containsKey(id))
                     .map(originModel::getColumnNameByColumnId).collect(Collectors.toList());
 
-            throw new IllegalStateException("model " + cubePlan.getModel().getName()
+            throw new IllegalStateException("model " + indexPlan.getModel().getUuid()
                     + "'s agg group still contains dimensions " + StringUtils.join(dimensionNames, ","));
         }
 
         preProcessBeforeModelSave(copyModel, project);
         modelManager.updateDataModelDesc(copyModel);
-        semanticUpdater.handleSemanticUpdate(project, request.getName(), originModel);
+        semanticUpdater.handleSemanticUpdate(project, request.getUuid(), originModel);
     }
 
     public NDataModel convertToDataModel(ModelRequest modelDesc) {
@@ -1037,7 +1036,8 @@ public class ModelService extends BasicService {
             checkSingleIncrementingLoadingTable(project, tableName);
         }
         val response = new AffectedModelsResponse();
-        val models = modelManager.getTableOrientedModelsUsingRootTable(table);
+        val models = modelManager.getTableOrientedModelsUsingRootTable(table).stream()
+                .map(RootPersistentEntity::getUuid).collect(Collectors.toList());
         var size = 0;
         response.setModels(models);
         for (val model : models) {
@@ -1051,13 +1051,12 @@ public class ModelService extends BasicService {
         val modelManager = getDataModelManager(project);
         val table = getTableManager(project).getTableDesc(tableName);
         val modelsUsingTable = modelManager.getModelsUsingTable(table);
-        for (val modelUsingTable : modelsUsingTable) {
-            val modelDesc = modelManager.getDataModelDesc(modelUsingTable);
+        for (val modelDesc : modelsUsingTable) {
             if (!modelDesc.getRootFactTable().getTableDesc().getIdentity().equals(tableName)
                     || modelDesc.isJoinTable(tableName)) {
                 throw new BadRequestException("Can not set table '" + tableName
                         + "' incremental loading, due to another incremental loading table existed in model '"
-                        + modelUsingTable + "'!");
+                        + modelDesc.getAlias() + "'!");
             }
         }
     }
@@ -1089,10 +1088,12 @@ public class ModelService extends BasicService {
         return modelInfoList;
     }
 
-    private Map<String, QueryTimesResponse> getModelQueryTimesMap(String suite, String project, String model, long start, long end) {
-        List<QueryTimesResponse> result = getQueryHistoryDao(project).getQueryTimesByModel(suite, model,
-                start, end, QueryTimesResponse.class);
-        return result.stream().collect(Collectors.toMap(QueryTimesResponse::getModel, queryTimesResponse -> queryTimesResponse));
+    private Map<String, QueryTimesResponse> getModelQueryTimesMap(String suite, String project, String model,
+            long start, long end) {
+        List<QueryTimesResponse> result = getQueryHistoryDao(project).getQueryTimesByModel(suite, model, start, end,
+                QueryTimesResponse.class);
+        return result.stream()
+                .collect(Collectors.toMap(QueryTimesResponse::getModel, queryTimesResponse -> queryTimesResponse));
     }
 
     private List<ModelInfoResponse> getAllModelInfo() {
@@ -1145,10 +1146,10 @@ public class ModelService extends BasicService {
     }
 
     public List<ModelConfigResponse> getModelConfig(String project) {
-        val responseList = Lists.<ModelConfigResponse>newArrayList();
+        val responseList = Lists.<ModelConfigResponse> newArrayList();
         getDataModelManager(project).getDataModels().forEach(dataModel -> {
             val response = new ModelConfigResponse();
-            response.setModel(dataModel.getName());
+            response.setModel(dataModel.getUuid());
             response.setAlias(dataModel.getAlias());
             val segmentConfig = dataModel.getSegmentConfig();
             response.setAutoMergeEnabled(segmentConfig.getAutoMergeEnabled());
@@ -1157,10 +1158,10 @@ public class ModelService extends BasicService {
             response.setRetentionRange(segmentConfig.getRetentionRange());
             response.setConfigLastModified(dataModel.getConfigLastModified());
             response.setConfigLastModifier(dataModel.getConfigLastModifier());
-            val cubePlan = getCubePlan(dataModel.getName(), project);
-            if (cubePlan != null) {
-                val cubePlanLevelProps = cubePlan.getOverrideProps();
-                response.getOverrideProps().putAll(cubePlanLevelProps);
+            val indexPlan = getIndexPlan(dataModel.getUuid(), project);
+            if (indexPlan != null) {
+                val overrideProps = indexPlan.getOverrideProps();
+                response.getOverrideProps().putAll(overrideProps);
             }
             responseList.add(response);
         });
@@ -1168,9 +1169,9 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void updateModelConfig(String project, String modelName, ModelConfigRequest request) {
+    public void updateModelConfig(String project, String modelId, ModelConfigRequest request) {
         val dataModelManager = getDataModelManager(project);
-        dataModelManager.updateDataModel(modelName, copyForWrite -> {
+        dataModelManager.updateDataModel(modelId, copyForWrite -> {
             val segmentConfig = copyForWrite.getSegmentConfig();
             segmentConfig.setAutoMergeEnabled(request.getAutoMergeEnabled());
             segmentConfig.setAutoMergeTimeRanges(request.getAutoMergeTimeRanges());
@@ -1180,9 +1181,9 @@ public class ModelService extends BasicService {
             copyForWrite.setConfigLastModified(System.currentTimeMillis());
             copyForWrite.setConfigLastModifier(getUsername());
         });
-        val cubePlan = getCubePlan(modelName, project);
-        val cubePlanManager = getCubePlanManager(project);
-        cubePlanManager.updateCubePlan(cubePlan.getName(), copyForWrite -> {
+        val indexPlan = getIndexPlan(modelId, project);
+        val indexPlanManager = getIndexPlanManager(project);
+        indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             copyForWrite.setOverrideProps(request.getOverrideProps());
         });
     }

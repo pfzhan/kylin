@@ -93,9 +93,9 @@ public abstract class AbstractEventHandler implements EventHandler {
         checkNotNull(project);
         checkNotNull(NProjectManager.getInstance(kylinConfig).getProject(project));
         val execManager = NExecutableManager.getInstance(kylinConfig, project);
-        val runningCount = execManager.countByModelAndStatus(event.getModelName(), Sets.newHashSet(
+        val runningCount = execManager.countByModelAndStatus(event.getModelId(), Sets.newHashSet(
                 ExecutableState.RUNNING, ExecutableState.READY, ExecutableState.ERROR, ExecutableState.STOPPED));
-        log.debug("model {} has {} running jobs", event.getModelName(), runningCount);
+        log.debug("model {} has {} running jobs", event.getModelId(), runningCount);
         return runningCount == 0L;
     }
 
@@ -103,13 +103,13 @@ public abstract class AbstractEventHandler implements EventHandler {
      * must call this within a UnitOfWork!!
      * @return true if need continue
      */
-    protected boolean checkSubjectExists(String project, String cubePlanName, String segmentId, Event event) {
+    protected boolean checkSubjectExists(String project, String indexPlanId, String segmentId, Event event) {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
-        NDataflow df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(cubePlanName);
+        NDataflow df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(indexPlanId);
         if (df == null) {
-            log.info("event {} is no longer valid because its target cubeplan {} does not exist", event, cubePlanName);
+            log.info("event {} is no longer valid because its target index_plan {} does not exist", event, indexPlanId);
             return false;
         }
 

@@ -33,14 +33,14 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.LayoutEntity;
 
 public abstract class NSpanningTree implements Serializable {
-    final protected Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids;
+    final protected Map<IndexEntity, Collection<LayoutEntity>> cuboids;
     final protected String cacheKey;
 
-    public NSpanningTree(Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids, String cacheKey) {
+    public NSpanningTree(Map<IndexEntity, Collection<LayoutEntity>> cuboids, String cacheKey) {
         this.cuboids = cuboids;
         this.cacheKey = cacheKey;
     }
@@ -49,28 +49,28 @@ public abstract class NSpanningTree implements Serializable {
 
     abstract public int getCuboidCount();
 
-    abstract public Collection<NCuboidDesc> getRootCuboidDescs();
+    abstract public Collection<IndexEntity> getRootIndexEntities();
 
-    abstract public Collection<NCuboidLayout> getLayouts(NCuboidDesc cuboidDesc);
+    abstract public Collection<LayoutEntity> getLayouts(IndexEntity cuboidDesc);
 
-    abstract public Set<Integer> retrieveAllMeasures(NCuboidDesc root);
+    abstract public Set<Integer> retrieveAllMeasures(IndexEntity root);
 
-    abstract public NCuboidDesc getRootCuboidDesc(NCuboidDesc cuboidDesc);
+    abstract public IndexEntity getRootIndexEntity(IndexEntity cuboidDesc);
 
-    abstract public NCuboidDesc getCuboidDesc(long cuboidId);
+    abstract public IndexEntity getIndexEntity(long cuboidId);
 
-    abstract public NCuboidLayout getCuboidLayout(long cuboidLayoutId);
+    abstract public LayoutEntity getCuboidLayout(long cuboidLayoutId);
 
-    abstract public NCuboidDesc getParentCuboidDesc(NCuboidDesc cuboid);
+    abstract public IndexEntity getParentIndexEntity(IndexEntity cuboid);
 
-    abstract public Collection<NCuboidDesc> getSpanningCuboidDescs(NCuboidDesc cuboid);
+    abstract public Collection<IndexEntity> getSpanningIndexEntities(IndexEntity cuboid);
 
-    abstract public Collection<NCuboidDesc> getAllCuboidDescs();
+    abstract public Collection<IndexEntity> getAllIndexEntities();
 
     abstract public void acceptVisitor(ISpanningTreeVisitor matcher);
 
     public interface ISpanningTreeVisitor {
-        boolean visit(NCuboidDesc cuboidDesc);
+        boolean visit(IndexEntity cuboidDesc);
 
         NLayoutCandidate getBestLayoutCandidate();
     }
@@ -79,26 +79,26 @@ public abstract class NSpanningTree implements Serializable {
         return cacheKey;
     }
 
-    public Map<NCuboidDesc, Collection<NCuboidLayout>> getCuboids() {
+    public Map<IndexEntity, Collection<LayoutEntity>> getCuboids() {
         return cuboids;
     }
 
-    private transient List<Collection<NCuboidDesc>> cuboidsByLayer;
+    private transient List<Collection<IndexEntity>> cuboidsByLayer;
 
-    public List<Collection<NCuboidDesc>> getCuboidsByLayer() {
+    public List<Collection<IndexEntity>> getCuboidsByLayer() {
         if (cuboidsByLayer != null) {
             return cuboidsByLayer;
         }
 
         int totalNum = 0;
         cuboidsByLayer = Lists.newArrayList();
-        cuboidsByLayer.add(getRootCuboidDescs());
-        Collection<NCuboidDesc> lastLayer = cuboidsByLayer.get(cuboidsByLayer.size() - 1);
+        cuboidsByLayer.add(getRootIndexEntities());
+        Collection<IndexEntity> lastLayer = cuboidsByLayer.get(cuboidsByLayer.size() - 1);
         totalNum += lastLayer.size();
         while (!lastLayer.isEmpty()) {
-            List<NCuboidDesc> newLayer = Lists.newArrayList();
-            for (NCuboidDesc parent : lastLayer) {
-                newLayer.addAll(getSpanningCuboidDescs(parent));
+            List<IndexEntity> newLayer = Lists.newArrayList();
+            for (IndexEntity parent : lastLayer) {
+                newLayer.addAll(getSpanningIndexEntities(parent));
             }
             if (newLayer.isEmpty()) {
                 break;

@@ -45,8 +45,8 @@ public class ExecutableUtils {
         return ResourceStore.getKylinMetaStore(buildConfig);
     }
 
-    public static String getDataflowName(AbstractExecutable buildTask) {
-        return buildTask.getParam(NBatchConstants.P_DATAFLOW_NAME);
+    public static String getDataflowId(AbstractExecutable buildTask) {
+        return buildTask.getParam(NBatchConstants.P_DATAFLOW_ID);
     }
 
     public static Set<String> getSegmentIds(AbstractExecutable buildTask) {
@@ -55,7 +55,7 @@ public class ExecutableUtils {
     }
 
     public static Set<Long> getLayoutIds(AbstractExecutable buildTask) {
-        return Stream.of(StringUtils.split(buildTask.getParam(NBatchConstants.P_CUBOID_LAYOUT_IDS), ","))
+        return Stream.of(StringUtils.split(buildTask.getParam(NBatchConstants.P_LAYOUT_IDS), ","))
                 .map(Long::parseLong).collect(Collectors.toSet());
 
     }

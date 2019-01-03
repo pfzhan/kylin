@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.kylin.common.util.ImmutableBitSet;
 import org.apache.kylin.cube.gridtable.GridTableMapping;
 import org.apache.kylin.dimension.DimensionEncoding;
@@ -41,13 +42,12 @@ import org.apache.kylin.metadata.model.TblColRef;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 public class NCuboidToGridTableMapping extends GridTableMapping {
-    private final NCuboidLayout cuboidLayout;
+    private final LayoutEntity cuboidLayout;
 
-    public NCuboidToGridTableMapping(NCuboidLayout cuboidLayout) {
+    public NCuboidToGridTableMapping(LayoutEntity cuboidLayout) {
         this.cuboidLayout = cuboidLayout;
         init();
     }

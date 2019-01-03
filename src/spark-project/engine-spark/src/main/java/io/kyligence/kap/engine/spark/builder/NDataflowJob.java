@@ -53,17 +53,17 @@ public abstract class NDataflowJob extends AbstractApplication {
     protected static final Logger logger = LoggerFactory.getLogger(NDataflowJob.class);
 
     @SuppressWarnings("static-access")
-    public static final Option OPTION_DATAFLOW_NAME = OptionBuilder.withArgName(NBatchConstants.P_DATAFLOW_NAME)
-            .hasArg().isRequired(true).withDescription("DataFlow Name").create(NBatchConstants.P_DATAFLOW_NAME);
+    public static final Option OPTION_DATAFLOW_ID = OptionBuilder.withArgName(NBatchConstants.P_DATAFLOW_ID)
+            .hasArg().isRequired(true).withDescription("DataFlow Id").create(NBatchConstants.P_DATAFLOW_ID);
     @SuppressWarnings("static-access")
     public static final Option OPTION_PROJECT_NAME = OptionBuilder.withArgName(NBatchConstants.P_PROJECT_NAME).hasArg()
-            .isRequired(true).withDescription("DataFlow Name").create(NBatchConstants.P_PROJECT_NAME);
+            .isRequired(true).withDescription("Project Name").create(NBatchConstants.P_PROJECT_NAME);
     @SuppressWarnings("static-access")
     public static final Option OPTION_SEGMENT_IDS = OptionBuilder.withArgName(NBatchConstants.P_SEGMENT_IDS).hasArg()
             .isRequired(true).withDescription("Segment indices").create(NBatchConstants.P_SEGMENT_IDS);
     @SuppressWarnings("static-access")
-    public static final Option OPTION_LAYOUT_ID_PATH = OptionBuilder.withArgName(NBatchConstants.P_CUBOID_LAYOUT_ID_PATH)
-            .hasArg().isRequired(true).withDescription("Layout indices").create(NBatchConstants.P_CUBOID_LAYOUT_ID_PATH);
+    public static final Option OPTION_LAYOUT_ID_PATH = OptionBuilder.withArgName(NBatchConstants.P_LAYOUT_ID_PATH)
+            .hasArg().isRequired(true).withDescription("Layout indices").create(NBatchConstants.P_LAYOUT_ID_PATH);
     @SuppressWarnings("static-access")
     public static final Option OPTION_META_URL = OptionBuilder.withArgName(NBatchConstants.P_DIST_META_URL).hasArg()
             .isRequired(true).withDescription("Cubing metadata url").create(NBatchConstants.P_DIST_META_URL);
@@ -85,7 +85,7 @@ public abstract class NDataflowJob extends AbstractApplication {
     @Override
     protected Options getOptions() {
         Options options = new Options();
-        options.addOption(OPTION_DATAFLOW_NAME);
+        options.addOption(OPTION_DATAFLOW_ID);
         options.addOption(OPTION_PROJECT_NAME);
         options.addOption(OPTION_SEGMENT_IDS);
         options.addOption(OPTION_LAYOUT_ID_PATH);

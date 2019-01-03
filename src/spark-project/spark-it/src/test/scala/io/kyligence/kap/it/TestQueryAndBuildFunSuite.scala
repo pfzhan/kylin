@@ -163,11 +163,11 @@ class TestQueryAndBuildFunSuite
       logInfo("Direct query")
     } else {
       if ("true" == System.getProperty("isDeveloperMode", "false")) {
-        fullBuildCube("ncube_basic")
-        fullBuildCube("ncube_basic_inner")
+        fullBuildCube("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+        fullBuildCube("741ca86a-1f13-46da-a59f-95fb68615e3a")
       } else {
-        buildFourSegementAndMerge("ncube_basic")
-        buildFourSegementAndMerge("ncube_basic_inner")
+        buildFourSegementAndMerge("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+        buildFourSegementAndMerge("741ca86a-1f13-46da-a59f-95fb68615e3a")
       }
 
       // replace metadata with new one after build

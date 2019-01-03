@@ -25,13 +25,13 @@
 package io.kyligence.kap.cube.model;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -89,7 +89,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         this.crud = new CachedCrudAssist<NDataflow>(getStore(), resourceRootPath, NDataflow.class) {
             @Override
             protected NDataflow initEntityAfterReload(NDataflow df, String resourceName) {
-                NCubePlan plan = NCubePlanManager.getInstance(config, project).getCubePlan(df.getCubePlanName());
+                IndexPlan plan = NIndexPlanManager.getInstance(config, project).getIndexPlan(df.getUuid());
                 df.initAfterReload((KylinConfigExt) plan.getConfig(), project);
                 return df;
             }
@@ -101,11 +101,11 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataflow removeLayouts(NDataflow df, Collection<Long> tobeRemoveCuboidLayoutIds) {
-        List<NDataCuboid> tobeRemoveCuboidLayout = Lists.newArrayList();
+        List<NDataLayout> tobeRemoveCuboidLayout = Lists.newArrayList();
         Segments<NDataSegment> segments = df.getSegments();
         for (NDataSegment segment : segments) {
             for (Long tobeRemoveCuboidLayoutId : tobeRemoveCuboidLayoutIds) {
-                NDataCuboid dataCuboid = segment.getCuboid(tobeRemoveCuboidLayoutId);
+                NDataLayout dataCuboid = segment.getLayout(tobeRemoveCuboidLayoutId);
                 if (dataCuboid == null) {
                     continue;
                 }
@@ -114,8 +114,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         }
 
         if (CollectionUtils.isNotEmpty(tobeRemoveCuboidLayout)) {
-            NDataflowUpdate update = new NDataflowUpdate(df.getName());
-            update.setToRemoveCuboids(tobeRemoveCuboidLayout.toArray(new NDataCuboid[0]));
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+            update.setToRemoveCuboids(tobeRemoveCuboidLayout.toArray(new NDataLayout[0]));
             return updateDataflow(update);
         }
         return df;
@@ -143,40 +143,13 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return crud.get(name);
     }
 
-    public NDataflow getDataflowByUuid(String uuid) {
-        Collection<NDataflow> copy = crud.listAll();
-        for (NDataflow df : copy) {
-            if (uuid.equals(df.getUuid()))
-                return df;
-        }
-        return null;
+    public NDataflow getDataflowByModelAlias(String name) {
+        return crud.listAll().stream().filter(dataflow -> Objects.equals(dataflow.getModelAlias(), name)).findFirst()
+                .orElse(null);
     }
 
-    public NDataflow getDataflowByModelName(String name) {
-        for (NDataflow dataflow : listAllDataflows()) {
-            if (dataflow.getModel().getName().equals(name)) {
-                return dataflow;
-            }
-        }
-
-        return null;
-    }
-
-    public List<NDataflow> getDataflowsByCubePlan(String cubePlan) {
-        List<NDataflow> list = listAllDataflows();
-        List<NDataflow> result = new ArrayList<NDataflow>();
-        Iterator<NDataflow> it = list.iterator();
-        while (it.hasNext()) {
-            NDataflow df = it.next();
-            if (cubePlan.equals(df.getCubePlanName())) {
-                result.add(df);
-            }
-        }
-        return result;
-    }
-
-    public NDataflow createDataflow(String dfName, NCubePlan plan, String owner) {
-        NDataflow df = NDataflow.create(dfName, plan);
+    public NDataflow createDataflow(IndexPlan plan, String owner) {
+        NDataflow df = NDataflow.create(plan);
         df.initAfterReload((KylinConfigExt) plan.getConfig(), project);
 
         // save dataflow
@@ -221,7 +194,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
             newSegment.setStatus(SegmentStatusEnum.READY);
             segs.add(newSegment);
         });
-        val update = new NDataflowUpdate(df.getName());
+        val update = new NDataflowUpdate(df.getUuid());
         update.setToAddSegs(segs.toArray(new NDataSegment[0]));
         updateDataflow(update);
     }
@@ -231,7 +204,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         NDataSegment newSegment = newSegment(df, segRange);
         validateNewSegments(df, newSegment);
 
-        NDataflowUpdate upd = new NDataflowUpdate(df.getName());
+        NDataflowUpdate upd = new NDataflowUpdate(df.getUuid());
         upd.setToAddSegs(newSegment);
         updateDataflow(upd);
         return newSegment;
@@ -256,7 +229,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
         newSegment.setSegmentRange(toRefreshSeg.getSegRange());
 
-        NDataflowUpdate upd = new NDataflowUpdate(df.getName());
+        NDataflowUpdate upd = new NDataflowUpdate(df.getUuid());
         upd.setToAddSegs(newSegment);
         updateDataflow(upd);
 
@@ -282,7 +255,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         for (int i = 1; i < mergingSegments.size(); i++) {
             NDataSegment dataSegment = mergingSegments.get(i);
             NDataSegDetails details = dataSegment.getSegDetails();
-            if (!firstSegDetails.checkCuboidsBeforeMerge(details))
+            if (!firstSegDetails.checkLayoutsBeforeMerge(details))
                 throw new IllegalArgumentException(first + " and " + dataSegment + " has different layout status");
         }
 
@@ -295,7 +268,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
 
             List<String> emptySegment = Lists.newArrayList();
             for (NDataSegment seg : mergingSegments) {
-                if (seg.getSegDetails().getTotalCuboidRowCount() == 0) {
+                if (seg.getSegDetails().getTotalRowCount() == 0) {
                     emptySegment.add(seg.getName());
                 }
             }
@@ -311,7 +284,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         newSegment.setTimeRange(new TimeRange(first.getTSRange().getStart(), last.getTSRange().getEnd()));
         validateNewSegments(dataflowCopy, newSegment);
 
-        NDataflowUpdate update = new NDataflowUpdate(dataflowCopy.getName());
+        NDataflowUpdate update = new NDataflowUpdate(dataflowCopy.getUuid());
         update.setToAddSegs(newSegment);
         updateDataflow(update);
         return newSegment;
@@ -343,7 +316,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         List<NDataSegment> tobe = df.calculateToBeSegments(newSegments);
         List<NDataSegment> newList = Arrays.asList(newSegments);
         if (!tobe.containsAll(newList)) {
-            throw new IllegalStateException("For NDataflow " + df.getName() + ", the new segments " + newList
+            throw new IllegalStateException("For NDataflow " + df + ", the new segments " + newList
                     + " do not fit in its current " + df.getSegments() + "; the resulted tobe is " + tobe);
         }
     }
@@ -380,7 +353,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         val models = NDataModelManager.getInstance(config, project).getTableOrientedModelsUsingRootTable(table);
         List<NDataflow> dataflows = Lists.newArrayList();
         for (val model : models) {
-            dataflows.add(getDataflowByModelName(model));
+            dataflows.add(getDataflow(model.getUuid()));
         }
         return dataflows.stream().filter(dataflow -> dataflow.getStatus().equals(status)).collect(Collectors.toList());
 
@@ -401,7 +374,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         if (CollectionUtils.isEmpty(segsToRemove)) {
             return df;
         }
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(segsToRemove.toArray(new NDataSegment[segsToRemove.size()]));
         val loadingRangeManager = NDataLoadingRangeManager.getInstance(config, project);
         val model = df.getModel();
@@ -417,30 +390,33 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         NDataflow cached = getDataflow(dfName);
         NDataflow copy = copy(cached);
         updater.modify(copy);
+        if (copy.getSegments().stream().map(seg -> seg.getLayoutsMap().keySet()).distinct().count() > 1) {
+            logger.warn("Dataflow <{}> is not a prefect square", dfName);
+        }
         return crud.save(copy);
     }
 
     public long getSegmentSize(NDataSegment segment) {
         long size = 0L;
-        Collection<NDataCuboid> nDataCuboids = segment.getCuboidsMap().values();
-        for (NDataCuboid nDataCuboid : nDataCuboids) {
-            size += nDataCuboid.getByteSize();
+        Collection<NDataLayout> dataLayouts = segment.getLayoutsMap().values();
+        for (NDataLayout dataLayout : dataLayouts) {
+            size += dataLayout.getByteSize();
         }
         return size;
     }
 
     public long getSegmentFileCount(NDataSegment segment) {
         long fileCount = 0L;
-        Collection<NDataCuboid> nDataCuboids = segment.getCuboidsMap().values();
-        for (NDataCuboid nDataCuboid : nDataCuboids) {
-            fileCount += nDataCuboid.getFileCount();
+        Collection<NDataLayout> dataLayouts = segment.getLayoutsMap().values();
+        for (NDataLayout dataLayout : dataLayouts) {
+            fileCount += dataLayout.getFileCount();
         }
         return fileCount;
     }
 
-    public long getDataflowByteSize(String model) {
+    public long getDataflowByteSize(String modelId) {
         var byteSize = 0L;
-        val dataflow = getDataflowByModelName(model);
+        val dataflow = getDataflow(modelId);
         for (val segment : dataflow.getSegments(SegmentStatusEnum.READY)) {
             byteSize += getSegmentSize(segment);
         }
@@ -448,7 +424,7 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     public NDataflow updateDataflow(final NDataflowUpdate update) {
-        return updateDataflow(update.getDataflowName(), copyForWrite -> {
+        return updateDataflow(update.getDataflowId(), copyForWrite -> {
             NDataflow df = copyForWrite;
             Segments<NDataSegment> newSegs = (Segments<NDataSegment>) df.getSegments().clone();
 

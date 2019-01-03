@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.event.handle;
 
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NDataLayout;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -54,13 +54,13 @@ public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
         doHandle(eventContext, executable);
     }
 
-    protected void recordDownJobStats(AbstractExecutable buildTask, NDataCuboid[] addOrUpdateCuboids) {
+    protected void recordDownJobStats(AbstractExecutable buildTask, NDataLayout[] addOrUpdateCuboids) {
         String model = buildTask.getTargetModel();
         long buildEndTime = buildTask.getParent().getEndTime();
         long duration = buildTask.getParent().getDuration();
         long byteSize = 0;
 
-        for (NDataCuboid dataCuboid : addOrUpdateCuboids) {
+        for (NDataLayout dataCuboid : addOrUpdateCuboids) {
             byteSize += dataCuboid.getByteSize();
         }
 

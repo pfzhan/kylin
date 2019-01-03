@@ -27,13 +27,13 @@ package io.kyligence.kap.engine.spark.merger;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.model.NDataLayout;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.clearspring.analytics.util.Lists;
 
-import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -50,15 +50,15 @@ public class AfterMergeOrRefreshResourceMerger {
         this.project = project;
     }
 
-    public NDataCuboid[] mergeAfterJob(String dataflowName, String segmentId, ResourceStore remoteResourceStore) {
+    public NDataLayout[] mergeAfterJob(String dataflowId, String segmentId, ResourceStore remoteResourceStore) {
         NDataflowManager mgr = NDataflowManager.getInstance(config, project);
-        NDataflowUpdate update = new NDataflowUpdate(dataflowName);
+        NDataflowUpdate update = new NDataflowUpdate(dataflowId);
 
         NDataflowManager distMgr = NDataflowManager.getInstance(remoteResourceStore.getConfig(), project);
-        NDataflow distDataflow = distMgr.getDataflow(update.getDataflowName()).copy(); // avoid changing cached objects
+        NDataflow distDataflow = distMgr.getDataflow(update.getDataflowId()).copy(); // avoid changing cached objects
 
         List<NDataSegment> toUpdateSegments = Lists.newArrayList();
-        List<NDataCuboid> toUpdateCuboids = Lists.newArrayList();
+        List<NDataLayout> toUpdateCuboids = Lists.newArrayList();
 
         NDataSegment mergedSegment = distDataflow.getSegment(segmentId);
 
@@ -69,12 +69,12 @@ public class AfterMergeOrRefreshResourceMerger {
 
         // only add layouts which still in segments, others maybe deleted by user
         List<NDataSegment> toRemoveSegments = distMgr.getToRemoveSegs(distDataflow, mergedSegment);
-        val livedLayouts = mgr.getDataflow(dataflowName).getLatestReadySegment().getCuboidsMap().values().stream()
-                .map(NDataCuboid::getCuboidLayoutId).collect(Collectors.toSet());
-        toUpdateCuboids.addAll(mergedSegment.getSegDetails().getCuboids().stream()
-                .filter(c -> livedLayouts.contains(c.getCuboidLayoutId())).collect(Collectors.toList()));
+        val livedLayouts = mgr.getDataflow(dataflowId).getLatestReadySegment().getLayoutsMap().values().stream()
+                .map(NDataLayout::getLayoutId).collect(Collectors.toSet());
+        toUpdateCuboids.addAll(mergedSegment.getSegDetails().getLayouts().stream()
+                .filter(c -> livedLayouts.contains(c.getLayoutId())).collect(Collectors.toList()));
 
-        update.setToAddOrUpdateCuboids(toUpdateCuboids.toArray(new NDataCuboid[0]));
+        update.setToAddOrUpdateCuboids(toUpdateCuboids.toArray(new NDataLayout[0]));
         update.setToRemoveSegs(toRemoveSegments.toArray(new NDataSegment[0]));
         update.setToUpdateSegs(toUpdateSegments.toArray(new NDataSegment[0]));
 

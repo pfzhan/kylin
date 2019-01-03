@@ -54,8 +54,8 @@ import lombok.Setter;
 public class CuboidLayoutQueryTimes {
     @Column(name = "model")
     private String modelId;
-    @Column(name = "cuboid_layout_id")
-    private String cuboidLayoutId;
+    @Column(name = "layout_id")
+    private String layoutId;
     @Column(name = "query_times")
     private int queryTimes;
 }

@@ -28,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.TblColRef;
 
@@ -35,9 +37,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
 import io.kyligence.kap.metadata.model.NDataModel.NamedColumn;
@@ -55,8 +55,8 @@ public class NModelShrinkProposer extends NAbstractProposer {
             return;
 
         for (NSmartContext.NModelContext modelCtx : smartContext.getModelContexts()) {
-            if (modelCtx.getOrigModel() == null || modelCtx.getOrigCubePlan() == null
-                    || modelCtx.getTargetCubePlan() == null) {
+            if (modelCtx.getOrigModel() == null || modelCtx.getOrigIndexPlan() == null
+                    || modelCtx.getTargetIndexPlan() == null) {
                 continue;
             }
 
@@ -66,16 +66,16 @@ public class NModelShrinkProposer extends NAbstractProposer {
             Map<Integer, Measure> measures = Maps.newHashMap();
             truncateModel(model, namedColumnsById, namedColumnsByName, measures);
 
-            Map<String, NCubePlan> modelCubePlans = Maps.newHashMap();
-            List<NCubePlan> allCubePlans = NCubePlanManager.getInstance(kylinConfig, project).listAllCubePlans();
-            for (NCubePlan cubePlan : allCubePlans) {
-                if (model.getName().equals(cubePlan.getModelName())) {
-                    modelCubePlans.put(cubePlan.getName(), cubePlan);
+            Map<String, IndexPlan> modelIndexPlans = Maps.newHashMap();
+            List<IndexPlan> allIndexPlans = NIndexPlanManager.getInstance(kylinConfig, project).listAllIndexPlans();
+            for (IndexPlan indexPlan : allIndexPlans) {
+                if (model.getUuid().equals(indexPlan.getUuid())) {
+                    modelIndexPlans.put(indexPlan.getUuid(), indexPlan);
                 }
             }
-            NCubePlan targetCubePlan = modelCtx.getTargetCubePlan();
-            modelCubePlans.put(targetCubePlan.getName(), targetCubePlan);
-            refillModel(modelCubePlans, namedColumnsById, namedColumnsByName, measures);
+            IndexPlan targetIndexPlan = modelCtx.getTargetIndexPlan();
+            modelIndexPlans.put(targetIndexPlan.getUuid(), targetIndexPlan);
+            refillModel(modelIndexPlans, namedColumnsById, namedColumnsByName, measures);
 
             initModel(model);
         }
@@ -108,16 +108,16 @@ public class NModelShrinkProposer extends NAbstractProposer {
         }
     }
 
-    private void refillModel(Map<String, NCubePlan> modelCubePlans, Map<Integer, NamedColumn> colsById,
-            Map<String, NamedColumn> colsByName, Map<Integer, Measure> measures) {
+    private void refillModel(Map<String, IndexPlan> modelIndexPlans, Map<Integer, NamedColumn> colsById,
+                             Map<String, NamedColumn> colsByName, Map<Integer, Measure> measures) {
         Set<NamedColumn> usedCols = Sets.newHashSet();
         Set<Measure> usedMeasures = Sets.newHashSet();
-        for (NCubePlan cubePlan : modelCubePlans.values()) {
-            for (NCuboidDesc cuboidDesc : cubePlan.getAllCuboids()) {
-                for (int id : cuboidDesc.getDimensions()) {
+        for (IndexPlan indexPlan : modelIndexPlans.values()) {
+            for (IndexEntity indexEntity : indexPlan.getAllIndexes()) {
+                for (int id : indexEntity.getDimensions()) {
                     usedCols.add(colsById.get(id));
                 }
-                for (int id : cuboidDesc.getMeasures()) {
+                for (int id : indexEntity.getMeasures()) {
                     usedMeasures.add(measures.get(id));
                 }
             }
@@ -138,6 +138,6 @@ public class NModelShrinkProposer extends NAbstractProposer {
 
     private void initModel(NDataModel modelDesc) {
         final NTableMetadataManager manager = NTableMetadataManager.getInstance(kylinConfig, project);
-        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), false, project);
+        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), project);
     }
 }

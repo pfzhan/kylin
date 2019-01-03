@@ -47,7 +47,7 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
     @Test
     public void testMatch() {
         NDataModel modelDesc = NDataModelManager.getInstance(getTestConfig(), "default")
-                .getDataModelDesc("nmodel_basic");
+                .getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         JoinsGraph orderIJFactGraph = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
                 .innerJoin(new String[] { "TEST_ORDER.ORDER_ID" }, new String[] { "TEST_KYLIN_FACT.ORDER_ID" }).build();
@@ -65,7 +65,7 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
     @Test
     public void testMatchDupJoinTable() {
         NDataModel modelDesc = NDataModelManager.getInstance(getTestConfig(), "default")
-                .getDataModelDesc("nmodel_basic");
+                .getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         JoinsGraph graph1 = new MockJoinGraphBuilder(modelDesc, "TEST_ORDER")
                 .innerJoin(new String[] { "TEST_ORDER.BUYER_ID" }, new String[] { "BUYER_ACCOUNT.ACCOUNT_ID" })
@@ -97,7 +97,7 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
     @Test
     public void testMatchLeft() {
         NDataModel modelDesc = NDataModelManager.getInstance(getTestConfig(), "default")
-                .getDataModelDesc("nmodel_basic");
+                .getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         JoinsGraph modelJoinsGraph = modelDesc.getJoinsGraph();
 
         JoinsGraph singleTblGraph = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT").build();
@@ -124,7 +124,7 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
     @Test
     public void testMatchInner() {
         NDataModel modelDesc = NDataModelManager.getInstance(getTestConfig(), "default")
-                .getDataModelDesc("nmodel_basic_inner");
+                .getDataModelDescByAlias("nmodel_basic_inner");
         JoinsGraph modelJoinsGraph = modelDesc.getJoinsGraph();
 
         JoinsGraph singleTblGraph = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT").build();
@@ -151,7 +151,7 @@ public class JoinsGraphTest extends NLocalFileMetadataTestCase {
     @Test
     public void testPartialMatch() {
         NDataModel modelDesc = NDataModelManager.getInstance(getTestConfig(), "default")
-                .getDataModelDesc("nmodel_basic_inner");
+                .getDataModelDescByAlias("nmodel_basic_inner");
         JoinsGraph modelJoinsGraph = modelDesc.getJoinsGraph();
 
         JoinsGraph factJoinGraph = new MockJoinGraphBuilder(modelDesc, "TEST_KYLIN_FACT")

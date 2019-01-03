@@ -100,7 +100,7 @@ public class NBasicControllerTest {
 
     @Test
     public void testCheckRequiredArgPass() {
-        nBasicController.checkRequiredArg("model", "modelName");
+        nBasicController.checkRequiredArg("model", "modelId");
         assert true;
     }
 

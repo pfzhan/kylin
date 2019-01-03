@@ -66,14 +66,14 @@ public class NModelSelectProposer extends NAbstractProposer {
         for (NSmartContext.NModelContext modelContext : modelContexts) {
             ModelTree modelTree = modelContext.getModelTree();
             NDataModel model = compareWithFactTable(modelTree);
-            if (model == null || selectedModel.contains(model.getName())) {
+            if (model == null || selectedModel.contains(model.getUuid())) {
                 // original model is allowed to be selected one context in batch
                 // to avoid modification conflict
                 continue;
             }
             // found matched, then use it
             modelContext.setOrigModel(model);
-            selectedModel.add(model.getName());
+            selectedModel.add(model.getUuid());
             NDataModel targetModel = NDataModel.getCopyOf(model);
             initModel(targetModel);
             targetModel.getComputedColumnDescs()
@@ -100,7 +100,7 @@ public class NModelSelectProposer extends NAbstractProposer {
 
     private void initModel(NDataModel modelDesc) {
         final NTableMetadataManager manager = NTableMetadataManager.getInstance(kylinConfig, project);
-        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), false, project);
+        modelDesc.init(kylinConfig, manager.getAllTablesMap(), Lists.newArrayList(), project);
     }
 
     private NDataModel compareWithFactTable(ModelTree modelTree) {

@@ -53,7 +53,7 @@ import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.metadata.acl.TableACLManager;
 
-import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.event.manager.EventDao;
@@ -87,8 +87,8 @@ public abstract class BasicService {
         return NDataflowManager.getInstance(getConfig(), project);
     }
 
-    public NCubePlanManager getCubePlanManager(String project) {
-        return NCubePlanManager.getInstance(getConfig(), project);
+    public NIndexPlanManager getIndexPlanManager(String project) {
+        return NIndexPlanManager.getInstance(getConfig(), project);
     }
 
     public NDataLoadingRangeManager getDataLoadingRangeManager(String project) {

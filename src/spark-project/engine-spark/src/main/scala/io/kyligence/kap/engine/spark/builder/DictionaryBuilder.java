@@ -30,6 +30,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -49,9 +51,7 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.cube.model.NDataSegment;
 import scala.Tuple2;
 
@@ -91,7 +91,7 @@ public class DictionaryBuilder {
         lock.lock(getLockPath(sourceColumn), Long.MAX_VALUE);
         try {
             if (lock.lock(getLockPath(sourceColumn))) {
-                int id = seg.getDataflow().getCubePlan().getModel().getColumnIdByColumnName(col.getIdentity());
+                int id = seg.getDataflow().getIndexPlan().getModel().getColumnIdByColumnName(col.getIdentity());
                 Dataset<Row> afterDistinct = dataSet.select(String.valueOf(id)).distinct();
                 int bucketPartitionSize = calculateBucketSize(col, afterDistinct);
                 build(col, bucketPartitionSize, afterDistinct);
@@ -204,11 +204,11 @@ public class DictionaryBuilder {
 
     private static Set<TblColRef> extractGlobalColumns(NDataSegment seg, NSpanningTree toBuildTree, Boolean isBuild) {
 
-        Collection<NCuboidDesc> toBuildCuboidDescs = toBuildTree.getAllCuboidDescs();
-        List<NCuboidLayout> toBuildCuboids = Lists.newArrayList();
-        for (NCuboidDesc desc : toBuildCuboidDescs) {
+        Collection<IndexEntity> toBuildIndexEntities = toBuildTree.getAllIndexEntities();
+        List<LayoutEntity> toBuildCuboids = Lists.newArrayList();
+        for (IndexEntity desc : toBuildIndexEntities) {
             if (isBuild) {
-                NCuboidLayout layout = NCuboidLayoutChooser.selectLayoutForBuild(seg,
+                LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(seg,
                         desc.getEffectiveDimCols().keySet(), toBuildTree.retrieveAllMeasures(desc));
                 if (layout == null) {
                     toBuildCuboids.addAll(desc.getLayouts());
@@ -218,10 +218,10 @@ public class DictionaryBuilder {
             }
         }
 
-        List<NCuboidLayout> buildedLayouts = Lists.newArrayList();
+        List<LayoutEntity> buildedLayouts = Lists.newArrayList();
         if (seg.getSegDetails() != null && isBuild) {
-            for (NDataCuboid cuboid : seg.getSegDetails().getCuboids()) {
-                buildedLayouts.add(cuboid.getCuboidLayout());
+            for (NDataLayout cuboid : seg.getSegDetails().getLayouts()) {
+                buildedLayouts.add(cuboid.getLayout());
             }
         }
         Set<TblColRef> buildedColRefSet = findNeedDictCols(buildedLayouts);
@@ -230,10 +230,10 @@ public class DictionaryBuilder {
         return toBuildColRefSet;
     }
 
-    private static Set<TblColRef> findNeedDictCols(List<NCuboidLayout> layouts) {
+    private static Set<TblColRef> findNeedDictCols(List<LayoutEntity> layouts) {
         Set<TblColRef> dictColSet = Sets.newHashSet();
-        for (NCuboidLayout layout : layouts) {
-            for (MeasureDesc measureDesc : layout.getCuboidDesc().getEffectiveMeasures().values()) {
+        for (LayoutEntity layout : layouts) {
+            for (MeasureDesc measureDesc : layout.getIndex().getEffectiveMeasures().values()) {
                 if (NDictionaryBuilder.needGlobalDictionary(measureDesc) == null)
                     continue;
                 TblColRef col = measureDesc.getFunction().getParameter().getColRef();

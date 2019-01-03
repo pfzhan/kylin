@@ -27,6 +27,8 @@ package io.kyligence.kap.smart;
 import java.io.IOException;
 import java.util.List;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.Assert;
@@ -34,9 +36,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
@@ -48,7 +48,7 @@ public class NSmartMasterBasicTest extends NTestBase {
 
     private NTableMetadataManager tableMetadataManager;
     private NDataModelManager dataModelManager;
-    private NCubePlanManager cubePlanManager;
+    private NIndexPlanManager indexPlanManager;
     private NDataflowManager dataflowManager;
 
     @Before
@@ -57,7 +57,7 @@ public class NSmartMasterBasicTest extends NTestBase {
         setUp();
         tableMetadataManager = NTableMetadataManager.getInstance(kylinConfig, proj);
         dataModelManager = NDataModelManager.getInstance(kylinConfig, proj);
-        cubePlanManager = NCubePlanManager.getInstance(kylinConfig, proj);
+        indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, proj);
         dataflowManager = NDataflowManager.getInstance(kylinConfig, proj);
     }
 
@@ -138,38 +138,38 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // select cube_plan
         {
-            smartMaster.selectCubePlan();
+            smartMaster.selectIndexPlan();
             NSmartContext ctx = smartMaster.getContext();
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-            Assert.assertNull(mdCtx.getTargetCubePlan());
-            Assert.assertNull(mdCtx.getOrigCubePlan());
+            Assert.assertNull(mdCtx.getTargetIndexPlan());
+            Assert.assertNull(mdCtx.getOrigIndexPlan());
         }
 
         // opt cube_plan
         {
-            smartMaster.optimizeCubePlan();
+            smartMaster.optimizeIndexPlan();
             NSmartContext ctx = smartMaster.getContext();
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-            NCubePlan cubePlan = mdCtx.getTargetCubePlan();
-            Assert.assertNotNull(cubePlan);
-            Assert.assertEquals(mdCtx.getTargetModel().getName(), cubePlan.getModelName());
+            IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
+            Assert.assertNotNull(indexPlan);
+            Assert.assertEquals(mdCtx.getTargetModel().getUuid(), indexPlan.getUuid());
 
-            List<NCuboidDesc> cuboidDescs = cubePlan.getAllCuboids();
-            Assert.assertEquals(2, cuboidDescs.size());
-            Assert.assertEquals(3, collectAllLayouts(cuboidDescs).size());
+            List<IndexEntity> indexEntities = indexPlan.getAllIndexes();
+            Assert.assertEquals(2, indexEntities.size());
+            Assert.assertEquals(3, collectAllLayouts(indexEntities).size());
         }
 
         // save
         {
             Assert.assertEquals(0, dataModelManager.getDataModels().size());
-            Assert.assertEquals(0, cubePlanManager.listAllCubePlans().size());
+            Assert.assertEquals(0, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(0, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveModel();
-            smartMaster.saveCubePlan();
+            smartMaster.saveIndexPlan();
 
             Assert.assertEquals(1, dataModelManager.getDataModels().size());
-            Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
+            Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
         }
     }
@@ -221,46 +221,46 @@ public class NSmartMasterBasicTest extends NTestBase {
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
             NDataModel model = mdCtx.getTargetModel();
             Assert.assertEquals(kylinSalesTblDesc, model.getRootFactTable().getTableDesc());
-            Assert.assertEquals(model.getName(), mdCtx.getOrigModel().getName());
+            Assert.assertEquals(model.getUuid(), mdCtx.getOrigModel().getUuid());
             Assert.assertFalse(model.getEffectiveColsMap().isEmpty());
             Assert.assertFalse(model.getEffectiveMeasureMap().isEmpty());
         }
 
         // select cube_plan
         {
-            smartMaster.selectCubePlan();
+            smartMaster.selectIndexPlan();
             NSmartContext ctx = smartMaster.getContext();
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-            Assert.assertNotNull(mdCtx.getTargetCubePlan());
-            Assert.assertNotNull(mdCtx.getOrigCubePlan());
+            Assert.assertNotNull(mdCtx.getTargetIndexPlan());
+            Assert.assertNotNull(mdCtx.getOrigIndexPlan());
         }
 
         // opt cube_plan
         {
-            smartMaster.optimizeCubePlan();
+            smartMaster.optimizeIndexPlan();
             NSmartContext ctx = smartMaster.getContext();
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-            NCubePlan cubePlan = mdCtx.getTargetCubePlan();
-            Assert.assertNotNull(cubePlan);
-            Assert.assertEquals(cubePlan.getName(), mdCtx.getOrigCubePlan().getName());
-            Assert.assertEquals(mdCtx.getTargetModel().getName(), cubePlan.getModelName());
+            IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
+            Assert.assertNotNull(indexPlan);
+            Assert.assertEquals(indexPlan.getUuid(), mdCtx.getOrigIndexPlan().getUuid());
+            Assert.assertEquals(mdCtx.getTargetModel().getUuid(), indexPlan.getUuid());
 
-            List<NCuboidDesc> cuboidDescs = cubePlan.getAllCuboids();
-            Assert.assertEquals(4, cuboidDescs.size());
-            Assert.assertEquals(6, collectAllLayouts(cuboidDescs));
+            List<IndexEntity> indexEntities = indexPlan.getAllIndexes();
+            Assert.assertEquals(4, indexEntities.size());
+            Assert.assertEquals(6, collectAllLayouts(indexEntities));
         }
 
         // save
         {
             Assert.assertEquals(1, dataModelManager.getDataModels().size());
-            Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
+            Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveModel();
-            smartMaster.saveCubePlan();
+            smartMaster.saveIndexPlan();
 
             Assert.assertEquals(1, dataModelManager.getDataModels().size());
-            Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
+            Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
         }
     }
@@ -295,22 +295,22 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // select cube_plan
         {
-            smartMaster.selectCubePlan();
+            smartMaster.selectIndexPlan();
             NSmartContext ctx = smartMaster.getContext();
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-            Assert.assertNotNull(mdCtx.getTargetCubePlan());
-            Assert.assertNotNull(mdCtx.getOrigCubePlan());
+            Assert.assertNotNull(mdCtx.getTargetIndexPlan());
+            Assert.assertNotNull(mdCtx.getOrigIndexPlan());
         }
 
         // reduce cube_plan
         {
             NSmartContext ctx = smartMaster.getContext();
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-            NCubePlan cubePlan = mdCtx.getTargetCubePlan();
-            Assert.assertEquals(4, cubePlan.getAllCuboids().size());
-            smartMaster.shrinkCubePlan();
-            NCubePlan shrunkCubePlan = mdCtx.getTargetCubePlan();
-            Assert.assertEquals(2, shrunkCubePlan.getAllCuboids().size());
+            IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
+            Assert.assertEquals(4, indexPlan.getAllIndexes().size());
+            smartMaster.shrinkIndexPlan();
+            IndexPlan shrunkIndexPlan = mdCtx.getTargetIndexPlan();
+            Assert.assertEquals(2, shrunkIndexPlan.getAllIndexes().size());
         }
 
         // shrink model
@@ -329,14 +329,14 @@ public class NSmartMasterBasicTest extends NTestBase {
         // save
         {
             Assert.assertEquals(1, dataModelManager.getDataModels().size());
-            Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
+            Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
 
-            smartMaster.saveCubePlan();
+            smartMaster.saveIndexPlan();
             smartMaster.saveModel();
 
             Assert.assertEquals(1, dataModelManager.getDataModels().size());
-            Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
+            Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
         }
     }
@@ -384,36 +384,36 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // select CubePlan
         {
-            smartMaster.selectCubePlan();
+            smartMaster.selectIndexPlan();
             NSmartContext ctx = smartMaster.getContext();
             for (NSmartContext.NModelContext modelContext : ctx.getModelContexts()) {
-                Assert.assertNull(modelContext.getOrigCubePlan());
+                Assert.assertNull(modelContext.getOrigIndexPlan());
             }
         }
 
         // opt CubePlan
         {
-            smartMaster.optimizeCubePlan();
+            smartMaster.optimizeIndexPlan();
             NSmartContext ctx = smartMaster.getContext();
-            NCubePlan cubePlan0 = ctx.getModelContexts().get(0).getTargetCubePlan();
-            Assert.assertNotNull(cubePlan0);
-            Assert.assertEquals(1, cubePlan0.getAllCuboids().size());
-            NCubePlan cubePlan1 = ctx.getModelContexts().get(1).getTargetCubePlan();
-            Assert.assertNotNull(cubePlan1);
-            Assert.assertEquals(1, cubePlan1.getAllCuboids().size());
+            IndexPlan indexPlan0 = ctx.getModelContexts().get(0).getTargetIndexPlan();
+            Assert.assertNotNull(indexPlan0);
+            Assert.assertEquals(1, indexPlan0.getAllIndexes().size());
+            IndexPlan indexPlan1 = ctx.getModelContexts().get(1).getTargetIndexPlan();
+            Assert.assertNotNull(indexPlan1);
+            Assert.assertEquals(1, indexPlan1.getAllIndexes().size());
         }
 
         // save
         {
             Assert.assertEquals(1, dataModelManager.getDataModels().size());
-            Assert.assertEquals(1, cubePlanManager.listAllCubePlans().size());
+            Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveModel();
-            smartMaster.saveCubePlan();
+            smartMaster.saveIndexPlan();
 
             Assert.assertEquals(3, dataModelManager.getDataModels().size());
-            Assert.assertEquals(3, cubePlanManager.listAllCubePlans().size());
+            Assert.assertEquals(3, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(3, dataflowManager.listAllDataflows().size());
         }
     }
@@ -467,21 +467,21 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // select cube_plan
         {
-            smartMaster.selectCubePlan();
+            smartMaster.selectIndexPlan();
             NSmartContext ctx = smartMaster.getContext();
             for (NSmartContext.NModelContext modelContext : ctx.getModelContexts()) {
-                Assert.assertNotNull(modelContext.getOrigCubePlan());
+                Assert.assertNotNull(modelContext.getOrigIndexPlan());
             }
         }
 
         // reduce cube_plan
         {
-            smartMaster.shrinkCubePlan();
+            smartMaster.shrinkIndexPlan();
             NSmartContext ctx = smartMaster.getContext();
             for (NSmartContext.NModelContext modelContext : ctx.getModelContexts()) {
-                NCubePlan cubePlan = modelContext.getTargetCubePlan();
-                Assert.assertNotNull(cubePlan);
-                Assert.assertTrue(cubePlan.getAllCuboids().isEmpty());
+                IndexPlan indexPlan = modelContext.getTargetIndexPlan();
+                Assert.assertNotNull(indexPlan);
+                Assert.assertTrue(indexPlan.getAllIndexes().isEmpty());
             }
         }
 
@@ -499,7 +499,7 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // save
         {
-            smartMaster.saveCubePlan();
+            smartMaster.saveIndexPlan();
             smartMaster.saveModel();
         }
     }

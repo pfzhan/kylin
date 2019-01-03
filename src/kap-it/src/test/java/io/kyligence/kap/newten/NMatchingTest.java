@@ -74,7 +74,7 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
     @Test
     public void testCanNotAnswer() throws Exception {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), getProject());
-        dfMgr.updateDataflow("match_copy", copyForWrite -> {
+        dfMgr.updateDataflow("073198da-ce0e-4a0c-af38-cc27ae31cc0e", copyForWrite -> {
             copyForWrite.setStatus(RealizationStatusEnum.OFFLINE);
         });
         SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
@@ -82,7 +82,7 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         ss.sparkContext().setLogLevel("ERROR");
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        fullBuildCube("match", getProject());
+        fullBuildCube("83ade475-5b80-483a-ae4b-1144e4f04e81", getProject());
         ss.close();
 
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
@@ -109,8 +109,8 @@ public class NMatchingTest extends NLocalWithSparkSessionTest {
         existingCxt.stop();
         ss = SparkSession.builder().config(sparkConf).getOrCreate();
         KylinConfig config = KylinConfig.getInstanceFromEnv();
-        fullBuildCube("match", getProject());
-        fullBuildCube("match_copy", getProject());
+        fullBuildCube("83ade475-5b80-483a-ae4b-1144e4f04e81", getProject());
+        fullBuildCube("073198da-ce0e-4a0c-af38-cc27ae31cc0e", getProject());
         ss.close();
 
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));

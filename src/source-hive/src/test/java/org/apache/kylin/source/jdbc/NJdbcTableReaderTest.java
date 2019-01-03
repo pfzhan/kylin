@@ -65,7 +65,7 @@ public class NJdbcTableReaderTest extends NLocalFileMetadataTestCase implements 
         H2Database h2DB = new H2Database(h2Connection, config, project);
 
         NDataModelManager mgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = mgr.getDataModelDesc("nmodel_basic");
+        NDataModel model = mgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         ModelDataGenerator gen = new ModelDataGenerator(model, 10000,
                 ResourceStore.getKylinMetaStore(model.getConfig()));
         gen.generate();

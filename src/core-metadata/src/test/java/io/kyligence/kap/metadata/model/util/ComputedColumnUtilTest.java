@@ -56,7 +56,7 @@ public class ComputedColumnUtilTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetCCUsedColsInProject() {
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic_inner");
+        NDataModel model = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
         TableRef firstTable = model.findFirstTable("DEFAULT.TEST_KYLIN_FACT");
         ColumnDesc ccColDesc = firstTable.getColumn("DEAL_YEAR").getColumnDesc();
         Set<String> ccUsedColsInProject = ComputedColumnUtil.getCCUsedColsWithProject("default", ccColDesc);
@@ -66,7 +66,7 @@ public class ComputedColumnUtilTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetCCUsedColsInModel() {
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic_inner");
+        NDataModel model = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
         //test param type (model,ColumnDesc)
         TableRef firstTable = model.findFirstTable("DEFAULT.TEST_KYLIN_FACT");
         ColumnDesc ccColDesc = firstTable.getColumn("DEAL_YEAR").getColumnDesc();
@@ -93,7 +93,7 @@ public class ComputedColumnUtilTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetAllCCUsedColsInModel() {
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic_inner");
+        NDataModel model = modelManager.getDataModelDescByAlias("nmodel_basic_inner");
         Set<String> allCCUsedColsInModel = ComputedColumnUtil.getAllCCUsedColsInModel(model);
         Assert.assertTrue(allCCUsedColsInModel.size() == 6);
         Assert.assertTrue(allCCUsedColsInModel.contains("DEFAULT.TEST_KYLIN_FACT.PRICE")); //belong to cc "DEAL_AMOUNT"

@@ -74,7 +74,7 @@ public class DataGenTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCIConfigured() throws Exception {
-        NDataModel model = getModel("nmodel_basic");
+        NDataModel model = getModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         ModelDataGenerator gen = getModelDataGenerator(model);
         gen.generate();
 

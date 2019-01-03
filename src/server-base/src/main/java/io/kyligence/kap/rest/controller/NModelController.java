@@ -63,7 +63,7 @@ import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.request.ModelUpdateRequest;
 import io.kyligence.kap.rest.request.SegmentsRequest;
 import io.kyligence.kap.rest.request.UnlinkModelRequest;
-import io.kyligence.kap.rest.response.CuboidDescResponse;
+import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.service.ModelSemanticHelper;
@@ -75,7 +75,7 @@ import lombok.val;
 public class NModelController extends NBasicController {
     private static final Logger logger = LoggerFactory.getLogger(NModelController.class);
     private static final Message msg = MsgPicker.getMsg();
-    private static final String MODEL_NAME = "modelName";
+    private static final String MODEL_ID = "modelId";
     private static final String NEW_MODEL_NAME = "newModelNAME";
 
     @Autowired
@@ -87,7 +87,7 @@ public class NModelController extends NBasicController {
 
     @RequestMapping(value = "", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModels(@RequestParam(value = "model", required = false) String modelName,
+    public EnvelopeResponse getModels(@RequestParam(value = "model", required = false) String modelAlias,
             @RequestParam(value = "exact", required = false, defaultValue = "true") boolean exactMatch,
             @RequestParam(value = "project", required = true) String project,
             @RequestParam(value = "owner", required = false) String owner,
@@ -100,13 +100,13 @@ public class NModelController extends NBasicController {
         checkProjectName(project);
         List<NDataModel> models = new ArrayList<>();
         if (StringUtils.isEmpty(table)) {
-            for (NDataModelResponse modelDesc : modelService.getModels(modelName, project, exactMatch, owner, status,
+            for (NDataModelResponse modelDesc : modelService.getModels(modelAlias, project, exactMatch, owner, status,
                     sortBy, reverse)) {
                 Preconditions.checkState(!modelDesc.isDraft());
                 models.add(modelDesc);
             }
         } else {
-            models.addAll(modelService.getRelateModels(project, table, modelName));
+            models.addAll(modelService.getRelateModels(project, table, modelAlias));
         }
 
         HashMap<String, Object> modelResponse = getDataResponse("models", models, offset, limit);
@@ -124,7 +124,7 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/segments", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getSegments(@RequestParam(value = "model", required = true) String modelName,
+    public EnvelopeResponse getSegments(@RequestParam(value = "model", required = true) String modelId,
             @RequestParam(value = "project", required = true) String project,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
@@ -135,7 +135,7 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse){
         checkProjectName(project);
         validateRange(start, end);
-        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelName, project, start, end, sortBy, reverse, status);
+        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelId, project, start, end, sortBy, reverse, status);
         HashMap<String, Object> response = getDataResponse("segments", segments, offset, limit);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
     }
@@ -156,11 +156,11 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/agg_indices", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getAggIndices(@RequestParam(value = "model", required = true) String modelName,
+    public EnvelopeResponse getAggIndices(@RequestParam(value = "model", required = true) String modelId,
             @RequestParam(value = "project", required = true) String project) {
         checkProjectName(project);
-        checkRequiredArg(MODEL_NAME, modelName);
-        List<CuboidDescResponse> aggIndices = modelService.getAggIndices(modelName, project);
+        checkRequiredArg(MODEL_ID, modelId);
+        List<IndexEntityResponse> aggIndices = modelService.getAggIndices(modelId, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, aggIndices, "");
     }
 
@@ -169,36 +169,36 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse getCuboids(@RequestParam(value = "id", required = true) Long id,
             @RequestParam(value = "project", required = true) String project,
-            @RequestParam(value = "model", required = true) String modelName) {
+            @RequestParam(value = "model", required = true) String modelId) {
         checkProjectName(project);
-        checkRequiredArg(MODEL_NAME, modelName);
-        CuboidDescResponse cuboidDesc = modelService.getCuboidById(modelName, project, id);
-        if (cuboidDesc == null) {
+        checkRequiredArg(MODEL_ID, modelId);
+        IndexEntityResponse indexEntityResponse = modelService.getCuboidById(modelId, project, id);
+        if (indexEntityResponse == null) {
             throw new BadRequestException("Can not find this cuboid " + id);
         }
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, cuboidDesc, "");
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, indexEntityResponse, "");
     }
 
     @RequestMapping(value = "/table_indices", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getTableIndices(@RequestParam(value = "model", required = true) String modelName,
+    public EnvelopeResponse getTableIndices(@RequestParam(value = "model", required = true) String modelId,
             @RequestParam(value = "project", required = true) String project) {
         checkProjectName(project);
-        checkRequiredArg(MODEL_NAME, modelName);
-        List<CuboidDescResponse> tableIndices = modelService.getTableIndices(modelName, project);
+        checkRequiredArg(MODEL_ID, modelId);
+        List<IndexEntityResponse> tableIndices = modelService.getTableIndices(modelId, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, tableIndices, "");
     }
 
     @RequestMapping(value = "/json", method = RequestMethod.GET, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelJson(@RequestParam(value = "model", required = true) String modelName,
+    public EnvelopeResponse getModelJson(@RequestParam(value = "model", required = true) String modelId,
             @RequestParam(value = "project", required = true) String project) {
 
         checkProjectName(project);
-        checkRequiredArg(MODEL_NAME, modelName);
+        checkRequiredArg(MODEL_ID, modelId);
         try {
-            String json = modelService.getModelJson(modelName, project);
+            String json = modelService.getModelJson(modelId, project);
             return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, json, "");
         } catch (JsonProcessingException e) {
             throw new BadRequestException("can not get model json " + e);
@@ -209,11 +209,11 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "/relations", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelRelations(@RequestParam(value = "model", required = true) String modelName,
+    public EnvelopeResponse getModelRelations(@RequestParam(value = "model", required = true) String modelId,
             @RequestParam(value = "project", required = true) String project) {
         checkProjectName(project);
-        checkRequiredArg(MODEL_NAME, modelName);
-        List<NSpanningTreeResponse> modelRelations = modelService.getSimplifiedModelRelations(modelName, project);
+        checkRequiredArg(MODEL_ID, modelId);
+        List<NSpanningTreeResponse> modelRelations = modelService.getSimplifiedModelRelations(modelId, project);
 
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelRelations, "");
     }
@@ -236,7 +236,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse updateSemantic(@RequestBody ModelRequest request) {
         checkProjectName(request.getProject());
-        checkRequiredArg(MODEL_NAME, request.getName());
+        checkRequiredArg(MODEL_ID, request.getUuid());
         modelService.updateDataModelSemantic(request.getProject(), request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
@@ -246,14 +246,14 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse updateModelName(@RequestBody ModelUpdateRequest modelRenameRequest) {
         checkProjectName(modelRenameRequest.getProject());
-        checkRequiredArg(MODEL_NAME, modelRenameRequest.getModelName());
+        checkRequiredArg(MODEL_ID, modelRenameRequest.getModelId());
         String newAlias = modelRenameRequest.getNewModelName();
-        if (!StringUtils.containsOnly(newAlias, ModelService.VALID_MODEL_NAME)) {
+        if (!StringUtils.containsOnly(newAlias, ModelService.VALID_MODEL_ALIAS)) {
             logger.info("Invalid Model name {}, only letters, numbers and underline supported.", newAlias);
             throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newAlias));
         }
 
-        modelService.renameDataModel(modelRenameRequest.getProject(), modelRenameRequest.getModelName(), newAlias);
+        modelService.renameDataModel(modelRenameRequest.getProject(), modelRenameRequest.getModelId(), newAlias);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -262,8 +262,8 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse updateModelStatus(@RequestBody ModelUpdateRequest modelRenameRequest) {
         checkProjectName(modelRenameRequest.getProject());
-        checkRequiredArg(MODEL_NAME, modelRenameRequest.getModelName());
-        modelService.updateDataModelStatus(modelRenameRequest.getModelName(), modelRenameRequest.getProject(),
+        checkRequiredArg(MODEL_ID, modelRenameRequest.getModelId());
+        modelService.updateDataModelStatus(modelRenameRequest.getModelId(), modelRenameRequest.getProject(),
                 modelRenameRequest.getStatus());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
@@ -273,8 +273,8 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse unlinkModel(@RequestBody UnlinkModelRequest unlinkModelRequest) {
         checkProjectName(unlinkModelRequest.getProject());
-        checkRequiredArg(MODEL_NAME, unlinkModelRequest.getModelName());
-        modelService.unlinkModel(unlinkModelRequest.getModelName(), unlinkModelRequest.getProject());
+        checkRequiredArg(MODEL_ID, unlinkModelRequest.getModelId());
+        modelService.unlinkModel(unlinkModelRequest.getModelId(), unlinkModelRequest.getProject());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -307,14 +307,14 @@ public class NModelController extends NBasicController {
     public EnvelopeResponse cloneModel(@RequestBody ModelCloneRequest request) {
         checkProjectName(request.getProject());
         String newModelName = request.getNewModelName();
-        String modelName = request.getModelName();
-        checkRequiredArg(MODEL_NAME, modelName);
+        String modelName = request.getModelId();
+        checkRequiredArg(MODEL_ID, modelName);
         checkRequiredArg(NEW_MODEL_NAME, newModelName);
-        if (!StringUtils.containsOnly(newModelName, ModelService.VALID_MODEL_NAME)) {
+        if (!StringUtils.containsOnly(newModelName, ModelService.VALID_MODEL_ALIAS)) {
             logger.info("Invalid Model name {}, only letters, numbers and underline supported.", newModelName);
             throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newModelName));
         }
-        modelService.cloneModel(request.getModelName(), request.getNewModelName(), request.getProject());
+        modelService.cloneModel(request.getModelId(), request.getNewModelName(), request.getProject());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
 
     }
@@ -327,7 +327,7 @@ public class NModelController extends NBasicController {
         if (ArrayUtils.isEmpty(request.getIds())) {
             throw new BadRequestException("You should choose at least one segment to refresh!");
         }
-        modelService.refreshSegmentById(request.getModelName(), request.getProject(), request.getIds());
+        modelService.refreshSegmentById(request.getModelId(), request.getProject(), request.getIds());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -339,7 +339,7 @@ public class NModelController extends NBasicController {
         if (StringUtils.isNotEmpty(buildSegmentsRequest.getStart()) && StringUtils.isNotEmpty(buildSegmentsRequest.getEnd())) {
             validateRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         }
-        modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), buildSegmentsRequest.getModel(),
+        modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), buildSegmentsRequest.getModelId(),
                 buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
@@ -363,13 +363,13 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, modelService.getComputedColumnUsages(project), "");
     }
 
-    @RequestMapping(value = "/{name}/data_check", method = { RequestMethod.PUT }, produces = {
+    @RequestMapping(value = "/{id}/data_check", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateModelDataCheckDesc(@PathVariable("name") String modelName,
+    public EnvelopeResponse updateModelDataCheckDesc(@PathVariable("id") String modelId,
             @RequestBody ModelCheckRequest request) {
         request.checkSelf();
-        modelService.updateModelDataCheckDesc(request.getProject(), modelName, request.getCheckOptions(),
+        modelService.updateModelDataCheckDesc(request.getProject(), modelId, request.getCheckOptions(),
                 request.getFaultThreshold(), request.getFaultActions());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
@@ -377,7 +377,7 @@ public class NModelController extends NBasicController {
     @RequestMapping(value = "config", method = { RequestMethod.GET }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getModelConfig(@RequestParam(value = "model", required = false) String modelName,
+    public EnvelopeResponse getModelConfig(@RequestParam(value = "model", required = false) String modelId,
             @RequestParam(value = "project", required = true) String project,
             @RequestParam(value = "pageOffset", required = false, defaultValue = "0") Integer offset,
             @RequestParam(value = "pageSize", required = false, defaultValue = "10") Integer limit) {
@@ -387,13 +387,13 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelResponse, "");
     }
 
-    @RequestMapping(value = "/{name}/config", method = { RequestMethod.PUT }, produces = {
+    @RequestMapping(value = "/{id}/config", method = { RequestMethod.PUT }, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse updateModelConfig(@PathVariable("name") String modelName,
+    public EnvelopeResponse updateModelConfig(@PathVariable("id") String modelId,
             @RequestBody ModelConfigRequest request) {
         checkProjectName(request.getProject());
-        modelService.updateModelConfig(request.getProject(), modelName, request);
+        modelService.updateModelConfig(request.getProject(), modelId, request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 }

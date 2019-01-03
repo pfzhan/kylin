@@ -46,7 +46,7 @@ object DFFlatTableEncoder extends Logging {
 
     // process global dictionary
     if (cols.size > 0) {
-      val flatTableDesc = new NCubeJoinedFlatTableDesc(seg.getCubePlan, seg.getSegRange)
+      val flatTableDesc = new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
 
       for (ref: TblColRef <- cols.asScala) {
         val columnIndex: Int = flatTableDesc.getColumnIndex(ref)

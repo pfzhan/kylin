@@ -25,10 +25,10 @@ package io.kyligence.kap.newten;
 
 import com.google.common.collect.ImmutableBiMap;
 import com.google.common.collect.Lists;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -104,8 +104,8 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         buildCubes();
-        compareCuboidParquetWithSparkSql("ncube_basic");
-        compareCuboidParquetWithSparkSql("ncube_basic_inner");
+        compareCuboidParquetWithSparkSql("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        compareCuboidParquetWithSparkSql("741ca86a-1f13-46da-a59f-95fb68615e3a");
     }
 
     private void compareCuboidParquetWithSparkSql(String dfName) {
@@ -114,25 +114,25 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
-        List<NDataCuboid> nDataCuboids = Lists.newArrayList();
+        List<NDataLayout> dataLayouts = Lists.newArrayList();
         NDataflow df = dsMgr.getDataflow(dfName);
         for (NDataSegment segment : df.getSegments()) {
-            nDataCuboids.addAll(segment.getSegDetails().getCuboids());
+            dataLayouts.addAll(segment.getSegDetails().getLayouts());
         }
-        for (NDataCuboid cuboid : nDataCuboids) {
-            Set<Integer> rowKeys = cuboid.getCuboidLayout().getOrderedDimensions().keySet();
+        for (NDataLayout cuboid : dataLayouts) {
+            Set<Integer> rowKeys = cuboid.getLayout().getOrderedDimensions().keySet();
 
-            Dataset<Row> layoutDataset = StorageFactory.createEngineAdapter(cuboid.getCuboidLayout(), NSparkCubingEngine.NSparkCubingStorage.class).getFrom(NSparkCubingUtil.getStoragePath(cuboid), ss);
+            Dataset<Row> layoutDataset = StorageFactory.createEngineAdapter(cuboid.getLayout(), NSparkCubingEngine.NSparkCubingStorage.class).getFrom(NSparkCubingUtil.getStoragePath(cuboid), ss);
             layoutDataset = layoutDataset.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid))).sort(NSparkCubingUtil.getColumns(rowKeys));
-            System.out.println("Query cuboid ------------ " + cuboid.getCuboidLayoutId());
-            layoutDataset = dsConvertToOriginal(layoutDataset, cuboid.getCuboidLayout());
+            System.out.println("Query cuboid ------------ " + cuboid.getLayoutId());
+            layoutDataset = dsConvertToOriginal(layoutDataset, cuboid.getLayout());
             layoutDataset.show(10);
 
             NDataSegment segment = cuboid.getSegDetails().getDataSegment();
             Dataset<Row> ds = initFlatTable(dfName, new SegmentRange.TimePartitionedSegmentRange(segment.getTSRange().getStart(), segment.getTSRange().getEnd()));
 
-            if (cuboid.getCuboidLayout().getCuboidDesc().getId() < NCuboidDesc.TABLE_INDEX_START_ID) {
-                ds = queryCuboidLayout(cuboid.getCuboidLayout(), ds);
+            if (cuboid.getLayout().getIndex().getId() < IndexEntity.TABLE_INDEX_START_ID) {
+                ds = queryCuboidLayout(cuboid.getLayout(), ds);
             }
 
             Dataset<Row> exceptDs = ds.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid))).sort(NSparkCubingUtil.getColumns(rowKeys));
@@ -146,9 +146,9 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         }
     }
 
-    private Set<Integer> chooseMeas(NDataCuboid cuboid) {
+    private Set<Integer> chooseMeas(NDataLayout cuboid) {
         Set<Integer> meaSet = Sets.newHashSet();
-        for (Map.Entry<Integer, NDataModel.Measure> entry : cuboid.getCuboidLayout().getOrderedMeasures().entrySet()) {
+        for (Map.Entry<Integer, NDataModel.Measure> entry : cuboid.getLayout().getOrderedMeasures().entrySet()) {
             String funName = entry.getValue().getFunction().getReturnDataType().getName();
             if (funName.equals("hllc") || funName.equals("topn") || funName.equals("percentile")) {
                 continue;
@@ -158,12 +158,12 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         return meaSet;
     }
 
-    private Dataset<Row> queryCuboidLayout(NCuboidLayout layout, Dataset<Row> ds) {
-        NCubeJoinedFlatTableDesc flatTableDesc = new NCubeJoinedFlatTableDesc(layout.getCuboidDesc().getCubePlan());
-        return CuboidAggregator.agg(ss, ds, layout.getCuboidDesc().getEffectiveDimCols().keySet(), layout.getCuboidDesc().getCubePlan().getEffectiveMeasures(), flatTableDesc, true);
+    private Dataset<Row> queryCuboidLayout(LayoutEntity layout, Dataset<Row> ds) {
+        NCubeJoinedFlatTableDesc flatTableDesc = new NCubeJoinedFlatTableDesc(layout.getIndex().getIndexPlan());
+        return CuboidAggregator.agg(ss, ds, layout.getIndex().getEffectiveDimCols().keySet(), layout.getIndex().getIndexPlan().getEffectiveMeasures(), flatTableDesc, true);
     }
 
-    private Dataset<Row> dsConvertToOriginal(Dataset<Row> layoutDs, NCuboidLayout layout) {
+    private Dataset<Row> dsConvertToOriginal(Dataset<Row> layoutDs, LayoutEntity layout) {
         ImmutableBiMap<Integer, NDataModel.Measure> orderedMeasures = layout.getOrderedMeasures();
 
         for (final Map.Entry<Integer, NDataModel.Measure> entry : orderedMeasures.entrySet()) {
@@ -222,7 +222,7 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         NDataflow df = dsMgr.getDataflow(dfName);
         NDataModel model = df.getModel();
 
-        NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getCubePlan(), segmentRange);
+        NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getIndexPlan(), segmentRange);
         Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTable, ss);
 
         StructType schema = ds.schema();

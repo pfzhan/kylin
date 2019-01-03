@@ -78,7 +78,7 @@ public class QueryHistory {
     public static final String SUBMITTER = "submitter";
     public static final String MODEL = "model";
     public static final String REALIZATIONS = "realizations";
-    public static final String CUBOID_LAYOUT_ID = "cuboid_layout_id";
+    public static final String LAYOUT_ID = "layout_id";
     public static final String REALIZATION_TYPE = "realization_type";
     public static final String QUERY_HOSTNAME = "hostname";
     public static final String SUITE = "suite";

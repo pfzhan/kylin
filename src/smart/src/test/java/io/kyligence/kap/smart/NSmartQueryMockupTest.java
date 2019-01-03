@@ -30,6 +30,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -48,9 +49,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -278,7 +278,7 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
         NProjectManager pm = NProjectManager.getInstance(getTestConfig());
         for (IRealization real : pm.listAllRealizations(PROJ_NAME)) {
             if (real instanceof NDataflow) {
-                NDataflow copy = dfMgr.getDataflow(real.getName()).copy();
+                NDataflow copy = dfMgr.getDataflow(((NDataflow) real).getUuid()).copy();
                 NDataSegment segment = new NDataSegment();
                 segment.setId(UUID.randomUUID().toString());
                 segment.setName("TEST");
@@ -286,17 +286,17 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
                 segment.setStatus(SegmentStatusEnum.READY);
                 segment.setSegmentRange(new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
-                NDataflowUpdate update = new NDataflowUpdate(copy.getName());
+                NDataflowUpdate update = new NDataflowUpdate(copy.getUuid());
                 update.setToAddSegs(segment);
                 update.setStatus(RealizationStatusEnum.ONLINE);
-                List<NDataCuboid> cuboids = Lists.newArrayList();
-                for (NCuboidDesc cuboidDesc : copy.getCubePlan().getAllCuboids()) {
-                    for (NCuboidLayout layout : cuboidDesc.getLayouts()) {
-                        NDataCuboid c = NDataCuboid.newDataCuboid(copy, segment.getId(), layout.getId());
+                List<NDataLayout> cuboids = Lists.newArrayList();
+                for (IndexEntity indexEntity : copy.getIndexPlan().getAllIndexes()) {
+                    for (LayoutEntity layout : indexEntity.getLayouts()) {
+                        NDataLayout c = NDataLayout.newDataLayout(copy, segment.getId(), layout.getId());
                         cuboids.add(c);
                     }
                 }
-                update.setToAddOrUpdateCuboids(cuboids.toArray(new NDataCuboid[0]));
+                update.setToAddOrUpdateCuboids(cuboids.toArray(new NDataLayout[0]));
                 dfMgr.updateDataflow(update);
             }
         }
@@ -322,7 +322,7 @@ public class NSmartQueryMockupTest extends NLocalFileMetadataTestCase {
                         Assert.assertTrue(ctx.realization instanceof NDataflow);
 
                         NDataflow df = (NDataflow) ctx.realization;
-                        Assert.assertNotNull(df.getLastSegment().getCuboid(ctx.storageContext.getCuboidId()));
+                        Assert.assertNotNull(df.getLastSegment().getLayout(ctx.storageContext.getCuboidId()));
                         break;
                     default:
                         break;

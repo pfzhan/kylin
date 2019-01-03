@@ -30,6 +30,6 @@ import lombok.Setter;
 @Setter
 @Getter
 public class UnlinkModelRequest {
-    private String modelName;
+    private String modelId;
     private String project;
 }

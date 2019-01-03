@@ -47,13 +47,13 @@ public class NSparkCleanupAfterMergeStep extends AbstractExecutable {
         this.setParam(NBatchConstants.P_SEGMENT_IDS, Joiner.on(",").join(segmentIds));
     }
 
-    public void setDataflowName(String dataflowName) {
-        this.setParam(NBatchConstants.P_DATAFLOW_NAME, dataflowName);
+    public void setDataflowId(String dataflowId) {
+        this.setParam(NBatchConstants.P_DATAFLOW_ID, dataflowId);
     }
 
     @Override
     protected ExecuteResult doWork(ExecutableContext context) throws ExecuteException {
-        String name = getParam(NBatchConstants.P_DATAFLOW_NAME);
+        String name = getParam(NBatchConstants.P_DATAFLOW_ID);
         String[] segmentIds = StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS));
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflow dataflow = NDataflowManager.getInstance(config, getProject()).getDataflow(name);

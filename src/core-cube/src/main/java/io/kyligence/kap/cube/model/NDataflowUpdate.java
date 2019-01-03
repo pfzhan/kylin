@@ -28,14 +28,14 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
 public class NDataflowUpdate {
 
-    private final String dataflowName;
+    private final String dataflowId;
     
     private NDataSegment[] toAddSegs = null;
     private NDataSegment[] toRemoveSegs = null;
     private NDataSegment[] toUpdateSegs = null;
     
-    private NDataCuboid[] toAddOrUpdateCuboids = null;
-    private NDataCuboid[] toRemoveCuboids = null;
+    private NDataLayout[] toAddOrUpdateCuboids = null;
+    private NDataLayout[] toRemoveCuboids = null;
 
     private RealizationStatusEnum status;
     private String description;
@@ -43,11 +43,11 @@ public class NDataflowUpdate {
     private int cost = -1;
 
     public NDataflowUpdate(String dfName) {
-        this.dataflowName = dfName;
+        this.dataflowId = dfName;
     }
     
-    public String getDataflowName() {
-        return dataflowName;
+    public String getDataflowId() {
+        return dataflowId;
     }
 
     public NDataSegment[] getToAddSegs() {
@@ -88,22 +88,22 @@ public class NDataflowUpdate {
         return this;
     }
 
-    public NDataCuboid[] getToAddOrUpdateCuboids() {
+    public NDataLayout[] getToAddOrUpdateCuboids() {
         return toAddOrUpdateCuboids;
     }
 
-    public void setToAddOrUpdateCuboids(NDataCuboid... toAddCuboids) {
-        for (NDataCuboid cuboid : toAddCuboids)
+    public void setToAddOrUpdateCuboids(NDataLayout... toAddCuboids) {
+        for (NDataLayout cuboid : toAddCuboids)
             cuboid.checkIsNotCachedAndShared();
         
         this.toAddOrUpdateCuboids = toAddCuboids;
     }
 
-    public NDataCuboid[] getToRemoveCuboids() {
+    public NDataLayout[] getToRemoveCuboids() {
         return toRemoveCuboids;
     }
 
-    public void setToRemoveCuboids(NDataCuboid... toRemoveCuboids) {
+    public void setToRemoveCuboids(NDataLayout... toRemoveCuboids) {
         this.toRemoveCuboids = toRemoveCuboids;
     }
 

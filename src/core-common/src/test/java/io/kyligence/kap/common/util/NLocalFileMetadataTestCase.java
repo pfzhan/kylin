@@ -26,7 +26,6 @@ package io.kyligence.kap.common.util;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collection;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -82,46 +81,9 @@ public class NLocalFileMetadataTestCase extends AbstractKylinTestCase {
 
     public static void staticCleanupTestMetadata() {
         File directory = new File(LOCALMETA_TEMP_DATA);
-        deleteDirectoryWithErrMsg(directory);
+        FileUtils.deleteQuietly(directory);
 
         clearTestConfig();
-    }
-
-    public static void deleteDirectoryWithErrMsg(File dir) {
-        int retry = 3;
-        String msg = null;
-        IOException ioe = null;
-
-        while (retry > 0) {
-            msg = null;
-            ioe = null;
-            boolean done = true;
-            try {
-                FileUtils.deleteDirectory(dir);
-            } catch (IOException e) {
-                Collection<File> remaining = FileUtils.listFiles(dir, null, true);
-                if (!remaining.isEmpty()) {
-                    done = false;
-                    ioe = e;
-                    msg = "Cannot delete directory " + dir + ", remaining: " + remaining;
-                    logger.error(msg, e);
-                }
-            }
-            if (done) {
-                break;
-            }
-
-            try {
-                Thread.sleep(300);
-            } catch (InterruptedException e) {
-                logger.warn("Interrupted!", e);
-                Thread.currentThread().interrupt();
-            }
-            retry--;
-        }
-
-        if (ioe != null)
-            throw new IllegalStateException(msg, ioe);
     }
 
     protected String getLocalWorkingDirectory() {

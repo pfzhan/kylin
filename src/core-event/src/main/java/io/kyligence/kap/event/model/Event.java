@@ -66,10 +66,8 @@ import lombok.Setter;
 @JsonAutoDetect(fieldVisibility = JsonAutoDetect.Visibility.NONE, getterVisibility = JsonAutoDetect.Visibility.NONE, isGetterVisibility = JsonAutoDetect.Visibility.NONE, setterVisibility = JsonAutoDetect.Visibility.NONE)
 abstract public class Event extends RootPersistentEntity implements Comparable<Event> {
 
-    @JsonProperty("modelName")
-    private String modelName;
-    @JsonProperty("cubePlanName")
-    private String cubePlanName;
+    @JsonProperty("model_id")
+    private String modelId;
     @JsonProperty("isGlobal")
     private boolean isGlobal = false; //TODO:
     @JsonProperty("params")

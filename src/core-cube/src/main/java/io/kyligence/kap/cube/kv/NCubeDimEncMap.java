@@ -24,7 +24,7 @@
 package io.kyligence.kap.cube.kv;
 
 import com.google.common.collect.Maps;
-import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.IndexPlan;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NEncodingDesc;
 import org.apache.kylin.common.util.Dictionary;
@@ -44,16 +44,16 @@ public class NCubeDimEncMap implements IDimensionEncodingMap, java.io.Serializab
     private static final Logger logger = LoggerFactory.getLogger(NCubeDimEncMap.class);
 
     final private NDataSegment dataSegment;
-    final private NCubePlan cubePlan;
+    final private IndexPlan indexPlan;
     final private Map<TblColRef, Dictionary<String>> dictionaryMap;
     final private Map<TblColRef, DimensionEncoding> encMap = Maps.newHashMap();
 
     public NCubeDimEncMap(NDataSegment nDataSegment) {
         this.dataSegment = nDataSegment;
-        this.cubePlan = nDataSegment.getCubePlan();
-        NCubePlan cubePlan = nDataSegment.getCubePlan();
+        this.indexPlan = nDataSegment.getIndexPlan();
+        IndexPlan indexPlan = nDataSegment.getIndexPlan();
         dictionaryMap = Maps.newHashMap();
-        for (TblColRef colRef : cubePlan.getAllColumnsHaveDictionary()) {
+        for (TblColRef colRef : indexPlan.getAllColumnsHaveDictionary()) {
             Dictionary<String> dict = nDataSegment.getDictionary(colRef);
             if (dict == null) {
                 logger.debug("Dictionary for {} was not found.", colRef.getIdentity());
@@ -67,7 +67,7 @@ public class NCubeDimEncMap implements IDimensionEncodingMap, java.io.Serializab
     public DimensionEncoding get(TblColRef col) {
         DimensionEncoding result = encMap.get(col);
         if (result == null) {
-            NEncodingDesc encodingDesc = cubePlan.getDimensionEncoding(col);
+            NEncodingDesc encodingDesc = indexPlan.getDimensionEncoding(col);
             if (encodingDesc.getName().equals(DictionaryDimEnc.ENCODING_NAME)) {
                 // special dictionary encoding
                 Dictionary<String> dict = getDictionary(col);

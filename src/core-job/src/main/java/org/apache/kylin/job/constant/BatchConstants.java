@@ -131,5 +131,5 @@ public interface BatchConstants {
     String KYLIN_CUBE_ID = "io.kylin.job.cubeid";
     String KYLIN_SEGMENT_ID = "io.kylin.job.segmentid";
     String KYLIN_COLUMNAR_DFS_REPLICATION = "io.kylin.storage.columnar.dfs-replication";
-    String KYLIN_CUBOID_LAYOUT_ID = "io.kylin.job.cuboid.layout_id";
+    String KYLIN_LAYOUT_ID = "io.kylin.job.cuboid.layout_id";
 }

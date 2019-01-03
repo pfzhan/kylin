@@ -140,15 +140,15 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     void dumpCuboidLayoutIdsIfNeed() throws ExecuteException {
-        if (getParams().containsKey(NBatchConstants.P_CUBOID_LAYOUT_IDS)) {
+        if (getParams().containsKey(NBatchConstants.P_LAYOUT_IDS)) {
             File tmpDir = null;
             try {
-                tmpDir = File.createTempFile(NBatchConstants.P_CUBOID_LAYOUT_IDS, "");
+                tmpDir = File.createTempFile(NBatchConstants.P_LAYOUT_IDS, "");
                 FileUtils.writeByteArrayToFile(tmpDir,
-                        getParam(NBatchConstants.P_CUBOID_LAYOUT_IDS).getBytes(StandardCharsets.UTF_8));
-                int layoutSize = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_CUBOID_LAYOUT_IDS)).size();
-                getParams().remove(NBatchConstants.P_CUBOID_LAYOUT_IDS);
-                setParam(NBatchConstants.P_CUBOID_LAYOUT_ID_PATH, tmpDir.getCanonicalPath());
+                        getParam(NBatchConstants.P_LAYOUT_IDS).getBytes(StandardCharsets.UTF_8));
+                int layoutSize = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS)).size();
+                getParams().remove(NBatchConstants.P_LAYOUT_IDS);
+                setParam(NBatchConstants.P_LAYOUT_ID_PATH, tmpDir.getCanonicalPath());
                 logger.info("Layout size :" + layoutSize);
             } catch (IOException e) {
                 if (tmpDir != null && tmpDir.exists()) {
@@ -164,7 +164,7 @@ public class NSparkExecutable extends AbstractExecutable {
         KylinConfig config = context.getConfig();
         val project = getProject();
         Preconditions.checkState(StringUtils.isNotBlank(project), "job " + getId() + " project info is empty");
-        val dataflow = getParam(NBatchConstants.P_DATAFLOW_NAME);
+        val dataflow = getParam(NBatchConstants.P_DATAFLOW_ID);
         if (StringUtils.isNotBlank(dataflow)) {
             val dataflowManager = NDataflowManager.getInstance(config, project);
             config = dataflowManager.getDataflow(dataflow).getConfig();

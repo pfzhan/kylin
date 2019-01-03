@@ -32,6 +32,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TblColRef;
@@ -46,10 +48,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.AccelerateInfo.QueryLayoutRelation;
@@ -72,13 +72,13 @@ public class RecAndQueryCompareUtil {
         relatedLayouts.forEach(queryLayoutRelation -> {
             List<String> colOrderNames = Lists.newArrayList();
 
-            final NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project)
-                    .getCubePlan(queryLayoutRelation.getCubePlanId());
-            Preconditions.checkNotNull(cubePlan);
-            final NCuboidLayout cuboidLayout = cubePlan.getCuboidLayout(queryLayoutRelation.getLayoutId());
+            final IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project)
+                    .getIndexPlan(queryLayoutRelation.getModelId());
+            Preconditions.checkNotNull(indexPlan);
+            final LayoutEntity cuboidLayout = indexPlan.getCuboidLayout(queryLayoutRelation.getLayoutId());
             final ImmutableList<Integer> colOrder = cuboidLayout.getColOrder();
-            final BiMap<Integer, TblColRef> effectiveDimCols = cuboidLayout.getCuboidDesc().getEffectiveDimCols();
-            final ImmutableBiMap<Integer, NDataModel.Measure> effectiveMeasures = cuboidLayout.getCuboidDesc()
+            final BiMap<Integer, TblColRef> effectiveDimCols = cuboidLayout.getIndex().getEffectiveDimCols();
+            final ImmutableBiMap<Integer, NDataModel.Measure> effectiveMeasures = cuboidLayout.getIndex()
                     .getEffectiveMeasures();
             colOrder.forEach(column -> {
                 if (column < NDataModel.MEASURE_ID_BASE) {
@@ -87,8 +87,8 @@ public class RecAndQueryCompareUtil {
                     colOrderNames.add(effectiveMeasures.get(column).getName());
                 }
             });
-            String tmp = String.format("{model=%s,cubePlan=%s,layout=%s,colOrderName=[%s]}",
-                    queryLayoutRelation.getModelId(), queryLayoutRelation.getCubePlanId(),
+            String tmp = String.format("{model=%s,indexPlan=%s,layout=%s,colOrderName=[%s]}",
+                    queryLayoutRelation.getModelId(), queryLayoutRelation.getModelId(),
                     queryLayoutRelation.getLayoutId(), String.join(",", colOrderNames));
             list.add(tmp);
         });
@@ -119,16 +119,14 @@ public class RecAndQueryCompareUtil {
                         return;
                     }
 
-                    final NCuboidLayout cuboidLayout = olapContext.storageContext.getCandidate().getCuboidLayout();
-                    final String modelId = cuboidLayout.getModel().getName();
-                    final String cubePlanId = cuboidLayout.getCuboidDesc().getCubePlan().getName();
+                    final LayoutEntity cuboidLayout = olapContext.storageContext.getCandidate().getCuboidLayout();
+                    final String modelId = cuboidLayout.getModel().getUuid();
                     final long layoutId = cuboidLayout.getId();
                     final int semanticVersion = cuboidLayout.getModel().getSemanticVersion();
 
-                    QueryLayoutRelation relation = new QueryLayoutRelation(sql, modelId, cubePlanId, layoutId,
-                            semanticVersion);
+                    QueryLayoutRelation relation = new QueryLayoutRelation(sql, modelId, layoutId, semanticVersion);
                     layouts.add(relation);
-                    cuboidIds.add(cuboidLayout.getCuboidDesc().getId());
+                    cuboidIds.add(cuboidLayout.getIndex().getId());
                     modelIds.add(modelId);
                 });
                 entity.setQueryUsedLayouts(writeQueryLayoutRelationAsString(kylinConfig, project, layouts));
@@ -149,7 +147,7 @@ public class RecAndQueryCompareUtil {
             Set<Long> proposedCuboidIds = Sets.newHashSet();
             relatedLayouts.forEach(layout -> {
                 proposedModelIds.add(layout.getModelId());
-                proposedCuboidIds.add(layout.getLayoutId() - layout.getLayoutId() % NCuboidDesc.CUBOID_DESC_ID_STEP);
+                proposedCuboidIds.add(layout.getLayoutId() - layout.getLayoutId() % IndexEntity.INDEX_ID_STEP);
             });
 
             if (Objects.equals(cuboidIds, proposedCuboidIds)) {

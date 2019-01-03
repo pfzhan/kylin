@@ -24,10 +24,10 @@
 
 package io.kyligence.kap.newten.auto;
 
+import io.kyligence.kap.cube.model.IndexPlan;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
@@ -53,14 +53,14 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(1, model.getEffectiveDimensions().size());
         Assert.assertEquals("CAL_DT", model.getEffectiveDimensions().get(0).getName());
         Assert.assertTrue(model.getAllNamedColumns().stream().map(NamedColumn::getName).anyMatch("CC_AUTO_1"::equals));
-        Measure measure = model.getEffectiveMeasures().get(1001);
+        Measure measure = model.getEffectiveMeasures().get(100001);
         Assert.assertNotNull(measure);
         Assert.assertTrue(measure.getFunction().isSum());
         Assert.assertEquals("CC_AUTO_1", measure.getFunction().getParameter().getColRef().getName());
 
-        NCubePlan cubePlan = smartMaster.getContext().getModelContexts().get(0).getTargetCubePlan();
-        Assert.assertEquals(1, cubePlan.getAllCuboidLayouts().size());
-        Assert.assertEquals(1, cubePlan.getAllCuboidLayouts().get(0).getId());
+        IndexPlan indexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
+        Assert.assertEquals(1, indexPlan.getAllLayouts().size());
+        Assert.assertEquals(1, indexPlan.getAllLayouts().get(0).getId());
 
         // Assert query info is updated
         AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(query);
@@ -86,14 +86,14 @@ public class NAutoComputedColumnTest extends NAutoTestBase {
         Assert.assertEquals(1, model.getEffectiveDimensions().size());
         Assert.assertEquals("CAL_DT", model.getEffectiveDimensions().get(0).getName());
         Assert.assertTrue(model.getAllNamedColumns().stream().map(NamedColumn::getName).anyMatch("CC_AUTO_1"::equals));
-        Measure measure = model.getEffectiveMeasures().get(1001);
+        Measure measure = model.getEffectiveMeasures().get(100001);
         Assert.assertNotNull(measure);
         Assert.assertTrue(measure.getFunction().isSum());
         Assert.assertEquals("CC_AUTO_1", measure.getFunction().getParameter().getColRef().getName());
 
-        NCubePlan cubePlan = smartMaster.getContext().getModelContexts().get(0).getTargetCubePlan();
-        Assert.assertEquals(1, cubePlan.getAllCuboidLayouts().size());
-        Assert.assertEquals(1, cubePlan.getAllCuboidLayouts().get(0).getId());
+        IndexPlan indexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
+        Assert.assertEquals(1, indexPlan.getAllLayouts().size());
+        Assert.assertEquals(1, indexPlan.getAllLayouts().get(0).getId());
 
         // Assert query info is updated
         AccelerateInfo accelerateInfo = smartMaster.getContext().getAccelerateInfoMap().get(query);

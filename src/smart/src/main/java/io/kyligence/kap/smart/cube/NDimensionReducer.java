@@ -32,8 +32,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.cube.model.NEncodingDesc;
 import io.kyligence.kap.smart.NSmartContext;
 
@@ -44,17 +44,17 @@ public class NDimensionReducer extends NAbstractCubeProposer {
     }
 
     @Override
-    public NCubePlan doPropose(NCubePlan cubePlan) {
+    public IndexPlan doPropose(IndexPlan indexPlan) {
         final Set<Integer> usedDimensionIds = Sets.newHashSet();
-        for (NCuboidDesc cuboidDesc : cubePlan.getAllCuboids()) {
-            usedDimensionIds.addAll(Lists.newArrayList(cuboidDesc.getDimensions()));
+        for (IndexEntity indexEntity : indexPlan.getAllIndexes()) {
+            usedDimensionIds.addAll(Lists.newArrayList(indexEntity.getDimensions()));
         }
 
-        Map<Integer, NEncodingDesc> newMap = Maps.filterKeys(cubePlan.getCubePlanOverrideEncodings(),
+        Map<Integer, NEncodingDesc> newMap = Maps.filterKeys(indexPlan.getIndexPlanOverrideEncodings(),
                 Predicates.in(usedDimensionIds));
 
-        cubePlan.setCubePlanOverrideEncodings(newMap);
-        return cubePlan;
+        indexPlan.setIndexPlanOverrideEncodings(newMap);
+        return indexPlan;
     }
 
 }

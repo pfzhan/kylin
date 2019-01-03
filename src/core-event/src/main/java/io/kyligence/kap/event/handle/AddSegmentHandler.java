@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.SegmentUtils;
@@ -52,13 +52,13 @@ public class AddSegmentHandler extends AbstractEventWithJobHandler {
 
         AbstractExecutable job;
 
-        if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+        if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
             return null;
         }
 
         NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getDataflow(event.getCubePlanName());
-        Set<NCuboidLayout> layouts = SegmentUtils.getToBuildLayouts(df);
+                .getDataflow(event.getModelId());
+        Set<LayoutEntity> layouts = SegmentUtils.getToBuildLayouts(df);
         if (CollectionUtils.isEmpty(layouts)) {
             logger.info("event {} is no longer valid because no layout awaits building", event);
             return null;

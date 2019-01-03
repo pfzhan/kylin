@@ -31,6 +31,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
@@ -71,8 +73,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.kv.NCubeDimEncMap;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegDetails;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
@@ -194,17 +194,17 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
     protected List<Object[]> getCuboidDataAfterDecoding(NDataSegment seg, long cuboidLayoutId) {
         NDataSegDetails segCuboids = seg.getSegDetails();
-        NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(segCuboids, cuboidLayoutId);
+        NDataLayout dataCuboid = NDataLayout.newDataLayout(segCuboids, cuboidLayoutId);
         List<Object[]> resultFromLayout = new ArrayList<>();
         ParquetStorage storage = new ParquetStorage();
         Dataset<Row> ret = storage.getFrom(NSparkCubingUtil.getStoragePath(dataCuboid), ss);
         IDimensionEncodingMap dimEncoding = new NCubeDimEncMap(seg);
 
-        for (TblColRef colRef : seg.getCubePlan().getEffectiveDimCols().values()) {
+        for (TblColRef colRef : seg.getIndexPlan().getEffectiveDimCols().values()) {
             dimEncoding.get(colRef);
         }
 
-        NCuboidLayout layout = dataCuboid.getCuboidLayout();
+        LayoutEntity layout = dataCuboid.getLayout();
         RowKeyColumnIO colIO = new RowKeyColumnIO(dimEncoding);
         MeasureCodec measureCodec = new MeasureCodec(layout.getOrderedMeasures().values().toArray(new MeasureDesc[0]));
         int ms = layout.getOrderedMeasures().size();
@@ -246,22 +246,22 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
         // ready dataflow, segment, cuboid layout
         NDataflow df = dsMgr.getDataflow(dfName);
         // cleanup all segments first
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dsMgr.updateDataflow(update);
         df = dsMgr.getDataflow(dfName);
-        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
-        List<NCuboidLayout> round1 = Lists.newArrayList(layouts);
+        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
+        List<LayoutEntity> round1 = Lists.newArrayList(layouts);
         buildCuboid(dfName, SegmentRange.TimePartitionedSegmentRange.createInfinite(), Sets.newLinkedHashSet(round1),
                 prj, true);
     }
 
-    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts, boolean isAppend)
+    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts, boolean isAppend)
             throws Exception {
         buildCuboid(cubeName, segmentRange, toBuildLayouts, getProject(), isAppend);
     }
 
-    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<NCuboidLayout> toBuildLayouts,
+    protected void buildCuboid(String cubeName, SegmentRange segmentRange, Set<LayoutEntity> toBuildLayouts,
             String prj, boolean isAppend) throws Exception {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, prj);
@@ -285,13 +285,13 @@ public class NLocalWithSparkSessionTest extends NLocalFileMetadataTestCase imple
 
         val merger = new AfterBuildResourceMerger(config, getProject());
         if (isAppend) {
-            merger.mergeAfterIncrement(df.getName(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
+            merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), ExecutableUtils.getLayoutIds(sparkStep),
                     ExecutableUtils.getRemoteStore(config, sparkStep));
         } else {
-            merger.mergeAfterCatchup(df.getName(), Sets.newHashSet(oneSeg.getId()),
+            merger.mergeAfterCatchup(df.getUuid(), Sets.newHashSet(oneSeg.getId()),
                     ExecutableUtils.getLayoutIds(sparkStep), ExecutableUtils.getRemoteStore(config, sparkStep));
         }
-        merger.mergeAnalysis(df.getName(), ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep()));
+        merger.mergeAnalysis(df.getUuid(), ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep()));
 
         //Assert.assertEquals(ExecutableState.SUCCEED, wait(job));
     }

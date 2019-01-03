@@ -47,23 +47,23 @@ public class NProposerProvider {
         return new NModelOptProposer(smartContext);
     }
 
-    public NAbstractProposer getCubePlanSelectProposer() {
-        return new NCubePlanSelectProposer(smartContext);
+    public NAbstractProposer getIndexPlanSelectProposer() {
+        return new NIndexPlanSelectProposer(smartContext);
     }
 
-    public NAbstractProposer getCubePlanOptProposer() {
-        return new NCubePlanOptProposer(smartContext);
+    public NAbstractProposer getIndexPlanOptProposer() {
+        return new NIndexPlanOptProposer(smartContext);
     }
 
-    public NAbstractProposer getCubePlanShrinkProposer() {
-        return new NCubePlanShrinkProposer(smartContext);
+    public NAbstractProposer getIndexPlanShrinkProposer() {
+        return new NIndexPlanShrinkProposer(smartContext);
     }
 
     public NAbstractProposer getModelShrinkProposer() {
         return new NModelShrinkProposer(smartContext);
     }
 
-    public NAbstractProposer getCubePlanRefreshProposer() {
-        return new NCubePlanRefreshProposer(smartContext);
+    public NAbstractProposer getIndexPlanRefreshProposer() {
+        return new NIndexPlanRefreshProposer(smartContext);
     }
 }

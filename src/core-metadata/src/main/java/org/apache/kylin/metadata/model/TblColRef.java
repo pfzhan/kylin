@@ -116,7 +116,7 @@ public class TblColRef implements Serializable {
 
     private static final NDataModel UNKNOWN_MODEL = new NDataModel();
     static {
-        UNKNOWN_MODEL.setName("UNKNOWN_MODEL");
+        UNKNOWN_MODEL.setAlias("UNKNOWN_MODEL");
     }
 
     public static TableRef tableForUnknownModel(String tempTableAlias, TableDesc table) {

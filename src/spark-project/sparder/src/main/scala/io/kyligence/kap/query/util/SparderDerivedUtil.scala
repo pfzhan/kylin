@@ -172,7 +172,7 @@ case class SparderDerivedUtil(gtInfoTableName: String,
     if (path == null && deriveInfo.`type` != DeriveType.PK_FK) {
       throw new IllegalStateException(
         "No snapshot for table '" + derivedTableName + "' found on cube segment"
-          + dataSeg.getCubePlan.getName + "/" + dataSeg)
+          + dataSeg.getIndexPlan.getUuid + "/" + dataSeg)
     }
     (path,
      dataSeg.getProject + "@" + derivedTableName,

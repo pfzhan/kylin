@@ -24,63 +24,48 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
-import com.clearspring.analytics.util.Lists;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import org.apache.kylin.common.util.BytesUtil;
-import org.apache.kylin.common.util.Dictionary;
-import org.apache.kylin.measure.MeasureCodec;
-import org.apache.kylin.measure.MeasureIngester;
-import org.apache.kylin.measure.MeasureType;
-import org.apache.kylin.metadata.model.MeasureDesc;
-import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.StorageFactory;
-import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
-import java.nio.BufferOverflowException;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 public class DFLayoutMergeAssist implements Serializable {
     protected static final Logger logger = LoggerFactory.getLogger(DFLayoutMergeAssist.class);
     private static final int DEFAULT_BUFFER_SIZE = 256;
-    private NCuboidLayout layout;
+    private LayoutEntity layout;
     private NDataSegment newSegment;
     private List<NDataSegment> toMergeSegments;
     private SparkSession ss;
-    final private List<NDataCuboid> toMergeCuboids = new ArrayList<>();
+    final private List<NDataLayout> toMergeCuboids = new ArrayList<>();
 
     public void setSs(SparkSession ss) {
         this.ss = ss;
     }
 
-    public void setLayout(NCuboidLayout layout) {
+    public void setLayout(LayoutEntity layout) {
         this.layout = layout;
     }
 
-    public NCuboidLayout getLayout() {
+    public LayoutEntity getLayout() {
         return this.layout;
     }
 
-    public List<NDataCuboid> getCuboids() {
+    public List<NDataLayout> getCuboids() {
         return this.toMergeCuboids;
     }
 
-    public void addCuboid(NDataCuboid cuboid) {
+    public void addCuboid(NDataLayout cuboid) {
         toMergeCuboids.add(cuboid);
     }
 

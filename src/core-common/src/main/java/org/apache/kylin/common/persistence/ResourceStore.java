@@ -274,7 +274,7 @@ public abstract class ResourceStore {
             r.setMvcc(res.getMvcc());
             return r;
         } catch (IOException e) {
-            logger.warn("error when deserializing resource: {}", res.getResPath());
+            logger.warn("error when deserializing resource: " + res.getResPath(), e);
             return null;
         }
     }

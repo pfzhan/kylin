@@ -98,10 +98,10 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
     public void testGetFlatTable() {
         System.out.println(getTestConfig().getMetadataUrl());
         NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        NDataflow df = dsMgr.getDataflow("ncube_basic");
+        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataModel model = (NDataModel) df.getModel();
 
-        NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getCubePlan(),
+        NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getIndexPlan(),
                 new SegmentRange.TimePartitionedSegmentRange(0L, System.currentTimeMillis()));
         Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTable, ss);
         ds.show(10);
@@ -111,7 +111,7 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
             Assert.assertNotNull(model.findColumn(model.getColumnNameByColumnId(Integer.valueOf(field.name()))));
         }
 
-        Set<Integer> dims = df.getCubePlan().getEffectiveDimCols().keySet();
+        Set<Integer> dims = df.getIndexPlan().getEffectiveDimCols().keySet();
         Column[] modelCols = new Column[dims.size()];
         int index = 0;
         for (int id : dims) {

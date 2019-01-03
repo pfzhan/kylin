@@ -45,8 +45,8 @@ public class NDimensionDesc implements Serializable, IKeep {
     public NDimensionDesc() {
     }
 
-    public void init(NCubePlan nCubePlan) {
-        TblColRef colRef = nCubePlan.getModel().getEffectiveColsMap().get(id);
+    public void init(IndexPlan indexPlan) {
+        TblColRef colRef = indexPlan.getModel().getEffectiveColsMap().get(id);
         encoding.init(colRef);
     }
 

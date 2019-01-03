@@ -34,6 +34,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -56,9 +58,7 @@ import com.google.common.collect.Sets;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.IndexPlan;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
@@ -82,7 +82,7 @@ public class MockedDFBuildJob extends NDataflowJob {
     protected void doExecute(OptionsHelper optionsHelper) throws Exception {
         long start = System.currentTimeMillis();
         logger.info("Start Build");
-        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
+        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_ID);
         project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
 
         Set<String> segmentIds = Sets.newHashSet(StringUtils.split(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS)));
@@ -90,15 +90,15 @@ public class MockedDFBuildJob extends NDataflowJob {
 
         try {
             NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
-            NCubePlan cubePlan = dfMgr.getDataflow(dfName).getCubePlan();
-            Set<NCuboidLayout> cuboids = NSparkCubingUtil.toLayouts(cubePlan, layoutIds).stream()
+            IndexPlan indexPlan = dfMgr.getDataflow(dfName).getIndexPlan();
+            Set<LayoutEntity> cuboids = NSparkCubingUtil.toLayouts(indexPlan, layoutIds).stream()
                     .filter(Objects::nonNull).collect(Collectors.toSet());
-            nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(cuboids, dfName);
+            nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dfName);
 
             for (String segId : segmentIds) {
                 NDataSegment seg = dfMgr.getDataflow(dfName).getSegment(segId);
-                val dimensions = new ArrayList<Integer>(cubePlan.getModel().getEffectiveCols().keySet());
-                List<DataType> sparkTypes = dimensions.stream().map(x -> cubePlan.getModel().getColRef(x).getType())
+                val dimensions = new ArrayList<Integer>(indexPlan.getModel().getEffectiveCols().keySet());
+                List<DataType> sparkTypes = dimensions.stream().map(x -> indexPlan.getModel().getColRef(x).getType())
                         .map(tp -> SparderTypeUtil.toSparkType(tp, false)).collect(Collectors.toList());
                 val collect = IntStream.range(0, dimensions.size())
                         .mapToObj(x -> new StructField(String.valueOf(dimensions.get(x)), sparkTypes.get(x), true,
@@ -106,8 +106,8 @@ public class MockedDFBuildJob extends NDataflowJob {
                         .toArray(StructField[]::new);
 
                 var structType = new StructType(collect);
-                val flatTableDesc = new NCubeJoinedFlatTableDesc(cubePlan, seg.getSegRange());
-                val nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(cubePlan.getAllCuboidLayouts(), dfName);
+                val flatTableDesc = new NCubeJoinedFlatTableDesc(indexPlan, seg.getSegRange());
+                val nSpanningTree = NSpanningTreeFactory.fromLayouts(indexPlan.getAllLayouts(), dfName);
                 for (TblColRef ref : DictionaryBuilder.extractGlobalEncodeColumns(seg, nSpanningTree)) {
                     int columnIndex = flatTableDesc.getColumnIndex(ref);
                     structType = structType.add(
@@ -118,9 +118,9 @@ public class MockedDFBuildJob extends NDataflowJob {
 
                 cuboids.forEach(layout -> {
                     CuboidAggregator.agg(ss, ds, layout.getOrderedDimensions().keySet(),
-                            cubePlan.getEffectiveMeasures(), seg);
+                            indexPlan.getEffectiveMeasures(), seg);
 
-                    NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg.getDataflow(), seg.getId(), layout.getId());
+                    NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), layout.getId());
                     dataCuboid.setRows(123);
                     dataCuboid.setSourceByteSize(123);
                     dataCuboid.setSourceRows(123);
@@ -130,7 +130,7 @@ public class MockedDFBuildJob extends NDataflowJob {
                     StorageFactory.createEngineAdapter(layout, NSparkCubingEngine.NSparkCubingStorage.class)
                             .saveTo(NSparkCubingUtil.getStoragePath(dataCuboid), ds, ss);
 
-                    NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
+                    NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
                     update.setToAddOrUpdateCuboids(dataCuboid);
                     NDataflowManager.getInstance(config, project).updateDataflow(update);
 

@@ -160,7 +160,7 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         start = 1293194019000L;
         end = 1305680419000L;
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
         dataSegment.setStatus(SegmentStatusEnum.READY);
         segments.add(dataSegment);
@@ -169,12 +169,12 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         start = 1305680419000L;
         end = 1325680419000L;
         segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         dataSegment = dataflowManager.appendSegment(df, segmentRange);
         dataSegment.setStatus(SegmentStatusEnum.READY);
         segments.add(dataSegment);
 
-        NDataflowUpdate update = new NDataflowUpdate("ncube_basic");
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
@@ -317,13 +317,13 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         start = 1293194019000L;
         end = 1305680419000L;
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
         dataSegment.setStatus(SegmentStatusEnum.READY);
         segments.add(dataSegment);
 
         segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        df = dataflowManager.getDataflow("ncube_basic_inner");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic_inner");
         dataSegment = dataflowManager.appendSegment(df, segmentRange);
         dataSegment.setStatus(SegmentStatusEnum.READY);
         segments2.add(dataSegment);
@@ -331,22 +331,22 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         start = 1305680419000L;
         end = 1325680419000L;
         segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         dataSegment = dataflowManager.appendSegment(df, segmentRange);
         dataSegment.setStatus(SegmentStatusEnum.READY);
         segments.add(dataSegment);
 
         segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        df = dataflowManager.getDataflow("ncube_basic_inner");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic_inner");
         dataSegment = dataflowManager.appendSegment(df, segmentRange);
         dataSegment.setStatus(SegmentStatusEnum.NEW);
         segments2.add(dataSegment);
 
-        NDataflowUpdate update = new NDataflowUpdate("ncube_basic");
+        NDataflowUpdate update = new NDataflowUpdate(dataflowManager.getDataflowByModelAlias("nmodel_basic").getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
-        update = new NDataflowUpdate("ncube_basic_inner");
+        update = new NDataflowUpdate(dataflowManager.getDataflowByModelAlias("nmodel_basic_inner").getUuid());
         update.setToUpdateSegs(segments2.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
@@ -355,7 +355,7 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("1293194019000", range.getStart().toString());
         Assert.assertEquals("1305680419000", range.getEnd().toString());
 
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         val segs = df.getQuerableSegments();
         Assert.assertEquals(1, segs.size());
 
@@ -367,15 +367,15 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
 
     private void removeAllSegments() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         // remove the existed seg
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
 
-        df = dataflowManager.getDataflow("ncube_basic_inner");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic_inner");
         // remove the existed seg
-        update = new NDataflowUpdate(df.getName());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
     }

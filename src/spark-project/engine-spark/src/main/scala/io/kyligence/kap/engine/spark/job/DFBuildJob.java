@@ -33,6 +33,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
@@ -54,10 +56,8 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
@@ -86,7 +86,7 @@ public class DFBuildJob extends NDataflowJob {
     protected void doExecute(OptionsHelper optionsHelper) throws Exception {
         long start = System.currentTimeMillis();
         logger.info("Start Build");
-        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
+        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_ID);
         project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
 
         Set<String> segmentIds = Sets.newHashSet(StringUtils.split(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS)));
@@ -94,10 +94,10 @@ public class DFBuildJob extends NDataflowJob {
 
         try {
             NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
-            NCubePlan cubePlan = dfMgr.getDataflow(dfName).getCubePlan();
-            Set<NCuboidLayout> cuboids = NSparkCubingUtil.toLayouts(cubePlan, layoutIds).stream()
+            IndexPlan indexPlan = dfMgr.getDataflow(dfName).getIndexPlan();
+            Set<LayoutEntity> cuboids = NSparkCubingUtil.toLayouts(indexPlan, layoutIds).stream()
                     .filter(Objects::nonNull).collect(Collectors.toSet());
-            nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(cuboids, dfName);
+            nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dfName);
 
             //TODO: what if a segment is deleted during building?
 
@@ -117,19 +117,19 @@ public class DFBuildJob extends NDataflowJob {
                     buildFromFlatTable.setSegment(seg);
                     sources.add(buildFromFlatTable);
                     // build cuboids from flat table
-                    for (NCuboidDesc cuboid : buildFromFlatTable.getToBuildCuboids()) {
+                    for (IndexEntity cuboid : buildFromFlatTable.getToBuildCuboids()) {
                         recursiveBuildCuboid(seg, cuboid, buildFromFlatTable.getDataset(),
-                                cubePlan.getEffectiveMeasures(), nSpanningTree);
+                                indexPlan.getEffectiveMeasures(), nSpanningTree);
                     }
                 }
 
                 sources.addAll(buildFromLayouts.values());
                 // build cuboids from reused layouts
                 for (NBuildSourceInfo source : buildFromLayouts.values()) {
-                    for (NCuboidDesc root : source.getToBuildCuboids()) {
+                    for (IndexEntity root : source.getToBuildCuboids()) {
                         source.setSegment(seg);
                         recursiveBuildCuboid(seg, root, source.getDataset(),
-                                cubePlan.getCuboidLayout(source.getLayoutId()).getOrderedMeasures(), nSpanningTree);
+                                indexPlan.getCuboidLayout(source.getLayoutId()).getOrderedMeasures(), nSpanningTree);
                     }
                 }
                 if (buildFromFlatTable != null)
@@ -142,42 +142,42 @@ public class DFBuildJob extends NDataflowJob {
         }
     }
 
-    private void recursiveBuildCuboid(NDataSegment seg, NCuboidDesc cuboid, Dataset<Row> parent,
-            Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
-        if (cuboid.getId() >= NCuboidDesc.TABLE_INDEX_START_ID) {
+    private void recursiveBuildCuboid(NDataSegment seg, IndexEntity cuboid, Dataset<Row> parent,
+                                      Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
+        if (cuboid.getId() >= IndexEntity.TABLE_INDEX_START_ID) {
             Preconditions.checkArgument(cuboid.getMeasures().size() == 0);
             Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
             Dataset<Row> afterPrj = parent.select(NSparkCubingUtil.getColumns(dimIndexes));
             // TODO: shard number should respect the shard column defined in cuboid
-            for (NCuboidLayout layout : nSpanningTree.getLayouts(cuboid)) {
+            for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
                 Set<Integer> orderedDims = layout.getOrderedDimensions().keySet();
                 Dataset<Row> afterSort = afterPrj.select(NSparkCubingUtil.getColumns(orderedDims))
                         .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
                 saveAndUpdateCuboid(afterSort, seg, layout);
             }
-            for (NCuboidDesc child : nSpanningTree.getSpanningCuboidDescs(cuboid)) {
+            for (IndexEntity child : nSpanningTree.getSpanningIndexEntities(cuboid)) {
                 recursiveBuildCuboid(seg, child, afterPrj, measures, nSpanningTree);
             }
         } else {
             Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
             Dataset<Row> afterAgg = CuboidAggregator.agg(ss, parent, dimIndexes, measures, seg);
             Set<Integer> meas = cuboid.getEffectiveMeasures().keySet();
-            for (NCuboidLayout layout : nSpanningTree.getLayouts(cuboid)) {
+            for (LayoutEntity layout : nSpanningTree.getLayouts(cuboid)) {
                 Set<Integer> rowKeys = layout.getOrderedDimensions().keySet();
                 Dataset<Row> afterSort = afterAgg.select(NSparkCubingUtil.getColumns(rowKeys, meas))
                         .sortWithinPartitions(NSparkCubingUtil.getColumns(rowKeys));
                 saveAndUpdateCuboid(afterSort, seg, layout);
             }
-            for (NCuboidDesc child : nSpanningTree.getSpanningCuboidDescs(cuboid)) {
+            for (IndexEntity child : nSpanningTree.getSpanningIndexEntities(cuboid)) {
                 recursiveBuildCuboid(seg, child, afterAgg, measures, nSpanningTree);
             }
         }
     }
 
-    private void saveAndUpdateCuboid(Dataset<Row> dataset, NDataSegment seg, NCuboidLayout layout) throws IOException {
+    private void saveAndUpdateCuboid(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout) throws IOException {
         long layoutId = layout.getId();
 
-        NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg.getDataflow(), seg.getId(), layoutId);
+        NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), layoutId);
 
         // for spark metrics
         String queryExecutionId = UUID.randomUUID().toString();
@@ -212,12 +212,12 @@ public class DFBuildJob extends NDataflowJob {
 
         fillCuboid(dataCuboid);
 
-        NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
+        NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
         update.setToAddOrUpdateCuboids(dataCuboid);
         NDataflowManager.getInstance(config, project).updateDataflow(update);
     }
 
-    public static void fillCuboid(NDataCuboid cuboid) throws IOException {
+    public static void fillCuboid(NDataLayout cuboid) throws IOException {
         String strPath = NSparkCubingUtil.getStoragePath(cuboid);
         FileSystem fs = HadoopUtil.getReadFileSystem();
         if (fs.exists(new Path(strPath))) {

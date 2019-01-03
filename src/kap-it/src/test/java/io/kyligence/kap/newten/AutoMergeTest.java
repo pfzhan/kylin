@@ -75,9 +75,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
 
     private void removeAllSegments() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         // remove the existed seg
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
     }
@@ -85,11 +85,11 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
     private void mockAddSegmentSuccess()
             throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val df = dataflowManager.getDataflow("ncube_basic");
+        val df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         Class clazz = PostAddSegmentHandler.class;
         Method method = clazz.getDeclaredMethod("autoMergeSegments", String.class, String.class, String.class);
         method.setAccessible(true);
-        method.invoke(new PostAddSegmentHandler(), DEFAULT_PROJECT, "nmodel_basic", "ADMIN");
+        method.invoke(new PostAddSegmentHandler(), DEFAULT_PROJECT, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "ADMIN");
     }
 
     private void createDataloadingRange() throws IOException {
@@ -105,7 +105,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         List<NDataSegment> segments = new ArrayList<>();
         long start;
         long end;
@@ -115,12 +115,12 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
             end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
         }
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
@@ -137,7 +137,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         List<NDataSegment> segments = new ArrayList<>();
         long start;
         long end;
@@ -147,12 +147,12 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
             end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
         }
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         EventDao eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
@@ -169,7 +169,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         List<NDataSegment> segments = new ArrayList<>();
         long start;
         long end;
@@ -179,13 +179,13 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
             end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
         }
 
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         //clear all events
@@ -196,9 +196,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
                 //merge 2010/01/01 00:00 - 2010/01/04 00:00
-                Assert.assertEquals(1262304000000L, dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1262304000000L, dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart());
-                Assert.assertEquals(1262563200000L, dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1262563200000L, dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd());
             }
         }
@@ -209,8 +209,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
-        NDataModel model = dataModelManager.getDataModelDesc("nmodel_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataModel model = dataModelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         List<NDataSegment> segments = new ArrayList<>();
         long start;
         long end;
@@ -220,13 +220,13 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
             end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
         }
 
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
@@ -247,9 +247,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                Assert.assertEquals(1262304000000L, dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1262304000000L, dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart());
-                Assert.assertEquals(1262563200000L, dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1262563200000L, dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd());
             }
         }
@@ -260,8 +260,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
-        NDataModel model = dataModelManager.getDataModelDesc("nmodel_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataModel model = dataModelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         List<NDataSegment> segments = new ArrayList<>();
         long start;
         long end;
@@ -271,13 +271,13 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-04") + i * 86400000;
             end = SegmentRange.dateToLong("2010-01-05") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
         }
 
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
@@ -299,9 +299,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                Assert.assertEquals(1262563200000L, dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1262563200000L, dataflowManager.getDataflowByModelAlias("nmodel_basic")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart());
-                Assert.assertEquals(1263168000000L, dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1263168000000L, dataflowManager.getDataflowByModelAlias("nmodel_basic")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd());
             }
         }
@@ -313,7 +313,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         List<NDataSegment> segments = new ArrayList<>();
         long start;
         long end;
@@ -324,18 +324,18 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
             end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
         }
 
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
-        df = dataflowManager.getDataflow("ncube_basic");
-        update = new NDataflowUpdate(df.getName());
+        df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        update = new NDataflowUpdate(df.getUuid());
         //remove 2010-01-02
         update.setToRemoveSegs(new NDataSegment[]{df.getSegments().get(1)});
         dataflowManager.updateDataflow(update);
@@ -347,9 +347,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(events.size(), 2);
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                start = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                start = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString());
-                end = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                end = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
                 Assert.assertEquals(1262563200000L, start);
                 Assert.assertEquals(1263168000000L, end);
@@ -363,7 +363,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         List<NDataSegment> segments = new ArrayList<>();
         long start;
         long end;
@@ -374,7 +374,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
             end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             if (i != 1) {
                 dataSegment.setStatus(SegmentStatusEnum.READY);
@@ -382,7 +382,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             segments.add(dataSegment);
         }
 
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
@@ -393,9 +393,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(events.size(), 2);
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                start = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                start = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString());
-                end = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                end = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
                 Assert.assertEquals(1262563200000L, start);
                 Assert.assertEquals(1263168000000L, end);
@@ -417,7 +417,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
             end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            NDataflow df = dataflowManager.getDataflow("ncube_basic");
+            NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
@@ -427,12 +427,12 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         start = 1262476800000L;
         end = 1262476800000L + 86400000 * 8;
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
         dataSegment.setStatus(SegmentStatusEnum.READY);
         segments.add(dataSegment);
 
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
@@ -443,9 +443,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(events.size(), 2);
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                start = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                start = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString());
-                end = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                end = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
                 Assert.assertEquals(1262304000000L, start);
                 Assert.assertEquals(1262476800000L, end);
@@ -459,7 +459,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         List<NDataSegment> segments = new ArrayList<>();
         long start;
         long end;
@@ -469,13 +469,13 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-03") + i * 86400000;
             end = SegmentRange.dateToLong("2010-01-04") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
         }
 
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
@@ -486,9 +486,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(events.size(), 2);
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                start = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                start = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString());
-                end = Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                end = Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString());
                 //2010/1/3 sunday - 2010/1/10 sunday
                 Assert.assertEquals(1262476800000L, start);
@@ -502,8 +502,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
-        NDataModel model = dataModelManager.getDataModelDesc("nmodel_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataModel model = dataModelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         List<NDataSegment> segments = new ArrayList<>();
         long start;
@@ -514,12 +514,12 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-01") + i * 1000 * 60 * 13;
             end = SegmentRange.dateToLong("2010-01-01") + (i + 1) * 1000 * 60 * 13;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
         }
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
@@ -537,9 +537,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                Assert.assertEquals(1262304000000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1262304000000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString()));
-                Assert.assertEquals(1262307120000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1262307120000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString()));
             }
         }
@@ -551,13 +551,13 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
-        NDataModel model = dataModelManager.getDataModelDesc("nmodel_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataModel model = dataModelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         List<NDataSegment> segments = new ArrayList<>();
         long start;
         long end;
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
         NDataModel modelUpdate = dataModelManager.copyForWrite(model);
@@ -571,7 +571,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-12-01") + i * 604800000;
             end = SegmentRange.dateToLong("2010-12-08") + i * 604800000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
@@ -581,12 +581,12 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-12-29") + i * 86400000;
             end = SegmentRange.dateToLong("2010-12-30") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
         }
-        update = new NDataflowUpdate(df.getName());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         //clear all events
@@ -597,9 +597,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                Assert.assertEquals(1291161600000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1291161600000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString()));
-                Assert.assertEquals(1293840000000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1293840000000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString()));
             }
         }
@@ -611,8 +611,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
-        NDataModel model = dataModelManager.getDataModelDesc("nmodel_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataModel model = dataModelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         List<NDataSegment> segments = new ArrayList<>();
         long start;
         long end;
@@ -621,7 +621,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-10-01") + i * 2592000000L;
             end = SegmentRange.dateToLong("2010-10-31") + i * 2592000000L;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
@@ -633,7 +633,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         modelUpdate.getSegmentConfig().setAutoMergeTimeRanges(timeRanges);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
@@ -644,9 +644,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                Assert.assertEquals(1285891200000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1285891200000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString()));
-                Assert.assertEquals(1293667200000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1293667200000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString()));
             }
         }
@@ -657,8 +657,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
-        NDataModel model = dataModelManager.getDataModelDesc("nmodel_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataModel model = dataModelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         List<NDataSegment> segments = new ArrayList<>();
         long start;
@@ -668,7 +668,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-10-01 08:00:00") + i * 8100000L;
             end = start + 8100000L;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
@@ -680,7 +680,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         modelUpdate.getSegmentConfig().setAutoMergeTimeRanges(timeRanges);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
@@ -692,9 +692,9 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, events.size());
         for (val event : events) {
             if (event instanceof MergeSegmentEvent) {
-                Assert.assertEquals(1285920000000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1285920000000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getStart().toString()));
-                Assert.assertEquals(1285976700000L, Long.parseLong(dataflowManager.getDataflow("ncube_basic")
+                Assert.assertEquals(1285976700000L, Long.parseLong(dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .getSegment(((MergeSegmentEvent) event).getSegmentId()).getSegRange().getEnd().toString()));
             }
         }
@@ -705,8 +705,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
-        NDataModel model = dataModelManager.getDataModelDesc("nmodel_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataModel model = dataModelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         List<NDataSegment> segments = new ArrayList<>();
         long start;
@@ -717,7 +717,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-04") + i * 86400000;
             end = SegmentRange.dateToLong("2010-01-05") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
@@ -729,7 +729,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-09") + i * 86400000;
             end = SegmentRange.dateToLong("2010-01-10") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
@@ -741,7 +741,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         modelUpdate.getSegmentConfig().setAutoMergeTimeRanges(timeRanges);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
@@ -759,8 +759,8 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
-        NDataModel model = dataModelManager.getDataModelDesc("nmodel_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataModel model = dataModelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         List<NDataSegment> segments = new ArrayList<>();
         long start;
@@ -771,7 +771,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-03") + i * 86400000 * 2;
             end = SegmentRange.dateToLong("2010-01-05") + i * 86400000 * 2;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
@@ -780,7 +780,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         NDataModel modelUpdate = dataModelManager.copyForWrite(model);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
 
@@ -799,12 +799,12 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
         removeAllSegments();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Class<RootPersistentEntity> clazz = RootPersistentEntity.class;
         Field field = clazz.getDeclaredField("isCachedAndShared");
         field.setAccessible(true);
         field.set(df, false);
-        NDataModel model = dataModelManager.getDataModelDesc("nmodel_basic");
+        NDataModel model = dataModelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataModel modelUpdate = dataModelManager.copyForWrite(model);
         List<AutoMergeTimeEnum> autoMergeTimeEnumList = new ArrayList<>();
         autoMergeTimeEnumList.add(AutoMergeTimeEnum.YEAR);
@@ -833,7 +833,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
             newSegment.setSegmentRange(segmentRange);
             newSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(newSegment);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
             field.set(df, false);
             df.setSegments(segments);
             eventDao.deleteAllEvents();
@@ -859,12 +859,10 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
                             eventsMergeDay++;
                         }
 
-                        mockMergeSegments(i, dataflowManager.getDataflow("ncube_basic")
+                        mockMergeSegments(i, dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                                 .getSegment(((MergeSegmentEvent) eventDao.getEvents().get(0)).getSegmentId()).getSegRange());
                     }
                 }
-
-
                 i += 2;
             } else {
                 i++;
@@ -912,7 +910,7 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
 
     private void mockMergeSegments(int i, SegmentRange segmentRange) {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
+        NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Segments<NDataSegment> segments = new Segments<>();
         for (NDataSegment segment : dataflow.getSegments()) {
             if (segmentRange.contains(segment.getSegRange())) {

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.cube.model.NBatchConstants;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -39,8 +40,8 @@ import org.mockito.Mockito;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -76,8 +77,7 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         master.runAll();
 
         AddCuboidEvent event = new AddCuboidEvent();
-        event.setModelName("nmodel_basic");
-        event.setCubePlanName("ncube_basic");
+        event.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         event.setOwner("ADMIN");
         EventContext eventContext = new EventContext(event, getTestConfig(), DEFAULT_PROJECT);
         val handler = Mockito.spy(new AddCuboidHandler());
@@ -90,23 +90,22 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         String jobId = ((AddCuboidEvent) eventContext.getEvent()).getJobId();
         AbstractExecutable job = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getJob(jobId);
         Assert.assertNotNull(job);
-        Assert.assertEquals(NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getDataflow("ncube_basic")
+        Assert.assertEquals(NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .getSegments().getFirstSegment().getId(),
                 ((ChainedExecutable) job).getTasks().get(1).getParam("segmentIds"));
-        Assert.assertEquals("20000002001", ((ChainedExecutable) job).getTasks().get(1).getParam("cuboidLayoutIds"));
+        Assert.assertEquals("20000020001,1010001", ((ChainedExecutable) job).getTasks().get(1).getParam(NBatchConstants.P_LAYOUT_IDS));
     }
 
     @Test
     public void testHandleEmptySegment() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         // remove the existed seg
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
 
         AddCuboidEvent event = new AddCuboidEvent();
-        event.setModelName("nmodel_basic");
-        event.setCubePlanName("ncube_basic");
+        event.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         event.setJobId(UUID.randomUUID().toString());
         event.setOwner("ADMIN");
         EventContext eventContext = new EventContext(event, getTestConfig(), DEFAULT_PROJECT);
@@ -127,12 +126,12 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         List<Long> targetLayoutIds = new ArrayList<>();
 
         NSmartContext.NModelContext context = contexts.get(0);
-        NCubePlan originCubePlan = context.getOrigCubePlan();
-        NCubePlan targetCubePlan = context.getTargetCubePlan();
-        for (NCuboidLayout layout : originCubePlan.getAllCuboidLayouts()) {
+        IndexPlan originIndexPlan = context.getOrigIndexPlan();
+        IndexPlan targetIndexPlan = context.getTargetIndexPlan();
+        for (LayoutEntity layout : originIndexPlan.getAllLayouts()) {
             originLayoutIds.add(layout.getId());
         }
-        for (NCuboidLayout layout : targetCubePlan.getAllCuboidLayouts()) {
+        for (LayoutEntity layout : targetIndexPlan.getAllLayouts()) {
             targetLayoutIds.add(layout.getId());
         }
 

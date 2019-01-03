@@ -89,7 +89,7 @@ object TableScanPlan extends Logging {
           val context = olapContext.storageContext
           val cuboidLayout = context.getCandidate.getCuboidLayout
 
-          val sourceBytes = dataflow.getSegments.asScala.map(_.getCuboid(cuboidLayout.getId).getByteSize).sum
+          val sourceBytes = dataflow.getSegments.asScala.map(_.getLayout(cuboidLayout.getId).getByteSize).sum
           QueryContext.current().addAndGetSourceScanBytes(sourceBytes)
 
           val tableName = olapContext.firstTableScan.getBackupAlias

@@ -70,19 +70,19 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
 
         val task = getBuildTask(executable);
 
-        val dataflowName = ExecutableUtils.getDataflowName(task);
+        val dataflowId = ExecutableUtils.getDataflowId(task);
         val segmentIds = ExecutableUtils.getSegmentIds(task);
         val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), task);
         try {
             UnitOfWork.doInTransactionWithRetry(() -> {
-                if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+                if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
                     finishEvent(project, event.getId());
                     return null;
                 }
 
                 val kylinConfig = KylinConfig.getInstanceFromEnv();
                 val merger = new AfterMergeOrRefreshResourceMerger(kylinConfig, project);
-                val updatedCuboids = merger.mergeAfterJob(dataflowName, segmentIds.iterator().next(), buildResourceStore);
+                val updatedCuboids = merger.mergeAfterJob(dataflowId, segmentIds.iterator().next(), buildResourceStore);
 
                 recordDownJobStats(task, updatedCuboids);
 
@@ -110,18 +110,18 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
         String project = eventContext.getProject();
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            String cubePlanName = event.getCubePlanName();
+            String modelId = event.getModelId();
             String segmentId = event.getSegmentId();
-            if (!checkSubjectExists(project, cubePlanName, segmentId, event)) {
+            if (!checkSubjectExists(project, modelId, segmentId, event)) {
                 finishEvent(project, event.getId());
                 return null;
             }
 
             NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            NDataflow df = dfMgr.getDataflow(cubePlanName);
+            NDataflow df = dfMgr.getDataflow(modelId);
 
             //update target seg's status
-            val dfUpdate = new NDataflowUpdate(cubePlanName);
+            val dfUpdate = new NDataflowUpdate(modelId);
             NDataflow copy = df.copy();
             val seg = copy.getSegment(segmentId);
             seg.setStatus(SegmentStatusEnum.READY);

@@ -29,7 +29,7 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -59,16 +59,14 @@ public class AccelerateInfo {
         @ToString.Exclude
         private String sql;
         private String modelId;
-        private String cubePlanId;
         private long layoutId;
         private int semanticVersion;
 
-        public boolean consistent(NCuboidLayout layout) {
+        public boolean consistent(LayoutEntity layout) {
 
             Preconditions.checkNotNull(layout);
             return this.semanticVersion == layout.getModel().getSemanticVersion()
                     && this.modelId.equalsIgnoreCase(layout.getModel().getId())
-                    && this.cubePlanId.equalsIgnoreCase(layout.getCuboidDesc().getCubePlan().getId())
                     && this.layoutId == layout.getId();
         }
     }

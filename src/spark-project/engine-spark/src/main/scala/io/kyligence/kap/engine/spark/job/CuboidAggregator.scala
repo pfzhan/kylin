@@ -48,7 +48,7 @@ object CuboidAggregator {
           measures: util.Map[Integer, NDataModel.Measure],
           seg: NDataSegment): DataFrame = {
     val flatTableDesc =
-      new NCubeJoinedFlatTableDesc(seg.getCubePlan, seg.getSegRange)
+      new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
     agg(ss, dataSet, dimensions, measures, flatTableDesc, isSparkSql = false)
   }
 

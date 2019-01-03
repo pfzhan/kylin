@@ -29,9 +29,9 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.smart.NSmartContext;
 
 abstract class NAbstractCubeProposer {
@@ -42,11 +42,11 @@ abstract class NAbstractCubeProposer {
         this.context = context;
     }
 
-    abstract NCubePlan doPropose(NCubePlan cubePlan);
+    abstract IndexPlan doPropose(IndexPlan indexPlan);
 
-    List<NCuboidLayout> collectAllLayouts(Collection<NCuboidDesc> cuboidDescs) {
-        List<NCuboidLayout> layouts = Lists.newArrayList();
-        cuboidDescs.forEach(cuboidDesc -> layouts.addAll(cuboidDesc.getLayouts()));
+    List<LayoutEntity> collectAllLayouts(Collection<IndexEntity> indexEntities) {
+        List<LayoutEntity> layouts = Lists.newArrayList();
+        indexEntities.forEach(indexEntity -> layouts.addAll(indexEntity.getLayouts()));
         return layouts;
     }
 }

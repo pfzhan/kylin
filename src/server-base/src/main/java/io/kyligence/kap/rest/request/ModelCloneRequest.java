@@ -31,7 +31,7 @@ import lombok.Setter;
 @Getter
 public class ModelCloneRequest {
 
-    private String modelName;
+    private String modelId;
     private String newModelName;
     private String project;
 

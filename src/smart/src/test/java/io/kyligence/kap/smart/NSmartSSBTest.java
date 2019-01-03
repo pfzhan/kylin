@@ -32,6 +32,7 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.model.IndexEntity;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -40,8 +41,8 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
@@ -64,9 +65,6 @@ public class NSmartSSBTest extends NLocalFileMetadataTestCase {
         final String project = "ssb";
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), project);
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
-
-        Assert.assertTrue(!projectManager.listAllRealizations(project).isEmpty());
-        Assert.assertTrue(!dataModelManager.getDataModels().isEmpty());
 
         final String sqlsPath = "./src/test/resources/nsmart/ssb/sql";
         File fileFolder = new File(sqlsPath);
@@ -92,21 +90,21 @@ public class NSmartSSBTest extends NLocalFileMetadataTestCase {
     @Test
     public void testTwice_DifferentIds() throws IOException {
         testSSB();
-        val cubeManager = NCubePlanManager.getInstance(getTestConfig(), "ssb");
-        var cube = cubeManager.listAllCubePlans().get(0);
-        val maxAggId1 = cube.getNextAggregateIndexId();
+        val cubeManager = NIndexPlanManager.getInstance(getTestConfig(), "ssb");
+        var cube = cubeManager.listAllIndexPlans().get(0);
+        val maxAggId1 = cube.getNextAggregationIndexId();
         val maxTableId1 = cube.getNextTableIndexId();
-        val aggSize = cube.getAllCuboids().stream().filter(c -> !c.isTableIndex()).count();
-        val tableSize = cube.getAllCuboids().stream().filter(c -> c.isTableIndex()).count();
-        cube = cubeManager.updateCubePlan(cube.getName(), copyForWrite -> {
+        val aggSize = cube.getAllIndexes().stream().filter(c -> !c.isTableIndex()).count();
+        val tableSize = cube.getAllIndexes().stream().filter(c -> c.isTableIndex()).count();
+        cube = cubeManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
             copyForWrite.removeLayouts(
-                    copyForWrite.getAllCuboidLayouts().stream().map(NCuboidLayout::getId).collect(Collectors.toSet()),
-                    NCuboidLayout::equals, true, false);
+                    copyForWrite.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet()),
+                    LayoutEntity::equals, true, false);
         });
 
         testSSB();
-        cube = cubeManager.getCubePlan(cube.getName());
-        Assert.assertEquals(maxAggId1 + 1000 * aggSize, cube.getNextAggregateIndexId());
-        Assert.assertEquals(maxTableId1 + 1000 * tableSize, cube.getNextTableIndexId());
+        cube = cubeManager.getIndexPlan(cube.getUuid());
+        Assert.assertEquals(maxAggId1 + IndexEntity.INDEX_ID_STEP * aggSize, cube.getNextAggregationIndexId());
+        Assert.assertEquals(maxTableId1 + IndexEntity.INDEX_ID_STEP * tableSize, cube.getNextTableIndexId());
     }
 }

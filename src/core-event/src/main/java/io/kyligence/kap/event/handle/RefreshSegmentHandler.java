@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -36,8 +37,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
@@ -54,15 +54,15 @@ public class RefreshSegmentHandler extends AbstractEventWithJobHandler {
 
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
-        if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+        if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
             return null;
         }
 
-        List<NCuboidLayout> layouts = new ArrayList<>();
-        NDataflow dataflow = NDataflowManager.getInstance(kylinConfig, project).getDataflow(event.getCubePlanName());
-        for (Map.Entry<Long, NDataCuboid> cuboid : dataflow.getSegments().getLatestReadySegment().getCuboidsMap()
+        List<LayoutEntity> layouts = new ArrayList<>();
+        NDataflow dataflow = NDataflowManager.getInstance(kylinConfig, project).getDataflow(event.getModelId());
+        for (Map.Entry<Long, NDataLayout> cuboid : dataflow.getSegments().getLatestReadySegment().getLayoutsMap()
                 .entrySet()) {
-            layouts.add(cuboid.getValue().getCuboidLayout());
+            layouts.add(cuboid.getValue().getLayout());
         }
         if (CollectionUtils.isEmpty(layouts)) {
             return null;

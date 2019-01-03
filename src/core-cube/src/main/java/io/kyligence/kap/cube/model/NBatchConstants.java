@@ -26,12 +26,11 @@ package io.kyligence.kap.cube.model;
 
 public interface NBatchConstants {
     String P_CUBOID_AGG_UDF = "newtenCuboidAggUDF";
-    String P_DATAFLOW_NAME = "dataflowName";
-    String P_DATAMODEL_NAME = "dataModelName";
+    String P_DATAFLOW_ID = "dataflowId";
     String P_SEGMENT_IDS = "segmentIds";
     String P_JOB_ID = "jobId";
-    String P_CUBOID_LAYOUT_IDS = "cuboidLayoutIds";
-    String P_CUBOID_LAYOUT_ID_PATH = "cuboidLayoutIdPath";
+    String P_LAYOUT_IDS = "layoutIds";
+    String P_LAYOUT_ID_PATH = "layoutIdPath";
     String P_CLASS_NAME = "className";
     String P_JARS = "jars";
     String P_DIST_META_URL = "distMetaUrl";

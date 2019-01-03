@@ -104,7 +104,7 @@ public class OLAPSchema extends AbstractSchema {
 
         for (TableDesc tableDesc : projectTables) {
             if (tableDesc.getDatabase().equals(schemaName)) {
-                final String tableName = tableDesc.getName();//safe to use tableDesc.getName() here, it is in a DB context now
+                final String tableName = tableDesc.getName();//safe to use tableDesc.getUuid() here, it is in a DB context now
                 final OLAPTable table = new OLAPTable(this, tableDesc, exposeMore);
                 olapTables.put(tableName, table);
                 //logger.debug("Project " + projectName + " exposes table " + tableName);

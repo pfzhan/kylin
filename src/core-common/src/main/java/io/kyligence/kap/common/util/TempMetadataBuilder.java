@@ -91,7 +91,7 @@ public class TempMetadataBuilder {
                 logger.info("TEMP_TEST_METADATA={}", new File(TEMP_TEST_METADATA).getCanonicalPath());
             }
 
-            FileUtils.deleteDirectory(new File(TEMP_TEST_METADATA));
+            FileUtils.deleteQuietly(new File(TEMP_TEST_METADATA));
 
             // KAP files will overwrite Kylin files
             for (String metaSrc : metaSrcs) {

@@ -101,7 +101,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
 
             NDataModelManager metadataManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
             for (NDataModel modelDesc: metadataManager.getDataModels()) {
-                dataModelDescs.put(modelDesc.getName(), modelDesc);
+                dataModelDescs.put(modelDesc.getUuid(), modelDesc);
             }
 
             return convertWithGivenModels(sql, project, defaultSchema, dataModelDescs);
@@ -247,8 +247,8 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         for (NDataModel modelDesc : dataModelDescs.values()) {
 
             NDataModel forMatchModel = modelDesc;
-            if (modelDesc.isDraft() && dataModelDescs.containsKey(modelDesc.getName())) {
-                forMatchModel = dataModelDescs.get(modelDesc.getName());
+            if (modelDesc.isDraft() && dataModelDescs.containsKey(modelDesc.getUuid())) {
+                forMatchModel = dataModelDescs.get(modelDesc.getUuid());
             }
 
             QueryAliasMatchInfo info = queryAliasMatcher.match(forMatchModel, sqlSelect);

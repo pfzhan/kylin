@@ -28,12 +28,12 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.kylin.common.KapConfig;
 import org.apache.spark.sql.Column;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataSegDetails;
 import io.kyligence.kap.cube.model.NDataSegment;
 
@@ -74,18 +74,18 @@ public class NSparkCubingUtil {
         return r;
     }
 
-    public static Set<Long> toCuboidLayoutIds(Set<NCuboidLayout> cuboids) {
+    public static Set<Long> toCuboidLayoutIds(Set<LayoutEntity> cuboids) {
         Set<Long> r = new LinkedHashSet<>();
-        for (NCuboidLayout cl : cuboids) {
+        for (LayoutEntity cl : cuboids) {
             r.add(cl.getId());
         }
         return r;
     }
 
-    public static Set<NCuboidLayout> toLayouts(NCubePlan cubePlan, Set<Long> ids) {
-        Set<NCuboidLayout> r = new LinkedHashSet<>();
+    public static Set<LayoutEntity> toLayouts(IndexPlan indexPlan, Set<Long> ids) {
+        Set<LayoutEntity> r = new LinkedHashSet<>();
         for (Long id : ids) {
-            r.add(cubePlan.getCuboidLayout(id));
+            r.add(indexPlan.getCuboidLayout(id));
         }
         return r;
     }
@@ -121,12 +121,12 @@ public class NSparkCubingUtil {
         return String.format("(%s) t", sql);
     }
 
-    public static String getStoragePath(NDataCuboid dataCuboid) {
+    public static String getStoragePath(NDataLayout dataCuboid) {
         NDataSegDetails segDetails = dataCuboid.getSegDetails();
         KapConfig config = KapConfig.wrap(dataCuboid.getConfig());
         String hdfsWorkingDir = config.getReadHdfsWorkingDirectory();
         String path = hdfsWorkingDir + segDetails.getProject() + "/parquet/" + segDetails.getDataSegment().getDataflow().getUuid() + "/"
-                + segDetails.getUuid() + "/" + dataCuboid.getCuboidLayoutId();
+                + segDetails.getUuid() + "/" + dataCuboid.getLayoutId();
         return path;
     }
 

@@ -250,14 +250,14 @@ public class QueryService extends BasicService {
 
     public String logQuery(final SQLRequest request, final SQLResponse response) {
         final String user = aclEvaluate.getCurrentUserName();
-        Collection<String> modelNames = Lists.newArrayList();
+        Collection<String> modelIds = Lists.newArrayList();
         Collection<String> cuboidLayoutIds = Lists.newArrayList();
         float duration = response.getDuration() / (float) 1000;
         boolean storageCacheUsed = response.isStorageCacheUsed();
         boolean isPushDown = response.isPushDown();
 
         if (response.getRealizationMetrics() != null) {
-            modelNames = Collections2.transform(response.getRealizationMetrics(), input -> input.getModelName());
+            modelIds = Collections2.transform(response.getRealizationMetrics(), input -> input.getModelId());
             cuboidLayoutIds = Collections2.transform(response.getRealizationMetrics(),
                     input -> input.getCuboidLayoutId());
         }
@@ -277,7 +277,7 @@ public class QueryService extends BasicService {
         stringBuilder.append("Success: ").append((null == response.getExceptionMessage())).append(newLine);
         stringBuilder.append("Duration: ").append(duration).append(newLine);
         stringBuilder.append("Project: ").append(request.getProject()).append(newLine);
-        stringBuilder.append("Realization Names: ").append(modelNames).append(newLine);
+        stringBuilder.append("Realization Names: ").append(modelIds).append(newLine);
         stringBuilder.append("Cuboid Layout Ids: ").append(cuboidLayoutIds).append(newLine);
         stringBuilder.append("Total Scan Count: ").append(response.getTotalScanCount()).append(newLine);
         stringBuilder.append("Total Scan Bytes: ").append(response.getTotalScanBytes()).append(newLine);
@@ -718,9 +718,9 @@ public class QueryService extends BasicService {
         }
 
         ProjectInstance projectInstance = getProjectManager().getProject(project);
-        for (String modelName : projectInstance.getModels()) {
+        for (String modelId : projectInstance.getModels()) {
 
-            NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), project).getDataModelDesc(modelName);
+            NDataModel dataModelDesc = NDataModelManager.getInstance(getConfig(), project).getDataModelDesc(modelId);
             if (dataModelDesc != null && !dataModelDesc.isDraft()) {
 
                 // update table type: FACT
@@ -950,14 +950,14 @@ public class QueryService extends BasicService {
                     final String realizationType;
                     if (ctx.storageContext.isUseSnapshot()) {
                         realizationType = QueryMetricsContext.TABLE_SNAPSHOT;
-                    } else if (ctx.storageContext.getCandidate().getCuboidLayout().getCuboidDesc().isTableIndex()) {
+                    } else if (ctx.storageContext.getCandidate().getCuboidLayout().getIndex().isTableIndex()) {
                         realizationType = QueryMetricsContext.TABLE_INDEX;
                     } else {
                         realizationType = QueryMetricsContext.AGG_INDEX;
                     }
                     realizationMetrics.add(QueryMetricsContext.createRealizationMetrics(
                             String.valueOf(ctx.storageContext.getCuboidId()), realizationType,
-                            ctx.realization.getModel().getName()));
+                            ctx.realization.getModel().getUuid()));
                     engineTypes.add(realizationType);
                 }
             }

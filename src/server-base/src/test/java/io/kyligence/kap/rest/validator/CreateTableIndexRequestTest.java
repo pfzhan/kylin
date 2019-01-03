@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.validator;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -31,9 +32,8 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import lombok.val;
 
@@ -51,13 +51,13 @@ public class CreateTableIndexRequestTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasic() {
-        val cubeManager = NCubePlanManager.getInstance(getTestConfig(), "default");
-        val cube = cubeManager.updateCubePlan("ncube_basic", copyForWrite -> {
-            val cuboids = copyForWrite.getCuboids();
-            val newCuboid = new NCuboidDesc();
+        val cubeManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        val cube = cubeManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            val cuboids = copyForWrite.getIndexes();
+            val newCuboid = new IndexEntity();
             newCuboid.setDimensions(Lists.newArrayList(1, 2, 3));
             newCuboid.setId(copyForWrite.getNextTableIndexId());
-            val layout1 = new NCuboidLayout();
+            val layout1 = new LayoutEntity();
             layout1.setId(newCuboid.getId() + 1);
             layout1.setName("index1");
             layout1.setColOrder(Lists.newArrayList(1, 2, 3));
@@ -65,14 +65,14 @@ public class CreateTableIndexRequestTest extends NLocalFileMetadataTestCase {
             newCuboid.setLayouts(Lists.newArrayList(layout1));
 
             cuboids.add(newCuboid);
-            copyForWrite.setCuboids(cuboids);
+            copyForWrite.setIndexes(cuboids);
         });
 
-        val req = CreateTableIndexRequest.builder().project(cube.getProject()).model(cube.getModelName()).name("index1")
+        val req = CreateTableIndexRequest.builder().project(cube.getProject()).modelId(cube.getUuid()).name("index1")
                 .build();
         Assert.assertTrue(req.isNameExisting());
 
-        req.setId(cube.getNextTableIndexId() - NCuboidDesc.CUBOID_DESC_ID_STEP + 1);
+        req.setId(cube.getNextTableIndexId() - IndexEntity.INDEX_ID_STEP + 1);
         Assert.assertFalse(req.isNameExisting());
     }
 

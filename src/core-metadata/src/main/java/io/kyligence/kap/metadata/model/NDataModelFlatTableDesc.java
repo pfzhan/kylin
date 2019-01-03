@@ -92,7 +92,7 @@ public class NDataModelFlatTableDesc implements IJoinedFlatTableDesc {
     public String getTableName() {
         if (jobId == null)
             throw new IllegalArgumentException("Job ID should not be null");
-        return "kylin_intermediate_" + dataModelDesc.getName() + "_stats_" + jobId.replace('-', '_');
+        return "kylin_intermediate_" + dataModelDesc.getUuid() + "_stats_" + jobId.replace('-', '_');
     }
 
     @Override

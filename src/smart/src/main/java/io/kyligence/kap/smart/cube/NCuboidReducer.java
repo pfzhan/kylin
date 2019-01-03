@@ -27,15 +27,15 @@ package io.kyligence.kap.smart.cube;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.cube.model.IndexPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.IndexEntity.IndexIdentifier;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 
 class NCuboidReducer extends NAbstractCubeProposer {
@@ -47,26 +47,26 @@ class NCuboidReducer extends NAbstractCubeProposer {
     }
 
     @Override
-    public NCubePlan doPropose(NCubePlan cubePlan) {
+    public IndexPlan doPropose(IndexPlan indexPlan) {
 
         // get to be removed cuboids
-        final Map<NCuboidIdentifier, NCuboidDesc> proposedCuboids = Maps.newLinkedHashMap();
+        final Map<IndexIdentifier, IndexEntity> proposedCuboids = Maps.newLinkedHashMap();
 
-        final CuboidSuggester cuboidSuggester = new CuboidSuggester(context, cubePlan, proposedCuboids);
+        final CuboidSuggester cuboidSuggester = new CuboidSuggester(context, indexPlan, proposedCuboids);
         cuboidSuggester.suggestCuboids(context.getModelTree());
 
         // log before shrink cuboids
-        proposedCuboids.forEach((cuboidIdentifier, cuboidDesc) -> {
+        proposedCuboids.forEach((cuboidIdentifier, indexEntity) -> {
             logger.debug("layouts after reduce:");
-            cuboidDesc.getLayouts().forEach(layout -> logger.debug("{}", layout.getId()));
+            indexEntity.getLayouts().forEach(layout -> logger.debug("{}", layout.getId()));
         });
 
         // remove cuboids
-        Map<NCuboidIdentifier, List<NCuboidLayout>> cuboidLayoutMap = Maps.newHashMap();
+        Map<IndexIdentifier, List<LayoutEntity>> cuboidLayoutMap = Maps.newHashMap();
 
         proposedCuboids.forEach((identifier, cuboid) -> cuboidLayoutMap.put(identifier, cuboid.getLayouts()));
 
-        cubePlan.removeLayouts(cuboidLayoutMap, this::hasExternalRef, NCuboidLayout::equals, true, false);
+        indexPlan.removeLayouts(cuboidLayoutMap, this::hasExternalRef, LayoutEntity::equals, true, false);
 
         // log after shrink cuboids
         cuboidLayoutMap.forEach((cuboidIdentifier, nCuboidLayouts) -> {
@@ -74,10 +74,10 @@ class NCuboidReducer extends NAbstractCubeProposer {
             nCuboidLayouts.forEach(layout -> logger.debug("{}", layout.getId()));
         });
 
-        return cubePlan;
+        return indexPlan;
     }
 
-    private boolean hasExternalRef(NCuboidLayout layout) {
+    private boolean hasExternalRef(LayoutEntity layout) {
         // TODO the mapping of sqlPattern to layout should get from favorite query
         return false;
     }

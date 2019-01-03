@@ -61,8 +61,8 @@ import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;
@@ -248,22 +248,22 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             final OLAPContext mock = new OLAPContext((int) i);
 
             final NDataModel mockModel = Mockito.spy(new NDataModel());
-            Mockito.when(mockModel.getName()).thenReturn("mock_model" + i);
+            Mockito.when(mockModel.getUuid()).thenReturn("mock_model" + i);
             Mockito.when(mockModel.getAlias()).thenReturn("mock_model_alias" + i);
             final IRealization mockRealization = Mockito.mock(IRealization.class);
             Mockito.when(mockRealization.getModel()).thenReturn(mockModel);
             mock.realization = mockRealization;
 
-            final NCuboidDesc mockCuboidDesc = new NCuboidDesc();
+            final IndexEntity mockIndexEntity = new IndexEntity();
             if (i == 1) {
                 // agg index
-                mockCuboidDesc.setId(i);
+                mockIndexEntity.setId(i);
             } else {
                 // table index
-                mockCuboidDesc.setId(NCuboidDesc.TABLE_INDEX_START_ID + i);
+                mockIndexEntity.setId(IndexEntity.TABLE_INDEX_START_ID + i);
             }
-            final NCuboidLayout mockLayout = new NCuboidLayout();
-            mockLayout.setCuboidDesc(mockCuboidDesc);
+            final LayoutEntity mockLayout = new LayoutEntity();
+            mockLayout.setIndex(mockIndexEntity);
             mock.storageContext.setCandidate(new NLayoutCandidate(mockLayout));
             mock.storageContext.setCuboidId(i);
 
@@ -364,12 +364,12 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         //disable the one ready cube
         {
             NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-            NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
-            NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
+            NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+            NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
             nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
             dataflowManager.updateDataflow(nDataflowUpdate);
-            dataflow = dataflowManager.getDataflow("ncube_basic_inner");
-            nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
+            dataflow = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+            nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
             nDataflowUpdate.setStatus(RealizationStatusEnum.OFFLINE);
             dataflowManager.updateDataflow(nDataflowUpdate);
 
@@ -391,12 +391,12 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         // enable the ready cube
         {
             NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-            NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
-            NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
+            NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+            NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
             nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
             dataflowManager.updateDataflow(nDataflowUpdate);
-            dataflow = dataflowManager.getDataflow("ncube_basic_inner");
-            nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
+            dataflow = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+            nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
             nDataflowUpdate.setStatus(RealizationStatusEnum.ONLINE);
             dataflowManager.updateDataflow(nDataflowUpdate);
 
@@ -498,7 +498,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     private NDataModel makeModelWithLessCC() throws IOException {
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic_inner");
+        NDataModel model = modelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
         Serializer<NDataModel> dataModelSerializer = NDataModelManager.getInstance(getTestConfig(), "default")
                 .getDataModelSerializer();
 
@@ -513,7 +513,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
     private NDataModel makeModelWithMoreCC() throws IOException {
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic_inner");
+        NDataModel model = modelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
         Serializer<NDataModel> dataModelSerializer = NDataModelManager.getInstance(getTestConfig(), "default")
                 .getDataModelSerializer();
 

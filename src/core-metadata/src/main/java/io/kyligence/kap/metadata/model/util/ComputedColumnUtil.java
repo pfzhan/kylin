@@ -132,7 +132,7 @@ public class ComputedColumnUtil {
             String tableIdentifier = aliasTableMap.get(cols.getFirst());
             usedCols.add(tableIdentifier + "." + cols.getSecond());
         }
-        //Preconditions.checkState(usedCols.size() > 0, "can not find cc:" + columnDesc.getName() + "'s used cols");
+        //Preconditions.checkState(usedCols.size() > 0, "can not find cc:" + columnDesc.getUuid() + "'s used cols");
         return usedCols;
     }
 

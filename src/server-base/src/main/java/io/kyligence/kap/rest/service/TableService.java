@@ -35,6 +35,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
@@ -69,8 +71,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -282,8 +282,8 @@ public class TableService extends BasicService {
         NDataModelManager dataModelManager = getDataModelManager(project);
         for (val table : tables) {
             TableDescResponse rtableDesc;
-            List<String> models = dataModelManager.getModelsUsingRootTable(table);
-            List<String> modelsUsingTable = dataModelManager.getModelsUsingTable(table);
+            val models = dataModelManager.getModelsUsingRootTable(table);
+            val modelsUsingTable = dataModelManager.getModelsUsingTable(table);
             if (withExt) {
                 rtableDesc = getTableResponse(table, project);
             } else {
@@ -317,11 +317,11 @@ public class TableService extends BasicService {
         return descs;
     }
 
-    private long getSnapshotSize(String project, List<String> modelsUsingTable, String table) throws IOException {
+    private long getSnapshotSize(String project, List<NDataModel> modelsUsingTable, String table) throws IOException {
         val dfManager = getDataflowManager(project);
         var hasReadySegs = false;
         var size = 0;
-        val df = dfManager.getDataflowByModelName(modelsUsingTable.get(0));
+        val df = dfManager.getDataflow(modelsUsingTable.get(0).getUuid());
         val lastSeg = df.getLatestReadySegment();
         if (lastSeg != null) {
             hasReadySegs = true;
@@ -342,16 +342,16 @@ public class TableService extends BasicService {
         }
     }
 
-    private long getStorageSize(String project, List<String> models) {
+    private long getStorageSize(String project, List<NDataModel> models) {
         val dfManger = getDataflowManager(project);
         boolean hasReadySegs = false;
         long size = 0;
         for (val model : models) {
-            val df = dfManger.getDataflowByModelName(model);
+            val df = dfManger.getDataflow(model.getUuid());
             val readySegs = df.getSegments(SegmentStatusEnum.READY);
             if (CollectionUtils.isNotEmpty(readySegs)) {
                 hasReadySegs = true;
-                size += dfManger.getDataflowByteSize(model);
+                size += dfManger.getDataflowByteSize(model.getUuid());
             }
         }
         if (!hasReadySegs) {
@@ -365,11 +365,11 @@ public class TableService extends BasicService {
     //get table's primaryKeys(pair first) and foreignKeys(pair second)
     private Pair<Set<String>, Set<String>> getTableColumnType(TableDesc table, String project) {
         NDataModelManager dataModelManager = getDataModelManager(project);
-        List<String> models = dataModelManager.getModelsUsingTable(table);
+        val models = dataModelManager.getModelsUsingTable(table);
         Set<String> primaryKey = new HashSet<>();
         Set<String> foreignKey = new HashSet<>();
-        for (String model : models) {
-            val joinTables = dataModelManager.getDataModelDesc(model).getJoinTables();
+        for (val model : models) {
+            val joinTables = dataModelManager.getDataModelDesc(model.getUuid()).getJoinTables();
             for (JoinTableDesc joinTable : joinTables) {
                 if (joinTable.getTable().equals(table.getIdentity())) {
                     foreignKey.addAll(Arrays.asList(joinTable.getJoin().getForeignKey()));
@@ -430,10 +430,10 @@ public class TableService extends BasicService {
         val models = modelManager.getTableOrientedModelsUsingRootTable(tableDesc);
         for (val model : models) {
             //follow semanticVersion,#8196
-            modelService.purgeModel(model, project);
-            modelService.syncPartitionDesc(model, project);
+            modelService.purgeModel(model.getUuid(), project);
+            modelService.syncPartitionDesc(model.getUuid(), project);
             if (StringUtils.isEmpty(column)) {
-                buildFullSegment(model, project);
+                buildFullSegment(model.getUuid(), project);
             } else {
                 //await table's range being set in next REST call
             }
@@ -443,24 +443,22 @@ public class TableService extends BasicService {
     private void buildFullSegment(String model, String project) {
         val eventManager = getEventManager(project);
         val dataflowManager = getDataflowManager(project);
-        val cubePlanManager = getCubePlanManager(project);
-        val cubePlan = cubePlanManager.findMatchingCubePlan(model);
-        val dataflow = dataflowManager.getDataflow(cubePlan.getName());
+        val indexPlanManager = getIndexPlanManager(project);
+        val indexPlan = indexPlanManager.getIndexPlan(model);
+        val dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
         val newSegment = dataflowManager.appendSegment(dataflow,
                 new SegmentRange.TimePartitionedSegmentRange(0L, Long.MAX_VALUE));
 
         val addSegmentEvent = new AddSegmentEvent();
         addSegmentEvent.setSegmentId(newSegment.getId());
-        addSegmentEvent.setCubePlanName(cubePlan.getName());
-        addSegmentEvent.setModelName(model);
+        addSegmentEvent.setModelId(model);
         addSegmentEvent.setJobId(UUID.randomUUID().toString());
         addSegmentEvent.setOwner(getUsername());
         eventManager.post(addSegmentEvent);
 
         PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
         postAddSegmentEvent.setSegmentId(newSegment.getId());
-        postAddSegmentEvent.setCubePlanName(cubePlan.getName());
-        postAddSegmentEvent.setModelName(model);
+        postAddSegmentEvent.setModelId(model);
         postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
         postAddSegmentEvent.setOwner(getUsername());
         eventManager.post(postAddSegmentEvent);
@@ -547,12 +545,11 @@ public class TableService extends BasicService {
             TableDesc tableDesc = getTableManager(project).getTableDesc(table);
             val models = modelManager.getTableOrientedModelsUsingRootTable(tableDesc);
             for (val model : models) {
-                modelService.syncPartitionDesc(model, project);
+                modelService.syncPartitionDesc(model.getUuid(), project);
             }
 
             return 0;
         }, project);
-
         return format;
     }
 
@@ -576,27 +573,25 @@ public class TableService extends BasicService {
         if (tableDesc == null) {
             throw new IllegalArgumentException("TableDesc '" + tableName + "' does not exist");
         }
-        List<String> modelNames = NDataModelManager.getInstance(kylinConfig, project)
+        List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, project)
                 .getTableOrientedModelsUsingRootTable(tableDesc);
-        if (CollectionUtils.isNotEmpty(modelNames)) {
+        if (CollectionUtils.isNotEmpty(models)) {
             EventManager eventManager = EventManager.getInstance(kylinConfig, project);
             NDataflowManager dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
-            for (String modelName : modelNames) {
-
-                NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName);
-                NDataflow df = dataflowManager.getDataflow(cubePlan.getName());
+            for (var model : models) {
+                val modelId = model.getUuid();
+                IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project).getIndexPlan(modelId);
+                NDataflow df = dataflowManager.getDataflow(indexPlan.getUuid());
                 NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
                 AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
-                addSegmentEvent.setModelName(modelName);
-                addSegmentEvent.setCubePlanName(cubePlan.getName());
+                addSegmentEvent.setModelId(modelId);
                 addSegmentEvent.setSegmentId((dataSegment.getId()));
                 addSegmentEvent.setJobId(UUID.randomUUID().toString());
                 addSegmentEvent.setOwner(getUsername());
                 eventManager.post(addSegmentEvent);
 
                 PostAddSegmentEvent postAddSegmentEvent = new PostAddSegmentEvent();
-                postAddSegmentEvent.setCubePlanName(cubePlan.getName());
-                postAddSegmentEvent.setModelName(modelName);
+                postAddSegmentEvent.setModelId(modelId);
                 postAddSegmentEvent.setJobId(addSegmentEvent.getJobId());
                 postAddSegmentEvent.setSegmentId((dataSegment.getId()));
                 postAddSegmentEvent.setOwner(getUsername());
@@ -604,7 +599,7 @@ public class TableService extends BasicService {
 
                 logger.info(
                         "LoadingRangeUpdateHandler produce AddSegmentEvent project : {}, model : {}, segmentRange : {}",
-                        project, modelName, segmentRange);
+                        project, modelId, segmentRange);
             }
         }
     }
@@ -635,9 +630,9 @@ public class TableService extends BasicService {
     private int getRelatedIndexNumOfATable(TableDesc tableDesc, String project) {
         int result = 0;
         NDataModelManager modelManager = getDataModelManager(project);
-        for (String model : modelManager.getTableOrientedModelsUsingRootTable(tableDesc)) {
-            NCubePlan cubePlan = getCubePlanManager(project).findMatchingCubePlan(model);
-            result += cubePlan.getAllCuboids().size();
+        for (val model : modelManager.getTableOrientedModelsUsingRootTable(tableDesc)) {
+            IndexPlan indexPlan = getIndexPlanManager(project).getIndexPlan(model.getUuid());
+            result += indexPlan.getAllIndexes().size();
         }
 
         return result;
@@ -720,15 +715,15 @@ public class TableService extends BasicService {
         dataLoadingRangeManager.updateDataLoadingRange(dataLoadingRangeUpdate);
     }
 
-    public AutoMergeConfigResponse getAutoMergeConfigByModel(String project, String modelName) {
+    public AutoMergeConfigResponse getAutoMergeConfigByModel(String project, String modelId) {
         NDataModelManager dataModelManager = getDataModelManager(project);
         AutoMergeConfigResponse mergeConfig = new AutoMergeConfigResponse();
 
-        NDataModel model = dataModelManager.getDataModelDesc(modelName);
+        NDataModel model = dataModelManager.getDataModelDesc(modelId);
         if (model == null) {
-            throw new BadRequestException("Model " + modelName + " does not exist in project " + project);
+            throw new BadRequestException("Model " + modelId + " does not exist in project " + project);
         }
-        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelName);
+        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelId);
         Preconditions.checkState(segmentConfig != null);
         mergeConfig.setAutoMergeEnabled(segmentConfig.getAutoMergeEnabled());
         mergeConfig.setAutoMergeTimeRanges(segmentConfig.getAutoMergeTimeRanges());
@@ -748,7 +743,7 @@ public class TableService extends BasicService {
 
     @Transaction(project = 0)
     public void setAutoMergeConfigByModel(String project, AutoMergeRequest autoMergeRequest) {
-        String modelName = autoMergeRequest.getModel();
+        String modelId = autoMergeRequest.getModel();
         NDataModelManager dataModelManager = getDataModelManager(project);
         List<AutoMergeTimeEnum> autoMergeRanges = new ArrayList<>();
         for (String range : autoMergeRequest.getAutoMergeTimeRanges()) {
@@ -759,9 +754,9 @@ public class TableService extends BasicService {
         volatileRange.setVolatileRangeEnabled(autoMergeRequest.isVolatileRangeEnabled());
         volatileRange.setVolatileRangeNumber(autoMergeRequest.getVolatileRangeNumber());
 
-        NDataModel model = dataModelManager.getDataModelDesc(modelName);
+        NDataModel model = dataModelManager.getDataModelDesc(modelId);
         if (model == null) {
-            throw new IllegalStateException("Model " + modelName + "does not exist in project " + project);
+            throw new IllegalStateException("Model " + modelId + "does not exist in project " + project);
         }
         if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {
             NDataModel modelUpdate = dataModelManager.copyForWrite(model);

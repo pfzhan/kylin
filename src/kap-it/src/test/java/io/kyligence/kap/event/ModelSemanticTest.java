@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.ManagementType;
 import org.apache.hadoop.util.Shell;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
@@ -55,7 +54,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -64,6 +63,7 @@ import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventOrchestratorManager;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -79,8 +79,7 @@ import lombok.extern.slf4j.Slf4j;
 public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     public static final String DEFAULT_PROJECT = "default";
-    public static final String MODEL_NAME = "nmodel_basic";
-    public static final String INNER_MODEL_NAME = "nmodel_inner_basic";
+    public static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
     protected static SparkConf sparkConf;
     protected static SparkSession ss;
@@ -123,7 +122,8 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         scheduler.init(new JobEngineConfig(getTestConfig()), new MockJobLock());
 
         val dfManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        var df = dfManager.getDataflowByModelName(MODEL_NAME);
+        var df = dfManager.getDataflow(MODEL_ID);
+
         String tableName = df.getModel().getRootFactTable().getTableIdentity();
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
         dataLoadingRange.setUuid(UUID.randomUUID().toString());
@@ -140,18 +140,18 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         table.setIncrementLoading(true);
         tableMgr.updateTableDesc(table);
 
-        val update = new NDataflowUpdate(df.getName());
+        val update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dfManager.updateDataflow(update);
 
         dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-01-01"),
                 SegmentRange.dateToLong("2012-03-01")));
-        df = dfManager.getDataflowByModelName(MODEL_NAME);
+        df = dfManager.getDataflow(MODEL_ID);
         dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-03-01"),
                 SegmentRange.dateToLong("2012-05-01")));
 
         val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        modelManager.updateDataModel(MODEL_NAME, copyForWrite -> {
+        modelManager.updateDataModel(MODEL_ID, copyForWrite -> {
             copyForWrite.setAllMeasures(
                     copyForWrite.getAllMeasures().stream().filter(m -> m.id != 1011).collect(Collectors.toList()));
             copyForWrite.setManagementType(ManagementType.MODEL_BASED);
@@ -178,10 +178,10 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
         waitForEventFinished(0);
 
-        val df = dfManager.getDataflowByModelName(MODEL_NAME);
+        val df = dfManager.getDataflow(MODEL_ID);
         Assert.assertEquals(2, df.getSegments().size());
-        Assert.assertEquals(df.getCubePlan().getAllCuboidLayouts().size(),
-                df.getSegments().getLatestReadySegment().getCuboidsMap().size());
+        Assert.assertEquals(df.getIndexPlan().getAllLayouts().size(),
+                df.getSegments().getLatestReadySegment().getLayoutsMap().size());
     }
 
     @Test
@@ -195,7 +195,7 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         waitForEventFinished(0);
 
         val result = mockMvc
-                .perform(MockMvcRequestBuilders.get("/api/models/relations").param("model", MODEL_NAME)
+                .perform(MockMvcRequestBuilders.get("/api/models/relations").param("model", MODEL_ID)
                         .param("project", DEFAULT_PROJECT)
                         .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.jsonPath("$.data[0].roots[0].cuboid.status").value("AVAILABLE"))
@@ -220,9 +220,9 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
                 "          ]\n" + //
                 "        }\n" + //
                 "}", NAggregationGroup.class);
-        val request = UpdateRuleBasedCuboidRequest.builder().project(DEFAULT_PROJECT).model(MODEL_NAME)
+        val request = UpdateRuleBasedCuboidRequest.builder().project(DEFAULT_PROJECT).modelId(MODEL_ID)
                 .dimensions(Lists.newArrayList(1, 2, 3, 4)).aggregationGroups(Lists.newArrayList(group1)).build();
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/cube_plans/rule").contentType(MediaType.APPLICATION_JSON)
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/index_plans/rule").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
@@ -234,15 +234,15 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         updateMeasureRequest();
 
         // job is running
-        val cube1 = dfMgr.getDataflowByModelName(MODEL_NAME).getCubePlan();
-        var actions1 = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/relations").param("model", MODEL_NAME)
+        val cube1 = dfMgr.getDataflow(MODEL_ID).getIndexPlan();
+        var actions1 = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/relations").param("model", MODEL_ID)
                 .param("project", DEFAULT_PROJECT)
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")));
-        for (NCuboidLayout layout : cube1.getRuleBaseCuboidLayouts()) {
+        for (LayoutEntity layout : cube1.getRuleBaseLayouts()) {
             actions1 = actions1.andExpect(MockMvcResultMatchers
-                    .jsonPath("$.data[0].nodes." + layout.getCuboidDesc().getId() + ".cuboid.status").value("EMPTY"))
+                    .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.status").value("EMPTY"))
                     .andExpect(MockMvcResultMatchers
-                            .jsonPath("$.data[0].nodes." + layout.getCuboidDesc().getId() + ".cuboid.storage_size")
+                            .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.storage_size")
                             .value(0));
         }
         val results1 = actions1.andReturn();
@@ -250,17 +250,17 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
         // after finish
         waitForEventFinished(0);
 
-        val cube2 = dfMgr.getDataflowByModelName(MODEL_NAME).getCubePlan();
-        var actions2 = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/relations").param("model", MODEL_NAME)
+        val cube2 = dfMgr.getDataflow(MODEL_ID).getIndexPlan();
+        var actions2 = mockMvc.perform(MockMvcRequestBuilders.get("/api/models/relations").param("model", MODEL_ID)
                 .param("project", DEFAULT_PROJECT)
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")));
-        for (NCuboidLayout layout : cube2.getRuleBaseCuboidLayouts()) {
+        for (LayoutEntity layout : cube2.getRuleBaseLayouts()) {
             actions2 = actions2
                     .andExpect(MockMvcResultMatchers
-                            .jsonPath("$.data[0].nodes." + layout.getCuboidDesc().getId() + ".cuboid.status")
+                            .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.status")
                             .value("AVAILABLE"))
                     .andExpect(MockMvcResultMatchers
-                            .jsonPath("$.data[0].nodes." + layout.getCuboidDesc().getId() + ".cuboid.storage_size")
+                            .jsonPath("$.data[0].nodes." + layout.getIndex().getId() + ".cuboid.storage_size")
                             .value(246));
         }
         val results = actions2.andReturn();
@@ -268,10 +268,10 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     private void changeModelRequest() throws Exception {
         val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val model = modelManager.getDataModelDesc(MODEL_NAME);
+        val model = modelManager.getDataModelDesc(MODEL_ID);
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
         request.setProject(DEFAULT_PROJECT);
-        request.setName(MODEL_NAME);
+        request.setUuid(MODEL_ID);
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
         request.setComputedColumnDescs(model.getComputedColumnDescs());
@@ -288,13 +288,13 @@ public class ModelSemanticTest extends AbstractMVCIntegrationTestCase {
 
     private void updateMeasureRequest() throws Exception {
         val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val model = modelManager.getDataModelDesc(MODEL_NAME);
+        val model = modelManager.getDataModelDesc(MODEL_ID);
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
         request.setProject(DEFAULT_PROJECT);
-        request.setName(MODEL_NAME);
+        request.setUuid(MODEL_ID);
         request.setSimplifiedMeasures(
                 model.getAllMeasures().stream().filter(m -> !m.tomb).map(SimplifiedMeasure::fromMeasure).peek(sm -> {
-                    if (sm.getId() == 1016) {
+                    if (sm.getId() == 100016) {
                         sm.setExpression("MAX");
                         sm.setName("MAX_DEAL_AMOUNT");
                     }

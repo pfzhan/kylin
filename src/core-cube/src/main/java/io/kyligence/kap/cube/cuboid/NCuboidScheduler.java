@@ -32,30 +32,30 @@ import java.util.Set;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.NRuleBasedIndex;
 
 /**
  * Defines a cuboid tree, rooted by the base cuboid. A parent cuboid generates its child cuboids.
  */
 abstract public class NCuboidScheduler implements Serializable {
 
-    public static NCuboidScheduler getInstance(NCubePlan nCubePlan) {
-        return new NKapCuboidScheduler243(nCubePlan, null);
+    public static NCuboidScheduler getInstance(IndexPlan indexPlan) {
+        return new NKapCuboidScheduler243(indexPlan, null);
     }
 
-    public static NCuboidScheduler getInstance(NCubePlan nCubePlan, NRuleBasedCuboidsDesc ruleBasedCuboidsDes) {
-        return new NKapCuboidScheduler243(nCubePlan, ruleBasedCuboidsDes);
+    public static NCuboidScheduler getInstance(IndexPlan indexPlan, NRuleBasedIndex ruleBasedCuboidsDes) {
+        return new NKapCuboidScheduler243(indexPlan, ruleBasedCuboidsDes);
     }
 
     // ============================================================================
 
-    protected final NCubePlan nCubePlan;
-    protected final NRuleBasedCuboidsDesc nRuleBasedCuboidsDesc;
+    protected final IndexPlan indexPlan;
+    protected final NRuleBasedIndex ruleBasedAggIndex;
 
-    protected NCuboidScheduler(final NCubePlan cubePlan, NRuleBasedCuboidsDesc nRuleBasedCuboidsDesc) {
-        this.nCubePlan = cubePlan;
-        this.nRuleBasedCuboidsDesc = nRuleBasedCuboidsDesc == null ? cubePlan.getRuleBasedCuboidsDesc() : nRuleBasedCuboidsDesc;
+    protected NCuboidScheduler(final IndexPlan indexPlan, NRuleBasedIndex ruleBasedAggIndex) {
+        this.indexPlan = indexPlan;
+        this.ruleBasedAggIndex = ruleBasedAggIndex == null ? indexPlan.getRuleBasedIndex() : ruleBasedAggIndex;
     }
 
     /**
@@ -88,11 +88,11 @@ abstract public class NCuboidScheduler implements Serializable {
     private transient List<List<Long>> cuboidsByLayer;
 
     public long getBaseCuboidId() {
-        return nRuleBasedCuboidsDesc.getFullMask();
+        return ruleBasedAggIndex.getFullMask();
     }
 
-    public NCubePlan getnCubePlan() {
-        return nCubePlan;
+    public IndexPlan getIndexPlan() {
+        return indexPlan;
     }
 
     /**
@@ -115,7 +115,7 @@ abstract public class NCuboidScheduler implements Serializable {
         int totalNum = 0;
         cuboidsByLayer = Lists.newArrayList();
 
-        cuboidsByLayer.add(Collections.singletonList(nRuleBasedCuboidsDesc.getFullMask()));
+        cuboidsByLayer.add(Collections.singletonList(ruleBasedAggIndex.getFullMask()));
         totalNum++;
 
         List<Long> lastLayer = cuboidsByLayer.get(cuboidsByLayer.size() - 1);
@@ -145,12 +145,4 @@ abstract public class NCuboidScheduler implements Serializable {
     public int getBuildLevel() {
         return getCuboidsByLayer().size() - 1;
     }
-
-    /**
-     * Returns the key for what this cuboid scheduler responsible for.
-     */
-    public String getCuboidCacheKey() {
-        return nCubePlan.getName();
-    }
-
 }

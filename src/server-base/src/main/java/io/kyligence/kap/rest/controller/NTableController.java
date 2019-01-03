@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
@@ -51,6 +52,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.request.PartitionKeyRequest;
@@ -117,7 +119,8 @@ public class NTableController extends NBasicController {
         checkProjectName(project);
         String tableName = database + "." + table;
         if (modelService.isModelsUsingTable(tableName, project)) {
-            List<String> models = modelService.getModelsUsingTable(tableName, project);
+            List<String> models = modelService.getModelsUsingTable(tableName, project).stream()
+                    .map(NDataModel::getAlias).collect(Collectors.toList());
             throw new BadRequestException(String.format(msg.getTABLE_IN_USE_BY_MODEL(), models));
         }
         tableService.unloadTable(project, tableName);
@@ -130,8 +133,8 @@ public class NTableController extends NBasicController {
      * @return
      * @throws IOException
      */
-    @RequestMapping(value = "/partition_key", method = {RequestMethod.POST}, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/partition_key", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse setPartitionKey(@RequestBody PartitionKeyRequest partitionKeyRequest) {
 
@@ -175,8 +178,8 @@ public class NTableController extends NBasicController {
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, loadTableResponse, "");
     }
 
-    @RequestMapping(value = "/data_range", method = {RequestMethod.POST}, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+    @RequestMapping(value = "/data_range", method = { RequestMethod.POST }, produces = {
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse setDateRanges(@RequestBody DateRangeRequest dateRangeRequest) throws Exception {
         checkProjectName(dateRangeRequest.getProject());
@@ -190,7 +193,7 @@ public class NTableController extends NBasicController {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getLatestData(@RequestParam(value = "project") String project,
-                                            @RequestParam(value = "table") String table) throws Exception {
+            @RequestParam(value = "table") String table) throws Exception {
         checkProjectName(project);
         checkRequiredArg(TABLE, table);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, tableService.getLatestDataRange(project, table), "");
@@ -328,16 +331,16 @@ public class NTableController extends NBasicController {
     @RequestMapping(value = "/auto_merge_config", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse getAutoMergeConfig(@RequestParam(value = "model", required = false) String modelName,
+    public EnvelopeResponse getAutoMergeConfig(@RequestParam(value = "model", required = false) String modelId,
             @RequestParam(value = "table", required = false) String tableName,
             @RequestParam(value = "project", required = true) String project) {
         checkProjectName(project);
-        if (StringUtils.isEmpty(modelName) && StringUtils.isEmpty(tableName)) {
+        if (StringUtils.isEmpty(modelId) && StringUtils.isEmpty(tableName)) {
             throw new BadRequestException("model name or table name must be specified!");
         }
         AutoMergeConfigResponse response;
-        if (StringUtils.isNotEmpty(modelName)) {
-            response = tableService.getAutoMergeConfigByModel(project, modelName);
+        if (StringUtils.isNotEmpty(modelId)) {
+            response = tableService.getAutoMergeConfigByModel(project, modelId);
         } else {
             response = tableService.getAutoMergeConfigByTable(project, tableName);
         }

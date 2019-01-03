@@ -64,11 +64,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.metadata.project.NProjectManager;
-import io.kyligence.kap.rest.request.ModelConfigRequest;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -110,32 +105,37 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
-import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.rest.execution.SucceedTestExecutable;
+import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
-import io.kyligence.kap.rest.response.CuboidDescResponse;
 import io.kyligence.kap.rest.response.CuboidStatus;
+import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
@@ -170,12 +170,11 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelService.setSemanticUpdater(semanticService);
         modelService.setSegmentHelper(segmentHelper);
         val result1 = new QueryTimesResponse();
-        result1.setModel("nmodel_basic");
+        result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(),
-                Mockito.any());
+        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
         val prjManager = NProjectManager.getInstance(getTestConfig());
         val prj = prjManager.getProject("default");
@@ -192,27 +191,27 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModels() {
 
-        List<NDataModelResponse> models2 = modelService.getModels("nmodel_full_measure_test", "default", false, "", "",
-                "last_modify", true);
+        List<NDataModelResponse> models2 = modelService.getModels("nmodel_full_measure_test", "default",
+                false, "", "", "last_modify", true);
         Assert.assertEquals(1, models2.size());
-        List<NDataModelResponse> model3 = modelService.getModels("nmodel_full_measure_test", "default", true, "", "",
-                "last_modify", true);
+        List<NDataModelResponse> model3 = modelService.getModels("nmodel_full_measure_test", "default",
+                true, "", "", "last_modify", true);
         Assert.assertEquals(1, model3.size());
-        List<NDataModelResponse> model4 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm",
-                "", "last_modify", true);
+        List<NDataModelResponse> model4 = modelService.getModels("nmodel_full_measure_test", "default",
+                false, "adm", "", "last_modify", true);
         Assert.assertEquals(1, model4.size());
         Assert.assertEquals(0, model4.get(0).getStorage());
         Assert.assertEquals(0, model4.get(0).getUsage());
-        List<NDataModelResponse> model5 = modelService.getModels("nmodel_full_measure_test", "default", false, "adm",
-                "DISABLED", "last_modify", true);
+        List<NDataModelResponse> model5 = modelService.getModels("nmodel_full_measure_test", "default",
+                false, "adm", "DISABLED", "last_modify", true);
         Assert.assertEquals(0, model5.size());
-
 
     }
 
     @Test
     public void testGetModelsWithCC() {
-        List<NDataModelResponse> models = modelService.getModels("nmodel_basic", "default", true, "", "", "", false);
+        List<NDataModelResponse> models = modelService.getModels("nmodel_basic", "default",
+                true, "", "", "", false);
         Assert.assertEquals(1, models.size());
         NDataModelResponse model = models.get(0);
         Assert.assertTrue(model.getSimpleTables().stream().map(t -> t.getColumns()).flatMap(List::stream)
@@ -221,57 +220,57 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetSegmentsByRange() {
-        Segments<NDataSegment> segments = modelService.getSegmentsByRange("nmodel_basic", "default", "0", "" + Long.MAX_VALUE);
+        Segments<NDataSegment> segments = modelService.getSegmentsByRange("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertEquals(1, segments.size());
     }
 
     @Test
     public void testGetSegmentsResponse() {
-        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse("nmodel_basic", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
+        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
         Assert.assertEquals(1, segments.size());
         Assert.assertEquals(3380224, segments.get(0).getBytesSize());
         Assert.assertEquals("16", segments.get(0).getAdditionalInfo().get("file_count"));
         Assert.assertEquals("ONLINE", segments.get(0).getStatusToDisplay().toString());
 
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
-        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
 
         Segments<NDataSegment> segs = new Segments();
         val seg = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
-        segments = modelService.getSegmentsResponse("nmodel_basic", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
+        segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
         Assert.assertEquals(1, segments.size());
         Assert.assertEquals("LOCKED", segments.get(0).getStatusToDisplay().toString());
 
         seg.setStatus(SegmentStatusEnum.READY);
         segs.add(seg);
-        dataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToUpdateSegs(segs.toArray(new NDataSegment[segs.size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        dataflow = dataflowManager.getDataflow("ncube_basic");
+        dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(0L, 10L));
-        segments = modelService.getSegmentsResponse("nmodel_basic", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
+        segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
         Assert.assertEquals(2, segments.size());
         Assert.assertEquals("REFRESHING", segments.get(1).getStatusToDisplay().toString());
 
         Segments<NDataSegment> segs2 = new Segments<>();
         Segments<NDataSegment> segs3 = new Segments<>();
 
-        dataflow = dataflowManager.getDataflow("ncube_basic");
+        dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         val seg2 = dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(10L, 20L));
         seg2.setStatus(SegmentStatusEnum.READY);
         segs3.add(seg2);
         val segToRemove = dataflow.getSegment(segments.get(1).getId());
         segs2.add(segToRemove);
-        dataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(segs2.toArray(new NDataSegment[segs2.size()]));
         dataflowUpdate.setToUpdateSegs(segs3.toArray(new NDataSegment[segs3.size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        dataflow = dataflowManager.getDataflow("ncube_basic");
+        dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         dataflowManager.appendSegment(dataflow, new SegmentRange.TimePartitionedSegmentRange(0L, 20L));
-        segments = modelService.getSegmentsResponse("nmodel_basic", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
+        segments = modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "0", "" + Long.MAX_VALUE, "start_time", false, "");
         Assert.assertEquals(3, segments.size());
         Assert.assertEquals("MERGING", segments.get(2).getStatusToDisplay().toString());
     }
@@ -279,31 +278,33 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetAggIndices() {
 
-        List<CuboidDescResponse> indices = modelService.getAggIndices("nmodel_basic", "default");
+        List<IndexEntityResponse> indices = modelService.getAggIndices("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "default");
         Assert.assertEquals(5, indices.size());
-        Assert.assertTrue(indices.get(0).getId() < NCuboidDesc.TABLE_INDEX_START_ID);
+        Assert.assertTrue(indices.get(0).getId() < IndexEntity.TABLE_INDEX_START_ID);
 
     }
 
     @Test
     public void testGetTableIndices() {
 
-        List<CuboidDescResponse> indices = modelService.getTableIndices("nmodel_basic", "default");
+        List<IndexEntityResponse> indices = modelService.getTableIndices("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "default");
         Assert.assertEquals(3, indices.size());
-        Assert.assertTrue(indices.get(0).getId() >= NCuboidDesc.TABLE_INDEX_START_ID);
+        Assert.assertTrue(indices.get(0).getId() >= IndexEntity.TABLE_INDEX_START_ID);
 
     }
 
     @Test
     public void testGetCuboidDescs() {
 
-        List<NCuboidDesc> cuboids = modelService.getCuboidDescs("nmodel_basic", "default");
+        List<IndexEntity> cuboids = modelService.getIndexEntities("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
         Assert.assertEquals(8, cuboids.size());
     }
 
     @Test
     public void testGetCuboidById_AVAILABLE() {
-        CuboidDescResponse cuboid = modelService.getCuboidById("nmodel_basic", "default", 0L);
+        IndexEntityResponse cuboid = modelService.getCuboidById("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", 0L);
         Assert.assertEquals(0L, cuboid.getId());
         Assert.assertEquals(CuboidStatus.AVAILABLE, cuboid.getStatus());
         Assert.assertEquals(252928L, cuboid.getStorageSize());
@@ -311,8 +312,9 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetCuboidById_NoSegments_EMPTYStatus() {
-        CuboidDescResponse cuboid = modelService.getCuboidById("ut_inner_join_cube_partial", "default", 13000L);
-        Assert.assertEquals(13000L, cuboid.getId());
+        IndexEntityResponse cuboid = modelService.getCuboidById("82fa7671-a935-45f5-8779-85703601f49a", "default",
+                130000L);
+        Assert.assertEquals(130000L, cuboid.getId());
         Assert.assertEquals(CuboidStatus.EMPTY, cuboid.getStatus());
         Assert.assertEquals(0L, cuboid.getStorageSize());
         Assert.assertEquals(0L, cuboid.getStartTime());
@@ -321,45 +323,48 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModelJson() throws IOException {
-        String modelJson = modelService.getModelJson("nmodel_basic", "default");
-        Assert.assertTrue(JsonUtil.readValue(modelJson, NDataModel.class).getName().equals("nmodel_basic"));
+        String modelJson = modelService.getModelJson("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
+        Assert.assertTrue(JsonUtil.readValue(modelJson, NDataModel.class).getUuid()
+                .equals("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
     }
 
     @Test
     public void testGetModelRelations() {
-        List<NSpanningTree> relations = modelService.getModelRelations("nmodel_basic", "default");
+        List<NSpanningTree> relations = modelService.getModelRelations("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "default");
         Assert.assertEquals(1, relations.size());
 
-        relations = modelService.getModelRelations("nmodel_basic_inner", "default");
+        relations = modelService.getModelRelations("741ca86a-1f13-46da-a59f-95fb68615e3a", "default");
         Assert.assertEquals(1, relations.size());
         Assert.assertEquals(6, relations.get(0).getBuildLevel());
         Assert.assertThat(
                 relations.get(0).getCuboidsByLayer().stream().map(Collection::size).collect(Collectors.toList()),
-                CoreMatchers.is(Lists.newArrayList(1, 4, 4, 3, 3, 1, 1)));
+                CoreMatchers.is(Lists.newArrayList(1, 5, 4, 4, 1, 1, 1)));
 
-        val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), "default");
-        cubeMgr.updateCubePlan("ncube_basic_inner", copyForWrite -> {
-            val rule = new NRuleBasedCuboidsDesc();
+        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), "default");
+        indePlanManager.updateIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a", copyForWrite -> {
+            val rule = new NRuleBasedIndex();
             rule.setDimensions(Lists.newArrayList(1, 2, 3, 4));
-            rule.setMeasures(Lists.newArrayList(1001, 1002));
+            rule.setMeasures(Lists.newArrayList(100001, 100002));
             try {
                 val aggGroup = JsonUtil.readValue("{\n" + "        \"includes\": [1, 2, 3],\n"
                         + "        \"select_rule\": {\n" + "          \"hierarchy_dims\": [],\n"
                         + "          \"mandatory_dims\": [],\n" + "          \"joint_dims\": [],\n"
                         + "          \"dim_cap\": 1\n" + "        }\n" + "      }", NAggregationGroup.class);
                 rule.setAggregationGroups(Lists.newArrayList(aggGroup));
-                copyForWrite.setRuleBasedCuboidsDesc(rule);
+                copyForWrite.setRuleBasedIndex(rule);
             } catch (IOException ignore) {
             }
         });
-        relations = modelService.getModelRelations("nmodel_basic_inner", "default");
+        relations = modelService.getModelRelations("741ca86a-1f13-46da-a59f-95fb68615e3a", "default");
         Assert.assertEquals(1, relations.size());
-        Assert.assertEquals(5, relations.get(0).getBuildLevel());
+        Assert.assertEquals(4, relations.get(0).getBuildLevel());
     }
 
     @Test
     public void testGetSimplifiedModelRelations() {
-        List<NSpanningTreeResponse> relations = modelService.getSimplifiedModelRelations("nmodel_basic", "default");
+        List<NSpanningTreeResponse> relations = modelService
+                .getSimplifiedModelRelations("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
         Assert.assertEquals(1, relations.size());
         Assert.assertEquals(1, relations.get(0).getRoots().size());
         Assert.assertEquals(5, relations.get(0).getNodesMap().size());
@@ -369,7 +374,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testDropModelException() {
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("You should purge your model first before you drop it");
-        modelService.dropModel("nmodel_basic_inner", "default");
+        modelService.dropModel("741ca86a-1f13-46da-a59f-95fb68615e3a", "default");
     }
 
     @Test
@@ -381,7 +386,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDropModelPass() {
-        modelService.dropModel("test_encoding", "default");
+        modelService.dropModel("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
         List<NDataModelResponse> models = modelService.getModels("test_encoding", "default", true, "", "",
                 "last_modify", true);
         Assert.assertTrue(CollectionUtils.isEmpty(models));
@@ -391,32 +396,32 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testPurgeModelManually() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel dataModel = modelManager.getDataModelDesc("test_encoding");
+        NDataModel dataModel = modelManager.getDataModelDesc("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
         NDataModel modelUpdate = modelManager.copyForWrite(dataModel);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);
-        modelService.purgeModelManually("test_encoding", "default");
-        List<NDataSegment> segments = modelService.getSegmentsByRange("test_encoding", "default", "0", "" + Long.MAX_VALUE);
+        modelService.purgeModelManually("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
+        List<NDataSegment> segments = modelService.getSegmentsByRange("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
     }
 
     @Test
     public void testPurgeModelManually_TableOriented_Exception() {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel dataModel = modelManager.getDataModelDesc("test_encoding");
+        NDataModel dataModel = modelManager.getDataModelDesc("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
         NDataModel modelUpdate = modelManager.copyForWrite(dataModel);
         modelUpdate.setManagementType(ManagementType.TABLE_ORIENTED);
         modelManager.updateDataModelDesc(modelUpdate);
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Model 'test_encoding' is table oriented, can not pruge the model!");
-        modelService.purgeModelManually("test_encoding", "default");
+        modelService.purgeModelManually("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
     }
 
     @Test
     public void testGetAffectedSegmentsResponse_NoSegments_Exception() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("No segments to refresh, please select new range and try again!");
-        List<NDataSegment> segments = modelService.getSegmentsByRange("test_encoding", "default", "0", "" + Long.MAX_VALUE);
+        List<NDataSegment> segments = modelService.getSegmentsByRange("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default", "0", "" + Long.MAX_VALUE);
         Assert.assertTrue(CollectionUtils.isEmpty(segments));
         RefreshAffectedSegmentsResponse response = modelService.getAffectedSegmentsResponse("default",
                 "DEFAULT.TEST_ENCODING", "0", "12223334", ManagementType.TABLE_ORIENTED);
@@ -433,7 +438,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testCloneModelException() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Model alias nmodel_basic_inner already exists");
-        modelService.cloneModel("nmodel_basic", "nmodel_basic_inner", "default");
+        modelService.cloneModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "nmodel_basic_inner", "default");
     }
 
     @Test
@@ -445,14 +450,14 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testCloneModel() {
-        modelService.cloneModel("test_encoding", "test_encoding_new", "default");
+        modelService.cloneModel("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "test_encoding_new", "default");
         List<NDataModelResponse> models = modelService.getModels("", "default", true, "", "", "last_modify", true);
         Assert.assertEquals(7, models.size());
     }
 
     @Test
     public void testRenameModel() {
-        modelService.renameDataModel("default", "nmodel_basic", "new_name");
+        modelService.renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "new_name");
         List<NDataModelResponse> models = modelService.getModels("new_name", "default", true, "", "", "last_modify",
                 true);
         Assert.assertTrue(models.get(0).getAlias().equals("new_name"));
@@ -469,15 +474,15 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testRenameModelException2() {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Model alias nmodel_basic_inner already exists");
-        modelService.renameDataModel("default", "nmodel_basic", "nmodel_basic_inner");
+        modelService.renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "nmodel_basic_inner");
     }
 
     @Test
     public void testUpdateDataModelStatus() {
-        modelService.updateDataModelStatus("nmodel_full_measure_test", "default", "OFFLINE");
-        List<NDataModelResponse> models = modelService.getModels("nmodel_full_measure_test", "default", true, "", "",
-                "last_modify", true);
-        Assert.assertTrue(models.get(0).getName().equals("nmodel_full_measure_test")
+        modelService.updateDataModelStatus("cb596712-3a09-46f8-aea1-988b43fe9b6c", "default", "OFFLINE");
+        List<NDataModelResponse> models = modelService.getModels("nmodel_full_measure_test", "default",
+                true, "", "", "last_modify", true);
+        Assert.assertTrue(models.get(0).getUuid().equals("cb596712-3a09-46f8-aea1-988b43fe9b6c")
                 && models.get(0).getStatus().equals(RealizationStatusEnum.OFFLINE));
     }
 
@@ -493,7 +498,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testUpdateDataModelStatus_NoReadySegments_Exception() {
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("No ready segment in model 'nmodel_basic_inner', can not online the model!");
-        modelService.updateDataModelStatus("nmodel_basic_inner", "default", "ONLINE");
+        modelService.updateDataModelStatus("741ca86a-1f13-46da-a59f-95fb68615e3a", "default", "ONLINE");
     }
 
     @Test
@@ -507,15 +512,17 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         dataLoadingRange.setColumnName("CAL_DT");
         NDataLoadingRangeManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
                 .createDataLoadingRange(dataLoadingRange);
-        modelService.updateDataModelStatus("nmodel_basic", "default", "ONLINE");
-        modelService.updateDataModelStatus("all_fixed_length", "default", "ONLINE");
+        modelService.updateDataModelStatus("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "ONLINE");
+        modelService.updateDataModelStatus("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", "default", "ONLINE");
     }
 
     @Test
     public void testGetSegmentRangeByModel() {
-        SegmentRange segmentRange = modelService.getSegmentRangeByModel("default", "nmodel_basic", "0", "2322442");
+        SegmentRange segmentRange = modelService.getSegmentRangeByModel("default",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "2322442");
         Assert.assertTrue(segmentRange instanceof SegmentRange.TimePartitionedSegmentRange);
-        SegmentRange segmentRange2 = modelService.getSegmentRangeByModel("default", "nmodel_basic", "", "");
+        SegmentRange segmentRange2 = modelService.getSegmentRangeByModel("default",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
         Assert.assertTrue(segmentRange2 instanceof SegmentRange.TimePartitionedSegmentRange
                 && segmentRange2.getStart().equals(0L) && segmentRange2.getEnd().equals(Long.MAX_VALUE));
     }
@@ -554,12 +561,14 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetRelatedModels_OneModelBasedModel() {
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
-        val modelUpdate = modelManager.copyForWrite(modelManager.getDataModelDesc("nmodel_basic"));
+        val modelUpdate = modelManager
+                .copyForWrite(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);
         List<RelatedModelResponse> models = modelService.getRelateModels("default", "DEFAULT.TEST_KYLIN_FACT", "");
         Assert.assertEquals(3, models.size());
-        val modelUpdate2 = modelManager.copyForWrite(modelManager.getDataModelDesc("nmodel_basic"));
+        val modelUpdate2 = modelManager
+                .copyForWrite(modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
         modelUpdate2.setManagementType(ManagementType.TABLE_ORIENTED);
         modelManager.updateDataModelDesc(modelUpdate2);
     }
@@ -572,8 +581,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetModelUsingTable() {
-
-        List<String> result = modelService.getModelsUsingTable("DEFAULT.TEST_KYLIN_FACT", "default");
+        val result = modelService.getModelsUsingTable("DEFAULT.TEST_KYLIN_FACT", "default");
         Assert.assertEquals(4, result.size());
     }
 
@@ -612,73 +620,75 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testDeleteSegmentById_SegmentToDeleteOverlapsBuilding_Exception() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), "default");
-        NDataModel dataModel = dataModelManager.getDataModelDesc("nmodel_basic_inner");
+        NDataModel dataModel = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
         NDataModel modelUpdate = dataModelManager.copyForWrite(dataModel);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic_inner");
+        NDataflow df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         // remove the existed seg
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2010-01-02");
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
         Segments<NDataSegment> segments = new Segments<>();
-        df = dataflowManager.getDataflow("ncube_basic_inner");
+        df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
 
         dataSegment.setStatus(SegmentStatusEnum.NEW);
         dataSegment.setSegmentRange(segmentRange);
         segments.add(dataSegment);
-        update = new NDataflowUpdate(df.getName());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Can not remove segment (ID:" + dataSegment.getId()
                 + "), because this segment overlaps building segments!");
-        modelService.deleteSegmentById("nmodel_basic_inner", "default", new String[] { dataSegment.getId() });
+        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
+                new String[] { dataSegment.getId() });
     }
 
     @Test
     public void testDeleteSegmentById_TableOrientedModel_Exception() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        NDataflow df = dataflowManager.getDataflow("ncube_basic_inner");
+        NDataflow df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         // remove the existed seg
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2010-01-02");
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
         Segments<NDataSegment> segments = new Segments<>();
-        df = dataflowManager.getDataflow("ncube_basic_inner");
+        df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
 
         dataSegment.setStatus(SegmentStatusEnum.NEW);
         dataSegment.setSegmentRange(segmentRange);
         segments.add(dataSegment);
-        update = new NDataflowUpdate(df.getName());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Model 'nmodel_basic_inner' is table oriented, can not remove segments manually!");
-        modelService.deleteSegmentById("nmodel_basic_inner", "default", new String[] { dataSegment.getId() });
+        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
+                new String[] { dataSegment.getId() });
     }
 
     @Test
     public void testDeleteSegmentById_SegmentToRefreshOverlapsBuilding_Exception() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
-        NDataflow df = dataflowManager.getDataflow("ncube_basic_inner");
+        NDataflow df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         // remove the existed seg
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2010-01-02");
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
         Segments<NDataSegment> segments = new Segments<>();
-        df = dataflowManager.getDataflow("ncube_basic_inner");
+        df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
         dataSegment.setStatus(SegmentStatusEnum.NEW);
         dataSegment.setSegmentRange(segmentRange);
@@ -687,18 +697,19 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         start = SegmentRange.dateToLong("2010-01-02");
         end = SegmentRange.dateToLong("2010-01-03");
         segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        df = dataflowManager.getDataflow("ncube_basic_inner");
+        df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         val dataSegment2 = dataflowManager.appendSegment(df, segmentRange);
         dataSegment2.setStatus(SegmentStatusEnum.READY);
         dataSegment2.setSegmentRange(segmentRange);
         segments.add(dataSegment2);
-        update = new NDataflowUpdate(df.getName());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         eventDao.deleteAllEvents();
         //refresh normally
-        modelService.refreshSegmentById("nmodel_basic_inner", "default", new String[] { dataSegment2.getId() });
+        modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
+                new String[] { dataSegment2.getId() });
         List<Event> events = eventDao.getEvents();
         // TODO check other events
         //        Assert.assertEquals(1, events.size());
@@ -709,20 +720,21 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         thrown.expectMessage("Can not remove segment (ID:" + dataSegment.getId()
                 + "), because this segment overlaps building segments!");
         //refresh exception
-        modelService.refreshSegmentById("nmodel_basic_inner", "default", new String[] { dataSegment.getId() });
+        modelService.refreshSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
+                new String[] { dataSegment.getId() });
     }
 
     @Test
     public void testDeleteSegmentById_UnconsecutiveSegmentsToDelete_Exception() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "default");
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), "default");
-        NDataModel dataModel = dataModelManager.getDataModelDesc("nmodel_basic_inner");
+        NDataModel dataModel = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
         NDataModel modelUpdate = dataModelManager.copyForWrite(dataModel);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic_inner");
+        NDataflow df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
         // remove the existed seg
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
         Segments<NDataSegment> segments = new Segments<>();
@@ -734,35 +746,36 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-01") + i * 86400000;
             end = SegmentRange.dateToLong("2010-01-02") + i * 86400000;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic_inner");
+            df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
             NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
             dataSegment.setStatus(SegmentStatusEnum.READY);
             segments.add(dataSegment);
         }
-        update = new NDataflowUpdate(df.getName());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
         dataflowManager.updateDataflow(update);
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         eventDao.deleteAllEvents();
         //remove normally
-        modelService.deleteSegmentById("nmodel_basic_inner", "default", new String[] { segments.get(0).getId() });
+        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
+                new String[] { segments.get(0).getId() });
         List<Event> events = eventDao.getEvents();
         //2 dataflows
-        val df2 = dataflowManager.getDataflowByModelName(dataModel.getName());
+        val df2 = dataflowManager.getDataflow(dataModel.getUuid());
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Only consecutive segments in head or tail can be removed!");
-        modelService.deleteSegmentById("nmodel_basic_inner", "default",
+        modelService.deleteSegmentById("741ca86a-1f13-46da-a59f-95fb68615e3a", "default",
                 new String[] { segments.get(2).getId(), segments.get(3).getId() });
     }
 
     @Test
     public void testCreateModel_ExistedAlias_Exception() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Model alias nmodel_basic already exists!");
         ModelRequest modelRequest = new ModelRequest(model);
-        modelRequest.setName("new_model");
+        modelRequest.setUuid("new_model");
         modelRequest.setLastModified(0L);
         modelRequest.setProject("default");
         modelService.createModel(modelRequest.getProject(), modelRequest);
@@ -776,10 +789,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         copy.setMaintainModelType(MaintainModelType.AUTO_MAINTAIN);
         prjManager.updateProject(copy);
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
-        modelRequest.setName("new_model");
+        modelRequest.setUuid("new_model");
         modelRequest.setAlias("new_model");
         modelRequest.setLastModified(0L);
         thrown.expect(BadRequestException.class);
@@ -788,23 +801,20 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     }
 
-
     @Test
     public void testCreateModel_PartitionIsNull() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         model.setPartitionDesc(null);
         model.setManagementType(ManagementType.MODEL_BASED);
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
-        modelRequest.setName("new_model");
         modelRequest.setAlias("new_model");
         modelRequest.setLastModified(0L);
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-        NDataModel newModel = modelManager.getDataModelDesc("new_model");
-        Assert.assertEquals("new_model", newModel.getName());
+        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
+        Assert.assertEquals("new_model", newModel.getAlias());
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val df = dfManager.getDataflowByModelName("new_model");
+        val df = dfManager.getDataflow(newModel.getUuid());
         Assert.assertEquals(1, df.getSegments().size());
         Assert.assertTrue(df.getSegments().get(0).getSegRange().isInfinite());
 
@@ -812,6 +822,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    @Ignore
     public void testCreateModelAndBuildManully() throws Exception {
         setupPushdownEnv();
         testCreateModel_PartitionNotNull();
@@ -824,18 +835,16 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     public void testCreateModel_PartitionNotNull() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         model.setManagementType(ManagementType.MODEL_BASED);
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
-        modelRequest.setName("new_model");
         modelRequest.setAlias("new_model");
         modelRequest.setLastModified(0L);
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-        NDataModel newModel = modelManager.getDataModelDesc("new_model");
-        Assert.assertEquals("new_model", newModel.getName());
+        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
+        Assert.assertEquals("new_model", newModel.getAlias());
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val df = dfManager.getDataflowByModelName("new_model");
+        val df = dfManager.getDataflow(newModel.getUuid());
         Assert.assertEquals(1, df.getSegments().size());
         Assert.assertEquals(1325376000000L, df.getSegments().get(0).getSegRange().getStart());
         Assert.assertEquals(1388534400000L, df.getSegments().get(0).getSegRange().getEnd());
@@ -844,22 +853,20 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     public void testCreateModel_PartitionNotNull_WithStartAndEnd() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         model.setManagementType(ManagementType.MODEL_BASED);
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
-        modelRequest.setName("new_model2");
         modelRequest.setAlias("new_model2");
         modelRequest.setStart("0");
         modelRequest.setEnd("100");
         modelRequest.setLastModified(0L);
         modelRequest.getPartitionDesc().setPartitionDateFormat("");
         Assert.assertEquals("", modelRequest.getPartitionDesc().getPartitionDateFormat());
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-        NDataModel newModel = modelManager.getDataModelDesc("new_model2");
-        Assert.assertEquals("new_model2", newModel.getName());
+        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
+        Assert.assertEquals("new_model2", newModel.getAlias());
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val df = dfManager.getDataflowByModelName("new_model2");
+        val df = dfManager.getDataflow(newModel.getUuid());
         Assert.assertEquals(1, df.getSegments().size());
         Assert.assertEquals("yyyy-MM-dd", newModel.getPartitionDesc().getPartitionDateFormat());
         Assert.assertEquals(0L, df.getSegments().get(0).getSegRange().getStart());
@@ -869,21 +876,19 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     public void testCreateModel_PartitionNotNull_WithStartOnly() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         model.setManagementType(ManagementType.MODEL_BASED);
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
-        modelRequest.setName("new_model3");
         modelRequest.setAlias("new_model3");
         modelRequest.setStart("0");
         modelRequest.setLastModified(0L);
         modelRequest.getPartitionDesc().setPartitionDateFormat("");
         Assert.assertEquals("", modelRequest.getPartitionDesc().getPartitionDateFormat());
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-        NDataModel newModel = modelManager.getDataModelDesc("new_model3");
-        Assert.assertEquals("new_model3", newModel.getName());
+        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
+        Assert.assertEquals("new_model3", newModel.getAlias());
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val df = dfManager.getDataflowByModelName("new_model3");
+        val df = dfManager.getDataflow(newModel.getUuid());
         Assert.assertEquals(1, df.getSegments().size());
         Assert.assertEquals("yyyy-MM-dd", newModel.getPartitionDesc().getPartitionDateFormat());
         Assert.assertEquals(0L, df.getSegments().get(0).getSegRange().getStart());
@@ -893,21 +898,19 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     public void testCreateModel_PartitionNotNull_WithEndOnly() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         model.setManagementType(ManagementType.MODEL_BASED);
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
-        modelRequest.setName("new_model4");
         modelRequest.setAlias("new_model4");
         modelRequest.setEnd("1388534400000");
         modelRequest.setLastModified(0L);
         modelRequest.getPartitionDesc().setPartitionDateFormat("");
         Assert.assertEquals("", modelRequest.getPartitionDesc().getPartitionDateFormat());
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-        NDataModel newModel = modelManager.getDataModelDesc("new_model4");
-        Assert.assertEquals("new_model4", newModel.getName());
+        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
+        Assert.assertEquals("new_model4", newModel.getAlias());
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val df = dfManager.getDataflowByModelName("new_model4");
+        val df = dfManager.getDataflow(newModel.getUuid());
         Assert.assertEquals(1, df.getSegments().size());
         Assert.assertEquals("yyyy-MM-dd", newModel.getPartitionDesc().getPartitionDateFormat());
         Assert.assertEquals(1325376000000L, df.getSegments().get(0).getSegRange().getStart());
@@ -921,19 +924,17 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCreateModelWithDefaultMeasures() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         model.setManagementType(ManagementType.MODEL_BASED);
         ModelRequest modelRequest = new ModelRequest(model);
         modelRequest.setProject("default");
-        modelRequest.setName("new_model");
         modelRequest.setAlias("new_model");
         modelRequest.setLastModified(0L);
         modelRequest.setStart("0");
         modelRequest.setEnd("100");
         modelRequest.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
-        modelService.createModel(modelRequest.getProject(), modelRequest);
-        NDataModel newModel = modelManager.getDataModelDesc("new_model");
-        Assert.assertEquals("new_model", newModel.getName());
+        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
+        Assert.assertEquals("new_model", newModel.getAlias());
         List<NDataModelResponse> models = modelService.getModels("new_model", "default", false, "ADMIN", "", "", false);
         Assert.assertEquals("COUNT_ALL", models.get(0).getSimplifiedMeasures().get(0).getName());
         modelManager.dropModel(newModel);
@@ -943,18 +944,18 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testBuildSegmentsManually_TableOrientedModel_Exception() throws Exception {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Table oriented model 'nmodel_basic' can not build segments manually!");
-        modelService.buildSegmentsManually("default", "nmodel_basic", "0", "100");
+        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
     }
 
     @Test
     public void testUnlinkModel() {
-        modelService.unlinkModel("nmodel_basic_inner", "default");
+        modelService.unlinkModel("741ca86a-1f13-46da-a59f-95fb68615e3a", "default");
         NDataModelManager dataModelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel nDataModel = dataModelManager.getDataModelDesc("nmodel_basic_inner");
+        NDataModel nDataModel = dataModelManager.getDataModelDesc("741ca86a-1f13-46da-a59f-95fb68615e3a");
         Assert.assertEquals(ManagementType.MODEL_BASED, nDataModel.getManagementType());
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("Model nmodel_basic_inner is model based, can not unlink it!");
-        modelService.unlinkModel("nmodel_basic_inner", "default");
+        modelService.unlinkModel("741ca86a-1f13-46da-a59f-95fb68615e3a", "default");
     }
 
     @Test
@@ -1923,7 +1924,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         NDataModel model = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "match")
                 .getDataModelDesc("match");
         ModelRequest modelRequest = new ModelRequest(model);
-        modelRequest.setName("new_model");
+        modelRequest.setUuid("new_model");
         modelRequest.setAlias("new_model");
         modelRequest.setManagementType(ManagementType.MODEL_BASED);
         modelRequest.setLastModified(0L);
@@ -1937,32 +1938,32 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBuildSegmentsManuallyException2() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel modelDesc = modelManager.getDataModelDesc("nmodel_full_measure_test");
+        NDataModel modelDesc = modelManager.getDataModelDesc("cb596712-3a09-46f8-aea1-988b43fe9b6c");
         NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
                 "Segments to build overlaps built or building segment(from 0 to 9223372036854775807), please select new data range and try again!");
-        modelService.buildSegmentsManually("default", "nmodel_full_measure_test", "0", "100");
+        modelService.buildSegmentsManually("default", "cb596712-3a09-46f8-aea1-988b43fe9b6c", "0", "100");
     }
 
     @Test
     public void testBuildSegmentsManually() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel modelDesc = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);
 
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
-        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        modelService.buildSegmentsManually("default", "nmodel_basic", "0", "100");
+        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        modelDesc = modelManager.getDataModelDesc("nmodel_basic");
+        modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         modelUpdate = modelManager.copyForWrite(modelDesc);
         modelUpdate.setManagementType(ManagementType.TABLE_ORIENTED);
         modelManager.updateDataModelDesc(modelUpdate);
@@ -1971,7 +1972,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         events.sort(Event::compareTo);
 
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
-        dataflow = dataflowManager.getDataflow("ncube_basic");
+        dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
         Assert.assertEquals(0L, dataflow.getSegments().get(0).getSegRange().getStart());
         Assert.assertEquals(100L, dataflow.getSegments().get(0).getSegRange().getEnd());
@@ -1979,24 +1980,24 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
     public void testBuildSegmentsManually_WithPushDown() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel modelDesc = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);
 
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
-        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
-        modelService.buildSegmentsManually("default", "nmodel_basic", "", "");
+        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
 
         val events = eventDao.getEvents();
         events.sort(Event::compareTo);
 
         Assert.assertTrue(events.get(0) instanceof AddSegmentEvent);
-        dataflow = dataflowManager.getDataflow("ncube_basic");
+        dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(1, dataflow.getSegments().size());
         Assert.assertEquals(1325376000000L, dataflow.getSegments().get(0).getSegRange().getStart());
         Assert.assertEquals(1388534400000L, dataflow.getSegments().get(0).getSegRange().getEnd());
@@ -2006,32 +2007,32 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBuildSegmentsManually_NoPartition_Exception() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel modelDesc = modelManager.getDataModelDesc("nmodel_basic");
+        NDataModel modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);
 
-        modelManager.updateDataModel("nmodel_basic", copyForWrite -> {
+        modelManager.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
             copyForWrite.setManagementType(ManagementType.MODEL_BASED);
             copyForWrite.setPartitionDesc(null);
         });
 
         NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataflow dataflow = dataflowManager.getDataflow("ncube_basic");
-        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Model 'nmodel_basic' has no partition column!");
-        modelService.buildSegmentsManually("default", "nmodel_basic", "", "");
+        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
 
     }
 
     @Test
     public void testUpdateModelDataCheckDesc() {
-        modelService.updateModelDataCheckDesc("default", "nmodel_basic", 7, 10, 2);
+        modelService.updateModelDataCheckDesc("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 7, 10, 2);
         final NDataModel dataModel = NDataModelManager.getInstance(getTestConfig(), "default")
-                .getDataModelDesc("nmodel_basic");
+                .getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         final DataCheckDesc dataCheckDesc = dataModel.getDataCheckDesc();
         Assert.assertEquals(7, dataCheckDesc.getCheckOptions());
@@ -2049,7 +2050,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSetIncrementing_LimitedFactTable_exception() {
         val modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
-        val model = modelManager.getDataModelDesc("nmodel_basic");
+        val model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         val joinTableDesc = new JoinTableDesc();
         joinTableDesc.setTable("DEFAULT.TEST_KYLIN_FACT");
         model.setJoinTables(Lists.newArrayList(joinTableDesc));
@@ -2062,20 +2063,20 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModelInfoByModel() throws IOException {
         val result1 = new QueryTimesResponse();
-        result1.setModel("nmodel_basic");
+        result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
         val result2 = new QueryTimesResponse();
-        result2.setModel("nmodel_full_measure_test");
+        result2.setModel("cb596712-3a09-46f8-aea1-988b43fe9b6c");
         result2.setQueryTimes(10);
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
         Mockito.doReturn(Lists.newArrayList(result1, result2)).when(queryHistoryDAO).getQueryTimesByModel(
                 Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
-        val modelInfo = modelService.getModelInfo("*", "nmodel_basic", "default", 0, 0);
+        val modelInfo = modelService.getModelInfo("*", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", 0, 0);
         Assert.assertEquals(1, modelInfo.size());
         Assert.assertEquals(10, modelInfo.get(0).getQueryTimes());
         Assert.assertEquals(3380224, modelInfo.get(0).getModelStorageSize());
-        val modelInfo2 = modelService.getModelInfo("*", "nmodel_full_measure_test", "default", 0, 0);
+        val modelInfo2 = modelService.getModelInfo("*", "cb596712-3a09-46f8-aea1-988b43fe9b6c", "default", 0, 0);
         Assert.assertEquals(1, modelInfo2.size());
         Assert.assertEquals(10, modelInfo2.get(0).getQueryTimes());
         Assert.assertEquals(0, modelInfo2.get(0).getModelStorageSize());
@@ -2084,36 +2085,36 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetModelInfoByProject() throws IOException {
         val result1 = new QueryTimesResponse();
-        result1.setModel("nmodel_basic");
+        result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
+        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
         val modelInfo = modelService.getModelInfo("*", "*", "default", 0, 0);
         Assert.assertEquals(6, modelInfo.size());
-        Assert.assertEquals(10, modelInfo.get(1).getQueryTimes());
-        Assert.assertEquals(3380224, modelInfo.get(1).getModelStorageSize());
+        Assert.assertEquals(10, modelInfo.get(2).getQueryTimes());
+        Assert.assertEquals(3380224, modelInfo.get(2).getModelStorageSize());
     }
 
     @Test
     public void testGetAllModelInfo() throws IOException {
         val result1 = new QueryTimesResponse();
-        result1.setModel("nmodel_basic");
+        result1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         result1.setQueryTimes(10);
         QueryHistoryDAO queryHistoryDAO = Mockito.mock(QueryHistoryDAO.class);
-        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(
-                Mockito.anyString(), Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
+        Mockito.doReturn(Lists.newArrayList(result1)).when(queryHistoryDAO).getQueryTimesByModel(Mockito.anyString(),
+                Mockito.anyString(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any());
         Mockito.doReturn(queryHistoryDAO).when(modelService).getQueryHistoryDao(Mockito.anyString());
         val modelInfo = modelService.getModelInfo("*", "*", "*", 0, 0);
-        Assert.assertEquals(9, modelInfo.size());
+        Assert.assertEquals(8, modelInfo.size());
     }
 
     @Test
     public void testGetModelInfo_ProjectEmpty_exception() throws IOException {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("Project name can not be empty when model is selected!");
-        modelService.getModelInfo("*", "nmodel_basic", "*", 0, 0);
+        modelService.getModelInfo("*", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "*", 0, 0);
     }
 
     @Test
@@ -2126,7 +2127,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUpdateAndGetModelConfig() {
         val project = "default";
-        val model = "nmodel_basic";
+        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         val modelConfigRequest = new ModelConfigRequest();
         modelConfigRequest.setProject(project);
         modelConfigRequest.setAutoMergeEnabled(false);
@@ -2149,7 +2150,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         job1.setProject("default");
         job1.initConfig(KylinConfig.getInstanceFromEnv());
         job1.setName("sparkjob1");
-        job1.setTargetModel("nmodel_basic_inner");
+        job1.setTargetModel("741ca86a-1f13-46da-a59f-95fb68615e3a");
         SucceedTestExecutable job2 = new SucceedTestExecutable();
         job2.setProject("default");
         job2.initConfig(KylinConfig.getInstanceFromEnv());

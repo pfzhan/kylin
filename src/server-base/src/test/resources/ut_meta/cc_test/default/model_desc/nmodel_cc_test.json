@@ -1,6 +1,6 @@
 {
   "uuid": "ed524ee2-2cdb-4b07-b39e-4c298563a098",
-  "name": "nmodel_cc_test",
+  "alias": "nmodel_cc_test",
   "fact_table": "DEFAULT.TEST_KYLIN_FACT",
   "join_tables": [
     {

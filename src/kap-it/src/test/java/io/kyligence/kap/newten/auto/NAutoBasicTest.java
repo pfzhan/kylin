@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.cube.model.IndexPlan;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.SparkContext;
@@ -36,8 +37,7 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.smart.NSmartContext;
@@ -50,7 +50,7 @@ public class NAutoBasicTest extends NAutoTestBase {
     public void testAutoSingleModel() throws Exception {
 
         // 1. Create simple model with one fact table
-        String targetModelName;
+        String targetModelId;
         try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
             List<Pair<String, String>> queries = fetchQueries("auto/sql", 0, 1);
             NSmartMaster master = proposeWithSmartMaster(queries);
@@ -62,10 +62,10 @@ public class NAutoBasicTest extends NAutoTestBase {
             NSmartContext.NModelContext modelContext = modelContexts.get(0);
             NDataModel dataModel = modelContext.getTargetModel();
             Assert.assertNotNull(dataModel);
-            targetModelName = dataModel.getName();
+            targetModelId = dataModel.getUuid();
             Assert.assertEquals(1, dataModel.getAllTables().size());
-            NCubePlan cubePlan = modelContext.getTargetCubePlan();
-            Assert.assertNotNull(cubePlan);
+            IndexPlan indexPlan = modelContext.getTargetIndexPlan();
+            Assert.assertNotNull(indexPlan);
         }
 
         // 2. Feed query with left join using same fact table, should update same model
@@ -80,10 +80,10 @@ public class NAutoBasicTest extends NAutoTestBase {
             NSmartContext.NModelContext modelContext = modelContexts.get(0);
             NDataModel dataModel = modelContext.getTargetModel();
             Assert.assertNotNull(dataModel);
-            Assert.assertEquals(targetModelName, dataModel.getName());
+            Assert.assertEquals(targetModelId, dataModel.getUuid());
             Assert.assertEquals(2, dataModel.getAllTables().size());
-            NCubePlan cubePlan = modelContext.getTargetCubePlan();
-            Assert.assertNotNull(cubePlan);
+            IndexPlan indexPlan = modelContext.getTargetIndexPlan();
+            Assert.assertNotNull(indexPlan);
         }
 
         //FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
@@ -119,10 +119,10 @@ public class NAutoBasicTest extends NAutoTestBase {
             NSmartContext.NModelContext modelContext = modelContexts.get(0);
             NDataModel dataModel = modelContext.getTargetModel();
             Assert.assertNotNull(dataModel);
-            Assert.assertNotEquals(targetModelName, dataModel.getName());
+            Assert.assertNotEquals(targetModelId, dataModel.getUuid());
             Assert.assertEquals(2, dataModel.getAllTables().size());
-            NCubePlan cubePlan = modelContext.getTargetCubePlan();
-            Assert.assertNotNull(cubePlan);
+            IndexPlan indexPlan = modelContext.getTargetIndexPlan();
+            Assert.assertNotNull(indexPlan);
         }
 
         // 6. Finally, run all queries
@@ -139,8 +139,8 @@ public class NAutoBasicTest extends NAutoTestBase {
     @Test
     public void testAutoMultipleModel() throws Exception {
 
-        Map<String, NCubePlan> cubePlanOfParts = new HashMap<>();
-        Map<String, NCubePlan> cubePlanOfAll = new HashMap<>();
+        Map<String, IndexPlan> indexPlanOfParts = new HashMap<>();
+        Map<String, IndexPlan> indexPlanOfAll = new HashMap<>();
 
         // 1. Feed queries part1
         try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
@@ -151,8 +151,8 @@ public class NAutoBasicTest extends NAutoTestBase {
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             for (NSmartContext.NModelContext nModelContext : modelContexts) {
-                NCubePlan cubePlan = nModelContext.getTargetCubePlan();
-                cubePlanOfParts.put(cubePlan.getId(), cubePlan);
+                IndexPlan indexPlan = nModelContext.getTargetIndexPlan();
+                indexPlanOfParts.put(indexPlan.getId(), indexPlan);
             }
         }
 
@@ -165,8 +165,8 @@ public class NAutoBasicTest extends NAutoTestBase {
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             for (NSmartContext.NModelContext nModelContext : modelContexts) {
-                NCubePlan cubePlan = nModelContext.getTargetCubePlan();
-                cubePlanOfParts.put(cubePlan.getId(), cubePlan);
+                IndexPlan indexPlan = nModelContext.getTargetIndexPlan();
+                indexPlanOfParts.put(indexPlan.getId(), indexPlan);
             }
         }
 
@@ -179,22 +179,22 @@ public class NAutoBasicTest extends NAutoTestBase {
 
             List<NSmartContext.NModelContext> modelContexts = master.getContext().getModelContexts();
             for (NSmartContext.NModelContext nModelContext : modelContexts) {
-                NCubePlan cubePlan = nModelContext.getTargetCubePlan();
-                cubePlanOfAll.put(cubePlan.getId(), cubePlan);
+                IndexPlan indexPlan = nModelContext.getTargetIndexPlan();
+                indexPlanOfAll.put(indexPlan.getId(), indexPlan);
             }
         }
 
         // 4. Suggested cuboids should be consistent no matter modeling with partial or full queries
         {
-            Assert.assertEquals(cubePlanOfParts.size(), cubePlanOfAll.size());
-            for (NCubePlan actual : cubePlanOfAll.values()) {
-                NCubePlan expected = cubePlanOfParts.get(actual.getId());
+            Assert.assertEquals(indexPlanOfParts.size(), indexPlanOfAll.size());
+            for (IndexPlan actual : indexPlanOfAll.values()) {
+                IndexPlan expected = indexPlanOfParts.get(actual.getId());
                 Assert.assertNotNull(expected);
                 // compare cuboids
-                Assert.assertEquals(expected.getAllCuboids().size(), actual.getAllCuboids().size());
-                Assert.assertEquals(expected.getAllCuboidLayouts().size(), actual.getAllCuboidLayouts().size());
-                for (NCuboidDesc actualCuboid : actual.getAllCuboids()) {
-                    NCuboidDesc expectedCuboid = expected.getCuboidDesc(actualCuboid.getId());
+                Assert.assertEquals(expected.getAllIndexes().size(), actual.getAllIndexes().size());
+                Assert.assertEquals(expected.getAllLayouts().size(), actual.getAllLayouts().size());
+                for (IndexEntity actualCuboid : actual.getAllIndexes()) {
+                    IndexEntity expectedCuboid = expected.getIndexEntity(actualCuboid.getId());
                     Assert.assertThat(expectedCuboid.getDimensions(), CoreMatchers.is(actualCuboid.getDimensions()));
                     Assert.assertThat(expectedCuboid.getMeasures(), CoreMatchers.is(actualCuboid.getMeasures()));
                 }

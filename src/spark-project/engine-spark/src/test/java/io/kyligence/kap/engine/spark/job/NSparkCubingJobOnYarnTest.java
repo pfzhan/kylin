@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.engine.JobEngineConfig;
@@ -45,7 +46,6 @@ import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -87,13 +87,13 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, "default");
         NExecutableManager execMgr = NExecutableManager.getInstance(config, "default");
 
-        NDataflow df = dsMgr.getDataflow("ncube_basic");
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflow df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dsMgr.updateDataflow(update);
 
         NDataSegment oneSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, SegmentRange.dateToLong("2012-06-01")));
-        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
 
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN");
 
@@ -104,7 +104,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
 
-        df = dsMgr.getDataflow("ncube_basic");
+        df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         oneSeg = dsMgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-06-01"), SegmentRange.dateToLong("2013-06-01")));
 
         job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(layouts), "ADMIN");
@@ -116,7 +116,7 @@ public class NSparkCubingJobOnYarnTest extends NLocalFileMetadataTestCase {
         status = wait(job);
         Assert.assertEquals(ExecutableState.SUCCEED, status);
 
-        df = dsMgr.getDataflow("ncube_basic");
+        df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         oneSeg = dsMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(0L, SegmentRange.dateToLong("2013-06-01")), false);
 
         NSparkMergingJob mergeJob = NSparkMergingJob.merge(oneSeg, Sets.newLinkedHashSet(layouts), "ADMIN", UUID.randomUUID().toString());

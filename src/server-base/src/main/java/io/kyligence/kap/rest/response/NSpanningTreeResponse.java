@@ -33,8 +33,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.Getter;
 import lombok.Setter;
@@ -54,39 +54,39 @@ public class NSpanningTreeResponse {
 
     }
     public NSpanningTreeResponse(NForestSpanningTree tree, NDataModel model) {
-        val cubePlan = NCubePlanManager.getInstance(model.getConfig(), model.getProject())
-                .findMatchingCubePlan(model.getName());
+        val indexPlan = NIndexPlanManager.getInstance(model.getConfig(), model.getProject())
+                .getIndexPlan(model.getUuid());
         for (NForestSpanningTree.TreeNode root : tree.getRoots()) {
-            roots.add(simplifyTreeNodeResponse(root, cubePlan));
+            roots.add(simplifyTreeNodeResponse(root, indexPlan));
         }
         for (HashMap.Entry<Long, NForestSpanningTree.TreeNode> entry : tree.getNodesMap().entrySet()) {
-            nodesMap.put(entry.getKey(), simplifyTreeNodeResponse(entry.getValue(), cubePlan));
+            nodesMap.put(entry.getKey(), simplifyTreeNodeResponse(entry.getValue(), indexPlan));
         }
     }
 
     private NSpanningTreeResponse.TreeNodeResponse simplifyTreeNodeResponse(NForestSpanningTree.TreeNode root,
-            NCubePlan cubePlan) {
+            IndexPlan indexPlan) {
         NSpanningTreeResponse.TreeNodeResponse treeNodeResponse = new NSpanningTreeResponse.TreeNodeResponse();
         treeNodeResponse.setLevel(root.getLevel());
-        treeNodeResponse.setCuboid(simplifyCuboidResponse(root.getCuboidDesc().getId(), cubePlan));
+        treeNodeResponse.setCuboid(simplifyCuboidResponse(root.getIndexEntity().getId(), indexPlan));
         if (root.getParent() != null) {
-            treeNodeResponse.setParent(root.getParent().getCuboidDesc().getId());
+            treeNodeResponse.setParent(root.getParent().getIndexEntity().getId());
         }
         List<Long> childrenIds = Lists.newArrayList();
         for (NForestSpanningTree.TreeNode children : root.getChildren()) {
-            childrenIds.add(children.getCuboidDesc().getId());
+            childrenIds.add(children.getIndexEntity().getId());
         }
         treeNodeResponse.setChildren(childrenIds);
         return treeNodeResponse;
     }
 
-    private NSpanningTreeResponse.SimplifiedCuboidResponse simplifyCuboidResponse(long id, NCubePlan cubePlan) {
-        val cuboidDesc = cubePlan.getCuboidDesc(id);
-        CuboidDescResponse cuboidDescResponse = new CuboidDescResponse(cuboidDesc);
+    private NSpanningTreeResponse.SimplifiedCuboidResponse simplifyCuboidResponse(long id, IndexPlan indexPlan) {
+        val indexEntity = indexPlan.getIndexEntity(id);
+        IndexEntityResponse indexEntityResponse = new IndexEntityResponse(indexEntity);
         NSpanningTreeResponse.SimplifiedCuboidResponse simplifiedCuboidResponse = new NSpanningTreeResponse.SimplifiedCuboidResponse();
         simplifiedCuboidResponse.setId(id);
-        simplifiedCuboidResponse.setStatus(cuboidDescResponse.getStatus());
-        simplifiedCuboidResponse.setStorageSize(cuboidDescResponse.getStorageSize());
+        simplifiedCuboidResponse.setStatus(indexEntityResponse.getStatus());
+        simplifiedCuboidResponse.setStorageSize(indexEntityResponse.getStorageSize());
         return simplifiedCuboidResponse;
     }
 

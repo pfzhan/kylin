@@ -55,7 +55,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NCubePlan;
+import io.kyligence.kap.cube.model.IndexPlan;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -77,20 +77,20 @@ public class NDictionaryBuilder implements Serializable {
         logger.info("building dictionaries for seg {}", seg);
 
         final NDataflow dataflow = seg.getDataflow();
-        final NCubePlan cubePlan = dataflow.getCubePlan();
+        final IndexPlan indexPlan = dataflow.getIndexPlan();
 
         final long start = System.currentTimeMillis();
         Map<TblColRef, Dictionary<String>> dictionaryMap = Maps.newHashMap();
 
-        for (TblColRef col : cubePlan.getAllColumnsNeedDictionaryBuilt()) {
+        for (TblColRef col : indexPlan.getAllColumnsNeedDictionaryBuilt()) {
             NDictionaryInfo dictInfo = new NDictionaryInfo(col.getColumnDesc(), col.getDatatype(), null,
                     seg.getProject());
-            String dictionaryBuilderClass = cubePlan.getDictionaryBuilderClass(col);
+            String dictionaryBuilderClass = indexPlan.getDictionaryBuilderClass(col);
             //TODO: what if dict changed?
             Dictionary<String> existing = seg.getDictionary(col);
             if (existing != null)
                 continue;
-            int id = cubePlan.getModel().getColumnIdByColumnName(col.getIdentity());
+            int id = indexPlan.getModel().getColumnIdByColumnName(col.getIdentity());
             final Dataset<Row> afterDistinct = dataSet.select(String.valueOf(id)).distinct();
 
             final List<String> rows = new ArrayList<>();
@@ -161,7 +161,7 @@ public class NDictionaryBuilder implements Serializable {
         }
         final long end = System.currentTimeMillis();
         NDataSegment segCopy = writeDictionary(seg, dictionaryMap, start, end);
-        NDataflowUpdate update = new NDataflowUpdate(dataflow.getName());
+        NDataflowUpdate update = new NDataflowUpdate(dataflow.getUuid());
         update.setToUpdateSegs(segCopy);
         NDataflow updatedDataflow = NDataflowManager.getInstance(seg.getConfig(), dataflow.getProject())
                 .updateDataflow(update);

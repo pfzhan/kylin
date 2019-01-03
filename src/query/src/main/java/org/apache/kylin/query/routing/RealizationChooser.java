@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.measure.bitmap.BitmapMeasureType;
@@ -78,7 +79,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
 import io.kyligence.kap.cube.cuboid.NLookupCandidate;
-import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -193,14 +193,14 @@ public class RealizationChooser {
 
     private static void buildStorageContext(StorageContext context, Set<TblColRef> dimensions,
             Set<FunctionDesc> metrics, NLayoutCandidate selectedCandidate) {
-        NCuboidLayout cuboidLayout = selectedCandidate.getCuboidLayout();
+        LayoutEntity cuboidLayout = selectedCandidate.getCuboidLayout();
         context.setCandidate(selectedCandidate);
         context.setDimensions(dimensions);
         context.setMetrics(metrics);
         context.setCuboidId(cuboidLayout.getId());
-        logger.info("Choose model name: {} joins: {}", cuboidLayout.getModel().getName(),
+        logger.info("Choose model name: {} joins: {}", cuboidLayout.getModel().getUuid(),
                 cuboidLayout.getModel().getJoinsGraph().toString());
-        logger.info("Choose cubePlan name: {} for context: {}", cuboidLayout.getCuboidDesc().getCubePlan().getName(),
+        logger.info("Choose indexPlan name: {} for context: {}", cuboidLayout.getIndex().getIndexPlan().getUuid(),
                 context.getCtxId());
         logger.info("Choose cuboid layout ID: {} dimensions: {}, measures: {}", cuboidLayout.getId(),
                 cuboidLayout.getOrderedDimensions(), cuboidLayout.getOrderedMeasures());

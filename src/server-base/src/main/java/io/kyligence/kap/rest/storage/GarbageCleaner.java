@@ -26,11 +26,11 @@ package io.kyligence.kap.rest.storage;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.cube.model.NDataflow;
 import org.apache.kylin.common.KylinConfig;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
@@ -43,15 +43,15 @@ public interface GarbageCleaner {
 
     default NDataflow getDataflow(NDataModel model) {
         val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-        return dataflowManager.getDataflowByModelName(model.getName());
+        return dataflowManager.getDataflow(model.getUuid());
     }
 
-    default NCubePlan getCube(NDataModel model) {
-        return getDataflow(model).getCubePlan();
+    default IndexPlan getCube(NDataModel model) {
+        return getDataflow(model).getIndexPlan();
     }
 
-    default List<Long> getLayouts(NCubePlan cube) {
-        val layouts = cube.getAllCuboidLayouts();
-        return layouts.stream().map(NCuboidLayout::getId).collect(Collectors.toList());
+    default List<Long> getLayouts(IndexPlan cube) {
+        val layouts = cube.getAllLayouts();
+        return layouts.stream().map(LayoutEntity::getId).collect(Collectors.toList());
     }
 }

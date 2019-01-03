@@ -27,6 +27,7 @@ package io.kyligence.kap.newten;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -46,8 +47,7 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -82,14 +82,14 @@ public class NEncodingTest extends NLocalWithSparkSessionTest {
         // ready dataflow, segment, cuboid layout
         NDataflow df = dsMgr.getDataflow("test_encoding");
         NDataSegment toBeBuild = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
 
-        List<NCuboidLayout> round1 = new ArrayList<>();
+        List<LayoutEntity> round1 = new ArrayList<>();
         round1.add(layouts.get(0));
 
-        NSpanningTree nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(round1, df.getName());
-        for (NCuboidDesc rootCuboid : nSpanningTree.getRootCuboidDescs()) {
-            NCuboidLayout layout = NCuboidLayoutChooser.selectLayoutForBuild(toBeBuild,
+        NSpanningTree nSpanningTree = NSpanningTreeFactory.fromLayouts(round1, df.getUuid());
+        for (IndexEntity rootCuboid : nSpanningTree.getRootIndexEntities()) {
+            LayoutEntity layout = NCuboidLayoutChooser.selectLayoutForBuild(toBeBuild,
                     rootCuboid.getEffectiveDimCols().keySet(), nSpanningTree.retrieveAllMeasures(rootCuboid));
             Assert.assertEquals(null, layout);
         }

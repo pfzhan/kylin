@@ -77,7 +77,7 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         val tasks = executable.getTasks();
         Preconditions.checkState(tasks.size() > 1, "job " + jobId + " steps is not enough");
         val buildTask = tasks.get(1);
-        val dataflowName = ExecutableUtils.getDataflowName(buildTask);
+        val dataflowId = ExecutableUtils.getDataflowId(buildTask);
         val segmentIds = ExecutableUtils.getSegmentIds(buildTask);
         val layoutIds = ExecutableUtils.getLayoutIds(buildTask);
 
@@ -86,7 +86,7 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         try {
             UnitOfWork.doInTransactionWithRetry(() -> {
 
-                if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+                if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
                     finishEvent(project, event.getId());
                     return null;
                 }
@@ -94,16 +94,16 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
                 val kylinConfig = KylinConfig.getInstanceFromEnv();
 
                 val merger = new AfterBuildResourceMerger(kylinConfig, project);
-                val updatedCuboids = merger.mergeAfterIncrement(dataflowName, segmentIds.iterator().next(), layoutIds, buildResourceStore);
-                merger.mergeAnalysis(dataflowName, analysisResourceStore);
+                val updatedCuboids = merger.mergeAfterIncrement(dataflowId, segmentIds.iterator().next(), layoutIds, buildResourceStore);
+                merger.mergeAnalysis(dataflowId, analysisResourceStore);
 
                 recordDownJobStats(buildTask, updatedCuboids);
 
 
-                handleRetention(project, event.getModelName());
+                handleRetention(project, event.getModelId());
 
                 //TODO: take care of this
-                autoMergeSegments(project, event.getModelName(), event.getOwner());
+                autoMergeSegments(project, event.getModelId(), event.getOwner());
 
                 finishEvent(project, event.getId());
                 return null;
@@ -119,43 +119,40 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         String project = eventContext.getProject();
 
         UnitOfWork.doInTransactionWithRetry(() -> {
-            if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+            if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
                 finishEvent(project, event.getId());
                 return null;
             }
 
             val kylinConfig = KylinConfig.getInstanceFromEnv();
-            val cubePlanName = event.getCubePlanName();
             val segmentId = event.getSegmentId();
 
             NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-            NDataflow df = dfMgr.getDataflow(cubePlanName);
+            NDataflow df = dfMgr.getDataflow(event.getModelId());
 
             //update target seg's status
-            val dfUpdate = new NDataflowUpdate(cubePlanName);
+            val dfUpdate = new NDataflowUpdate(event.getModelId());
             val seg = df.copy().getSegment(segmentId);
             seg.setStatus(SegmentStatusEnum.READY);
             dfUpdate.setToUpdateSegs(seg);
             dfMgr.updateDataflow(dfUpdate);
 
             //TODO: take care of this
-            handleRetention(project, event.getModelName());
-            autoMergeSegments(project, event.getModelName(), event.getOwner());
-
+            handleRetention(project, event.getModelId());
+            autoMergeSegments(project, event.getModelId(), event.getOwner());
             finishEvent(project, event.getId());
             return null;
         }, project);
     }
 
 
-
-    private void autoMergeSegments(String project, String modelName, String owner) {
+    private void autoMergeSegments(String project, String modelId, String owner) {
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val df = dfManager.getDataflowByModelName(modelName);
+        val df = dfManager.getDataflow(modelId);
         Segments segments = df.getSegments();
         SegmentRange rangeToMerge = null;
         EventManager eventManager = EventManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelName);
+        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, modelId);
         Preconditions.checkState(segmentConfig != null);
         rangeToMerge = segments.autoMergeSegments(segmentConfig);
         if (rangeToMerge == null) {
@@ -165,16 +162,14 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
                     .mergeSegments(df, rangeToMerge, true);
 
             val mergeEvent = new MergeSegmentEvent();
-            mergeEvent.setCubePlanName(df.getCubePlanName());
-            mergeEvent.setModelName(modelName);
+            mergeEvent.setModelId(modelId);
             mergeEvent.setSegmentId(mergeSeg.getId());
             mergeEvent.setJobId(UUID.randomUUID().toString());
             mergeEvent.setOwner(owner);
             eventManager.post(mergeEvent);
 
             val postMergeEvent = new PostMergeOrRefreshSegmentEvent();
-            postMergeEvent.setCubePlanName(df.getCubePlanName());
-            postMergeEvent.setModelName(modelName);
+            postMergeEvent.setModelId(modelId);
             postMergeEvent.setSegmentId(mergeSeg.getId());
             postMergeEvent.setJobId(mergeEvent.getJobId());
             postMergeEvent.setOwner(owner);
@@ -183,9 +178,9 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
 
     }
 
-    private void handleRetention(String project, String modelName) {
+    private void handleRetention(String project, String modelId) {
         val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        val df = dfManager.getDataflowByModelName(modelName);
+        val df = dfManager.getDataflow(modelId);
         dfManager.handleRetention(df);
     }
 

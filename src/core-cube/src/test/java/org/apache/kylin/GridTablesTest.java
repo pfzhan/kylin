@@ -26,7 +26,7 @@ package org.apache.kylin;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.gridtable.NCuboidToGridTableMapping;
 import io.kyligence.kap.cube.kv.NCubeDimEncMap;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -67,10 +67,10 @@ public class GridTablesTest extends NLocalFileMetadataTestCase {
     public void testGTInfo() {
 
         NDataflowManager mgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), DEFAULT_PROJECT);
-        NDataflow df = mgr.getDataflow("ncube_basic");
+        NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic");
 
         NDataSegment dataSegment = df.getSegments(SegmentStatusEnum.READY).get(0);
-        NCuboidLayout cuboidLayout = df.getCubePlan().getAllCuboidLayouts().get(0);
+        LayoutEntity cuboidLayout = df.getIndexPlan().getAllLayouts().get(0);
         GridTableMapping mapping = new NCuboidToGridTableMapping(cuboidLayout);
         GTInfo info = GridTables.newGTInfo(mapping, new NCubeDimEncMap(dataSegment));
         GTInfo.serializer.serialize(info, buffer);

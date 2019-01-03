@@ -35,28 +35,28 @@ import org.apache.kylin.common.util.ImmutableBitSet;
 
 import com.google.common.collect.Collections2;
 
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 
 public class NCuboidLayoutChooser {
 
-    public static NCuboidLayout selectLayoutForBuild(NDataSegment segment, Set<Integer> dimensions,
-            Set<Integer> measures) {
-        NSpanningTree spanningTree = segment.getCubePlan().getSpanningTree();
+    public static LayoutEntity selectLayoutForBuild(NDataSegment segment, Set<Integer> dimensions,
+                                                    Set<Integer> measures) {
+        NSpanningTree spanningTree = segment.getIndexPlan().getSpanningTree();
         NStorageSpanningTreeVisitor visitor = new NStorageSpanningTreeVisitor(segment, dimensions, measures);
         spanningTree.acceptVisitor(visitor);
         return visitor.getBestLayout();
     }
 
     private static class NStorageSpanningTreeVisitor implements NSpanningTree.ISpanningTreeVisitor {
-        final Comparator<NCuboidLayout> smalllestComparator;
+        final Comparator<LayoutEntity> smalllestComparator;
         final ImmutableBitSet dimensionBitSet;
         final ImmutableBitSet measureBitSet;
         final NDataSegment segment;
 
-        NCuboidLayout bestCuboidLayout = null;
+        LayoutEntity bestCuboidLayout = null;
 
         private NStorageSpanningTreeVisitor(NDataSegment segment, Set<Integer> dimensions, Set<Integer> measures) {
             this.segment = segment;
@@ -70,31 +70,31 @@ public class NCuboidLayoutChooser {
                 measureSet.set(id);
             }
             measureBitSet = new ImmutableBitSet(measureSet);
-            smalllestComparator = new Comparator<NCuboidLayout>() {
+            smalllestComparator = new Comparator<LayoutEntity>() {
                 @Override
-                public int compare(NCuboidLayout o1, NCuboidLayout o2) {
+                public int compare(LayoutEntity o1, LayoutEntity o2) {
                     return o1.getOrderedDimensions().size() - o2.getOrderedDimensions().size();
                 }
             };
         }
 
         @Override
-        public boolean visit(NCuboidDesc cuboidDesc) {
+        public boolean visit(IndexEntity indexEntity) {
             // ensure all dimension column exists, TODO: consider dimension as measure
-            if (!dimensionBitSet.andNot(cuboidDesc.getDimensionBitset()).isEmpty()) {
+            if (!dimensionBitSet.andNot(indexEntity.getDimensionBitset()).isEmpty()) {
                 return false;
             }
 
             // if dimensions match but measures not, try to find from its children.
-            if (!measureBitSet.andNot(cuboidDesc.getMeasureBitset()).isEmpty()) {
+            if (!measureBitSet.andNot(indexEntity.getMeasureBitset()).isEmpty()) {
                 return true;
             }
 
-            Collection<NCuboidLayout> availableLayouts = Collections2.filter(cuboidDesc.getLayouts(), input -> {
+            Collection<LayoutEntity> availableLayouts = Collections2.filter(indexEntity.getLayouts(), input -> {
                 if (input == null)
                     return false;
 
-                NDataCuboid cuboid = segment.getCuboid(input.getId());
+                NDataLayout cuboid = segment.getLayout(input.getId());
                 return cuboid != null;
             });
 
@@ -116,7 +116,7 @@ public class NCuboidLayoutChooser {
             return null;
         }
 
-        NCuboidLayout getBestLayout() {
+        LayoutEntity getBestLayout() {
             return bestCuboidLayout;
         }
     }

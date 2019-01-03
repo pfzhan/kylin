@@ -123,7 +123,7 @@ class DFSnapshotBuilder extends Logging {
     // make a copy of the changing segment, avoid changing the cached object
     val dfCopy = dataflow.copy
     val segCopy = dfCopy.getSegment(seg.getId)
-    val update = new NDataflowUpdate(dataflow.getName)
+    val update = new NDataflowUpdate(dataflow.getUuid)
     segCopy.getSnapshots.putAll(newSnapMap)
     update.setToUpdateSegs(segCopy)
     val updatedDataflow = NDataflowManager.getInstance(seg.getConfig, seg.getProject).updateDataflow(update)

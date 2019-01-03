@@ -26,14 +26,14 @@ package io.kyligence.kap.event.handle;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.cube.model.NDataLayout;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
@@ -48,16 +48,16 @@ public class MergeSegmentHandler extends AbstractEventWithJobHandler {
     public AbstractExecutable createJob(Event e, String project) {
         MergeSegmentEvent event = (MergeSegmentEvent) e;
 
-        if (!checkSubjectExists(project, event.getCubePlanName(), event.getSegmentId(), event)) {
+        if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
             return null;
         }
 
         NDataflow df = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project)
-                .getDataflow(event.getCubePlanName());
-        List<NCuboidLayout> layouts = Lists.newArrayList();
-        for (Map.Entry<Long, NDataCuboid> cuboid : df.getSegments().getLatestReadySegment().getCuboidsMap()
+                .getDataflow(event.getModelId());
+        List<LayoutEntity> layouts = Lists.newArrayList();
+        for (Map.Entry<Long, NDataLayout> cuboid : df.getSegments().getLatestReadySegment().getLayoutsMap()
                 .entrySet()) {
-            layouts.add(cuboid.getValue().getCuboidLayout());
+            layouts.add(cuboid.getValue().getLayout());
         }
         if (layouts.isEmpty()) {
             log.info("event {} is no longer valid because no layout awaits building", event);

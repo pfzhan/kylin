@@ -39,8 +39,8 @@ import org.springframework.stereotype.Component;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
@@ -79,19 +79,19 @@ public class SegmentHelper extends BasicService {
             }
         }
 
-        List<String> modelNames = NDataModelManager.getInstance(kylinConfig, project)
+        val models = NDataModelManager.getInstance(kylinConfig, project)
                 .getTableOrientedModelsUsingRootTable(tableDesc);
         boolean first = true;
         List<SegmentRange> firstRanges = Lists.newArrayList();
 
-        if (CollectionUtils.isNotEmpty(modelNames)) {
+        if (CollectionUtils.isNotEmpty(models)) {
 
             EventManager eventManager = EventManager.getInstance(kylinConfig, project);
-            for (String modelName : modelNames) {
-                NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).findMatchingCubePlan(modelName
-                );
+            for (val model : models) {
+                val modelId = model.getUuid();
+                IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project).getIndexPlan(modelId);
                 NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-                NDataflow df = dfMgr.getDataflow(cubePlan.getName());
+                NDataflow df = dfMgr.getDataflow(indexPlan.getUuid());
                 Segments<NDataSegment> segments = df.getSegments(SegmentStatusEnum.READY);
                 List<SegmentRange> ranges = Lists.newArrayList();
                 for (NDataSegment seg : segments) {
@@ -101,16 +101,14 @@ public class SegmentHelper extends BasicService {
                     NDataSegment newSeg = dfMgr.refreshSegment(df, seg.getSegRange());
 
                     RefreshSegmentEvent refreshSegmentEvent = new RefreshSegmentEvent();
-                    refreshSegmentEvent.setModelName(modelName);
-                    refreshSegmentEvent.setCubePlanName(cubePlan.getName());
+                    refreshSegmentEvent.setModelId(modelId);
                     refreshSegmentEvent.setSegmentId(newSeg.getId());
                     refreshSegmentEvent.setJobId(UUID.randomUUID().toString());
                     refreshSegmentEvent.setOwner(getUsername());
                     eventManager.post(refreshSegmentEvent);
 
                     PostMergeOrRefreshSegmentEvent postE = new PostMergeOrRefreshSegmentEvent();
-                    postE.setModelName(modelName);
-                    postE.setCubePlanName(cubePlan.getName());
+                    postE.setModelId(modelId);
                     postE.setSegmentId(newSeg.getId());
                     postE.setJobId(refreshSegmentEvent.getJobId());
                     postE.setOwner(getUsername());
@@ -129,11 +127,11 @@ public class SegmentHelper extends BasicService {
         }
     }
 
-    public void removeSegment(String project, String dataflowName, Set<String> tobeRemoveSegmentIds) {
+    public void removeSegment(String project, String dataflowId, Set<String> tobeRemoveSegmentIds) {
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
         NDataflowManager dfMgr = NDataflowManager.getInstance(kylinConfig, project);
-        NDataflow df = dfMgr.getDataflow(dataflowName);
+        NDataflow df = dfMgr.getDataflow(dataflowId);
         if (CollectionUtils.isEmpty(tobeRemoveSegmentIds)) {
             return;
         }
@@ -148,7 +146,7 @@ public class SegmentHelper extends BasicService {
         }
 
         if (CollectionUtils.isNotEmpty(dataSegments)) {
-            NDataflowUpdate update = new NDataflowUpdate(df.getName());
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
             update.setToRemoveSegs(dataSegments.toArray(new NDataSegment[0]));
             dfMgr.updateDataflow(update);
         }

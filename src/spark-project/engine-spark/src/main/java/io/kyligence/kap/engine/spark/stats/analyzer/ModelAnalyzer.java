@@ -114,7 +114,7 @@ public class ModelAnalyzer implements Serializable {
         final PartitionDesc partitionDesc = getPartitionDesc(dataModel);
         if (partitionDesc == null || partitionDesc.getPartitionDateColumnRef() == null) {
             // TODO full check or sample?
-            logger.warn("Can not found model {}'s date partition desc, full check", dataModel.getName());
+            logger.warn("Can not found model {}'s date partition desc, full check", dataModel.getUuid());
             return dataset;
         }
 

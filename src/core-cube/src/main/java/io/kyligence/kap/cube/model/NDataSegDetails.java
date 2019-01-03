@@ -26,10 +26,7 @@ package io.kyligence.kap.cube.model;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -43,10 +40,9 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 /**
- * Holds details of pre-calculated data (like cuboids) of a data segment.
+ * Holds details of pre-calculated data (like layouts) of a data segment.
  *
  * Could be persisted together with dataflow, but we made it a separated root entity such that
  * - The details of a data segment can be updated concurrently during build.
@@ -64,21 +60,21 @@ public class NDataSegDetails extends RootPersistentEntity implements Serializabl
         NDataSegDetails entity = new NDataSegDetails();
         entity.setConfig(df.getConfig());
         entity.setUuid(segId);
-        entity.setDataflowName(df.getName());
+        entity.setDataflowId(df.getUuid());
         entity.setProject(df.getProject());
 
-        List<NDataCuboid> cuboids = new ArrayList<>();
-        entity.setCuboids(cuboids);
+        List<NDataLayout> cuboids = new ArrayList<>();
+        entity.setLayouts(cuboids);
         return entity;
     }
 
     // ============================================================================
 
     @JsonProperty("dataflow")
-    private String dataflowName;
+    private String dataflowId;
     @JsonManagedReference
-    @JsonProperty("cuboid_instances")
-    private List<NDataCuboid> cuboids = Lists.newArrayList();
+    @JsonProperty("layout_instances")
+    private List<NDataLayout> layouts = Lists.newArrayList();
 
     @JsonIgnore
     private KylinConfigExt config;
@@ -94,32 +90,24 @@ public class NDataSegDetails extends RootPersistentEntity implements Serializabl
     }
 
     public NDataflow getDataflow() {
-        return NDataflowManager.getInstance(getConfig(), project).getDataflow(dataflowName);
+        return NDataflowManager.getInstance(getConfig(), project).getDataflow(dataflowId);
     }
 
     public NDataSegment getDataSegment() {
         return getDataflow().getSegment(uuid);
     }
 
-    public Map<Long, Long> getCuboidRowsMap() {
-        Map<Long, Long> cuboidRows = Maps.newHashMap();
-        for (NDataCuboid cuboid : cuboids) {
-            cuboidRows.put(cuboid.getCuboidLayoutId(), cuboid.getRows());
-        }
-        return cuboidRows;
-    }
-
     // ============================================================================
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
 
-    public String getDataflowName() {
-        return dataflowName;
+    public String getDataflowId() {
+        return dataflowId;
     }
 
-    public void setDataflowName(String dfName) {
+    public void setDataflowId(String dfName) {
         checkIsNotCachedAndShared();
-        this.dataflowName = dfName;
+        this.dataflowId = dfName;
     }
 
     public String getProject() {
@@ -130,83 +118,70 @@ public class NDataSegDetails extends RootPersistentEntity implements Serializabl
         this.project = project;
     }
 
-    public long getTotalCuboidByteSize() {
-        long byteSize = 0L;
-        for (NDataCuboid cuboid : getCuboids()) {
-            byteSize += cuboid.getByteSize();
-        }
-        return byteSize;
-    }
-
-    public long getTotalCuboidRowCount() {
+    public long getTotalRowCount() {
         long count = 0L;
-        for (NDataCuboid cuboid : getCuboids()) {
+        for (NDataLayout cuboid : getLayouts()) {
             count += cuboid.getRows();
         }
         return count;
     }
 
-    public List<NDataCuboid> getCuboids() {
-        return isCachedAndShared() ? ImmutableList.copyOf(cuboids) : cuboids;
+    public List<NDataLayout> getLayouts() {
+        return isCachedAndShared() ? ImmutableList.copyOf(layouts) : layouts;
     }
 
-    public NDataCuboid getCuboidById(long layoutId) {
-        for (NDataCuboid cuboid : getCuboids()) {
-            if (cuboid.getCuboidLayoutId() == layoutId)
+    public NDataLayout getLayoutById(long layoutId) {
+        for (NDataLayout cuboid : getLayouts()) {
+            if (cuboid.getLayoutId() == layoutId)
                 return cuboid;
         }
         return null;
     }
 
-    public void setCuboids(List<NDataCuboid> cuboids) {
+    public void setLayouts(List<NDataLayout> layouts) {
         checkIsNotCachedAndShared();
-        this.cuboids = cuboids;
+        this.layouts = layouts;
     }
 
-    public void addCuboid(NDataCuboid cuboid) {
+    void addLayout(NDataLayout cuboid) {
         checkIsNotCachedAndShared();
-        if (cuboids.contains(cuboid)) {
-            logger.warn("NDataCuboid should be immutable, but {} is being updated", cuboid);
-            cuboids.remove(cuboid); // remove the old cuboid
+        if (layouts.contains(cuboid)) {
+            logger.warn("NDataLayout should be immutable, but {} is being updated", cuboid);
+            layouts.remove(cuboid); // remove the old cuboid
         }
 
-        cuboids.add(cuboid);
+        layouts.add(cuboid);
     }
 
-    public void removeCuboid(NDataCuboid cuboid) {
+    void removeLayout(NDataLayout cuboid) {
         checkIsNotCachedAndShared();
-        cuboids.remove(cuboid);
+        layouts.remove(cuboid);
     }
 
-    public boolean checkCuboidsBeforeMerge(NDataSegDetails another) {
+    boolean checkLayoutsBeforeMerge(NDataSegDetails another) {
 
         if (another == this)
             return false;
 
-        List<NDataCuboid> currentSortedCuboids = getSortedCuboids(getCuboids());
-        List<NDataCuboid> anotherSortedCuboids = another.getSortedCuboids(another.getCuboids());
-        int size = currentSortedCuboids.size();
-        if (size != anotherSortedCuboids.size())
+        List<NDataLayout> currentSortedLayouts = getSortedLayouts(getLayouts());
+        List<NDataLayout> anotherSortedLayouts = getSortedLayouts(another.getLayouts());
+        int size = currentSortedLayouts.size();
+        if (size != anotherSortedLayouts.size())
             return false;
 
         if (size == 0)
             return true;
 
         for (int i = 0; i < size; i++) {
-            if (currentSortedCuboids.get(i).getCuboidLayoutId() != anotherSortedCuboids.get(i).getCuboidLayoutId())
+            if (currentSortedLayouts.get(i).getLayoutId() != anotherSortedLayouts.get(i).getLayoutId())
                 return false;
         }
         return true;
     }
 
-    public static List<NDataCuboid> getSortedCuboids(List<NDataCuboid> cuboids) {
-        Collections.sort(cuboids, new Comparator<NDataCuboid>() {
-            @Override
-            public int compare(NDataCuboid o1, NDataCuboid o2) {
-                return (int) (o1.getCuboidLayoutId() - o2.getCuboidLayoutId());
-            }
-        });
-        return cuboids;
+    private static List<NDataLayout> getSortedLayouts(List<NDataLayout> layouts) {
+        layouts.sort((o1, o2) -> (int) (o1.getLayoutId() - o2.getLayoutId()));
+        return layouts;
     }
 
     // ============================================================================
@@ -215,7 +190,7 @@ public class NDataSegDetails extends RootPersistentEntity implements Serializabl
     public int hashCode() {
         final int prime = 31;
         int result = super.hashCode();
-        result = prime * result + ((dataflowName == null) ? 0 : dataflowName.hashCode());
+        result = prime * result + ((dataflowId == null) ? 0 : dataflowId.hashCode());
         return result;
     }
 
@@ -228,22 +203,19 @@ public class NDataSegDetails extends RootPersistentEntity implements Serializabl
         if (getClass() != obj.getClass())
             return false;
         NDataSegDetails other = (NDataSegDetails) obj;
-        if (dataflowName == null) {
-            if (other.dataflowName != null)
-                return false;
-        } else if (!dataflowName.equals(other.dataflowName))
-            return false;
-        return true;
+        if (dataflowId == null) {
+            return other.dataflowId == null;
+        } else return dataflowId.equals(other.dataflowId);
     }
 
     @Override
     public String toString() {
-        return "NDataSegDetails [" + dataflowName + "." + uuid + "]";
+        return "NDataSegDetails [" + dataflowId + "." + uuid + "]";
     }
 
     @Override
     public String getResourcePath() {
-        return "/" + project + NDataSegDetails.DATAFLOW_DETAILS_RESOURCE_ROOT + "/" + dataflowName + "/" + uuid
+        return "/" + project + NDataSegDetails.DATAFLOW_DETAILS_RESOURCE_ROOT + "/" + dataflowId + "/" + uuid
                 + MetadataConstants.FILE_SURFIX;
     }
 

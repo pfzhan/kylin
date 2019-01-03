@@ -80,7 +80,7 @@ public interface IRealization extends IStorageAware {
 
     boolean isReady();
 
-    String getName();
+    String getUuid();
 
     String getCanonicalName();
 

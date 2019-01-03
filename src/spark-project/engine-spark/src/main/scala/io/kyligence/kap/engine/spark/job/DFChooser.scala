@@ -47,12 +47,12 @@ class DFChooser(toBuildTree: NSpanningTree,
     Maps.newHashMap[java.lang.Long, NBuildSourceInfo]()
   var flatTableSource: NBuildSourceInfo = _
   val flatTableDesc =
-    new NCubeJoinedFlatTableDesc(seg.getCubePlan, seg.getSegRange)
+    new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
 
   @throws[Exception]
   def decideSources(): Unit = {
     var map = Map.empty[Long, NBuildSourceInfo]
-    toBuildTree.getRootCuboidDescs.asScala
+    toBuildTree.getRootIndexEntities.asScala
       .foreach { desc =>
         val layout = NCuboidLayoutChooser
           .selectLayoutForBuild(seg,
@@ -77,11 +77,11 @@ class DFChooser(toBuildTree: NSpanningTree,
     map.foreach(entry => reuseSources.put(entry._1, entry._2))
   }
 
-  private def getSourceFromLayout(layout: NCuboidLayout,
-                                  cuboidDesc: NCuboidDesc) = {
+  private def getSourceFromLayout(layout: LayoutEntity,
+                                  indexEntity: IndexEntity) = {
     val buildSource = new NBuildSourceInfo
     val segDetails = seg.getSegDetails
-    val dataCuboid = segDetails.getCuboidById(layout.getId)
+    val dataCuboid = segDetails.getLayoutById(layout.getId)
     Preconditions.checkState(dataCuboid != null)
     val layoutDs = StorageFactory
       .createEngineAdapter(layout,
@@ -92,9 +92,9 @@ class DFChooser(toBuildTree: NSpanningTree,
     buildSource.setCount(dataCuboid.getRows)
     buildSource.setLayoutId(layout.getId)
     buildSource.setByteSize(dataCuboid.getByteSize)
-    buildSource.getToBuildCuboids.add(cuboidDesc)
+    buildSource.getToBuildCuboids.add(indexEntity)
     logInfo(
-      s"Reuse a suitable layout: ${layout.getId} for building cuboid: ${cuboidDesc.getId}")
+      s"Reuse a suitable layout: ${layout.getId} for building cuboid: ${indexEntity.getId}")
     buildSource
   }
 
@@ -102,7 +102,7 @@ class DFChooser(toBuildTree: NSpanningTree,
   private def getFlatTable(): NBuildSourceInfo = {
 
     val flatTable =
-      new NCubeJoinedFlatTableDesc(seg.getCubePlan, seg.getSegRange)
+      new NCubeJoinedFlatTableDesc(seg.getIndexPlan, seg.getSegRange)
     val afterJoin = CreateFlatTable.generateDataset(flatTable, ss).persist
     val colSet = DictionaryBuilder.extractGlobalDictColumns(seg, toBuildTree)
     val dictionaryBuilder = new DictionaryBuilder(seg, afterJoin, colSet)
@@ -112,7 +112,7 @@ class DFChooser(toBuildTree: NSpanningTree,
     val afterEncode = DFFlatTableEncoder.encode(afterJoin, seg, encodeColSet, config)
     // TODO: should use better method to detect the modifications.
     val segCopy = seg.getDataflow.copy.getSegment(seg.getId)
-    val update = new NDataflowUpdate(seg.getDataflow.getName)
+    val update = new NDataflowUpdate(seg.getDataflow.getUuid)
     update.setToUpdateSegs(segCopy)
     val updated = NDataflowManager
       .getInstance(config, seg.getDataflow.getProject)
@@ -138,7 +138,7 @@ object DFChooser {
       ss: SparkSession,
       config: KylinConfig)
 
-  def getDataSourceByCuboid(sources: util.List[NBuildSourceInfo], cuboid: NCuboidDesc, seg: NDataSegment): NBuildSourceInfo = {
+  def getDataSourceByCuboid(sources: util.List[NBuildSourceInfo], cuboid: IndexEntity, seg: NDataSegment): NBuildSourceInfo = {
     val filterSources: util.List[NBuildSourceInfo] = new util.ArrayList[NBuildSourceInfo]
     filterSources.addAll(Collections2.filter(sources, new Predicate[NBuildSourceInfo]() {
       override def apply(@Nullable input: NBuildSourceInfo): Boolean = {

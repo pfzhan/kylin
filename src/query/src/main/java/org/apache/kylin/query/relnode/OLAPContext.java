@@ -250,7 +250,7 @@ public class OLAPContext {
         if (candidate == null) {
             return false;
         }
-        boolean isTableIndex = candidate.getCuboidLayout().getCuboidDesc().isTableIndex();
+        boolean isTableIndex = candidate.getCuboidLayout().getIndex().isTableIndex();
         boolean isLookupTable = isFirstTableLookupTableInModel(realization.getModel());
         return !isTableIndex && !isLookupTable;
     }

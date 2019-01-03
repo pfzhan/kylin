@@ -35,6 +35,9 @@ import static org.apache.kylin.metadata.model.FunctionDesc.FUNC_TOP_N;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.math.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -56,10 +59,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.spark_project.guava.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -136,13 +136,13 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
     }
 
     private String fetchQuerySql() {
-        NCubePlanManager cubeMgr = NCubePlanManager.getInstance(getTestConfig(), getProject());
-        NCubePlan cubePlan = cubeMgr.getCubePlan("ncube_full_measure_test");
+        NIndexPlanManager indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), getProject());
+        IndexPlan indexPlan = indePlanManager.getIndexPlan("cb596712-3a09-46f8-aea1-988b43fe9b6c");
         StringBuilder sqlBuilder;
         sqlBuilder = new StringBuilder("select ");
-        for (TblColRef col : cubePlan.getEffectiveDimCols().values())
+        for (TblColRef col : indexPlan.getEffectiveDimCols().values())
             sqlBuilder.append(col.getColumnDesc().getName()).append(",");
-        for (NDataModel.Measure mea : cubePlan.getEffectiveMeasures().values()) {
+        for (NDataModel.Measure mea : indexPlan.getEffectiveMeasures().values()) {
             if (mea.getFunction().getParameter().isColumnType()) {
                 if (mea.getFunction().getExpression().equalsIgnoreCase(FUNC_COUNT_DISTINCT)) {
                     String countDistinctString = "distinct";
@@ -164,7 +164,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         sqlBuilder.append(" 1 from TEST_MEASURE ");
 
         sqlBuilder.append(" group by ");
-        for (TblColRef col : cubePlan.getEffectiveDimCols().values()) {
+        for (TblColRef col : indexPlan.getEffectiveDimCols().values()) {
             sqlBuilder.append(col.getColumnDesc().getName()).append(",");
         }
         return StringUtils.removeEnd(sqlBuilder.toString(), ",");
@@ -178,7 +178,7 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         List<String> cdReturnTypeList = newArrayList("hllc(10)", "bitmap");
         List<TblColRef> columnList = model.getEffectiveColsMap().values().asList();
 
-        int meaStart = 100000;
+        int meaStart = 110000;
         List<NDataModel.Measure> measureList = model.getAllMeasures();
         for (String fun : funList) {
             for (TblColRef col : columnList) {
@@ -212,39 +212,39 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         NDataModelManager modelMgr = NDataModelManager.getInstance(config, getProject());
-        NDataModel model = modelMgr.getDataModelDesc("nmodel_full_measure_test");
+        NDataModel model = modelMgr.getDataModelDesc("cb596712-3a09-46f8-aea1-988b43fe9b6c");
         model.setAllMeasures(generateMeasList(model));
 
         NDataModel modelUpdate = modelMgr.copyForWrite(model);
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelMgr.updateDataModelDesc(modelUpdate);
         modelMgr = NDataModelManager.getInstance(config, getProject());
-        model = modelMgr.getDataModelDesc("nmodel_full_measure_test");
+        model = modelMgr.getDataModelDesc("cb596712-3a09-46f8-aea1-988b43fe9b6c");
 
-        NCubePlanManager cubeMgr = NCubePlanManager.getInstance(config, getProject());
+        NIndexPlanManager indePlanManager = NIndexPlanManager.getInstance(config, getProject());
         NDataModel finalModel = model;
-        cubeMgr.updateCubePlan("ncube_full_measure_test", copyForWrite -> {
-            NCuboidDesc cuboidDesc = copyForWrite.getAllCuboids().get(0);
-            cuboidDesc.setMeasures(finalModel.getEffectiveMeasureMap().inverse().values().asList());
-            NCuboidLayout layout = cuboidDesc.getLayouts().get(0);
-            List<Integer> colList = newArrayList(cuboidDesc.getDimensions());
-            colList.addAll(cuboidDesc.getMeasures());
+        indePlanManager.updateIndexPlan("cb596712-3a09-46f8-aea1-988b43fe9b6c", copyForWrite -> {
+            IndexEntity indexEntity = copyForWrite.getAllIndexes().get(0);
+            indexEntity.setMeasures(finalModel.getEffectiveMeasureMap().inverse().values().asList());
+            LayoutEntity layout = indexEntity.getLayouts().get(0);
+            List<Integer> colList = newArrayList(indexEntity.getDimensions());
+            colList.addAll(indexEntity.getMeasures());
             layout.setColOrder(colList);
-            copyForWrite.setCuboids(newArrayList(cuboidDesc));
+            copyForWrite.setIndexes(newArrayList(indexEntity));
         });
 
         NDataflowManager dsMgr = NDataflowManager.getInstance(config, getProject());
         NExecutableManager execMgr = NExecutableManager.getInstance(config, getProject());
-        NDataflow df = dsMgr.getDataflow("ncube_full_measure_test");
+        NDataflow df = dsMgr.getDataflow("cb596712-3a09-46f8-aea1-988b43fe9b6c");
 
         // cleanup all segments first
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dsMgr.updateDataflow(update);
 
         // ready dataflow, segment, cuboid layout
         NDataSegment oneSeg = dsMgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-        List<NCuboidLayout> toBuildLayouts = newArrayList(df.getCubePlan().getAllCuboidLayouts().get(0));
+        List<LayoutEntity> toBuildLayouts = newArrayList(df.getIndexPlan().getAllLayouts().get(0));
 
         NSparkCubingJob job = NSparkCubingJob.create(Sets.newHashSet(oneSeg), Sets.newLinkedHashSet(toBuildLayouts),
                 "ADMIN");
@@ -261,8 +261,8 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         val analysisStore = ExecutableUtils.getRemoteStore(config, job.getSparkAnalysisStep());
         val buildStore = ExecutableUtils.getRemoteStore(config, job.getSparkCubingStep());
         AfterBuildResourceMerger merger = new AfterBuildResourceMerger(config, getProject());
-        val layoutIds = toBuildLayouts.stream().map(NCuboidLayout::getId).collect(Collectors.toSet());
-        merger.mergeAfterIncrement(df.getName(), oneSeg.getId(), layoutIds, buildStore);
-        merger.mergeAnalysis(df.getName(), analysisStore);
+        val layoutIds = toBuildLayouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
+        merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
+        merger.mergeAnalysis(df.getUuid(), analysisStore);
     }
 }

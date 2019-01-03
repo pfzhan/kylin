@@ -204,7 +204,7 @@ public class Message {
     }
 
     public String getDROP_REFERENCED_MODEL() {
-        return "Model is referenced by CubePlan '%s' , could not dropped";
+        return "Model is referenced by IndexPlan '%s' , could not dropped";
     }
 
     public String getUPDATE_MODEL_KEY_FIELD() {

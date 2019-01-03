@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.kylin.common.util.BytesUtil;
 import org.apache.kylin.common.util.Dictionary;
 import org.apache.kylin.measure.MeasureCodec;
@@ -51,8 +52,7 @@ import org.slf4j.LoggerFactory;
 import com.clearspring.analytics.util.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
@@ -60,29 +60,29 @@ import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 public class NLayoutMergeAssist implements Serializable {
     protected static final Logger logger = LoggerFactory.getLogger(NLayoutMergeAssist.class);
     private static final int DEFAULT_BUFFER_SIZE = 256;
-    private NCuboidLayout layout;
+    private LayoutEntity layout;
     private NDataSegment newSegment;
     private List<NDataSegment> toMergeSegments;
     private SparkSession ss;
-    final private List<NDataCuboid> toMergeCuboids = new ArrayList<>();
+    final private List<NDataLayout> toMergeCuboids = new ArrayList<>();
 
     public void setSs(SparkSession ss) {
         this.ss = ss;
     }
 
-    public void setLayout(NCuboidLayout layout) {
+    public void setLayout(LayoutEntity layout) {
         this.layout = layout;
     }
 
-    public NCuboidLayout getLayout() {
+    public LayoutEntity getLayout() {
         return this.layout;
     }
 
-    public List<NDataCuboid> getCuboids() {
+    public List<NDataLayout> getCuboids() {
         return this.toMergeCuboids;
     }
 
-    public void addCuboid(NDataCuboid cuboid) {
+    public void addCuboid(NDataLayout cuboid) {
         toMergeCuboids.add(cuboid);
     }
 
@@ -122,7 +122,7 @@ public class NLayoutMergeAssist implements Serializable {
 
         int position = 0;
         for (TblColRef col : layout.getOrderedDimensions().values()) {
-            if (false == segment.getCubePlan().getAllColumnsHaveDictionary().contains(col)) {
+            if (false == segment.getIndexPlan().getAllColumnsHaveDictionary().contains(col)) {
                 position++;
                 continue;
             }
@@ -140,7 +140,7 @@ public class NLayoutMergeAssist implements Serializable {
             List<TblColRef> columns = measureType.getColumnsNeedDictionary(measureDesc.getFunction());
             boolean needRewrite = false;
             for (TblColRef col : columns) {
-                if (false == segment.getCubePlan().getAllColumnsHaveDictionary().contains(col)) {
+                if (false == segment.getIndexPlan().getAllColumnsHaveDictionary().contains(col)) {
                     continue;
                 }
 

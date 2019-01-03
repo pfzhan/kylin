@@ -47,6 +47,7 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 
 import com.google.common.collect.Maps;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -58,11 +59,11 @@ public class TableRef implements Serializable {
     final private String alias;
     final private TableDesc table;
     final private Map<String, TblColRef> columns;
-    final private String modelName;
+    final private String modelId;
 
     public TableRef(NDataModel model, String alias, TableDesc table, boolean filterOutComputedColumns) {
         this.model = model;
-        this.modelName = model.getName();
+        this.modelId = model.getUuid();
         this.alias = alias;
         this.table = table;
         this.columns = Maps.newLinkedHashMap();
@@ -126,20 +127,17 @@ public class TableRef implements Serializable {
 
         TableRef t = (TableRef) o;
 
-        if ((modelName == null ? t.modelName != null : modelName.equals(t.modelName)) == false)
+        if (!(modelId == null ? t.modelId != null : modelId.equals(t.modelId)))
             return false;
-        if ((alias == null ? t.alias == null : alias.equals(t.alias)) == false)
+        if (!(Objects.equals(alias, t.alias)))
             return false;
-        if (!table.getIdentity().equals(t.table.getIdentity()))
-            return false;
-
-        return true;
+        return table.getIdentity().equals(t.table.getIdentity());
     }
 
     @Override
     public int hashCode() {
         int result = 0;
-        result = 31 * result + modelName.hashCode();
+        result = 31 * result + modelId.hashCode();
         result = 31 * result + alias.hashCode();
         result = 31 * result + table.getIdentity().hashCode();
         return result;

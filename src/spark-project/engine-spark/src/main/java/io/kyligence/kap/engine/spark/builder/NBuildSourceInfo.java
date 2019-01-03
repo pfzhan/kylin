@@ -31,14 +31,14 @@ import io.kyligence.kap.cube.model.NDataSegment;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
-import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.IndexEntity;
 
 public class NBuildSourceInfo {
     private Dataset<Row> dataset;
     private long byteSize;
     private long count;
     private long layoutId;
-    private Set<NCuboidDesc> toBuildCuboids = new LinkedHashSet<>();
+    private Set<IndexEntity> toBuildCuboids = new LinkedHashSet<>();
     private NDataSegment segment;
 
     public long getByteSize() {
@@ -73,15 +73,15 @@ public class NBuildSourceInfo {
         return layoutId;
     }
 
-    public void setToBuildCuboids(Set<NCuboidDesc> toBuildCuboids) {
+    public void setToBuildCuboids(Set<IndexEntity> toBuildCuboids) {
         this.toBuildCuboids = toBuildCuboids;
     }
 
-    public Set<NCuboidDesc> getToBuildCuboids() {
+    public Set<IndexEntity> getToBuildCuboids() {
         return this.toBuildCuboids;
     }
 
-    public void addCuboid(NCuboidDesc cuboid) {
+    public void addCuboid(IndexEntity cuboid) {
         this.toBuildCuboids.add(cuboid);
     }
 

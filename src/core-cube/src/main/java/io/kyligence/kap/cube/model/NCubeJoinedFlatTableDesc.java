@@ -45,34 +45,34 @@ import io.kyligence.kap.metadata.model.NDataModel;
 public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializable {
 
     protected final String tableName;
-    protected final NCubePlan cubePlan;
+    protected final IndexPlan indexPlan;
     protected final SegmentRange segmentRange;
 
     private Map<TblColRef, Integer> columnIndexMap = Maps.newHashMap();
     private List<TblColRef> columns = Lists.newLinkedList();
     private List<Integer> indices = Lists.newArrayList();
 
-    public NCubeJoinedFlatTableDesc(NCubePlan cubePlan) {
-        this(cubePlan, null);
+    public NCubeJoinedFlatTableDesc(IndexPlan indexPlan) {
+        this(indexPlan, null);
     }
 
     public NCubeJoinedFlatTableDesc(NDataSegment segment) {
-        this(segment.getCubePlan(), segment.getSegRange());
+        this(segment.getIndexPlan(), segment.getSegRange());
     }
 
-    public NCubeJoinedFlatTableDesc(NCubePlan cubePlan, @Nullable SegmentRange segmentRange) {
-        this.cubePlan = cubePlan;
+    public NCubeJoinedFlatTableDesc(IndexPlan indexPlan, @Nullable SegmentRange segmentRange) {
+        this.indexPlan = indexPlan;
         this.segmentRange = segmentRange;
         this.tableName = makeTableName();
 
-        initParseCubePlan();
+        initParseIndexPlan();
     }
 
     protected String makeTableName() {
         if (segmentRange == null) {
-            return "kylin_intermediate_" + cubePlan.getName().toLowerCase();
+            return "kylin_intermediate_" + indexPlan.getUuid().toLowerCase();
         } else {
-            return "kylin_intermediate_" + cubePlan.getName().toLowerCase() + "_" + segmentRange.toString();
+            return "kylin_intermediate_" + indexPlan.getUuid().toLowerCase() + "_" + segmentRange.toString();
         }
     }
 
@@ -85,12 +85,12 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
     }
 
     // check what columns from hive tables are required, and index them
-    private void initParseCubePlan() {
-        for (Map.Entry<Integer, TblColRef> dimEntry : cubePlan.getEffectiveDimCols().entrySet()) {
+    private void initParseIndexPlan() {
+        for (Map.Entry<Integer, TblColRef> dimEntry : indexPlan.getEffectiveDimCols().entrySet()) {
             initAddColumn(dimEntry.getValue());
         }
 
-        for (Map.Entry<Integer, NDataModel.Measure> measureEntry : cubePlan.getEffectiveMeasures().entrySet()) {
+        for (Map.Entry<Integer, NDataModel.Measure> measureEntry : indexPlan.getEffectiveMeasures().entrySet()) {
             FunctionDesc func = measureEntry.getValue().getFunction();
             List<TblColRef> colRefs = func.getParameter().getColRefs();
             if (colRefs != null) {
@@ -105,10 +105,10 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
 
     public List<Integer> getIndices() {
         for (TblColRef tblColRef : columns) {
-            int id = cubePlan.getModel().getColumnIdByColumnName(tblColRef.getIdentity());
+            int id = indexPlan.getModel().getColumnIdByColumnName(tblColRef.getIdentity());
             if (-1 == id)
                 throw new IllegalArgumentException(
-                        "Column: " + tblColRef.getIdentity() + " is not in model: " + cubePlan.getModel().getName());
+                        "Column: " + tblColRef.getIdentity() + " is not in model: " + indexPlan.getModel().getUuid());
             indices.add(id);
         }
         return indices;
@@ -126,7 +126,7 @@ public class NCubeJoinedFlatTableDesc implements IJoinedFlatTableDesc, Serializa
 
     @Override
     public NDataModel getDataModel() {
-        return cubePlan.getModel();
+        return indexPlan.getModel();
     }
 
     @Override

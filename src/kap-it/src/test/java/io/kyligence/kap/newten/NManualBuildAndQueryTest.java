@@ -24,8 +24,8 @@
 package io.kyligence.kap.newten;
 
 import com.google.common.collect.Maps;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -107,6 +107,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
+    @Ignore
     public void testBasics() throws Exception {
         final KylinConfig config = KylinConfig.getInstanceFromEnv();
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
@@ -232,11 +233,11 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         if (Boolean.valueOf(System.getProperty("noBuild", "false"))) {
             System.out.println("Direct query");
         } else if (Boolean.valueOf(System.getProperty("isDeveloperMode", "false"))) {
-            fullBuildCube("ncube_basic", getProject());
-            fullBuildCube("ncube_basic_inner", getProject());
+            fullBuildCube("89af4ee2-2cdb-4b07-b39e-4c29856309aa", getProject());
+            fullBuildCube("741ca86a-1f13-46da-a59f-95fb68615e3a", getProject());
         } else {
-            buildAndMergeCube("ncube_basic");
-            buildAndMergeCube("ncube_basic_inner");
+            buildAndMergeCube("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+            buildAndMergeCube("741ca86a-1f13-46da-a59f-95fb68615e3a");
         }
     }
 
@@ -279,10 +280,10 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
     }
 
     private void buildAndMergeCube(String dfName) throws Exception {
-        if (dfName.equals("ncube_basic")) {
+        if (dfName.equals("89af4ee2-2cdb-4b07-b39e-4c29856309aa")) {
             buildFourSegementAndMerge(dfName);
         }
-        if (dfName.equals("ncube_basic_inner")) {
+        if (dfName.equals("741ca86a-1f13-46da-a59f-95fb68615e3a")) {
             buildTwoSegementAndMerge(dfName);
         }
     }
@@ -297,20 +298,20 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
 
         // cleanup all segments first
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dsMgr.updateDataflow(update);
 
         /**
          * Round1. Build 4 segment
          */
-        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2013-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2015-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
 
         /**
          * Round2. Merge two segments
@@ -323,7 +324,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
         val merger = new AfterMergeOrRefreshResourceMerger(config, getProject());
         var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkCubingStep());
-        merger.mergeAfterJob(df.getName(), firstMergeSeg.getId(), mergeStore);
+        merger.mergeAfterJob(df.getUuid(), firstMergeSeg.getId(), mergeStore);
 
 
         /**
@@ -331,30 +332,30 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
          */
         NDataSegment firstSegment = dsMgr.getDataflow(dfName).getSegments().get(0);
 
-        if (getProject().equals("default") && dfName.equals("ncube_basic_inner")) {
-            Map<Long, NDataCuboid> cuboidsMap1 = firstSegment.getCuboidsMap();
+        if (getProject().equals("default") && dfName.equals("741ca86a-1f13-46da-a59f-95fb68615e3a")) {
+            Map<Long, NDataLayout> cuboidsMap1 = firstSegment.getLayoutsMap();
             Map<Long, Long[]> compareTuples1 = Maps.newHashMap();
             compareTuples1.put(1L, new Long[]{9896L, 9896L});
-            compareTuples1.put(1001L, new Long[]{9896L, 9896L});
-            compareTuples1.put(1002L, new Long[]{9896L, 9896L});
-            compareTuples1.put(2001L, new Long[]{9896L, 9896L});
-            compareTuples1.put(3001L, new Long[]{9896L, 9896L});
+            compareTuples1.put(10001L, new Long[]{9896L, 9896L});
+            compareTuples1.put(10002L, new Long[]{9896L, 9896L});
+            compareTuples1.put(20001L, new Long[]{9896L, 9896L});
+            compareTuples1.put(30001L, new Long[]{9896L, 9896L});
             compareTuples1.put(1000001L, new Long[]{9896L, 9896L});
-            compareTuples1.put(1001001L, new Long[]{731L, 9896L});
-            compareTuples1.put(1002001L, new Long[]{302L, 9896L});
-            compareTuples1.put(1003001L, new Long[]{44L, 9896L});
-            compareTuples1.put(1004001L, new Long[]{9163L, 9896L});
-            compareTuples1.put(1005001L, new Long[]{105L, 9896L});
-            compareTuples1.put(1006001L, new Long[]{138L, 9896L});
-            compareTuples1.put(1007001L, new Long[]{9880L, 9896L});
-            compareTuples1.put(1008001L, new Long[]{9833L, 9896L});
-            compareTuples1.put(1009001L, new Long[]{9421L, 9896L});
-            compareTuples1.put(1010001L, new Long[]{143L, 9896L});
-            compareTuples1.put(1011001L, new Long[]{4714L, 9896L});
-            compareTuples1.put(1012001L, new Long[]{9884L, 9896L});
+            compareTuples1.put(1010001L, new Long[]{731L, 9896L});
+            compareTuples1.put(1020001L, new Long[]{302L, 9896L});
+            compareTuples1.put(1030001L, new Long[]{44L, 9896L});
+            compareTuples1.put(1040001L, new Long[]{9163L, 9896L});
+            compareTuples1.put(1050001L, new Long[]{105L, 9896L});
+            compareTuples1.put(1060001L, new Long[]{138L, 9896L});
+            compareTuples1.put(1070001L, new Long[]{9880L, 9896L});
+            compareTuples1.put(1080001L, new Long[]{9833L, 9896L});
+            compareTuples1.put(1090001L, new Long[]{9421L, 9896L});
+            compareTuples1.put(1100001L, new Long[]{143L, 9896L});
+            compareTuples1.put(1110001L, new Long[]{4714L, 9896L});
+            compareTuples1.put(1120001L, new Long[]{9884L, 9896L});
             compareTuples1.put(20000000001L, new Long[]{9896L, 9896L});
-            compareTuples1.put(20000001001L, new Long[]{9896L, 9896L});
-            compareTuples1.put(20000002001L, new Long[]{9896L, 9896L});
+            compareTuples1.put(20000010001L, new Long[]{9896L, 9896L});
+            compareTuples1.put(20000020001L, new Long[]{9896L, 9896L});
             verifyCuboidMetrics(cuboidsMap1, compareTuples1);
         }
 
@@ -373,31 +374,31 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         Assert.assertTrue(config.getHdfsWorkingDirectory().startsWith("file:"));
 
         // cleanup all segments first
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dsMgr.updateDataflow(update);
         /**
          * Round1. Build 4 segment
          */
-        List<NCuboidLayout> layouts = df.getCubePlan().getAllCuboidLayouts();
+        List<LayoutEntity> layouts = df.getIndexPlan().getAllLayouts();
         long start = SegmentRange.dateToLong("2010-01-01");
         long end = SegmentRange.dateToLong("2012-06-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
         validateTableExt(df.getModel().getRootFactTableName(), 2054, 1, 11);
 
         start = SegmentRange.dateToLong("2012-06-01");
         end = SegmentRange.dateToLong("2013-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
         validateTableExt(df.getModel().getRootFactTableName(), 4903, 2, 11);
 
         start = SegmentRange.dateToLong("2013-01-01");
         end = SegmentRange.dateToLong("2013-06-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
         validateTableExt(df.getModel().getRootFactTableName(), 7075, 3, 11);
 
         start = SegmentRange.dateToLong("2013-06-01");
         end = SegmentRange.dateToLong("2015-01-01");
-        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<NCuboidLayout>newLinkedHashSet(layouts), true);
+        buildCuboid(dfName, new SegmentRange.TimePartitionedSegmentRange(start, end), Sets.<LayoutEntity>newLinkedHashSet(layouts), true);
         validateTableExt(df.getModel().getRootFactTableName(), 10000, 4, 11);
 
         /**
@@ -411,7 +412,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob));
         val merger = new AfterMergeOrRefreshResourceMerger(config, getProject());
         var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkCubingStep());
-        merger.mergeAfterJob(df.getName(), firstMergeSeg.getId(), mergeStore);
+        merger.mergeAfterJob(df.getUuid(), firstMergeSeg.getId(), mergeStore);
 
         df = dsMgr.getDataflow(dfName);
 
@@ -421,7 +422,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         // wait job done
         Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob));
         mergeStore = ExecutableUtils.getRemoteStore(config, secondMergeJob.getSparkCubingStep());
-        merger.mergeAfterJob(df.getName(), secondMergeSeg.getId(), mergeStore);
+        merger.mergeAfterJob(df.getUuid(), secondMergeSeg.getId(), mergeStore);
 
         /**
          * validate cube segment info
@@ -429,31 +430,31 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         NDataSegment firstSegment = dsMgr.getDataflow(dfName).getSegments().get(0);
         NDataSegment secondSegment = dsMgr.getDataflow(dfName).getSegments().get(1);
 
-        if (getProject().equals("default") && dfName.equals("ncube_basic")) {
-            Map<Long, NDataCuboid> cuboidsMap1 = firstSegment.getCuboidsMap();
+        if (getProject().equals("default") && dfName.equals("89af4ee2-2cdb-4b07-b39e-4c29856309aa")) {
+            Map<Long, NDataLayout> cuboidsMap1 = firstSegment.getLayoutsMap();
             Map<Long, Long[]> compareTuples1 = Maps.newHashMap();
             compareTuples1.put(1L, new Long[]{4903L, 4903L});
-            compareTuples1.put(1001L, new Long[]{4903L, 4903L});
-            compareTuples1.put(1002L, new Long[]{4903L, 4903L});
-            compareTuples1.put(2001L, new Long[]{4903L, 4903L});
-            compareTuples1.put(3001L, new Long[]{4903L, 4903L});
+            compareTuples1.put(10001L, new Long[]{4903L, 4903L});
+            compareTuples1.put(10002L, new Long[]{4903L, 4903L});
+            compareTuples1.put(20001L, new Long[]{4903L, 4903L});
+            compareTuples1.put(30001L, new Long[]{4903L, 4903L});
             compareTuples1.put(1000001L, new Long[]{4903L, 4903L});
             compareTuples1.put(20000000001L, new Long[]{4903L, 4903L});
-            compareTuples1.put(20000001001L, new Long[]{4903L, 4903L});
-            compareTuples1.put(20000002001L, new Long[]{4903L, 4903L});
+            compareTuples1.put(20000010001L, new Long[]{4903L, 4903L});
+            compareTuples1.put(20000020001L, new Long[]{4903L, 4903L});
             verifyCuboidMetrics(cuboidsMap1, compareTuples1);
 
-            Map<Long, NDataCuboid> cuboidsMap2 = secondSegment.getCuboidsMap();
+            Map<Long, NDataLayout> cuboidsMap2 = secondSegment.getLayoutsMap();
             Map<Long, Long[]> compareTuples2 = Maps.newHashMap();
             compareTuples2.put(1L, new Long[]{5097L, 5097L});
-            compareTuples2.put(1001L, new Long[]{5097L, 5097L});
-            compareTuples2.put(1002L, new Long[]{5097L, 5097L});
-            compareTuples2.put(2001L, new Long[]{5097L, 5097L});
-            compareTuples2.put(3001L, new Long[]{5097L, 5097L});
+            compareTuples2.put(10001L, new Long[]{5097L, 5097L});
+            compareTuples2.put(10002L, new Long[]{5097L, 5097L});
+            compareTuples2.put(20001L, new Long[]{5097L, 5097L});
+            compareTuples2.put(30001L, new Long[]{5097L, 5097L});
             compareTuples2.put(1000001L, new Long[]{5097L, 5097L});
             compareTuples2.put(20000000001L, new Long[]{5097L, 5097L});
-            compareTuples2.put(20000001001L, new Long[]{5097L, 5097L});
-            compareTuples2.put(20000002001L, new Long[]{5097L, 5097L});
+            compareTuples2.put(20000010001L, new Long[]{5097L, 5097L});
+            compareTuples2.put(20000020001L, new Long[]{5097L, 5097L});
             verifyCuboidMetrics(cuboidsMap2, compareTuples2);
         }
 
@@ -465,7 +466,7 @@ public class NManualBuildAndQueryTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(7, secondSegment.getSnapshots().size());
     }
 
-    private void verifyCuboidMetrics(Map<Long, NDataCuboid> cuboidsMap, Map<Long, Long[]> compareTuples) {
+    private void verifyCuboidMetrics(Map<Long, NDataLayout> cuboidsMap, Map<Long, Long[]> compareTuples) {
         compareTuples.forEach((key, value) -> {
             Assert.assertEquals(value[0], (Long) cuboidsMap.get(key).getRows());
             Assert.assertEquals(value[1], (Long) cuboidsMap.get(key).getSourceRows());

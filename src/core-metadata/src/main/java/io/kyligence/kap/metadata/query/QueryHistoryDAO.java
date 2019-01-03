@@ -46,7 +46,7 @@ public class QueryHistoryDAO {
     private String queryMetricMeasurement;
     private String realizationMetricMeasurement;
 
-    private static final String CUBOID_LAYOUT_QUERY_TIMES_SQL_FORMAT = "SELECT * FROM (SELECT count(query_id) as query_times FROM %s group by model, cuboid_layout_id) WHERE query_times > %d";
+    private static final String CUBOID_LAYOUT_QUERY_TIMES_SQL_FORMAT = "SELECT * FROM (SELECT count(query_id) as query_times FROM %s group by model, layout_id) WHERE query_times > %d";
     private static final String QUERY_TIMES_BY_MODEL_SQL_FORMAT = "SELECT COUNT(DISTINCT(query_id)) as query_times FROM %s WHERE suite=~ /^%s$/ AND model=~ /^%s$/ AND time>=%dms AND time<=%dms GROUP BY model";
     private static final String QUERY_STATISTICS_SQL_FORMAT = "SELECT COUNT(query_id), MEAN(\"duration\") FROM %s WHERE time>=%dms AND time <= %dms";
     private static final String QUERY_COUNT_BY_MODEL_SQL_FORMAT = "SELECT COUNT(DISTINCT(query_id)) FROM %s WHERE time>=%dms AND time <=%dms GROUP BY model";
@@ -205,7 +205,7 @@ public class QueryHistoryDAO {
                     case "pushdown":
                         sb.append("cube_hit = 'false' OR ");
                         break;
-                    case "modelName":
+                    case "modelId":
                         sb.append("cube_hit = 'true' OR ");
                         break;
                     default:

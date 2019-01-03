@@ -26,6 +26,8 @@ package io.kyligence.kap.cube.cuboid;
 
 import java.util.List;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -34,10 +36,8 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.LayoutEntity;
 
 public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
     private String projectDefault = "default";
@@ -54,56 +54,56 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testBasic() {
-        NCubePlanManager mgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
-        NCubePlan cube = mgr.getCubePlan("ncube_basic");
+        NIndexPlanManager mgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
+        IndexPlan cube = mgr.getIndexPlanByModelAlias("nmodel_basic");
         Assert.assertNotNull(cube);
 
         NSpanningTree spanningTree = cube.getSpanningTree();
         Assert.assertTrue(spanningTree instanceof NForestSpanningTree);
         Assert.assertNotNull(spanningTree);
 
-        Assert.assertEquals(cube.getAllCuboids().size(), spanningTree.getCuboidCount());
-        Assert.assertEquals(cube.getAllCuboids().size(), spanningTree.getAllCuboidDescs().size());
+        Assert.assertEquals(cube.getAllIndexes().size(), spanningTree.getCuboidCount());
+        Assert.assertEquals(cube.getAllIndexes().size(), spanningTree.getAllIndexEntities().size());
         Assert.assertEquals(4, spanningTree.getBuildLevel());
-        Assert.assertEquals(cube.getName(), spanningTree.getCuboidCacheKey());
+        Assert.assertEquals(cube.getUuid(), spanningTree.getCuboidCacheKey());
 
-        NCuboidDesc cuboidDesc = spanningTree.getCuboidDesc(1000L);
+        IndexEntity cuboidDesc = spanningTree.getIndexEntity(10000L);
         Assert.assertNotNull(cuboidDesc);
-        Assert.assertTrue(cube.getAllCuboids().contains(cuboidDesc));
+        Assert.assertTrue(cube.getAllIndexes().contains(cuboidDesc));
         Assert.assertEquals(2, cuboidDesc.getLayouts().size());
 
-        NCuboidLayout cuboidLayout = spanningTree.getCuboidLayout(1001L);
+        LayoutEntity cuboidLayout = spanningTree.getCuboidLayout(10001L);
         Assert.assertNotNull(cuboidLayout);
-        Assert.assertSame(spanningTree.getCuboidDesc(1000L).getLayouts().get(0), cuboidLayout);
+        Assert.assertSame(spanningTree.getIndexEntity(10000L).getLayouts().get(0), cuboidLayout);
 
-        NCuboidDesc childCuboid1 = spanningTree.getCuboidDesc(0L);
-        NCuboidDesc childCuboid2 = spanningTree.getCuboidDesc(1000L);
-        NCuboidDesc rootCuboid = spanningTree.getCuboidDesc(3000L);
-        NCuboidDesc cubeCuboidRoot = spanningTree.getCuboidDesc(1000000L);
-        NCuboidDesc tableIndexCuboidRoot = spanningTree.getCuboidDesc(20000002000L);
+        IndexEntity childCuboid1 = spanningTree.getIndexEntity(0L);
+        IndexEntity childCuboid2 = spanningTree.getIndexEntity(20000L);
+        IndexEntity rootCuboid = spanningTree.getIndexEntity(30000L);
+        IndexEntity cubeCuboidRoot = spanningTree.getIndexEntity(1000000L);
+        IndexEntity tableIndexCuboidRoot = spanningTree.getIndexEntity(20000020000L);
 
-        Assert.assertEquals(2, spanningTree.getRootCuboidDescs().size());
-        Assert.assertTrue(spanningTree.getRootCuboidDescs().contains(tableIndexCuboidRoot));
-        Assert.assertTrue(spanningTree.getRootCuboidDescs().contains(cubeCuboidRoot));
-        Assert.assertSame(cubeCuboidRoot, spanningTree.getRootCuboidDesc(childCuboid1));
-        Assert.assertSame(cubeCuboidRoot, spanningTree.getParentCuboidDesc(rootCuboid));
-        Assert.assertSame(rootCuboid, spanningTree.getParentCuboidDesc(childCuboid2));
-        Assert.assertSame(null, spanningTree.getParentCuboidDesc(cubeCuboidRoot));
+        Assert.assertEquals(2, spanningTree.getRootIndexEntities().size());
+        Assert.assertTrue(spanningTree.getRootIndexEntities().contains(tableIndexCuboidRoot));
+        Assert.assertTrue(spanningTree.getRootIndexEntities().contains(cubeCuboidRoot));
+        Assert.assertSame(cubeCuboidRoot, spanningTree.getRootIndexEntity(childCuboid1));
+        Assert.assertSame(cubeCuboidRoot, spanningTree.getParentIndexEntity(rootCuboid));
+        Assert.assertSame(rootCuboid, spanningTree.getParentIndexEntity(childCuboid2));
+        Assert.assertSame(null, spanningTree.getParentIndexEntity(cubeCuboidRoot));
         Assert.assertEquals(6, spanningTree.retrieveAllMeasures(rootCuboid).size());
         Assert.assertEquals(16, spanningTree.retrieveAllMeasures(cubeCuboidRoot).size());
-        Assert.assertTrue(spanningTree.getSpanningCuboidDescs(rootCuboid).contains(childCuboid2));
+        Assert.assertTrue(spanningTree.getSpanningIndexEntities(rootCuboid).contains(childCuboid2));
     }
 
     @Test
     public void testTransverse() {
-        NCubePlanManager mgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
-        NCubePlan cube = mgr.getCubePlan("ncube_basic");
+        NIndexPlanManager mgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
+        IndexPlan cube = mgr.getIndexPlanByModelAlias("nmodel_basic");
         Assert.assertNotNull(cube);
 
         NSpanningTree spanningTree = cube.getSpanningTree();
         CounterTreeVisitor visitor = new CounterTreeVisitor();
         spanningTree.acceptVisitor(visitor);
-        NCuboidLayout matched = visitor.getBestLayoutCandidate().getCuboidLayout();
+        LayoutEntity matched = visitor.getBestLayoutCandidate().getCuboidLayout();
 
         Assert.assertEquals(spanningTree.getCuboidCount(), visitor.getCnt());
         Assert.assertNotNull(matched);
@@ -111,10 +111,10 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
 
     private static class CounterTreeVisitor implements NSpanningTree.ISpanningTreeVisitor {
         int cnt = 0;
-        List<NCuboidLayout> matched = Lists.newLinkedList();
+        List<LayoutEntity> matched = Lists.newLinkedList();
 
         @Override
-        public boolean visit(NCuboidDesc cuboidDesc) {
+        public boolean visit(IndexEntity cuboidDesc) {
             cnt++;
             matched.addAll(cuboidDesc.getLayouts());
             return true;

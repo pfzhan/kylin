@@ -39,9 +39,9 @@ import org.mockito.Mockito;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.query.CuboidLayoutQueryTimes;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import lombok.val;
@@ -71,8 +71,9 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         Assert.assertEquals(1024 * 1024 * 1024L, storageVolumeInfo.getStorageQuotaSize());
         Assert.assertEquals(3240960L, storageVolumeInfo.getGarbageStorageSize());
         Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().size());
-        Assert.assertEquals(7, storageVolumeInfo.getGarbageModelIndexMap().get("nmodel_basic").size());
-        Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().get("nmodel_basic_inner").size());
+
+        Assert.assertEquals(7, storageVolumeInfo.getGarbageModelIndexMap().get("89af4ee2-2cdb-4b07-b39e-4c29856309aa").size());
+        Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().get("741ca86a-1f13-46da-a59f-95fb68615e3a").size());
 
         getTestConfig().setProperty("kylin.storage.garbage.cuboid-layout-survival-time-threshold", "100d");
         val storageVolumeInfo2 = collector.getStorageVolumeInfo(getTestConfig(), PROJECT);
@@ -86,20 +87,20 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
     @Test
     public void testGetStorageVolumeInfoWhenIndexIsBuilding() throws Exception {
         mockHotModelLayouts();
-        val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), PROJECT);
+        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
 
         // add an new layout
-        cubeMgr.updateCubePlan("ncube_basic", copyForWrite -> {
-            val newDesc = new NCuboidDesc();
+        indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            val newDesc = new IndexEntity();
             newDesc.setId(4000L);
             newDesc.setDimensions(Lists.newArrayList(1, 2, 3, 4));
-            newDesc.setMeasures(Lists.newArrayList(1000, 1001, 1005));
-            val layout = new NCuboidLayout();
+            newDesc.setMeasures(Lists.newArrayList(100000, 100001, 100005));
+            val layout = new LayoutEntity();
             layout.setId(4001L);
-            layout.setColOrder(Lists.newArrayList(2, 1, 3, 4, 100, 1001, 1005));
+            layout.setColOrder(Lists.newArrayList(2, 1, 3, 4, 100000, 100001, 100005));
             layout.setAuto(true);
             newDesc.setLayouts(Lists.newArrayList(layout));
-            copyForWrite.getCuboids().add(newDesc);
+            copyForWrite.getIndexes().add(newDesc);
         });
 
         val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE, StorageInfoEnum.STORAGE_QUOTA,
@@ -108,14 +109,14 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
         val storageVolumeInfo = collector.getStorageVolumeInfo(getTestConfig(), PROJECT);
 
         Assert.assertEquals(4, storageVolumeInfo.getGarbageModelIndexMap().size());
-        Assert.assertEquals(7, storageVolumeInfo.getGarbageModelIndexMap().get("nmodel_basic").size());
-        Assert.assertTrue(!storageVolumeInfo.getGarbageModelIndexMap().get("nmodel_basic").contains(4001L));
+        Assert.assertEquals(7, storageVolumeInfo.getGarbageModelIndexMap().get("89af4ee2-2cdb-4b07-b39e-4c29856309aa").size());
+        Assert.assertTrue(!storageVolumeInfo.getGarbageModelIndexMap().get("89af4ee2-2cdb-4b07-b39e-4c29856309aa").contains(4001L));
     }
 
     private void mockHotModelLayouts() throws NoSuchFieldException, IllegalAccessException {
         CuboidLayoutQueryTimes cuboidLayoutQueryTimes = new CuboidLayoutQueryTimes();
-        cuboidLayoutQueryTimes.setModelId("nmodel_basic");
-        cuboidLayoutQueryTimes.setCuboidLayoutId("1000001");
+        cuboidLayoutQueryTimes.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        cuboidLayoutQueryTimes.setLayoutId("1000001");
         cuboidLayoutQueryTimes.setQueryTimes(100);
         List<CuboidLayoutQueryTimes> hotCuboidLayoutQueryTimesList = Lists.newArrayList();
         hotCuboidLayoutQueryTimesList.add(cuboidLayoutQueryTimes);

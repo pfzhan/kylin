@@ -63,11 +63,11 @@ public class KapQueryUtil {
         try {
             // massage nested CC for drafted model
             Map<String, NDataModel> modelMap = Maps.newHashMap();
-            modelMap.put(model.getName(), model);
+            modelMap.put(model.getUuid(), model);
             ccSql = RestoreFromComputedColumn.convertWithGivenModels(ccSql, project, "DEFAULT",
                     modelMap);
         } catch (Exception e) {
-            LOGGER.warn("Failed to massage SQL expression [{}] with input model {}", ccSql, model.getName(), e);
+            LOGGER.warn("Failed to massage SQL expression [{}] with input model {}", ccSql, model.getUuid(), e);
         }
 
         return ccSql.substring("select ".length(), ccSql.indexOf(tempConst) - 1);

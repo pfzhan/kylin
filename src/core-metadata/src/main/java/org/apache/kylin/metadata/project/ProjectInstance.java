@@ -259,9 +259,9 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         this.owner = owner;
     }
 
-    public boolean containsModel(String modelName) {
+    public boolean containsModel(String modelId) {
         List<String> models = getModelsFromResource(name);
-        return models != null && models.contains(modelName);
+        return models != null && models.contains(modelId);
     }
 
     public LinkedHashMap<String, String> getOverrideKylinProps() {

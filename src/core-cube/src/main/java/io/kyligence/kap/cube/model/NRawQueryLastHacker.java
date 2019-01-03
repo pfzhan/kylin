@@ -51,13 +51,13 @@ public class NRawQueryLastHacker {
 
         // @TODO refactor select-star judge
         for (TblColRef col : nDataflow.getAllColumns()) {
-            if (nDataflow.getCubePlan().listDimensionColumnsExcludingDerived(null).contains(col)) {
+            if (nDataflow.getIndexPlan().listDimensionColumnsExcludingDerived(null).contains(col)) {
                 sqlDigest.allColumns.add(col);
             }
         }
 
         for (TblColRef col : sqlDigest.allColumns) {
-            if (nDataflow.getCubePlan().listDimensionColumnsExcludingDerived(null).contains(col)) {
+            if (nDataflow.getIndexPlan().listDimensionColumnsExcludingDerived(null).contains(col)) {
                 // For dimension columns, take them as group by columns.
                 sqlDigest.groupbyColumns.add(col);
             } else {

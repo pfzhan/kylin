@@ -152,23 +152,19 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         FavoriteQuery favoriteQuery1 = new FavoriteQuery("sql1", 1000, 10, 2000);
         FavoriteQueryRealization realization1 = new FavoriteQueryRealization();
         realization1.setModelId("model1");
-        realization1.setCubePlanId("cube_plan1");
-        realization1.setCuboidLayoutId(1);
+        realization1.setLayoutId(1);
         FavoriteQueryRealization realization2 = new FavoriteQueryRealization();
         realization2.setModelId("model1");
-        realization2.setCubePlanId("cube_plan1");
-        realization2.setCuboidLayoutId(2);
+        realization2.setLayoutId(2);
         favoriteQuery1.setRealizations(Lists.newArrayList(realization1, realization2));
 
         FavoriteQuery favoriteQuery2 = new FavoriteQuery("sql2", 1001, 10, 2000);
         realization1 = new FavoriteQueryRealization();
         realization1.setModelId("model2");
-        realization1.setCubePlanId("cube_plan1");
-        realization1.setCuboidLayoutId(1);
+        realization1.setLayoutId(1);
         realization2 = new FavoriteQueryRealization();
         realization2.setModelId("model1");
-        realization2.setCubePlanId("cube_plan1");
-        realization2.setCuboidLayoutId(1);
+        realization2.setLayoutId(1);
         favoriteQuery2.setRealizations(Lists.newArrayList(realization1, realization2));
 
         favoriteQueryManager.create(Lists.newArrayList(favoriteQuery1, favoriteQuery2));
@@ -176,11 +172,10 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(2, favoriteQueryManager.get("sql1").getRealizations().size());
 
         // get realizations by condition
-        List<FavoriteQueryRealization> realizations = favoriteQueryManager.getRealizationsByConditions("model1", "cube_plan1", 1L);
+        List<FavoriteQueryRealization> realizations = favoriteQueryManager.getRealizationsByConditions("model1", 1L);
         Assert.assertEquals(2, realizations.size());
         Assert.assertEquals("model1", realizations.get(0).getModelId());
-        Assert.assertEquals("cube_plan1", realizations.get(0).getCubePlanId());
-        Assert.assertEquals(1, realizations.get(0).getCuboidLayoutId());
+        Assert.assertEquals(1, realizations.get(0).getLayoutId());
 
         // remove realizations
         favoriteQueryManager.removeRealizations("sql2");
@@ -192,8 +187,7 @@ public class FavoriteQueryManagerTest extends NLocalFileMetadataTestCase {
         // reset realizations
         FavoriteQueryRealization newRealization = new FavoriteQueryRealization();
         newRealization.setModelId("model3");
-        newRealization.setCubePlanId("cube_plan2");
-        newRealization.setCuboidLayoutId(2);
+        newRealization.setLayoutId(2);
 
         favoriteQueryManager.resetRealizations("sql1", Lists.newArrayList(newRealization));
         Assert.assertEquals(1, favoriteQueryManager.get("sql1").getRealizations().size());

@@ -32,6 +32,7 @@ import java.nio.charset.Charset;
 import java.util.List;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
@@ -44,7 +45,6 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Files;
 
 import io.kyligence.kap.common.util.KylinConfigUtils;
-import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.query.Utils;
 import lombok.extern.slf4j.Slf4j;
@@ -128,9 +128,9 @@ public class NSmartDemoTest {
             Assert.assertFalse(dataModelManager.getDataModels().isEmpty());
             log.info("Number of models: " + dataModelManager.getDataModels().size());
 
-            NCubePlanManager cubePlanManager = NCubePlanManager.getInstance(kylinConfig, projectName);
-            Assert.assertFalse(cubePlanManager.listAllCubePlans().isEmpty());
-            log.info("Number of cubes: " + cubePlanManager.listAllCubePlans().size());
+            NIndexPlanManager indexPlanManager = NIndexPlanManager.getInstance(kylinConfig, projectName);
+            Assert.assertFalse(indexPlanManager.listAllIndexPlans().isEmpty());
+            log.info("Number of cubes: " + indexPlanManager.listAllIndexPlans().size());
         }
 
         FileUtils.forceDelete(tmpMeta);

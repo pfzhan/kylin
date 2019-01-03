@@ -26,6 +26,7 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.junit.AfterClass;
@@ -36,10 +37,9 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
@@ -53,7 +53,7 @@ import lombok.extern.slf4j.Slf4j;
 public class MetadataCleanServiceTest extends ServiceTestBase {
 
     private static final String PROJECT = "default";
-    private static final String MODEL_NAME = "nmodel_basic";
+    private static final String MODEL_ID = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
 
     private MetadataCleanupService gcService = new MetadataCleanupService();
 
@@ -70,12 +70,12 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
 
     private static void initData() throws IOException {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), PROJECT);
-        val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), PROJECT);
-        val model = modelMgr.getDataModelDesc(MODEL_NAME);
-        val cube = cubeMgr.findMatchingCubePlan(MODEL_NAME);
-        val layoutIds = cube.getAllCuboidLayouts().stream().map(NCuboidLayout::getId).collect(Collectors.toList());
+        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        val model = modelMgr.getDataModelDesc(MODEL_ID);
+        val cube = indePlanManager.getIndexPlan(MODEL_ID);
+        val layoutIds = cube.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
 
-        modelMgr.updateDataModel("nmodel_basic", copyForWrite -> copyForWrite.setSemanticVersion(2));
+        modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> copyForWrite.setSemanticVersion(2));
 
         val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
         val mocks = Lists.<FavoriteQuery> newArrayList();
@@ -89,14 +89,12 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
             val fqr = new FavoriteQueryRealization();
             fqr.setModelId(model.getId());
             fqr.setSemanticVersion(i % 3);
-            fqr.setCubePlanId(cube.getId());
-            fqr.setCuboidLayoutId(layoutIds.get(i % 8));
+            fqr.setLayoutId(layoutIds.get(i % 8));
 
             val fqr2 = new FavoriteQueryRealization();
             fqr2.setModelId(model.getId());
             fqr2.setSemanticVersion(2);
-            fqr2.setCubePlanId(cube.getId());
-            fqr2.setCuboidLayoutId(4002);
+            fqr2.setLayoutId(40002);
             fq.setRealizations(Lists.newArrayList(fqr, fqr2));
             mocks.add(fq);
             log.debug("prepare {} {}", fq, fqr2);
@@ -104,43 +102,43 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
         favoriteQueryManager.create(mocks);
 
         // add some new layouts for cube
-        cubeMgr.updateCubePlan(cube.getName(), copyForWrite -> {
-            val newDesc = new NCuboidDesc();
-            newDesc.setId(4000);
+        indePlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
+            val newDesc = new IndexEntity();
+            newDesc.setId(40000);
             newDesc.setDimensions(Lists.newArrayList(1, 2, 3, 4));
-            newDesc.setMeasures(Lists.newArrayList(1000, 1001, 1005));
-            val layout = new NCuboidLayout();
-            layout.setId(4001);
-            layout.setColOrder(Lists.newArrayList(2, 1, 3, 4, 100, 1001, 1005));
+            newDesc.setMeasures(Lists.newArrayList(100000, 100001, 100005));
+            val layout = new LayoutEntity();
+            layout.setId(40001);
+            layout.setColOrder(Lists.newArrayList(2, 1, 3, 4, 100000, 100001, 100005));
             layout.setAuto(true);
             newDesc.setLayouts(Lists.newArrayList(layout));
-            val layout3 = new NCuboidLayout();
-            layout3.setId(4002);
-            layout3.setColOrder(Lists.newArrayList(3, 2, 1, 4, 100, 1001, 1005));
+            val layout3 = new LayoutEntity();
+            layout3.setId(40002);
+            layout3.setColOrder(Lists.newArrayList(3, 2, 1, 4, 100000, 100001, 100005));
             layout3.setAuto(true);
             newDesc.setLayouts(Lists.newArrayList(layout3));
 
-            val newDesc2 = new NCuboidDesc();
-            newDesc2.setId(NCuboidDesc.TABLE_INDEX_START_ID + 4000);
+            val newDesc2 = new IndexEntity();
+            newDesc2.setId(IndexEntity.TABLE_INDEX_START_ID + 40000);
             newDesc2.setDimensions(Lists.newArrayList(1, 2, 3, 4, 5, 6, 7));
-            val layout2 = new NCuboidLayout();
-            layout2.setId(NCuboidDesc.TABLE_INDEX_START_ID + 4001);
+            val layout2 = new LayoutEntity();
+            layout2.setId(IndexEntity.TABLE_INDEX_START_ID + 40001);
             layout2.setColOrder(Lists.newArrayList(1, 2, 3, 4, 5, 6, 7));
             layout2.setAuto(true);
             layout2.setManual(true);
             newDesc2.setLayouts(Lists.newArrayList(layout2));
 
-            copyForWrite.getCuboids().add(newDesc);
-            copyForWrite.getCuboids().add(newDesc2);
+            copyForWrite.getIndexes().add(newDesc);
+            copyForWrite.getIndexes().add(newDesc2);
         });
     }
 
     @Test
     public void testCleanup() throws Exception {
         val favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
-        val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), PROJECT);
-        cubeMgr.updateCubePlan("ncube_basic", copyForWrite -> {
-            copyForWrite.removeLayouts(Sets.newHashSet(1L), NCuboidLayout::equals, true, false);
+        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), PROJECT);
+        indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            copyForWrite.removeLayouts(Sets.newHashSet(1L), LayoutEntity::equals, true, false);
         });
         gcService.clean();
 
@@ -155,27 +153,27 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
                 waitingSize++;
             } else {
                 for (FavoriteQueryRealization realization : fqrs) {
-                    Assert.assertTrue(realization.getSemanticVersion() == 2 && realization.getCuboidLayoutId() != 1L);
-                    usedIds.add(realization.getCuboidLayoutId());
+                    Assert.assertTrue(realization.getSemanticVersion() == 2 && realization.getLayoutId() != 1L);
+                    usedIds.add(realization.getLayoutId());
                 }
             }
         }
         Assert.assertEquals(17, waitingSize);
 
         val dataflowMgr = NDataflowManager.getInstance(getTestConfig(), PROJECT);
-        val df = dataflowMgr.getDataflowByModelName(MODEL_NAME);
+        val df = dataflowMgr.getDataflow(MODEL_ID);
 
         for (NDataSegment segment : df.getSegments()) {
-            val cuboids = segment.getSegDetails().getCuboids();
-            val ids = cuboids.stream().map(NDataCuboid::getCuboidLayoutId).collect(Collectors.toList());
+            val cuboids = segment.getSegDetails().getLayouts();
+            val ids = cuboids.stream().map(NDataLayout::getLayoutId).collect(Collectors.toList());
             Assert.assertFalse(ids.contains(1L));
         }
 
         // check remove useless layouts
-        val cube = cubeMgr.getCubePlan("ncube_basic");
-        Assert.assertNull(cube.getCuboidLayout(4001L));
-        Assert.assertFalse(cube.getCuboidLayout(NCuboidDesc.TABLE_INDEX_START_ID + 4001L).isAuto());
-        Assert.assertEquals(9, cube.getAllCuboidLayouts().size());
+        val cube = indePlanManager.getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertNull(cube.getCuboidLayout(40001L));
+        Assert.assertFalse(cube.getCuboidLayout(IndexEntity.TABLE_INDEX_START_ID + 40001L).isAuto());
+        Assert.assertEquals(9, cube.getAllLayouts().size());
     }
 
 }

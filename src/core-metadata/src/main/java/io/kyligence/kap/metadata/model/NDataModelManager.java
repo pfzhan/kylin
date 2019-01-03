@@ -28,15 +28,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.common.util.ClassUtil;
-import org.apache.kylin.measure.topn.TopNMeasureType;
-import org.apache.kylin.metadata.MetadataConstants;
 import org.apache.kylin.metadata.cachesync.CachedCrudAssist;
-import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.slf4j.Logger;
@@ -85,7 +83,7 @@ public class NDataModelManager {
             @Override
             protected NDataModel initEntityAfterReload(NDataModel model, String resourceName) {
                 if (!model.isDraft()) {
-                    model.init(config, getAllTablesMap(), listAllValidCache(), true, project);
+                    model.init(config, getAllTablesMap(), listAllValidCache(), project);
                 }
                 return model;
             }
@@ -113,40 +111,45 @@ public class NDataModelManager {
         return crud.listAll();
     }
 
-    public NDataModel getDataModelDesc(String name) {
-        if (name == null) {
+    public NDataModel getDataModelDesc(String modelId) {
+        if (modelId == null) {
             return null;
         }
-        return crud.get(name);
+        return crud.get(modelId);
+    }
+
+    public NDataModel getDataModelDescByAlias(String alias) {
+        return crud.listAll().stream().filter(model -> Objects.equals(model.getAlias(), alias)).findFirst()
+                .orElse(null);
     }
 
     // within a project, find models that use the specified table
-    public List<String> getModelsUsingTable(TableDesc table) {
-        List<String> models = new ArrayList<>();
+    public List<NDataModel> getModelsUsingTable(TableDesc table) {
+        List<NDataModel> models = new ArrayList<>();
         for (NDataModel modelDesc : getDataModels()) {
             if (modelDesc.containsTable(table))
-                models.add(modelDesc.getName());
+                models.add(modelDesc);
         }
         return models;
     }
 
     // within a project, find models that use the specified table as root table
-    public List<String> getModelsUsingRootTable(TableDesc table) {
-        List<String> models = new ArrayList<>();
+    public List<NDataModel> getModelsUsingRootTable(TableDesc table) {
+        List<NDataModel> models = new ArrayList<>();
         for (NDataModel modelDesc : getDataModels()) {
             if (modelDesc.isRootFactTable(table)) {
-                models.add(modelDesc.getName());
+                models.add(modelDesc);
             }
         }
         return models;
     }
 
-    public List<String> getTableOrientedModelsUsingRootTable(TableDesc table) {
-        List<String> models = new ArrayList<>();
+    public List<NDataModel> getTableOrientedModelsUsingRootTable(TableDesc table) {
+        List<NDataModel> models = new ArrayList<>();
         for (NDataModel modelDesc : getDataModels()) {
             if (modelDesc.isRootFactTable(table)
                     && modelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-                models.add(modelDesc.getName());
+                models.add(modelDesc);
             }
         }
         return models;
@@ -166,11 +169,12 @@ public class NDataModelManager {
     }
 
     public NDataModel createDataModelDesc(NDataModel desc, String owner) {
-        String name = desc.getName();
-        //        Preconditions.checkArgument(desc.getProject().equals(project), "Model %s belongs to project %s, not %s", name,
-        //                desc.getProject(), project);
-        if (crud.contains(name))
-            throw new IllegalArgumentException("DataModelDesc '" + name + "' already exists");
+        String name = desc.getAlias();
+        for (NDataModel model : crud.listAll()) {
+            if (model.getAlias().equals(name)) {
+                throw new IllegalArgumentException("DataModelDesc '" + name + "' already exists");
+            }
+        }
 
         NProjectManager prjMgr = getProjectManager();
         ProjectInstance prj = prjMgr.getProject(project);
@@ -191,8 +195,8 @@ public class NDataModelManager {
     }
 
     public NDataModel updateDataModelDesc(NDataModel desc) {
-        String name = desc.getName();
-        if (!crud.contains(desc.getName())) {
+        String name = desc.getUuid();
+        if (!crud.contains(desc.getUuid())) {
             throw new IllegalArgumentException("DataModelDesc '" + name + "' does not exist.");
         }
         return saveDataModelDesc(desc);
@@ -201,7 +205,7 @@ public class NDataModelManager {
     private NDataModel saveDataModelDesc(NDataModel dataModelDesc) {
         dataModelDesc.checkSingleIncrementingLoadingTable();
         if (!dataModelDesc.isDraft())
-            dataModelDesc.init(config, this.getAllTablesMap(), getDataModels(), true, project);
+            dataModelDesc.init(config, this.getAllTablesMap(), getDataModels(), project);
 
         crud.save(dataModelDesc);
 
@@ -211,25 +215,6 @@ public class NDataModelManager {
 
     private Map<String, TableDesc> getAllTablesMap() {
         return NTableMetadataManager.getInstance(config, project).getAllTablesMap();
-    }
-
-    /**
-     * if there is some change need be applied after getting a cubeDesc from front-end, do it here
-     *
-     * @param dataModel
-     */
-    private void postProcessKapModel(NDataModel dataModel) {
-        for (Map.Entry<Integer, NDataModel.Measure> measureEntry : dataModel.getEffectiveMeasureMap().entrySet()) {
-            MeasureDesc measureDesc = measureEntry.getValue();
-            if (TopNMeasureType.FUNC_TOP_N.equalsIgnoreCase(measureDesc.getFunction().getExpression())) {
-                TopNMeasureType.fixMeasureReturnType(measureDesc);
-            }
-        }
-    }
-
-    private static String resourcePath(String project, String modelName) {
-        return new StringBuilder().append("/").append(project).append(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT)
-                .append("/").append(modelName).append(MetadataConstants.FILE_SURFIX).toString();
     }
 
     /**

@@ -29,6 +29,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import io.kyligence.kap.cube.model.NBatchConstants;
+import io.kyligence.kap.cube.model.NDataLayout;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -42,8 +44,7 @@ import org.junit.Test;
 import com.google.common.base.Joiner;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -77,8 +78,8 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
         long end = SegmentRange.dateToLong("2012-06-01");
 
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
 
@@ -95,8 +96,7 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
         dataflowManager.updateDataflow(update);
 
         AddSegmentEvent event = new AddSegmentEvent();
-        event.setModelName("nmodel_basic");
-        event.setCubePlanName("ncube_basic");
+        event.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         event.setOwner("ADMIN");
         event.setJobId(UUID.randomUUID().toString());
         event.setSegmentId(dataSegment2.getId());
@@ -110,9 +110,9 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(job);
         Assert.assertEquals(dataSegment2.getId(), ((ChainedExecutable) job).getTasks().get(1).getParam("segmentIds"));
         Assert.assertEquals(Joiner.on(",")
-                .join(Stream.of(((ChainedExecutable) job).getTasks().get(1).getParam("cuboidLayoutIds").split(","))
+                .join(Stream.of(((ChainedExecutable) job).getTasks().get(1).getParam(NBatchConstants.P_LAYOUT_IDS).split(","))
                         .sorted(Comparator.comparing(a -> Long.parseLong(a))).collect(Collectors.toList())),
-                Joiner.on(",").join(Stream.of(update.getToAddOrUpdateCuboids()).map(c -> c.getCuboidLayoutId())
+                Joiner.on(",").join(Stream.of(update.getToAddOrUpdateCuboids()).map(c -> c.getLayoutId())
                         .sorted(Comparator.naturalOrder()).collect(Collectors.toList())));
         getTestConfig().setProperty("kylin.server.mode", "all");
     }
@@ -121,8 +121,7 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
     public void testAddSegment_WrongSegmentId() {
 
         AddSegmentEvent event2 = new AddSegmentEvent();
-        event2.setModelName("nmodel_basic");
-        event2.setCubePlanName("ncube_basic");
+        event2.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         event2.setOwner("ADMIN");
         event2.setJobId(UUID.randomUUID().toString());
         event2.setSegmentId(UUID.randomUUID().toString());
@@ -143,10 +142,10 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
         long end = SegmentRange.dateToLong("2012-06-01");
 
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         // remove the existed seg
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
 
@@ -154,8 +153,7 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
         NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
 
         AddSegmentEvent event = new AddSegmentEvent();
-        event.setModelName("nmodel_basic");
-        event.setCubePlanName("ncube_basic");
+        event.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         event.setOwner("ADMIN");
         event.setJobId(UUID.randomUUID().toString());
         event.setSegmentId(dataSegment.getId());
@@ -173,25 +171,25 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(jobId);
 
         AbstractExecutable job = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getJob(jobId);
-        NDataflow df2 = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df2 = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertNotNull(job);
         Assert.assertEquals(df2.getSegments().get(0).getId(),
                 ((ChainedExecutable) job).getTasks().get(1).getParam("segmentIds"));
         Assert.assertEquals(Joiner.on(",")
-                .join(Stream.of(((ChainedExecutable) job).getTasks().get(1).getParam("cuboidLayoutIds").split(","))
+                .join(Stream.of(((ChainedExecutable) job).getTasks().get(1).getParam(NBatchConstants.P_LAYOUT_IDS).split(","))
                         .sorted(Comparator.comparing(a -> Long.parseLong(a))).collect(Collectors.toList())),
                 Joiner.on(",")
-                        .join(NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getCubePlan("ncube_basic")
-                                .getAllCuboidLayouts().stream().map(a -> a.getId()).sorted(Comparator.naturalOrder())
+                        .join(NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                                .getAllLayouts().stream().map(a -> a.getId()).sorted(Comparator.naturalOrder())
                                 .collect(Collectors.toList())));
 
         getTestConfig().setProperty("kylin.server.mode", "all");
     }
 
-    public NDataCuboid[] genCuboids(NDataflow df, String segId) {
-        val dc1 = NDataCuboid.newDataCuboid(df, segId, 1L);
-        val dc2 = NDataCuboid.newDataCuboid(df, segId, 1001L);
-        return new NDataCuboid[] { dc1, dc2 };
+    public NDataLayout[] genCuboids(NDataflow df, String segId) {
+        val dc1 = NDataLayout.newDataLayout(df, segId, 1L);
+        val dc2 = NDataLayout.newDataLayout(df, segId, 10001L);
+        return new NDataLayout[] { dc1, dc2 };
     }
 
 }

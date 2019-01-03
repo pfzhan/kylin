@@ -27,10 +27,6 @@ package io.kyligence.kap.cube.model;
 import java.io.IOException;
 import java.util.List;
 
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModel;
-import lombok.val;
-import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -50,7 +46,11 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
+import lombok.var;
 
 public class NDataLoadingRangeManager {
     private static final Logger logger = LoggerFactory.getLogger(NDataLoadingRangeManager.class);

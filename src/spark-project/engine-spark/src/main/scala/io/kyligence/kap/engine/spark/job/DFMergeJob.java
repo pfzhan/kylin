@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.engine.spark.utils.RepartitionHelper;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.ContentSummary;
@@ -47,9 +48,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -71,7 +71,7 @@ public class DFMergeJob extends NDataflowJob {
     }
 
     protected void doExecute(OptionsHelper optionsHelper) throws Exception {
-        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
+        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_ID);
         String newSegmentId = optionsHelper.getOptionValue(OPTION_SEGMENT_IDS);
         Set<Long> layoutIds = getLayoutsFromPath(optionsHelper.getOptionValue(OPTION_LAYOUT_ID_PATH));
         project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
@@ -82,9 +82,9 @@ public class DFMergeJob extends NDataflowJob {
         mergeSegments(dfName, newSegmentId, layoutIds);
     }
 
-    private void mergeSnapshot(String dataflowName, String segmentId) {
+    private void mergeSnapshot(String dataflowId, String segmentId) {
         final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
-        final NDataflow dataflow = mgr.getDataflow(dataflowName);
+        final NDataflow dataflow = mgr.getDataflow(dataflowId);
         final NDataSegment mergedSeg = dataflow.getSegment(segmentId);
         final List<NDataSegment> mergingSegments = dataflow.getMergingSegments(mergedSeg);
 
@@ -95,7 +95,7 @@ public class DFMergeJob extends NDataflowJob {
 
         makeSnapshotForNewSegment(segCopy, mergingSegments);
 
-        NDataflowUpdate update = new NDataflowUpdate(dataflowName);
+        NDataflowUpdate update = new NDataflowUpdate(dataflowId);
         update.setToUpdateSegs(segCopy);
         mgr.updateDataflow(update);
 
@@ -108,17 +108,17 @@ public class DFMergeJob extends NDataflowJob {
         }
     }
 
-    private void mergeSegments(String dataflowName, String segmentId, Set<Long> specifiedCuboids) throws IOException {
+    private void mergeSegments(String dataflowId, String segmentId, Set<Long> specifiedCuboids) throws IOException {
         final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
-        final NDataflow dataflow = mgr.getDataflow(dataflowName);
+        final NDataflow dataflow = mgr.getDataflow(dataflowId);
         final NDataSegment mergedSeg = dataflow.getSegment(segmentId);
         final List<NDataSegment> mergingSegments = dataflow.getMergingSegments(mergedSeg);
 
         // collect layouts need to merge
         Map<Long, DFLayoutMergeAssist> mergeCuboidsAsssit = Maps.newConcurrentMap();
         for (NDataSegment seg : mergingSegments) {
-            for (NDataCuboid cuboid : seg.getSegDetails().getCuboids()) {
-                long layoutId = cuboid.getCuboidLayoutId();
+            for (NDataLayout cuboid : seg.getSegDetails().getLayouts()) {
+                long layoutId = cuboid.getLayoutId();
 
                 DFLayoutMergeAssist assist = mergeCuboidsAsssit.get(layoutId);
                 if (assist == null) {
@@ -126,7 +126,7 @@ public class DFMergeJob extends NDataflowJob {
                     assist.addCuboid(cuboid);
                     assist.setSs(ss);
                     assist.setNewSegment(mergedSeg);
-                    assist.setLayout(cuboid.getCuboidLayout());
+                    assist.setLayout(cuboid.getLayout());
                     assist.setToMergeSegments(mergingSegments);
                     mergeCuboidsAsssit.put(layoutId, assist);
                 } else
@@ -136,8 +136,8 @@ public class DFMergeJob extends NDataflowJob {
 
         for (DFLayoutMergeAssist assist : mergeCuboidsAsssit.values()) {
             Dataset<Row> afterMerge = assist.merge();
-            NCuboidLayout layout = assist.getLayout();
-            if (layout.getCuboidDesc().getId() > NCuboidDesc.TABLE_INDEX_START_ID) {
+            LayoutEntity layout = assist.getLayout();
+            if (layout.getIndex().getId() > IndexEntity.TABLE_INDEX_START_ID) {
                 Dataset<Row> afterSort = afterMerge
                         .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
                 saveAndUpdateCuboid(afterSort, mergedSeg, layout, assist);
@@ -151,16 +151,16 @@ public class DFMergeJob extends NDataflowJob {
         }
     }
 
-    private void saveAndUpdateCuboid(Dataset<Row> dataset, NDataSegment seg, NCuboidLayout layout,
+    private void saveAndUpdateCuboid(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout,
             DFLayoutMergeAssist assist) throws IOException {
         long layoutId = layout.getId();
         long sourceCount = 0L;
 
-        for (NDataCuboid cuboid : assist.getCuboids()) {
+        for (NDataLayout cuboid : assist.getCuboids()) {
             sourceCount += cuboid.getSourceRows();
         }
 
-        NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg.getDataflow(), seg.getId(), layoutId);
+        NDataLayout dataCuboid = NDataLayout.newDataLayout(seg.getDataflow(), seg.getId(), layoutId);
 
         // for spark metrics
         String queryExecutionId = UUID.randomUUID().toString();
@@ -195,7 +195,7 @@ public class DFMergeJob extends NDataflowJob {
 
         DFBuildJob.fillCuboid(dataCuboid);
 
-        NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getName());
+        NDataflowUpdate update = new NDataflowUpdate(seg.getDataflow().getUuid());
         update.setToAddOrUpdateCuboids(dataCuboid);
         NDataflowManager.getInstance(config, project).updateDataflow(update);
     }

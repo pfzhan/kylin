@@ -57,7 +57,7 @@ public class NSegmentConfigHelperTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetSegmentConfig() {
 
-        val model = "nmodel_basic";
+        val model = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         // 1. MODEL_BASED && model segmentConfig is empty, get project segmentConfig
         val dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(), DEFAULT_PROJECT);

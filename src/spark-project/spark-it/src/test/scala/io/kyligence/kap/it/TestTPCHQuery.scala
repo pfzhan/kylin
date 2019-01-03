@@ -71,7 +71,7 @@ class TestTPCHQuery
         Range.apply(0, 1).foreach(t => df.count())
         System.currentTimeMillis() - start
         OLAPContext.getThreadLocalContexts.asScala
-          .map(_.realization.getName)
+          .map(_.realization.getUuid)
           .zip(OLAPContext.getThreadLocalContexts.asScala.map(
             _.storageContext.getCuboidId))
           .mkString(",")

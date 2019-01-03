@@ -46,8 +46,8 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.obf.IKeepNames;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import lombok.Getter;
 
 @SuppressWarnings("serial")
@@ -55,22 +55,22 @@ import lombok.Getter;
 public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     @JsonProperty("nodes")
     private final Map<Long, TreeNode> nodesMap = Maps.newHashMap();
-    private final Map<Long, NCuboidLayout> layoutMap = Maps.newHashMap();
+    private final Map<Long, LayoutEntity> layoutMap = Maps.newHashMap();
 
     /* If base cuboid exists, forest will become tree. */
     @JsonProperty("roots")
     private final List<TreeNode> roots = Lists.newArrayList();
     private int treeLevels;
 
-    private static final Function<TreeNode, NCuboidDesc> TRANSFORM_FUNC = new Function<TreeNode, NCuboidDesc>() {
+    private static final Function<TreeNode, IndexEntity> TRANSFORM_FUNC = new Function<TreeNode, IndexEntity>() {
         @Nullable
         @Override
-        public NCuboidDesc apply(@Nullable TreeNode input) {
-            return input == null ? null : input.cuboidDesc;
+        public IndexEntity apply(@Nullable TreeNode input) {
+            return input == null ? null : input.indexEntity;
         }
     };
 
-    public NForestSpanningTree(Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids, String cacheKey) {
+    public NForestSpanningTree(Map<IndexEntity, Collection<LayoutEntity>> cuboids, String cacheKey) {
         super(cuboids, cacheKey);
         init();
     }
@@ -94,61 +94,61 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     }
 
     @Override
-    public Collection<NCuboidDesc> getRootCuboidDescs() {
+    public Collection<IndexEntity> getRootIndexEntities() {
         return Collections2.transform(roots, TRANSFORM_FUNC);
     }
 
     @Override
-    public Set<Integer> retrieveAllMeasures(NCuboidDesc root) {
+    public Set<Integer> retrieveAllMeasures(IndexEntity root) {
         Set<Integer> measures = new LinkedHashSet<>();
         collectMeasures(measures, root);
         return measures;
     }
 
     @Override
-    public Collection<NCuboidLayout> getLayouts(NCuboidDesc cuboidDesc) {
-        return (Collection<NCuboidLayout>) cuboids.get(cuboidDesc);
+    public Collection<LayoutEntity> getLayouts(IndexEntity indexEntity) {
+        return (Collection<LayoutEntity>) cuboids.get(indexEntity);
     }
 
     @Override
-    public NCuboidDesc getCuboidDesc(long cuboidId) {
+    public IndexEntity getIndexEntity(long cuboidId) {
         if (nodesMap.get(cuboidId) == null) {
             throw new IllegalStateException("Cuboid（ID:" + cuboidId + ") does not exist!");
         }
-        return nodesMap.get(cuboidId).cuboidDesc;
+        return nodesMap.get(cuboidId).indexEntity;
     }
 
     @Override
-    public NCuboidLayout getCuboidLayout(long cuboidLayoutId) {
+    public LayoutEntity getCuboidLayout(long cuboidLayoutId) {
         return layoutMap.get(cuboidLayoutId);
     }
 
     @Override
-    public NCuboidDesc getParentCuboidDesc(NCuboidDesc cuboid) {
+    public IndexEntity getParentIndexEntity(IndexEntity cuboid) {
         if (nodesMap.get(cuboid.getId()) == null)
             return null;
 
         if (nodesMap.get(cuboid.getId()).parent == null)
             return null;
 
-        return nodesMap.get(cuboid.getId()).parent.cuboidDesc;
+        return nodesMap.get(cuboid.getId()).parent.indexEntity;
     }
 
     @Override
-    public NCuboidDesc getRootCuboidDesc(NCuboidDesc cuboidDesc) {
-        NCuboidDesc parent = cuboidDesc;
-        while (getParentCuboidDesc(parent) != null)
-            parent = getParentCuboidDesc(parent);
+    public IndexEntity getRootIndexEntity(IndexEntity cuboidDesc) {
+        IndexEntity parent = cuboidDesc;
+        while (getParentIndexEntity(parent) != null)
+            parent = getParentIndexEntity(parent);
         return parent;
     }
 
     @Override
-    public Collection<NCuboidDesc> getSpanningCuboidDescs(NCuboidDesc cuboid) {
+    public Collection<IndexEntity> getSpanningIndexEntities(IndexEntity cuboid) {
         return Collections2.transform(nodesMap.get(cuboid.getId()).children, TRANSFORM_FUNC);
     }
 
     @Override
-    public Collection<NCuboidDesc> getAllCuboidDescs() {
+    public Collection<IndexEntity> getAllIndexEntities() {
         return Collections2.transform(nodesMap.values(), TRANSFORM_FUNC);
     }
 
@@ -157,15 +157,15 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
         Queue<TreeNode> queue = Lists.newLinkedList(roots);
         while (!queue.isEmpty()) {
             TreeNode head = queue.poll();
-            boolean shouldContinue = matcher.visit(head.cuboidDesc);
+            boolean shouldContinue = matcher.visit(head.indexEntity);
             if (shouldContinue)
                 queue.addAll(head.children);
         }
     }
 
-    private void collectMeasures(Set<Integer> measures, NCuboidDesc parent) {
+    private void collectMeasures(Set<Integer> measures, IndexEntity parent) {
         measures.addAll(parent.getEffectiveMeasures().keySet());
-        for (NCuboidDesc cuboid : getSpanningCuboidDescs(parent)) {
+        for (IndexEntity cuboid : getSpanningIndexEntities(parent)) {
             collectMeasures(measures, cuboid);
         }
     }
@@ -176,7 +176,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
     @Getter
     public class TreeNode implements Serializable {
         @JsonProperty("cuboid")
-        private final NCuboidDesc cuboidDesc;
+        private final IndexEntity indexEntity;
         @JsonProperty("children")
         private final List<TreeNode> children = Lists.newLinkedList();
         private TreeNode parent;
@@ -187,17 +187,17 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
             children.add(child);
         }
 
-        private TreeNode(NCuboidDesc cuboidDesc) {
-            this.cuboidDesc = cuboidDesc;
+        private TreeNode(IndexEntity indexEntity) {
+            this.indexEntity = indexEntity;
         }
     }
 
     private class TreeBuilder {
         // Sort in descending order of dimension number to make sure parent is in front
         // of children.
-        private SortedSet<NCuboidDesc> cuboids = Sets.newTreeSet(new Comparator<NCuboidDesc>() {
+        private SortedSet<IndexEntity> cuboids = Sets.newTreeSet(new Comparator<IndexEntity>() {
             @Override
-            public int compare(NCuboidDesc o1, NCuboidDesc o2) {
+            public int compare(IndexEntity o1, IndexEntity o2) {
                 int c = Integer.compare(o2.getDimensions().size(), o1.getDimensions().size());
                 if (c != 0)
                     return c;
@@ -206,18 +206,18 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
             }
         });
 
-        private TreeBuilder(Collection<NCuboidDesc> cuboids) {
+        private TreeBuilder(Collection<IndexEntity> cuboids) {
             if (cuboids != null)
                 this.cuboids.addAll(cuboids);
         }
 
         private void build() {
-            for (NCuboidDesc cuboid : cuboids) {
+            for (IndexEntity cuboid : cuboids) {
                 addCuboid(cuboid);
             }
         }
 
-        private TreeNode findBestParent(NCuboidDesc cuboid) {
+        private TreeNode findBestParent(IndexEntity cuboid) {
             TreeNode parent = null;
             for (TreeNode root : roots) {
                 parent = doFindBestParent(cuboid, root);
@@ -227,12 +227,12 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
             return parent;
         }
 
-        protected TreeNode doFindBestParent(NCuboidDesc cuboid, TreeNode parent) {
-            if (!parent.cuboidDesc.dimensionDerive(cuboid)) {
+        protected TreeNode doFindBestParent(IndexEntity cuboid, TreeNode parent) {
+            if (!parent.indexEntity.dimensionDerive(cuboid)) {
                 return null;
             }
 
-            if (!cuboid.bothTableIndexOrNot(parent.cuboidDesc))
+            if (!cuboid.bothTableIndexOrNot(parent.indexEntity))
                 return null;
 
             List<TreeNode> candidates = Lists.newArrayList();
@@ -249,13 +249,13 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
             return Collections.min(candidates, new Comparator<TreeNode>() {
                 @Override
                 public int compare(TreeNode o1, TreeNode o2) {
-                    return o1.cuboidDesc.getDimensions().size() - o2.cuboidDesc.getDimensions().size(); // TODO: compare
+                    return o1.indexEntity.getDimensions().size() - o2.indexEntity.getDimensions().size(); // TODO: compare
                     // with row size
                 }
             });
         }
 
-        private void addCuboid(NCuboidDesc cuboid) {
+        private void addCuboid(IndexEntity cuboid) {
             TreeNode node = new TreeNode(cuboid);
             TreeNode parent = findBestParent(cuboid);
             if (parent != null) {
@@ -269,7 +269,7 @@ public class NForestSpanningTree extends NSpanningTree implements IKeepNames {
             }
 
             nodesMap.put(cuboid.getId(), node);
-            for (NCuboidLayout layout : cuboid.getLayouts()) {
+            for (LayoutEntity layout : cuboid.getLayouts()) {
                 layoutMap.put(layout.getId(), layout);
             }
         }

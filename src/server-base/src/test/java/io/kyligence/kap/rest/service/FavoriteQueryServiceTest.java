@@ -24,11 +24,29 @@
 package io.kyligence.kap.rest.service;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.kylin.job.exception.PersistentException;
+import org.apache.kylin.metadata.project.ProjectInstance;
+import org.apache.kylin.rest.constant.Constant;
+import org.apache.kylin.rest.msg.MsgPicker;
+import org.apache.kylin.rest.request.FavoriteRequest;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.InjectMocks;
+import org.mockito.Mockito;
+import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.util.ReflectionTestUtils;
+
 import com.google.common.collect.Lists;
+
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
@@ -46,24 +64,6 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.smart.NSmartMaster;
 import lombok.val;
 import lombok.var;
-import org.apache.kylin.job.exception.PersistentException;
-import org.apache.kylin.metadata.project.ProjectInstance;
-import org.apache.kylin.rest.constant.Constant;
-import org.apache.kylin.rest.msg.MsgPicker;
-import org.apache.kylin.rest.request.FavoriteRequest;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mockito;
-import org.springframework.security.authentication.TestingAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.lang.reflect.Field;
-import java.util.Comparator;
 
 public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     private static final String PROJECT = "default";
@@ -78,14 +78,6 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
 
     @InjectMocks
     private FavoriteQueryService favoriteQueryService = Mockito.spy(new FavoriteQueryService());
-
-    @BeforeClass
-    public static void setupResource() {
-        staticCreateTestMetadata();
-        getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
-        SecurityContextHolder.getContext()
-                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
-    }
 
     private void createTestFavoriteQuery() {
         FavoriteQueryManager favoriteQueryManager = FavoriteQueryManager.getInstance(getTestConfig(), PROJECT);
@@ -115,6 +107,8 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
     public void setup() {
         createTestMetadata();
         getTestConfig().setProperty("kap.metric.diagnosis.graph-writer-type", "INFLUX");
+        SecurityContextHolder.getContext()
+                .setAuthentication(new TestingAuthenticationToken("ADMIN", "ADMIN", Constant.ROLE_ADMIN));
         ReflectionTestUtils.setField(favoriteQueryService, "favoriteRuleService",
                 Mockito.spy(new FavoriteRuleService()));
         for (ProjectInstance projectInstance : NProjectManager.getInstance(getTestConfig()).listAllProjects()) {
@@ -293,7 +287,7 @@ public class FavoriteQueryServiceTest extends NLocalFileMetadataTestCase {
         projectInstance.setMaintainModelType(MaintainModelType.MANUAL_MAINTAIN);
         projectManager.updateProject(projectInstance);
 
-        NDataModel dataModel = NDataModelManager.getInstance(getTestConfig(), PROJECT).getDataModelDesc("all_fixed_length");
+        NDataModel dataModel = NDataModelManager.getInstance(getTestConfig(), PROJECT).getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         for (NDataModel.NamedColumn namedColumn : dataModel.getAllNamedColumns()) {
             if (namedColumn.getId() == 16) {

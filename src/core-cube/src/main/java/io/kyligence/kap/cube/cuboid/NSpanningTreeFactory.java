@@ -28,45 +28,45 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.ClassUtil;
 
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.IndexEntity;
 
 public class NSpanningTreeFactory {
-    public static NSpanningTree fromCubePlan(NCubePlan cubePlan) {
-        Map<NCuboidDesc, Collection<NCuboidLayout>> descLayouts = Maps.newHashMap();
-        for (NCuboidDesc nCuboidDesc : cubePlan.getAllCuboids()) {
-            descLayouts.put(nCuboidDesc, nCuboidDesc.getLayouts());
+    public static NSpanningTree fromIndexPlan(IndexPlan indexPlan) {
+        Map<IndexEntity, Collection<LayoutEntity>> descLayouts = Maps.newHashMap();
+        for (IndexEntity indexEntity : indexPlan.getAllIndexes()) {
+            descLayouts.put(indexEntity, indexEntity.getLayouts());
         }
-        return newInstance(KapConfig.wrap(cubePlan.getConfig()), descLayouts, cubePlan.getName());
+        return newInstance(KapConfig.wrap(indexPlan.getConfig()), descLayouts, indexPlan.getUuid());
     }
 
-    public static NSpanningTree fromCuboidDescs(Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids, String cacheKey) {
+    public static NSpanningTree fromIndexes(Map<IndexEntity, Collection<LayoutEntity>> cuboids, String cacheKey) {
         return newInstance(KapConfig.getInstanceFromEnv(), cuboids, cacheKey);
     }
 
-    public static NSpanningTree fromCuboidLayouts(Collection<NCuboidLayout> cuboidLayouts, String cacheKey) {
-        Map<NCuboidDesc, Collection<NCuboidLayout>> descLayouts = Maps.newHashMap();
-        for (NCuboidLayout layout : cuboidLayouts) {
-            NCuboidDesc cuboidDesc = layout.getCuboidDesc();
+    public static NSpanningTree fromLayouts(Collection<LayoutEntity> layoutEntities, String cacheKey) {
+        Map<IndexEntity, Collection<LayoutEntity>> descLayouts = Maps.newHashMap();
+        for (LayoutEntity layout : layoutEntities) {
+            IndexEntity cuboidDesc = layout.getIndex();
             if (descLayouts.get(cuboidDesc) == null) {
-                Set<NCuboidLayout> layouts = Sets.newHashSet();
+                Set<LayoutEntity> layouts = Sets.newHashSet();
                 layouts.add(layout);
                 descLayouts.put(cuboidDesc, layouts);
             } else {
                 descLayouts.get(cuboidDesc).add(layout);
             }
         }
-        return fromCuboidDescs(descLayouts, cacheKey);
+        return fromIndexes(descLayouts, cacheKey);
     }
 
-    private static NSpanningTree newInstance(KapConfig kapConfig, Map<NCuboidDesc, Collection<NCuboidLayout>> cuboids,
+    private static NSpanningTree newInstance(KapConfig kapConfig, Map<IndexEntity, Collection<LayoutEntity>> cuboids,
             String cacheKey) {
         try {
             String clzName = kapConfig.getCuboidSpanningTree();

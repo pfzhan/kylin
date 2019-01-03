@@ -67,7 +67,7 @@ public class KapOLAPSchema extends OLAPSchema {
 
         for (TableDesc tableDesc : projectTables) {
             if (tableDesc.getDatabase().equals(schemaName)) {
-                final String tableName = tableDesc.getName();//safe to use tableDesc.getName() here, it is in a DB context now
+                final String tableName = tableDesc.getName();//safe to use tableDesc.getUuid() here, it is in a DB context now
                 final KapOLAPTable table = new KapOLAPTable(this, tableDesc, exposeMore);
                 olapTables.put(tableName, table);
                 //logger.debug("Project " + projectName + " exposes table " + tableName);

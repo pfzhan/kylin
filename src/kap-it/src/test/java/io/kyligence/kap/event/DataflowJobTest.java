@@ -42,13 +42,13 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.cube.cuboid.NAggregationGroup;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
-import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
+import io.kyligence.kap.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
@@ -104,11 +104,11 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
     public void testSegment() throws InterruptedException {
         val eventManager = EventManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val cubeManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val cubeManager = NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val eventDao = EventDao.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val df = dataflowManager.getDataflow("ncube_basic_inner");
-        prepareFirstSegment(df.getName());
-        val df2 = dataflowManager.getDataflow(df.getName());
+        val df = dataflowManager.getDataflow("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        prepareFirstSegment(df.getUuid());
+        val df2 = dataflowManager.getDataflow(df.getUuid());
 
         // remove layouts and add second segment
         val newSeg2 = dataflowManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
@@ -116,36 +116,34 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
 
         val event = new AddSegmentEvent();
         event.setSegmentId(newSeg2.getId());
-        event.setModelName(df.getModel().getName());
-        event.setCubePlanName(df.getCubePlanName());
+        event.setModelId(df.getModel().getUuid());
         event.setJobId(UUID.randomUUID().toString());
         event.setOwner("ADMIN");
         eventManager.post(event);
 
         val postEvent = new PostAddSegmentEvent();
         postEvent.setSegmentId(newSeg2.getId());
-        postEvent.setModelName(df.getModel().getName());
-        postEvent.setCubePlanName(df.getCubePlanName());
+        postEvent.setModelId(df.getModel().getUuid());
         postEvent.setJobId(event.getJobId());
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
 
         waitEventFinish(event.getId(), 240 * 1000);
         // after create spark job remove some layouts
-        val allLayouts = df.getCubePlan().getAllCuboidLayouts().stream().map(NCuboidLayout::getId)
+        val allLayouts = df.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
                 .collect(Collectors.toSet());
-        val livedLayouts = cubeManager.updateCubePlan(df.getCubePlanName(), copyForWrite -> {
-            copyForWrite.setRuleBasedCuboidsDesc(new NRuleBasedCuboidsDesc());
-        }).getAllCuboidLayouts().stream().map(NCuboidLayout::getId).collect(Collectors.toSet());
+        val livedLayouts = cubeManager.updateIndexPlan(df.getUuid(), copyForWrite -> {
+            copyForWrite.setRuleBasedIndex(new NRuleBasedIndex());
+        }).getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
         allLayouts.removeAll(livedLayouts);
         dataflowManager.removeLayouts(df2, allLayouts);
         waitEventFinish(postEvent.getId(), 240 * 1000);
 
-        val df3 = dataflowManager.getDataflow(df.getName());
-        val cuboidsMap3 = df3.getLastSegment().getCuboidsMap();
-        Assert.assertEquals(df3.getCubePlan().getAllCuboidLayouts().size(), cuboidsMap3.size());
+        val df3 = dataflowManager.getDataflow(df.getUuid());
+        val cuboidsMap3 = df3.getLastSegment().getLayoutsMap();
+        Assert.assertEquals(df3.getIndexPlan().getAllLayouts().size(), cuboidsMap3.size());
         Assert.assertEquals(
-                df3.getCubePlan().getAllCuboidLayouts().stream().map(NCuboidLayout::getId)
+                df3.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
                         .sorted(Comparator.naturalOrder()).map(a -> a + "").collect(Collectors.joining(",")),
                 cuboidsMap3.keySet().stream().sorted(Comparator.naturalOrder()).map(a -> a + "")
                         .collect(Collectors.joining(",")));
@@ -154,18 +152,18 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
     @Test
     public void testCuboid() throws InterruptedException {
         val eventManager = EventManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val cubeManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        val cubeManager = NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val modelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val df = dataflowManager.getDataflow("ncube_basic");
-        prepareFirstSegment(df.getName());
-        modelManager.updateDataModel(df.getModel().getName(), copyForWrite -> {
+        val df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        prepareFirstSegment(df.getUuid());
+        modelManager.updateDataModel(df.getModel().getUuid(), copyForWrite -> {
             copyForWrite.setAllMeasures(
-                    copyForWrite.getAllMeasures().stream().filter(m -> m.id != 1011).collect(Collectors.toList()));
+                    copyForWrite.getAllMeasures().stream().filter(m -> m.id != 100011).collect(Collectors.toList()));
         });
-        cubeManager.updateCubePlan(df.getCubePlanName(), copyForWrite -> {
+        cubeManager.updateIndexPlan(df.getUuid(), copyForWrite -> {
             try {
-                val newRule = new NRuleBasedCuboidsDesc();
+                val newRule = new NRuleBasedIndex();
                 newRule.setDimensions(Lists.newArrayList(1, 2, 3, 4, 5, 6));
                 val group1 = JsonUtil
                         .readValue(
@@ -175,32 +173,30 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
                                         + "            [4,6]\n" + "          ]\n" + "        }\n" + "}",
                                 NAggregationGroup.class);
                 newRule.setAggregationGroups(Lists.newArrayList(group1));
-                copyForWrite.setRuleBasedCuboidsDesc(newRule);
+                copyForWrite.setRuleBasedIndex(newRule);
             } catch (IOException ignore) {
             }
         });
 
         AddCuboidEvent event = new AddCuboidEvent();
-        event.setModelName(df.getModel().getName());
-        event.setCubePlanName(df.getCubePlanName());
+        event.setModelId(df.getModel().getUuid());
         event.setJobId(UUID.randomUUID().toString());
         event.setOwner("ADMIN");
         eventManager.post(event);
 
         val postEvent = new PostAddCuboidEvent();
-        postEvent.setModelName(df.getModel().getName());
-        postEvent.setCubePlanName(df.getCubePlanName());
+        postEvent.setModelId(df.getModel().getUuid());
         postEvent.setJobId(event.getJobId());
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
 
         waitEventFinish(postEvent.getId(), 240 * 1000);
 
-        val df2 = dataflowManager.getDataflow(df.getName());
-        val cuboidsMap2 = df2.getLastSegment().getCuboidsMap();
-        Assert.assertEquals(df2.getCubePlan().getAllCuboidLayouts().size(), cuboidsMap2.size());
+        val df2 = dataflowManager.getDataflow(df.getUuid());
+        val cuboidsMap2 = df2.getLastSegment().getLayoutsMap();
+        Assert.assertEquals(df2.getIndexPlan().getAllLayouts().size(), cuboidsMap2.size());
         Assert.assertEquals(
-                df2.getCubePlan().getAllCuboidLayouts().stream().map(NCuboidLayout::getId)
+                df2.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
                         .sorted(Comparator.naturalOrder()).map(a -> a + "").collect(Collectors.joining(",")),
                 cuboidsMap2.keySet().stream().sorted(Comparator.naturalOrder()).map(a -> a + "")
                         .collect(Collectors.joining(",")));
@@ -210,19 +206,18 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
     public void testMerge() throws InterruptedException {
         val eventManager = EventManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val cubeManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        var df = dataflowManager.getDataflow("ncube_basic");
-        prepareSegment(df.getName(), "2012-01-01", "2012-06-01", true);
-        prepareSegment(df.getName(), "2012-06-01", "2012-09-01", false);
+        val cubeManager = NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
+        var df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        prepareSegment(df.getUuid(), "2012-01-01", "2012-06-01", true);
+        prepareSegment(df.getUuid(), "2012-06-01", "2012-09-01", false);
 
-        df = dataflowManager.getDataflow(df.getName());
+        df = dataflowManager.getDataflow(df.getUuid());
         val sg = new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2012-01-01"),
                 SegmentRange.dateToLong("2012-09-01"));
         NDataSegment newSeg = dataflowManager.mergeSegments(df, sg, false);
         MergeSegmentEvent event = new MergeSegmentEvent();
 
-        event.setModelName(df.getModel().getName());
-        event.setCubePlanName(df.getCubePlanName());
+        event.setModelId(df.getModel().getUuid());
         event.setJobId(UUID.randomUUID().toString());
         event.setSegmentId(newSeg.getId());
         event.setOwner("ADMIN");
@@ -231,27 +226,26 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
 
         // after create spark job remove some layouts
         val removeIds = Sets.newHashSet(1L);
-        cubeManager.updateCubePlan(df.getCubePlanName(), copyForWrite -> {
-            copyForWrite.removeLayouts(removeIds, NCuboidLayout::equals, true, true);
+        cubeManager.updateIndexPlan(df.getUuid(), copyForWrite -> {
+            copyForWrite.removeLayouts(removeIds, LayoutEntity::equals, true, true);
         });
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         dataflowManager.removeLayouts(df, removeIds);
 
         val postEvent = new PostMergeOrRefreshSegmentEvent();
-        postEvent.setModelName(df.getModel().getName());
-        postEvent.setCubePlanName(df.getCubePlanName());
+        postEvent.setModelId(df.getModel().getUuid());
         postEvent.setJobId(event.getJobId());
         postEvent.setSegmentId(newSeg.getId());
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
         waitEventFinish(postEvent.getId(), 240 * 1000);
 
-        val df2 = dataflowManager.getDataflow(df.getName());
+        val df2 = dataflowManager.getDataflow(df.getUuid());
         Assert.assertEquals(1, df2.getSegments().size());
         Assert.assertEquals(
-                df2.getCubePlan().getAllCuboidLayouts().stream().map(NCuboidLayout::getId)
+                df2.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
                         .sorted(Comparator.naturalOrder()).map(a -> a + "").collect(Collectors.joining(",")),
-                df2.getLastSegment().getCuboidsMap().keySet().stream().sorted(Comparator.naturalOrder())
+                df2.getLastSegment().getLayoutsMap().keySet().stream().sorted(Comparator.naturalOrder())
                         .map(a -> a + "").collect(Collectors.joining(",")));
     }
 
@@ -262,7 +256,7 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         NDataflow df = dataflowManager.getDataflow(dfName);
         // remove the existed seg
         if (needRemoveExist) {
-            NDataflowUpdate update = new NDataflowUpdate(df.getName());
+            NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
             update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
             df = dataflowManager.updateDataflow(update);
         }
@@ -272,27 +266,25 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
         // add first segment
         AddSegmentEvent event = new AddSegmentEvent();
         event.setSegmentId(newSeg.getId());
-        event.setModelName(df.getModel().getName());
-        event.setCubePlanName(df.getCubePlanName());
+        event.setModelId(df.getModel().getUuid());
         event.setJobId(UUID.randomUUID().toString());
         event.setOwner("ADMIN");
         eventManager.post(event);
 
         PostAddSegmentEvent postEvent = new PostAddSegmentEvent();
         postEvent.setSegmentId(newSeg.getId());
-        postEvent.setModelName(df.getModel().getName());
-        postEvent.setCubePlanName(df.getCubePlanName());
+        postEvent.setModelId(df.getModel().getUuid());
         postEvent.setJobId(event.getJobId());
         postEvent.setOwner("ADMIN");
         eventManager.post(postEvent);
 
         waitEventFinish(postEvent.getId(), 240 * 1000);
 
-        val df2 = dataflowManager.getDataflow(df.getName());
-        val cuboidsMap2 = df2.getLastSegment().getCuboidsMap();
-        Assert.assertEquals(df2.getCubePlan().getAllCuboidLayouts().size(), cuboidsMap2.size());
+        val df2 = dataflowManager.getDataflow(df.getUuid());
+        val cuboidsMap2 = df2.getLastSegment().getLayoutsMap();
+        Assert.assertEquals(df2.getIndexPlan().getAllLayouts().size(), cuboidsMap2.size());
         Assert.assertEquals(
-                df.getCubePlan().getAllCuboidLayouts().stream().map(NCuboidLayout::getId)
+                df.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
                         .sorted(Comparator.naturalOrder()).map(a -> a + "").collect(Collectors.joining(",")),
                 cuboidsMap2.keySet().stream().sorted(Comparator.naturalOrder()).map(a -> a + "")
                         .collect(Collectors.joining(",")));

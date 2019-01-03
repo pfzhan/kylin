@@ -43,27 +43,10 @@
 package io.kyligence.kap.rest.controller;
 
 import java.util.ArrayList;
-
 import java.util.List;
 import java.util.UUID;
 
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.rest.request.BuildSegmentsRequest;
-import io.kyligence.kap.rest.request.ModelCheckRequest;
-import io.kyligence.kap.rest.request.ModelCloneRequest;
-import io.kyligence.kap.rest.request.ModelRequest;
-import io.kyligence.kap.rest.request.ModelUpdateRequest;
-import io.kyligence.kap.rest.request.SegmentsRequest;
-import io.kyligence.kap.rest.request.UnlinkModelRequest;
-import io.kyligence.kap.rest.response.CuboidDescResponse;
-import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
-import io.kyligence.kap.rest.response.NSpanningTreeResponse;
-import io.kyligence.kap.rest.response.RelatedModelResponse;
-import io.kyligence.kap.rest.service.ModelService;
+import io.kyligence.kap.cube.model.IndexEntity;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -85,9 +68,25 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import io.kyligence.kap.rest.request.ModelConfigRequest;
 
+import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.rest.request.BuildSegmentsRequest;
+import io.kyligence.kap.rest.request.ModelCheckRequest;
+import io.kyligence.kap.rest.request.ModelCloneRequest;
+import io.kyligence.kap.rest.request.ModelConfigRequest;
+import io.kyligence.kap.rest.request.ModelRequest;
+import io.kyligence.kap.rest.request.ModelUpdateRequest;
+import io.kyligence.kap.rest.request.SegmentsRequest;
+import io.kyligence.kap.rest.request.UnlinkModelRequest;
+import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
+import io.kyligence.kap.rest.response.NDataModelResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.NSpanningTreeResponse;
+import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.service.ModelService;
 import lombok.val;
 
 public class NModelControllerTest extends NLocalFileMetadataTestCase {
@@ -173,12 +172,12 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testGetCuboids() throws Exception {
-        NCuboidDesc cuboidDesc = new NCuboidDesc();
+        IndexEntity cuboidDesc = new IndexEntity();
         cuboidDesc.setId(432323);
-        cuboidDesc.setCubePlan(
-                NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default").getCubePlan("ncube_basic"));
-        CuboidDescResponse cuboidDescResponse = new CuboidDescResponse(cuboidDesc);
-        Mockito.when(modelService.getCuboidById("model1", "default", 432323L)).thenReturn(cuboidDescResponse);
+        cuboidDesc.setIndexPlan(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        IndexEntityResponse indexEntityResponse = new IndexEntityResponse(cuboidDesc);
+        Mockito.when(modelService.getCuboidById("model1", "default", 432323L)).thenReturn(indexEntityResponse);
         MvcResult mvcResult = mockMvc
                 .perform(MockMvcRequestBuilders.get("/api/models/cuboids").contentType(MediaType.APPLICATION_JSON)
                         .param("id", "432323").param("project", "default").param("model", "model1")
@@ -201,13 +200,16 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetSegments() throws Exception {
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(432L, 2234L);
-        Mockito.when(modelService.getSegmentsResponse("nmodel_basic", "default", "432", "2234", "end_time", true, "")).thenReturn(mockSegments());
+        Mockito.when(modelService.getSegmentsResponse("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "432", "2234",
+                "end_time", true, "")).thenReturn(mockSegments());
         mockMvc.perform(MockMvcRequestBuilders.get("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
-                .param("offset", "0").param("project", "default").param("model", "nmodel_basic").param("limit", "10")
-                .param("start", "432").param("end", "2234").param("sortBy", "end_time").param("reverse", "true").param("status", "")
+                .param("offset", "0").param("project", "default").param("model", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .param("limit", "10").param("start", "432").param("end", "2234").param("sortBy", "end_time")
+                .param("reverse", "true").param("status", "")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nModelController).getSegments("nmodel_basic", "default", "", 0, 10, "432", "2234", "end_time", true);
+        Mockito.verify(nModelController).getSegments("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default", "", 0, 10,
+                "432", "2234", "end_time", true);
     }
 
     @Test
@@ -257,7 +259,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testRenameModel() throws Exception {
-        Mockito.doNothing().when(modelService).renameDataModel("default", "nmodel_basic", "newAlias");
+        Mockito.doNothing().when(modelService).renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "newAlias");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/name").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockModelUpdateRequest()))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -269,7 +272,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testRenameModelException() throws Exception {
         ModelUpdateRequest modelUpdateRequest = mockModelUpdateRequest();
         modelUpdateRequest.setNewModelName("newAlias)))&&&");
-        Mockito.doNothing().when(modelService).renameDataModel("default", "nmodel_basic", "newAlias)))&&&");
+        Mockito.doNothing().when(modelService).renameDataModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "newAlias)))&&&");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/name").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(modelUpdateRequest))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -281,7 +285,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testUpdateModelStatus() throws Exception {
         ModelUpdateRequest modelUpdateRequest = mockModelUpdateRequest();
         modelUpdateRequest.setStatus("DISABLED");
-        Mockito.doNothing().when(modelService).updateDataModelStatus("default", "nmodel_basic", "OFFLINE");
+        Mockito.doNothing().when(modelService).updateDataModelStatus("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                "OFFLINE");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(mockModelUpdateRequest()))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -292,7 +297,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     private ModelUpdateRequest mockModelUpdateRequest() {
         ModelUpdateRequest updateRequest = new ModelUpdateRequest();
         updateRequest.setProject("default");
-        updateRequest.setModelName("nmodel_basic");
+        updateRequest.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         updateRequest.setNewModelName("newAlias");
         updateRequest.setStatus("DISABLED");
         return updateRequest;
@@ -300,39 +305,43 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testDeleteModel() throws Exception {
-        Mockito.doNothing().when(modelService).dropModel("nmodel_basic", "default");
-        mockMvc.perform(MockMvcRequestBuilders.delete("/api/models/{project}/{model}", "default", "nmodel_basic")
+        Mockito.doNothing().when(modelService).dropModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
+        mockMvc.perform(MockMvcRequestBuilders
+                .delete("/api/models/{project}/{model}", "default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).deleteModel("default", "nmodel_basic");
+        Mockito.verify(nModelController).deleteModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
     }
 
     @Test
     public void testDeleteSegmentsAll() throws Exception {
-        Mockito.doNothing().when(modelService).purgeModelManually("nmodel_basic", "default");
-        mockMvc.perform(
-                MockMvcRequestBuilders.delete("/api/models/segments/{project}/{model}", "default", "nmodel_basic")
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        Mockito.doNothing().when(modelService).purgeModelManually("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
+        mockMvc.perform(MockMvcRequestBuilders
+                .delete("/api/models/segments/{project}/{model}", "default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).deleteSegments("default", "nmodel_basic", null);
+        Mockito.verify(nModelController).deleteSegments("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", null);
     }
 
     @Test
     public void testDeleteSegmentsByIds() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
-        Mockito.doNothing().when(modelService).deleteSegmentById("nmodel_basic", "default", request.getIds());
-        mockMvc.perform(
-                MockMvcRequestBuilders.delete("/api/models/segments/{project}/{model}", "default", "nmodel_basic")
-                        .param("ids", "ef5e0663-feba-4ed2-b71c-21958122bbff")
-                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        Mockito.doNothing().when(modelService).deleteSegmentById("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
+                request.getIds());
+        mockMvc.perform(MockMvcRequestBuilders
+                .delete("/api/models/segments/{project}/{model}", "default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                .param("ids", "ef5e0663-feba-4ed2-b71c-21958122bbff")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).deleteSegments("default", "nmodel_basic", request.getIds());
+        Mockito.verify(nModelController).deleteSegments("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                request.getIds());
     }
 
     @Test
     public void testRefreshSegmentsById() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
-        Mockito.doNothing().when(modelService).refreshSegmentById("nmodel_basic", "default", request.getIds());
+        Mockito.doNothing().when(modelService).refreshSegmentById("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
+                request.getIds());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -344,7 +353,8 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testRefreshSegmentsByIdException() throws Exception {
         SegmentsRequest request = mockSegmentRequest();
         request.setIds(null);
-        Mockito.doNothing().when(modelService).refreshSegmentById("nmodel_basic", "default", request.getIds());
+        Mockito.doNothing().when(modelService).refreshSegmentById("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default",
+                request.getIds());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/segments").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -355,7 +365,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     private SegmentsRequest mockSegmentRequest() {
         SegmentsRequest segmentsRequest = new SegmentsRequest();
         segmentsRequest.setIds(new String[] { "ef5e0663-feba-4ed2-b71c-21958122bbff" });
-        segmentsRequest.setModelName("nmodel_basic");
+        segmentsRequest.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         segmentsRequest.setProject("default");
         return segmentsRequest;
     }
@@ -364,7 +374,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     public void testCreateModel() throws Exception {
         ModelRequest request = new ModelRequest();
         request.setProject("default");
-        Mockito.doNothing().when(modelService).createModel(request.getProject(), request);
+        Mockito.doReturn(null).when(modelService).createModel(request.getProject(), request);
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -375,10 +385,11 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCloneModel() throws Exception {
         ModelCloneRequest request = new ModelCloneRequest();
-        request.setModelName("nmodel_basic");
+        request.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         request.setNewModelName("new_model");
         request.setProject("default");
-        Mockito.doNothing().when(modelService).cloneModel("nmodel_basic", "new_model", "default");
+        Mockito.doNothing().when(modelService).cloneModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "new_model",
+                "default");
         mockMvc.perform(MockMvcRequestBuilders.post("/api/models/clone").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
@@ -398,19 +409,21 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         request.setCheckOptions(7);
         request.setFaultThreshold(10);
         request.setFaultActions(2);
-        Mockito.doNothing().when(modelService).updateModelDataCheckDesc("default", "nmodel_basic", 7, 10, 2);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/{name}/data_check", "nmodel_basic")
-                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+        Mockito.doNothing().when(modelService).updateModelDataCheckDesc("default",
+                "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 7, 10, 2);
+        mockMvc.perform(
+                MockMvcRequestBuilders.put("/api/models/{name}/data_check", "89af4ee2-2cdb-4b07-b39e-4c29856309aa")
+                        .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                        .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).updateModelDataCheckDesc("nmodel_basic", request);
+        Mockito.verify(nModelController).updateModelDataCheckDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa", request);
 
     }
 
     @Test
     public void testBuildSegments() throws Exception {
         BuildSegmentsRequest request = new BuildSegmentsRequest();
-        request.setModel("nmodel_basic");
+        request.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         request.setProject("default");
         request.setStart("0");
         request.setEnd("100");
@@ -425,7 +438,7 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testUnlinkModel() throws Exception {
         UnlinkModelRequest request = new UnlinkModelRequest();
-        request.setModelName("nmodel_basic");
+        request.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         request.setProject("default");
         Mockito.doNothing().when(modelService).unlinkModel("default", "nmodel_basci");
         mockMvc.perform(MockMvcRequestBuilders.put("/api/models/management_type")
@@ -459,12 +472,13 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         val request = new ModelConfigRequest();
         request.setAutoMergeEnabled(false);
         request.setProject("default");
-        Mockito.doNothing().when(modelService).updateModelConfig("default", "nmodel_basic", request);
-        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/nmodel_basic/config")
+        Mockito.doNothing().when(modelService).updateModelConfig("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/models/89af4ee2-2cdb-4b07-b39e-4c29856309aa/config")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
-        Mockito.verify(nModelController).updateModelConfig("nmodel_basic", request);
+        Mockito.verify(nModelController).updateModelConfig("89af4ee2-2cdb-4b07-b39e-4c29856309aa", request);
     }
 
     private List<NSpanningTreeResponse> mockRelations() {
@@ -474,13 +488,13 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
         return nSpanningTrees;
     }
 
-    private List<CuboidDescResponse> mockCuboidDescs() {
-        final List<CuboidDescResponse> nCuboidDescs = new ArrayList<>();
-        NCuboidDesc cuboidDesc = new NCuboidDesc();
+    private List<IndexEntityResponse> mockCuboidDescs() {
+        final List<IndexEntityResponse> nCuboidDescs = new ArrayList<>();
+        IndexEntity cuboidDesc = new IndexEntity();
         cuboidDesc.setId(1234);
-        cuboidDesc.setCubePlan(
-                NCubePlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default").getCubePlan("ncube_basic"));
-        nCuboidDescs.add(new CuboidDescResponse(cuboidDesc));
+        cuboidDesc.setIndexPlan(NIndexPlanManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        nCuboidDescs.add(new IndexEntityResponse(cuboidDesc));
         return nCuboidDescs;
     }
 
@@ -496,16 +510,16 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     private List<NDataModelResponse> mockModels() {
         final List<NDataModelResponse> models = new ArrayList<>();
         NDataModel model = new NDataModel();
-        model.setName("model1");
+        model.setUuid("model1");
         models.add(new NDataModelResponse(model));
         NDataModel model1 = new NDataModel();
-        model.setName("model2");
+        model.setUuid("model2");
         models.add(new NDataModelResponse(model1));
         NDataModel model2 = new NDataModel();
-        model.setName("model3");
+        model.setUuid("model3");
         models.add(new NDataModelResponse(model2));
         NDataModel model3 = new NDataModel();
-        model.setName("model4");
+        model.setUuid("model4");
         models.add(new NDataModelResponse(model3));
 
         return models;
@@ -514,16 +528,16 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
     private List<RelatedModelResponse> mockRelatedModels() {
         final List<RelatedModelResponse> models = new ArrayList<>();
         NDataModel model = new NDataModel();
-        model.setName("model1");
+        model.setUuid("model1");
         models.add(new RelatedModelResponse(model));
         NDataModel model1 = new NDataModel();
-        model.setName("model2");
+        model.setUuid("model2");
         models.add(new RelatedModelResponse(model1));
         NDataModel model2 = new NDataModel();
-        model.setName("model3");
+        model.setUuid("model3");
         models.add(new RelatedModelResponse(model2));
         NDataModel model3 = new NDataModel();
-        model.setName("model4");
+        model.setUuid("model4");
         models.add(new RelatedModelResponse(model3));
 
         return models;

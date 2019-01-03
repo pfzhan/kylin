@@ -54,8 +54,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
@@ -191,18 +191,18 @@ public class FavoriteQueryService extends BasicService {
         if (modelContexts.isEmpty())
             return optimizedModelNum;
 
-        smartMaster.selectCubePlan();
-        smartMaster.optimizeCubePlan();
+        smartMaster.selectIndexPlan();
+        smartMaster.optimizeIndexPlan();
 
         for (NSmartContext.NModelContext modelContext : modelContexts) {
-            List<NCuboidLayout> origCuboidLayouts = Lists.newArrayList();
-            List<NCuboidLayout> targetCuboidLayouts = Lists.newArrayList();
+            List<LayoutEntity> origCuboidLayouts = Lists.newArrayList();
+            List<LayoutEntity> targetCuboidLayouts = Lists.newArrayList();
 
-            if (modelContext.getOrigCubePlan() != null)
-                origCuboidLayouts = modelContext.getOrigCubePlan().getAllCuboidLayouts();
+            if (modelContext.getOrigIndexPlan() != null)
+                origCuboidLayouts = modelContext.getOrigIndexPlan().getAllLayouts();
 
-            if (modelContext.getTargetCubePlan() != null)
-                targetCuboidLayouts = modelContext.getTargetCubePlan().getAllCuboidLayouts();
+            if (modelContext.getTargetIndexPlan() != null)
+                targetCuboidLayouts = modelContext.getTargetIndexPlan().getAllLayouts();
 
             if (!doTwoCuboidLayoutsEqual(origCuboidLayouts, targetCuboidLayouts))
                 optimizedModelNum++;
@@ -211,8 +211,8 @@ public class FavoriteQueryService extends BasicService {
         return optimizedModelNum;
     }
 
-    private boolean doTwoCuboidLayoutsEqual(List<NCuboidLayout> origCuboidLayouts,
-                                            List<NCuboidLayout> targetCuboidLayouts) {
+    private boolean doTwoCuboidLayoutsEqual(List<LayoutEntity> origCuboidLayouts,
+                                            List<LayoutEntity> targetCuboidLayouts) {
         if (origCuboidLayouts.size() != targetCuboidLayouts.size())
             return false;
 
@@ -322,15 +322,14 @@ public class FavoriteQueryService extends BasicService {
 
                     List<String> sqls = getRelatedSqlsFromModelContext(modelContext, blockedSqlInfo);
 
-                    NCubePlan origCubePlan = modelContext.getOrigCubePlan();
-                    NCubePlan targetCubePlan = modelContext.getTargetCubePlan();
-                    Pair<List<Long>, List<Long>> updatedLayoutsPair = calcUpdatedLayoutIds(origCubePlan,
-                            targetCubePlan);
+                    IndexPlan origIndexPlan = modelContext.getOrigIndexPlan();
+                    IndexPlan targetIndexPlan = modelContext.getTargetIndexPlan();
+                    Pair<List<Long>, List<Long>> updatedLayoutsPair = calcUpdatedLayoutIds(origIndexPlan,
+                            targetIndexPlan);
                     List<Long> addedLayoutIds = updatedLayoutsPair.getFirst();
                     if (CollectionUtils.isNotEmpty(addedLayoutIds)) {
                         AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-                        addCuboidEvent.setModelName(targetCubePlan.getModelName());
-                        addCuboidEvent.setCubePlanName(targetCubePlan.getName());
+                        addCuboidEvent.setModelId(targetIndexPlan.getUuid());
                         addCuboidEvent.setSqlPatterns(sqls);
                         addCuboidEvent.setOwner(user);
                         addCuboidEvent.setJobId(UUID.randomUUID().toString());
@@ -338,8 +337,7 @@ public class FavoriteQueryService extends BasicService {
 
                         PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
                         postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-                        postAddCuboidEvent.setModelName(targetCubePlan.getModelName());
-                        postAddCuboidEvent.setCubePlanName(targetCubePlan.getName());
+                        postAddCuboidEvent.setModelId(targetIndexPlan.getUuid());
                         postAddCuboidEvent.setOwner(user);
                         postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
                         postAddCuboidEvent.setSqlPatterns(sqls);
@@ -435,7 +433,7 @@ public class FavoriteQueryService extends BasicService {
         return sqls;
     }
 
-    private static Pair<List<Long>, List<Long>> calcUpdatedLayoutIds(NCubePlan origCubePlan, NCubePlan targetCubePlan) {
+    private static Pair<List<Long>, List<Long>> calcUpdatedLayoutIds(IndexPlan origIndexPlan, IndexPlan targetIndexPlan) {
         Pair<List<Long>, List<Long>> pair = new Pair<>();
         List<Long> currentLayoutIds = new ArrayList<>();
         List<Long> toBeLayoutIds = new ArrayList<>();
@@ -445,12 +443,12 @@ public class FavoriteQueryService extends BasicService {
         pair.setFirst(addedLayoutIds);
         pair.setSecond(removedLayoutIds);
 
-        if (origCubePlan == null && targetCubePlan == null) {
+        if (origIndexPlan == null && targetIndexPlan == null) {
             return pair;
         }
 
-        currentLayoutIds.addAll(getLayoutIds(origCubePlan));
-        toBeLayoutIds.addAll(getLayoutIds(targetCubePlan));
+        currentLayoutIds.addAll(getLayoutIds(origIndexPlan));
+        toBeLayoutIds.addAll(getLayoutIds(targetIndexPlan));
 
         addedLayoutIds.addAll(currentLayoutIds);
         addedLayoutIds.addAll(toBeLayoutIds);
@@ -463,17 +461,17 @@ public class FavoriteQueryService extends BasicService {
         return pair;
     }
 
-    private static List<Long> getLayoutIds(NCubePlan cubePlan) {
+    private static List<Long> getLayoutIds(IndexPlan indexPlan) {
         List<Long> layoutIds = Lists.newArrayList();
-        if (cubePlan == null) {
+        if (indexPlan == null) {
             return layoutIds;
         }
-        List<NCuboidLayout> layoutList = cubePlan.getAllCuboidLayouts();
+        List<LayoutEntity> layoutList = indexPlan.getAllLayouts();
         if (CollectionUtils.isEmpty(layoutList)) {
             return layoutIds;
         }
 
-        for (NCuboidLayout layout : layoutList) {
+        for (LayoutEntity layout : layoutList) {
             layoutIds.add(layout.getId());
         }
         return layoutIds;

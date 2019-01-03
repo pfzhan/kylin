@@ -34,7 +34,7 @@ public class BuildSegmentsRequest {
 
     private String project;
 
-    private String model;
+    private String modelId;
 
     private String start;
 

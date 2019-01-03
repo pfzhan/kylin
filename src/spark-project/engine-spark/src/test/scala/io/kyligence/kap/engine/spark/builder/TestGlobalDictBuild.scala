@@ -38,7 +38,7 @@ import scala.collection.mutable.ListBuffer
 class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession with LocalMetadata {
 
   private val DEFAULT_PROJECT = "default"
-  private val CUBE_NAME = "ncube_basic"
+  private val CUBE_NAME = "89af4ee2-2cdb-4b07-b39e-4c29856309aa"
 
   def getTestConfig: KylinConfig = {
     val config = KylinConfig.getInstanceFromEnv
@@ -50,7 +50,7 @@ class TestGlobalDictBuild extends SparderBaseFunSuite with SharedSparkSession wi
     Assert.assertTrue(getTestConfig.getHdfsWorkingDirectory.startsWith("file:"))
     val df: NDataflow = dsMgr.getDataflow(CUBE_NAME)
     val seg = df.getLastSegment
-    val nSpanningTree = NSpanningTreeFactory.fromCuboidLayouts(seg.getCubePlan.getAllCuboidLayouts, df.getName)
+    val nSpanningTree = NSpanningTreeFactory.fromLayouts(seg.getIndexPlan.getAllLayouts, df.getUuid)
     val dictColSet = DictionaryBuilder.extractGlobalEncodeColumns(seg, nSpanningTree)
     val col = dictColSet.iterator().next()
     seg.getConfig.setProperty("kylin.dictionary.globalV2-threshold-bucket-size", "100")

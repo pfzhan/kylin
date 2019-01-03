@@ -116,7 +116,7 @@ import lombok.val;
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class NDataModel extends RootPersistentEntity {
     private static final Logger logger = LoggerFactory.getLogger(NDataModel.class);
-    public static final int MEASURE_ID_BASE = 1000;
+    public static final int MEASURE_ID_BASE = 100000;
 
     public enum TableKind implements Serializable {
         FACT, LOOKUP
@@ -127,10 +127,6 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     private KylinConfig config;
-
-    @EqualsAndHashCode.Include
-    @JsonProperty("name")
-    private String name;
 
     @EqualsAndHashCode.Include
     @JsonProperty("alias")
@@ -325,7 +321,6 @@ public class NDataModel extends RootPersistentEntity {
         this.uuid = other.uuid;
         this.lastModified = other.lastModified;
         this.version = other.version;
-        this.name = other.name;
         this.alias = other.alias;
         this.owner = other.owner;
         this.isDraft = other.isDraft;
@@ -352,7 +347,7 @@ public class NDataModel extends RootPersistentEntity {
 
     @Override
     public String resourceName() {
-        return name;
+        return uuid;
     }
 
     public ManagementType getManagementType() {
@@ -408,15 +403,6 @@ public class NDataModel extends RootPersistentEntity {
 
     public void setDataCheckDesc(DataCheckDesc dataCheckDesc) {
         this.dataCheckDesc = dataCheckDesc;
-    }
-
-    @Deprecated
-    public List<TableDesc> getLookupTableDescs() {
-        List<TableDesc> result = Lists.newArrayList();
-        for (TableRef table : getLookupTables()) {
-            result.add(table.getTableDesc());
-        }
-        return result;
     }
 
     public boolean isLookupTable(TableRef t) {
@@ -535,7 +521,7 @@ public class NDataModel extends RootPersistentEntity {
             if (lookup.getTableIdentity().equals(tableIdentity))
                 return lookup;
         }
-        throw new IllegalArgumentException("Table not found by " + tableIdentity + " in model " + name);
+        throw new IllegalArgumentException("Table not found by " + tableIdentity + " in model " + uuid);
     }
 
     public void init(KylinConfig config, Map<String, TableDesc> tables) {
@@ -549,7 +535,7 @@ public class NDataModel extends RootPersistentEntity {
         initPartitionDesc();
         initFilterCondition();
         if (StringUtils.isEmpty(this.alias)) {
-            this.alias = this.name;
+            this.alias = this.uuid;
         }
     }
 
@@ -810,7 +796,7 @@ public class NDataModel extends RootPersistentEntity {
 
     @Override
     public String toString() {
-        return "NDataModel [name=" + name + "]";
+        return "NDataModel [" + uuid + "(" + alias + ")]";
     }
 
     public static String concatResourcePath(String descName) {
@@ -830,7 +816,7 @@ public class NDataModel extends RootPersistentEntity {
     }
 
     public void init(KylinConfig config, Map<String, TableDesc> originalTables, List<NDataModel> otherModels,
-            boolean isOnlineModel, String project) {
+            String project) {
         this.project = project;
 
         // tweak the tables according to Computed Columns defined in model
@@ -896,7 +882,7 @@ public class NDataModel extends RootPersistentEntity {
             int id = e.getKey();
             T value = e.getValue();
             if (reverseMap.containsKey(value)) {
-                throw new IllegalStateException("Illegal model '" + getName() + "', " + value + " has duplicated ID: "
+                throw new IllegalStateException("Illegal model '" + id + "', " + value + " has duplicated ID: "
                         + reverseMap.get(value) + " and " + id);
             }
             reverseMap.put(value, id);
@@ -947,7 +933,7 @@ public class NDataModel extends RootPersistentEntity {
                 countNum++;
         }
         if (countNum != 1)
-            throw new IllegalStateException("Illegal model '" + getName()
+            throw new IllegalStateException("Illegal model '" + uuid
                     + "', should have one and only one COUNT() measure but there are " + countNum);
 
         // check all measure columns are effective
@@ -956,7 +942,7 @@ public class NDataModel extends RootPersistentEntity {
             if (effectiveCols.values().containsAll(mCols) == false) {
                 List<TblColRef> notEffective = new ArrayList<>(mCols);
                 notEffective.removeAll(effectiveCols.values());
-                throw new IllegalStateException("Illegal model '" + getName() + "', some columns referenced in " + m
+                throw new IllegalStateException("Illegal model '" + uuid + "', some columns referenced in " + m
                         + " is not on model: " + notEffective);
             }
         }
@@ -1098,7 +1084,7 @@ public class NDataModel extends RootPersistentEntity {
 
         List<Pair<ComputedColumnDesc, NDataModel>> existingCCs = Lists.newArrayList();
         for (NDataModel otherModel : otherModels) {
-            if (!StringUtils.equals(otherModel.getName(), this.getName())) { // when update, self is already in otherModels
+            if (!StringUtils.equals(otherModel.getUuid(), this.getUuid())) { // when update, self is already in otherModels
                 for (ComputedColumnDesc cc : otherModel.getComputedColumnDescs()) {
                     existingCCs.add(Pair.newPair(cc, otherModel));
                 }
@@ -1150,10 +1136,10 @@ public class NDataModel extends RootPersistentEntity {
 
         String msg = String.format(
                 "Column name for computed column %s is already used in model %s, you should apply the same expression %s here, or use a different computed column name.",
-                newCC.getFullName(), existingModel.getName(),
+                newCC.getFullName(), existingModel.getAlias(),
                 advisedExpr != null ? "as \' " + advisedExpr + " \'" : "like \' " + existingCC.getExpression() + " \'");
         throw new BadModelException(msg, BadModelException.CauseType.SAME_NAME_DIFF_EXPR, advisedExpr,
-                existingModel.getName(), newCC.getFullName());
+                existingModel.getAlias(), newCC.getFullName());
     }
 
     private AliasMapping getCCAliasMapping(NDataModel existingModel, ComputedColumnDesc existingCC,
@@ -1180,10 +1166,10 @@ public class NDataModel extends RootPersistentEntity {
         String adviseName = existingCC.getColumnName();
         String msg = String.format(
                 "Expression %s in computed column %s is already defined by computed column %s from model %s, you should use the same column name: ' %s ' .",
-                newCC.getExpression(), newCC.getFullName(), existingCC.getFullName(), existingModel.getName(),
+                newCC.getExpression(), newCC.getFullName(), existingCC.getFullName(), existingModel.getAlias(),
                 existingCC.getColumnName());
         throw new BadModelException(msg, BadModelException.CauseType.SAME_EXPR_DIFF_NAME, adviseName,
-                existingModel.getName(), newCC.getFullName());
+                existingModel.getAlias(), newCC.getFullName());
     }
 
     private void makeAdviseOnWrongPositionExpr(NDataModel existingModel, ComputedColumnDesc existingCC,
@@ -1196,15 +1182,15 @@ public class NDataModel extends RootPersistentEntity {
         if (advice != null) {
             msg = String.format(
                     "Computed column %s's expression is already defined in model %s, to reuse it you have to define it on alias table: %s",
-                    newCC.getColumnName(), existingModel.getName(), advice);
+                    newCC.getColumnName(), existingModel.getAlias(), advice);
         } else {
             msg = String.format(
                     "Computed column %s's expression is already defined in model %s, no suggestion could be provided to reuse it",
-                    newCC.getColumnName(), existingModel.getName());
+                    newCC.getColumnName(), existingModel.getAlias());
         }
 
         throw new BadModelException(msg, BadModelException.CauseType.WRONG_POSITION_DUE_TO_EXPR, advice,
-                existingModel.getName(), newCC.getFullName());
+                existingModel.getAlias(), newCC.getFullName());
     }
 
     private void makeAdviseOnWrongPositionName(NDataModel existingModel, ComputedColumnDesc existingCC,
@@ -1217,15 +1203,15 @@ public class NDataModel extends RootPersistentEntity {
         if (advice != null) {
             msg = String.format(
                     "Computed column %s is already defined in model %s, to reuse it you have to define it on alias table: %s",
-                    newCC.getColumnName(), existingModel.getName(), advice);
+                    newCC.getColumnName(), existingModel.getAlias(), advice);
         } else {
             msg = String.format(
                     "Computed column %s is already defined in model %s, no suggestion could be provided to reuse it",
-                    newCC.getColumnName(), existingModel.getName());
+                    newCC.getColumnName(), existingModel.getAlias());
         }
 
         throw new BadModelException(msg, BadModelException.CauseType.WRONG_POSITION_DUE_TO_NAME, advice,
-                existingModel.getName(), newCC.getFullName());
+                existingModel.getAlias(), newCC.getFullName());
     }
 
     private boolean isSameCCExpr(ComputedColumnDesc existingCC, ComputedColumnDesc newCC, AliasMapping aliasMapping) {
@@ -1303,7 +1289,7 @@ public class NDataModel extends RootPersistentEntity {
 
     public String getAlias() {
         if (StringUtils.isEmpty(this.alias)) {
-            return this.name;
+            return this.uuid;
         }
         return this.alias;
     }
@@ -1314,34 +1300,6 @@ public class NDataModel extends RootPersistentEntity {
             ccColumnNames.add(cc.getColumnName());
         }
         return Collections.unmodifiableSet(ccColumnNames);
-    }
-
-    public boolean isTimePartitioned() {
-        return getPartitionDesc().isPartitioned();
-    }
-
-    public boolean isMultiLevelPartitioned() {
-        return mpColStrs.size() > 0;
-    }
-
-    public List<String> getMutiLevelPartitionColStrs() {
-        return mpColStrs;
-    }
-
-    void setMutiLevelPartitionColStrs(List<String> colStrs) {
-        this.mpColStrs = colStrs;
-    }
-
-    public List<TblColRef> getMutiLevelPartitionCols() {
-        return mpCols;
-    }
-
-    public List<String> getMpColStrs() {
-        return mpColStrs;
-    }
-
-    void setMpColStrs(List<String> mpColStrs) {
-        this.mpColStrs = mpColStrs;
     }
 
     public boolean isSeekingCCAdvice() {
@@ -1366,10 +1324,6 @@ public class NDataModel extends RootPersistentEntity {
 
     public List<ColumnCorrelation> getColCorrs() {
         return colCorrs;
-    }
-
-    void setColCorrs(List<ColumnCorrelation> colCorrs) {
-        this.colCorrs = colCorrs;
     }
 
     public ImmutableMultimap<TblColRef, TblColRef> getFk2Pk() {
@@ -1410,7 +1364,7 @@ public class NDataModel extends RootPersistentEntity {
     @Override
     public String getResourcePath() {
         return new StringBuilder().append("/").append(project).append(ResourceStore.DATA_MODEL_DESC_RESOURCE_ROOT)
-                .append("/").append(getName()).append(MetadataConstants.FILE_SURFIX).toString();
+                .append("/").append(getUuid()).append(MetadataConstants.FILE_SURFIX).toString();
     }
 
 }

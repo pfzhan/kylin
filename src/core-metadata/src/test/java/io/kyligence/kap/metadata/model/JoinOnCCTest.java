@@ -47,7 +47,7 @@ public class JoinOnCCTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCCOnLimitedLookup() {
         NDataModelManager modelManager = NDataModelManager.getInstance(getTestConfig(), "default");
-        NDataModel modelDesc = modelManager.getDataModelDesc("ut_left_join_cc_model");
+        NDataModel modelDesc = modelManager.getDataModelDesc("ed524ee2-2cdb-4b07-b39e-4c298563a863");
 
         Assert.assertNotNull(modelDesc);
         Assert.assertEquals(5, modelDesc.getComputedColumnDescs().size());

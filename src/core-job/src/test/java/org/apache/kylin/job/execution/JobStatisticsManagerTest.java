@@ -83,10 +83,10 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
         SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
         String date = "2017-12-30";
         long time = format.parse(date).getTime();
-        JobStatistics jobStatistics1 = new JobStatistics(time, "nmodel_basic", 2000, 1024);
-        JobStatistics jobStatistics2 = new JobStatistics(time, "all_fixed_length", 2000, 1024);
-        JobStatistics jobStatistics3 = new JobStatistics(time, "nmodel_basic_inner", 2000, 1024);
-        JobStatistics jobStatistics4 = new JobStatistics(time, "nmodel_basic", 1000, 0);
+        JobStatistics jobStatistics1 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 2000, 1024);
+        JobStatistics jobStatistics2 = new JobStatistics(time, "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", 2000, 1024);
+        JobStatistics jobStatistics3 = new JobStatistics(time, "741ca86a-1f13-46da-a59f-95fb68615e3a", 2000, 1024);
+        JobStatistics jobStatistics4 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 1000, 0);
         jobStatistics.add(jobStatistics1);
         jobStatistics.add(jobStatistics2);
         jobStatistics.add(jobStatistics3);
@@ -94,44 +94,44 @@ public class JobStatisticsManagerTest extends NLocalFileMetadataTestCase {
 
         date = "2018-01-02";
         time = format.parse(date).getTime();
-        jobStatistics1 = new JobStatistics(time, "nmodel_basic", 2000, 1024);
-        jobStatistics2 = new JobStatistics(time, "all_fixed_length", 1000, 1024);
-        jobStatistics3 = new JobStatistics(time, "nmodel_basic_inner", 1000, 1024);
+        jobStatistics1 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 2000, 1024);
+        jobStatistics2 = new JobStatistics(time, "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", 1000, 1024);
+        jobStatistics3 = new JobStatistics(time, "741ca86a-1f13-46da-a59f-95fb68615e3a", 1000, 1024);
         jobStatistics.add(jobStatistics1);
         jobStatistics.add(jobStatistics2);
         jobStatistics.add(jobStatistics3);
 
         date = "2018-01-03";
         time = format.parse(date).getTime();
-        jobStatistics1 = new JobStatistics(time, "nmodel_basic", 2000, 1024);
-        jobStatistics2 = new JobStatistics(time, "all_fixed_length", 1000, 1024);
+        jobStatistics1 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 2000, 1024);
+        jobStatistics2 = new JobStatistics(time, "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", 1000, 1024);
         jobStatistics.add(jobStatistics1);
         jobStatistics.add(jobStatistics2);
 
         date = "2018-01-09";
         time = format.parse(date).getTime();
-        jobStatistics1 = new JobStatistics(time, "nmodel_basic", 2000, 1024);
-        jobStatistics2 = new JobStatistics(time, "all_fixed_length", 1000, 1024);
-        jobStatistics3 = new JobStatistics(time, "nmodel_basic_inner", 1000, 1024);
+        jobStatistics1 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 2000, 1024);
+        jobStatistics2 = new JobStatistics(time, "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", 1000, 1024);
+        jobStatistics3 = new JobStatistics(time, "741ca86a-1f13-46da-a59f-95fb68615e3a", 1000, 1024);
         jobStatistics.add(jobStatistics1);
         jobStatistics.add(jobStatistics2);
         jobStatistics.add(jobStatistics3);
 
         date = "2018-02-08";
         time = format.parse(date).getTime();
-        jobStatistics1 = new JobStatistics(time, "nmodel_basic", 2000, 1024);
-        jobStatistics2 = new JobStatistics(time, "all_fixed_length", 1000, 1024);
-        jobStatistics3 = new JobStatistics(time, "nmodel_basic_inner", 1000, 1024);
+        jobStatistics1 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 2000, 1024);
+        jobStatistics2 = new JobStatistics(time, "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", 1000, 1024);
+        jobStatistics3 = new JobStatistics(time, "741ca86a-1f13-46da-a59f-95fb68615e3a", 1000, 1024);
         jobStatistics.add(jobStatistics1);
         jobStatistics.add(jobStatistics2);
         jobStatistics.add(jobStatistics3);
 
         date = "2018-02-09";
         time = format.parse(date).getTime();
-        jobStatistics1 = new JobStatistics(time, "nmodel_basic", 2000, 1024);
-        jobStatistics2 = new JobStatistics(time, "all_fixed_length", 1000, 1024);
-        jobStatistics3 = new JobStatistics(time, "nmodel_basic_inner", 1000, 1024);
-        jobStatistics4 = new JobStatistics(time, "nmodel_full_measure_test", 1000, 0);
+        jobStatistics1 = new JobStatistics(time, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 2000, 1024);
+        jobStatistics2 = new JobStatistics(time, "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96", 1000, 1024);
+        jobStatistics3 = new JobStatistics(time, "741ca86a-1f13-46da-a59f-95fb68615e3a", 1000, 1024);
+        jobStatistics4 = new JobStatistics(time, "cb596712-3a09-46f8-aea1-988b43fe9b6c", 1000, 0);
         jobStatistics.add(jobStatistics1);
         jobStatistics.add(jobStatistics2);
         jobStatistics.add(jobStatistics3);

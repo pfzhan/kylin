@@ -36,7 +36,7 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
 
   private val DEFAULT_PROJECT = "default"
 
-  private val DF_NAME = "ncube_basic"
+  private val DF_NAME = "89af4ee2-2cdb-4b07-b39e-4c29856309aa"
 
   def getTestConfig: KylinConfig = {
     val config = KylinConfig.getInstanceFromEnv

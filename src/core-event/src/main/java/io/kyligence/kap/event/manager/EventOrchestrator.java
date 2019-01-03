@@ -140,9 +140,9 @@ public class EventOrchestrator {
         }
 
         private String genGroupKey(Event event) {
-            String modelName = event.getModelName();
-            Preconditions.checkState(!StringUtils.isBlank(modelName));
-            return modelName;
+            String modelId = event.getModelId();
+            Preconditions.checkState(!StringUtils.isBlank(modelId));
+            return modelId;
         }
     }
 

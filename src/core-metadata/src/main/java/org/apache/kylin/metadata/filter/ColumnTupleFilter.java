@@ -136,7 +136,7 @@ public class ColumnTupleFilter extends TupleFilter {
             // qualified column (from model)
             BytesUtil.writeUTFString(_QUALIFIED_, buffer);
 
-            String model = tableRef.getModel().getName();
+            String model = tableRef.getModel().getUuid();
             BytesUtil.writeUTFString(model, buffer);
 
             String prj = tableRef.getModel().getProject();

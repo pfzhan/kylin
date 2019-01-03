@@ -27,7 +27,7 @@ package io.kyligence.kap.rest.metrics;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NCuboidDesc;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -253,7 +253,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             final SQLResponse response = new SQLResponse();
             response.setAnsweredBy(Lists.newArrayList("mocked_model"));
             QueryMetricsContext.RealizationMetrics aggIndex = QueryMetricsContext.createRealizationMetrics("1", QueryMetricsContext.AGG_INDEX, "mocked_model");
-            QueryMetricsContext.RealizationMetrics tableIndex = QueryMetricsContext.createRealizationMetrics(NCuboidDesc.TABLE_INDEX_START_ID + "2", QueryMetricsContext.TABLE_INDEX, "mocked_model");
+            QueryMetricsContext.RealizationMetrics tableIndex = QueryMetricsContext.createRealizationMetrics(IndexEntity.TABLE_INDEX_START_ID + "2", QueryMetricsContext.TABLE_INDEX, "mocked_model");
             response.setRealizationMetrics(Lists.newArrayList(aggIndex, tableIndex));
             response.setEngineType(Joiner.on(",").join((Lists.newArrayList(QueryMetricsContext.AGG_INDEX, QueryMetricsContext.TABLE_INDEX))));
 
@@ -284,7 +284,7 @@ public class QueryMetricsContextTest extends NLocalFileMetadataTestCase {
             final Map<String, String> actualTags = actual.getInfluxdbTags();
             Assert.assertEquals("Unknown", actualTags.get("suite"));
             Assert.assertEquals("mocked_model", actualTags.get("model"));
-            Assert.assertEquals("1", actualTags.get("cuboid_layout_id"));
+            Assert.assertEquals("1", actualTags.get("layout_id"));
             Assert.assertEquals(QueryMetricsContext.AGG_INDEX, actualTags.get("realization_type"));
         } finally {
             QueryContext.reset();

@@ -53,8 +53,8 @@ public class NDataflowTest extends NLocalFileMetadataTestCase {
     @Test
     public void testBasic() throws IOException {
         NDataflowManager dsMgr = NDataflowManager.getInstance(getTestConfig(), projectDefault);
-        NDataflow df = dsMgr.getDataflow("ncube_basic");
-        NCubePlan cube = df.getCubePlan();
+        NDataflow df = dsMgr.getDataflowByModelAlias("nmodel_basic");
+        IndexPlan cube = df.getIndexPlan();
 
         Assert.assertNotNull(df);
         Assert.assertNotNull(cube);
@@ -75,21 +75,21 @@ public class NDataflowTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void getConfig() {
-        val cubePlanManager = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
-        val cubePlan = cubePlanManager.getCubePlan("ncube_basic");
-        val cubePlanConfig = cubePlan.getConfig();
+        val indexPlanManager = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
+        val indexPlan = indexPlanManager.getIndexPlanByModelAlias("nmodel_basic");
+        val indexPlanConfig = indexPlan.getConfig();
         val dsMgr = NDataflowManager.getInstance(getTestConfig(), projectDefault);
-        val df = dsMgr.getDataflow("ncube_basic");
+        val df = dsMgr.getDataflowByModelAlias("nmodel_basic");
         var config = df.getConfig();
-        Assert.assertEquals(cubePlanConfig.base(), config.base());
+        Assert.assertEquals(indexPlanConfig.base(), config.base());
         Assert.assertEquals(1, config.getExtendedOverrides().size());
 
-        cubePlanManager.updateCubePlan("ncube_basic", copyForWrite -> {
+        indexPlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
             copyForWrite.getOverrideProps().put("test", "test");
         });
 
         config = df.getConfig();
-        Assert.assertEquals(cubePlanConfig.base(), config.base());
+        Assert.assertEquals(indexPlanConfig.base(), config.base());
         Assert.assertEquals(2, config.getExtendedOverrides().size());
     }
 }

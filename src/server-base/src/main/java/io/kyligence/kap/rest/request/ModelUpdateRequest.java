@@ -31,7 +31,7 @@ import lombok.Setter;
 @Getter
 public class ModelUpdateRequest {
 
-    private String modelName;
+    private String modelId;
     private String newModelName;
     private String project;
     private String status;

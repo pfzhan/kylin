@@ -63,9 +63,9 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Ordering;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -82,28 +82,28 @@ public class NQueryLayoutChooser {
         List<NLayoutCandidate> candidates = new ArrayList<>();
 
         Map<NLayoutCandidate, CapabilityResult> candidateCapabilityResultMap = Maps.newHashMap();
-        for (NDataCuboid cuboid : segment.getSegDetails().getCuboids()) {
+        for (NDataLayout cuboid : segment.getSegDetails().getLayouts()) {
             CapabilityResult tempResult = new CapabilityResult();
-            // check cuboidDesc
-            NCuboidDesc cuboidDesc = segment.getCubePlan().getCuboidDesc(cuboid.getCuboidDescId());
+            // check indexEntity
+            IndexEntity indexEntity = segment.getIndexPlan().getIndexEntity(cuboid.getIndexId());
 
             Set<TblColRef> unmatchedCols = Sets.newHashSet();
             Set<FunctionDesc> unmatchedMetrics = Sets.newHashSet(sqlDigest.aggregations);
             boolean matched = false;
             final Map<TblColRef, DeriveInfo> needDerive = Maps.newHashMap();
-            if (cuboidDesc.isTableIndex() && sqlDigest.isRawQuery) {
+            if (indexEntity.isTableIndex() && sqlDigest.isRawQuery) {
                 unmatchedCols.addAll(sqlDigest.allColumns);
-                matched = matchTableIndex(cuboid.getCuboidLayout(), segment.getDataflow(), unmatchedCols, needDerive,
+                matched = matchTableIndex(cuboid.getLayout(), segment.getDataflow(), unmatchedCols, needDerive,
                         tempResult);
             }
-            if (!cuboidDesc.isTableIndex() && !sqlDigest.isRawQuery) {
+            if (!indexEntity.isTableIndex() && !sqlDigest.isRawQuery) {
                 unmatchedCols.addAll(sqlDigest.filterColumns);
                 unmatchedCols.addAll(sqlDigest.groupbyColumns);
-                matched = matchAggIndex(sqlDigest, cuboid.getCuboidLayout(), segment.getDataflow(), unmatchedCols,
+                matched = matchAggIndex(sqlDigest, cuboid.getLayout(), segment.getDataflow(), unmatchedCols,
                         unmatchedMetrics, needDerive, tempResult);
             }
             if (matched) {
-                NCuboidLayout layout = cuboid.getCuboidLayout();
+                LayoutEntity layout = cuboid.getLayout();
                 NLayoutCandidate candidate = new NLayoutCandidate(layout);
                 candidate.setCost(cuboid.getRows() * (tempResult.influences.size() + 1.0));
                 if (!needDerive.isEmpty()) {
@@ -126,33 +126,33 @@ public class NQueryLayoutChooser {
         }
     }
 
-    private static void unmatchedAggregations(Collection<FunctionDesc> aggregations, NCuboidLayout cuboidLayout) {
+    private static void unmatchedAggregations(Collection<FunctionDesc> aggregations, LayoutEntity cuboidLayout) {
         for (MeasureDesc measureDesc : cuboidLayout.getOrderedMeasures().values()) {
             aggregations.remove(measureDesc.getFunction());
         }
     }
 
-    private static boolean matchAggIndex(SQLDigest sqlDigest, final NCuboidLayout cuboidLayout,
+    private static boolean matchAggIndex(SQLDigest sqlDigest, final LayoutEntity cuboidLayout,
             final NDataflow dataFlow, Set<TblColRef> unmatchedCols, Collection<FunctionDesc> unmatchedMetrics,
             Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
         unmatchedCols.removeAll(cuboidLayout.getOrderedDimensions().values());
-        goThruDerivedDims(cuboidLayout.getCuboidDesc(), dataFlow, needDerive, unmatchedCols, cuboidLayout.getModel());
+        goThruDerivedDims(cuboidLayout.getIndex(), dataFlow, needDerive, unmatchedCols, cuboidLayout.getModel());
         unmatchedAggregations(unmatchedMetrics, cuboidLayout);
 
         removeUnmatchedGroupingAgg(unmatchedMetrics);
         if (!unmatchedMetrics.isEmpty() || !unmatchedCols.isEmpty()) {
-            applyAdvanceMeasureStrategy(cuboidLayout.getCuboidDesc(), sqlDigest, unmatchedCols, unmatchedMetrics,
+            applyAdvanceMeasureStrategy(cuboidLayout.getIndex(), sqlDigest, unmatchedCols, unmatchedMetrics,
                     result);
-            applyDimAsMeasureStrategy(cuboidLayout.getCuboidDesc(), unmatchedMetrics, result);
+            applyDimAsMeasureStrategy(cuboidLayout.getIndex(), unmatchedMetrics, result);
         }
 
         return unmatchedCols.isEmpty() && unmatchedMetrics.isEmpty();
     }
 
-    private static boolean matchTableIndex(final NCuboidLayout cuboidLayout, final NDataflow dataflow,
-            Set<TblColRef> unmatchedCols, Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
+    private static boolean matchTableIndex(final LayoutEntity cuboidLayout, final NDataflow dataflow,
+                                           Set<TblColRef> unmatchedCols, Map<TblColRef, DeriveInfo> needDerive, CapabilityResult result) {
         unmatchedCols.removeAll(cuboidLayout.getOrderedDimensions().values());
-        goThruDerivedDims(cuboidLayout.getCuboidDesc(), dataflow, needDerive, unmatchedCols, cuboidLayout.getModel());
+        goThruDerivedDims(cuboidLayout.getIndex(), dataflow, needDerive, unmatchedCols, cuboidLayout.getModel());
         if (!unmatchedCols.isEmpty()) {
             result.incapableCause = CapabilityResult.IncapableCause
                     .create(CapabilityResult.IncapableType.TABLE_INDEX_MISSING_COLS);
@@ -169,8 +169,8 @@ public class NQueryLayoutChooser {
                 .removeIf(functionDesc -> FunctionDesc.FUNC_GROUPING.equalsIgnoreCase(functionDesc.getExpression()));
     }
 
-    private static void applyDimAsMeasureStrategy(NCuboidDesc cuboidDesc, Collection<FunctionDesc> unmatchedAggs,
-            CapabilityResult result) {
+    private static void applyDimAsMeasureStrategy(IndexEntity indexEntity, Collection<FunctionDesc> unmatchedAggs,
+                                                  CapabilityResult result) {
         Iterator<FunctionDesc> it = unmatchedAggs.iterator();
         while (it.hasNext()) {
             FunctionDesc functionDesc = it.next();
@@ -184,7 +184,7 @@ public class NQueryLayoutChooser {
             if (parameterDesc == null)
                 continue;
             List<TblColRef> neededCols = parameterDesc.getColRefs();
-            if (!cuboidDesc.getDimensionSet().containsAll(neededCols))
+            if (!indexEntity.getDimensionSet().containsAll(neededCols))
                 continue;
 
             if (FunctionDesc.DIMENSION_AS_MEASURES.contains(functionDesc.getExpression())) {
@@ -194,10 +194,10 @@ public class NQueryLayoutChooser {
         }
     }
 
-    private static void applyAdvanceMeasureStrategy(NCuboidDesc cuboidDesc, SQLDigest digest,
-            Collection<TblColRef> unmatchedDims, Collection<FunctionDesc> unmatchedMetrics, CapabilityResult result) {
+    private static void applyAdvanceMeasureStrategy(IndexEntity indexEntity, SQLDigest digest,
+                                                    Collection<TblColRef> unmatchedDims, Collection<FunctionDesc> unmatchedMetrics, CapabilityResult result) {
         List<String> influencingMeasures = Lists.newArrayList();
-        for (MeasureDesc measure : cuboidDesc.getMeasureSet()) {
+        for (MeasureDesc measure : indexEntity.getMeasureSet()) {
             MeasureType measureType = measure.getFunction().getMeasureType();
             if (measureType instanceof BasicMeasureType)
                 continue;
@@ -209,10 +209,9 @@ public class NQueryLayoutChooser {
                 influencingMeasures.add(measure.getName() + "@" + measureType.getClass());
             }
         }
-        if (!influencingMeasures.isEmpty()) {
-            logger.info("NDataflow {} CapabilityInfluences: {}", cuboidDesc.getCubePlan().getName(),
+        if (influencingMeasures.size() != 0)
+            logger.info("NDataflow {} CapabilityInfluences: {}", indexEntity.getIndexPlan().getUuid(),
                     StringUtils.join(influencingMeasures, ","));
-        }
     }
 
     private static Function<NLayoutCandidate, Comparable> L1Comparator() {
@@ -241,8 +240,8 @@ public class NQueryLayoutChooser {
         return NLayoutCandidateComparators.matchQueryPattern(filterColumns, config);
     }
 
-    private static void goThruDerivedDims(final NCuboidDesc cuboidDesc, final NDataflow dataflow,
-            Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims, NDataModel model) {
+    private static void goThruDerivedDims(final IndexEntity indexEntity, final NDataflow dataflow,
+                                          Map<TblColRef, DeriveInfo> needDeriveCollector, Set<TblColRef> unmatchedDims, NDataModel model) {
         Iterator<TblColRef> unmatchedDimItr = unmatchedDims.iterator();
         while (unmatchedDimItr.hasNext()) {
             TblColRef unmatchedDim = unmatchedDimItr.next();
@@ -254,14 +253,14 @@ public class NQueryLayoutChooser {
 
                 if (ArrayUtils.contains(primaryKeyColumns, unmatchedDim)) {
                     TblColRef relatedCol = foreignKeyColumns[ArrayUtils.indexOf(primaryKeyColumns, unmatchedDim)];
-                    if (cuboidDesc.dimensionsDerive(relatedCol)) {
+                    if (indexEntity.dimensionsDerive(relatedCol)) {
                         needDeriveCollector.put(unmatchedDim, new DeriveInfo(DeriveInfo.DeriveType.PK_FK, joinByPKSide,
                                 new TblColRef[] { relatedCol }, true));
                         unmatchedDimItr.remove();
                         continue;
                     }
                 } else {
-                    if (cuboidDesc.dimensionsDerive(foreignKeyColumns)
+                    if (indexEntity.dimensionsDerive(foreignKeyColumns)
                             && dataflow.getLatestReadySegment().getSnapshots().containsKey(unmatchedDim.getTable())) {
                         needDeriveCollector.put(unmatchedDim,
                                 new DeriveInfo(DeriveInfo.DeriveType.LOOKUP, joinByPKSide, foreignKeyColumns, false));
@@ -276,7 +275,7 @@ public class NQueryLayoutChooser {
             Iterable<TblColRef> pksOnCuboid = Iterables.filter(pks, new Predicate<TblColRef>() {
                 @Override
                 public boolean apply(@Nullable TblColRef input) {
-                    return cuboidDesc.dimensionsDerive(input);
+                    return indexEntity.dimensionsDerive(input);
                 }
             });
             TblColRef pk = Iterables.getFirst(pksOnCuboid, null);

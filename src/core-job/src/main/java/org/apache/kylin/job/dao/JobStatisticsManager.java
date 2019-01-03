@@ -154,9 +154,9 @@ public class JobStatisticsManager {
         return calculateDurationPerByte(transformedResult);
     }
 
-    private String getModelAlias(String modelName) {
+    private String getModelAlias(String modelId) {
         NDataModelManager dataModelManager = NDataModelManager.getInstance(config, project);
-        String modelAlias = dataModelManager.getDataModelDesc(modelName).getAlias();
+        String modelAlias = dataModelManager.getDataModelDesc(modelId).getAlias();
         return modelAlias;
     }
 

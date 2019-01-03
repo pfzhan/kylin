@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.smart.cube;
 
+import io.kyligence.kap.cube.model.IndexPlan;
 import org.apache.commons.lang.StringUtils;
 
-import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.smart.NSmartContext;
 
 public class NCubeMaster {
@@ -43,33 +43,30 @@ public class NCubeMaster {
         return this.context;
     }
 
-    public NCubePlan proposeInitialCube() {
-        NCubePlan cubePlan = new NCubePlan();
-        cubePlan.updateRandomUuid();
-        cubePlan.setName(cubePlan.getUuid());
-        //cubePlan.setProject(context.getSmartContext().getProject());
-        cubePlan.setModelName(context.getTargetModel().getName());
-        cubePlan.setDescription(StringUtils.EMPTY);
-        return cubePlan;
+    public IndexPlan proposeInitialCube() {
+        IndexPlan indexPlan = new IndexPlan();
+        indexPlan.setUuid(context.getTargetModel().getUuid());
+        indexPlan.setDescription(StringUtils.EMPTY);
+        return indexPlan;
     }
 
-    public NCubePlan proposeCuboids(final NCubePlan cubePlan) {
-        return proposerProvider.getCuboidProposer().doPropose(cubePlan);
+    public IndexPlan proposeCuboids(final IndexPlan indexPlan) {
+        return proposerProvider.getCuboidProposer().doPropose(indexPlan);
     }
 
-    public NCubePlan proposeDimensions(final NCubePlan cubePlan) {
-        return proposerProvider.getDimensionProposer().doPropose(cubePlan);
+    public IndexPlan proposeDimensions(final IndexPlan indexPlan) {
+        return proposerProvider.getDimensionProposer().doPropose(indexPlan);
     }
 
-    public NCubePlan reduceCuboids(final NCubePlan cubePlan) {
-        return proposerProvider.getCuboidReducer().doPropose(cubePlan);
+    public IndexPlan reduceCuboids(final IndexPlan indexPlan) {
+        return proposerProvider.getCuboidReducer().doPropose(indexPlan);
     }
 
-    public NCubePlan reduceDimensions(final NCubePlan cubePlan) {
-        return proposerProvider.getDimensionReducer().doPropose(cubePlan);
+    public IndexPlan reduceDimensions(final IndexPlan indexPlan) {
+        return proposerProvider.getDimensionReducer().doPropose(indexPlan);
     }
 
-    public NCubePlan refreshCuboids(final NCubePlan cubePlan) {
-        return proposerProvider.getCuboidRefresher().doPropose(cubePlan);
+    public IndexPlan refreshCuboids(final IndexPlan indexPlan) {
+        return proposerProvider.getCuboidRefresher().doPropose(indexPlan);
     }
 }

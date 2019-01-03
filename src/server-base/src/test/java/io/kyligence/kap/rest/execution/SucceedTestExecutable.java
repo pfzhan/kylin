@@ -65,12 +65,12 @@ public class SucceedTestExecutable extends DefaultChainedExecutable {
     @Override
     public void cancelJob() throws IOException {
         NDataflowManager nDataflowManager = NDataflowManager.getInstance(getConfig(), getProject());
-        NDataflow dataflow = nDataflowManager.getDataflow("ncube_basic");
+        NDataflow dataflow = nDataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         List<NDataSegment> segments = new ArrayList<>();
         segments.add(dataflow.getSegments().getFirstSegment());
         NDataSegment[] segmentsArray = new NDataSegment[segments.size()];
         NDataSegment[] nDataSegments = segments.toArray(segmentsArray);
-        NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getName());
+        NDataflowUpdate nDataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         nDataflowUpdate.setToRemoveSegs(nDataSegments);
         nDataflowManager.updateDataflow(nDataflowUpdate);
     }

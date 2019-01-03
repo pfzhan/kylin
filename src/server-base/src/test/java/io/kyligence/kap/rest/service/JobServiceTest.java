@@ -189,7 +189,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.READY));
         jobService.updateJobStatusBatchly(Lists.newArrayList(executable.getId()), "default", "DISCARD", "");
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.DISCARDED));
-        Assert.assertTrue(dsMgr.getDataflow("ncube_basic").getSegments().getFirstSegment() == null);
+        Assert.assertTrue(dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().getFirstSegment() == null);
         Mockito.doNothing().when(tableExtService).removeJobIdFromTableExt(executable.getId(), "default");
         jobService.dropJobBatchly("default", Lists.newArrayList(executable.getId()), "");
         List<AbstractExecutable> executables = manager.getAllExecutables();

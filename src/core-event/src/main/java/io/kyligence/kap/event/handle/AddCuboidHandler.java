@@ -25,6 +25,9 @@ package io.kyligence.kap.event.handle;
 
 import java.util.Set;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -35,10 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCubePlanManager;
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
@@ -53,28 +53,28 @@ public class AddCuboidHandler extends AbstractEventWithJobHandler {
     @Override
     public AbstractExecutable createJob(Event e, String project) {
         AddCuboidEvent event = (AddCuboidEvent) e;
-        String cubePlanName = event.getCubePlanName();
+        String modelId = event.getModelId();
         KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
 
-        if (!checkSubjectExists(project, cubePlanName, null, event)) {
+        if (!checkSubjectExists(project, modelId, null, event)) {
             return null;
         }
 
-        NDataflow df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(cubePlanName);
-        NCubePlan cubePlan = NCubePlanManager.getInstance(kylinConfig, project).getCubePlan(cubePlanName);
+        NDataflow df = NDataflowManager.getInstance(kylinConfig, project).getDataflow(modelId);
+        IndexPlan indexPlan = NIndexPlanManager.getInstance(kylinConfig, project).getIndexPlan(modelId);
 
         val readySegs = df.getSegments(SegmentStatusEnum.READY);
         if (readySegs.isEmpty()) {
-            logger.info("event {} is no longer valid because no ready segment exists in target cubeplan {}", event,
-                    cubePlanName);
+            logger.info("event {} is no longer valid because no ready segment exists in target index_plan {}", event,
+                    modelId);
             return null;
         }
 
         // be process layouts = all layouts - ready layouts
         val lastReadySeg = readySegs.getLatestReadySegment();
-        Set<NCuboidLayout> toBeProcessedLayouts = Sets.newLinkedHashSet();
-        for (NCuboidLayout layout : cubePlan.getAllCuboidLayouts()) {
-            NDataCuboid nc = lastReadySeg.getCuboid(layout.getId());
+        Set<LayoutEntity> toBeProcessedLayouts = Sets.newLinkedHashSet();
+        for (LayoutEntity layout : indexPlan.getAllLayouts()) {
+            NDataLayout nc = lastReadySeg.getLayout(layout.getId());
             if (nc == null) {
                 toBeProcessedLayouts.add(layout);
             }

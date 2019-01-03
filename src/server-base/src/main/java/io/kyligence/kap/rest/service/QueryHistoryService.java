@@ -24,25 +24,34 @@
 
 package io.kyligence.kap.rest.service;
 
-import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
-import io.kyligence.kap.metadata.query.QueryHistoryRequest;
-import io.kyligence.kap.metadata.query.QueryStatistics;
-import io.kyligence.kap.rest.response.QueryStatisticsResponse;
-import org.apache.commons.lang.StringUtils;
-import org.apache.kylin.rest.service.BasicService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
-
 import java.lang.reflect.Field;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.persistence.RootPersistentEntity;
+import org.apache.kylin.rest.service.BasicService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Component;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
+import io.kyligence.kap.metadata.query.QueryHistoryRequest;
+import io.kyligence.kap.metadata.query.QueryStatistics;
+import io.kyligence.kap.rest.response.QueryHistoryResponse;
+import io.kyligence.kap.rest.response.QueryStatisticsResponse;
+import lombok.val;
 
 @Component("queryHistoryService")
 public class QueryHistoryService extends BasicService {
@@ -51,9 +60,20 @@ public class QueryHistoryService extends BasicService {
     public HashMap<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
         Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
         QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(request.getProject());
+        val modalManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
+        val modelAliasMap = modalManager.getDataModels().stream()
+                .collect(Collectors.toMap(NDataModel::getAlias, RootPersistentEntity::getUuid));
 
         HashMap<String, Object> data = new HashMap<>();
-        data.put("query_histories", queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset));
+        data.put("query_histories",
+                queryHistoryDAO.getQueryHistoriesByConditions(request, limit, offset).stream().map(query -> {
+                    if (StringUtils.isEmpty(query.getAnsweredBy())) {
+                        return new QueryHistoryResponse(query, null);
+                    }
+                    val answers = Sets.newHashSet(query.getAnsweredBy().split(","));
+                    val subMap = Maps.filterKeys(modelAliasMap, answers::contains);
+                    return new QueryHistoryResponse(query, subMap);
+                }).collect(Collectors.toList()));
         data.put("size", queryHistoryDAO.getQueryHistoriesSize(request));
 
         return data;
@@ -95,7 +115,8 @@ public class QueryHistoryService extends BasicService {
         return transformQueryStatisticsByTime(queryStatistics, "meanDuration", dimension);
     }
 
-    private Map<String, Object> transformQueryStatisticsByModel(String project, List<QueryStatistics> statistics, String fieldName) {
+    private Map<String, Object> transformQueryStatisticsByModel(String project, List<QueryStatistics> statistics,
+            String fieldName) {
         Map<String, Object> result = Maps.newHashMap();
         NDataModelManager modelManager = getDataModelManager(project);
 
@@ -120,7 +141,8 @@ public class QueryHistoryService extends BasicService {
         return object;
     }
 
-    private Map<String, Object> transformQueryStatisticsByTime(List<QueryStatistics> statistics, String fieldName, String dimension) {
+    private Map<String, Object> transformQueryStatisticsByTime(List<QueryStatistics> statistics, String fieldName,
+            String dimension) {
         Map<String, Object> result = Maps.newHashMap();
 
         statistics.forEach(singleStatistics -> {

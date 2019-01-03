@@ -58,7 +58,7 @@ public class NDataModelTest {
             Assert.fail();
         }
 
-        NDataModel model = mgr.getDataModelDesc("nmodel_basic");
+        NDataModel model = mgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertNotNull(model);
         Assert.assertNotEquals(model, model.getRootFactTable());
 
@@ -104,8 +104,8 @@ public class NDataModelTest {
         ImmutableBiMap<Integer, NDataModel.Measure> measureMap = model.getEffectiveMeasureMap();
         Assert.assertEquals(model.getAllMeasures().size() - 1, measureMap.size());
 
-        NDataModel.Measure m = measureMap.get(1001);
-        Assert.assertEquals(1001, m.id);
+        NDataModel.Measure m = measureMap.get(100001);
+        Assert.assertEquals(100001, m.id);
         Assert.assertEquals("GMV_SUM", m.getName());
         Assert.assertEquals("SUM", m.getFunction().getExpression());
         Assert.assertEquals(model.findColumn("PRICE"), m.getFunction().getParameter().getColRef());
@@ -114,12 +114,12 @@ public class NDataModelTest {
 
     @Test
     public void getAllNamedColumns_changeToTomb_lessEffectiveCols() throws IOException {
-        NDataModel model = mgr.getDataModelDesc("nmodel_basic");
+        NDataModel model = mgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         int size = model.getEffectiveColsMap().size();
 
         model.getAllNamedColumns().get(0).setStatus(NDataModel.ColumnStatus.TOMB);
         mgr.updateDataModelDesc(model);
-        model = mgr.getDataModelDesc("nmodel_basic");
+        model = mgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         int size2 = model.getEffectiveColsMap().size();
 
         Assert.assertEquals(size - 1, size2);
@@ -127,7 +127,7 @@ public class NDataModelTest {
 
     @Test
     public void testGetCopyOf() {
-        NDataModel model = mgr.getDataModelDesc("nmodel_basic");
+        NDataModel model = mgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         NDataModel copyModel = NDataModel.getCopyOf(model);
         Assert.assertEquals(model, copyModel);
@@ -149,7 +149,7 @@ public class NDataModelTest {
 
     @Test
     public void testGetNameById()  {
-        NDataModel model = mgr.getDataModelDesc("nmodel_basic");
+        NDataModel model = mgr.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals("CAL_DT", model.getNameByColumnId(2));
         Assert.assertNull(model.getNameByColumnId(100));
     }

@@ -30,6 +30,7 @@ import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryHistoryRequest;
 import io.kyligence.kap.metadata.query.QueryStatistics;
+import io.kyligence.kap.rest.response.QueryHistoryResponse;
 import io.kyligence.kap.rest.response.QueryStatisticsResponse;
 import org.junit.After;
 import org.junit.Assert;
@@ -83,6 +84,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         // mock query history
         QueryHistory queryHistory1 = new QueryHistory();
         queryHistory1.setSql("select * from test_table_1");
+        queryHistory1.setAnsweredBy("nmodel_basic,nmodel_basic_inner");
         QueryHistory queryHistory2 = new QueryHistory();
         queryHistory2.setSql("select * from test_table_2");
 
@@ -92,13 +94,16 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         Mockito.doReturn(queryHistoryDAO).when(queryHistoryService).getQueryHistoryDao(PROJECT);
 
         HashMap<String, Object> result = queryHistoryService.getQueryHistories(request, 10, 0);
-        List<QueryHistory> queryHistories = (List<QueryHistory>) result.get("query_histories");
+        List<QueryHistoryResponse> queryHistories = (List<QueryHistoryResponse>) result.get("query_histories");
         int size = (int) result.get("size");
 
         Assert.assertEquals(2, queryHistories.size());
-        Assert.assertEquals(queryHistory1.getSql(), queryHistories.get(0).getSql());
-        Assert.assertEquals(queryHistory2.getSql(), queryHistories.get(1).getSql());
+        Assert.assertEquals(queryHistory1.getSql(), queryHistories.get(0).getQueryHistory().getSql());
+        Assert.assertEquals(queryHistory2.getSql(), queryHistories.get(1).getQueryHistory().getSql());
         Assert.assertEquals(10, size);
+        Assert.assertEquals(2, queryHistories.get(0).getModelAliasMapping().size());
+        Assert.assertEquals("741ca86a-1f13-46da-a59f-95fb68615e3a", queryHistories.get(0).getModelAliasMapping().get("nmodel_basic_inner"));
+        Assert.assertEquals("89af4ee2-2cdb-4b07-b39e-4c29856309aa", queryHistories.get(0).getModelAliasMapping().get("nmodel_basic"));
     }
 
     @Test
@@ -196,7 +201,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         QueryStatistics queryStatistics1 = new QueryStatistics();
         queryStatistics1.setCount(10);
         queryStatistics1.setMeanDuration(500);
-        queryStatistics1.setModel("nmodel_basic");
+        queryStatistics1.setModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         queryStatistics1.setTime(Instant.ofEpochMilli(time));
         queryStatistics1.setMonth(date);
 
@@ -206,7 +211,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         QueryStatistics queryStatistics2 = new QueryStatistics();
         queryStatistics2.setCount(11);
         queryStatistics2.setMeanDuration(600);
-        queryStatistics2.setModel("all_fixed_length");
+        queryStatistics2.setModel("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
         queryStatistics2.setTime(Instant.ofEpochMilli(time));
         queryStatistics2.setMonth(date);
 
@@ -216,7 +221,7 @@ public class QueryHistoryServiceTest extends NLocalFileMetadataTestCase {
         QueryStatistics queryStatistics3 = new QueryStatistics();
         queryStatistics3.setCount(12);
         queryStatistics3.setMeanDuration(700);
-        queryStatistics3.setModel("test_encoding");
+        queryStatistics3.setModel("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94");
         queryStatistics3.setTime(Instant.ofEpochMilli(time));
         queryStatistics3.setMonth(date);
 

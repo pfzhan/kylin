@@ -36,6 +36,7 @@ import java.util.Set;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.cube.model.IndexPlan;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;
@@ -48,8 +49,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
+import io.kyligence.kap.cube.model.NRuleBasedIndex;
 
 public class NKapCuboidScheduler243 extends NCuboidScheduler {
 
@@ -66,15 +66,15 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
     private final Set<Long> allCuboidIds;
     private final Map<Long, List<Long>> parent2child;
 
-    public NKapCuboidScheduler243(NCubePlan cubePlan) {
-        this(cubePlan, null);
+    public NKapCuboidScheduler243(IndexPlan indexPlan) {
+        this(indexPlan, null);
 
     }
 
-    public NKapCuboidScheduler243(NCubePlan cubePlan, NRuleBasedCuboidsDesc nRuleBasedCuboidsDesc) {
-        super(cubePlan, nRuleBasedCuboidsDesc);
+    public NKapCuboidScheduler243(IndexPlan indexPlan, NRuleBasedIndex ruleBasedAggIndex) {
+        super(indexPlan, ruleBasedAggIndex);
 
-        this.max = nRuleBasedCuboidsDesc.getFullMask();
+        this.max = ruleBasedAggIndex.getFullMask();
 
         // handle nRuleBasedCuboidDesc has 0 dimensions
         if (max == 0) {
@@ -120,7 +120,7 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
         }
 
         List<Long> onTreeCandidates = Lists.newArrayList();
-        for (NAggregationGroup agg : nRuleBasedCuboidsDesc.getAggregationGroups()) {
+        for (NAggregationGroup agg : ruleBasedAggIndex.getAggregationGroups()) {
             Long candidate = agg.translateToOnTreeCuboid(cuboid);
             if (candidate != null) {
                 onTreeCandidates.add(candidate);
@@ -142,7 +142,7 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
     private long doFindBestMatchCuboid(long child) {
         long parent = getOnTreeParent(child);
         while (parent > 0) {
-            if (nRuleBasedCuboidsDesc.getInitialCuboidScheduler().getAllCuboidIds().contains(parent)) {
+            if (ruleBasedAggIndex.getInitialCuboidScheduler().getAllCuboidIds().contains(parent)) {
                 break;
             }
             parent = getOnTreeParent(parent);
@@ -165,13 +165,13 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
     private Set<Long> getOnTreeParents(long child) {
         Set<Long> parentCandidate = new HashSet<>();
 
-        if (child == nRuleBasedCuboidsDesc.getFullMask()) {
+        if (child == ruleBasedAggIndex.getFullMask()) {
             return parentCandidate;
         }
 
-        for (NAggregationGroup agg : nRuleBasedCuboidsDesc.getAggregationGroups()) {
+        for (NAggregationGroup agg : ruleBasedAggIndex.getAggregationGroups()) {
             if (child == agg.getPartialCubeFullMask()) {
-                parentCandidate.add(nRuleBasedCuboidsDesc.getFullMask());
+                parentCandidate.add(ruleBasedAggIndex.getFullMask());
             } else if (child == 0 || agg.isOnTree(child)) {
                 parentCandidate.addAll(getOnTreeParents(child, agg));
             }
@@ -193,8 +193,8 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
      * @return Cuboid collection
      */
     protected Pair<Set<Long>, Map<Long, List<Long>>> buildTreeBottomUp() {
-        int forward = nRuleBasedCuboidsDesc.getParentForward();
-        KylinConfig config = nCubePlan.getConfig();
+        int forward = ruleBasedAggIndex.getParentForward();
+        KylinConfig config = indexPlan.getConfig();
         long maxCombination = config.getCubeAggrGroupMaxCombination() * 10;
         maxCombination = maxCombination < 0 ? Long.MAX_VALUE : maxCombination;
 
@@ -210,13 +210,13 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
             cuboidHolder.addAll(children);
             children = getOnTreeParentsByLayer(children);
         }
-        cuboidHolder.add(nRuleBasedCuboidsDesc.getFullMask());
+        cuboidHolder.add(ruleBasedAggIndex.getFullMask());
 
         // kick off blacked
         cuboidHolder = Sets.newHashSet(Iterators.filter(cuboidHolder.iterator(), new Predicate<Long>() {
             @Override
             public boolean apply(@Nullable Long cuboidId) {
-                return !nRuleBasedCuboidsDesc.isBlackedCuboid(cuboidId);
+                return !ruleBasedAggIndex.isBlackedIndex(cuboidId);
             }
         }));
 
@@ -274,11 +274,11 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
         parents = Sets.newHashSet(Iterators.filter(parents.iterator(), new Predicate<Long>() {
             @Override
             public boolean apply(@Nullable Long cuboidId) {
-                if (cuboidId == nRuleBasedCuboidsDesc.getFullMask()) {
+                if (cuboidId == ruleBasedAggIndex.getFullMask()) {
                     return true;
                 }
 
-                for (NAggregationGroup agg : nRuleBasedCuboidsDesc.getAggregationGroups()) {
+                for (NAggregationGroup agg : ruleBasedAggIndex.getAggregationGroups()) {
                     if (agg.isOnTree(cuboidId) && checkDimCap(agg, cuboidId)) {
                         return true;
                     }
@@ -324,7 +324,7 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
         // build tree structure
         Set<Long> children = getOnTreeParentsByLayer(Sets.newHashSet(0L), agg); // lowest level cuboids
         while (!children.isEmpty()) {
-            if (cuboidHolder.size() > nCubePlan.getConfig().getCubeAggrGroupMaxCombination()) {
+            if (cuboidHolder.size() > indexPlan.getConfig().getCubeAggrGroupMaxCombination()) {
                 throw new TooManyCuboidException("Holder size larger than kylin.cube.aggrgroup.max-combination");
             }
             cuboidHolder.addAll(children);
@@ -334,7 +334,7 @@ public class NKapCuboidScheduler243 extends NCuboidScheduler {
         return Sets.newHashSet(Iterators.filter(cuboidHolder.iterator(), new Predicate<Long>() {
             @Override
             public boolean apply(@Nullable Long cuboidId) {
-                return !nRuleBasedCuboidsDesc.isBlackedCuboid(cuboidId);
+                return !ruleBasedAggIndex.isBlackedIndex(cuboidId);
             }
         }));
     }

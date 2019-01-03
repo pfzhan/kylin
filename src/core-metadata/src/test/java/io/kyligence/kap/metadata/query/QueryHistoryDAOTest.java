@@ -236,7 +236,7 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(expectedGetTotalSizeSql, getTotalSizeSql);
 
         // when there is a condition that filters answered by
-        request.setRealizations(Lists.newArrayList("pushdown", "modelName"));
+        request.setRealizations(Lists.newArrayList("pushdown", "modelId"));
         expectedQueryHistoriesSql = String.format("SELECT * FROM %s WHERE (query_time >= 0 AND query_time < 1) " +
                         "AND (\"duration\" >= 0 AND \"duration\" <= 10000) AND sql_text =~ /%s/ AND (cube_hit = 'false' OR cube_hit = 'true') AND (accelerate_status = '%s' OR accelerate_status = '%s') ORDER BY time DESC LIMIT %d OFFSET %d", queryMeasurement,
                 request.getSql(), QueryHistory.QUERY_HISTORY_ACCELERATED, QueryHistory.QUERY_HISTORY_UNACCELERATED, limit, offset*limit);

@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.slf4j.Logger;
@@ -39,10 +40,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
@@ -63,17 +62,17 @@ class NCuboidRefresher extends NAbstractCubeProposer {
     }
 
     @Override
-    public NCubePlan doPropose(NCubePlan cubePlan) {
+    public IndexPlan doPropose(IndexPlan indexPlan) {
 
         Preconditions.checkNotNull(draftVersion);
-        final int semanticVersion = cubePlan.getModel().getSemanticVersion();
+        final int semanticVersion = indexPlan.getModel().getSemanticVersion();
 
         // 1. get originalCuboidsMap
-        Map<NCuboidIdentifier, NCuboidDesc> originalCuboidsMap = cubePlan.getWhiteListCuboidsMap();
+        Map<IndexEntity.IndexIdentifier, IndexEntity> originalCuboidsMap = indexPlan.getWhiteListIndexesMap();
 
         // 2. load favoriteQueryRealizations
         StringBuilder beforeRefreshLogBuilder = new StringBuilder();
-        List<NCuboidLayout> layouts = Lists.newArrayList();
+        List<LayoutEntity> layouts = Lists.newArrayList();
         collectAllLayouts(originalCuboidsMap.values());
         layouts.forEach(layout -> beforeRefreshLogBuilder.append(layout.getId()).append(" ")); // debug log
         logger.debug("layouts before refresh: [{}]", beforeRefreshLogBuilder);
@@ -93,10 +92,10 @@ class NCuboidRefresher extends NAbstractCubeProposer {
         smartContext.reBuildAccelerationInfoMap(allFavoriteQueryRealizations);
 
         // 5. delete unmodified cuboids in originalCuboidMap, collect favoriteQueryRealizations and delete them
-        originalCuboidsMap.forEach((cuboidIdentifier, cuboidDesc) -> {
-            final Iterator<NCuboidLayout> iterator = cuboidDesc.getLayouts().iterator();
+        originalCuboidsMap.forEach((cuboidIdentifier, indexEntity) -> {
+            final Iterator<LayoutEntity> iterator = indexEntity.getLayouts().iterator();
             while (iterator.hasNext()) {
-                final NCuboidLayout layout = iterator.next();
+                final LayoutEntity layout = iterator.next();
                 if (layout.matchDraftVersion(draftVersion)) {
                     final Set<String> sqlPattern = smartContext.eraseLayoutInAccelerateInfo(layout);
                     sqlPattern.forEach(sql -> favoriteQueryManager.removeRealizations(sql));
@@ -106,28 +105,28 @@ class NCuboidRefresher extends NAbstractCubeProposer {
         });
 
         // 6. propose cuboid again
-        final CuboidSuggester cuboidSuggester = new CuboidSuggester(context, cubePlan, originalCuboidsMap);
+        final CuboidSuggester cuboidSuggester = new CuboidSuggester(context, indexPlan, originalCuboidsMap);
         cuboidSuggester.suggestCuboids(context.getModelTree());
 
         // 7. publish all layouts
         StringBuilder afterRefreshLogBuilder = new StringBuilder();
-        final Collection<NCuboidDesc> cuboids = originalCuboidsMap.values();
+        final Collection<IndexEntity> cuboids = originalCuboidsMap.values();
         cuboids.forEach(cuboid -> cuboid.getLayouts().forEach(layout -> {
             if (layout.matchDraftVersion(draftVersion)) {
                 layout.publish();
             }
         }));
-        cubePlan.setCuboids(Lists.newArrayList(cuboids));
+        indexPlan.setIndexes(Lists.newArrayList(cuboids));
         collectAllLayouts(cuboids).forEach(layout -> afterRefreshLogBuilder.append(layout.getId()).append(" ")); // debug log
         logger.debug("layouts after refresh: [{}]", afterRefreshLogBuilder);
 
-        return cubePlan;
+        return indexPlan;
     }
 
     /**
      * load relations between favorite query and layout by layout
      */
-    private Set<FavoriteQueryRealization> loadFavoriteQueryRealizations(List<NCuboidLayout> layouts) {
+    private Set<FavoriteQueryRealization> loadFavoriteQueryRealizations(List<LayoutEntity> layouts) {
 
         // TODO load favorite query realizations by batch of layouts
         Set<FavoriteQueryRealization> favoriteQueryRealizations = Sets.newHashSet();
@@ -135,9 +134,8 @@ class NCuboidRefresher extends NAbstractCubeProposer {
         layouts.forEach(layout -> {
             final long layoutId = layout.getId();
             final String modelId = layout.getModel().getId();
-            final String cubePlanId = layout.getCuboidDesc().getCubePlan().getId();
 
-            final List<FavoriteQueryRealization> byConditions = favoriteQueryManager.getRealizationsByConditions(modelId, cubePlanId, layoutId);
+            final List<FavoriteQueryRealization> byConditions = favoriteQueryManager.getRealizationsByConditions(modelId, layoutId);
             favoriteQueryRealizations.addAll(byConditions);
         });
 

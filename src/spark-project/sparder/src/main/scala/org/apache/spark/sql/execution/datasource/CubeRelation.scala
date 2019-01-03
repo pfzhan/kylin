@@ -22,7 +22,7 @@
 
 package org.apache.spark.sql.execution.datasource
 
-import io.kyligence.kap.cube.model.{NCuboidLayout, NDataflow}
+import io.kyligence.kap.cube.model.{LayoutEntity, NDataflow}
 import org.apache.kylin.gridtable.GTInfo
 import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.spark.sql.execution.utils.SchemaProcessor
@@ -35,7 +35,7 @@ import scala.collection.JavaConverters._
 case class CubeRelation(tableName: String
                         , dataflow: NDataflow
                         , info: GTInfo
-                        , cuboid: NCuboidLayout
+                        , cuboid: LayoutEntity
                         , metrics: java.util.Set[FunctionDesc]
                        )(val sparkSession: SparkSession) extends KylinRelation {
 
@@ -45,7 +45,7 @@ case class CubeRelation(tableName: String
     sourceSchema
   }
 
-  def initColumnNameMapping(cuboid: NCuboidLayout): Array[(String, String)] = {
+  def initColumnNameMapping(cuboid: LayoutEntity): Array[(String, String)] = {
     val cols = cuboid.getColumns.asScala.map(col =>
       (col.getIdentity.replace(".", "_"), col.getType.getName)
     ).toArray

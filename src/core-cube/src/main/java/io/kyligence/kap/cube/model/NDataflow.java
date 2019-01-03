@@ -67,16 +67,14 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     public static final String REALIZATION_TYPE = "NCUBE";
     public static final String DATAFLOW_RESOURCE_ROOT = "/dataflow";
 
-    public static NDataflow create(String name, NCubePlan plan) {
+    public static NDataflow create(IndexPlan plan) {
         NDataflow df = new NDataflow();
 
         df.config = (KylinConfigExt) plan.getConfig();
-        df.setName(name);
-        df.setCubePlanName(plan.getName());
+        df.setUuid(plan.getUuid());
         df.setCreateTimeUTC(System.currentTimeMillis());
-        df.setSegments(new Segments<NDataSegment>());
+        df.setSegments(new Segments<>());
         df.setStatus(RealizationStatusEnum.ONLINE);
-        df.updateRandomUuid();
 
         return df;
     }
@@ -89,16 +87,12 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @JsonIgnore
     private KylinConfigExt config;
-    @JsonProperty("name")
-    private String name;
     @JsonProperty("description")
     private String description;
     @JsonProperty("owner")
     private String owner;
     @JsonProperty("mp_values")
     private String[] mpValues = StringUtil.EMPTY_ARRAY;
-    @JsonProperty("cube_plan")
-    private String cubePlanName;
     @JsonProperty("create_time_utc")
     private long createTimeUTC;
     @JsonProperty("status")
@@ -126,8 +120,8 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     }
 
     public KylinConfigExt getConfig() {
-        val cubePlan = NCubePlanManager.getInstance(config, project).getCubePlan(cubePlanName);
-        return (KylinConfigExt) cubePlan.getConfig();
+        val indexPlan = NIndexPlanManager.getInstance(config, project).getIndexPlan(getUuid());
+        return (KylinConfigExt) indexPlan.getConfig();
     }
 
     public NDataflow copy() {
@@ -136,11 +130,11 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @Override
     public String resourceName() {
-        return name;
+        return uuid;
     }
 
     public String getResourcePath() {
-        return "/" + project + DATAFLOW_RESOURCE_ROOT + "/" + name + MetadataConstants.FILE_SURFIX;
+        return "/" + project + DATAFLOW_RESOURCE_ROOT + "/" + uuid + MetadataConstants.FILE_SURFIX;
     }
 
     public Set<String> collectPrecalculationResource() {
@@ -153,7 +147,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         }
 
         // cubing plan
-        r.add(getCubePlan().getResourcePath());
+        r.add(getIndexPlan().getResourcePath());
 
         // project & model & tables
         r.add(getModel().getProjectInstance().getProjectResourcePath());
@@ -165,8 +159,8 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         return r;
     }
 
-    public NCubePlan getCubePlan() {
-        return NCubePlanManager.getInstance(config, project).getCubePlan(cubePlanName);
+    public IndexPlan getIndexPlan() {
+        return NIndexPlanManager.getInstance(config, project).getIndexPlan(uuid);
     }
 
     @Override
@@ -182,9 +176,9 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @Override
     public NDataModel getModel() {
-        NCubePlan cubePlan = this.getCubePlan();
-        if (cubePlan != null) {
-            return cubePlan.getModel();
+        IndexPlan indexPlan = this.getIndexPlan();
+        if (indexPlan != null) {
+            return indexPlan.getModel();
         } else {
             return null;
         }
@@ -197,22 +191,22 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
 
     @Override
     public Set<TblColRef> getAllColumns() {
-        return getCubePlan().listAllTblColRefs();
+        return getIndexPlan().listAllTblColRefs();
     }
 
     @Override
     public Set<ColumnDesc> getAllColumnDescs() {
-        return getCubePlan().listAllColumnDescs();
+        return getIndexPlan().listAllColumnDescs();
     }
 
     @Override
     public List<TblColRef> getAllDimensions() {
-        return Lists.newArrayList(getCubePlan().getEffectiveDimCols().values());
+        return Lists.newArrayList(getIndexPlan().getEffectiveDimCols().values());
     }
 
     @Override
     public List<MeasureDesc> getMeasures() {
-        Collection<NDataModel.Measure> measures = getCubePlan().getEffectiveMeasures().values();
+        Collection<NDataModel.Measure> measures = getIndexPlan().getEffectiveMeasures().values();
         List<MeasureDesc> result = Lists.newArrayListWithExpectedSize(measures.size());
         result.addAll(measures);
         return result;
@@ -350,15 +344,6 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     // NOTE THE SPECIAL GETTERS AND SETTERS TO PROTECT CACHED OBJECTS FROM BEING MODIFIED
     // ============================================================================
 
-    public String getName() {
-        return name;
-    }
-
-    void setName(String name) {
-        checkIsNotCachedAndShared();
-        this.name = name;
-    }
-
     public String getProject() {
         return project;
     }
@@ -379,15 +364,6 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     public void setMpValues(String[] mpValues) {
         checkIsNotCachedAndShared();
         this.mpValues = mpValues;
-    }
-
-    public String getCubePlanName() {
-        return cubePlanName;
-    }
-
-    public void setCubePlanName(String cubePlanName) {
-        checkIsNotCachedAndShared();
-        this.cubePlanName = cubePlanName;
     }
 
     public long getCreateTimeUTC() {
@@ -454,7 +430,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     public int hashCode() {
         final int prime = 31;
         int result = super.hashCode();
-        result = prime * result + ((name == null) ? 0 : name.hashCode());
+        result = prime * result + uuid.hashCode();
         return result;
     }
 
@@ -467,21 +443,18 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         if (getClass() != obj.getClass())
             return false;
         NDataflow other = (NDataflow) obj;
-        if (name == null) {
-            if (other.name != null)
-                return false;
-        } else if (!name.equals(other.name))
+        if (!uuid.equals(other.uuid))
             return false;
         return true;
     }
 
     @Override
     public String toString() {
-        return "NDataflow [" + name + "]";
+        return "NDataflow [" + uuid + "(" + getModelAlias() + ")]";
     }
 
     public Segments getSegmentsToRemoveByRetention() {
-        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, getModel().getName());
+        val segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(project, getModel().getUuid());
         val retentionRange = segmentConfig.getRetentionRange();
         if (!retentionRange.isRetentionRangeEnabled() || retentionRange.getRetentionRangeNumber() <= 0 || retentionRange.getRetentionRangeType() == null) {
             return null;

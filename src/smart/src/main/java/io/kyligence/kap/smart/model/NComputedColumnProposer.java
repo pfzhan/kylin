@@ -72,7 +72,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
         LOGGER.trace("Propose computed column for model [{}]", nDataModel.getId());
 
         List<NDataModel> otherModels = NDataModelManager.getInstance(kylinConfig, project).getDataModels().stream()
-                .filter(m -> !m.getName().equals(nDataModel.getName())).collect(Collectors.toList());
+                .filter(m -> !m.getUuid().equals(nDataModel.getUuid())).collect(Collectors.toList());
         otherModels.addAll(
                 getModelContext().getSmartContext().getModelContexts().stream().filter(ctx -> ctx != getModelContext())
                         .map(NModelContext::getTargetModel).filter(Objects::nonNull).collect(Collectors.toList()));
@@ -181,7 +181,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             try {
                 // Init model to check CC availability
                 nDataModel.init(config, NTableMetadataManager.getInstance(config, project).getAllTablesMap(),
-                        otherModels, false, project);
+                        otherModels, project);
                 // No exception, check passed
                 return true;
             } catch (BadModelException e) {

@@ -34,9 +34,6 @@ import java.util.UUID;
 import java.util.Vector;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -51,8 +48,12 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.CubeTestUtils;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.var;
@@ -75,10 +76,11 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testInvalidMerge() {
-        thrown.expectMessage("Range TimePartitionedSegmentRange[1262304000000,1356998400000) must contain at least 2 segments, but there is 0");
+        thrown.expectMessage(
+                "Range TimePartitionedSegmentRange[1262304000000,1356998400000) must contain at least 2 segments, but there is 0");
 
         NDataflowManager dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
-        NDataflow df = dfMgr.getDataflow("ncube_basic");
+        NDataflow df = dfMgr.getDataflowByModelAlias("nmodel_basic");
         dfMgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(SegmentRange.dateToLong("2010-01-01"),
                 SegmentRange.dateToLong("2013-01-01")), false);
     }
@@ -87,25 +89,25 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void testCached() {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        NDataflow df = mgr.getDataflow("ncube_basic");
+        NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic");
 
         Assert.assertTrue(df.isCachedAndShared());
         Assert.assertTrue(df.getSegments().getFirstSegment().isCachedAndShared());
         Assert.assertTrue(df.getSegments().getFirstSegment().getSegDetails().isCachedAndShared());
-        Assert.assertTrue(df.getSegments().getFirstSegment().getCuboid(1).isCachedAndShared());
+        Assert.assertTrue(df.getSegments().getFirstSegment().getLayout(1).isCachedAndShared());
 
         df = df.copy();
         Assert.assertFalse(df.isCachedAndShared());
         Assert.assertFalse(df.getSegments().getFirstSegment().isCachedAndShared());
         Assert.assertFalse(df.getSegments().getFirstSegment().getSegDetails().isCachedAndShared());
-        Assert.assertFalse(df.getSegments().getFirstSegment().getCuboid(1).isCachedAndShared());
+        Assert.assertFalse(df.getSegments().getFirstSegment().getLayout(1).isCachedAndShared());
     }
 
     @Test
     public void testImmutableCachedObj() {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        NDataflow df = mgr.getDataflow("ncube_basic");
+        NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic");
 
         try {
             df.setStatus(RealizationStatusEnum.OFFLINE);
@@ -128,17 +130,20 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void testCRUD() throws IOException {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        NCubePlanManager cubeMgr = NCubePlanManager.getInstance(testConfig, projectDefault);
+        NIndexPlanManager indePlanManager = NIndexPlanManager.getInstance(testConfig, projectDefault);
         NProjectManager projMgr = NProjectManager.getInstance(testConfig);
 
         final String name = UUID.randomUUID().toString();
         final String owner = "test_owner";
         final ProjectInstance proj = projMgr.getProject(projectDefault);
-        final NCubePlan cube = cubeMgr.getCubePlan("ncube_basic");
+        final IndexPlan cube = indePlanManager.getIndexPlanByModelAlias("nmodel_basic");
 
+        val copy = cube.copy();
+        copy.setUuid(name);
+        CubeTestUtils.createTmpModelAndCube(getTestConfig(), copy);
         // create
         int cntBeforeCreate = mgr.listAllDataflows().size();
-        NDataflow df = mgr.createDataflow(name, cube, owner);
+        NDataflow df = mgr.createDataflow(copy, owner);
         Assert.assertNotNull(df);
 
         // list
@@ -167,18 +172,18 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void testUpdateSegment() throws IOException {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        NDataflow df = mgr.getDataflow("ncube_basic");
+        NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic");
 
         NDataSegment newSeg = mgr.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
 
-        df = mgr.getDataflow("ncube_basic");
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(2, df.getSegments().size());
 
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(newSeg);
         mgr.updateDataflow(update);
 
-        df = mgr.getDataflow("ncube_basic");
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(1, df.getSegments().size());
     }
 
@@ -186,36 +191,36 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void testMergeSegmentsSuccess() throws IOException {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        NDataflow df = mgr.getDataflow("ncube_basic");
+        NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic");
 
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         mgr.updateDataflow(update);
 
-        df = mgr.getDataflow("ncube_basic");
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(0, df.getSegments().size());
 
         NDataSegment seg1 = mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1L));
         seg1.setStatus(SegmentStatusEnum.READY);
-        update = new NDataflowUpdate(df.getName());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(seg1);
         mgr.updateDataflow(update);
 
-        df = mgr.getDataflow("ncube_basic");
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(1, df.getSegments().size());
 
         NDataSegment seg2 = mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(1L, 2L));
         seg2.setStatus(SegmentStatusEnum.READY);
-        update = new NDataflowUpdate(df.getName());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(seg2);
         mgr.updateDataflow(update);
 
-        df = mgr.getDataflow("ncube_basic");
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(2, df.getSegments().size());
 
         NDataSegment mergedSeg = mgr.mergeSegments(df, new SegmentRange.TimePartitionedSegmentRange(0L, 2L), true);
 
-        df = mgr.getDataflow("ncube_basic");
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(3, df.getSegments().size());
 
         Assert.assertTrue(mergedSeg.getSegRange().contains(seg1.getSegRange()));
@@ -226,48 +231,47 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void testGetDataflow() {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        Assert.assertNotNull(mgr.getDataflowByUuid("0aeb985d-aec5-488a-a9b7-a5a564004433"));
-        Assert.assertNotNull(mgr.getDataflowsByCubePlan("ncube_basic"));
+        Assert.assertNotNull(mgr.getDataflowByModelAlias("nmodel_basic"));
     }
 
     @Test
     public void testMergeSegmentsFail() throws IOException {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        NDataflow df = mgr.getDataflow("ncube_basic");
-        //ncube_basic
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic");
+        //nmodel_basic
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         mgr.updateDataflow(update);
 
-        df = mgr.getDataflow("ncube_basic");
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(0, df.getSegments().size());
 
         NDataSegment seg1 = mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1L));
         seg1.setStatus(SegmentStatusEnum.READY);
-        update = new NDataflowUpdate(df.getName());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(seg1);
         mgr.updateDataflow(update);
 
-        df = mgr.getDataflow("ncube_basic");
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(1, df.getSegments().size());
 
         NDataSegment seg2 = mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(1L, 2L));
         seg2.setStatus(SegmentStatusEnum.READY);
-        update = new NDataflowUpdate(df.getName());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(seg2);
         mgr.updateDataflow(update);
 
-        df = mgr.getDataflow("ncube_basic");
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(2, df.getSegments().size());
 
         NDataSegment seg3 = mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(5L, 6L));
         seg3.setStatus(SegmentStatusEnum.READY);
-        update = new NDataflowUpdate(df.getName());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(seg3);
         mgr.updateDataflow(update);
 
-        df = mgr.getDataflow("ncube_basic");
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(3, df.getSegments().size());
 
         try {
@@ -287,8 +291,9 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         }
 
         // Set seg1's cuboid-0's status to NEW
-        NDataCuboid dataCuboid = NDataCuboid.newDataCuboid(seg1.getDataflow(), seg1.getId(), df.getCubePlan().getAllCuboidLayouts().get(0).getId());
-        update = new NDataflowUpdate(df.getName());
+        NDataLayout dataCuboid = NDataLayout.newDataLayout(seg1.getDataflow(), seg1.getId(),
+                df.getIndexPlan().getAllLayouts().get(0).getId());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToUpdateSegs(seg1);
         update.setToAddOrUpdateCuboids(dataCuboid);
         mgr.updateDataflow(update);
@@ -314,39 +319,39 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void testUpdateCuboid() throws IOException {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        NDataflow df = mgr.getDataflow("ncube_basic");
+        NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic");
 
         // test cuboid remove
-        Assert.assertEquals(8, df.getSegments().getFirstSegment().getCuboidsMap().size());
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
-        update.setToRemoveCuboids(df.getSegments().getFirstSegment().getCuboid(1001L));
+        Assert.assertEquals(8, df.getSegments().getFirstSegment().getLayoutsMap().size());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveCuboids(df.getSegments().getFirstSegment().getLayout(10001L));
         mgr.updateDataflow(update);
 
         // verify after remove
-        df = mgr.getDataflow("ncube_basic");
-        Assert.assertEquals(7, df.getSegments().getFirstSegment().getCuboidsMap().size());
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(7, df.getSegments().getFirstSegment().getLayoutsMap().size());
 
         // test cuboid add
         NDataSegment seg = df.getSegments().getFirstSegment();
-        update = new NDataflowUpdate(df.getName());
+        update = new NDataflowUpdate(df.getUuid());
         update.setToAddOrUpdateCuboids(//
-                NDataCuboid.newDataCuboid(df, seg.getId(), 1001L), // to add
-                NDataCuboid.newDataCuboid(df, seg.getId(), 1002L) // existing, will update with warning
+                NDataLayout.newDataLayout(df, seg.getId(), 10001L), // to add
+                NDataLayout.newDataLayout(df, seg.getId(), 10002L) // existing, will update with warning
         );
         mgr.updateDataflow(update);
 
-        df = mgr.getDataflow("ncube_basic");
-        Assert.assertEquals(8, df.getSegments().getFirstSegment().getCuboidsMap().size());
+        df = mgr.getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(8, df.getSegments().getFirstSegment().getLayoutsMap().size());
     }
 
     @Test
     public void testConcurrentMergeAndMerge() throws Exception {
         System.setProperty("kylin.cube.max-building-segments", "10");
         NDataflowManager mgr = NDataflowManager.getInstance(getTestConfig(), projectDefault);
-        String dfName = "ncube_basic";
+        String dfName = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         //get a empty dataflow
         NDataflow dataflow = mgr.getDataflow(dfName);
-        NDataflowUpdate update = new NDataflowUpdate(dataflow.getName());
+        NDataflowUpdate update = new NDataflowUpdate(dataflow.getUuid());
         update.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[0]));
         mgr.updateDataflow(update);
         NDataflow newDataflow = mgr.getDataflow(dfName);
@@ -358,7 +363,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
 
         NDataSegment seg1 = mgr.appendSegment(newDataflow, new SegmentRange.TimePartitionedSegmentRange(start1, end1));
         seg1.setStatus(SegmentStatusEnum.READY);
-        NDataflowUpdate update1 = new NDataflowUpdate(newDataflow.getName());
+        NDataflowUpdate update1 = new NDataflowUpdate(newDataflow.getUuid());
         update1.setToUpdateSegs(seg1);
         mgr.updateDataflow(update1);
 
@@ -369,7 +374,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         NDataSegment seg2 = mgr.appendSegment(updatedDataflow,
                 new SegmentRange.TimePartitionedSegmentRange(start2, end2));
         seg2.setStatus(SegmentStatusEnum.READY);
-        NDataflowUpdate update2 = new NDataflowUpdate(newDataflow.getName());
+        NDataflowUpdate update2 = new NDataflowUpdate(newDataflow.getUuid());
         update2.setToUpdateSegs(seg2);
         mgr.updateDataflow(update2);
 
@@ -389,22 +394,22 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         // this test case merge from PR <https://github.com/Kyligence/KAP/pull/4744>
         final KylinConfig testConfig = getTestConfig();
         final NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        NCubePlanManager cubePlanMgr = NCubePlanManager.getInstance(testConfig, projectDefault);
+        NIndexPlanManager indePlanMgr = NIndexPlanManager.getInstance(testConfig, projectDefault);
         NProjectManager projMgr = NProjectManager.getInstance(testConfig);
 
-        final String[] dataFlowNames = { "df1", "df2", "df3", "df4" };
+        final String[] dataflowIds = { "df1", "df2", "df3", "df4" };
         final String owner = "test_owner";
-        final int n = dataFlowNames.length;
+        final int n = dataflowIds.length;
         final int updatesPerCube = 100;
         testConfig.setProperty("kylin.cube.max-building-segments", String.valueOf(updatesPerCube));
 
         final ProjectInstance proj = projMgr.getProject(projectDefault);
-        final NCubePlan cube = cubePlanMgr.getCubePlan("ncube_basic");
+        final IndexPlan cube = indePlanMgr.getIndexPlanByModelAlias("nmodel_basic");
         final List<NDataflow> dataflows = new ArrayList<>();
 
         // create
-        for (String dataFlowName : dataFlowNames) {
-            dataflows.add(mgr.createDataflow(dataFlowName, cube, owner));
+        for (String dataFlowId : dataflowIds) {
+            dataflows.add(mgr.createDataflow(cube, owner));
         }
 
         final AtomicInteger runningFlag = new AtomicInteger();
@@ -417,7 +422,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
                 try {
                     Random rand = new Random();
                     while (runningFlag.get() == 0) {
-                        String name = dataFlowNames[rand.nextInt(n)];
+                        String name = dataflowIds[rand.nextInt(n)];
                         //                        NDataflowManager.getInstance(testConfig, projectDefault).reloadDataFlow(name);
                         Thread.sleep(1);
                     }
@@ -433,7 +438,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
         for (int i = 0; i < n; i++) {
             // each thread takes care of one dataFlow
             // for now, the design refuses concurrent updates to one dataFlow
-            final String dataFlowName = dataFlowNames[i];
+            final String dataflowId = dataflowIds[i];
             updateThreads[i] = new Thread() {
                 @Override
                 public void run() {
@@ -441,7 +446,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
                         Random rand = new Random();
                         for (int i = 0; i < updatesPerCube; i++) {
                             NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-                            NDataflow dataflow = mgr.getDataflow(dataFlowName);
+                            NDataflow dataflow = mgr.getDataflow(dataflowId);
                             mgr.appendSegment(dataflow,
                                     new SegmentRange.TimePartitionedSegmentRange((long) i, (long) i + 1));
                             Thread.sleep(rand.nextInt(1));
@@ -466,7 +471,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
             fail();
         }
         for (int i = 0; i < n; i++) {
-            NDataflow dataflow = mgr.getDataflow(dataFlowNames[i]);
+            NDataflow dataflow = mgr.getDataflow(dataflowIds[i]);
             Assert.assertEquals(updatesPerCube, dataflow.getSegments().size());
         }
 
@@ -476,7 +481,7 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void testRefreshSegment() throws IOException {
         KylinConfig testConfig = getTestConfig();
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        NDataflow df = mgr.getDataflow("ncube_basic");
+        NDataflow df = mgr.getDataflowByModelAlias("nmodel_basic");
         NDataSegment segment = df.getSegments(SegmentStatusEnum.READY).get(0);
 
         NDataSegment newSegment = mgr.refreshSegment(df, segment.getSegRange());
@@ -488,39 +493,35 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     @Test
     public void testGetDataflow2() throws IOException {
         KylinConfig testConfig = getTestConfig();
-        String cubePlanName = "ncube_basic";
-        String uuid = "0aeb985d-aec5-488a-a9b7-a5a564008891";
+        String uuid = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
 
-        NDataflow df = mgr.getDataflowByUuid(uuid);
+        NDataflow df = mgr.getDataflow(uuid);
         Assert.assertTrue(uuid.equals(df.getUuid()));
-
-        List<NDataflow> dataflows = mgr.getDataflowsByCubePlan(cubePlanName);
-        for (NDataflow dataflow : dataflows) {
-            Assert.assertTrue(dataflow.getCubePlanName().equals(cubePlanName));
-        }
-
     }
 
     @Test
     public void testCalculateHoles() throws IOException {
-        String dataFlowName = "dataFlowWithHole";
         KylinConfig testConfig = getTestConfig();
         val modelMgr = NDataModelManager.getInstance(testConfig, projectDefault);
-        modelMgr.updateDataModel("nmodel_basic", copyForWrite -> {
+        modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
             copyForWrite.setManagementType(ManagementType.MODEL_BASED);
         });
         NDataflowManager mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        NCubePlanManager cubePlanMgr = NCubePlanManager.getInstance(testConfig, projectDefault);
-        final NCubePlan cubePlan = cubePlanMgr.getCubePlan("ncube_basic");
+        NIndexPlanManager indePlanMgr = NIndexPlanManager.getInstance(testConfig, projectDefault);
+        final IndexPlan indexPlan = indePlanMgr.getIndexPlanByModelAlias("nmodel_basic");
 
-        NDataflow df = mgr.createDataflow(dataFlowName, cubePlan, "test_owner");
+        val copy = indexPlan.copy();
+        copy.setUuid(UUID.randomUUID().toString());
+        CubeTestUtils.createTmpModelAndCube(testConfig, copy);
+
+        NDataflow df = mgr.createDataflow(copy, "test_owner");
 
         mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(0L, 1L));
         mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(10L, 100L));
         mgr.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(1000L, 10000L));
 
-        List<NDataSegment> dataSegments = mgr.calculateHoles(dataFlowName);
+        List<NDataSegment> dataSegments = mgr.calculateHoles(copy.getUuid());
 
         Assert.assertEquals(2, dataSegments.size());
 
@@ -530,25 +531,25 @@ public class NDataflowManagerTest extends NLocalFileMetadataTestCase {
     public void testRemoveLayouts() throws IOException {
         val testConfig = getTestConfig();
         val mgr = NDataflowManager.getInstance(testConfig, projectDefault);
-        var dataflow = mgr.getDataflow("ncube_basic");
-        val originSize = dataflow.getLastSegment().getSegDetails().getCuboids().size();
+        var dataflow = mgr.getDataflowByModelAlias("nmodel_basic");
+        val originSize = dataflow.getLastSegment().getSegDetails().getLayouts().size();
         dataflow = mgr.removeLayouts(dataflow, Lists.newArrayList(1000001L, 1L));
-        Assert.assertEquals(originSize - 2, dataflow.getLastSegment().getSegDetails().getCuboids().size());
+        Assert.assertEquals(originSize - 2, dataflow.getLastSegment().getSegDetails().getLayouts().size());
         dataflow = mgr.removeLayouts(dataflow, Lists.newArrayList(100000000L));
-        Assert.assertEquals(originSize - 2, dataflow.getLastSegment().getSegDetails().getCuboids().size());
+        Assert.assertEquals(originSize - 2, dataflow.getLastSegment().getSegDetails().getLayouts().size());
     }
 
     @Test
     public void testCuboidsNotInCube() {
-        val cubeMgr = NCubePlanManager.getInstance(getTestConfig(), projectDefault);
-        val cube = cubeMgr.updateCubePlan("ncube_basic", copyForWrite -> {
-            copyForWrite.removeLayouts(Sets.newHashSet(1L), NCuboidLayout::equals, true, true);
+        val indePlanManager = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
+        val cube = indePlanManager.updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            copyForWrite.removeLayouts(Sets.newHashSet(1L), LayoutEntity::equals, true, true);
         });
 
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), projectDefault);
-        val df = dfMgr.getDataflow(cube.getName());
+        val df = dfMgr.getDataflow(cube.getUuid());
         for (NDataSegment segment : df.getSegments()) {
-            Assert.assertFalse(segment.getCuboidsMap().containsKey(1L));
+            Assert.assertFalse(segment.getLayoutsMap().containsKey(1L));
         }
     }
 }

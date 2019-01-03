@@ -67,9 +67,9 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
 
     private void removeAllSegments() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         // remove the existed seg
-        NDataflowUpdate update = new NDataflowUpdate(df.getName());
+        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
         update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
         dataflowManager.updateDataflow(update);
     }
@@ -77,11 +77,11 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
     private void mockAddSegmentSuccess()
             throws InvocationTargetException, IllegalAccessException, NoSuchMethodException {
         val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val df = dataflowManager.getDataflow("ncube_basic");
+        val df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         Class clazz = PostAddSegmentHandler.class;
         Method method = clazz.getDeclaredMethod("handleRetention", String.class, String.class);
         method.setAccessible(true);
-        method.invoke(new PostAddSegmentHandler(), DEFAULT_PROJECT, "nmodel_basic");
+        method.invoke(new PostAddSegmentHandler(), DEFAULT_PROJECT, df.getUuid());
     }
 
     private NDataLoadingRange createDataloadingRange() throws IOException {
@@ -98,7 +98,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val model = dataModelManager.getDataModelDesc("nmodel_basic");
+        val model = dataModelManager.getDataModelDescByAlias("nmodel_basic");
         NDataflow df;
         long start;
         long end;
@@ -108,7 +108,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-01") + i * 86400000L;
             end = SegmentRange.dateToLong("2010-01-02") + i * 86400000L;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
             dataflowManager.appendSegment(df, segmentRange);
         }
 
@@ -123,7 +123,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
 
 
         mockAddSegmentSuccess();
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         //no retention
         Assert.assertEquals(2, df.getSegments().size());
     }
@@ -134,7 +134,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         val loadingRange = createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val model = dataModelManager.getDataModelDesc("nmodel_basic");
+        val model = dataModelManager.getDataModelDescByAlias("nmodel_basic");
         NDataflow df;
         long start;
         long end;
@@ -144,7 +144,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-04") + i * 86400000L * 7;
             end = SegmentRange.dateToLong("2010-01-11") + i * 86400000L * 7;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
             dataflowManager.appendSegment(df, segmentRange);
         }
 
@@ -158,14 +158,14 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         dataModelManager.updateDataModelDesc(modelUpdate);
 
 
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         val dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val copy = dataLoadingRangeManager.copyForWrite(loadingRange);
         copy.setCoveredRange(df.getCoveredRange());
         dataLoadingRangeManager.updateDataLoadingRange(copy);
 
         mockAddSegmentSuccess();
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(2, df.getSegments().size());
         //01-11
         Assert.assertEquals("1263168000000", df.getSegments().get(0).getSegRange().getStart().toString());
@@ -188,7 +188,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val model = dataModelManager.getDataModelDesc("nmodel_basic");
+        val model = dataModelManager.getDataModelDescByAlias("nmodel_basic");
         NDataflow df;
         long start;
         long end;
@@ -198,7 +198,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-04") + i * 86400000L * 7;
             end = SegmentRange.dateToLong("2010-01-11") + i * 86400000L * 7;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
             dataflowManager.appendSegment(df, segmentRange);
         }
 
@@ -206,7 +206,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         start = SegmentRange.dateToLong("2010-01-25");
         end = SegmentRange.dateToLong("2010-01-26");
         SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         dataflowManager.appendSegment(df, segmentRange);
 
 
@@ -221,7 +221,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
 
 
         mockAddSegmentSuccess();
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
 
         Assert.assertEquals(3, df.getSegments().size());
         //01/11
@@ -237,7 +237,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val model = dataModelManager.getDataModelDesc("nmodel_basic");
+        val model = dataModelManager.getDataModelDescByAlias("nmodel_basic");
         NDataflow df;
         long start;
         long end;
@@ -247,10 +247,10 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-04") + i * 86400000L * 7;
             end = SegmentRange.dateToLong("2010-01-11") + i * 86400000L * 7;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
             dataflowManager.appendSegment(df, segmentRange);
         }
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
 
         NDataModel modelUpdate = dataModelManager.copyForWrite(model);
         val retentionRange = new RetentionRange();
@@ -263,7 +263,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
 
 
         mockAddSegmentSuccess();
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         //retention
         Assert.assertEquals(4, df.getSegments().size());
         //02/08
@@ -280,7 +280,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         createDataloadingRange();
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        val model = dataModelManager.getDataModelDesc("nmodel_basic");
+        val model = dataModelManager.getDataModelDescByAlias("nmodel_basic");
         NDataflow df;
         long start;
         long end;
@@ -290,7 +290,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
             start = SegmentRange.dateToLong("2010-01-04") + i * 86400000L * 7;
             end = SegmentRange.dateToLong("2010-01-11") + i * 86400000L * 7;
             SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-            df = dataflowManager.getDataflow("ncube_basic");
+            df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
             dataflowManager.appendSegment(df, segmentRange);
         }
 
@@ -305,7 +305,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
 
 
         mockAddSegmentSuccess();
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         Assert.assertEquals(5, df.getSegments().size());
         //01/04
         Assert.assertEquals("1262563200000", df.getSegments().get(0).getSegRange().getStart().toString());

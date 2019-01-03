@@ -45,7 +45,7 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NRuleBasedCuboidsDesc;
+import io.kyligence.kap.cube.model.NRuleBasedIndex;
 
 /**
  * to compatible with legacy aggregation group in pre-newten
@@ -71,13 +71,13 @@ public class NAggregationGroup implements Serializable {
     private List<Long> joints;//each long is a group
     private long jointDimsMask;
     private List<Long> normalDims;//each long is a single dim
-    private NRuleBasedCuboidsDesc nRuleBasedCuboidsDesc;
+    private NRuleBasedIndex ruleBasedAggIndex;
     private boolean isMandatoryOnlyValid;
     private HashMap<Long, Long> dim2JointMap;
 
-    public void init(NRuleBasedCuboidsDesc ruleBasedCuboidsDesc) {
-        this.nRuleBasedCuboidsDesc = ruleBasedCuboidsDesc;
-        this.isMandatoryOnlyValid = ruleBasedCuboidsDesc.getCubePlan().getConfig()
+    public void init(NRuleBasedIndex ruleBasedCuboidsDesc) {
+        this.ruleBasedAggIndex = ruleBasedCuboidsDesc;
+        this.isMandatoryOnlyValid = ruleBasedCuboidsDesc.getIndexPlan().getConfig()
                 .getCubeAggrGroupIsMandatoryOnlyValid();
 
         if (this.includes == null || this.includes.length == 0 || this.selectRule == null) {
@@ -133,7 +133,7 @@ public class NAggregationGroup implements Serializable {
 
         partialCubeFullMask = 0L;
         for (Integer dimId : this.includes) {
-            Integer index = nRuleBasedCuboidsDesc.getColumnBitIndex(dimId);
+            Integer index = ruleBasedAggIndex.getColumnBitIndex(dimId);
             long bit = 1L << index;
             partialCubeFullMask |= bit;
         }
@@ -154,7 +154,7 @@ public class NAggregationGroup implements Serializable {
 
             long joint = 0L;
             for (int i = 0; i < jointDims.length; i++) {
-                Integer index = nRuleBasedCuboidsDesc.getColumnBitIndex(jointDims[i]);
+                Integer index = ruleBasedAggIndex.getColumnBitIndex(jointDims[i]);
                 long bit = 1L << index;
                 joint |= bit;
             }
@@ -181,7 +181,7 @@ public class NAggregationGroup implements Serializable {
         }
 
         for (Integer dim : mandatory_dims) {
-            Integer index = nRuleBasedCuboidsDesc.getColumnBitIndex(dim);
+            Integer index = ruleBasedAggIndex.getColumnBitIndex(dim);
             mandatoryColumnMask |= (1L << index);
         }
     }
@@ -202,7 +202,7 @@ public class NAggregationGroup implements Serializable {
             ArrayList<Long> allMaskList = new ArrayList<Long>();
             ArrayList<Long> dimList = new ArrayList<Long>();
             for (int i = 0; i < hierarchy_dims.length; i++) {
-                Integer index = nRuleBasedCuboidsDesc.getColumnBitIndex(hierarchy_dims[i]);
+                Integer index = ruleBasedAggIndex.getColumnBitIndex(hierarchy_dims[i]);
                 long bit = 1L << index;
 
                 // combine joint as logic dim
@@ -357,7 +357,7 @@ public class NAggregationGroup implements Serializable {
             return false;
         } else {
             //base cuboid is always valid
-            if (cuboidID == nRuleBasedCuboidsDesc.getFullMask()) {
+            if (cuboidID == ruleBasedAggIndex.getFullMask()) {
                 return true;
             }
 

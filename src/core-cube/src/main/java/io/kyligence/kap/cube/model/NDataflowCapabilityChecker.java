@@ -48,7 +48,7 @@ public class NDataflowCapabilityChecker {
     public static CapabilityResult check(NDataflow dataflow, SQLDigest digest) {
         CapabilityResult result = new CapabilityResult();
         if (digest.limitPrecedesAggr) {
-            logger.info("Exclude NDataflow {} because there's limit preceding aggregation", dataflow.getName());
+            logger.info("Exclude NDataflow {} because there's limit preceding aggregation", dataflow);
             result.incapableCause = CapabilityResult.IncapableCause
                     .create(CapabilityResult.IncapableType.LIMIT_PRECEDE_AGGR);
             return result;
@@ -82,8 +82,7 @@ public class NDataflowCapabilityChecker {
     private static IRealizationCandidate tryMatchLookup(NDataflow dataflow, SQLDigest digest, CapabilityResult result) {
         // query from snapShot table
         if (!dataflow.getLatestReadySegment().getSnapshots().containsKey(digest.factTable)) {
-            logger.info("Exclude NDataflow {} because snapshot of table {} does not exist", dataflow.getName(),
-                    digest.factTable);
+            logger.info("Exclude NDataflow {} because snapshot of table {} does not exist", dataflow, digest.factTable);
             result.incapableCause = CapabilityResult.IncapableCause
                     .create(CapabilityResult.IncapableType.NOT_EXIST_SNAPSHOT);
             result.capable = false;
@@ -99,8 +98,7 @@ public class NDataflowCapabilityChecker {
         }
 
         if (!unmatchedCols.isEmpty()) {
-            logger.info("Exclude NDataflow {} because unmatched dimensions [{}] in Snapshot", dataflow.getName(),
-                    unmatchedCols);
+            logger.info("Exclude NDataflow {} because unmatched dimensions [{}] in Snapshot", dataflow, unmatchedCols);
             result.incapableCause = CapabilityResult.IncapableCause.unmatchedDimensions(unmatchedCols);
             return null;
         } else {

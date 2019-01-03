@@ -69,7 +69,7 @@ public class KapAggregateRel extends OLAPAggregateRel implements KapRel {
     public RelOptCost computeSelfCost(RelOptPlanner planner, RelMetadataQuery mq) {
         // todo: cherry-pick CORR measure
         // for (AggregateCall call : aggCalls) {
-        //            if (CorrMeasureType.FUNC_CORR.equalsIgnoreCase(call.getAggregation().getName().toUpperCase())) {
+        //            if (CorrMeasureType.FUNC_CORR.equalsIgnoreCase(call.getAggregation().getUuid().toUpperCase())) {
         //                return planner.getCostFactory().makeCost(Double.MAX_VALUE, 0, 0);
         //            }
         //        }

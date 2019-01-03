@@ -46,10 +46,8 @@ public class FavoriteQueryRealization implements Serializable {
     private String modelId;
     @JsonProperty("semantic_version")
     private int semanticVersion = 0;
-    @JsonProperty("cube_plan_id")
-    private String cubePlanId;
-    @JsonProperty("cuboid_layout_id")
-    private long cuboidLayoutId;
+    @JsonProperty("layout_id")
+    private long layoutId;
 
     @JsonIgnore
     public String getSqlPattern() {

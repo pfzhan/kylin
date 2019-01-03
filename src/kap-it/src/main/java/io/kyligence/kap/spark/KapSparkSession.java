@@ -24,7 +24,7 @@
 package io.kyligence.kap.spark;
 
 import com.google.common.base.Preconditions;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -234,17 +234,17 @@ public class KapSparkSession extends SparkSession {
             NDataflow df = (NDataflow) realization;
             Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
             NDataSegment oneSeg;
-            List<NCuboidLayout> layouts;
+            List<LayoutEntity> layouts;
             boolean isAppend = false;
             if (readySegments.isEmpty()) {
                 oneSeg = dataflowManager.appendSegment(df, SegmentRange.TimePartitionedSegmentRange.createInfinite());
-                layouts = df.getCubePlan().getAllCuboidLayouts();
+                layouts = df.getIndexPlan().getAllLayouts();
                 isAppend = true;
                 readySegments.add(oneSeg);
             } else {
                 oneSeg = readySegments.getFirstSegment();
-                layouts = df.getCubePlan().getAllCuboidLayouts().stream()
-                        .filter(c -> !oneSeg.getCuboidsMap().containsKey(c.getId())).collect(Collectors.toList());
+                layouts = df.getIndexPlan().getAllLayouts().stream()
+                        .filter(c -> !oneSeg.getLayoutsMap().containsKey(c.getId())).collect(Collectors.toList());
             }
 
             // create cubing job
@@ -265,14 +265,14 @@ public class KapSparkSession extends SparkSession {
                 val analysisStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkAnalysisStep());
                 val buildStore = ExecutableUtils.getRemoteStore(kylinConfig, job.getSparkCubingStep());
                 AfterBuildResourceMerger merger = new AfterBuildResourceMerger(kylinConfig, project);
-                val layoutIds = layouts.stream().map(NCuboidLayout::getId).collect(Collectors.toSet());
+                val layoutIds = layouts.stream().map(LayoutEntity::getId).collect(Collectors.toSet());
                 if (isAppend) {
-                    merger.mergeAfterIncrement(df.getName(), oneSeg.getId(), layoutIds, buildStore);
+                    merger.mergeAfterIncrement(df.getUuid(), oneSeg.getId(), layoutIds, buildStore);
                 } else {
                     val segIds = readySegments.stream().map(nDataSegment -> nDataSegment.getId()).collect(Collectors.toSet());
-                    merger.mergeAfterCatchup(df.getName(), segIds, layoutIds, buildStore);
+                    merger.mergeAfterCatchup(df.getUuid(), segIds, layoutIds, buildStore);
                 }
-                merger.mergeAnalysis(df.getName(), analysisStore);
+                merger.mergeAnalysis(df.getUuid(), analysisStore);
             }
         }
     }

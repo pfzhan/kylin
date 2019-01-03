@@ -52,9 +52,6 @@ import java.util.List;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.RetentionRange;
-import lombok.val;
-import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
@@ -66,7 +63,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.RetentionRange;
 import io.kyligence.kap.metadata.model.VolatileRange;
+import lombok.val;
+import lombok.var;
 
 public class Segments<T extends ISegment> extends ArrayList<T> implements Serializable {
 

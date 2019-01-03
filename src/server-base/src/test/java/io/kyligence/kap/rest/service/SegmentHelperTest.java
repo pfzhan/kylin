@@ -55,21 +55,21 @@ public class SegmentHelperTest extends NLocalFileMetadataTestCase {
     @Test
     public void testRemoveSegment() {
         NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-        NDataflow df = dataflowManager.getDataflow("ncube_basic");
+        NDataflow df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
 
         int segSize = df.getSegments().size();
         val segId = df.getSegments().iterator().next().getId();
 
-        segmentHelper.removeSegment(DEFAULT_PROJECT, "ncube_basic", Sets.newHashSet(segId));
+        segmentHelper.removeSegment(DEFAULT_PROJECT, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Sets.newHashSet(segId));
 
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         int segSize2 = df.getSegments().size();
         Assert.assertEquals(segSize, segSize2 + 1);
 
         // handle again, will not reduce dataFlow's segments
-        segmentHelper.removeSegment(DEFAULT_PROJECT, "ncube_basic", Sets.newHashSet(segId));
+        segmentHelper.removeSegment(DEFAULT_PROJECT, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", Sets.newHashSet(segId));
 
-        df = dataflowManager.getDataflow("ncube_basic");
+        df = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         int segSize3 = df.getSegments().size();
         Assert.assertEquals(segSize2, segSize3);
     }

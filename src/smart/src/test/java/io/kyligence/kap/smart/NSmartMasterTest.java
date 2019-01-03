@@ -29,6 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -38,9 +40,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -59,7 +59,7 @@ public class NSmartMasterTest extends NTestBase {
         String[] sqlStatements = new String[] {
                 "select lstg_format_name, sum(item_count), count(*) from kylin_sales group by lstg_format_name" };
         NDataModel originalModel1, originalModel2, targetModel1, targetModel2, targetModel3;
-        NCubePlan originalCubePlan1, originalCubePlan2, targetCubePlan1, targetCubePlan2, targetCubePlan3;
+        IndexPlan originalIndexPlan1, originalIndexPlan2, targetIndexPlan1, targetIndexPlan2, targetIndexPlan3;
         // select, optimize and save the model & cube_plan
         {
             NSmartMaster smartMaster = new NSmartMaster(kylinConfig, proj, sqlStatements);
@@ -71,12 +71,12 @@ public class NSmartMasterTest extends NTestBase {
             NSmartContext.NModelContext modelContext = ctx.getModelContexts().get(0);
             targetModel1 = modelContext.getTargetModel();
 
-            smartMaster.selectCubePlan();
-            smartMaster.optimizeCubePlan();
-            targetCubePlan1 = modelContext.getTargetCubePlan();
+            smartMaster.selectIndexPlan();
+            smartMaster.optimizeIndexPlan();
+            targetIndexPlan1 = modelContext.getTargetIndexPlan();
 
             smartMaster.saveModel();
-            smartMaster.saveCubePlan();
+            smartMaster.saveIndexPlan();
         }
         // select, shrink the model & cube_plan without save
         {
@@ -90,12 +90,12 @@ public class NSmartMasterTest extends NTestBase {
             // Make sure the saveModel() is taken effect
             Assert.assertEquals(originalModel1, targetModel1);
 
-            smartMaster.selectCubePlan();
-            originalCubePlan1 = modelContext.getOrigCubePlan();
-            Assert.assertEquals(originalCubePlan1, targetCubePlan1);
+            smartMaster.selectIndexPlan();
+            originalIndexPlan1 = modelContext.getOrigIndexPlan();
+            Assert.assertEquals(originalIndexPlan1, targetIndexPlan1);
 
-            smartMaster.shrinkCubePlan();
-            targetCubePlan2 = modelContext.getTargetCubePlan();
+            smartMaster.shrinkIndexPlan();
+            targetIndexPlan2 = modelContext.getTargetIndexPlan();
 
             smartMaster.shrinkModel();
             targetModel2 = modelContext.getTargetModel();
@@ -113,20 +113,20 @@ public class NSmartMasterTest extends NTestBase {
             // Make sure shrinkModel() does not soil the originalModel
             Assert.assertEquals(originalModel1, originalModel2);
 
-            smartMaster.selectCubePlan();
-            originalCubePlan2 = modelContext.getOrigCubePlan();
-            Assert.assertEquals(originalCubePlan1, originalCubePlan2);
+            smartMaster.selectIndexPlan();
+            originalIndexPlan2 = modelContext.getOrigIndexPlan();
+            Assert.assertEquals(originalIndexPlan1, originalIndexPlan2);
 
-            smartMaster.shrinkCubePlan();
-            targetCubePlan3 = modelContext.getTargetCubePlan();
-            Assert.assertEquals(targetCubePlan2, targetCubePlan3);
+            smartMaster.shrinkIndexPlan();
+            targetIndexPlan3 = modelContext.getTargetIndexPlan();
+            Assert.assertEquals(targetIndexPlan2, targetIndexPlan3);
 
             smartMaster.shrinkModel();
             targetModel3 = modelContext.getTargetModel();
             Assert.assertEquals(targetModel2, targetModel3);
 
             smartMaster.saveModel();
-            smartMaster.saveCubePlan();
+            smartMaster.saveIndexPlan();
         }
     }
 
@@ -183,9 +183,9 @@ public class NSmartMasterTest extends NTestBase {
         smartMaster.optimizeModel();
         smartMaster.saveModel();
 
-        smartMaster.selectCubePlan();
-        smartMaster.optimizeCubePlan();
-        smartMaster.saveCubePlan();
+        smartMaster.selectIndexPlan();
+        smartMaster.optimizeIndexPlan();
+        smartMaster.saveIndexPlan();
 
         final NSmartContext ctx = smartMaster.getContext();
         final Map<String, AccelerateInfo> accelerateInfoMap = ctx.getAccelerateInfoMap();
@@ -194,9 +194,9 @@ public class NSmartMasterTest extends NTestBase {
 
         // before saveAccelerateInfo
         NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-        NCubePlan cubePlan = mdCtx.getTargetCubePlan();
-        final List<NCuboidDesc> allCuboids = cubePlan.getAllCuboids();
-        final List<NCuboidLayout> layouts = collectAllLayouts(allCuboids);
+        IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
+        final List<IndexEntity> allCuboids = indexPlan.getAllIndexes();
+        final List<LayoutEntity> layouts = collectAllLayouts(allCuboids);
         Set<FavoriteQueryRealization> fqRealizationsBefore = collectFavoriteQueryRealizations(layouts);
         Assert.assertTrue(fqRealizationsBefore.isEmpty());
 
@@ -282,9 +282,9 @@ public class NSmartMasterTest extends NTestBase {
 
         // get favorite query realization relationships from database and validate them
         NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-        NCubePlan cubePlan = mdCtx.getTargetCubePlan();
-        final List<NCuboidDesc> allCuboids = cubePlan.getAllCuboids();
-        final List<NCuboidLayout> layouts = collectAllLayouts(allCuboids);
+        IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
+        final List<IndexEntity> allCuboids = indexPlan.getAllIndexes();
+        final List<LayoutEntity> layouts = collectAllLayouts(allCuboids);
         val fqRealizationsAfter = collectFavoriteQueryRealizations(layouts);
         Assert.assertEquals(2, fqRealizationsAfter.size());
     }
@@ -322,22 +322,22 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertNull(targetModel);
         }
 
-        smartMaster.selectCubePlan();
+        smartMaster.selectIndexPlan();
 
         {
-            smartMaster.optimizeCubePlan();
+            smartMaster.optimizeIndexPlan();
             final NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
             Assert.assertNull(targetModel);
-            final NCubePlan targetCubePlan = smartMaster.getContext().getModelContexts().get(0).getTargetCubePlan();
-            Assert.assertNull(targetCubePlan);
+            final IndexPlan targetIndexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
+            Assert.assertNull(targetIndexPlan);
         }
 
         {
-            smartMaster.saveCubePlan();
+            smartMaster.saveIndexPlan();
             final NDataModel targetModel = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
             Assert.assertNull(targetModel);
-            final NCubePlan targetCubePlan = smartMaster.getContext().getModelContexts().get(0).getTargetCubePlan();
-            Assert.assertNull(targetCubePlan);
+            final IndexPlan targetIndexPlan = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan();
+            Assert.assertNull(targetIndexPlan);
         }
     }
 
@@ -374,9 +374,9 @@ public class NSmartMasterTest extends NTestBase {
             final Throwable blockingCause0 = accelerateInfoMapCase0.get(sqls[0]).getBlockingCause();
             Assert.assertNull(blockingCause0);
 
-            final List<NCuboidDesc> allCuboids = smartMaster.getContext().getModelContexts().get(0).getTargetCubePlan()
-                    .getAllCuboids();
-            final List<NCuboidLayout> layouts = collectAllLayouts(allCuboids);
+            final List<IndexEntity> allCuboids = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan()
+                    .getAllIndexes();
+            final List<LayoutEntity> layouts = collectAllLayouts(allCuboids);
             Assert.assertEquals(1, layouts.size());
 
             final NDataModel targetModelCase0 = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
@@ -405,9 +405,9 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertTrue(blockingCause1.getMessage().startsWith(prefix) //
                     && blockingCause1.getMessage().endsWith(postFix));
 
-            final List<NCuboidDesc> allCuboids = smartMaster.getContext().getModelContexts().get(0).getTargetCubePlan()
-                    .getAllCuboids();
-            final List<NCuboidLayout> layouts = collectAllLayouts(allCuboids);
+            final List<IndexEntity> allCuboids = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan()
+                    .getAllIndexes();
+            final List<LayoutEntity> layouts = collectAllLayouts(allCuboids);
             Assert.assertEquals(1, layouts.size());
 
             final NDataModel targetModelCase1 = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
@@ -492,9 +492,9 @@ public class NSmartMasterTest extends NTestBase {
         smartMaster.selectModel();
         smartMaster.optimizeModel();
         smartMaster.saveModel();
-        smartMaster.selectCubePlan();
-        smartMaster.optimizeCubePlan();
-        smartMaster.saveCubePlan();
+        smartMaster.selectIndexPlan();
+        smartMaster.optimizeIndexPlan();
+        smartMaster.saveIndexPlan();
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertEquals(1, accelerateInfoMap.values().size());
@@ -516,9 +516,9 @@ public class NSmartMasterTest extends NTestBase {
 
         // just mock a case to cover exception may happen in NDimensionProposer
         final NSmartContext.NModelContext modelContext = smartMaster.getContext().getModelContexts().get(0);
-        modelContext.getTargetCubePlan().setCubePlanOverrideEncodings(null);
+        modelContext.getTargetIndexPlan().setIndexPlanOverrideEncodings(null);
 
-        smartMaster.optimizeCubePlan();
+        smartMaster.optimizeIndexPlan();
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertEquals(1, accelerateInfoMap.values().size());
@@ -538,8 +538,8 @@ public class NSmartMasterTest extends NTestBase {
         smartMaster.analyzeSQLs();
         smartMaster.selectModel();
         smartMaster.optimizeModel();
-        smartMaster.selectCubePlan();
-        smartMaster.optimizeCubePlan();
+        smartMaster.selectIndexPlan();
+        smartMaster.optimizeIndexPlan();
 
         final Map<String, AccelerateInfo> accelerateInfoMap = smartMaster.getContext().getAccelerateInfoMap();
         Assert.assertEquals(1, accelerateInfoMap.values().size());

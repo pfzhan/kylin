@@ -26,14 +26,14 @@ package io.kyligence.kap.engine.spark;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import lombok.extern.slf4j.Slf4j;
@@ -41,23 +41,23 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class SegmentUtils {
 
-    public static Set<NCuboidLayout> getToBuildLayouts(NDataflow df) {
-        Set<NCuboidLayout> layouts = Sets.newHashSet();
+    public static Set<LayoutEntity> getToBuildLayouts(NDataflow df) {
+        Set<LayoutEntity> layouts = Sets.newHashSet();
         Segments<NDataSegment> readySegments = df.getSegments(SegmentStatusEnum.READY);
 
         if (CollectionUtils.isEmpty(readySegments)) {
-            if (CollectionUtils.isNotEmpty(df.getCubePlan().getAllCuboids())) {
-                layouts.addAll(df.getCubePlan().getAllCuboidLayouts());
+            if (CollectionUtils.isNotEmpty(df.getIndexPlan().getAllIndexes())) {
+                layouts.addAll(df.getIndexPlan().getAllLayouts());
             }
             log.trace("added {} layouts according to model {}'s index plan", layouts.size(),
-                    df.getCubePlan().getModel().getAlias());
+                    df.getIndexPlan().getModel().getAlias());
         } else {
             NDataSegment latestReadySegment = readySegments.getLatestReadySegment();
-            for (Map.Entry<Long, NDataCuboid> cuboid : latestReadySegment.getCuboidsMap().entrySet()) {
-                layouts.add(cuboid.getValue().getCuboidLayout());
+            for (Map.Entry<Long, NDataLayout> cuboid : latestReadySegment.getLayoutsMap().entrySet()) {
+                layouts.add(cuboid.getValue().getLayout());
             }
             log.trace("added {} layouts according to model {}'s latest ready segment {}", layouts.size(),
-                    df.getCubePlan().getModel().getAlias(), latestReadySegment.getName());
+                    df.getIndexPlan().getModel().getAlias(), latestReadySegment.getName());
         }
         return layouts;
     }

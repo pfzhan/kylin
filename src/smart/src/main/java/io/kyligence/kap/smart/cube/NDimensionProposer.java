@@ -26,6 +26,7 @@ package io.kyligence.kap.smart.cube;
 
 import java.util.Map;
 
+import io.kyligence.kap.cube.model.IndexPlan;
 import org.apache.kylin.dimension.DateDimEnc;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.dimension.FixedLenDimEnc;
@@ -37,7 +38,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NEncodingDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
@@ -52,11 +52,11 @@ class NDimensionProposer extends NAbstractCubeProposer {
     }
 
     @Override
-    public NCubePlan doPropose(NCubePlan cubePlan) {
+    public IndexPlan doPropose(IndexPlan indexPlan) {
         Map<Integer, NEncodingDesc> encs = Maps.newTreeMap();
 
         // keep old dimensions
-        encs.putAll(cubePlan.getCubePlanOverrideEncodings());
+        encs.putAll(indexPlan.getIndexPlanOverrideEncodings());
 
         NDataModel model = context.getTargetModel();
         for (Map.Entry<Integer, TblColRef> colEntry : model.getEffectiveColsMap().entrySet()) {
@@ -66,8 +66,8 @@ class NDimensionProposer extends NAbstractCubeProposer {
             encs.put(colEntry.getKey(), suggestEncoding(colEntry.getValue()));
         }
 
-        cubePlan.setCubePlanOverrideEncodings(encs);
-        return cubePlan;
+        indexPlan.setIndexPlanOverrideEncodings(encs);
+        return indexPlan;
     }
 
     private NEncodingDesc suggestEncoding(TblColRef colRef) {

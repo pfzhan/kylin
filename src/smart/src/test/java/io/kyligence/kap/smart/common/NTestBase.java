@@ -45,8 +45,8 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
@@ -87,22 +87,21 @@ public abstract class NTestBase {
         localConfig.close();
     }
 
-    protected List<NCuboidLayout> collectAllLayouts(List<NCuboidDesc> cuboidDescs) {
-        List<NCuboidLayout> layouts = Lists.newArrayList();
-        for (NCuboidDesc cuboidDesc : cuboidDescs) {
-            layouts.addAll(cuboidDesc.getLayouts());
+    protected List<LayoutEntity> collectAllLayouts(List<IndexEntity> indexEntities) {
+        List<LayoutEntity> layouts = Lists.newArrayList();
+        for (IndexEntity indexEntity : indexEntities) {
+            layouts.addAll(indexEntity.getLayouts());
         }
         return layouts;
     }
 
-    protected Set<FavoriteQueryRealization> collectFavoriteQueryRealizations(List<NCuboidLayout> layouts) {
+    protected Set<FavoriteQueryRealization> collectFavoriteQueryRealizations(List<LayoutEntity> layouts) {
         Set<FavoriteQueryRealization> realizations = Sets.newHashSet();
         layouts.forEach(layout -> {
             final long layoutId = layout.getId();
-            final String cubePlanId = layout.getCuboidDesc().getCubePlan().getId();
             final String modelId = layout.getModel().getId();
 
-            val tmp = favoriteQueryManager.getRealizationsByConditions(modelId, cubePlanId, layoutId);
+            val tmp = favoriteQueryManager.getRealizationsByConditions(modelId, layoutId);
             realizations.addAll(tmp);
         });
         return realizations;

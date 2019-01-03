@@ -53,14 +53,14 @@ public class NDataSegDetailsManagerTest extends NLocalFileMetadataTestCase {
         NDataflowManager dsMgr = NDataflowManager.getInstance(testConfig, projectDefault);
         NDataSegDetailsManager mgr = NDataSegDetailsManager.getInstance(testConfig, projectDefault);
 
-        NDataflow df = dsMgr.getDataflow("ncube_basic");
+        NDataflow df = dsMgr.getDataflowByModelAlias("nmodel_basic");
         NDataSegment segment = df.getLastSegment();
         Assert.assertNotNull(segment);
 
         NDataSegDetails details = mgr.getForSegment(segment);
         Assert.assertNotNull(details);
         Assert.assertEquals(segment.getId(), details.getUuid());
-        Assert.assertEquals(8, details.getCuboids().size());
+        Assert.assertEquals(8, details.getLayouts().size());
         Assert.assertSame(segment.getConfig().base(), details.getConfig().base());
 
         details = mgr.upsertForSegment(details);

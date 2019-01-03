@@ -320,7 +320,7 @@ public class ModelDataGenerator {
     }
 
     private String path(NDataModel model) {
-        return outputPath + "/" + "ddl_" + model.getName() + ".sql";
+        return outputPath + "/" + "ddl_" + model.getUuid() + ".sql";
     }
 
     public NDataModel getModel() {
@@ -329,12 +329,12 @@ public class ModelDataGenerator {
 
     public static void main(String[] args) throws IOException {
         String projectName = args[0];
-        String modelName = args[1];
+        String modelId = args[1];
         int nRows = Integer.parseInt(args[2]);
         String outputDir = args.length > 3 ? args[3] : null;
 
         KylinConfig conf = KylinConfig.getInstanceFromEnv();
-        NDataModel model = NDataModelManager.getInstance(conf, projectName).getDataModelDesc(modelName);
+        NDataModel model = NDataModelManager.getInstance(conf, projectName).getDataModelDesc(modelId);
         ResourceStore store = outputDir == null ? ResourceStore.getKylinMetaStore(conf)
                 : ResourceStore.getKylinMetaStore(mockup(outputDir));
 

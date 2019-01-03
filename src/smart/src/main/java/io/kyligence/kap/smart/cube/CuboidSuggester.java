@@ -32,6 +32,8 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
@@ -49,10 +51,8 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.IndexEntity.IndexIdentifier;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -107,19 +107,19 @@ class CuboidSuggester {
     }
 
     private NSmartContext smartContext;
-    private NCubePlan cubePlan;
+    private IndexPlan indexPlan;
     private NDataModel model;
     private final ProjectInstance projectInstance;
 
     private Map<FunctionDesc, Integer> aggFuncIdMap;
-    private Map<NCuboidIdentifier, NCuboidDesc> collector;
+    private Map<IndexIdentifier, IndexEntity> collector;
     private SortedSet<Long> cuboidLayoutIds = Sets.newTreeSet();
 
-    CuboidSuggester(NModelContext modelContext, NCubePlan cubePlan, Map<NCuboidIdentifier, NCuboidDesc> collector) {
+    CuboidSuggester(NModelContext modelContext, IndexPlan indexPlan, Map<IndexIdentifier, IndexEntity> collector) {
 
         this.smartContext = modelContext.getSmartContext();
         this.model = modelContext.getTargetModel();
-        this.cubePlan = cubePlan;
+        this.indexPlan = indexPlan;
         this.collector = collector;
         this.projectInstance = NProjectManager.getInstance(this.smartContext.getKylinConfig())
                 .getProject(this.smartContext.getProject());
@@ -128,7 +128,7 @@ class CuboidSuggester {
         model.getEffectiveMeasureMap()
                 .forEach((measureId, measure) -> aggFuncIdMap.put(measure.getFunction(), measureId));
 
-        collector.forEach((cuboidIdentifier, cuboidDesc) -> cuboidDesc.getLayouts()
+        collector.forEach((cuboidIdentifier, indexEntity) -> indexEntity.getLayouts()
                 .forEach(layout -> cuboidLayoutIds.add(layout.getId())));
     }
 
@@ -153,7 +153,7 @@ class CuboidSuggester {
                 QueryLayoutRelation queryLayoutRelation = ingest(ctx, model);
                 accelerateInfo.getRelatedLayouts().add(queryLayoutRelation);
             } catch (Exception e) {
-                logger.error("Unable to suggest cuboid for CubePlan", e);
+                logger.error("Unable to suggest cuboid for IndexPlan", e);
                 accelerateInfo.setBlockingCause(e);
                 accelerateInfo.getRelatedLayouts().clear();
             } finally {
@@ -275,14 +275,14 @@ class CuboidSuggester {
         final Map<Integer, Double> dimScores = getDimScores(ctx, colIdMap, isTableIndex);
 
         SortedSet<Integer> measureIds = Sets.newTreeSet();
-        NCuboidDesc cuboidDesc = isTableIndex ? createTableIndex(ctx, dimScores)
+        IndexEntity indexEntity = isTableIndex ? createTableIndex(ctx, dimScores)
                 : createAggregatedIndex(ctx, dimScores, measureIds, colIdMap);
 
-        final NCuboidIdentifier cuboidIdentifier = cuboidDesc.createCuboidIdentifier();
+        final IndexIdentifier cuboidIdentifier = indexEntity.createCuboidIdentifier();
         if (collector.containsKey(cuboidIdentifier)) {
-            cuboidDesc = collector.get(cuboidIdentifier);
+            indexEntity = collector.get(cuboidIdentifier);
         } else {
-            collector.put(cuboidIdentifier, cuboidDesc);
+            collector.put(cuboidIdentifier, indexEntity);
         }
 
         List<Integer> shardBy = Lists.newArrayList();
@@ -292,32 +292,31 @@ class CuboidSuggester {
             sortBy = suggestSortBy(ctx, colIdMap);
         }
 
-        NCuboidLayout layout = new NCuboidLayout();
-        layout.setId(suggestLayoutId(cuboidDesc));
+        LayoutEntity layout = new LayoutEntity();
+        layout.setId(suggestLayoutId(indexEntity));
         //        layout.setLayoutOverrideIndices(suggestIndexMap(ctx, dimScores, model.getEffectiveColsMap()));
         layout.setColOrder(suggestColOrder(dimScores, measureIds));
-        layout.setCuboidDesc(cuboidDesc);
+        layout.setIndex(indexEntity);
         layout.setShardByColumns(shardBy);
         layout.setSortByColumns(sortBy);
         layout.setAuto(true);
         layout.setDraftVersion(smartContext.getDraftVersion());
 
-        String modelId = model.getName();
-        String cubePlanId = cuboidDesc.getCubePlan().getName();
+        String modelId = model.getUuid();
         int semanticVersion = model.getSemanticVersion();
-        for (NCuboidLayout l : cuboidDesc.getLayouts()) {
+        for (LayoutEntity l : indexEntity.getLayouts()) {
             if (l.equals(layout)) {
-                return new QueryLayoutRelation(ctx.sql, modelId, cubePlanId, l.getId(), semanticVersion);
+                return new QueryLayoutRelation(ctx.sql, modelId, l.getId(), semanticVersion);
             }
         }
 
-        cuboidDesc.getLayouts().add(layout);
+        indexEntity.getLayouts().add(layout);
         cuboidLayoutIds.add(layout.getId());
 
-        return new QueryLayoutRelation(ctx.sql, modelId, cubePlanId, layout.getId(), semanticVersion);
+        return new QueryLayoutRelation(ctx.sql, modelId, layout.getId(), semanticVersion);
     }
 
-    private NCuboidDesc createTableIndex(OLAPContext ctx, Map<Integer, Double> dimScores) {
+    private IndexEntity createTableIndex(OLAPContext ctx, Map<Integer, Double> dimScores) {
         // no column selected in raw query (i.e. select 1 from kylin_sales)
         if (dimScores.isEmpty()) {
             Preconditions.checkState(CollectionUtils.isNotEmpty(model.getAllNamedColumns()),
@@ -331,11 +330,11 @@ class CuboidSuggester {
             dimScores.putIfAbsent(model.getColumnIdByColumnName(col.getIdentity()), -1D);
         }
 
-        return createCuboidDesc(dimScores, Sets.newTreeSet(), true);
+        return createIndexEntity(dimScores, Sets.newTreeSet(), true);
     }
 
-    private NCuboidDesc createAggregatedIndex(OLAPContext ctx, Map<Integer, Double> dimScores,
-            SortedSet<Integer> measureIds, Map<TblColRef, Integer> colIdMap) {
+    private IndexEntity createAggregatedIndex(OLAPContext ctx, Map<Integer, Double> dimScores,
+                                              SortedSet<Integer> measureIds, Map<TblColRef, Integer> colIdMap) {
         // Add default measure count(1)
         measureIds.add(NDataModel.MEASURE_ID_BASE);
 
@@ -351,7 +350,7 @@ class CuboidSuggester {
             }
         });
 
-        return createCuboidDesc(dimScores, measureIds, false);
+        return createIndexEntity(dimScores, measureIds, false);
     }
 
     private String getMsgTemplateByModelMaintainType(String messagePattern) {
@@ -363,18 +362,18 @@ class CuboidSuggester {
                 : messagePattern;
     }
 
-    private NCuboidDesc createCuboidDesc(Map<Integer, Double> dimScores, SortedSet<Integer> measureIds,
-            boolean isTableIndex) {
+    private IndexEntity createIndexEntity(Map<Integer, Double> dimScores, SortedSet<Integer> measureIds,
+                                          boolean isTableIndex) {
         Preconditions.checkState(!dimScores.isEmpty() || !measureIds.isEmpty(),
-                "Neither dimension nor measure could be proposed for CuboidDesc");
+                "Neither dimension nor measure could be proposed for indexEntity");
 
-        NCuboidDesc cuboidDesc = new NCuboidDesc();
-        cuboidDesc.setId(suggestDescId(isTableIndex));
-        cuboidDesc.setDimensions(dimScores.keySet().stream().sorted().collect(Collectors.toList()));
-        cuboidDesc.setMeasures(Lists.newArrayList(measureIds));
-        cuboidDesc.setCubePlan(cubePlan);
+        IndexEntity indexEntity = new IndexEntity();
+        indexEntity.setId(suggestDescId(isTableIndex));
+        indexEntity.setDimensions(dimScores.keySet().stream().sorted().collect(Collectors.toList()));
+        indexEntity.setMeasures(Lists.newArrayList(measureIds));
+        indexEntity.setIndexPlan(indexPlan);
 
-        return cuboidDesc;
+        return indexEntity;
     }
 
     private List<Integer> suggestColOrder(final Map<Integer, Double> dimScores, Set<Integer> measureIds) {
@@ -394,31 +393,31 @@ class CuboidSuggester {
     }
 
     private long suggestDescId(boolean isTableIndex) {
-        return findAvailableCuboidDescId(isTableIndex);
+        return findAvailableIndexEntityId(isTableIndex);
     }
 
-    private long findAvailableCuboidDescId(boolean isTableIndex) {
-        final Collection<NCuboidDesc> cuboidDescs = collector.values();
-        long result = isTableIndex ? NCuboidDesc.TABLE_INDEX_START_ID : 0;
+    private long findAvailableIndexEntityId(boolean isTableIndex) {
+        final Collection<IndexEntity> indexEntities = collector.values();
+        long result = isTableIndex ? IndexEntity.TABLE_INDEX_START_ID : 0;
         List<Long> cuboidIds = Lists.newArrayList();
-        for (NCuboidDesc cuboidDesc : cuboidDescs) {
-            long cuboidDescId = cuboidDesc.getId();
-            if ((isTableIndex && cuboidDescId >= NCuboidDesc.TABLE_INDEX_START_ID)
-                    || (!isTableIndex && cuboidDescId < NCuboidDesc.TABLE_INDEX_START_ID)) {
-                cuboidIds.add(cuboidDescId);
+        for (IndexEntity indexEntity : indexEntities) {
+            long indexEntityId = indexEntity.getId();
+            if ((isTableIndex && indexEntityId >= IndexEntity.TABLE_INDEX_START_ID)
+                    || (!isTableIndex && indexEntityId < IndexEntity.TABLE_INDEX_START_ID)) {
+                cuboidIds.add(indexEntityId);
             }
         }
 
         if (!cuboidIds.isEmpty()) {
             // use the largest cuboid id + step
             cuboidIds.sort(Long::compareTo);
-            result = cuboidIds.get(cuboidIds.size() - 1) + NCuboidDesc.CUBOID_DESC_ID_STEP;
+            result = cuboidIds.get(cuboidIds.size() - 1) + IndexEntity.INDEX_ID_STEP;
         }
-        return Math.max(result, isTableIndex ? cubePlan.getNextTableIndexId() : cubePlan.getNextAggregateIndexId());
+        return Math.max(result, isTableIndex ? indexPlan.getNextTableIndexId() : indexPlan.getNextAggregationIndexId());
     }
 
-    private long suggestLayoutId(NCuboidDesc cuboidDesc) {
-        long s = cuboidDesc.getLastLayout() == null ? cuboidDesc.getId() + 1 : cuboidDesc.getLastLayout().getId() + 1;
+    private long suggestLayoutId(IndexEntity indexEntity) {
+        long s = indexEntity.getLastLayout() == null ? indexEntity.getId() + 1 : indexEntity.getLastLayout().getId() + 1;
         while (cuboidLayoutIds.contains(s)) {
             s++;
         }

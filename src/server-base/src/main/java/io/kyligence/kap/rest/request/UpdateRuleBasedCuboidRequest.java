@@ -44,14 +44,14 @@ public class UpdateRuleBasedCuboidRequest {
 
     private String project;
 
-    private String model;
+    private String modelId;
 
     @Builder.Default
     private List<Integer> dimensions = Lists.newArrayList();
 
     @Builder.Default
-    @JsonProperty("cuboid_black_list")
-    private Set<Long> cuboidBlackSet = Sets.newHashSet();
+    @JsonProperty("index_start_id")
+    private Set<Long> indexBlackSet = Sets.newHashSet();
 
     @JsonProperty("aggregation_groups")
     private List<NAggregationGroup> aggregationGroups;

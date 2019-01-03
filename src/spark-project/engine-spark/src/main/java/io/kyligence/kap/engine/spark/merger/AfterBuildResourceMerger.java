@@ -36,8 +36,8 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.NCuboidLayout;
-import io.kyligence.kap.cube.model.NDataCuboid;
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
@@ -58,7 +58,7 @@ public class AfterBuildResourceMerger {
         this.project = project;
     }
 
-    public NDataCuboid[] mergeAfterIncrement(String flowName, String segmentId, Set<Long> layoutIds, ResourceStore remoteStore) {
+    public NDataLayout[] mergeAfterIncrement(String flowName, String segmentId, Set<Long> layoutIds, ResourceStore remoteStore) {
         val localDataflowManager = NDataflowManager.getInstance(config, project);
         val localDataflow = localDataflowManager.getDataflow(flowName);
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), project);
@@ -69,16 +69,16 @@ public class AfterBuildResourceMerger {
         val theSeg = remoteDataflow.getSegment(segmentId);
         theSeg.setStatus(SegmentStatusEnum.READY);
         dfUpdate.setToUpdateSegs(theSeg);
-        dfUpdate.setToAddOrUpdateCuboids(theSeg.getSegDetails().getCuboids().stream()
-                .filter(c -> availableLayoutIds.contains(c.getCuboidLayoutId())).toArray(NDataCuboid[]::new));
+        dfUpdate.setToAddOrUpdateCuboids(theSeg.getSegDetails().getLayouts().stream()
+                .filter(c -> availableLayoutIds.contains(c.getLayoutId())).toArray(NDataLayout[]::new));
 
         localDataflowManager.updateDataflow(dfUpdate);
 
         return dfUpdate.getToAddOrUpdateCuboids();
     }
 
-    public NDataCuboid[] mergeAfterCatchup(String flowName, Set<String> segmentIds, Set<Long> layoutIds,
-            ResourceStore remoteStore) {
+    public NDataLayout[] mergeAfterCatchup(String flowName, Set<String> segmentIds, Set<Long> layoutIds,
+                                           ResourceStore remoteStore) {
         val localDataflowManager = NDataflowManager.getInstance(config, project);
         val localDataflow = localDataflowManager.getDataflow(flowName);
         val remoteDataflowManager = NDataflowManager.getInstance(remoteStore.getConfig(), project);
@@ -86,9 +86,9 @@ public class AfterBuildResourceMerger {
 
         val dataflow = localDataflowManager.getDataflow(flowName);
         val dfUpdate = new NDataflowUpdate(flowName);
-        val addCuboids = Lists.<NDataCuboid> newArrayList();
+        val addCuboids = Lists.<NDataLayout> newArrayList();
 
-        val layoutInCubeIds = dataflow.getCubePlan().getAllCuboidLayouts().stream().map(NCuboidLayout::getId)
+        val layoutInCubeIds = dataflow.getIndexPlan().getAllLayouts().stream().map(LayoutEntity::getId)
                 .collect(Collectors.toList());
         val availableLayoutIds = layoutIds.stream().filter(layoutInCubeIds::contains).collect(Collectors.toSet());
         for (String segId : segmentIds) {
@@ -99,25 +99,25 @@ public class AfterBuildResourceMerger {
                 continue;
             }
             for (long layoutId : availableLayoutIds) {
-                NDataCuboid dataCuboid = remoteSeg.getCuboid(layoutId);
+                NDataLayout dataCuboid = remoteSeg.getLayout(layoutId);
                 Preconditions.checkNotNull(dataCuboid);
                 addCuboids.add(dataCuboid);
             }
             dfUpdate.setToUpdateSegs(remoteSeg);
         }
-        dfUpdate.setToAddOrUpdateCuboids(addCuboids.toArray(new NDataCuboid[0]));
+        dfUpdate.setToAddOrUpdateCuboids(addCuboids.toArray(new NDataLayout[0]));
 
         localDataflowManager.updateDataflow(dfUpdate);
 
         return dfUpdate.getToAddOrUpdateCuboids();
     }
 
-    public void mergeAnalysis(String dataflowName, ResourceStore remoteStore) {
+    public void mergeAnalysis(String dataflowId, ResourceStore remoteStore) {
         val remoteConfig = remoteStore.getConfig();
         final NTableMetadataManager remoteTblMgr = NTableMetadataManager.getInstance(remoteConfig, project);
         final NTableMetadataManager localTblMgr = NTableMetadataManager.getInstance(config, project);
 
-        final NDataModel dataModel = NDataflowManager.getInstance(config, project).getDataflow(dataflowName).getModel();
+        final NDataModel dataModel = NDataflowManager.getInstance(config, project).getDataflow(dataflowId).getModel();
 
         mergeAndUpdateTableExt(localTblMgr, remoteTblMgr, dataModel.getRootFactTableName());
         for (final JoinTableDesc lookupDesc : dataModel.getJoinTables()) {
@@ -127,7 +127,7 @@ public class AfterBuildResourceMerger {
     }
 
     private Set<Long> intersectionWithLastSegment(NDataflow dataflow, Collection<Long> layoutIds) {
-        val layoutInSegmentIds = SegmentUtils.getToBuildLayouts(dataflow).stream().map(NCuboidLayout::getId)
+        val layoutInSegmentIds = SegmentUtils.getToBuildLayouts(dataflow).stream().map(LayoutEntity::getId)
                 .collect(Collectors.toSet());
         return layoutIds.stream().filter(layoutInSegmentIds::contains).collect(Collectors.toSet());
     }

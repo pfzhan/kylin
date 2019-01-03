@@ -77,11 +77,11 @@ object AggregatePlan {
             .zipWithIndex
             .filter(call.getArgList.asScala.last == _._2)
             .head._1.asInstanceOf[RelDataTypeFieldImpl].getType match {
-            case tp: ArraySqlType if tp.getComponentType.getSqlTypeName.getName.equals("TIMESTAMP") =>
+            case tp: ArraySqlType if tp.getComponentType.getSqlTypeName.getUuid.equals("TIMESTAMP") =>
               "_timestamp"
-            case tp: ArraySqlType if tp.getComponentType.getSqlTypeName.getName.equals("DATE") =>
+            case tp: ArraySqlType if tp.getComponentType.getSqlTypeName.getUuid.equals("DATE") =>
               "_date"
-            case tp: ArraySqlType if tp.getComponentType.getSqlTypeName.getName.equals("CHAR") =>
+            case tp: ArraySqlType if tp.getComponentType.getSqlTypeName.getUuid.equals("CHAR") =>
               ""
             case tp => throw new UnsupportedOperationException(s"Unsupported type: $tp")
           }
@@ -93,7 +93,7 @@ object AggregatePlan {
                                                                    hash,
                                                                    argNames: _*)
         //        if (funcName == "COUNT_DISTINCT") {
-        //          if (dataType.getName == "hllc") {
+        //          if (dataType.getUuid == "hllc") {
         //            org.apache.spark.sql.KapFunctions.approx_count_distinct(columnName.head, dataType.getPrecision).alias(aggName)
         //          } else {
         //            precise_count_distinct(columnName.head).alias(aggName)

@@ -28,14 +28,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import org.junit.Assert;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidLayout;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.NSmartMaster;
@@ -55,11 +55,11 @@ public class CuboidSuggesterTest extends NTestBase {
         {
             NSmartContext ctx = smartMaster.getContext();
             NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-            final NCubePlan targetCubePlan = mdCtx.getTargetCubePlan();
-            final List<NCuboidDesc> allCuboids = targetCubePlan.getAllCuboids();
-            final List<NCuboidLayout> layouts = allCuboids.get(0).getLayouts();
-            final NCuboidLayout layout = layouts.get(0);
-            Assert.assertEquals("unexpected colOrder", "[7, 0, 3, 9, 1000, 1001]", layout.getColOrder().toString());
+            final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
+            final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
+            final List<LayoutEntity> layouts = allCuboids.get(0).getLayouts();
+            final LayoutEntity layout = layouts.get(0);
+            Assert.assertEquals("unexpected colOrder", "[7, 0, 3, 9, 100000, 100001]", layout.getColOrder().toString());
         }
     }
 
@@ -75,12 +75,12 @@ public class CuboidSuggesterTest extends NTestBase {
 
         NSmartContext ctx = smartMaster.getContext();
         NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-        final NCubePlan targetCubePlan = mdCtx.getTargetCubePlan();
-        final List<NCuboidDesc> allCuboids = targetCubePlan.getAllCuboids();
-        final NCuboidLayout layout = allCuboids.get(0).getLayouts().get(0);
+        final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
+        final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
+        final LayoutEntity layout = allCuboids.get(0).getLayouts().get(0);
         Assert.assertEquals("unexpected colOrder", "[6, 1, 4, 5, 8]", layout.getColOrder().toString());
 
-        final NCuboidLayout layout2 = allCuboids.get(1).getLayouts().get(0);
+        final LayoutEntity layout2 = allCuboids.get(1).getLayouts().get(0);
         Assert.assertEquals("unexpected colOrder", "[7, 1, 4, 5, 6, 8]", layout2.getColOrder().toString());
     }
 
@@ -102,29 +102,29 @@ public class CuboidSuggesterTest extends NTestBase {
         Assert.assertEquals(3, targetModel.getEffectiveMeasureMap().size());
         Assert.assertEquals(12, targetModel.getEffectiveCols().size());
 
-        final NCubePlan targetCubePlan = mdCtx.getTargetCubePlan();
-        final List<NCuboidDesc> allCuboids = targetCubePlan.getAllCuboids();
+        final IndexPlan targetIndexPlan = mdCtx.getTargetIndexPlan();
+        final List<IndexEntity> allCuboids = targetIndexPlan.getAllIndexes();
         Assert.assertEquals(4, allCuboids.size());
 
-        final NCuboidDesc cuboidDesc0 = allCuboids.get(0);
-        Assert.assertEquals(1, cuboidDesc0.getLayouts().size());
-        Assert.assertEquals(1L, cuboidDesc0.getLayouts().get(0).getId());
-        Assert.assertEquals("[1000]", cuboidDesc0.getLayouts().get(0).getColOrder().toString());
+        final IndexEntity indexEntity0 = allCuboids.get(0);
+        Assert.assertEquals(1, indexEntity0.getLayouts().size());
+        Assert.assertEquals(1L, indexEntity0.getLayouts().get(0).getId());
+        Assert.assertEquals("[100000]", indexEntity0.getLayouts().get(0).getColOrder().toString());
 
-        final NCuboidDesc cuboidDesc1 = allCuboids.get(1);
-        Assert.assertEquals(1, cuboidDesc1.getLayouts().size());
-        Assert.assertEquals(1001L, cuboidDesc1.getLayouts().get(0).getId());
-        Assert.assertEquals("[1000, 1001]", cuboidDesc1.getLayouts().get(0).getColOrder().toString());
+        final IndexEntity indexEntity1 = allCuboids.get(1);
+        Assert.assertEquals(1, indexEntity1.getLayouts().size());
+        Assert.assertEquals(IndexEntity.INDEX_ID_STEP + 1, indexEntity1.getLayouts().get(0).getId());
+        Assert.assertEquals("[100000, 100001]", indexEntity1.getLayouts().get(0).getColOrder().toString());
 
-        final NCuboidDesc cuboidDesc2 = allCuboids.get(2);
-        Assert.assertEquals(1, cuboidDesc2.getLayouts().size());
-        Assert.assertEquals(2001L, cuboidDesc2.getLayouts().get(0).getId());
-        Assert.assertEquals("[1000, 1002]", cuboidDesc2.getLayouts().get(0).getColOrder().toString());
+        final IndexEntity indexEntity2 = allCuboids.get(2);
+        Assert.assertEquals(1, indexEntity2.getLayouts().size());
+        Assert.assertEquals(IndexEntity.INDEX_ID_STEP * 2 + 1, indexEntity2.getLayouts().get(0).getId());
+        Assert.assertEquals("[100000, 100002]", indexEntity2.getLayouts().get(0).getColOrder().toString());
 
-        final NCuboidDesc cuboidDesc3 = allCuboids.get(3);
-        Assert.assertEquals(1, cuboidDesc3.getLayouts().size());
-        Assert.assertEquals(20000000001L, cuboidDesc3.getLayouts().get(0).getId());
-        Assert.assertEquals("[0]", cuboidDesc3.getLayouts().get(0).getColOrder().toString());
+        final IndexEntity indexEntity3 = allCuboids.get(3);
+        Assert.assertEquals(1, indexEntity3.getLayouts().size());
+        Assert.assertEquals(20000000001L, indexEntity3.getLayouts().get(0).getId());
+        Assert.assertEquals("[0]", indexEntity3.getLayouts().get(0).getColOrder().toString());
     }
 
     @Test
@@ -151,28 +151,28 @@ public class CuboidSuggesterTest extends NTestBase {
         Assert.assertEquals("MIN_SELLER_ID", allMeasures.get(7).getName());
         Assert.assertEquals("MAX_SELLER_ID", allMeasures.get(8).getName());
 
-        NCubePlan cubePlan = mdCtx.getTargetCubePlan();
-        List<NCuboidDesc> allCuboids = cubePlan.getCuboids();
-        final NCuboidDesc cuboidDesc0 = allCuboids.get(0);
+        IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
+        List<IndexEntity> allCuboids = indexPlan.getIndexes();
+        final IndexEntity indexEntity0 = allCuboids.get(0);
 
-        Assert.assertEquals("{1000, 1001, 1002}", cuboidDesc0.getMeasureBitset().toString());
-        Assert.assertEquals(1, cuboidDesc0.getLayouts().size());
-        Assert.assertEquals(1L, cuboidDesc0.getLayouts().get(0).getId());
+        Assert.assertEquals("{100000, 100001, 100002}", indexEntity0.getMeasureBitset().toString());
+        Assert.assertEquals(1, indexEntity0.getLayouts().size());
+        Assert.assertEquals(1L, indexEntity0.getLayouts().get(0).getId());
 
-        final NCuboidDesc cuboidDesc1 = allCuboids.get(1);
-        Assert.assertEquals("{1000, 1003, 1004}", cuboidDesc1.getMeasureBitset().toString());
-        Assert.assertEquals(1, cuboidDesc1.getLayouts().size());
-        Assert.assertEquals(1001L, cuboidDesc1.getLayouts().get(0).getId());
+        final IndexEntity indexEntity1 = allCuboids.get(1);
+        Assert.assertEquals("{100000, 100003, 100004}", indexEntity1.getMeasureBitset().toString());
+        Assert.assertEquals(1, indexEntity1.getLayouts().size());
+        Assert.assertEquals(IndexEntity.INDEX_ID_STEP + 1, indexEntity1.getLayouts().get(0).getId());
 
-        final NCuboidDesc cuboidDesc2 = allCuboids.get(2);
-        Assert.assertEquals("{1000, 1005, 1006}", cuboidDesc2.getMeasureBitset().toString());
-        Assert.assertEquals(1, cuboidDesc2.getLayouts().size());
-        Assert.assertEquals(2001L, cuboidDesc2.getLayouts().get(0).getId());
+        final IndexEntity indexEntity2 = allCuboids.get(2);
+        Assert.assertEquals("{100000, 100005, 100006}", indexEntity2.getMeasureBitset().toString());
+        Assert.assertEquals(1, indexEntity2.getLayouts().size());
+        Assert.assertEquals(IndexEntity.INDEX_ID_STEP * 2 + 1, indexEntity2.getLayouts().get(0).getId());
 
-        final NCuboidDesc cuboidDesc3 = allCuboids.get(3);
-        Assert.assertEquals("{1000, 1007, 1008}", cuboidDesc3.getMeasureBitset().toString());
-        Assert.assertEquals(1, cuboidDesc3.getLayouts().size());
-        Assert.assertEquals(3001L, cuboidDesc3.getLayouts().get(0).getId());
+        final IndexEntity indexEntity3 = allCuboids.get(3);
+        Assert.assertEquals("{100000, 100007, 100008}", indexEntity3.getMeasureBitset().toString());
+        Assert.assertEquals(1, indexEntity3.getLayouts().size());
+        Assert.assertEquals(IndexEntity.INDEX_ID_STEP * 3 + 1, indexEntity3.getLayouts().get(0).getId());
     }
 
     @Test
@@ -187,14 +187,14 @@ public class CuboidSuggesterTest extends NTestBase {
 
         NSmartContext ctx = smartMaster.getContext();
         NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-        NCubePlan cubePlan = mdCtx.getTargetCubePlan();
-        Assert.assertNotNull(cubePlan);
-        Assert.assertEquals(mdCtx.getTargetModel().getName(), cubePlan.getModelName());
+        IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
+        Assert.assertNotNull(indexPlan);
+        Assert.assertEquals(mdCtx.getTargetModel().getUuid(), indexPlan.getUuid());
 
-        List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();
-        Assert.assertEquals("unmatched cuboids size", 1, cuboidDescs.size());
+        List<IndexEntity> indexEntities = indexPlan.getIndexes();
+        Assert.assertEquals("unmatched cuboids size", 1, indexEntities.size());
 
-        final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
+        final List<LayoutEntity> layouts = indexEntities.get(0).getLayouts();
         Assert.assertEquals("unmatched layouts size", 1, layouts.size());
         Assert.assertEquals("unmatched shard by columns size", 1, layouts.get(0).getShardByColumns().size());
         Assert.assertEquals("unexpected identity name of shard by column", "KYLIN_SALES.PRICE", mdCtx.getTargetModel()
@@ -210,14 +210,14 @@ public class CuboidSuggesterTest extends NTestBase {
 
         NSmartContext ctx = smartMaster.getContext();
         NSmartContext.NModelContext mdCtx = ctx.getModelContexts().get(0);
-        NCubePlan cubePlan = mdCtx.getTargetCubePlan();
-        Assert.assertNotNull(cubePlan);
-        Assert.assertEquals(mdCtx.getTargetModel().getName(), cubePlan.getModelName());
+        IndexPlan indexPlan = mdCtx.getTargetIndexPlan();
+        Assert.assertNotNull(indexPlan);
+        Assert.assertEquals(mdCtx.getTargetModel().getUuid(), indexPlan.getUuid());
 
-        List<NCuboidDesc> cuboidDescs = cubePlan.getCuboids();
-        Assert.assertEquals("unmatched cuboids size", 1, cuboidDescs.size());
+        List<IndexEntity> indexEntities = indexPlan.getIndexes();
+        Assert.assertEquals("unmatched cuboids size", 1, indexEntities.size());
 
-        final List<NCuboidLayout> layouts = cuboidDescs.get(0).getLayouts();
+        final List<LayoutEntity> layouts = indexEntities.get(0).getLayouts();
         Assert.assertEquals("unmatched layouts size", 1, layouts.size());
         Assert.assertEquals("unmatched shard by columns size", 1, layouts.get(0).getSortByColumns().size());
         Assert.assertEquals("unexpected identity name of sort by column", "KYLIN_SALES.PART_DT", mdCtx.getTargetModel()
@@ -249,10 +249,10 @@ public class CuboidSuggesterTest extends NTestBase {
         Assert.assertEquals(0, accelerateMap.get(sqls[4]).getRelatedLayouts().size());
         Assert.assertTrue(accelerateMap.get(sqls[4]).isBlocked());
 
-        String cubePlan0 = Lists.newArrayList(accelerateMap.get(sqls[0]).getRelatedLayouts()).get(0).getCubePlanId();
-        String cubePlan1 = Lists.newArrayList(accelerateMap.get(sqls[1]).getRelatedLayouts()).get(0).getCubePlanId();
-        String cubePlan2 = Lists.newArrayList(accelerateMap.get(sqls[2]).getRelatedLayouts()).get(0).getCubePlanId();
-        String cubePlan3 = Lists.newArrayList(accelerateMap.get(sqls[3]).getRelatedLayouts()).get(0).getCubePlanId();
+        String cubePlan0 = Lists.newArrayList(accelerateMap.get(sqls[0]).getRelatedLayouts()).get(0).getModelId();
+        String cubePlan1 = Lists.newArrayList(accelerateMap.get(sqls[1]).getRelatedLayouts()).get(0).getModelId();
+        String cubePlan2 = Lists.newArrayList(accelerateMap.get(sqls[2]).getRelatedLayouts()).get(0).getModelId();
+        String cubePlan3 = Lists.newArrayList(accelerateMap.get(sqls[3]).getRelatedLayouts()).get(0).getModelId();
         Assert.assertEquals(cubePlan0, cubePlan1);
         Assert.assertEquals(cubePlan0, cubePlan2);
         Assert.assertEquals(cubePlan0, cubePlan3);
@@ -264,6 +264,6 @@ public class CuboidSuggesterTest extends NTestBase {
         Assert.assertEquals(1L, layout0);
         Assert.assertEquals(1L, layout1);
         Assert.assertEquals(2L, layout2);
-        Assert.assertEquals(1001L, layout3);
+        Assert.assertEquals(IndexEntity.INDEX_ID_STEP + 1, layout3);
     }
 }

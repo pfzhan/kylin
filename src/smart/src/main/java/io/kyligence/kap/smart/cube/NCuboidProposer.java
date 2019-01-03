@@ -28,9 +28,8 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.NCubePlan;
-import io.kyligence.kap.cube.model.NCuboidDesc;
-import io.kyligence.kap.cube.model.NCuboidDesc.NCuboidIdentifier;
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.smart.NSmartContext;
 
 class NCuboidProposer extends NAbstractCubeProposer {
@@ -40,15 +39,15 @@ class NCuboidProposer extends NAbstractCubeProposer {
     }
 
     @Override
-    public NCubePlan doPropose(NCubePlan cubePlan) {
+    public IndexPlan doPropose(IndexPlan indexPlan) {
 
-        Map<NCuboidIdentifier, NCuboidDesc> cuboidDescMap = cubePlan.getWhiteListCuboidsMap();
+        Map<IndexEntity.IndexIdentifier, IndexEntity> indexEntityMap = indexPlan.getWhiteListIndexesMap();
 
-        CuboidSuggester suggester = new CuboidSuggester(context, cubePlan, cuboidDescMap);
+        CuboidSuggester suggester = new CuboidSuggester(context, indexPlan, indexEntityMap);
         suggester.suggestCuboids(context.getModelTree());
 
-        cubePlan.setCuboids(Lists.newArrayList(cuboidDescMap.values()));
+        indexPlan.setIndexes(Lists.newArrayList(indexEntityMap.values()));
 
-        return cubePlan;
+        return indexPlan;
     }
 }

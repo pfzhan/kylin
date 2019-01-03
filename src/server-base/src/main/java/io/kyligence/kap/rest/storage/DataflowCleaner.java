@@ -26,12 +26,12 @@ package io.kyligence.kap.rest.storage;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.cube.model.NDataLayout;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -51,11 +51,11 @@ public class DataflowCleaner implements GarbageCleaner {
     public void cleanup() throws Exception {
         for (NDataModel model : models) {
             val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), model.getProject());
-            val dataflow = dataflowManager.getDataflowByModelName(model.getName());
+            val dataflow = dataflowManager.getDataflow(model.getUuid());
             val layoutIds = getLayouts(getCube(model));
             val toBeRemoved = Sets.<Long> newHashSet();
             for (NDataSegment segment : dataflow.getSegments()) {
-                toBeRemoved.addAll(segment.getSegDetails().getCuboids().stream().map(NDataCuboid::getCuboidLayoutId)
+                toBeRemoved.addAll(segment.getSegDetails().getLayouts().stream().map(NDataLayout::getLayoutId)
                         .filter(id -> !layoutIds.contains(id)).collect(Collectors.toSet()));
             }
             dataflowManager.removeLayouts(dataflow, Lists.newArrayList(toBeRemoved));
