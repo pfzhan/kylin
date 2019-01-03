@@ -55,7 +55,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import lombok.Getter;
-import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Marks the root entity of JSON persistence. Unit of read, write, cache, and
@@ -68,6 +68,7 @@ import lombok.Setter;
  */
 @SuppressWarnings("serial")
 @JsonAutoDetect(fieldVisibility = Visibility.NONE, getterVisibility = Visibility.NONE, isGetterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
+@Slf4j
 abstract public class RootPersistentEntity implements AclEntity, Serializable {
 
     static final String DATE_PATTERN = "yyyy-MM-dd HH:mm:ss z";
@@ -86,7 +87,6 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     @JsonProperty("last_modified")
     protected long lastModified;
 
-
     // if cached and shared, the object MUST NOT be modified (call setXXX() for example)
     protected boolean isCachedAndShared = false;
 
@@ -99,7 +99,6 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     protected String version = KylinVersion.getCurrentVersion().toString();
 
     @Getter
-    @Setter
     @JsonProperty("mvcc")
     private long mvcc = -1;
 
@@ -152,6 +151,14 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     public void checkIsNotCachedAndShared() {
         if (isCachedAndShared)
             throw new IllegalStateException();
+    }
+
+    public void setMvcc(long mvcc) {
+        if (isCachedAndShared) {
+            log.warn("cannot update mvcc for {}, from {} to {}", this.getClass(), this.mvcc, mvcc);
+            log.warn("stack trace", new IllegalStateException("illegal operation"));
+        }
+        this.mvcc = mvcc;
     }
 
     /**
