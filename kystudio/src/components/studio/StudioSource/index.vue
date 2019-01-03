@@ -44,7 +44,7 @@
           <EmptyData />
         </div>
         <transition name="slide">
-          <SourceManagement v-if="isShowSourcePage" :project="currentProjectData"></SourceManagement>
+          <SourceManagement v-if="isShowSourcePage" :project="currentProjectData" @fresh-tables="handleFreshTable"></SourceManagement>
         </transition>
       </div>
     </div>
@@ -106,6 +106,7 @@ export default class StudioSource extends Vue {
     try {
       const tableName = data.label
       const databaseName = data.database
+      this.handleShowSourcePage(false)
       await this.fetchTableDetail({ tableName, databaseName })
     } catch (e) {
       handleError(e)

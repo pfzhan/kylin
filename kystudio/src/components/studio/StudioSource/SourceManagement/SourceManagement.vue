@@ -56,7 +56,7 @@ export default class SourceManagement extends Vue {
   async handleBatchLoad () {
     const { project } = this
     const isSubmit = await this.callBatchLoadModal({ project })
-    console.log(isSubmit)
+    isSubmit && this.$emit('fresh-tables')
   }
 }
 </script>

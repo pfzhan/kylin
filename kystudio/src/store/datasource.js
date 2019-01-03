@@ -271,6 +271,12 @@ export default {
     },
     [types.FETCH_NEWEST_TABLE_RANGE]: function ({commit}, para) {
       return api.datasource.fetchNewestTableRange(para.projectName, para.tableFullName)
+    },
+    [types.FETCH_BATCH_LOAD_TABLES]: function ({commit}, para) {
+      return api.datasource.fetchBatchLoadTables(para.projectName)
+    },
+    [types.SAVE_TABLES_BATCH_LOAD]: function ({commit}, body) {
+      return api.datasource.saveTablesBatchLoad(body)
     }
   }
 }

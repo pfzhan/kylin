@@ -7,10 +7,10 @@
     @open="handleOpen"
     @close="() => handleClose()"
     @closed="handleClosed">
-    <el-form v-loading="isDataLoading" ref="form" size="small" :inline="true" :model="tempForm">
-      <el-table border :data="paginationTables" @selection-change="handleSelectionChange">
+    <el-form class="form" v-loading="isDataLoading" ref="form" size="small" :inline="true" :model="tempForm">
+      <el-table border :data="form.tables" @selection-change="value => selectedTables = value">
         <el-table-column type="selection" width="38"></el-table-column>
-        <el-table-column prop="name" :label="$t('table')" header-align="center"></el-table-column>
+        <el-table-column prop="fullName" :label="$t('table')" header-align="center"></el-table-column>
         <el-table-column prop="refresh" :label="$t('refresh')" width="75" align="center"></el-table-column>
         <el-table-column :label="$t('loadRange')" width="250" header-align="center">
           <template slot-scope="scope">
@@ -46,7 +46,7 @@
               </el-form-item>
               <div style="text-align: right; margin: 0">
                 <el-button size="mini" type="info" text @click="handlePopperHide(`popover${scope.$index}`)">{{$t('kylinLang.common.cancel')}}</el-button>
-                <el-button type="primary" size="mini" @click="handleInputDate(`tables.${scope.$index}.loadRange`, tempForm.editDate, scope.$index)">{{$t('kylinLang.common.ok')}}</el-button>
+                <el-button type="primary" size="mini" @click="handleInputDate(`tables.${scope.$index}.loadRange`, tempForm.editDate, `popover${scope.$index}`)">{{$t('kylinLang.common.ok')}}</el-button>
               </div>
             </el-popover>
             <i class="edit-action el-icon-ksd-table_edit" v-popover="`popover${scope.$index}`" @click="handlePopperShow(scope)"></i>
@@ -54,11 +54,9 @@
         </el-table-column>
         <el-table-column prop="relatedIndex" :label="$t('relatedIndex')" width="125" header-align="center"></el-table-column>
       </el-table>
-      <kap-pager
-        class="ksd-center ksd-mt-20" ref="pager"
-        :totalSize="form.tables.length"
-        @handleCurrentChange="handleCurrentChange">
-      </kap-pager>
+      <div class="error-mask" v-if="!isDataLoading && isDataError">
+        <div>error! please refresh</div>
+      </div>
     </el-form>
     <div slot="footer" class="dialog-footer">
       <el-button size="medium" @click="() => handleClose()">{{$t('kylinLang.common.cancel')}}</el-button>
@@ -78,8 +76,7 @@ import store, { types } from './store'
 import vuex from '../../../store'
 import { set } from '../../../util/object'
 import { handleError, handleSuccessAsync } from '../../../util'
-import { getFormattedTable } from '../../../util/UtilTable'
-import { getTableLoadRange } from './handler'
+import { getTableLoadRange, getTableBatchLoadSubmitData } from './handler'
 
 vuex.registerModule(['modals', 'BatchLoadModal'], store)
 
@@ -101,18 +98,22 @@ vuex.registerModule(['modals', 'BatchLoadModal'], store)
       resetModal: types.RESET_MODAL
     }),
     ...mapActions({
-      fetchTables: 'FETCH_TABLES'
+      fetchTables: 'FETCH_TABLES',
+      fetchBatchLoadTables: 'FETCH_BATCH_LOAD_TABLES',
+      saveTablesBatchLoad: 'SAVE_TABLES_BATCH_LOAD',
+      fetchNewestTableRange: 'FETCH_NEWEST_TABLE_RANGE'
     })
   },
   locales
 })
 export default class BatchLoadModal extends Vue {
   isDataLoading = false
+  isDataError = false
   isLoading = false
   isDisabled = false
   isFormShow = false
-  pageOffset = 0
-  pageSize = 10
+  batchCount = 5
+  selectedTables = []
   tempForm = {
     editDate: []
   }
@@ -122,13 +123,9 @@ export default class BatchLoadModal extends Vue {
       { type: 'date', message: '请输入正确的日期', trigger: 'blur' }
     ]
   }
-  get paginationTables () {
-    const currentShowIdx = this.pageOffset * this.pageSize
-    return this.form.tables.slice(currentShowIdx, currentShowIdx + this.pageSize)
-  }
   getRangeString (table) {
-    const startDate = dayjs(table.loadRange[0]).format('YYYY-MM-DD')
-    const endDate = dayjs(table.loadRange[1]).format('YYYY-MM-DD')
+    const startDate = table.loadRange[0] ? dayjs(table.loadRange[0]).format('YYYY-MM-DD') : ''
+    const endDate = table.loadRange[1] ? dayjs(table.loadRange[1]).format('YYYY-MM-DD') : ''
     return `${startDate} - ${endDate}`
   }
   handleOpen () {
@@ -162,22 +159,41 @@ export default class BatchLoadModal extends Vue {
 
     this.tempForm.editDate = []
   }
-  handleSelectionChange (value) {
-    console.log(value)
-  }
-  handleCurrentChange (pageOffset, pageSize) {
-    this.pageOffset = pageOffset
-    this.pageSize = pageSize
+  async loadTablesRange (tableList) {
+    const batchCount = this.batchCount
+    const requestBatches = []
+
+    for (let i = 0; i < tableList.length; i++) {
+      if (i % batchCount !== 0) {
+        const batchIdx = parseInt(i / batchCount)
+        requestBatches[batchIdx].push(tableList[i])
+      } else {
+        requestBatches.push([tableList[i]])
+      }
+    }
+    for (let i = 0; i < requestBatches.length; i++) {
+      const requestBatch = requestBatches[i]
+      const response = await Promise.all(requestBatch.map(table => this.fetchNewestTableRange({ projectName: this.form.project, tableFullName: table.table })))
+      const result = await handleSuccessAsync(response)
+      result.forEach((tableRange, resultIdx) => {
+        const tableIdx = batchCount * i + resultIdx
+        tableList[tableIdx] = { ...tableList[tableIdx], ...tableRange }
+      })
+    }
+    return tableList
   }
   async loadSourceTables () {
     this._showDataLoading()
-
-    const projectName = this.form.project
-    const response = await this.fetchTables({ projectName, pageOffset: 0, pageSize: 99999999, isDisableCache: true })
-    const result = await handleSuccessAsync(response)
-    const tables = result.tables.map(table => getTableLoadRange(getFormattedTable(table)))
-    this.setModalForm({ tables })
-
+    try {
+      const projectName = this.form.project
+      const response = await this.fetchBatchLoadTables({ projectName })
+      const tableList = await handleSuccessAsync(response)
+      const tableDatas = await this.loadTablesRange(tableList)
+      const tables = tableDatas.map(table => getTableLoadRange(table))
+      this.setModalForm({ tables })
+    } catch (e) {
+      handleError(e)
+    }
     this._hideDataLoading()
   }
 
@@ -194,6 +210,8 @@ export default class BatchLoadModal extends Vue {
     this._hideLoading()
   }
   async _submit () {
+    const submitData = getTableBatchLoadSubmitData(this.form, this.selectedTables)
+    await this.saveTablesBatchLoad(submitData)
   }
   _notifySuccess () {
     this.$message({ type: 'success', message: this.$t('kylinLang.common.saveSuccess') })
@@ -243,6 +261,22 @@ export default class BatchLoadModal extends Vue {
   }
   .edit-action:hover {
     color: @base-color;
+  }
+  .time-text {
+    display: inline-block;
+    width: 90px;
+  }
+  .form {
+    position: relative;
+  }
+  .error-mask {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(255, 255, 255, .9);
+    z-index: 2000;
   }
 }
 .batch-load-edit-popper {

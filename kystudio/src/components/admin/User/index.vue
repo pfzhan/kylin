@@ -42,7 +42,7 @@
         </template>
       </el-table-column>
       <!-- 表：group列 -->
-      <el-table-column :label="$t('kylinLang.common.group')" sortable header-align="center">
+      <el-table-column :label="$t('kylinLang.common.group')" header-align="center">
         <template slot-scope="scope">
           <common-tip :content="scope.row.groups && scope.row.groups.join('<br/>')" placement="top">
               <span>{{scope.row.groups && scope.row.groups.join(',')}}</span>

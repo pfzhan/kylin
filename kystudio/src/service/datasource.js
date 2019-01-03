@@ -219,5 +219,11 @@ export default {
   },
   fetchNewestTableRange (project, table) {
     return Vue.resource(apiUrl + `tables/data_range/latest_data`).get({ project, table })
+  },
+  fetchBatchLoadTables (project) {
+    return Vue.resource(apiUrl + `tables/batch_load`).get({ project })
+  },
+  saveTablesBatchLoad (body) {
+    return Vue.resource(apiUrl + `tables/batch_load`).save(body)
   }
 }
