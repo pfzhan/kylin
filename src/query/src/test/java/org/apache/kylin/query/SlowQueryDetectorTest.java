@@ -43,6 +43,7 @@
 package org.apache.kylin.query;
 
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.QueryContext;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,7 +61,7 @@ public class SlowQueryDetectorTest {
     public void testSetInterrupt() {
         SlowQueryDetector slowQueryDetector = new SlowQueryDetector(3, 1);
         slowQueryDetector.start();
-        slowQueryDetector.queryStart();
+        slowQueryDetector.queryStart(QueryContext.current().getQueryId());
         try {
             Thread.sleep(20);
             Assert.fail();

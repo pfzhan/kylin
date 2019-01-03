@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,10 +42,11 @@
 
 package org.apache.kylin.common;
 
+import com.google.common.collect.Maps;
+import org.apache.commons.lang3.text.StrSubstitutor;
+
 import java.util.Map;
 import java.util.Properties;
-
-import org.apache.commons.lang3.text.StrSubstitutor;
 
 /**
  * Extends a KylinConfig with additional overrides.
@@ -80,19 +80,31 @@ public class KylinConfigExt extends KylinConfig {
         this.overrides = BCC.check(overrides);
     }
 
+    @Override
     protected String getOptional(String prop, String dft) {
         String value = overrides.get(prop);
         if (value != null)
-            return   StrSubstitutor.replace(value, System.getenv());
+            return getSubstitutor().replace(value);
         else
             return super.getOptional(prop, dft);
     }
 
+    @Override
     protected Properties getAllProperties() {
         Properties result = new Properties();
-        result.putAll(super.getRawAllProperties());
+        result.putAll(super.getAllProperties());
         result.putAll(overrides);
         return result;
+    }
+
+    @Override
+    protected StrSubstitutor getSubstitutor() {
+        // overrides > env > properties
+        final Map<String, Object> all = Maps.newHashMap();
+        all.putAll((Map) properties);
+        all.putAll(System.getenv());
+        all.putAll(overrides);
+        return new StrSubstitutor(all);
     }
 
     public Map<String, String> getExtendedOverrides() {

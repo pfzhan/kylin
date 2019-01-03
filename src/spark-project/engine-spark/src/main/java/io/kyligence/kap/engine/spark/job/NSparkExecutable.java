@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,9 +36,11 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
+import com.google.common.collect.Maps;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
@@ -161,18 +164,27 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     protected KylinConfig wrapConfig(ExecutableContext context) {
-        KylinConfig config = context.getConfig();
+        val originalConfig = context.getConfig();
+        KylinConfigExt kylinConfigExt = null;
         val project = getProject();
         Preconditions.checkState(StringUtils.isNotBlank(project), "job " + getId() + " project info is empty");
         val dataflow = getParam(NBatchConstants.P_DATAFLOW_ID);
         if (StringUtils.isNotBlank(dataflow)) {
-            val dataflowManager = NDataflowManager.getInstance(config, project);
-            config = dataflowManager.getDataflow(dataflow).getConfig();
+            val dataflowManager = NDataflowManager.getInstance(originalConfig, project);
+            kylinConfigExt = dataflowManager.getDataflow(dataflow).getConfig();
         } else {
-            val projectInstance = NProjectManager.getInstance(config).getProject(project);
-            config = projectInstance.getConfig();
+            val projectInstance = NProjectManager.getInstance(originalConfig).getProject(project);
+            kylinConfigExt = projectInstance.getConfig();
         }
-        return config;
+
+        val jobOverrides = Maps.<String, String> newHashMap();
+        val parentId = getParentId();
+        jobOverrides.put("job.id", StringUtils.defaultIfBlank(parentId, getId()));
+        if (StringUtils.isNotBlank(parentId)) {
+            jobOverrides.put("job.stepId", getId());
+        }
+        jobOverrides.putAll(kylinConfigExt.getExtendedOverrides());
+        return KylinConfigExt.createInstance(kylinConfigExt, jobOverrides);
     }
 
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
@@ -202,14 +214,20 @@ public class NSparkExecutable extends AbstractExecutable {
 
         Map<String, String> sparkConfs = config.getSparkConfigOverride();
         for (Map.Entry<String, String> entry : sparkConfs.entrySet()) {
-            sb.append(" --conf ").append(entry.getKey()).append("=").append(entry.getValue()).append(" ");
+            appendSparkConf(sb, entry.getKey(), entry.getValue());
         }
+        appendSparkConf(sb, "spark.executor.extraClassPath", Paths.get(kylinJobJar).getFileName().toString());
 
         sb.append("--jars %s %s %s");
         String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), jars, kylinJobJar,
                 StringUtil.join(Arrays.asList(appArgs), " "));
         logger.debug("spark submit cmd: {}", cmd);
         return cmd;
+    }
+
+    private void appendSparkConf(StringBuilder sb, String key, String value) {
+        // Multiple parameters in "--conf" need to be enclosed in single quotes
+        sb.append(" --conf '").append(key).append("=").append(value).append("' ");
     }
 
     private ExecuteResult runLocalMode(String[] appArgs) {

@@ -101,7 +101,6 @@ object SparderEnv extends Logging {
                 .getOrCreateKylinSession()
             case _ =>
               SparkSession.builder
-                .master("yarn")
                 .appName("sparder-sql-context")
                 .enableHiveSupport()
                 .getOrCreateKylinSession()

@@ -278,7 +278,7 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
         }
     }
 
-    public KylinConfig getConfig() {
+    public KylinConfigExt getConfig() {
         return config;
     }
 

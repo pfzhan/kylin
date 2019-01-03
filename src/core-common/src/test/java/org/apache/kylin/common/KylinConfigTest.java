@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -49,11 +48,17 @@ import java.util.Properties;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
 
 import com.google.common.collect.Maps;
+import org.junit.rules.ExpectedException;
 
 public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
     @Test
     public void testDuplicateConfig() {
         KylinConfig config = KylinConfig.getInstanceFromEnv();
@@ -140,11 +145,11 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
         // test thread-local override
         KylinConfig threadConfig = KylinConfig.createKylinConfig(new Properties());
         threadConfig.setMetadataUrl(metadata2);
-        
+
         try (SetAndUnsetThreadLocalConfig autoUnset = KylinConfig.setAndUnsetThreadLocalConfig(threadConfig)) {
 
             Assert.assertEquals(metadata2, KylinConfig.getInstanceFromEnv().getMetadataUrl().toString());
-    
+
             // other threads still use system KylinConfig
             final String[] holder = new String[1];
             Thread child = new Thread(new Runnable() {
@@ -160,7 +165,7 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
     }
 
     @Test
-    public void testOverrideSparkJobJarPath(){
+    public void testOverrideSparkJobJarPath() {
         KylinConfig conf = KylinConfig.getInstanceFromEnv();
         String oldSparkJobJarPath = System.getProperty("kylin.engine.spark.job-jar");
         String overrideSparkJobJarPath = oldSparkJobJarPath + "_override";
@@ -175,9 +180,63 @@ public class KylinConfigTest extends HotLoadKylinPropertiesTestCase {
     }
 
     @Test
-    public void testGetKylinJobJarPath(){
+    public void testGetKylinJobJarPath() {
         KylinConfig conf = KylinConfig.getInstanceFromEnv();
         String kylinJobJarPath = conf.getKylinJobJarPath();
         Assert.assertEquals(kylinJobJarPath, "");
+    }
+
+    @Test
+    public void testPlaceholderReplace() {
+        final KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        {
+            kylinConfig.setProperty("ph_1", "${prop_a}/${prop1}");
+            Assert.assertEquals("${prop_a}/${prop1}", kylinConfig.getOptional("ph_1"));
+
+            kylinConfig.setProperty("prop_a", "prop_A");
+            kylinConfig.setProperty("prop1", "prop_1");
+            Assert.assertEquals("prop_A/prop_1", kylinConfig.getOptional("ph_1"));
+        }
+
+        {
+            kylinConfig.setProperty("ph_2", "${prop2}/${prop_b}");
+            Assert.assertEquals("${prop2}/${prop_b}", kylinConfig.getOptional("ph_2"));
+
+            kylinConfig.setProperty("prop_b", "prop_B");
+            kylinConfig.setProperty("prop2", "${prop_b}");
+            Assert.assertEquals("prop_B/prop_B", kylinConfig.getOptional("ph_2"));
+        }
+
+        {
+            kylinConfig.setProperty("ph_3", "${prop3}/${prop_c}/xxx/${prop2}/${prop_xxx}");
+            Assert.assertEquals("${prop3}/${prop_c}/xxx/prop_B/${prop_xxx}", kylinConfig.getOptional("ph_3"));
+
+            kylinConfig.setProperty("prop_c", "${prop_C}");
+            kylinConfig.setProperty("prop3", "prop_3");
+            Assert.assertEquals("prop_3/${prop_C}/xxx/prop_B/${prop_xxx}", kylinConfig.getOptional("ph_3"));
+        }
+
+        {
+            Map<String, String> override = Maps.newHashMap();
+            override.put("ph_4", "${prop4}/${prop_d}:${prop3}/${prop_c}");
+            KylinConfigExt kylinConfigExt = KylinConfigExt.createInstance(kylinConfig, override);
+
+            Assert.assertEquals("${prop4}/${prop_d}:prop_3/${prop_C}", kylinConfigExt.getOptional("ph_4"));
+
+            kylinConfigExt.getExtendedOverrides().put("prop_d", "prop_D");
+            kylinConfigExt.getExtendedOverrides().put("prop4", "${prop_d}");
+            Assert.assertEquals("prop_D/prop_D:prop_3/${prop_C}", kylinConfigExt.getOptional("ph_4"));
+        }
+
+        {
+            kylinConfig.setProperty("ph_5", "${prop5}");
+            Assert.assertEquals("${prop5}", kylinConfig.getOptional("ph_5"));
+
+            kylinConfig.setProperty("prop_d", "${ph_5}");
+            kylinConfig.setProperty("prop5", "${prop_d}");
+            expectedException.expect(IllegalStateException.class);
+            expectedException.expectMessage("${prop5}: prop5->prop_d->ph_5");
+            kylinConfig.getOptional("ph_5");
+        }
     }
 }

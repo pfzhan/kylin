@@ -191,7 +191,7 @@ public class QueryService extends BasicService {
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
         SQLResponse ret;
         try {
-            slowQueryDetector.queryStart();
+            slowQueryDetector.queryStart(QueryContext.current().getQueryId());
             ret = queryWithSqlMassage(sqlRequest);
             return ret;
         } finally {
@@ -1129,4 +1129,3 @@ public class QueryService extends BasicService {
     }
 
 }
-

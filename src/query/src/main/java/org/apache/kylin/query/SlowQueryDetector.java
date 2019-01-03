@@ -44,13 +44,11 @@ package org.apache.kylin.query;
 
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.common.logging.QueryLoggerBufferUtil;
 import org.apache.kylin.common.KylinConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 public class SlowQueryDetector extends Thread {
-
-    private static final Logger logger = LoggerFactory.getLogger(SlowQueryDetector.class);
 
     private final ConcurrentHashMap<Thread, QueryEntry> runningQueries = new ConcurrentHashMap<>();
     private final int detectionIntervalMs;
@@ -72,8 +70,8 @@ public class SlowQueryDetector extends Thread {
         this.queryTimeoutMs = queryTimeoutMs;
     }
 
-    public void queryStart() {
-        runningQueries.put(currentThread(), new QueryEntry(currentThread(), System.currentTimeMillis()));
+    public void queryStart(String queryId) {
+        runningQueries.put(currentThread(), new QueryEntry(currentThread(), queryId, System.currentTimeMillis()));
     }
 
     public void queryEnd() {
@@ -103,18 +101,22 @@ public class SlowQueryDetector extends Thread {
 
     private class QueryEntry {
         final long startTime;
+        final String queryId;
         final Thread thread;
 
-        QueryEntry(Thread thread, long startTime) {
+        QueryEntry(Thread thread, String queryId, long startTime) {
             this.startTime = startTime;
             this.thread = thread;
+            this.queryId = queryId;
         }
 
         private void setInterruptIfTimeout() {
             long runningMs = System.currentTimeMillis() - startTime;
             if (runningMs >= queryTimeoutMs) {
                 thread.interrupt();
-                logger.error("Trying to cancel query:" + thread.getName());
+                QueryLoggerBufferUtil.buffer(queryId, Level.ERROR.toString(),
+                        "Trying to cancel query:Trying to cancel query:{}", thread.getName());
+                QueryLoggerBufferUtil.dump(queryId);
             }
         }
     }

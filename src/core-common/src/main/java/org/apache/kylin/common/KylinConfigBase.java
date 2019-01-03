@@ -151,8 +151,8 @@ abstract public class KylinConfigBase implements Serializable {
     protected String getOptional(String prop, String dft) {
 
         final String property = System.getProperty(prop);
-        return property != null ? StrSubstitutor.replace(property, System.getenv())
-                : StrSubstitutor.replace(properties.getProperty(prop, dft), System.getenv());
+        return property != null ? getSubstitutor().replace(property)
+                : getSubstitutor().replace(properties.getProperty(prop, dft));
     }
 
     protected Properties getAllProperties() {
@@ -165,16 +165,23 @@ abstract public class KylinConfigBase implements Serializable {
      * @return
      */
     protected Properties getProperties(Collection<String> propertyKeys) {
-        Map<String, String> envMap = System.getenv();
-        StrSubstitutor sub = new StrSubstitutor(envMap);
+        final StrSubstitutor substitutor = getSubstitutor();
 
         Properties properties = new Properties();
         for (Entry<Object, Object> entry : this.properties.entrySet()) {
             if (propertyKeys == null || propertyKeys.contains(entry.getKey())) {
-                properties.put(entry.getKey(), sub.replace((String) entry.getValue()));
+                properties.put(entry.getKey(), substitutor.replace((String) entry.getValue()));
             }
         }
         return properties;
+    }
+
+    protected StrSubstitutor getSubstitutor() {
+        // env > properties
+        final Map<String, Object> all = Maps.newHashMap();
+        all.putAll((Map) properties);
+        all.putAll(System.getenv());
+        return new StrSubstitutor(all);
     }
 
     protected Properties getRawAllProperties() {

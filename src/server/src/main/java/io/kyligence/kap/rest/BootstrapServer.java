@@ -25,11 +25,14 @@
 package io.kyligence.kap.rest;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
 import org.apache.catalina.Context;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.source.jdbc.H2Database;
@@ -48,7 +51,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import io.kyligence.kap.common.util.TempMetadataBuilder;
 
-@ImportResource(locations = {"applicationContext.xml", "kylinSecurity.xml"})
+@ImportResource(locations = { "applicationContext.xml", "kylinSecurity.xml" })
 @SpringBootApplication
 @EnableScheduling
 public class BootstrapServer implements ApplicationListener<ApplicationReadyEvent> {
@@ -68,7 +71,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         }
         if ("SANDBOX".equals(runEnv)) {
             setSandboxEnvs();
-        } else if ("PROD".equals(runEnv)){
+        } else if ("PROD".equals(runEnv)) {
             setProdEnvs();
         } else {
             setLocalEnvs();
@@ -91,13 +94,27 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
         ClassUtil.addClasspath(dir1.getAbsolutePath());
         System.setProperty(KylinConfig.KYLIN_CONF, dir1.getAbsolutePath());
 
-        System.setProperty("kylin.hadoop.conf.dir",
-                "../examples/test_case_data/sandbox");
+        System.setProperty("kylin.hadoop.conf.dir", "../examples/test_case_data/sandbox");
 
     }
 
     private static void initSparkSession() {
         SparderEnv.init();
+        if ("true".equalsIgnoreCase(System.getProperty("spark.local"))) {
+            logger.debug("spark.local=true");
+            return;
+        }
+        // write appid to ${KYLIN_HOME} or ${user.dir}
+        final String kylinHome = StringUtils.defaultIfBlank(KylinConfig.getKylinHome(), "./");
+        final File appidFile = Paths.get(kylinHome, "appid").toFile();
+        String appid = null;
+        try {
+            appid = SparderEnv.getSparkSession().sparkContext().applicationId();
+            FileUtils.writeStringToFile(appidFile, appid);
+            logger.info("spark context appid is {}", appid);
+        } catch (Exception e) {
+            logger.error("Failed to generate spark context appid[{}] file", StringUtils.defaultString(appid), e);
+        }
     }
 
     private static void setLocalEnvs() {
@@ -132,7 +149,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
 
     @Bean
     public EmbeddedServletContainerFactory servletContainer() {
-        TomcatEmbeddedServletContainerFactory tomcatFactory = new TomcatEmbeddedServletContainerFactory(){
+        TomcatEmbeddedServletContainerFactory tomcatFactory = new TomcatEmbeddedServletContainerFactory() {
             @Override
             protected void postProcessContext(Context context) {
                 context.addWelcomeFile("index.html");
@@ -141,6 +158,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
 
         return tomcatFactory;
     }
+
     @Override
     public void onApplicationEvent(ApplicationReadyEvent applicationReadyEvent) {
         logger.info("init backend end...");

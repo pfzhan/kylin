@@ -46,6 +46,11 @@
             <artifactId>kap-tomcat-ext</artifactId>
         </dependency>
         <dependency>
+            <groupId>io.kyligence.ke</groupId>
+            <artifactId>spark-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.apache.parquet</groupId>
             <artifactId>parquet-column</artifactId>
             <version>${parquet.version}</version>

@@ -23,6 +23,7 @@
 package org.apache.spark.sql
 
 import java.io.File
+import java.nio.file.Paths
 
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.spark.internal.Logging
@@ -155,7 +156,7 @@ object KylinSession extends Logging {
       }
 
       if (!"true".equalsIgnoreCase(System.getProperty("spark.local"))) {
-        if ("yarn-client".equalsIgnoreCase(sparkConf.get("spark.master"))) {
+        if (sparkConf.get("spark.master").startsWith("yarn")) {
           sparkConf.set("spark.yarn.dist.jars",
                         KylinConfig.getInstanceFromEnv.getKylinJobJarPath)
           sparkConf.set("spark.yarn.dist.files", kapConfig.sparderFiles())
@@ -165,7 +166,7 @@ object KylinSession extends Logging {
         }
 
         val fileName = KylinConfig.getInstanceFromEnv.getKylinJobJarPath
-        sparkConf.set("spark.executor.extraClassPath", fileName)
+        sparkConf.set("spark.executor.extraClassPath", Paths.get(fileName).getFileName.toString)
       }
 
       sparkConf

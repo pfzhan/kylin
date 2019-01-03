@@ -157,10 +157,6 @@
                                     <shadedPattern>${shadeBase}.com.google.common</shadedPattern>
                                 </relocation>
                                 <relocation>
-                                    <pattern>com.fasterxml.jackson</pattern>
-                                    <shadedPattern>${shadeBase}.com.fasterxml.jackson</shadedPattern>
-                                </relocation>
-                                <relocation>
                                     <pattern>com.tdunning</pattern>
                                     <shadedPattern>${shadeBase}.com.tdunning</shadedPattern>
                                 </relocation>
