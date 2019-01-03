@@ -113,7 +113,7 @@ public class OLAPProjectRel extends Project implements OLAPRel {
             RelDataType rowType) {
         super(cluster, traitSet, child, exps, rowType);
         Preconditions.checkArgument(getConvention() == OLAPRel.CONVENTION);
-        Preconditions.checkArgument(child.getConvention() == OLAPRel.CONVENTION);
+        //        Preconditions.checkArgument(child.getConvention() == OLAPRel.CONVENTION);
         this.rewriteProjects = exps;
         this.hasJoin = false;
         this.afterTopJoin = false;

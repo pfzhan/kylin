@@ -24,37 +24,14 @@
 
 package io.kyligence.kap.query.optrule;
 
-import org.apache.calcite.plan.Convention;
-import org.apache.calcite.plan.RelOptRule;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.RelTraitSet;
-import org.apache.calcite.plan.hep.HepRelVertex;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.rel.convert.ConverterRule;
-import org.apache.calcite.rel.logical.LogicalFilter;
+import org.apache.calcite.rel.core.RelFactories;
+import org.apache.calcite.rel.rules.ProjectFilterTransposeRule;
+import org.apache.calcite.rel.rules.PushProjector;
 
 import io.kyligence.kap.query.relnode.KapFilterRel;
-import io.kyligence.kap.query.relnode.KapRel;
+import io.kyligence.kap.query.relnode.KapProjectRel;
 
-/**
- */
-public class KapFilterRule extends ConverterRule {
-
-    public static final RelOptRule INSTANCE = new KapFilterRule();
-
-    public KapFilterRule() {
-        super(LogicalFilter.class, RelOptUtil.FILTER_PREDICATE, Convention.NONE, KapRel.CONVENTION, "KapFilterRule");
-    }
-
-    @Override
-    public RelNode convert(RelNode call) {
-        LogicalFilter filter = (LogicalFilter) call;
-        RelTraitSet origTraitSet = filter.getTraitSet();
-        RelTraitSet traitSet = origTraitSet.replace(KapRel.CONVENTION).simplify();
-
-        RelNode convertedInput = filter.getInput() instanceof HepRelVertex ? filter.getInput()
-                : convert(filter.getInput(), KapRel.CONVENTION);
-        return new KapFilterRel(filter.getCluster(), traitSet, convertedInput, filter.getCondition());
-    }
-
+public class KapProjectFilterTransposeRule {
+    public static final ProjectFilterTransposeRule INSTANCE = new ProjectFilterTransposeRule(KapProjectRel.class,
+            KapFilterRel.class, RelFactories.LOGICAL_BUILDER, PushProjector.ExprCondition.FALSE);
 }

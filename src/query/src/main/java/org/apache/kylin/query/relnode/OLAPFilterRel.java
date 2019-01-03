@@ -356,7 +356,7 @@ public class OLAPFilterRel extends Filter implements OLAPRel {
     public OLAPFilterRel(RelOptCluster cluster, RelTraitSet traits, RelNode child, RexNode condition) {
         super(cluster, traits, child, condition);
         Preconditions.checkArgument(getConvention() == CONVENTION);
-        Preconditions.checkArgument(getConvention() == child.getConvention());
+        //        Preconditions.checkArgument(getConvention() == child.getConvention());
         this.rowType = getRowType();
     }
 

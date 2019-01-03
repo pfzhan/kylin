@@ -31,6 +31,7 @@ import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
+import org.apache.calcite.plan.hep.HepRelVertex;
 import org.apache.calcite.rel.RelCollation;
 import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
@@ -58,18 +59,21 @@ public class KapProjectRule extends ConverterRule {
     public RelNode convert(final RelNode rel) {
 
         final LogicalProject project = (LogicalProject) rel;
-        final RelNode convert = convert(project.getInput(),
+
+        final RelNode convertedInput = project.getInput() instanceof HepRelVertex ? project.getInput()
+                : convert(project.getInput(),
                 project.getInput().getTraitSet().replace(KapRel.CONVENTION));
-        final RelOptCluster cluster = convert.getCluster();
+        final RelOptCluster cluster = convertedInput.getCluster();
         final RelMetadataQuery mq = cluster.getMetadataQuery();
         final RelTraitSet traitSet = cluster.traitSet().replace(KapRel.CONVENTION)
                 .replaceIfs(RelCollationTraitDef.INSTANCE, new Supplier<List<RelCollation>>() {
                     public List<RelCollation> get() {
-                        return RelMdCollation.project(mq, convert, project.getProjects());
+                        return RelMdCollation.project(mq, convertedInput, project.getProjects());
                     }
                 });
-        KapProjectRel kapProjectRel = new KapProjectRel(convert.getCluster(), traitSet, convert, project.getProjects(),
-                project.getRowType());
+
+        KapProjectRel kapProjectRel = new KapProjectRel(convertedInput.getCluster(), traitSet, convertedInput,
+                project.getProjects(), project.getRowType());
         return kapProjectRel;
     }
 }
