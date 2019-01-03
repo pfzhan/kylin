@@ -28,7 +28,8 @@ export default {
     tableIndexFileNumber: 'Table Index File Number:',
     tableIndexStorageSize: 'Table Index Storage Size:',
     fullLoad: 'Full Load',
-    confirmRefreshSegments: 'Confirm to refresh the segments?\r\n{segmentArray}'
+    confirmRefreshSegments: 'Confirm to refresh the segments?\r\n{segmentArray}',
+    segmentIsEmpty: 'There are no segments in this model, so it can\'t be purged.'
   },
   'zh-cn': {
     autoMerge: 'Auto-Merge',
@@ -59,6 +60,7 @@ export default {
     tableIndexFileNumber: '表索引文件数：',
     tableIndexStorageSize: '表索引存储空间：',
     fullLoad: '全量加载',
-    confirmRefreshSegments: '是否确认刷新以下segments?\r\n{segmentArray}'
+    confirmRefreshSegments: '是否确认刷新以下segments?\r\n{segmentArray}',
+    segmentIsEmpty: '模型中没有segments，无法被清空。'
   }
 }

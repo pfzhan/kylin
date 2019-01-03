@@ -277,7 +277,11 @@ export default class ModelSegment extends Vue {
     this.selectedSegmentIds = selectedSegments.map(segment => segment.id)
   }
   async handlePurgeModel () {
-    this.$emit('purge-model', this.model)
+    if (this.segments.length > 0) {
+      this.$emit('purge-model', this.model)
+    } else {
+      this.$message({ type: 'info', message: this.$t('segmentIsEmpty') })
+    }
   }
 }
 </script>
