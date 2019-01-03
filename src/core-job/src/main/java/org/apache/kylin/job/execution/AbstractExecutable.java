@@ -160,7 +160,9 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     public void suicideIfNecessary() {
         if (!checkAnyTargetSegmentExists()) {
-            updateJobOutput(project, getId(), ExecutableState.DISCARDED, null,
+            Map<String, String> info = Maps.newHashMap();
+            info.put(END_TIME, Long.toString(System.currentTimeMillis()));
+            updateJobOutput(project, getId(), ExecutableState.DISCARDED, info,
                     "suicide as its subject model/segment no longer exists");
             throw new JobSuicideException();
         }
