@@ -25,6 +25,7 @@
 package io.kyligence.kap.engine.spark.builder;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
@@ -42,6 +43,12 @@ import io.kyligence.kap.engine.spark.job.UdfManager;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import lombok.val;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Set;
+
 public abstract class NDataflowJob extends AbstractApplication {
     protected static final Logger logger = LoggerFactory.getLogger(NDataflowJob.class);
 
@@ -55,12 +62,13 @@ public abstract class NDataflowJob extends AbstractApplication {
     public static final Option OPTION_SEGMENT_IDS = OptionBuilder.withArgName(NBatchConstants.P_SEGMENT_IDS).hasArg()
             .isRequired(true).withDescription("Segment indices").create(NBatchConstants.P_SEGMENT_IDS);
     @SuppressWarnings("static-access")
-    public static final Option OPTION_LAYOUT_IDS = OptionBuilder.withArgName(NBatchConstants.P_CUBOID_LAYOUT_IDS)
-            .hasArg().isRequired(true).withDescription("Layout indices").create(NBatchConstants.P_CUBOID_LAYOUT_IDS);
+    public static final Option OPTION_LAYOUT_ID_PATH = OptionBuilder.withArgName(NBatchConstants.P_CUBOID_LAYOUT_ID_PATH)
+            .hasArg().isRequired(true).withDescription("Layout indices").create(NBatchConstants.P_CUBOID_LAYOUT_ID_PATH);
     @SuppressWarnings("static-access")
     public static final Option OPTION_META_URL = OptionBuilder.withArgName(NBatchConstants.P_DIST_META_URL).hasArg()
             .isRequired(true).withDescription("Cubing metadata url").create(NBatchConstants.P_DIST_META_URL);
 
+    @SuppressWarnings("static-access")
     public static final Option OPTION_OUTPUT_META_URL = OptionBuilder.withArgName(NBatchConstants.P_OUTPUT_META_URL)
             .hasArg().isRequired(true).withDescription("Cubing output metadata url")
             .create(NBatchConstants.P_OUTPUT_META_URL);
@@ -80,7 +88,7 @@ public abstract class NDataflowJob extends AbstractApplication {
         options.addOption(OPTION_DATAFLOW_NAME);
         options.addOption(OPTION_PROJECT_NAME);
         options.addOption(OPTION_SEGMENT_IDS);
-        options.addOption(OPTION_LAYOUT_IDS);
+        options.addOption(OPTION_LAYOUT_ID_PATH);
         options.addOption(OPTION_META_URL);
         options.addOption(OPTION_JOB_ID);
         options.addOption(OPTION_OUTPUT_META_URL);
@@ -124,4 +132,9 @@ public abstract class NDataflowJob extends AbstractApplication {
     }
 
     protected abstract void doExecute(OptionsHelper optionsHelper) throws Exception;
+
+   static public Set<Long> getLayoutsFromPath(String path) throws IOException {
+        String layoutIdsValue = Files.readAllLines(Paths.get(path), StandardCharsets.UTF_8).get(0);
+        return NSparkCubingUtil.str2Longs(layoutIdsValue);
+    }
 }

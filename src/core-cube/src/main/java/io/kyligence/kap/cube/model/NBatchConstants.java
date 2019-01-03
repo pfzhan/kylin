@@ -31,6 +31,7 @@ public interface NBatchConstants {
     String P_SEGMENT_IDS = "segmentIds";
     String P_JOB_ID = "jobId";
     String P_CUBOID_LAYOUT_IDS = "cuboidLayoutIds";
+    String P_CUBOID_LAYOUT_ID_PATH = "cuboidLayoutIdPath";
     String P_CLASS_NAME = "className";
     String P_JARS = "jars";
     String P_DIST_META_URL = "distMetaUrl";

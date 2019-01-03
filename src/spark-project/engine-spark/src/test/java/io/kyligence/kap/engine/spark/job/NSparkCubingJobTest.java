@@ -30,13 +30,17 @@ import java.lang.reflect.Field;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.kyligence.kap.engine.spark.builder.NDataflowJob;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.StorageURL;
 import org.apache.kylin.job.engine.JobEngineConfig;
+import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -86,6 +90,9 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
+
+import static io.kyligence.kap.cube.model.NBatchConstants.P_CUBOID_LAYOUT_IDS;
+import static io.kyligence.kap.cube.model.NBatchConstants.P_CUBOID_LAYOUT_ID_PATH;
 
 @SuppressWarnings("serial")
 public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
@@ -726,5 +733,30 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         Assert.assertEquals(getTestConfig(), config.base());
         Assert.assertNull(getTestConfig().getSparkConfigOverride().get("spark.locality.wait"));
         Assert.assertEquals("20", config.getSparkConfigOverride().get("spark.locality.wait"));
+    }
+
+    @Test
+    public void testLayoutIdMoreThan10000() throws ExecuteException, IOException {
+        String path = null;
+        try {
+            NSparkExecutable executable = new NSparkExecutable();
+            Set<Long> randomLayouts = Sets.newHashSet();
+            for (int i = 0; i < 100000; i++) {
+                randomLayouts.add(RandomUtils.nextLong(1, 100000));
+            }
+            executable.setParam(P_CUBOID_LAYOUT_IDS, NSparkCubingUtil.ids2Str(randomLayouts));
+            executable.dumpCuboidLayoutIdsIfNeed();
+            path = executable.getParam(P_CUBOID_LAYOUT_ID_PATH);
+            Set<Long> layouts = NDataflowJob.getLayoutsFromPath(path);
+            randomLayouts.removeAll(layouts);
+            Assert.assertEquals(0, randomLayouts.size());
+        } finally {
+            if(path != null) {
+                File file = new File(path);
+                if (file.exists()) {
+                    file.delete();
+                }
+            }
+        }
     }
 }

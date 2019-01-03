@@ -90,7 +90,7 @@ public class DFBuildJob extends NDataflowJob {
         project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
 
         Set<String> segmentIds = Sets.newHashSet(StringUtils.split(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS)));
-        Set<Long> layoutIds = NSparkCubingUtil.str2Longs(optionsHelper.getOptionValue(OPTION_LAYOUT_IDS));
+        Set<Long> layoutIds = getLayoutsFromPath(optionsHelper.getOptionValue(OPTION_LAYOUT_ID_PATH));
 
         try {
             NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);

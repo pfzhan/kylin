@@ -26,6 +26,7 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,7 +35,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
-import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -53,6 +53,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
 import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -98,39 +99,64 @@ public class NSparkExecutable extends AbstractExecutable {
         final KylinConfig config = wrapConfig(context);
 
         String sparkHome = KylinConfig.getSparkHome();
-        if (StringUtils.isEmpty(sparkHome) && !config.isUTEnv())
+        if (StringUtils.isEmpty(sparkHome) && !config.isUTEnv()) {
             throw new RuntimeException("Missing spark home");
+        }
 
         String kylinJobJar = config.getKylinJobJarPath();
-        if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv())
+        if (StringUtils.isEmpty(kylinJobJar) && !config.isUTEnv()) {
             throw new RuntimeException("Missing kylin job jar");
+        }
 
         String hadoopConf = System.getProperty("kylin.hadoop.conf.dir");
-        if (StringUtils.isEmpty(hadoopConf) && !config.isUTEnv())
+        if (StringUtils.isEmpty(hadoopConf) && !config.isUTEnv()) {
             throw new RuntimeException(
                     "kylin_hadoop_conf_dir is empty, check if there's error in the output of 'kylin.sh start'");
+        }
 
         File hiveConfFile = new File(hadoopConf, "hive-site.xml");
-        if (!hiveConfFile.exists() && !config.isUTEnv())
+        if (!hiveConfFile.exists() && !config.isUTEnv()) {
             throw new RuntimeException("Cannot find hive-site.xml in kylin_hadoop_conf_dir: " + hadoopConf + //
                     ". In order to enable spark cubing, you must set kylin.env.hadoop-conf-dir to a dir which contains at least core-site.xml, hdfs-site.xml, hive-site.xml, mapred-site.xml, yarn-site.xml");
+        }
 
         String jars = getJars();
-        if (StringUtils.isEmpty(jars))
+        if (StringUtils.isEmpty(jars)) {
             jars = kylinJobJar;
-
-        String[] appArgs = formatAppArgs();
+        }
 
         try {
             attachMetadataAndKylinProps(config);
         } catch (IOException e) {
             throw new ExecuteException("meta dump failed", e);
         }
-
+        dumpCuboidLayoutIdsIfNeed();
         if (config.isUTEnv()) {
             return runLocalMode(formatAppArgsForSparkLocal());
         } else {
+            String[] appArgs = formatAppArgs();
             return runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar, appArgs);
+        }
+    }
+
+    void dumpCuboidLayoutIdsIfNeed() throws ExecuteException {
+        if (getParams().containsKey(NBatchConstants.P_CUBOID_LAYOUT_IDS)) {
+            File tmpDir = null;
+            try {
+                tmpDir = File.createTempFile(NBatchConstants.P_CUBOID_LAYOUT_IDS, "");
+                FileUtils.writeByteArrayToFile(tmpDir,
+                        getParam(NBatchConstants.P_CUBOID_LAYOUT_IDS).getBytes(StandardCharsets.UTF_8));
+                int layoutSize = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_CUBOID_LAYOUT_IDS)).size();
+                getParams().remove(NBatchConstants.P_CUBOID_LAYOUT_IDS);
+                setParam(NBatchConstants.P_CUBOID_LAYOUT_ID_PATH, tmpDir.getCanonicalPath());
+                logger.info("Layout size :" + layoutSize);
+            } catch (IOException e) {
+                if (tmpDir != null && tmpDir.exists()) {
+                    tmpDir.delete();
+                }
+                throw new ExecuteException("Write cuboidLayoutIds failed", e);
+            }
+
         }
     }
 
@@ -154,19 +180,7 @@ public class NSparkExecutable extends AbstractExecutable {
 
         PatternedLogger patternedLogger = new PatternedLogger(logger);
         try {
-            StringBuilder sb = new StringBuilder();
-            sb.append(
-                    "export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry ");
-
-            Map<String, String> sparkConfs = config.getSparkConfigOverride();
-            for (Map.Entry<String, String> entry : sparkConfs.entrySet()) {
-                sb.append(" --conf ").append(entry.getKey()).append("=").append(entry.getValue()).append(" ");
-            }
-
-            sb.append("--jars %s %s %s");
-            String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), jars, kylinJobJar,
-                    StringUtil.join(Arrays.asList(appArgs), " "));
-            logger.debug("spark submit cmd: {}", cmd);
+            String cmd = generateSparkCmd(config, hadoopConf, jars, kylinJobJar, appArgs);
 
             CliCommandExecutor exec = new CliCommandExecutor();
             Pair<Integer, String> result = exec.execute(cmd, patternedLogger);
@@ -179,6 +193,23 @@ public class NSparkExecutable extends AbstractExecutable {
         } catch (Exception e) {
             return ExecuteResult.createError(e);
         }
+    }
+
+    private String generateSparkCmd(KylinConfig config, String hadoopConf, String jars, String kylinJobJar,
+            String[] appArgs) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry ");
+
+        Map<String, String> sparkConfs = config.getSparkConfigOverride();
+        for (Map.Entry<String, String> entry : sparkConfs.entrySet()) {
+            sb.append(" --conf ").append(entry.getKey()).append("=").append(entry.getValue()).append(" ");
+        }
+
+        sb.append("--jars %s %s %s");
+        String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), jars, kylinJobJar,
+                StringUtil.join(Arrays.asList(appArgs), " "));
+        logger.debug("spark submit cmd: {}", cmd);
+        return cmd;
     }
 
     private ExecuteResult runLocalMode(String[] appArgs) {
@@ -197,14 +228,17 @@ public class NSparkExecutable extends AbstractExecutable {
             String k = entry.getKey();
             String v = entry.getValue();
 
-            if (k.equals(NBatchConstants.P_JARS))
+            if (k.equals(NBatchConstants.P_JARS)) {
                 continue; // JARS is for spark-submit, not for app
+            }
 
-            if (k.equals(NBatchConstants.P_CLASS_NAME))
+            if (k.equals(NBatchConstants.P_CLASS_NAME)) {
                 continue;
+            }
 
-            if (k.equals(AbstractExecutable.PARENT_ID))
+            if (k.equals(AbstractExecutable.PARENT_ID)) {
                 continue;
+            }
 
             appArgs.add("-" + k);
             appArgs.add(v);
@@ -217,17 +251,17 @@ public class NSparkExecutable extends AbstractExecutable {
         for (Map.Entry<String, String> entry : getParams().entrySet()) {
             String k = entry.getKey();
             String v = entry.getValue();
-
-            if (k.equals(NBatchConstants.P_JARS))
-                continue; // JARS is for spark-submit, not for app
-
-            if (k.equals(PARENT_ID))
-                continue; // JARS is for spark-submit, not for app
-
-            if (k.equals(NBatchConstants.P_CLASS_NAME)) {
+            switch (k) {
+            case NBatchConstants.P_CLASS_NAME:
                 appArgs.add(0, v);
                 appArgs.add(0, "-" + k);
-            } else {
+            case NBatchConstants.P_JARS:
+                // JARS is for spark-submit, not for app
+                continue;
+            case PARENT_ID:
+                // JARS is for spark-submit, not for app
+                continue;
+            default:
                 appArgs.add("-" + k);
                 appArgs.add(v);
             }
@@ -241,12 +275,14 @@ public class NSparkExecutable extends AbstractExecutable {
 
     private void attachMetadataAndKylinProps(KylinConfig config) throws IOException {
         Set<String> dumpList = getMetadataDumpList(config);
-        if (dumpList.isEmpty())
+        if (dumpList.isEmpty()) {
             return;
+        }
 
         String metaDumpUrl = getDistMetaUrl();
-        if (StringUtils.isEmpty(metaDumpUrl))
+        if (StringUtils.isEmpty(metaDumpUrl)) {
             throw new RuntimeException("Missing metaUrl");
+        }
 
         File tmpDir = File.createTempFile("kylin_job_meta", "");
         FileUtils.forceDelete(tmpDir); // we need a directory, so delete the file first

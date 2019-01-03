@@ -73,7 +73,7 @@ public class DFMergeJob extends NDataflowJob {
     protected void doExecute(OptionsHelper optionsHelper) throws Exception {
         String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_NAME);
         String newSegmentId = optionsHelper.getOptionValue(OPTION_SEGMENT_IDS);
-        Set<Long> layoutIds = NSparkCubingUtil.str2Longs(optionsHelper.getOptionValue(OPTION_LAYOUT_IDS));
+        Set<Long> layoutIds = getLayoutsFromPath(optionsHelper.getOptionValue(OPTION_LAYOUT_ID_PATH));
         project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
 
         mergeSnapshot(dfName, newSegmentId);
