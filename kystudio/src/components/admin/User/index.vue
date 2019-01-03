@@ -2,7 +2,7 @@
   <div class="security-user">
     <!-- 从Group页面跳至User页面的返回按钮 -->
     <div v-if="currentGroup">
-      <router-link class="el-icon-ksd-more_04" to="/security/group">
+      <router-link class="el-icon-ksd-more_04" to="/admin/group">
         {{$t('backToGroupList')}}
       </router-link>
     </div>

@@ -82,7 +82,7 @@ let routerOptions = {
       {
         name: 'GroupDetail',
         path: 'admin/group/:groupName',
-        component: () => import('../components/admin/Group/index.vue')
+        component: () => import('../components/admin/User/index.vue')
       },
       {
         name: 'Job',

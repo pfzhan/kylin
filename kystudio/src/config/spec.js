@@ -21,7 +21,8 @@ export default {
       { "id": "admin", "value": "admin", "title": "Admin" },
       { "id": "project", "value": "project", "title": "Project" },
       { "id": "user", "value": "user", "title": "User" },
-      { "id": "group", "value": "group", "title": "Group" }
+      { "id": "group", "value": "group", "title": "Group" },
+      { "id": "groupDetail", "value": "groupdetail", "title": "GroupDetail" }
     ],
     "datasource": [
       { "id": "hive", "value": 9, "title": "HIVE" },
@@ -87,9 +88,9 @@ export default {
     "menu": {
       "keyPattern": "groupRole-projectRole-menu",
       "entries": [
-        { "key": "systemAdmin-*-[project,user,group]", "value": "dashboard,query,insight,queryHistory,favoriteQuery,studio,setting,source,model,index,modelEdit,monitor,job" },
-        { "key": "systemAdmin-*-*", "value": "project,user,group" },
-        { "key": "systemUser-*-*", "value": "admin,project,group,user" }
+        { "key": "systemAdmin-*-[project,user,group,groupDetail]", "value": "dashboard,query,insight,queryHistory,favoriteQuery,studio,setting,source,model,index,modelEdit,monitor,job" },
+        { "key": "systemAdmin-*-*", "value": "project,user,group,groupDetail" },
+        { "key": "systemUser-*-*", "value": "admin,project,group,groupDetail,user" }
       ]
     },
     "modelActions": {
