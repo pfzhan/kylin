@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -39,6 +38,7 @@ import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
@@ -47,6 +47,7 @@ import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.CuboidLayoutQueryTimes;
+import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import lombok.val;
 import lombok.var;
 
@@ -105,11 +106,15 @@ public class GarbageStorageCollector implements StorageInfoCollector {
             if (CollectionUtils.isEmpty(hotCuboidLayoutIdSet)) {
                 hotCuboidLayoutIdSet = Sets.newHashSet();
             }
+            val cubePlan = dataflow.getCubePlan();
+            // ruleBaseCuboidLayouts will not be identified as garbage for the moment
+            val ruleBaseCuboidLayoutIdSet = cubePlan.getRuleBaseCuboidLayouts().stream().map(NCuboidLayout::getId)
+                    .collect(Collectors.toSet());
             val finalHotCuboidLayoutIdSet = hotCuboidLayoutIdSet;
             val cuboidLayoutIdSet = dataCuboids.stream()
                     .filter(dc -> (System.currentTimeMillis() - dc.getCreateTime()) > cuboidSurvivalTimeThreshold)
                     .map(NDataCuboid::getCuboidLayoutId).filter(id -> !finalHotCuboidLayoutIdSet.contains(id))
-                    .collect(Collectors.toSet());
+                    .filter(id -> !ruleBaseCuboidLayoutIdSet.contains(id)).collect(Collectors.toSet());
             if (CollectionUtils.isNotEmpty(cuboidLayoutIdSet)) {
                 garbageStorageSize += calculateLayoutSize(cuboidLayoutIdSet, dataflow);
                 garbageModelIndexMap.put(modelId, cuboidLayoutIdSet);
