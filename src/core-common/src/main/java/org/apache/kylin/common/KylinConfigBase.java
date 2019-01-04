@@ -1239,18 +1239,6 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.query.derived-filter-translation-threshold", "20"));
     }
 
-    public int getSlowQueryStackTraceDepth() {
-        return Integer.parseInt(getOptional("kylin.query.slowquery-stacktrace-depth", "10"));
-    }
-
-    public int getSlowQueryDefaultAlertingSeconds() {
-        return Integer.parseInt(getOptional("kylin.query.slowquery-alerting-seconds", "90"));
-    }
-
-    public int getSlowQueryDefaultDetectIntervalSeconds() {
-        return Integer.parseInt(getOptional("kylin.query.slowquery-detect-interval", "60"));
-    }
-
     public String[] getQueryTransformers() {
         return getOptionalStringArray("kylin.query.transformers", new String[0]);
     }
@@ -1301,8 +1289,22 @@ abstract public class KylinConfigBase implements Serializable {
         return udfMap;
     }
 
+    public int getSlowQueryDefaultDetectIntervalSeconds() {
+        int intervalSec = Integer.parseInt(getOptional("kylin.query.slowquery-detect-interval", "3"));
+        if (intervalSec < 1) {
+            logger.warn("Slow query detect interval less than 1 sec, set to 1 sec.");
+            intervalSec = 1;
+        }
+        return intervalSec;
+    }
+
     public int getQueryTimeoutSeconds() {
-        return Integer.parseInt(this.getOptional("kylin.query.timeout-seconds", "0"));
+        int time = Integer.parseInt(this.getOptional("kylin.query.timeout-seconds", "300"));
+        if (time <= 3) {
+            logger.warn("Query timeout seconds less than 3 sec, set to 3 sec.");
+            time = 3;
+        }
+        return time;
     }
 
     public boolean isPushDownEnabled() {

@@ -40,67 +40,35 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.rest.service;
+package org.apache.kylin.query;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-
-import java.util.ArrayList;
-
-import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import org.apache.kylin.rest.request.SQLRequest;
-import org.junit.After;
+import org.apache.kylin.common.KylinConfig;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-public class SlowQueryDetectorTest extends NLocalFileMetadataTestCase {
+import io.kyligence.kap.common.util.TempMetadataBuilder;
 
+public class SlowQueryDetectorTest {
     @Before
-    public void setup() {
-        createTestMetadata();
+    public void before() {
+        String tempMetadataDir = TempMetadataBuilder.prepareNLocalTempMetadata();
+        KylinConfig.setKylinConfigForLocalTest(tempMetadataDir);
     }
 
-    @After
-    public void after() {
-        cleanupTestMetadata();
-    }
-
-    @SuppressWarnings("deprecation")
     @Test
-    public void test() throws Exception {
-        int alertMB = SlowQueryDetector.getSystemAvailMB() * 2;
-        int alertRunningSec = 5;
-        String mockSql = "select * from just_a_test";
-        final ArrayList<String[]> alerts = new ArrayList<>();
-
-        SlowQueryDetector slowQueryDetector = new SlowQueryDetector(alertRunningSec * 1000, alertMB, alertRunningSec,
-                1000);
-        slowQueryDetector.registerNotifier(new SlowQueryDetector.Notifier() {
-            @Override
-            public void slowQueryFound(float runningSec, long startTime, String project, String sql,
-                    String user, Thread t) {
-                alerts.add(new String[] {QueryHistory.ADJ_SLOW, sql });
-            }
-        });
+    public void testSetInterrupt() {
+        SlowQueryDetector slowQueryDetector = new SlowQueryDetector(3, 1);
         slowQueryDetector.start();
-
-        {
-            SQLRequest sqlRequest = new SQLRequest();
-            sqlRequest.setSql(mockSql);
-            slowQueryDetector.queryStart(Thread.currentThread(), sqlRequest, "ADMIN", System.currentTimeMillis());
-
-            // make sure slow query check happens twice
-            Thread.sleep((alertRunningSec * 2 + 4) * 1000);
-
-            slowQueryDetector.queryEnd(Thread.currentThread());
+        slowQueryDetector.queryStart();
+        try {
+            Thread.sleep(20);
+            Assert.fail();
+        } catch (InterruptedException e) {
+            Assert.assertEquals("sleep interrupted", e.getMessage());
         }
 
+        slowQueryDetector.queryEnd();
         slowQueryDetector.interrupt();
-
-        assertEquals(2, alerts.size());
-        // second check founds a Slow
-        assertArrayEquals(new String[] { QueryHistory.ADJ_SLOW, mockSql }, alerts.get(0));
-        assertArrayEquals(new String[] { QueryHistory.ADJ_SLOW, mockSql }, alerts.get(0));
     }
 }

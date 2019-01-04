@@ -102,6 +102,7 @@ import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.apache.kylin.metadata.querymeta.TableMeta;
 import org.apache.kylin.metadata.querymeta.TableMetaWithType;
 import org.apache.kylin.query.QueryConnection;
+import org.apache.kylin.query.SlowQueryDetector;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.util.PushDownUtil;
 import org.apache.kylin.query.util.QueryUtil;
@@ -189,11 +190,11 @@ public class QueryService extends BasicService {
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
         SQLResponse ret;
         try {
-            slowQueryDetector.queryStart(Thread.currentThread(), sqlRequest, getUsername(), System.currentTimeMillis());
+            slowQueryDetector.queryStart();
             ret = queryWithSqlMassage(sqlRequest);
             return ret;
         } finally {
-            slowQueryDetector.queryEnd(Thread.currentThread());
+            slowQueryDetector.queryEnd();
             Thread.interrupted(); //reset if interrupted
         }
     }
