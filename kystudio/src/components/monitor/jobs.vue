@@ -228,15 +228,18 @@
       </div>
     </el-card>
     <el-dialog :title="$t('waitingJobList')" :visible.sync="waitingJobListVisibel" width="440px">
-      <el-table :data="waitingJobList" border>
-        <el-table-column property="order" :label="$t('order')" width="60" align="center"></el-table-column>
-        <el-table-column property="jobType" :label="$t('JobType')" width="140"></el-table-column>
-        <el-table-column property="triggerTime" :label="$t('triggerTime')">
-          <template slot-scope="scope">
-            {{transToGmtTime(scope.row.triggerTime)}}
-          </template>
-        </el-table-column>
-      </el-table>
+      <div v-if="waitingJob">
+        <span class="ksd-title-label ksd-fs-14">{{$t('jobTarget')}}</span>{{waitingJob.modelName}}
+        <el-table :data="waitingJob.jobList" border class="ksd-mt-10">
+          <el-table-column property="order" :label="$t('order')" width="60" align="center"></el-table-column>
+          <el-table-column property="jobType" :label="$t('JobType')" width="140"></el-table-column>
+          <el-table-column property="triggerTime" :label="$t('triggerTime')">
+            <template slot-scope="scope">
+              {{transToGmtTime(scope.row.triggerTime)}}
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" plain size="medium" @click="waitingJobListVisibel = false">{{$t('kylinLang.common.ok')}}</el-button>
       </span>
@@ -281,8 +284,8 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
     'job_dialog': jobDialog
   },
   locales: {
-    'en': {dataRange: 'Data Range', JobType: 'Job Type', JobName: 'Job Name', TargetSubject: 'Target Subject', ProgressStatus: 'Job Status', startTime: 'Start Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDrop: 'Drop', jobRestart: 'Restart', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', restartJob: 'Are you sure to restart the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting', noSelectJobs: 'Please check at least one job.', selectedJobs: '{selectedNumber} jobs have been selected', selectAll: 'All Select', fullLoad: 'Full Load', jobDetails: 'Job Details', waitingjobs: 'Waiting Jobs', waitingJobList: 'Waiting Job List', triggerTime: 'Trigger Time', order: 'Order'},
-    'zh-cn': {dataRange: '数据范围', JobType: 'Job 类型', JobName: '任务', TargetSubject: '任务对象', ProgressStatus: '任务状态', startTime: '任务开始时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDrop: '删除', jobRestart: '重启', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '终止', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', restartJob: '确定要重启任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间', noSelectJobs: '请勾选至少一项任务。', selectedJobs: '目前已选择当页{selectedNumber}条任务。', selectAll: '全选', fullLoad: '全量加载', jobDetails: '任务详情', waitingjobs: '条等待任务', waitingJobList: '等待任务列表', triggerTime: '触发时间', order: '排序'}
+    'en': {dataRange: 'Data Range', JobType: 'Job Type', JobName: 'Job Name', TargetSubject: 'Target Subject', ProgressStatus: 'Job Status', startTime: 'Start Time', Duration: 'Duration', Actions: 'Actions', jobResume: 'Resume', jobDiscard: 'Discard', jobPause: 'Pause', jobDrop: 'Drop', jobRestart: 'Restart', tip_jobResume: 'Resume the Job', tip_jobPause: 'Pause the Job', tip_jobDiscard: 'Discard the Job', cubeName: 'Cube Name', NEW: 'NEW', PENDING: 'PENDING', RUNNING: 'RUNNING', FINISHED: 'FINISHED', ERROR: 'ERROR', DISCARDED: 'DISCARDED', STOPPED: 'STOPPED', LASTONEDAY: 'LAST ONE DAY', LASTONEWEEK: 'LAST ONE WEEK', LASTONEMONTH: 'LAST ONE MONTH', LASTONEYEAR: 'LAST ONE YEAR', ALL: 'ALL', parameters: 'Parameters', output: 'Output', load: 'Loading ... ', cmdOutput: 'cmd_output', resumeJob: 'Are you sure to resume the job?', restartJob: 'Are you sure to restart the job?', pauseJob: 'Are you sure to pause the job?', dropJob: 'Are you sure to drop the job?', 'jobName': 'Job Name', 'duration': 'Duration', 'waiting': 'Waiting', noSelectJobs: 'Please check at least one job.', selectedJobs: '{selectedNumber} jobs have been selected', selectAll: 'All Select', fullLoad: 'Full Load', jobDetails: 'Job Details', waitingjobs: 'Waiting Jobs', waitingJobList: 'Waiting Job List', triggerTime: 'Trigger Time', order: 'Order', jobTarget: 'Job Target:'},
+    'zh-cn': {dataRange: '数据范围', JobType: 'Job 类型', JobName: '任务', TargetSubject: '任务对象', ProgressStatus: '任务状态', startTime: '任务开始时间', Duration: '耗时', Actions: '操作', jobResume: '恢复', jobDiscard: '终止', jobPause: '暂停', jobDrop: '删除', jobRestart: '重启', tip_jobResume: '恢复Job', tip_jobPause: '暂停Job', tip_jobDiscard: '终止Job', cubeName: 'Cube 名称', NEW: '新建', PENDING: '等待', RUNNING: '运行', FINISHED: '完成', ERROR: '错误', DISCARDED: '终止', STOPPED: '暂停', LASTONEDAY: '最近一天', LASTONEWEEK: '最近一周', LASTONEMONTH: '最近一月', LASTONEYEAR: '最近一年', ALL: '所有', parameters: '参数', output: '输出', load: '下载中 ... ', cmdOutput: 'cmd_output', resumeJob: '确定要恢复任务?', restartJob: '确定要重启任务?', pauseJob: '确定要暂停任务?', dropJob: '确定要删除任务?', 'jobName': '任务名', 'duration': '持续时间', 'waiting': '等待时间', noSelectJobs: '请勾选至少一项任务。', selectedJobs: '目前已选择当页{selectedNumber}条任务。', selectAll: '全选', fullLoad: '全量加载', jobDetails: '任务详情', waitingjobs: '条等待任务', waitingJobList: '等待任务列表', triggerTime: '触发时间', order: '排序', jobTarget: '任务目标：'}
   }
 })
 export default class JobsList extends Vue {
@@ -327,7 +330,7 @@ export default class JobsList extends Vue {
     drop: false
   }
   waitingJobListVisibel = false
-  waitingJobList = []
+  waitingJob = null
   waitingJobs = [
     {modelName: 'Model_a', jobList: [{order: 1, jobType: 'INDEX_BUILD', triggerTime: 1546433376619}]},
     {modelName: 'Model_b', jobList: [{order: 1, jobType: 'INDEX_BUILD', triggerTime: 1546433376619}]},
@@ -336,7 +339,7 @@ export default class JobsList extends Vue {
   ]
   handleCommand (index) {
     this.waitingJobListVisibel = true
-    this.waitingJobList = this.waitingJobs[index].jobList
+    this.waitingJob = this.waitingJobs[index]
   }
   getBatchBtnStatus (statusArr) {
     const batchBtns = {
