@@ -25,23 +25,20 @@ package io.kyligence.kap.metadata.favorite;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class QueryHistoryTimeOffset extends RootPersistentEntity {
     @JsonProperty("auto_mark_time_offset")
     private long autoMarkTimeOffset;
     @JsonProperty("favorite_query_update_time_offset")
     private long favoriteQueryUpdateTimeOffset;
 
-    public QueryHistoryTimeOffset() {
-        updateRandomUuid();
-    }
-
     public QueryHistoryTimeOffset(long autoMarkTimeOffset, long favoriteQueryUpdateTimeOffset) {
-        updateRandomUuid();
         this.autoMarkTimeOffset = autoMarkTimeOffset;
         this.favoriteQueryUpdateTimeOffset = favoriteQueryUpdateTimeOffset;
     }

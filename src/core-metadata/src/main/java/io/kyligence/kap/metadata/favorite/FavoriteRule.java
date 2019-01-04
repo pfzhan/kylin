@@ -38,6 +38,7 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class FavoriteRule extends RootPersistentEntity {
     public static final String FREQUENCY_RULE_NAME = "frequency";
     public static final String DURATION_RULE_NAME = "duration";
@@ -47,12 +48,7 @@ public class FavoriteRule extends RootPersistentEntity {
 
     public static final String ENABLE = "enable";
 
-    public FavoriteRule() {
-        updateRandomUuid();
-    }
-
     public FavoriteRule(List<AbstractCondition> conds, String name, boolean isEnabled) {
-        updateRandomUuid();
         this.conds = conds;
         this.name = name;
         this.enabled = isEnabled;

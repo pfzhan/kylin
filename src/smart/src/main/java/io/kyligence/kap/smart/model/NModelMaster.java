@@ -69,8 +69,6 @@ public class NModelMaster {
 
     public NDataModel proposeInitialModel() {
         NDataModel dataModel = new NDataModel();
-        dataModel.updateRandomUuid();
-        dataModel.setUuid(dataModel.getUuid());
         dataModel.setRootFactTableName(modelContext.getModelTree().getRootFactTable().getIdentity());
         dataModel.setDescription(StringUtils.EMPTY);
         dataModel.setFilterCondition(StringUtils.EMPTY);

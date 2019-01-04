@@ -173,7 +173,6 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         TableDesc nTableDesc = new TableDesc(tables.get(0));
         TableExtDesc tableExt = new TableExtDesc();
         tableExt.setIdentity("DEFAULT.TEST_COUNTRY");
-        tableExt.updateRandomUuid();
         NTableExtDesc tableExtDesc = new NTableExtDesc(tableExt);
         String[] result = tableService.loadTableToProject(nTableDesc, tableExtDesc, "default");
         Assert.assertTrue(result.length == 1);
@@ -190,7 +189,6 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         tableDesc.setDatabase("DEFAULT");
         TableExtDesc tableExt = new TableExtDesc();
         tableExt.setIdentity("DEFAULT.TEST_UNLOAD");
-        tableExt.updateRandomUuid();
         NTableExtDesc tableExtDesc = new NTableExtDesc(tableExt);
         String[] result = tableService.loadTableToProject(tableDesc, tableExtDesc, "default");
         NTableMetadataManager nTableMetadataManager = NTableMetadataManager

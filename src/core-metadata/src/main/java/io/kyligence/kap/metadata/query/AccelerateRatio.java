@@ -26,11 +26,13 @@ package io.kyligence.kap.metadata.query;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class AccelerateRatio extends RootPersistentEntity {
 
     @JsonProperty("query_num_of_marked_as_favorite")
@@ -38,10 +40,6 @@ public class AccelerateRatio extends RootPersistentEntity {
 
     @JsonProperty("overall_query_num")
     private int overallQueryNum;
-
-    public AccelerateRatio() {
-        updateRandomUuid();
-    }
 
     public void increase(int acceleratedQuerySize, int overallQuerySize) {
         this.queryNumOfMarkedAsFavorite += acceleratedQuerySize;

@@ -85,8 +85,6 @@ public class NDictionaryInfo extends RootPersistentEntity {
     public NDictionaryInfo(String sourceTable, String sourceColumn, int sourceColumnIndex, String dataType,
             TableSignature input, String project) {
 
-        this.updateRandomUuid();
-
         this.sourceTable = sourceTable;
         this.sourceColumn = sourceColumn;
         this.sourceColumnIndex = sourceColumnIndex;
@@ -96,8 +94,6 @@ public class NDictionaryInfo extends RootPersistentEntity {
     }
 
     public NDictionaryInfo(NDictionaryInfo other) {
-
-        this.updateRandomUuid();
 
         this.sourceTable = other.sourceTable;
         this.sourceColumn = other.sourceColumn;

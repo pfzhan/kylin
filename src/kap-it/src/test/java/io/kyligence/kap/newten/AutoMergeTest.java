@@ -94,7 +94,6 @@ public class AutoMergeTest extends NLocalFileMetadataTestCase {
 
     private void createDataloadingRange() throws IOException {
         NDataLoadingRange dataLoadingRange = new NDataLoadingRange();
-        dataLoadingRange.updateRandomUuid();
         dataLoadingRange.setTableName("DEFAULT.TEST_KYLIN_FACT");
         dataLoadingRange.setColumnName("TEST_KYLIN_FACT.CAL_DT");
         NDataLoadingRangeManager.getInstance(getTestConfig(), DEFAULT_PROJECT).createDataLoadingRange(dataLoadingRange);

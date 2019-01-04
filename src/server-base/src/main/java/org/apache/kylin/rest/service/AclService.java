@@ -227,7 +227,6 @@ public class AclService implements MutableAclService {
     private AclRecord newPrjACL(ObjectIdentity objID) {
         AclRecord acl = new AclRecord(objID, getCurrentSid());
         acl.init(null, this.aclPermissionFactory, this.permissionGrantingStrategy);
-        acl.updateRandomUuid();
         return acl;
     }
 

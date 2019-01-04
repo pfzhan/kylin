@@ -143,7 +143,6 @@ public class ProjectInstance extends RootPersistentEntity implements ISourceAwar
             LinkedHashMap<String, String> overrideProps, MaintainModelType maintainModelType) {
         ProjectInstance projectInstance = new ProjectInstance();
 
-        projectInstance.updateRandomUuid();
         projectInstance.setName(name);
         projectInstance.setOwner(owner);
         projectInstance.setDescription(description);

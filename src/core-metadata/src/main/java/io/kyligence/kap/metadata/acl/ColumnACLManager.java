@@ -121,7 +121,6 @@ public class ColumnACLManager {
 
     private ColumnACL newColumnACL(String project) {
         ColumnACL acl = new ColumnACL();
-        acl.updateRandomUuid();
         acl.init(project);
         return acl;
     }

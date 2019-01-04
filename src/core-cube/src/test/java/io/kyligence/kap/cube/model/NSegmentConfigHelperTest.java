@@ -90,7 +90,6 @@ public class NSegmentConfigHelperTest extends NLocalFileMetadataTestCase {
 
         var dataLoadingRange = new NDataLoadingRange();
         val dataModel = dataModelManager.getDataModelDesc(model);
-        dataLoadingRange.updateRandomUuid();
         dataLoadingRange.setColumnName(dataModel.getPartitionDesc().getPartitionDateColumn());
         dataLoadingRange.setTableName(dataModel.getRootFactTableName());
         dataLoadingRange = dataLoadingRangeManager.createDataLoadingRange(dataLoadingRange);

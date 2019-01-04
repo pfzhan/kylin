@@ -70,6 +70,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
+import lombok.NoArgsConstructor;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -1113,17 +1114,13 @@ public class QueryService extends BasicService {
 
     @Getter
     @Setter
+    @NoArgsConstructor
     @AllArgsConstructor
     @SuppressWarnings("serial")
     public static class QueryRecord extends RootPersistentEntity {
 
         @JsonProperty
         private List<Query> queries = Lists.newArrayList();
-
-        public QueryRecord() {
-            updateRandomUuid();
-        }
-
     }
 
 }

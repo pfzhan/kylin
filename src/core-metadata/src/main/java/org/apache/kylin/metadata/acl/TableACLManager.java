@@ -127,7 +127,6 @@ public class TableACLManager {
 
     private TableACL newTableACL(String project) {
         TableACL acl = new TableACL();
-        acl.updateRandomUuid();
         acl.init(project);
         return acl;
     }

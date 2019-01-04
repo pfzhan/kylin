@@ -212,7 +212,6 @@ public class RowACLManager {
     private RowACL newRowACL(String project, String type, String name, String table) {
         table = table.toUpperCase();
         RowACL acl = new RowACL();
-        acl.updateRandomUuid();
         acl.init(project, type, name, table);
         return acl;
     }
