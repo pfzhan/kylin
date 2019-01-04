@@ -806,7 +806,7 @@ public class ModelService extends BasicService {
                 getDataModelManager(project).getDataModels(), false, project);
 
         if (dataModelDesc.isSeekingCCAdvice()) {
-            // if it's seeking for advise, it should have thrown exceptions by far
+            // if it's seeking for advice, it should have thrown exceptions by far
             throw new IllegalStateException("No advice could be provided");
         }
 
@@ -1037,7 +1037,7 @@ public class ModelService extends BasicService {
             if (!modelDesc.getRootFactTable().getTableDesc().getIdentity().equals(tableName)
                     || modelDesc.isJoinTable(tableName)) {
                 throw new BadRequestException("Can not set table '" + tableName
-                        + "' incrementing loading, due to another incrementing loading table existed in model '"
+                        + "' incremental loading, due to another incremental loading table existed in model '"
                         + modelUsingTable + "'!");
             }
         }

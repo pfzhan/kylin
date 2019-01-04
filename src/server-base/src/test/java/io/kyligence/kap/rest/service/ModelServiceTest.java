@@ -1974,7 +1974,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         model.setJoinTables(Lists.newArrayList(joinTableDesc));
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
-                "Can not set table 'DEFAULT.TEST_KYLIN_FACT' incrementing loading, due to another incrementing loading table existed in model 'nmodel_basic'!");
+                "Can not set table 'DEFAULT.TEST_KYLIN_FACT' incremental loading, due to another incremental loading table existed in model 'nmodel_basic'!");
         modelService.checkSingleIncrementingLoadingTable("default", "DEFAULT.TEST_KYLIN_FACT");
     }
 

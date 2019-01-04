@@ -109,7 +109,7 @@ public class NExecutableDao {
                 JOB_SERIALIZER);
     }
 
-    public List<String> getJobPathes() {
+    public List<String> getJobPaths() {
         NavigableSet<String> resources = store.listResources("/" + project + ResourceStore.EXECUTE_RESOURCE_ROOT);
         if (resources == null) {
             return Collections.emptyList();

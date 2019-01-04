@@ -495,7 +495,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertNull(dataloadingManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT"));
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
-                "Can not set table 'DEFAULT.TEST_ACCOUNT' incrementing loading, due to another incrementing loading table existed in model 'all_fixed_length'!");
+                "Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, due to another incremental loading table existed in model 'all_fixed_length'!");
         tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT");
     }
 
@@ -504,7 +504,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         tableService.setPartitionKey("DEFAULT.TEST_KYLIN_FACT", "default", "CAL_DT");
         thrown.expect(BadRequestException.class);
         thrown.expectMessage(
-                "Can not set table 'DEFAULT.TEST_ACCOUNT' incrementing loading, due to another incrementing loading table existed in model 'all_fixed_length'!");
+                "Can not set table 'DEFAULT.TEST_ACCOUNT' incremental loading, due to another incremental loading table existed in model 'all_fixed_length'!");
         tableService.setPartitionKey("DEFAULT.TEST_ACCOUNT", "default", "CAL_DT");
     }
 

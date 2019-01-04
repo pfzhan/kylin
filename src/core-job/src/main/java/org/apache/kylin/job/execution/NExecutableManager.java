@@ -58,6 +58,7 @@ import lombok.val;
 public class NExecutableManager {
 
     private static final Logger logger = LoggerFactory.getLogger(NExecutableManager.class);
+    private static final String PARSE_ERROR_MSG = "Error parsing the executablePO: ";
 
     public static NExecutableManager getInstance(KylinConfig config, String project) {
         if (null == project) {
@@ -194,7 +195,7 @@ public class NExecutableManager {
                 AbstractExecutable ae = fromPO(po);
                 ret.add(ae);
             } catch (IllegalArgumentException e) {
-                logger.error("Error parsing one executablePO: ", e);
+                logger.error(PARSE_ERROR_MSG, e);
             }
         }
         return ret;
@@ -241,7 +242,7 @@ public class NExecutableManager {
                 AbstractExecutable ae = fromPO(po);
                 ret.add(ae);
             } catch (IllegalArgumentException e) {
-                logger.error("Error parsing one executablePO: ", e);
+                logger.error(PARSE_ERROR_MSG, e);
             }
         }
         return ret;
@@ -266,14 +267,14 @@ public class NExecutableManager {
                 AbstractExecutable ae = parseToAbstract(po, expectedClass);
                 ret.add(ae);
             } catch (IllegalArgumentException e) {
-                logger.error("Error parsing one executablePO: ", e);
+                logger.error(PARSE_ERROR_MSG, e);
             }
         }
         return ret;
     }
 
-    public List<String> getJobPathes() {
-        return Lists.newArrayList(executableDao.getJobPathes());
+    public List<String> getJobPaths() {
+        return Lists.newArrayList(executableDao.getJobPaths());
     }
 
     public void resumeAllRunningJobs() {

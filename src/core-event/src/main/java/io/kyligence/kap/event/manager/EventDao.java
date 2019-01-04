@@ -134,7 +134,7 @@ public class EventDao {
         return event;
     }
 
-    public List<String> getAllEventPathes() {
+    public List<String> getAllEventPaths() {
         NavigableSet<String> resources = store.listResources(resourceRootPath);
         if (resources == null) {
             return Collections.emptyList();

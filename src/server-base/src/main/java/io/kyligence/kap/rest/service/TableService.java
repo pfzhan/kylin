@@ -262,9 +262,9 @@ public class TableService extends BasicService {
         String cardinalityString = tableExtDesc.getCardinality();
         if (!StringUtils.isEmpty(cardinalityString)) {
             String[] cardinalities = StringUtils.split(cardinalityString, ",");
-            ColumnDesc[] columuDescs = tableDescResponse.getColumns();
-            for (int i = 0; i < columuDescs.length; i++) {
-                ColumnDesc columnDesc = columuDescs[i];
+            ColumnDesc[] columnDescs = tableDescResponse.getColumns();
+            for (int i = 0; i < columnDescs.length; i++) {
+                ColumnDesc columnDesc = columnDescs[i];
                 long card = i < cardinalities.length ? Long.parseLong(cardinalities[i]) : 0L;
                 cardinality.put(columnDesc.getName(), card);
             }
@@ -382,7 +382,7 @@ public class TableService extends BasicService {
         return segmentRangeResult;
     }
 
-    //get table's primaryKeys(pair first) and foreignKeys(pari second)
+    //get table's primaryKeys(pair first) and foreignKeys(pair second)
     private Pair<Set<String>, Set<String>> getTableColumnType(TableDesc table, String project) {
         NDataModelManager dataModelManager = getDataModelManager(project);
         List<String> models = dataModelManager.getModelsUsingTable(table);
@@ -445,7 +445,7 @@ public class TableService extends BasicService {
             tableManager.updateTableDesc(tableDesc);
         }
 
-        //toogle table type,remove all segments in related models
+        // toggle table type, remove all segments in related models
         val models = modelManager.getTableOrientedModelsUsingRootTable(tableDesc);
         for (val model : models) {
             //follow semanticVersion,#8196
