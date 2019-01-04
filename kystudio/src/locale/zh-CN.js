@@ -84,6 +84,7 @@ exports.default = {
     prev: '上一步',
     or: '或',
     saveAndClose: '保存并关闭',
+    sameName: '命名重复',
     // 通用提示
     backupSuccessTip: '元数据备份成功: ',
     unknownError: '未知错误。',

@@ -93,10 +93,10 @@
                 transform: `translateX(${ translate }px)`,
                 width: panelAppear.dimension.width-2+'px'
               }">
-                <span class="action_btn" @click="addCCDimension">
+                <!-- <span class="action_btn" @click="addCCDimension">
                   <i class="el-icon-ksd-project_add"></i>
                   <span>{{$t('add')}}</span>
-                </span>
+                </span> -->
                 <span class="action_btn" v-guide.batchAddDimension @click="batchSetDimension">
                   <i class="el-icon-ksd-backup"></i>
                   <span>{{$t('batchAdd')}}</span>

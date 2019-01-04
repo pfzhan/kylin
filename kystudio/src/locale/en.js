@@ -85,6 +85,7 @@ exports.default = {
     prev: 'Prev',
     or: 'or',
     saveAndClose: 'Save and Close',
+    sameName: 'Duplicate name',
     // 通用提示
     backupSuccessTip: 'Metadata backup successfully: ',
     unknownError: 'Unknown Error.',

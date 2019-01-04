@@ -147,6 +147,17 @@ export function objArrKeyToArr (data, groupName) {
 
 export function transDataForTree (data) {
 }
+export function countObjWithSomeKey (objectArr, key, equalVal) {
+  let len = objectArr && objectArr.length || 0
+  let count = 0
+  for (var i = 0; i < len; i++) {
+    var filterObj = objectArr[i]
+    if (filterObj[key] === equalVal) {
+      count++
+    }
+  }
+  return count
+}
 // 从对象数组中找到某个符合key value 的对象的位置
 export function indexOfObjWithSomeKey (objectArr, key, equalVal) {
   let len = objectArr && objectArr.length || 0

@@ -1005,9 +1005,22 @@ class NModel {
       }
     })
   }
+  // 编辑dimension name重复检测
+  checkSameEditDimensionName (dimension) {
+    let name = dimension.name
+    for (let k = 0; k < this._mount.dimensions.length; k++) {
+      if (this._mount.dimensions[k].guid !== dimension.guid && name === this._mount.dimensions[k].name) {
+        return false
+      }
+    }
+    return true
+  }
   // 添加度量
   editDimension (dimension) {
     return new Promise((resolve, reject) => {
+      if (!this.checkSameEditDimensionName(dimension)) {
+        return reject()
+      }
       let index = indexOfObjWithSomeKey(this._mount.dimensions, 'guid', dimension.guid)
       Object.assign(this._mount.dimensions[index], dimension)
       resolve()

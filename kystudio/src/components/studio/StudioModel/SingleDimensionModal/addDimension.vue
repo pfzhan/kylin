@@ -101,12 +101,14 @@ export default class SingleDimensionModal extends Vue {
       {required: true, validator: this.checkName, trigger: 'blur'}
     ],
     column: [
-      { required: true, message: '请选择', trigger: 'change' }
+      { required: true, message: this.$t('kylinLang.common.pleaseSelect'), trigger: 'change' }
     ]
   }
   checkName (rule, value, callback) {
     if (!NamedRegex.test(value)) {
       callback(new Error(this.$t('kylinLang.common.nameFormatValidTip')))
+    } else if (!this.modelInstance.checkSameEditDimensionName(this.dimensionInfo)) {
+      callback(new Error(this.$t('sameName')))
     } else {
       callback()
     }

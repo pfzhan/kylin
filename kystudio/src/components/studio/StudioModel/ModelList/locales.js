@@ -3,7 +3,7 @@ export default {
     capbility: 'Favorite Rate',
     dataLoadTime: 'Data Load Time',
     status: 'Status',
-    dataloading: 'Data Loaidng',
+    dataloading: 'Data Loading',
     delModelTip: 'Are you sure to drop this model?',
     pergeModelTip: 'Are you sure to purge this model?',
     disbaleModelTip: 'Are you sure to offline this model?',

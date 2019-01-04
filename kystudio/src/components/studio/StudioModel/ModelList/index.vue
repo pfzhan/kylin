@@ -93,6 +93,7 @@
         </el-table-column>
         <el-table-column class="ksd-center"
         width="98px"
+        v-if="!isAutoProject"
         :label="$t('kylinLang.common.action')">
           <template slot-scope="scope">
             <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>

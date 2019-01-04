@@ -32,8 +32,12 @@
               <el-table-column
                 :label="$t('name')">
                 <template slot-scope="scope">
-                  <el-input size="small" @click.native.stop v-model="scope.row.alias" :disabled="!scope.row.isSelected">
-                  </el-input>
+                  <div @click.stop>
+                    <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
+                    </el-input>
+                    <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
+                    <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                  </div>
                 </template>
               </el-table-column>
               <el-table-column
@@ -85,7 +89,12 @@
                <el-table-column
                 :label="$t('name')">
                 <template slot-scope="scope">
-                  <el-input size="small" v-model="scope.row.alias" @click.native.stop :disabled="!scope.row.isSelected" :placeholder="scope.row.name"></el-input>
+                  <div @click.stop>
+                    <el-input size="small" v-model="scope.row.alias"   @change="checkDimensionForm" :disabled="!scope.row.isSelected">
+                    </el-input>
+                    <div v-if="scope.row.validateNameRule" class="ky-form-error">{{$t('kylinLang.common.nameFormatValidTip')}}</div>
+                    <div v-else-if="scope.row.validateSameName" class="ky-form-error">{{$t('kylinLang.common.sameName')}}</div>
+                  </div>
                 </template>
               </el-table-column>
               <el-table-column
@@ -130,10 +139,8 @@ import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
 import vuex from '../../../../store'
 import locales from './locales'
 import store, { types } from './store'
-// import { sourceTypes } from '../../../../config'
-// import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
-// import { objectClone } from 'util'
-import { objectClone, sampleGuid, filterObjectArray } from '../../../../util'
+import { NamedRegex } from '../../../../config'
+import { objectClone, sampleGuid, filterObjectArray, countObjWithSomeKey } from '../../../../util'
 vuex.registerModule(['modals', 'DimensionsModal'], store)
 @Component({
   computed: {
@@ -178,7 +185,7 @@ export default class DimensionsModal extends Vue {
   factTable = []
   lookupTable = []
   // 获取所有的table columns
-  getTableColumns () {
+  getRenderDimensionData () {
     this.factTable = []
     this.lookupTable = []
     Object.values(this.tables).forEach((table) => {
@@ -191,7 +198,7 @@ export default class DimensionsModal extends Vue {
       }
       // 将已经选上的dimension回显到界面上
       table.columns && table.columns.forEach((col) => {
-        col.alias = col.alias || col.name
+        this.$set(col, 'alias', col.alias || col.name)
         let len = this.usedColumns.length
         for (let i = 0; i < len; i++) {
           let d = this.usedColumns[i]
@@ -214,6 +221,45 @@ export default class DimensionsModal extends Vue {
       })
     })
   }
+  checkHasSameNamedColumn () {
+    let columns = []
+    for (let k = 0; k < this.factTable.length; k++) {
+      columns = columns.concat(this.factTable[k].columns)
+    }
+    let loopupTableLen = this.lookupTable.length
+    for (let k = 0; k < loopupTableLen; k++) {
+      columns = columns.concat(this.lookupTable[k].columns)
+    }
+    return () => {
+      let hasPassValidate = true
+      columns.forEach((col) => {
+        this.$set(col, 'validateNameRule', false)
+        this.$set(col, 'validateSameName', false)
+        if (countObjWithSomeKey(columns, 'alias', col.alias) > 1) {
+          hasPassValidate = false
+          this.$set(col, 'validateSameName', true)
+        } else if (!this.checkDimensionNameRegex(col.alias)) {
+          hasPassValidate = false
+          this.$set(col, 'validateNameRule', true)
+        }
+      })
+      return hasPassValidate
+    }
+  }
+  checkDimensionNameRegex (alias) {
+    if (!NamedRegex.test(alias)) {
+      return false
+    }
+    return true
+  }
+  columnsCheckFunc = null
+  dimensionValidPass = false // 判断表单校验是否通过
+  checkDimensionForm () {
+    if (!this.columnsCheckFunc) {
+      this.columnsCheckFunc = this.checkHasSameNamedColumn()
+    }
+    this.dimensionValidPass = this.columnsCheckFunc()
+  }
   @Watch('isShow')
   onModalShow (newVal, oldVal) {
     if (newVal) {
@@ -222,7 +268,8 @@ export default class DimensionsModal extends Vue {
         this.$message(this.$t('kylinLang.project.mustSelectProject'))
         this.handleClose(false)
       }
-      this.getTableColumns()
+      this.getRenderDimensionData()
+      this.columnsCheckFunc = this.checkHasSameNamedColumn()
     } else {
       setTimeout(() => {
         this.isFormShow = false
@@ -299,7 +346,7 @@ export default class DimensionsModal extends Vue {
       return i
     }
   }
-  submit () {
+  getAllSelectedColumns () {
     let result = []
     Object.values(this.tables).forEach((table) => {
       table.columns && table.columns.forEach((col) => {
@@ -315,12 +362,19 @@ export default class DimensionsModal extends Vue {
         }
       })
     })
-    let ccDimensionList = this.usedColumns.filter((x) => {
-      return x.isCC
-    })
-    this.modelDesc.dimensions.splice(0, this.modelDesc.dimensions.length)
-    this.modelDesc.dimensions.push(...result, ...ccDimensionList)
-    this.handleClose(true)
+    return result
+  }
+  submit () {
+    this.checkDimensionForm()
+    if (this.dimensionValidPass) {
+      let result = this.getAllSelectedColumns()
+      let ccDimensionList = this.usedColumns.filter((x) => {
+        return x.isCC
+      })
+      this.modelDesc.dimensions.splice(0, this.modelDesc.dimensions.length)
+      this.modelDesc.dimensions.push(...result, ...ccDimensionList)
+      this.handleClose(true)
+    }
   }
 }
 </script>
