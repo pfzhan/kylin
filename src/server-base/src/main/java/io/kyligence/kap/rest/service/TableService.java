@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -274,7 +275,8 @@ public class TableService extends BasicService {
         return tableDescResponse;
     }
 
-    private List<TableDesc> getTablesResponse(List<TableDesc> tables, String project, boolean withExt) throws IOException {
+    private List<TableDesc> getTablesResponse(List<TableDesc> tables, String project, boolean withExt)
+            throws IOException {
         List<TableDesc> descs = new ArrayList<TableDesc>();
         NDataModelManager dataModelManager = getDataModelManager(project);
         for (val table : tables) {
@@ -346,7 +348,6 @@ public class TableService extends BasicService {
             return size;
         }
     }
-
 
     private long getStorageSize(String project, List<String> models) {
         val dfManger = getDataflowManager(project);
@@ -518,7 +519,6 @@ public class TableService extends BasicService {
 
     }
 
-
     public ExistedDataRangeResponse getLatestDataRange(String project, String table) throws Exception {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
         String lastEnd;
@@ -534,7 +534,6 @@ public class TableService extends BasicService {
         return new ExistedDataRangeResponse(lastEnd, currentMaxTime);
     }
 
-
     public Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String table)
             throws Exception {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
@@ -547,26 +546,31 @@ public class TableService extends BasicService {
         else
             dateFormat = dataLoadingRange.getPartitionDateFormat();
 
-        return new Pair<>(DateFormat.getFormattedDate(maxAndMinTime.getFirst(), dateFormat), DateFormat.getFormattedDate(maxAndMinTime.getSecond(), dateFormat));
+        return new Pair<>(DateFormat.getFormattedDate(maxAndMinTime.getFirst(), dateFormat),
+                DateFormat.getFormattedDate(maxAndMinTime.getSecond(), dateFormat));
     }
 
-    @Transaction(project = 1)
     private String setPartitionColumnFormat(String time, String project, String table) {
-        NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
-
         String format = DateFormat.proposeDateFormat(time);
-        val copy = rangeManager.copyForWrite(dataLoadingRange);
-        copy.setPartitionDateFormat(format);
-        rangeManager.updateDataLoadingRange(copy);
 
-        // sync to all related models
-        NDataModelManager modelManager = getDataModelManager(project);
-        TableDesc tableDesc = getTableManager(project).getTableDesc(table);
-        val models = modelManager.getTableOrientedModelsUsingRootTable(tableDesc);
-        for (val model : models) {
-            modelService.syncPartitionDesc(model, project);
-        }
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
+            NDataLoadingRangeManager rangeManager = getDataLoadingRangeManager(project);
+
+            val copy = rangeManager.copyForWrite(dataLoadingRange);
+            copy.setPartitionDateFormat(format);
+            rangeManager.updateDataLoadingRange(copy);
+
+            // sync to all related models
+            NDataModelManager modelManager = getDataModelManager(project);
+            TableDesc tableDesc = getTableManager(project).getTableDesc(table);
+            val models = modelManager.getTableOrientedModelsUsingRootTable(tableDesc);
+            for (val model : models) {
+                modelService.syncPartitionDesc(model, project);
+            }
+
+            return 0;
+        }, project);
 
         return format;
     }
@@ -578,7 +582,8 @@ public class TableService extends BasicService {
 
         String partitionColumn = dataLoadingRange.getColumnName();
 
-        String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn, table, partitionColumn);
+        String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn, table,
+                partitionColumn);
 
         // push down
         List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql).getFirst();
@@ -633,7 +638,6 @@ public class TableService extends BasicService {
             dataLoadingRangeManager.updateDataLoadingRangeWaterMark(tableName);
         }
     }
-
 
     public SegmentRange getSegmentRangeByTable(DateRangeRequest dateRangeRequest) {
         String project = dateRangeRequest.getProject();
