@@ -109,9 +109,6 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
             try {
                 val executableManager = NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
                 Map<String, Executable> runningJobs = context.getRunningJobs();
-                if (isJobPoolFull() || reachStorageQuota()) {
-                    return;
-                }
 
                 int nRunning = 0;
                 int nReady = 0;
@@ -121,9 +118,6 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 int nDiscarded = 0;
                 int nSucceed = 0;
                 for (final String path : executableManager.getJobPathes()) {
-                    if (isJobPoolFull()) {
-                        return;
-                    }
                     if (runningJobs.containsKey(NExecutableManager.extractId(path))) {
                         nRunning++;
                         continue;
@@ -132,7 +126,9 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                     switch (output.getState()) {
                     case READY:
                         nReady++;
-                        scheduleJob(path);
+                        if (!isJobPoolFull() && !reachStorageQuota()) {
+                            scheduleJob(path);
+                        }
                         break;
                     case DISCARDED:
                         nDiscarded++;
@@ -153,7 +149,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 }
 
                 logger.info(
-                        "{} Job Fetcher: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} others",
+                        "{} Job Status: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} others",
                         project, nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded, nOthers);
             } catch (Exception e) {
                 logger.warn("Job Fetcher caught a exception ", e);
