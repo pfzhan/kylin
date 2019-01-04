@@ -133,7 +133,7 @@ public class NModelSelectProposer extends NAbstractProposer {
                 }
             }
             JoinsGraph joinsGraph = new JoinsGraph(factTblRef, modelTreeJoins);
-            return model.getJoinsGraph().match(joinsGraph, Maps.newHashMap()) || 
+            return model.getJoinsGraph().match(joinsGraph, Maps.newHashMap()) ||
                     joinsGraph.match(model.getJoinsGraph(), Maps.newHashMap());
         }
         return false;

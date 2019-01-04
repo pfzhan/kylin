@@ -35,9 +35,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
-import io.kyligence.kap.rest.response.BatchLoadTableResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
@@ -71,6 +68,7 @@ import com.google.common.collect.LinkedHashMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.cube.model.NCubePlan;
 import io.kyligence.kap.cube.model.NCubePlanManager;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
@@ -92,6 +90,8 @@ import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.rest.request.AutoMergeRequest;
 import io.kyligence.kap.rest.request.DateRangeRequest;
 import io.kyligence.kap.rest.response.AutoMergeConfigResponse;
+import io.kyligence.kap.rest.response.BatchLoadTableResponse;
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.TableDescResponse;
 import io.kyligence.kap.rest.response.TableNameResponse;
 import io.kyligence.kap.rest.response.TablesAndColumnsResponse;
@@ -416,6 +416,7 @@ public class TableService extends BasicService {
 
         val modelManager = getDataModelManager(project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
+        tableDesc = tableManager.copyForWrite(tableDesc);
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
         NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(table);
         if (StringUtils.isEmpty(column)) {
@@ -691,6 +692,7 @@ public class TableService extends BasicService {
     public void setTop(String table, String project, boolean top) {
         NTableMetadataManager nTableMetadataManager = getTableManager(project);
         TableDesc tableDesc = nTableMetadataManager.getTableDesc(table);
+        tableDesc = nTableMetadataManager.copyForWrite(tableDesc);
         tableDesc.setTop(top);
         nTableMetadataManager.updateTableDesc(tableDesc);
     }

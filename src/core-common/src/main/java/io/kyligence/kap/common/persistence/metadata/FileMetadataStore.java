@@ -56,15 +56,12 @@ public class FileMetadataStore extends MetadataStore {
     protected void save(String path, ByteSource bs, long ts, long mvcc) throws Exception {
         File f = file(namespace + path);
         f.getParentFile().mkdirs();
-        FileOutputStream out = new FileOutputStream(f);
         if (bs == null) {
             FileUtils.deleteQuietly(f);
             return;
         }
-        try {
+        try (FileOutputStream out = new FileOutputStream(f)) {
             IOUtils.copy(bs.openStream(), out);
-        } finally {
-            IOUtils.closeQuietly(out);
         }
 
         if (!f.setLastModified(ts)) {

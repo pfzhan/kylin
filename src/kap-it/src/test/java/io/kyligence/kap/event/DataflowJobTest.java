@@ -28,7 +28,6 @@ import java.util.Comparator;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.engine.JobEngineConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -37,7 +36,6 @@ import org.apache.kylin.metadata.model.SegmentRange;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.Lists;
@@ -62,6 +60,7 @@ import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import lombok.val;
 import lombok.var;
 
@@ -153,7 +152,6 @@ public class DataflowJobTest extends NLocalWithSparkSessionTest {
     }
 
     @Test
-    @Ignore
     public void testCuboid() throws InterruptedException {
         val eventManager = EventManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
         val cubeManager = NCubePlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT);

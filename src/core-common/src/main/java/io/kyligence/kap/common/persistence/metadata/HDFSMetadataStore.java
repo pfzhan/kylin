@@ -26,7 +26,6 @@ package io.kyligence.kap.common.persistence.metadata;
 import java.io.IOException;
 import java.util.NavigableSet;
 import java.util.TreeSet;
-import java.util.UUID;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -84,6 +83,7 @@ public class HDFSMetadataStore extends MetadataStore {
         Path p = getRealHDFSPath(namespace + resPath);
         if (bs == null) {
             fs.delete(p, true);
+            return;
         }
         FSDataOutputStream out = null;
         try {
@@ -162,7 +162,4 @@ public class HDFSMetadataStore extends MetadataStore {
         }
     }
 
-    private String createMetaStoreUUID() {
-        return String.valueOf(UUID.randomUUID());
-    }
 }

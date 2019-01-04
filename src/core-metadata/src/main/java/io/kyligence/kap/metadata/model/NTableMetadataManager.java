@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.google.common.collect.Lists;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.RawResource;
@@ -47,9 +46,11 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.metadata.project.NProjectManager;
+import lombok.val;
 
 /**
  */
@@ -117,8 +118,8 @@ public class NTableMetadataManager {
     }
 
     public Map<String, TableDesc> getAllTablesMap() {
-//        ProjectInstance pi = getProjectManager().getProject(project);
-//        Set<String> prjTableNames = pi.getTables();
+        //        ProjectInstance pi = getProjectManager().getProject(project);
+        //        Set<String> prjTableNames = pi.getTables();
 
         Map<String, TableDesc> ret = new LinkedHashMap<>();
         for (TableDesc table : listAllTables()) {
@@ -131,7 +132,7 @@ public class NTableMetadataManager {
     public List<TableDesc> getAllIncrementalLoadTables() {
         List<TableDesc> result = Lists.newArrayList();
 
-        for (TableDesc table: srcTableCrud.listAll()) {
+        for (TableDesc table : srcTableCrud.listAll()) {
             if (table.isIncrementLoading())
                 result.add(table);
         }
@@ -144,6 +145,10 @@ public class NTableMetadataManager {
      */
     public TableDesc getTableDesc(String tableName) {
         return srcTableCrud.get(tableName);
+    }
+
+    public TableDesc copyForWrite(TableDesc tableDesc) {
+        return srcTableCrud.copyForWrite(tableDesc);
     }
 
     /**
@@ -245,15 +250,16 @@ public class NTableMetadataManager {
     }
 
     public void mergeAndUpdateTableExt(NTableExtDesc origin, TableExtDesc other) {
-        final boolean isAppend = origin.getLoadingRange().size() < other.getLoadingRange().size();
+        val copyForWrite = srcExtCrud.copyForWrite(origin);
+        final boolean isAppend = copyForWrite.getLoadingRange().size() < other.getLoadingRange().size();
         if (isAppend) {
             // TODO merge new range if refresh
-            origin.setLoadingRange(other.getLoadingRange());
-            origin.setTotalRows(other.getTotalRows());
-            origin.setColumnStats(other.getColumnStats());
+            copyForWrite.setLoadingRange(other.getLoadingRange());
+            copyForWrite.setTotalRows(other.getTotalRows());
+            copyForWrite.setColumnStats(other.getColumnStats());
         }
 
-        saveTableExt(origin);
+        saveTableExt(copyForWrite);
     }
 
     public void removeTableExt(String tableName) {

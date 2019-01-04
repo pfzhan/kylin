@@ -58,15 +58,17 @@ public class JdbcMetadataStore extends MetadataStore {
     private static final String META_TABLE_TS = "META_TABLE_TS";
     private static final String META_TABLE_MVCC = "META_TABLE_MVCC";
 
+    private static final String SELECT_TERM = "select ";
+
     private static final String COUNT_ALL_SQL = "select count(1) from %s";
-    private static final String SELECT_ALL_KEY_SQL = "select " + META_TABLE_KEY + " from %s";
-    private static final String SELECT_BY_PAGE_SQL = "select "
+    private static final String SELECT_ALL_KEY_SQL = SELECT_TERM + META_TABLE_KEY + " from %s";
+    private static final String SELECT_BY_PAGE_SQL = SELECT_TERM
             + Joiner.on(",").join(META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC)
             + " from %s order by " + META_TABLE_KEY + " limit %s offset %s";
-    private static final String SELECT_BY_KEY_MVCC_SQL = "select "
+    private static final String SELECT_BY_KEY_MVCC_SQL = SELECT_TERM
             + Joiner.on(",").join(META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC)
             + " from %s where " + META_TABLE_KEY + "='%s' and " + META_TABLE_MVCC + "=%d";
-    private static final String SELECT_BY_KEY_SQL = "select "
+    private static final String SELECT_BY_KEY_SQL = SELECT_TERM
             + Joiner.on(",").join(META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC)
             + " from %s where " + META_TABLE_KEY + "='%s'";
 
