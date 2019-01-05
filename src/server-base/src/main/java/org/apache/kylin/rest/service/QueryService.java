@@ -582,7 +582,7 @@ public class QueryService extends BasicService {
         return PushDownUtil.tryPushDownSelectQuery(project, sql, defaultSchema, sqlException, isPrepare);
     }
 
-    protected List<TableMeta> getMetadata(String project) throws SQLException {
+    public List<TableMeta> getMetadata(String project) throws SQLException {
 
         Connection conn = null;
         ResultSet columnMeta = null;
