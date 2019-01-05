@@ -49,10 +49,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
+import io.kyligence.kap.event.model.PostAddCuboidEvent;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.rest.response.EventModelResponse;
+import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.rest.constant.Constant;
 import org.junit.AfterClass;
@@ -293,6 +303,64 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
 
         jobDurationPerMb = jobService.getJobDurationPerByte("default", startTime, endTime, "model");
         Assert.assertEquals(0, jobDurationPerMb.size());
+    }
+
+    @Test
+    public void testGetWaitingJobs() {
+        prepareEventData();
+
+        Map<String, Object> result = jobService.getEventsInfoGroupByModel("default");
+        Assert.assertEquals(6, result.get("size"));
+        Map<String, EventModelResponse> models = (Map<String, EventModelResponse>) result.get("data");
+        Assert.assertEquals(2, models.size());
+        Assert.assertTrue(models.containsKey("nmodel_basic"));
+        Assert.assertTrue(models.containsKey("all_fixed_length"));
+        EventModelResponse model1 = models.get("nmodel_basic");
+        Assert.assertEquals(4, model1.getSize());
+        Assert.assertEquals("nmodel_basic", model1.getModelAlias());
+        EventModelResponse model2 = models.get("all_fixed_length");
+        Assert.assertEquals(2, model2.getSize());
+        Assert.assertEquals("all_fixed_length", model2.getModelAlias());
+
+        List<EventResponse> response = jobService.getWaitingJobsByModel("default", "nmodel_basic");
+        Assert.assertEquals(4, response.size());
+        Assert.assertEquals(JobTypeEnum.INDEX_BUILD.toString(), response.get(3).getJobType());
+        Assert.assertEquals(JobTypeEnum.INDEX_REFRESH.toString(), response.get(0).getJobType());
+        response = jobService.getWaitingJobsByModel("default", "all_fixed_length");
+        Assert.assertEquals(2, response.size());
+        Assert.assertEquals(JobTypeEnum.INDEX_BUILD.toString(), response.get(1).getJobType());
+        Assert.assertEquals(JobTypeEnum.INC_BUILD.toString(), response.get(0).getJobType());
+    }
+
+    private void prepareEventData() {
+        EventDao eventDao = EventDao.getInstance(getTestConfig(), "default");
+        Event event1 = new AddCuboidEvent();
+        event1.setModelName("nmodel_basic");
+        eventDao.addEvent(event1);
+
+        Event event2 = new AddSegmentEvent();
+        event2.setModelName("nmodel_basic");
+        eventDao.addEvent(event2);
+
+        Event event3 = new MergeSegmentEvent();
+        event3.setModelName("nmodel_basic");
+        eventDao.addEvent(event3);
+
+        Event event4 = new RefreshSegmentEvent();
+        event4.setModelName("nmodel_basic");
+        eventDao.addEvent(event4);
+
+        Event event5 = new AddCuboidEvent();
+        event5.setModelName("all_fixed_length");
+        eventDao.addEvent(event5);
+
+        Event event6 = new AddSegmentEvent();
+        event6.setModelName("all_fixed_length");
+        eventDao.addEvent(event6);
+
+        Event event7 = new PostAddCuboidEvent();
+        event7.setModelName("all_fixed_length");
+        eventDao.addEvent(event7);
     }
 
 }

@@ -42,19 +42,21 @@
 
 package io.kyligence.kap.event.manager;
 
-import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
-import java.util.NavigableSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Lists;
-
 import io.kyligence.kap.event.model.Event;
 
 /**
@@ -63,6 +65,15 @@ public class EventDao {
 
     private static final Serializer<Event> EVENT_SERIALIZER = new JsonSerializer<Event>(Event.class);
     private static final Logger logger = LoggerFactory.getLogger(EventDao.class);
+
+    public static Set<Class> buildJobRelatedEvent = new HashSet<>();
+
+    static {
+        buildJobRelatedEvent.add(AddCuboidEvent.class);
+        buildJobRelatedEvent.add(AddSegmentEvent.class);
+        buildJobRelatedEvent.add(MergeSegmentEvent.class);
+        buildJobRelatedEvent.add(RefreshSegmentEvent.class);
+    }
 
     public static EventDao getInstance(KylinConfig config, String project) {
         return config.getManager(project, EventDao.class);
@@ -134,11 +145,13 @@ public class EventDao {
         return event;
     }
 
-    public List<String> getAllEventPaths() {
-        NavigableSet<String> resources = store.listResources(resourceRootPath);
-        if (resources == null) {
-            return Collections.emptyList();
-        }
-        return Lists.newArrayList(resources);
+    public List<Event> getJobRelatedEvents() {
+        return getEvents().stream().filter(event -> buildJobRelatedEvent.contains(event.getClass()))
+                .collect(Collectors.toList());
+    }
+
+    public List<Event> getJobRelatedEventsByModel(String modelName) {
+        return getJobRelatedEvents().stream().filter(event -> event.getModelName().equals(modelName))
+                .collect(Collectors.toList());
     }
 }

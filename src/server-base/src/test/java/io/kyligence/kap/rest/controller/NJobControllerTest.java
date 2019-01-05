@@ -116,6 +116,27 @@ public class NJobControllerTest {
     }
 
     @Test
+    public void testGetWaitingJobs() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/waiting_jobs").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default")
+                .param("model", "test_model")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nJobController).getWaitingJobs("default", "test_model", 0, 10);
+    }
+
+    @Test
+    public void testGetWaitingJobsModels() throws Exception {
+        mockMvc.perform(MockMvcRequestBuilders.get("/api/jobs/waiting_jobs/models").contentType(MediaType.APPLICATION_JSON)
+                .param("project", "default")
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
+
+        Mockito.verify(nJobController).getWaitingJobsInfoGroupByModel("default");
+    }
+
+    @Test
     public void testDropJob() throws Exception {
         Mockito.doNothing().when(jobService).dropJobBatchly("default",
                 Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), "");

@@ -27,12 +27,21 @@ package io.kyligence.kap.rest.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import com.google.common.collect.Maps;
+import io.kyligence.kap.event.model.AddCuboidEvent;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.Event;
+import io.kyligence.kap.event.model.MergeSegmentEvent;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.rest.response.EventModelResponse;
+import io.kyligence.kap.rest.response.EventResponse;
 import io.kyligence.kap.rest.response.JobStatisticsResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
@@ -45,6 +54,7 @@ import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.Output;
 import org.apache.kylin.rest.exception.BadRequestException;
@@ -345,5 +355,52 @@ public class JobService extends BasicService {
             return manager.getDurationPerByteByModel(startTime, endTime);
 
         return manager.getDurationPerByteByTime(startTime, endTime, dimension);
+    }
+
+    public Map<String, Object> getEventsInfoGroupByModel(String project) {
+        Map<String, Object> result = Maps.newHashMap();
+        Map<String, EventModelResponse> models = Maps.newHashMap();
+        List<Event> jobRelatedEvents = getEventDao(project).getJobRelatedEvents();
+
+        jobRelatedEvents.forEach(event -> {
+            String modelName = event.getModelName();
+            EventModelResponse eventModelResponse = models.get(modelName);
+
+            if (eventModelResponse == null) {
+                String modelAlias = getDataModelManager(project).getDataModelDesc(modelName).getAlias();
+                eventModelResponse = new EventModelResponse(0, modelAlias);
+            }
+
+            eventModelResponse.updateSize();
+            models.put(modelName, eventModelResponse);
+        });
+
+        result.put("data", models);
+        result.put("size", jobRelatedEvents.size());
+        return result;
+    }
+
+    public List<EventResponse> getWaitingJobsByModel(String project, String modelName) {
+        List<Event> jobRelatedEvents = getEventDao(project).getJobRelatedEventsByModel(modelName);
+
+        jobRelatedEvents.sort(Comparator.comparingLong(Event::getSequenceId).reversed());
+        return jobRelatedEvents.stream().map(event -> new EventResponse(getJobType(event), event.getLastModified()))
+                .collect(Collectors.toList());
+    }
+
+    private String getJobType(Event event) {
+        if (event instanceof AddCuboidEvent)
+            return JobTypeEnum.INDEX_BUILD.toString();
+
+        if (event instanceof AddSegmentEvent)
+            return JobTypeEnum.INC_BUILD.toString();
+
+        if (event instanceof MergeSegmentEvent)
+            return JobTypeEnum.INDEX_MERGE.toString();
+
+        if (event instanceof RefreshSegmentEvent)
+            return JobTypeEnum.INDEX_REFRESH.toString();
+
+        throw new IllegalStateException(String.format("Illegal type of event %s", event.getId()));
     }
 }

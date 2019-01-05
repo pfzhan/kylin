@@ -28,11 +28,14 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
+import com.google.common.collect.Maps;
+import io.kyligence.kap.rest.response.EventResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.rest.exception.BadRequestException;
 import org.apache.kylin.rest.response.EnvelopeResponse;
 import org.apache.kylin.rest.response.ResponseCode;
+import org.apache.kylin.rest.util.PagingUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
@@ -76,6 +79,27 @@ public class NJobController extends NBasicController {
         List<ExecutableResponse> executables = jobService.listJobs(jobFilter);
         Map<String, Object> result = getDataResponse("jobList", executables, pageOffset, pageSize);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, result, "");
+    }
+
+    @RequestMapping(value = "/waiting_jobs", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getWaitingJobs(@RequestParam(value = "project") String project,
+                                           @RequestParam(value = "model") String modelName,
+                                           @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
+                                           @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
+        checkProjectName(project);
+        List<EventResponse> waitingJobs = jobService.getWaitingJobsByModel(project, modelName);
+        Map<String, Object> data = Maps.newHashMap();
+        data.put("data", PagingUtil.cutPage(waitingJobs, offset, limit));
+        data.put("size", waitingJobs.size());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, data, "");
+    }
+
+    @RequestMapping(value = "/waiting_jobs/models", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
+    @ResponseBody
+    public EnvelopeResponse getWaitingJobsInfoGroupByModel(@RequestParam(value = "project") String project) {
+        checkProjectName(project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, jobService.getEventsInfoGroupByModel(project), "");
     }
 
     @RequestMapping(value = "/{project}", method = { RequestMethod.DELETE }, produces = {
