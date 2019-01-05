@@ -41,7 +41,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query.adhoc;
+package io.kyligence.kap.query.pushdown;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.QueryContext;

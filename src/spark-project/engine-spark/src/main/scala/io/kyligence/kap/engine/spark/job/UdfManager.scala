@@ -27,7 +27,6 @@ import java.util.concurrent.atomic.AtomicReference
 
 import com.google.common.cache.{Cache, CacheBuilder, RemovalListener, RemovalNotification}
 import org.apache.kylin.metadata.datatype.DataType
-import org.apache.spark.api.java.JavaSparkContext
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructType
@@ -85,23 +84,10 @@ object UdfManager {
   private val defaultSparkSession: AtomicReference[SparkSession] =
     new AtomicReference[SparkSession]
 
-  def refresh(sc: JavaSparkContext): Unit = {
-    val sparkSession = SparkSession.builder.config(sc.getConf).getOrCreate
-
-    defaultManager.get().destory()
-    create(sparkSession)
-  }
-
   def create(sparkSession: SparkSession): Unit = {
     val manager = new UdfManager(sparkSession)
     defaultManager.set(manager)
     defaultSparkSession.set(sparkSession)
-  }
-
-  def create(sc: JavaSparkContext): Unit = {
-    val sparkSession = SparkSession.builder.config(sc.getConf).getOrCreate
-    create(sparkSession)
-
   }
 
   def register(dataType: DataType, func: String, schema: StructType, isFirst: Boolean): String = {

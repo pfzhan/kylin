@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,7 +46,7 @@ import java.util.List;
 
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
-import org.apache.kylin.query.adhoc.PushDownRunnerSparkImpl;
+import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructType;
@@ -58,6 +57,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl;
 import io.kyligence.kap.spark.KapSparkSession;
 
 public class PushDownRunnerSparkImplTest {
@@ -81,6 +81,7 @@ public class PushDownRunnerSparkImplTest {
             ss.stop();
             ss = SparkSession.builder().appName("local").master("local[1]").getOrCreate();
         }
+        SparderEnv.setSparkSession(ss);
         schema = schema.add("TEST_COUNT_DISTINCT_BITMAP", DataTypes.StringType, false);
         ss.read().schema(schema).csv("../examples/test_case_data/localmeta_n/data/DEFAULT.TEST_KYLIN_FACT.csv")
                 .createOrReplaceTempView("TEST_KYLIN_FACT");

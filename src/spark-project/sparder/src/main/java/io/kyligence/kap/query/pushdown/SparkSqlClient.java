@@ -41,7 +41,7 @@
  * limitations under the License.
  */
 
-package org.apache.kylin.query.adhoc;
+package io.kyligence.kap.query.pushdown;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;

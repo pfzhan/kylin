@@ -425,7 +425,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
     public void testExposedColumnsWhenPushdownEnabled() throws Exception {
 
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
-                "org.apache.kylin.query.adhoc.PushDownRunnerSparkImpl");
+                "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
 
         Pair<Set<String>, Set<String>> schemasAndTables;
         Set<String> tableSchemas, tableNames;

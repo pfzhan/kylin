@@ -98,7 +98,7 @@ public class NAutoBuildAndQueryTest extends NAutoTestBase {
     @Test
     public void testPowerBI() throws Exception {
         overwriteSystemProp("kylin.query.pushdown.runner-class-name",
-                "org.apache.kylin.query.adhoc.PushDownRunnerSparkImpl");
+                "io.kyligence.kap.query.pushdown.PushDownRunnerSparkImpl");
         new TestScenario(CompareLevel.SAME, "sql_powerbi").execute();
     }
 

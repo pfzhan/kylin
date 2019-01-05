@@ -2169,7 +2169,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     private void setupPushdownEnv() throws Exception {
-        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "org.apache.kylin.query.adhoc.PushDownRunnerJdbcImpl");
+        getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa",
                 "");

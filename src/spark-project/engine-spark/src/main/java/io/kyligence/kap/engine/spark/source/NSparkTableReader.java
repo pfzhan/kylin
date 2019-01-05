@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.apache.kylin.source.IReadableTable.TableReader;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.StructField;
 
@@ -47,7 +48,7 @@ public class NSparkTableReader implements TableReader {
     }
 
     private void initialize() {
-        ss = SparkSession.builder().getOrCreate();
+        ss = SparderEnv.getSparkSession();
         String master = ss.sparkContext().master();
         String tableIdentity = tableName;
         // spark sql can not add the database prefix when create tempView from csv, but when working with hive, it need the database prefix

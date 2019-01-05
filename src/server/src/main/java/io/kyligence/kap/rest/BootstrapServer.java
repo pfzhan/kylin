@@ -107,7 +107,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
 
         // enable push down
         System.setProperty("kylin.query.pushdown.runner-class-name",
-                "org.apache.kylin.query.adhoc.PushDownRunnerJdbcImpl");
+                "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
         System.setProperty("kylin.query.pushdown.converter-class-names",
                 "org.apache.kylin.source.adhocquery.HivePushDownConverter");
 

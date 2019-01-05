@@ -22,40 +22,29 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package org.apache.kylin.query.adhoc;
+package io.kyligence.kap.query.pushdown;
 
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Semaphore;
 
-import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.sql.Row;
+import org.apache.kylin.common.util.Pair;
+import org.apache.spark.sql.SparderEnv;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
+import io.kyligence.kap.ext.classloader.ClassLoaderUtils;
 
-import io.kyligence.kap.common.obf.IKeepNames;
+public class SparkSubmitter {
+    public static final Logger logger = LoggerFactory.getLogger(SparkSubmitter.class);
+    private static Semaphore semaphore = new Semaphore((int) (Runtime.getRuntime().totalMemory() / (1024 * 1024)));
 
-public class FlatMapFunctionImpl implements IKeepNames, FlatMapFunction<Iterator<Row>, List<String>> {
-    public static final long serialVersionUID = 11L;
+    public static PushdownResponse submitPushDownTask(String sql) {
+        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
+        Pair<List<List<String>>, List<StructField>> pair = null;
 
-    @Override
-    public Iterator<List<String>> call(Iterator<Row> iterator) throws Exception {
-        List<List<String>> rowList = new ArrayList<>();
-
-        while (iterator.hasNext()) {
-            List<String> data = Lists.newArrayList();
-            Row curRow = iterator.next();
-
-            for (int i = 0; i < curRow.length(); i++) {
-                Object obj = curRow.getAs(i);
-                if (null == obj) {
-                    data.add(null);
-                } else {
-                    data.add(obj.toString());
-                }
-            }
-            rowList.add(data);
-        }
-        return rowList.iterator();
+        pair = new SparkSqlClient(SparderEnv.getSparkSession(), semaphore).executeSql(sql, UUID.randomUUID());
+        return new PushdownResponse(pair.getSecond(), pair.getFirst());
     }
+
 }

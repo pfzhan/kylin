@@ -62,7 +62,7 @@ ln -sfn profile_min profile
 cd -
 
 # Enable query push down
-echo "kylin.query.pushdown.runner-class-name=org.apache.kylin.query.adhoc.PushDownRunnerJdbcImpl" >> conf/kylin.properties
+echo "kylin.query.pushdown.runner-class-name=io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl" >> conf/kylin.properties
 echo "kylin.query.pushdown.jdbc.driver=org.apache.hive.jdbc.HiveDriver" >> conf/kylin.properties
 echo "kylin.query.pushdown.jdbc.url=jdbc:hive2://sandbox:10000/default" >> conf/kylin.properties
 echo "kylin.query.pushdown.jdbc.username=hive" >> conf/kylin.properties
