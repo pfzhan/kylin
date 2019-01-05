@@ -196,7 +196,31 @@ public class Message {
     }
 
     public String getINVALID_MODEL_NAME() {
-        return "Invalid Model name '%s', only letters, numbers and underline supported.";
+        return "Invalid model name '%s', only letters, numbers and underline supported.";
+    }
+
+    public String getINVALID_DIMENSION_NAME() {
+        return "Invalid dimension name '%s', only letters, numbers and underline supported.";
+    }
+
+    public String getINVALID_MEASURE_NAME() {
+        return "Invalid measure name '%s', only letters, numbers and underline supported.";
+    }
+
+    public String getDUPLICATE_DIMENSION_NAME() {
+        return "Duplicate dimension name '%s'.";
+    }
+
+    public String getDUPLICATE_MEASURE_NAME() {
+        return "Duplicate measure name '%s'.";
+    }
+
+    public String getDUPLICATE_MEASURE_DEFINITION() {
+        return "Duplicate measure definition '%s'.";
+    }
+
+    public String getDUPLICATE_JOIN_CONDITIONS() {
+        return "Duplicate join condition '%s' and '%s'.";
     }
 
     public String getDUPLICATE_MODEL_NAME() {

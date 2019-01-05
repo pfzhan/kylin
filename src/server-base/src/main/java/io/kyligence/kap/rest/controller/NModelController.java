@@ -134,10 +134,11 @@ public class NModelController extends NBasicController {
             @RequestParam(value = "start", required = false, defaultValue = "1") String start,
             @RequestParam(value = "end", required = false, defaultValue = "" + (Long.MAX_VALUE - 1)) String end,
             @RequestParam(value = "sortBy", required = false, defaultValue = "last_modify") String sortBy,
-            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse){
+            @RequestParam(value = "reverse", required = false, defaultValue = "true") Boolean reverse) {
         checkProjectName(project);
         validateRange(start, end);
-        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelId, project, start, end, sortBy, reverse, status);
+        List<NDataSegmentResponse> segments = modelService.getSegmentsResponse(modelId, project, start, end, sortBy,
+                reverse, status);
         HashMap<String, Object> response = getDataResponse("segments", segments, offset, limit);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, response, "");
     }
@@ -251,7 +252,7 @@ public class NModelController extends NBasicController {
         checkProjectName(modelRenameRequest.getProject());
         checkRequiredArg(MODEL_ID, modelRenameRequest.getModelId());
         String newAlias = modelRenameRequest.getNewModelName();
-        if (!StringUtils.containsOnly(newAlias, ModelService.VALID_MODEL_ALIAS)) {
+        if (!StringUtils.containsOnly(newAlias, ModelService.VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
             logger.info("Invalid Model name {}, only letters, numbers and underline supported.", newAlias);
             throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newAlias));
         }
@@ -313,7 +314,7 @@ public class NModelController extends NBasicController {
         String modelName = request.getModelId();
         checkRequiredArg(MODEL_ID, modelName);
         checkRequiredArg(NEW_MODEL_NAME, newModelName);
-        if (!StringUtils.containsOnly(newModelName, ModelService.VALID_MODEL_ALIAS)) {
+        if (!StringUtils.containsOnly(newModelName, ModelService.VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
             logger.info("Invalid Model name {}, only letters, numbers and underline supported.", newModelName);
             throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), newModelName));
         }
@@ -335,12 +336,14 @@ public class NModelController extends NBasicController {
     }
 
     @RequestMapping(value = "/segments", method = RequestMethod.POST, produces = {
-            "application/vnd.apache.kylin-v2+json"})
+            "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
-    public EnvelopeResponse buildSegmentsManually(@RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
+    public EnvelopeResponse buildSegmentsManually(@RequestBody BuildSegmentsRequest buildSegmentsRequest)
+            throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
         validateStartAndEndExistBoth(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
-        if (StringUtils.isNotEmpty(buildSegmentsRequest.getStart()) && StringUtils.isNotEmpty(buildSegmentsRequest.getEnd())) {
+        if (StringUtils.isNotEmpty(buildSegmentsRequest.getStart())
+                && StringUtils.isNotEmpty(buildSegmentsRequest.getEnd())) {
             validateRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         }
         modelService.buildSegmentsManually(buildSegmentsRequest.getProject(), buildSegmentsRequest.getModelId(),
@@ -402,7 +405,8 @@ public class NModelController extends NBasicController {
     }
 
     public void validatePartionDesc(NDataModel model) {
-        if (model.getPartitionDesc() != null && StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
+        if (model.getPartitionDesc() != null
+                && StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
             throw new BadRequestException("Partition column does not exist!");
         }
     }

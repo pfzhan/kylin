@@ -199,6 +199,14 @@ public class CnMessage extends Message {
         return "非法模型名称 '%s', 仅支持字母, 数字和下划线";
     }
 
+    public String getINVALID_DIMENSION_NAME() {
+        return "非法维度名称 '%s', 仅支持字母, 数字和下划线";
+    }
+
+    public String getINVALID_MEASURE_NAME() {
+        return "非法度量名称 '%s', 仅支持字母, 数字和下划线";
+    }
+
     public String getDUPLICATE_MODEL_NAME() {
         return "模型名称 '%s' 已存在, 不能被创建";
     }
@@ -233,6 +241,22 @@ public class CnMessage extends Message {
 
     public String getMODEL_RENAME() {
         return "模型不能被重命名";
+    }
+
+    public String getDUPLICATE_DIMENSION_NAME() {
+        return "维度名称 '%s' 已存在，不能被创建";
+    }
+
+    public String getDUPLICATE_MEASURE_NAME() {
+        return "度量名称 '%s' 已存在，不能被创建";
+    }
+
+    public String getDUPLICATE_MEASURE_DEFINITION() {
+        return "维度表达 '%s' 已存在，不能被创建";
+    }
+
+    public String getDUPLICATE_JOIN_CONDITIONS() {
+        return "Join条件 '%s'和'%s' 已存在，不能被创建";
     }
 
     // Job

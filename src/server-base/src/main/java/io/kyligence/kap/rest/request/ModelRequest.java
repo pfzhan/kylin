@@ -29,6 +29,7 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import com.google.common.collect.Lists;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import lombok.Getter;
@@ -48,7 +49,7 @@ public class ModelRequest extends NDataModel {
     private String end;
 
     @JsonProperty("simplified_measures")
-    private List<SimplifiedMeasure> simplifiedMeasures;
+    private List<SimplifiedMeasure> simplifiedMeasures = Lists.newArrayList();
 
     public ModelRequest() {
         super();

@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,10 @@ import java.util.stream.Collectors;
 import io.kyligence.kap.cube.model.IndexPlan;
 import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.rest.request.ModelConfigRequest;
+import io.kyligence.kap.rest.response.ModelConfigResponse;
+import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -47,6 +52,8 @@ import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.metadata.model.JoinDesc;
+import org.apache.kylin.metadata.model.JoinTableDesc;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
@@ -97,7 +104,6 @@ import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;
@@ -105,12 +111,10 @@ import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.query.util.KapQueryUtil;
-import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.IndexEntityResponse;
-import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
@@ -145,7 +149,7 @@ public class ModelService extends BasicService {
 
     private static final String STORAGE = "storage";
 
-    public static char[] VALID_MODEL_ALIAS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
+    public static final char[] VALID_NAME_FOR_MODEL_DIMENSION_MEASURE = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
             .toCharArray();
 
     @Setter
@@ -197,8 +201,7 @@ public class ModelService extends BasicService {
     }
 
     private boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {
-        return StringUtils.isEmpty(valueToMatch)
-                || (exactMatch && originValue.equalsIgnoreCase(valueToMatch))
+        return StringUtils.isEmpty(valueToMatch) || (exactMatch && originValue.equalsIgnoreCase(valueToMatch))
                 || (!exactMatch && originValue.toLowerCase().contains(valueToMatch.toLowerCase()));
     }
 
@@ -627,6 +630,7 @@ public class ModelService extends BasicService {
         val prjManager = getProjectManager();
         val prj = prjManager.getProject(project);
         checkAliasExist(modelRequest.getUuid(), modelRequest.getAlias(), project);
+        checkModelRequest(modelRequest);
         //remove some attributes in modelResponse to fit NDataModel
         val dataModel = semanticUpdater.convertToDataModel(modelRequest);
         if (prj.getMaintainModelType().equals(MaintainModelType.AUTO_MAINTAIN)
@@ -660,11 +664,76 @@ public class ModelService extends BasicService {
         return getDataModelManager(project).getDataModelDesc(model.getUuid());
     }
 
+    private void checkModelRequest(ModelRequest request) {
+        checkModelDimensions(request);
+        checkModelMeasures(request);
+        checkModelJoinConditions(request);
+    }
+
+    private void checkModelDimensions(ModelRequest request) {
+        Set<String> dimensionNames = new HashSet<>();
+
+        for (NDataModel.NamedColumn dimension : request.getDimensions()) {
+            // check if the dimension name is valid
+            if (!StringUtils.containsOnly(dimension.getName(), VALID_NAME_FOR_MODEL_DIMENSION_MEASURE))
+                throw new IllegalArgumentException(String.format(msg.getINVALID_DIMENSION_NAME(), dimension.getName()));
+
+            // check duplicate dimension names
+            if (dimensionNames.contains(dimension.getName()))
+                throw new IllegalArgumentException(
+                        String.format(msg.getDUPLICATE_DIMENSION_NAME(), dimension.getName()));
+
+            dimensionNames.add(dimension.getName());
+        }
+    }
+
+    private void checkModelMeasures(ModelRequest request) {
+        Set<String> measureNames = new HashSet<>();
+        Set<SimplifiedMeasure> measures = new HashSet<>();
+
+        for (SimplifiedMeasure measure : request.getSimplifiedMeasures()) {
+            // check if the measure name is valid
+            if (!StringUtils.containsOnly(measure.getName(), VALID_NAME_FOR_MODEL_DIMENSION_MEASURE))
+                throw new IllegalArgumentException(String.format(msg.getINVALID_MEASURE_NAME(), measure.getName()));
+
+            // check duplicate measure names
+            if (measureNames.contains(measure.getName()))
+                throw new IllegalArgumentException(String.format(msg.getDUPLICATE_MEASURE_NAME(), measure.getName()));
+
+            // check duplicate measure definitions
+            if (measures.contains(measure))
+                throw new IllegalArgumentException(
+                        String.format(msg.getDUPLICATE_MEASURE_DEFINITION(), measure.getName()));
+
+            measureNames.add(measure.getName());
+            measures.add(measure);
+        }
+    }
+
+    private void checkModelJoinConditions(ModelRequest request) {
+        for (JoinTableDesc joinTableDesc : request.getJoinTables()) {
+            Set<Pair<String, String>> joinKeys = new HashSet<>();
+            JoinDesc joinDesc = joinTableDesc.getJoin();
+            int size = joinDesc.getPrimaryKey().length;
+            String[] primaryKeys = joinDesc.getPrimaryKey();
+            String[] foreignKey = joinDesc.getForeignKey();
+
+            for (int i = 0; i < size; i++) {
+                if (joinKeys.contains(Pair.newPair(primaryKeys[i], foreignKey[i])))
+                    throw new IllegalArgumentException(
+                            String.format(msg.getDUPLICATE_JOIN_CONDITIONS(), primaryKeys[i], foreignKey[i]));
+
+                joinKeys.add(Pair.newPair(primaryKeys[i], foreignKey[i]));
+            }
+        }
+    }
+
     private void proposeAndSaveDateFormatIfNotExist(String project, String modelId) throws Exception {
         val modelManager = getDataModelManager(project);
         NDataModel modelDesc = modelManager.getDataModelDesc(modelId);
         val partitionDesc = modelDesc.getPartitionDesc();
-        if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn()) || StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat()))
+        if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn())
+                || StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat()))
             return;
         String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumn();
 
@@ -693,7 +762,8 @@ public class ModelService extends BasicService {
             dateFormat = modelDesc.getPartitionDesc().getPartitionDateFormat();
         }
 
-        return new Pair<>(DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat), DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
+        return new Pair<>(DateFormat.getFormattedDate(minAndMaxTime.getFirst(), dateFormat),
+                DateFormat.getFormattedDate(minAndMaxTime.getSecond(), dateFormat));
     }
 
     @Transaction(project = 0)
@@ -711,16 +781,17 @@ public class ModelService extends BasicService {
 
         SegmentRange segmentRangeToBuild = null;
 
-
         TableDesc table = getTableManager(project).getTableDesc(modelDesc.getRootFactTableName());
 
         val df = getDataflowManager(project).getDataflow(modelId);
 
-        if (modelDesc.getPartitionDesc() == null || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
+        if (modelDesc.getPartitionDesc() == null
+                || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
             //if full seg exists,refresh it
             val segs = df.getSegments(SegmentStatusEnum.READY);
             if (segs.size() == 1 && segs.get(0).getSegRange().isInfinite()) {
-                refreshSegmentById(modelId, project, Lists.newArrayList(df.getSegments().get(0).getId()).toArray(new String[0]));
+                refreshSegmentById(modelId, project,
+                        Lists.newArrayList(df.getSegments().get(0).getId()).toArray(new String[0]));
                 return;
             }
             //build Full seg
@@ -737,7 +808,6 @@ public class ModelService extends BasicService {
         }
 
         proposeAndSaveDateFormatIfNotExist(project, modelId);
-
 
         checkSegmentToBuildOverlapsBuilt(project, modelId, segmentRangeToBuild);
 
@@ -811,7 +881,7 @@ public class ModelService extends BasicService {
             logger.info("Model name should not be empty.");
             throw new BadRequestException(msg.getEMPTY_MODEL_NAME());
         }
-        if (!StringUtils.containsOnly(modelAlias, VALID_MODEL_ALIAS)) {
+        if (!StringUtils.containsOnly(modelAlias, VALID_NAME_FOR_MODEL_DIMENSION_MEASURE)) {
             logger.info("Invalid Model name {}, only letters, numbers and underline supported.", modelDesc.getUuid());
             throw new BadRequestException(String.format(msg.getINVALID_MODEL_NAME(), modelAlias));
         }
@@ -1012,6 +1082,7 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 0)
     public void updateDataModelSemantic(String project, ModelRequest request) throws Exception {
+        checkModelRequest(request);
         val modelManager = getDataModelManager(project);
         val cubeManager = getIndexPlanManager(project);
         val dataflowManager = getDataflowManager(project);
@@ -1058,7 +1129,8 @@ public class ModelService extends BasicService {
         if (oriModel.getPartitionDesc() == null) {
             return true;
         }
-        if (!StringUtil.equals(newModel.getPartitionDesc().getPartitionDateColumn(), oriModel.getPartitionDesc().getPartitionDateColumn())) {
+        if (!StringUtil.equals(newModel.getPartitionDesc().getPartitionDateColumn(),
+                oriModel.getPartitionDesc().getPartitionDateColumn())) {
             return true;
         }
         return false;
