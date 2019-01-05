@@ -818,6 +818,9 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         setupPushdownEnv();
         testCreateModel_PartitionNotNull();
         testBuildSegmentsManually_WithPushDown();
+        testCreateModel_PartitionNotNull_WithStartAndEnd();
+        testCreateModel_PartitionNotNull_WithStartOnly();
+        testCreateModel_PartitionNotNull_WithEndOnly();
         cleanPushdownEnv();
     }
 
@@ -841,6 +844,82 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelManager.dropModel(newModel);
     }
 
+    public void testCreateModel_PartitionNotNull_WithStartAndEnd() throws Exception {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        model.setManagementType(ManagementType.MODEL_BASED);
+        ModelRequest modelRequest = new ModelRequest(model);
+        modelRequest.setProject("default");
+        modelRequest.setName("new_model2");
+        modelRequest.setAlias("new_model2");
+        modelRequest.setStart("0");
+        modelRequest.setEnd("100");
+        modelRequest.setLastModified(0L);
+        modelRequest.getPartitionDesc().setPartitionDateFormat("");
+        Assert.assertEquals("", modelRequest.getPartitionDesc().getPartitionDateFormat());
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+        NDataModel newModel = modelManager.getDataModelDesc("new_model2");
+        Assert.assertEquals("new_model2", newModel.getName());
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val df = dfManager.getDataflowByModelName("new_model2");
+        Assert.assertEquals(1, df.getSegments().size());
+        Assert.assertEquals("yyyy-MM-dd", newModel.getPartitionDesc().getPartitionDateFormat());
+        Assert.assertEquals(0L, df.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(100L, df.getSegments().get(0).getSegRange().getEnd());
+        modelManager.dropModel(newModel);
+    }
+
+    public void testCreateModel_PartitionNotNull_WithStartOnly() throws Exception {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        model.setManagementType(ManagementType.MODEL_BASED);
+        ModelRequest modelRequest = new ModelRequest(model);
+        modelRequest.setProject("default");
+        modelRequest.setName("new_model3");
+        modelRequest.setAlias("new_model3");
+        modelRequest.setStart("0");
+        modelRequest.setLastModified(0L);
+        modelRequest.getPartitionDesc().setPartitionDateFormat("");
+        Assert.assertEquals("", modelRequest.getPartitionDesc().getPartitionDateFormat());
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+        NDataModel newModel = modelManager.getDataModelDesc("new_model3");
+        Assert.assertEquals("new_model3", newModel.getName());
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val df = dfManager.getDataflowByModelName("new_model3");
+        Assert.assertEquals(1, df.getSegments().size());
+        Assert.assertEquals("yyyy-MM-dd", newModel.getPartitionDesc().getPartitionDateFormat());
+        Assert.assertEquals(0L, df.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(1388534400000L, df.getSegments().get(0).getSegRange().getEnd());
+        modelManager.dropModel(newModel);
+    }
+
+    public void testCreateModel_PartitionNotNull_WithEndOnly() throws Exception {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel model = modelManager.getDataModelDesc("nmodel_basic");
+        model.setManagementType(ManagementType.MODEL_BASED);
+        ModelRequest modelRequest = new ModelRequest(model);
+        modelRequest.setProject("default");
+        modelRequest.setName("new_model4");
+        modelRequest.setAlias("new_model4");
+        modelRequest.setEnd("1388534400000");
+        modelRequest.setLastModified(0L);
+        modelRequest.getPartitionDesc().setPartitionDateFormat("");
+        Assert.assertEquals("", modelRequest.getPartitionDesc().getPartitionDateFormat());
+        modelService.createModel(modelRequest.getProject(), modelRequest);
+        NDataModel newModel = modelManager.getDataModelDesc("new_model4");
+        Assert.assertEquals("new_model4", newModel.getName());
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        val df = dfManager.getDataflowByModelName("new_model4");
+        Assert.assertEquals(1, df.getSegments().size());
+        Assert.assertEquals("yyyy-MM-dd", newModel.getPartitionDesc().getPartitionDateFormat());
+        Assert.assertEquals(1325376000000L, df.getSegments().get(0).getSegRange().getStart());
+        Assert.assertEquals(1388534400000L, df.getSegments().get(0).getSegRange().getEnd());
+        modelManager.dropModel(newModel);
+    }
+
+
+
+
     @Test
     public void testCreateModelWithDefaultMeasures() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -853,6 +932,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelRequest.setLastModified(0L);
         modelRequest.setStart("0");
         modelRequest.setEnd("100");
+        modelRequest.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
         modelService.createModel(modelRequest.getProject(), modelRequest);
         NDataModel newModel = modelManager.getDataModelDesc("new_model");
         Assert.assertEquals("new_model", newModel.getName());
@@ -1106,6 +1186,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         request.setProject("default");
         request.setStart("0");
         request.setEnd("100");
+        request.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
         modelService.createModel(request.getProject(), request);
 
         List<NDataModelResponse> dataModelDescs = modelService.getModels("nmodel_cc_test", "default", true, null, null,
@@ -1154,6 +1235,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         //        modelService.getDataModelManager("default").createDataModelDesc(deserialized, "ADMIN");
         val request = new ModelRequest(deserialized);
         request.setProject("default");
+        request.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
         request.setStart("0");
         request.setEnd("100");
         modelService.createModel(request.getProject(), request);
@@ -1767,6 +1849,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
             request.setStart("0");
             request.setEnd("100");
             request.setProject("default");
+            request.getPartitionDesc().setPartitionDateFormat("yyyy-MM-dd");
             modelService.createModel(request.getProject(), request);
             //TODO modelService.updateModelToResourceStore(deserialized, "default");
 

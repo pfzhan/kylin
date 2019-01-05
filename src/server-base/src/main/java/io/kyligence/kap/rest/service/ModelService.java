@@ -173,12 +173,8 @@ public class ModelService extends BasicService {
 
         List<NDataModelResponse> filterModels = new ArrayList<>();
         for (NDataModel modelDesc : models) {
-            boolean isModelNameMatch = StringUtils.isEmpty(modelName)
-                    || (exactMatch && modelDesc.getAlias().equalsIgnoreCase(modelName))
-                    || (!exactMatch && modelDesc.getAlias().toLowerCase().contains(modelName.toLowerCase()));
-            boolean isModelOwnerMatch = StringUtils.isEmpty(owner)
-                    || (exactMatch && modelDesc.getOwner().equalsIgnoreCase(owner))
-                    || (!exactMatch && modelDesc.getOwner().toLowerCase().contains(owner.toLowerCase()));
+            boolean isModelNameMatch = isArgMatch(modelName, exactMatch, modelDesc.getAlias());
+            boolean isModelOwnerMatch = isArgMatch(owner, exactMatch, modelDesc.getOwner());
             if (isModelNameMatch && isModelOwnerMatch) {
                 RealizationStatusEnum modelStatus = getModelStatus(modelDesc.getName(), projectName);
                 boolean isModelStatusMatch = StringUtils.isEmpty(status)
@@ -196,6 +192,12 @@ public class ModelService extends BasicService {
             }
         }
         return sortModelResponses(sortBy, reverse, filterModels);
+    }
+
+    private boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {
+        return StringUtils.isEmpty(valueToMatch)
+                || (exactMatch && originValue.equalsIgnoreCase(valueToMatch))
+                || (!exactMatch && originValue.toLowerCase().contains(valueToMatch.toLowerCase()));
     }
 
     private List<NDataModelResponse> sortModelResponses(String sortBy, boolean reverse,
@@ -644,13 +646,30 @@ public class ModelService extends BasicService {
         } else if (PushDownUtil.needPushdown(modelRequest.getStart(), modelRequest.getEnd())) {
             //load existing data
             val pushDownResponse = getMaxAndMinTimeInPartitionColumnByPushdown(project, model.getName());
-            range = getSegmentRangeByModel(project, model.getName(), pushDownResponse.getFirst(), pushDownResponse.getSecond());
+            val startAndEnd = PushDownUtil.calcStartAndEnd(pushDownResponse, modelRequest.getStart(), modelRequest.getEnd(), null);
+            range = getSegmentRangeByModel(project, model.getName(), startAndEnd.getFirst(), startAndEnd.getSecond());
         } else {
             range = getSegmentRangeByModel(project, model.getName(), modelRequest.getStart(), modelRequest.getEnd());
         }
+        proposeAndSaveDateFormatIfNotExist(project, model.getName());
         if (range != null) {
             dataflowManager.fillDfManually(df, Lists.newArrayList(range));
         }
+    }
+
+    private void proposeAndSaveDateFormatIfNotExist(String project, String modelName) throws Exception {
+        val modelManager = getDataModelManager(project);
+        NDataModel modelDesc = modelManager.getDataModelDesc(modelName);
+        val partitionDesc = modelDesc.getPartitionDesc();
+        if (partitionDesc == null || StringUtils.isEmpty(partitionDesc.getPartitionDateColumn()) || StringUtils.isNotEmpty(partitionDesc.getPartitionDateFormat()))
+            return;
+        String partitionColumn = modelDesc.getPartitionDesc().getPartitionDateColumn();
+
+        val date = PushDownUtil.getFormatIfNotExist(modelDesc.getRootFactTableName(), partitionColumn);
+        val format = DateFormat.proposeDateFormat(date);
+        modelManager.updateDataModel(modelName, model -> {
+            model.getPartitionDesc().setPartitionDateFormat(format);
+        });
     }
 
     private Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String model)
@@ -682,7 +701,7 @@ public class ModelService extends BasicService {
             throw new BadRequestException("Table oriented model '" + model + "' can not build segments manually!");
         }
         if (modelDesc.getPartitionDesc() == null || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
-            throw new BadRequestException("Model '" + modelDesc.getAlias() + "' has no partition column!");
+            throw new BadRequestException(MODEL + modelDesc.getAlias() + "' has no partition column!");
         }
         val cubePlan = getCubePlan(model, project);
         if (cubePlan == null) {
@@ -692,7 +711,7 @@ public class ModelService extends BasicService {
         val df = getDataflowManager(project).getDataflowByModelName(model);
         if (PushDownUtil.needPushdown(start, end)) {
             val response = getMaxAndMinTimeInPartitionColumnByPushdown(project, model);
-            val startAndEnd = PushDownUtil.CalcStartAndEnd(response, start, end, df.getCoveredRange());
+            val startAndEnd = PushDownUtil.calcStartAndEnd(response, start, end, df.getCoveredRange());
             start = startAndEnd.getFirst();
             end = startAndEnd.getSecond();
         }

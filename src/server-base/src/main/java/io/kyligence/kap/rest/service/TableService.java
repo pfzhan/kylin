@@ -500,7 +500,7 @@ public class TableService extends BasicService {
         Pair<String, String> pushdownResult;
         if (PushDownUtil.needPushdown(start, end)) {
             pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
-            val startAndEnd = PushDownUtil.CalcStartAndEnd(pushdownResult, start, end, allRange);
+            val startAndEnd = PushDownUtil.calcStartAndEnd(pushdownResult, start, end, allRange);
             start = startAndEnd.getFirst();
             end = startAndEnd.getSecond();
         }
@@ -584,15 +584,9 @@ public class TableService extends BasicService {
 
         String partitionColumn = dataLoadingRange.getColumnName();
 
-        String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn, table,
-                partitionColumn);
+        val format = PushDownUtil.getFormatIfNotExist(table, partitionColumn);
 
-        // push down
-        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql).getFirst();
-        if (returnRows.size() == 0)
-            throw new BadRequestException(String.format("There are no data in table %s", table));
-
-        setPartitionColumnFormat(returnRows.get(0).get(0), project, table);
+        setPartitionColumnFormat(format, project, table);
     }
 
     private void handleLoadingRangeUpdate(String project, String tableName, SegmentRange segmentRange)

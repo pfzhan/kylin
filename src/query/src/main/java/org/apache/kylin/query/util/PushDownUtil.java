@@ -193,6 +193,19 @@ public class PushDownUtil {
         return Pair.newPair(returnRows, returnColumnMeta);
     }
 
+    public static String getFormatIfNotExist(String table, String partitionColumn) throws Exception {
+
+        String sql = String.format("select %s from %s where %s is not null limit 1", partitionColumn, table,
+                partitionColumn);
+
+        // push down
+        List<List<String>> returnRows = PushDownUtil.trySimplePushDownSelectQuery(sql).getFirst();
+        if (returnRows.size() == 0)
+            throw new BadRequestException(String.format("There are no data in table %s", table));
+
+        return returnRows.get(0).get(0);
+    }
+
     private static boolean isExpectedCause(SQLException sqlException) {
         Preconditions.checkArgument(sqlException != null);
         Throwable rootCause = ExceptionUtils.getRootCause(sqlException);
@@ -250,11 +263,13 @@ public class PushDownUtil {
         return afterConvert.toString();
     }
 
-    public static Pair<String, String> CalcStartAndEnd(Pair<String, String> response, String start, String end, SegmentRange coveredRange) {
-        if (coveredRange != null) {
-            start = coveredRange.getEnd().toString();
-        } else {
-            start = response.getFirst();
+    public static Pair<String, String> calcStartAndEnd(Pair<String, String> response, String start, String end, SegmentRange coveredRange) {
+        if (StringUtils.isEmpty(start)) {
+            if (coveredRange != null) {
+                start = coveredRange.getEnd().toString();
+            } else {
+                start = response.getFirst();
+            }
         }
         if (StringUtils.isEmpty(end)) {
             end = response.getSecond();
