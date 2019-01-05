@@ -75,7 +75,7 @@ import { sourceTypes } from '../../../../config'
   },
   locales
 })
-export default class SourceNew extends Vue {
+export default class SourceSelect extends Vue {
   sourceTypes = sourceTypes
 
   getSourceClass (sourceTypes = []) {

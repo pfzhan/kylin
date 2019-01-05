@@ -49,7 +49,8 @@ export default {
     loadData: 'Load Data',
     loadExistingData: 'Load existing data',
     loadExistingDataDesc: 'Load new records existing from the last load job.',
-    customLoadRange: 'Custom Load Range'
+    customLoadRange: 'Custom Load Range',
+    detectAvailableRange: 'Detect available range'
   },
   'zh-cn': {
     incrementalLoading: '增量加载',
@@ -62,7 +63,7 @@ export default {
     partitionColumn: '分区列',
     refreshTitle: '刷新数据',
     refreshContent1: '您正在对源表 {tableName} 进行刷新操作。',
-    refreshContent2: '这将会从选定的数据范围内重新载入 {storageSize} 的新数据，并且删除老的segments。',
+    refreshContent2: '这将会从选定的数据范围内重新载入 {storageSize} 的新数据，并且删除旧的segments。',
     refreshContent3: '你是否真的需要刷新当前范围的数据？',
     HALF_MINUTE: '30秒',
     FIVE_MINUTE: '5分钟',
@@ -100,7 +101,8 @@ export default {
     partitionFormat: '时间格式',
     loadData: '加载数据',
     loadExistingData: '加载已有数据',
-    loadExistingDataDesc: '加载从最后一次任务开始之后的最新的数据。',
-    customLoadRange: '自定义加载数据范围'
+    loadExistingDataDesc: '加载从最后一次任务开始之后的最新数据。',
+    customLoadRange: '自定义数据范围',
+    detectAvailableRange: '获取最新数据范围'
   }
 }

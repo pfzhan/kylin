@@ -4,13 +4,13 @@ import { getGmtDateFromUtcLike } from '../../../util'
 export const render = {
   datasource: {
     render (h, { node, data, store }) {
-      const { sourceType, project, label } = data
+      const { sourceType, label } = data
       return (
         <div class="datasource font-medium">
           <span>{label}</span>
           <div class="right">
             { this.isShowLoadTable ? (
-              <i class="tree-icon table-action el-icon-ksd-add_table" onClick={event => this.importDataSource(sourceType, project, event)}></i>
+              <i class="tree-icon table-action el-icon-ksd-add_table" onClick={event => this.importDataSource(sourceType, this.currentProjectData, event)}></i>
             ) : null}
           </div>
         </div>

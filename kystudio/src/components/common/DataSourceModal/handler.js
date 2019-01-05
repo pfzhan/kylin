@@ -1,85 +1,77 @@
+import { set } from '../../../util'
 import { sourceTypes } from '../../../config'
 
+export const editTypes = {
+  SELECT_SOURCE: 'selectSource',
+  CONFIG_SOURCE: 'configSource',
+  EDIT_SOURCE: 'editSource',
+  ...sourceTypes
+}
+
 export const titleMaps = {
-  [sourceTypes.NEW]: 'newDataSource',
-  [sourceTypes.HIVE]: 'loadhiveTables',
-  [sourceTypes.RDBMS]: 'loadTables',
-  [sourceTypes.RDBMS2]: 'loadTables',
-  [sourceTypes.KAFKA]: 'loadKafkaTopic',
-  [sourceTypes.SETTING]: 'kylinLang.common.dataSource'
+  [editTypes.SELECT_SOURCE]: 'selectSource',
+  [editTypes.CONFIG_SOURCE]: 'configSource',
+  [editTypes.EDIT_SOURCE]: 'editSource',
+  [editTypes.HIVE]: 'loadhiveTables',
+  [editTypes.RDBMS]: 'loadTables',
+  [editTypes.RDBMS2]: 'loadTables',
+  [editTypes.KAFKA]: 'loadKafkaTopic'
 }
 
 export const cancelMaps = {
-  [sourceTypes.NEW]: 'kylinLang.common.cancel',
-  [sourceTypes.HIVE]: 'kylinLang.common.prev',
-  [sourceTypes.RDBMS]: '',
-  [sourceTypes.RDBMS2]: '',
-  [sourceTypes.KAFKA]: '',
-  [sourceTypes.SETTING]: 'kylinLang.common.cancel'
+  [editTypes.SELECT_SOURCE]: 'kylinLang.common.cancel',
+  [editTypes.CONFIG_SOURCE]: 'kylinLang.common.prev',
+  [editTypes.EDIT_SOURCE]: 'kylinLang.common.cancel',
+  [editTypes.HIVE]: 'kylinLang.common.prev',
+  [editTypes.RDBMS]: '',
+  [editTypes.RDBMS2]: '',
+  [editTypes.KAFKA]: ''
 }
 
 export const confirmMaps = {
-  [sourceTypes.NEW]: 'kylinLang.common.next',
-  [sourceTypes.HIVE]: 'kylinLang.common.sync',
-  [sourceTypes.RDBMS]: 'kylinLang.common.sync',
-  [sourceTypes.RDBMS2]: 'kylinLang.common.sync',
-  [sourceTypes.KAFKA]: 'kylinLang.common.submit',
-  [sourceTypes.SETTING]: 'kylinLang.common.save'
+  [editTypes.SELECT_SOURCE]: 'kylinLang.common.next',
+  [editTypes.CONFIG_SOURCE]: 'kylinLang.common.next',
+  [editTypes.EDIT_SOURCE]: 'kylinLang.common.ok',
+  [editTypes.HIVE]: 'kylinLang.common.sync',
+  [editTypes.RDBMS]: 'kylinLang.common.sync',
+  [editTypes.RDBMS2]: 'kylinLang.common.sync',
+  [editTypes.KAFKA]: 'kylinLang.common.submit',
+  [editTypes.SETTING]: 'kylinLang.common.save'
 }
 
-export function getSubmitData (that, kafkaData) {
-  const { sourceType, form, currentSelectedProject } = that
+function _getSelectSourceSubmitData (form) {
+  const sourceType = String(form.project.override_kylin_properties['kylin.source.default'])
+  const properties = { ...form.project.override_kylin_properties }
+  properties['kylin.source.default'] = sourceType
+  const projectDesc = JSON.stringify(set(form.project, 'override_kylin_properties', properties))
+  return {
+    name: form.project.name,
+    desc: projectDesc
+  }
+}
 
-  switch (sourceType) {
-    case sourceTypes.NEW:
-      const project = JSON.parse(JSON.stringify(form.project))
-      project.override_kylin_properties['kylin.source.default'] = String(project.override_kylin_properties['kylin.source.default'])
-      return {
-        name: currentSelectedProject,
-        desc: JSON.stringify(project)
-      }
-    case sourceTypes.HIVE:
-    case sourceTypes.RDBMS:
-    case sourceTypes.RDBMS2:
-      const tableNames = form.selectedTables
-      const databaseNames = form.selectedDatabases
-      return {
-        projectName: currentSelectedProject,
-        sourceType,
-        tableNames,
-        databaseNames
-      }
-    case sourceTypes.KAFKA: {
-      const data = kafkaData
-      const columns = data.columnList
-        .filter(column => column.checked === 'Y')
-        .map((column, index) => ({
-          id: index,
-          name: column.name,
-          datatype: column.type,
-          comment: /[|]/.test(column.comment) ? column.comment : '' // 不是嵌套结构的就不传该内容
-        }))
-      const tableData = {
-        name: data.kafkaMeta.name,
-        source_type: 1,
-        columns,
-        database: data.database || 'Default'
-      }
+function _getLoadTableSubmitData (form) {
+  return {
+    projectName: form.project.name,
+    sourceType: form.project.override_kylin_properties['kylin.source.default'],
+    tableNames: form.selectedTables,
+    databaseNames: form.selectedDatabases
+  }
+}
 
-      const streamingConfig = {
-        ...data.streamingMeta,
-        name: data.kafkaMeta.name
-      }
-      return {
-        kafkaConfig: JSON.stringify(data.kafkaMeta),
-        streamingConfig: JSON.stringify(streamingConfig),
-        project: currentSelectedProject,
-        tableData: JSON.stringify(tableData)
-      }
-    }
-    case sourceTypes.SETTING:
-      return {
-        isAutoUpdate: form.isAutoUpdate
-      }
+function _getKafkaSubmitData (form) {
+  return {}
+}
+
+export function getSubmitData (form, editType) {
+  switch (editType) {
+    case editTypes.SELECT_SOURCE:
+      return _getSelectSourceSubmitData(form)
+    case editTypes.HIVE:
+    case editTypes.RDBMS:
+    case editTypes.RDBMS2:
+      return _getLoadTableSubmitData(form)
+    case editTypes.KAFKA:
+      return _getKafkaSubmitData(form)
   }
 }

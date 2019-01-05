@@ -23,13 +23,13 @@ export default {
   },
   'zh-cn': {
     tableName: '表名：',
-    partitionKey: '分区列：',
+    partitionKey: '分区键：',
     loadInterval: '加载间隔：',
     storageType: '存储类型：',
-    storageSize: '占用大小：',
-    totalRecords: '数据数量：',
+    storageSize: '存储大小：',
+    totalRecords: '总记录数：',
     rows: '行',
-    noPartition: '无分区列',
+    noPartition: '无分区',
     changePartitionTitle: '修改分区',
     changePartitionContent1: '当前操作将把 源表 {tableName} 的分区从 {oldPartitionKey} 更换为 {newPartitionKey}。',
     changePartitionContent2: '本次修改后，本表下的 {storageSize} 数据将被清空，并按照最新的分区重新加载。',
@@ -39,7 +39,7 @@ export default {
     fullLoadDataContent2: '本次数据加载将包括本表下所有的数据和元数据，总存储为 {storageSize}。',
     fullLoadDataContent3: '系统检测到该表没有元数据和数据变化。',
     fullLoadDataContent4: '您确认需要继续加载数据吗？',
-    loadRange: '加载范围',
+    loadRange: '已加载范围',
     loadData: '加载数据',
     notLoadYet: '尚未载入'
   }

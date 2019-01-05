@@ -626,25 +626,19 @@ export const insightKeyword = [
 
 export const assignTypes = [{value: 'user', label: 'user'}, {value: 'group', label: 'group'}]
 export const sourceTypes = getFullMapping({
-  NEW: 'undefined',
   HIVE: process.env.NODE_ENV === 'development' ? 11 : 9,
   RDBMS: 16,
   KAFKA: 1,
   RDBMS2: 8,
-  // for newten
-  // CSV: 11,
-  SETTING: 'setting'
+  CSV: 99
 })
 
 export const sourceNameMapping = {
-  // for newten
-  // HIVE: 'Hive',
+  HIVE: 'Hive',
   RDBMS: 'RDBMS',
   KAFKA: 'Kafka',
   RDBMS2: 'RDBMS',
-  CSV: 'CSV',
-  // should remove
-  HIVE: 'Hive'
+  CSV: 'CSV'
 }
 
 export const pageSizeMapping = {

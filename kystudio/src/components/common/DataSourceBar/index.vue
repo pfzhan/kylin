@@ -8,13 +8,12 @@
         </div>
       </div>
       <div class="header-icons">
-        <i class="el-icon-ksd-table_setting" v-if="isShowSettings" @click="importDataSource(sourceTypes.SETTING, currentProjectData)"></i>
       </div>
     </section>
 
     <section class="body" v-scroll>
       <div v-if="isShowLoadSource" class="btn-group">
-        <el-button  plain size="medium" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource(sourceTypes.NEW, currentProjectData)">
+        <el-button  plain size="medium" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource('selectSource', currentProjectData)">
           {{$t('addDatasource')}}
         </el-button>
       </div>
@@ -35,6 +34,27 @@
         @load-more="handleLoadMore">
       </TreeList>
     </section>
+    <el-dialog class="datasource-result-modal" :title="$t('kylinLang.common.notice')" :visible.sync="isShowResultModal" @closed="handleResultModalClosed">
+      <el-alert
+        show-icon
+        type="success"
+        v-for="table in results.loaded"
+        :key="table"
+        :closable="false"
+        :title="$t('loadSuccess') + `[${table}]`">
+      </el-alert>
+      <el-alert
+        show-icon
+        type="error"
+        v-for="table in results.failed"
+        :key="table"
+        :closable="false"
+        :title="$t('loadFailed') + `[${table}]`">
+      </el-alert>
+      <div slot="footer" class="dialog-footer">
+        <el-button size="medium" plain type="primary" @click="isShowResultModal = false">{{$t('kylinLang.common.ok')}}</el-button>
+      </div>
+    </el-dialog>
   </aside>
 </template>
 
@@ -47,7 +67,7 @@ import { sourceTypes, sourceNameMapping } from '../../../config'
 import TreeList from '../TreeList/index.vue'
 import locales from './locales'
 import { getDatasourceObj, getDatabaseObj, getTableObj, getFirstTableData, getWordsData, getTableDBWordsData, freshTreeOrder } from './handler'
-import { handleSuccessAsync } from '../../../util'
+import { handleSuccessAsync, handleError } from '../../../util'
 
 @Component({
   props: {
@@ -145,6 +165,8 @@ export default class DataSourceBar extends Vue {
   draggableNodeKeys = []
   timer = null
   isSwitchSource = false
+  isShowResultModal = false
+  results = []
 
   get databaseArray () {
     const allData = this.datasources.reduce((databases, datasource) => [...databases, ...datasource.children], [])
@@ -212,11 +234,15 @@ export default class DataSourceBar extends Vue {
     data.isLoading = false
   }
   async initTree () {
-    await this.loadDatasources()
-    await this.loadDataBases()
-    await this.loadTables({ isReset: true })
-    freshTreeOrder(this)
-    this.selectFirstTable()
+    try {
+      await this.loadDatasources()
+      await this.loadDataBases()
+      await this.loadTables({ isReset: true })
+      freshTreeOrder(this)
+      this.selectFirstTable()
+    } catch (e) {
+      handleError(e)
+    }
   }
   async loadDatasources () {
     this.datasources = this.currentSourceTypes.map(sourceType => getDatasourceObj(this, sourceType))
@@ -334,16 +360,24 @@ export default class DataSourceBar extends Vue {
     this.allWords = [...datasourceWords, ...databaseWords, ...tableWords, ...columnWords]
     this.$emit('autoComplete', [...databaseWords, ...tableWords, ...databaseTableWords, ...columnWords])
   }
-  async importDataSource (sourceType, project, event) {
+  async importDataSource (editType, project, event) {
     event && event.stopPropagation()
     event && event.preventDefault()
 
-    const isSubmit = await this.callDataSourceModal({ sourceType, project })
-    if (isSubmit) {
+    this.results = await this.callDataSourceModal({ editType, project })
+    if (this.results) {
+      this.isShowResultModal = true
+    }
+  }
+  async handleResultModalClosed () {
+    try {
+      this.results = []
       await this.loadDataBases()
       await this.loadTables({ isReset: true })
       freshTreeOrder(this)
       this.$emit('tables-loaded')
+    } catch (e) {
+      handleError(e)
     }
   }
   freshDatasourceTitle () {
@@ -568,6 +602,11 @@ export default class DataSourceBar extends Vue {
     transform: none;
     top: 0;
     left: 0;
+  }
+}
+.datasource-result-modal {
+  .el-alert:not(:last-child) {
+    margin-bottom: 10px;
   }
 }
 </style>

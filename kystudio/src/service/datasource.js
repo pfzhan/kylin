@@ -225,5 +225,8 @@ export default {
   },
   saveTablesBatchLoad (body) {
     return Vue.resource(apiUrl + `tables/batch_load`).save(body)
+  },
+  saveSourceConfig (body) {
+    return new Promise((resolve) => setTimeout(() => resolve(), 1000))
   }
 }

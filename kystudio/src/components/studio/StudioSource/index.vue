@@ -31,7 +31,7 @@
           </div>
           <!-- Source Table详细信息 -->
           <el-tabs class="table-details" v-model="viewType">
-            <el-tab-pane :label="$t('dataLoad')" :name="viewTypes.DATA_LOAD">
+            <el-tab-pane :label="$t('general')" :name="viewTypes.DATA_LOAD" v-if="isAutoProject">
               <TableDataLoad :project="currentProjectData" :table="selectedTable" @fresh-tables="handleFreshTable"></TableDataLoad>
             </el-tab-pane>
             <el-tab-pane :label="$t('columns')" :name="viewTypes.COLUMNS">
@@ -76,6 +76,7 @@ import { getFormattedTable } from '../../../util/UtilTable'
   },
   computed: {
     ...mapGetters([
+      'isAutoProject',
       'currentProjectData',
       'currentSelectedProject'
     ])
@@ -170,6 +171,11 @@ export default class StudioSource extends Vue {
     const confirmButtonText = this.$t('kylinLang.common.ok')
     const type = 'warning'
     return this.$alert(confirmMessage, confirmTitle, { confirmButtonText, type })
+  }
+  mounted () {
+    if (!this.isAutoProject) {
+      this.viewType = viewTypes.COLUMNS
+    }
   }
 }
 </script>

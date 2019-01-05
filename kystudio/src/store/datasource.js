@@ -277,6 +277,9 @@ export default {
     },
     [types.SAVE_TABLES_BATCH_LOAD]: function ({commit}, body) {
       return api.datasource.saveTablesBatchLoad(body)
+    },
+    [types.SAVE_SOURCE_CONFIG]: function ({commit}, body) {
+      return api.datasource.saveSourceConfig(body)
     }
   }
 }

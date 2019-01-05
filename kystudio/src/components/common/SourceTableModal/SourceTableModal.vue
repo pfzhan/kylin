@@ -35,14 +35,16 @@
           :placeholder="$t('kylinLang.common.endTime')"
           @input="value => handleInputDate('loadDataRange.1', value)">
         </el-date-picker>
-        <el-button
-          size="small"
-          class="ksd-ml-10"
-          :disabled="isDisabled || form.isLoadExisted"
-          :loading="isLoadingNewRange"
-          icon="el-icon-ksd-data_range_search"
-          @click="handleLoadNewestRange">
-        </el-button>
+        <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
+          <el-button
+            size="small"
+            class="ksd-ml-10"
+            :disabled="isDisabled || form.isLoadExisted"
+            :loading="isLoadingNewRange"
+            icon="el-icon-ksd-data_range_search"
+            @click="handleLoadNewestRange">
+          </el-button>
+        </el-tooltip>
       </el-form-item>
       <el-form-item class="custom-load" prop="freshDataRange" v-if="_isFieldShow('freshDataRange')">
         <div class="item-desc">{{$t('refreshRangeDesc')}}</div>

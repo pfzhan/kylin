@@ -2,7 +2,7 @@
   <div class="source-management">
     <h1 class="title">{{$t('sourceManagement')}}</h1>
     <el-table border :data="sourceArray">
-      <el-table-column prop="name" :label="$t('name')"></el-table-column>
+      <el-table-column prop="name" :label="$t('name')" width="530"></el-table-column>
       <el-table-column prop="type" :label="$t('type')"></el-table-column>
       <el-table-column prop="createTime" :label="$t('createTime')">
         <template slot-scope="scope">
@@ -12,6 +12,13 @@
       <el-table-column :label="$t('kylinLang.common.action')">
         <template slot-scope="scope">
           <i class="el-icon-ksd-batch_check" @click="handleBatchLoad"></i>
+          <el-dropdown trigger="click">
+            <i class="el-icon-ksd-table_others"></i>
+            <el-dropdown-menu slot="dropdown">
+              <el-dropdown-item @click.native="() => {}">{{$t('general')}}</el-dropdown-item>
+              <el-dropdown-item @click.native="() => {}">{{$t('removeSource')}}</el-dropdown-item>
+            </el-dropdown-menu>
+          </el-dropdown>
         </template>
       </el-table-column>
     </el-table>

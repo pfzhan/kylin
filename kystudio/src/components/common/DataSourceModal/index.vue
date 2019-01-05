@@ -4,251 +4,207 @@
     :visible="isShow"
     :close-on-press-escape="false"
     :close-on-click-modal="false"
-    @close="isShow && handleClose(false)">
+    @open="handleOpen"
+    @close="() => handleClose()"
+    @closed="handleClosed">
     <template v-if="isFormShow">
-      <SourceNew
-        v-if="isNewSource"
-        :source-type="form.project.override_kylin_properties['kylin.source.default']"
-        @input="selectDataSource">
-      </SourceNew>
+      <SourceSelect
+        v-if="editType === editTypes.SELECT_SOURCE"
+        :source-type="sourceType"
+        @input="handleInputDatasource">
+      </SourceSelect>
+      <SourceHiveSetting
+        ref="source-hive-setting-form"
+        v-if="[editTypes.CONFIG_SOURCE, editTypes.EDIT_SOURCE].includes(editType) && [editTypes.HIVE].includes(sourceType)"
+        :form="form.settings"
+        :is-edit-mode="editType === editTypes.EDIT_SOURCE"
+        @input="(key, value) => handleInput(`settings.${key}`, value)">
+      </SourceHiveSetting>
       <SourceHive
-        v-if="isTableTree"
+        v-if="[editTypes.HIVE, editTypes.RDBMS, editTypes.RDBMS2].includes(editType)"
         :source-type="sourceType"
         :selected-tables="form.selectedTables"
         :selected-databases="form.selectedDatabases"
-        @input="handleInput">
+        @input="handleInputTableOrDatabase">
       </SourceHive>
-      <SourceKafka
-        v-if="isKafka"
-        ref="kafkaForm"
-        class="create-kafka"
-        @validSuccess="submit">
-      </SourceKafka>
-      <SourceSetting
-        v-if="isSourceSetting"
-        :form="form"
-        @input="handleInput">
-      </SourceSetting>
     </template>
     <div slot="footer" class="dialog-footer">
       <el-button size="medium" @click="handleCancel" v-if="cancelText">{{cancelText}}</el-button>
-      <el-button size="medium" plain type="primary" @click="handleClick" v-guide.saveSourceType v-if="confirmText" :loading="isLoading">{{confirmText}}</el-button>
+      <el-button size="medium" plain type="primary" @click="handleSubmit" v-guide.saveSourceType v-if="confirmText" :loading="isLoading">{{confirmText}}</el-button>
     </div>
   </el-dialog>
 </template>
 
 <script>
 import Vue from 'vue'
-import { Component, Watch } from 'vue-property-decorator'
-import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
+import { Component } from 'vue-property-decorator'
+import { mapState, mapMutations, mapActions } from 'vuex'
 
 import vuex from '../../../store'
 import locales from './locales'
 import store, { types } from './store'
-import { sourceTypes } from '../../../config'
-import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
+import { titleMaps, cancelMaps, confirmMaps, getSubmitData, editTypes } from './handler'
 import { handleSuccessAsync, handleError } from '../../../util'
+import { set } from '../../../util/object'
 
-import SourceNew from './SourceNew/index.vue'
-import SourceHive from './SourceHive/index.vue'
-import SourceKafka from '../../kafka/create_kafka'
-import SourceSetting from './SourceSetting/index.vue'
+import SourceSelect from './SourceSelect/SourceSelect.vue'
+import SourceHiveSetting from './SourceHiveSetting/SourceHiveSetting.vue'
+import SourceHive from './SourceHive/SourceHive.vue'
 
 vuex.registerModule(['modals', 'DataSourceModal'], store)
 
 @Component({
   components: {
-    SourceNew,
-    SourceHive,
-    SourceKafka,
-    SourceSetting
+    SourceSelect,
+    SourceHiveSetting,
+    SourceHive
   },
   computed: {
-    ...mapGetters([
-      'currentSelectedProject'
-    ]),
-    // Store数据注入
     ...mapState('DataSourceModal', {
       form: state => state.form,
       isShow: state => state.isShow,
-      sourceType: state => state.sourceType,
-      callback: state => state.callback
+      editType: state => state.editType,
+      callback: state => state.callback,
+      firstEditType: state => state.firstEditType
     })
   },
   methods: {
-    // Store方法注入
     ...mapMutations('DataSourceModal', {
       setModal: types.SET_MODAL,
       hideModal: types.HIDE_MODAL,
-      setModalForm: types.SET_MODAL_FORM,
-      resetModalForm: types.RESET_MODAL_FORM
+      initForm: types.INIT_FORM,
+      setModalForm: types.SET_MODAL_FORM
     }),
-    // 后台接口请求
     ...mapActions({
       updateProject: 'UPDATE_PROJECT',
       importTable: 'LOAD_HIVE_IN_PROJECT',
-      saveKafka: 'SAVE_KAFKA',
-      saveSampleData: 'SAVE_SAMPLE_DATA'
+      saveSourceConfig: 'SAVE_SOURCE_CONFIG'
     })
   },
   locales
 })
 export default class DataSourceModal extends Vue {
   isLoading = false
+  isDisabled = false
   isFormShow = false
-  sourceTypes = sourceTypes
-
-  get modalTitle () {
-    return titleMaps[this.sourceType]
+  editTypes = editTypes
+  get modalTitle () { return titleMaps[this.editType] }
+  get modelWidth () { return this.editType === editTypes.HIVE ? '960px' : '780px' }
+  get confirmText () { return this.$t(confirmMaps[this.editType]) }
+  get cancelText () { return this.firstEditType !== editTypes.SELECT_SOURCE ? this.$t('kylinLang.common.cancel') : this.$t(cancelMaps[this.editType]) }
+  get sourceType () { return this.form.project.override_kylin_properties['kylin.source.default'] }
+  handleInput (key, value) {
+    this.setModalForm(set(this.form, key, value))
   }
-  get modelWidth () {
-    switch (this.sourceType) {
-      case sourceTypes.HIVE:
-        return '960px'
-      case sourceTypes.SETTING:
-        return '440px'
-      default:
-        return '780px'
-    }
+  handleInputTableOrDatabase (payload) {
+    this.setModalForm(payload)
   }
-  get cancelText () {
-    if (this.sourceType === sourceTypes.HIVE) {
-      return this.form.project && this.$t(cancelMaps[this.sourceType])
-    } else {
-      return this.$t(cancelMaps[this.sourceType])
-    }
+  handleInputDatasource (value) {
+    const properties = { ...this.form.project.override_kylin_properties }
+    properties['kylin.source.default'] = value
+    this.handleInput('project.override_kylin_properties', properties)
   }
-  get confirmText () {
-    return this.$t(confirmMaps[this.sourceType])
+  handleOpen () {
+    this._showForm()
   }
-  get isNewSource () {
-    return this.sourceType === sourceTypes.NEW
-  }
-  get isTableTree () {
-    return this.sourceType === sourceTypes.HIVE ||
-      this.sourceType === sourceTypes.RDBMS ||
-      this.sourceType === sourceTypes.RDBMS2
-  }
-  get isSourceSetting () {
-    return this.sourceType === sourceTypes.SETTING
-  }
-  get isKafka () {
-    return this.sourceType === sourceTypes.KAFKA
-  }
-  isSourceShow (sourceType) {
-    return this.sourceType === sourceType
-  }
-
-  @Watch('isShow')
-  onModalShow (newVal, oldVal) {
-    if (newVal) {
-      this.isFormShow = true
-
-      if (!this.currentSelectedProject) {
-        this.$message(this.$t('kylinLang.project.mustSelectProject'))
-        this.handleClose(false)
-      }
-    } else {
-      setTimeout(() => {
-        this.isFormShow = false
-      }, 200)
-    }
-  }
-
-  selectDataSource (value) {
-    const project = JSON.parse(JSON.stringify(this.form.project))
-    project.override_kylin_properties['kylin.source.default'] = value
-
-    this.setModalForm({ project })
-  }
-
-  handleInput (data) {
-    this.setModalForm(data)
-  }
-
   handleClose (isSubmit) {
     this.hideModal()
-
-    setTimeout(() => {
-      this.resetModalForm()
-      this.callback && this.callback(isSubmit)
-    }, 300)
+    this.callback && this.callback(isSubmit)
   }
-
-  handleClick () {
-    // 是Kafka的走表单验证，不是Kafka的走递交逻辑
-    if (this.sourceType !== sourceTypes.KAFKA) {
-      this.submit()
+  handleClosed () {
+    this._hideForm()
+    this.initForm()
+  }
+  handleCancel () {
+    // for datasource config
+    // if (this.firstEditType !== editTypes.SELECT_SOURCE || this.editType === editTypes.SELECT_SOURCE) {
+    //   this.handleClose(false)
+    // } else if (this.editType === editTypes.CONFIG_SOURCE) {
+    //   this.setModal({ editType: editTypes.SELECT_SOURCE })
+    // } else {
+    //   this.setModal({ editType: editTypes.CONFIG_SOURCE })
+    // }
+    if (this.firstEditType !== editTypes.SELECT_SOURCE || this.editType === editTypes.SELECT_SOURCE) {
+      this.handleClose(false)
     } else {
-      this.$refs['kafkaForm'].$emit('kafkaFormValid')
+      this.setModal({ editType: editTypes.SELECT_SOURCE })
     }
   }
-
-  validateForm () {
-    switch (this.sourceType) {
-      case sourceTypes.NEW: {
+  async handleSubmit () {
+    this._showLoading()
+    try {
+      if (await this._validate()) {
+        const results = await this._submit()
+        if (results) {
+          this._notifySuccess()
+          this.handleClose(results)
+        }
+      }
+    } catch (e) {
+      handleError(e)
+    }
+    this._hideLoading()
+  }
+  _notifySuccess () {
+    this.$message({ type: 'success', message: this.$t('kylinLang.common.saveSuccess') })
+  }
+  _hideForm () {
+    this.isFormShow = false
+  }
+  _showForm () {
+    this.isFormShow = true
+  }
+  _hideLoading () {
+    this.isLoading = false
+    this.isDisabled = false
+  }
+  _showLoading () {
+    this.isLoading = true
+    this.isDisabled = true
+  }
+  async _submit () {
+    const submitData = getSubmitData(this.form, this.editType)
+    switch (this.editType) {
+      // for datasource config
+      // case editTypes.SELECT_SOURCE: {
+      //   await this.updateProject(submitData)
+      //   return this.setModal({ editType: editTypes.CONFIG_SOURCE })
+      // }
+      // case editTypes.CONFIG_SOURCE: {
+      //   await this.saveSourceConfig(submitData)
+      //   return this.setModal({ editType: this.form.project.override_kylin_properties['kylin.source.default'] })
+      // }
+      case editTypes.SELECT_SOURCE: {
+        await this.updateProject(submitData)
+        return this.setModal({ editType: this.form.project.override_kylin_properties['kylin.source.default'] })
+      }
+      case editTypes.HIVE:
+      case editTypes.RDBMS:
+      case editTypes.RDBMS2: {
+        const response = await this.importTable(submitData)
+        return await handleSuccessAsync(response)
+      }
+    }
+  }
+  async _validate () {
+    switch (this.editType) {
+      case editTypes.SELECT_SOURCE: {
         const isVaild = this.form.project.override_kylin_properties['kylin.source.default']
         !isVaild && this.$message(this.$t('pleaseSelectSource'))
         return isVaild
       }
-      case sourceTypes.HIVE: {
+      case editTypes.CONFIG_SOURCE: {
+        return await this.$refs['source-hive-setting-form'].$refs.form.validate()
+      }
+      case editTypes.HIVE:
+      case editTypes.RDBMS:
+      case editTypes.RDBMS2: {
         const isVaild = this.form.selectedTables.length || this.form.selectedDatabases.length
         !isVaild && this.$message(this.$t('pleaseSelectTableOrDatabase'))
         return isVaild
       }
       default:
         return true
-    }
-  }
-
-  async submit (kafkaData) {
-    this.isLoading = true
-    try {
-      const { currentSelectedProject: project } = this
-      const data = getSubmitData(this, kafkaData)
-      if (!this.validateForm()) {
-        return (this.isLoading = false)
-      }
-
-      // 后台保存：选择数据源
-      if (this.isNewSource) {
-        await this.updateProject(data)
-        this.setModal({ sourceType: this.form.project.override_kylin_properties['kylin.source.default'] })
-        // 后台保存：Hive和RDBMS导入
-      } else if (this.isTableTree) {
-        const res = await this.importTable(data)
-        let resData = await handleSuccessAsync(res)
-        // Todo: data success 提示
-        console.log(resData)
-        this.handleClose(true)
-        // 后台保存：Kafka导入
-      } else if (this.isKafka) {
-        const tableName = `${data.database}.${data.tableName}`
-
-        await this.saveKafka(data)
-        this.$message({ type: 'success', message: this.$t('kylinLang.common.saveSuccess') })
-        this.saveSampleData({ tableName, sampleData: data.sampleData, project })
-        this.loadDataSourceByProject({ project, isExt: true })
-        this.handleClose(true)
-      } else if (this.isSourceSetting) {
-        this.handleClose(true)
-      }
-    } catch (e) {
-      // 异常处理
-      e && handleError(e)
-    }
-    this.isLoading = false
-  }
-  handleCancel () {
-    switch (this.sourceType) {
-      case sourceTypes.HIVE: {
-        this.setModal({ sourceType: sourceTypes.NEW })
-        break
-      }
-      default: {
-        this.handleClose(false)
-        break
-      }
     }
   }
 }

@@ -167,9 +167,7 @@ export default class ModelSegment extends Vue {
   }
   @Watch('filter.startDate')
   @Watch('filter.endDate')
-  @Watch('filter.sortBy')
-  @Watch('filter.reverse')
-  onDateRangeChange (val) {
+  onDateRangeChange (newVal, oldVal) {
     this.loadSegments()
   }
   async mounted () {
@@ -188,6 +186,7 @@ export default class ModelSegment extends Vue {
       this.filter.reverse = true
     }
     this.filter.sortBy = prop
+    this.loadSegments()
   }
   handleCurrentChange (pager, count) {
     this.pagination.pageOffset = pager
