@@ -205,7 +205,7 @@ export default class TableDataLoad extends Vue {
   async _getAffectedModelCountAndSize () {
     const projectName = this.project.name
     const tableName = this.table.fullName
-    const isSelectFact = !this.table.__data.fact
+    const isSelectFact = !this.table.__data.increment_loading
     const response = await this.fetchChangeTypeInfo({ projectName, tableName, isSelectFact })
     const result = await handleSuccessAsync(response)
     return { modelCount: result.models.length, modelSize: result.byte_size }
