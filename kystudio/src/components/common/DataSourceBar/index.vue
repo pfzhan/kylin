@@ -34,11 +34,16 @@
         @load-more="handleLoadMore">
       </TreeList>
     </section>
-    <el-dialog class="datasource-result-modal" :title="$t('kylinLang.common.notice')" :visible.sync="isShowResultModal" @closed="handleResultModalClosed">
+    <el-dialog
+      class="datasource-result-modal"
+      :title="$t('kylinLang.common.notice')"
+      :visible.sync="isShowResultModal"
+      :append-to-body="true"
+      @closed="handleResultModalClosed">
       <el-alert
         show-icon
         type="success"
-        v-for="table in results.loaded"
+        v-for="table in loadedTables"
         :key="table"
         :closable="false"
         :title="$t('loadSuccess') + `[${table}]`">
@@ -46,7 +51,7 @@
       <el-alert
         show-icon
         type="error"
-        v-for="table in results.failed"
+        v-for="table in failedTables"
         :key="table"
         :closable="false"
         :title="$t('loadFailed') + `[${table}]`">
@@ -166,7 +171,8 @@ export default class DataSourceBar extends Vue {
   timer = null
   isSwitchSource = false
   isShowResultModal = false
-  results = []
+  loadedTables = []
+  failedTables = []
 
   get databaseArray () {
     const allData = this.datasources.reduce((databases, datasource) => [...databases, ...datasource.children], [])
@@ -364,18 +370,22 @@ export default class DataSourceBar extends Vue {
     event && event.stopPropagation()
     event && event.preventDefault()
 
-    this.results = await this.callDataSourceModal({ editType, project })
-    if (this.results) {
+    const result = await this.callDataSourceModal({ editType, project })
+    if (result) {
+      const { loaded, failed } = result
+      this.loadedTables = loaded
+      this.failedTables = failed
       this.isShowResultModal = true
     }
   }
   async handleResultModalClosed () {
     try {
-      this.results = []
       await this.loadDataBases()
       await this.loadTables({ isReset: true })
       freshTreeOrder(this)
-      this.$emit('tables-loaded')
+      this.loadedTables.length && this.$emit('tables-loaded')
+      this.loadedTables = []
+      this.failedTables = []
     } catch (e) {
       handleError(e)
     }

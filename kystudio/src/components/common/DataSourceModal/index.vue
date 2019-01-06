@@ -136,7 +136,6 @@ export default class DataSourceModal extends Vue {
       if (await this._validate()) {
         const results = await this._submit()
         if (results) {
-          this._notifySuccess()
           this.handleClose(results)
         }
       }
@@ -144,9 +143,6 @@ export default class DataSourceModal extends Vue {
       handleError(e)
     }
     this._hideLoading()
-  }
-  _notifySuccess () {
-    this.$message({ type: 'success', message: this.$t('kylinLang.common.saveSuccess') })
   }
   _hideForm () {
     this.isFormShow = false

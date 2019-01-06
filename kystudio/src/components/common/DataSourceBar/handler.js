@@ -160,7 +160,7 @@ export function getTableObj (that, database, table) {
     type: 'table',
     database: databaseName,
     datasource,
-    isCentral: table.fact,
+    isCentral: table.increment_loading,
     isTopSet: table.top,
     dateRange: dateRangeStr,
     isSelected: false,

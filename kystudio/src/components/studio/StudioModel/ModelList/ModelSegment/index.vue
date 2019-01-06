@@ -55,10 +55,10 @@
         <el-table-column :label="$t('storageSize')" width="145" header-align="center" align="right" prop="storage" sortable>
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.startTime')" align="center" prop="start_time" sortable>
+        <el-table-column :label="$t('kylinLang.common.startTime')" width="155" align="center" prop="start_time" sortable>
           <template slot-scope="scope">{{scope.row.startTime | utcTime}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.endTime')" align="center" prop="end_time" sortable>
+        <el-table-column :label="$t('kylinLang.common.endTime')" width="155" align="center" prop="end_time" sortable>
           <template slot-scope="scope">{{scope.row.endTime | utcTime}}</template>
         </el-table-column>
         <el-table-column :label="$t('kylinLang.common.action')" width="100" align="center">
