@@ -39,6 +39,7 @@
       </el-col>
     </el-row>
     <span slot="footer" class="dialog-footer">
+      <el-button @click="delConn" v-if="currentConnObj" size="medium" class="ksd-fleft">{{$t('delConn')}}</el-button>
       <el-button @click="isShow && handleClose(false)" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
       <el-button type="primary" v-guide.saveJoinBtn plain size="medium" @click="saveJoinCondition">{{$t('kylinLang.common.ok')}}</el-button>
     </span>
@@ -54,7 +55,7 @@ import vuex from '../../../../store'
 import { objectClone } from '../../../../util'
 import locales from './locales'
 import store, { types } from './store'
-import { kapMessage } from 'util/business'
+import { kapMessage, kapConfirm } from 'util/business'
 vuex.registerModule(['modals', 'TableJoinModal'], store)
 @Component({
   computed: {
@@ -113,7 +114,16 @@ export default class TableJoinModal extends Vue {
         this.$set(this.joinColumns, 'foreign_key', [''])
         this.$set(this.joinColumns, 'primary_key', [''])
       }
-      if (this.form.pColumnName) {
+      // 拖动添加默认填充
+      // 如果添加的是重复的连接条件不做处理
+      if (this.form.fColumnName && this.form.pColumnName) {
+        let findex = this.joinColumns.foreign_key.indexOf(this.form.fColumnName)
+        let pindex = this.joinColumns.primary_key.indexOf(this.form.pColumnName)
+        if (findex === pindex && findex >= 0) {
+          return
+        }
+      }
+      if (this.form.fColumnName) {
         if (this.joinColumns.foreign_key[0]) {
           this.joinColumns.foreign_key.push(this.form.fColumnName)
         } else {
@@ -184,11 +194,38 @@ export default class TableJoinModal extends Vue {
     this.joinColumns.foreign_key.splice(i, 1)
     this.joinColumns.primary_key.splice(i, 1)
   }
+  removeDuplicateCondition (fkeys, pkeys) {
+    let obj = {}
+    for (let i = fkeys.length - 1; i >= 0; i--) {
+      if (obj[fkeys[i] + pkeys[i]]) {
+        fkeys.splice(i, 1)
+        pkeys.splice(i, 1)
+      } else {
+        obj[fkeys[i] + pkeys[i]] = true
+      }
+    }
+  }
   checkLinkCompelete () {
     if (!this.selectF || !this.selectP || this.joinColumns.foreign_key.indexOf('') >= 0 || this.joinColumns.primary_key.indexOf('') >= 0) {
-      return true
+      return false
     }
     return true
+  }
+  get currentConnObj () {
+    if (this.form.modelInstance) {
+      return this.form.modelInstance.getConn(this.selectP, this.selectF)
+    }
+  }
+  delConn () {
+    kapConfirm(this.$t('delConnTip')).then(() => {
+      if (this.form.modelInstance) {
+        this.form.modelInstance
+        if (this.currentConnObj) {
+          this.form.modelInstance.removeRenderLink(this.currentConnObj)
+          this.handleClose(false)
+        }
+      }
+    })
   }
   saveJoinCondition () {
     var joinData = this.joinColumns // 修改后的连接关系
@@ -200,6 +237,8 @@ export default class TableJoinModal extends Vue {
         kapMessage(this.$t('kylinLang.model.cycleLinkTip'), {type: 'warning'})
         return
       }
+      // 删除重复的条件
+      this.removeDuplicateCondition(this.joinColumns.foreign_key, this.joinColumns.primary_key)
       // 传出处理后的结果
       this.handleClose(true, {
         selectF: selectF,

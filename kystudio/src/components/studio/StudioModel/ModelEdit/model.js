@@ -162,9 +162,12 @@ class NModel {
       })
     }
   }
+  getConn (pid, fid) {
+    return this.allConnInfo[pid + '$' + fid]
+  }
   // 连线
   renderLink (pid, fid) {
-    var hasConn = this.allConnInfo[pid + '$' + fid]
+    var hasConn = this.getConn(pid, fid)
     if (hasConn) {
       let joinInfo = this.tables[pid].getJoinInfoByFGuid(fid)
       var primaryKeys = joinInfo && joinInfo.join.primary_key
