@@ -684,11 +684,7 @@ class NModel {
       // 删除对应的 cc
       // this._delCCByAlias(alias)
       // 删除对应的partition
-      if (this.partition_desc.table_guid === guid) {
-        this.partition_desc.table_guid = null
-        this.partition_desc.partition_date_column = null
-        this.partition_desc.partition_time_column = null
-      }
+      this._delTableRelatedPartitionInfo(ntable)
     }
   }
   getTable (key, val) {
@@ -775,20 +771,30 @@ class NModel {
       })
     }
   }
+  // 移除和某个表相关的partition信息
+  _delTableRelatedPartitionInfo (t) {
+    if (this.partition_desc.partition_date_column && t && this.partition_desc.partition_date_column.split('.')[0] === t.alias) {
+      this.partition_desc.table_guid = null
+      this.partition_desc.partition_date_column = null
+      this.partition_desc.partition_time_column = null
+    }
+  }
   changeTableType (t) {
     t.kind = t.kind === modelRenderConfig.tableKind.fact ? modelRenderConfig.tableKind.lookup : modelRenderConfig.tableKind.fact
     this.setUniqueAlias(t)
-    // 如何切换的是fact
+    // 如果切换的是fact
     if (t.kind === modelRenderConfig.tableKind.fact) {
       // 将所有和fact相关的ccdimension，ccmeasure，cctableindex,cclist 换上新的fact 指纹
+      this.fact_table = t.name
       this._updateAllMeasuresCCToNewFactTable()
       this._updateAllNamedColumnsCCToNewFactTable()
       this._updateCCToNewFactTable()
-      this.fact_table = t.name
       this._arrangeLinks()
     } else if (t.name === this.fact_table) {
       this.fact_table = '' // fact 改为 lookup 需要将它设置为空
     }
+    // 删除对应的partition
+    this._delTableRelatedPartitionInfo(t)
     // 改变别名且替换掉所有关联的别名信息
     this.changeAlias()
   }

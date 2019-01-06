@@ -92,7 +92,7 @@
     pager = 0
     tableIndexMetaStr = JSON.stringify({
       id: '',
-      name: '',
+      name: 'TableIndex_1',
       col_order: [],
       sort_by_columns: [],
       shard_by_columns: [],

@@ -141,6 +141,7 @@ let columnTypeIconMap = {
   'integer': 'el-icon-ksd-type_int',
   'bigint': 'el-icon-ksd-type_bigint',
   'smallint': 'el-icon-ksd-type_int',
+  'tinyint': 'el-icon-ksd-type_int',
   'time': 'el-icon-ksd-type_time',
   'timestamp': 'el-icon-ksd-type_timestamp',
   'varchar': 'el-icon-ksd-type_varchar',

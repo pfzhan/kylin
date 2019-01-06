@@ -30,7 +30,13 @@ export default {
     tableIndex: 'Table Index',
     onLine: 'Online',
     offLine: 'Offline',
-    build: 'Model Build'
+    build: 'Model Build',
+    storage: 'Storage',
+    usage: 'Usage',
+    fullLoadDataTitle: 'Load Data',
+    fullLoadDataContent1: 'The model {modelName} has no partition.',
+    fullLoadDataContent2: 'The load data job may reload its all data, which including {storageSize} storage.',
+    fullLoadDataContent3: 'Do you still need to reload its data?'
   },
   'zh-cn': {
     capbility: '加速比例',
@@ -63,6 +69,12 @@ export default {
     tableIndex: '表明细索引',
     onLine: '模型上线',
     offLine: '模型下线',
-    build: '模型构建'
+    build: '模型构建',
+    storage: '存储大小',
+    usage: '使用次数',
+    fullLoadDataTitle: '加载数据',
+    fullLoadDataContent1: '模型 {modelName} 没有分区。',
+    fullLoadDataContent2: '本次数据加载将包括本模型下所有的数据，总存储为 {storageSize}。',
+    fullLoadDataContent3: '您确认需要继续加载数据吗？'
   }
 }

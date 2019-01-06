@@ -61,13 +61,13 @@
           prop="usage"
           show-overflow-tooltip
           width="90px"
-          :label="$t('usage')">
+          :label="$t('Usage')">
         </el-table-column>
          <el-table-column
           prop="storage"
           show-overflow-tooltip
           width="90px"
-          :label="$t('storage')">
+          :label="$t('Storage')">
         </el-table-column>
         <el-table-column
           prop="gmtTime"
@@ -99,7 +99,7 @@
             <span v-if="!(isAdmin || hasPermissionOfProject())"> N/A</span>
              <div v-show="isAdmin || hasPermissionOfProject()">
               <common-tip :content="$t('kylinLang.common.edit')"><i class="el-icon-ksd-table_edit ksd-fs-16" @click="handleEditModel(scope.row.alias)"></i></common-tip>
-              <common-tip :content="$t('build')" v-if="scope.row.partition_desc && scope.row.partition_desc.partition_date_column && scope.row.management_type!=='TABLE_ORIENTED'" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16" @click="setModelBuldRange(scope.row)"></i></common-tip>
+              <common-tip :content="$t('build')" v-if="scope.row.management_type!=='TABLE_ORIENTED'" class="ksd-ml-10"><i class="el-icon-ksd-data_range ksd-fs-16" @click="setModelBuldRange(scope.row)"></i></common-tip>
               <common-tip :content="$t('kylinLang.common.moreActions')" class="ksd-ml-10" v-if="!scope.row.is_draft">
                 <el-dropdown @command="(command) => {handleCommand(command, scope.row)}" :id="scope.row.name" trigger="click" >
                   <span class="el-dropdown-link" >
@@ -141,7 +141,7 @@
     <!-- 模型检查 -->
     <ModelCheckDataModal/>
     <!-- 模型构建 -->
-    <ModelBuildModal @refreshModelList="loadModelsList"/>
+    <ModelBuildModal @refreshModelList="loadModelsList" ref="modelBuildComp"/>
     <!--  数据分区设置 -->
     <ModelPartitionModal/>
     <!-- 模型重命名 -->
@@ -255,10 +255,44 @@ export default class ModelList extends Vue {
       callback()
     }
   }
+  _showFullDataLoadConfirm (storage, modelName) {
+    const storageSize = Vue.filter('dataSize')(storage)
+    const contentVal = { modelName, storageSize }
+    const confirmTitle = this.$t('fullLoadDataTitle')
+    const confirmMessage1 = this.$t('fullLoadDataContent1', contentVal)
+    const confirmMessage2 = this.$t('fullLoadDataContent2', contentVal)
+    const confirmMessage3 = this.$t('fullLoadDataContent3', contentVal)
+    const confirmMessage = _render(this.$createElement)
+    const confirmButtonText = this.$t('kylinLang.common.ok')
+    const cancelButtonText = this.$t('kylinLang.common.cancel')
+    const type = 'warning'
+    return this.$confirm(confirmMessage, confirmTitle, { confirmButtonText, cancelButtonText, type })
+
+    function _render (h) {
+      return (
+        <div>
+          <p class="break-all">{confirmMessage1}</p>
+          <p>{confirmMessage2}</p>
+          <p>{confirmMessage3}</p>
+        </div>
+      )
+    }
+  }
   setModelBuldRange (modelDesc) {
-    this.callModelBuildDialog({
-      modelDesc: modelDesc
-    })
+    if (modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column) {
+      this.callModelBuildDialog({
+        modelDesc: modelDesc
+      })
+    } else {
+      let storage = modelDesc.storage
+      this._showFullDataLoadConfirm(storage, modelDesc.alias).then(() => {
+        this.$refs.modelBuildComp.$emit('buildModel', {
+          start: null,
+          end: null,
+          modelName: modelDesc.alias
+        })
+      })
+    }
   }
   async handleCommand (command, modelDesc) {
     if (command === 'dataCheck') {

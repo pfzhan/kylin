@@ -2,7 +2,7 @@
   <!-- 模型构建 -->
     <el-dialog :title="$t('modelBuild')" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <div>
-        <el-form :model="modelBuildMeta" :rules="rules" ref="buildForm" label-position="top">
+        <el-form :model="modelBuildMeta" ref="buildForm" label-position="top">
           <div class="ky-list-title ksd-mt-14">{{$t('buildRange')}}</div>
           <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2">
             <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
@@ -10,7 +10,7 @@
             </el-radio>
             <!-- <div class="item-desc">{{$t('loadExistingDataDesc')}}</div> -->
           </el-form-item>
-          <el-form-item prop="dataRangeVal">
+          <el-form-item prop="dataRangeVal" :rule="modelBuildMeta.isLoadExisted ? [] : [{required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}]">
             <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="false">
               {{$t('customLoadRange')}}
             </el-radio>
@@ -74,11 +74,6 @@
       dataRangeVal: '',
       isLoadExisted: true
     }
-    rules = {
-      dataRangeVal: [
-        {required: true, trigger: 'blur', message: this.$t('dataRangeValValid')}
-      ]
-    }
     @Watch('isShow')
     initModelBuldRange () {
       if (this.isShow) {
@@ -104,6 +99,22 @@
     get timeRange () {
 
     }
+    _buildModel ({start, end, modelName}) {
+      this.buildModel({
+        model: modelName,
+        start: start,
+        end: end,
+        project: this.currentSelectedProject
+      }).then(() => {
+        this.btnLoading = false
+        kapMessage(this.$t('kylinLang.common.submitSuccess'))
+        this.closeModal(true)
+        this.$emit('refreshModelList')
+      }, (res) => {
+        this.btnLoading = false
+        res && handleError(res)
+      })
+    }
     async setbuildModelRange () {
       this.$refs.buildForm.validate((valid) => {
         if (!valid) { return }
@@ -114,21 +125,11 @@
           start = transToUTCMs(this.modelBuildMeta.dataRangeVal[0]) || null
           end = transToUTCMs(this.modelBuildMeta.dataRangeVal[1]) || null
         }
-        this.buildModel({
-          model: this.modelDesc.name,
-          start: start,
-          end: end,
-          project: this.currentSelectedProject
-        }).then(() => {
-          this.btnLoading = false
-          kapMessage(this.$t('构建成功'))
-          this.closeModal(true)
-          this.$emit('refreshModelList')
-        }, (res) => {
-          this.btnLoading = false
-          res && handleError(res)
-        })
+        this._buildModel({start: start, end: end, modelName: this.modelDesc.name})
       })
+    }
+    created () {
+      this.$on('buildModel', this._buildModel)
     }
   }
 </script>
