@@ -271,7 +271,7 @@ public class OLAPProjectRel extends Project implements OLAPRel {
         }
 
         return TblColRef.newInnerColumn(fieldName, InnerDataTypeEnum.LITERAL,
-                createInnerColumn(call, nodeAndTblColMap));
+                createInnerColumn(call, nodeAndTblColMap), operator, tblColRefs);
     }
 
     private String createInnerColumn(RexCall call, Map<RexNode, TblColRef> nodeAndTblColMap) {

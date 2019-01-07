@@ -26,32 +26,61 @@ package io.kyligence.kap.query.util;
 
 import java.util.List;
 
+import org.apache.calcite.rel.RelNode;
+import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 
 import com.google.common.collect.Lists;
 
+import io.kyligence.kap.query.relnode.ContextUtil;
 import io.kyligence.kap.query.relnode.KapRel;
 
 public class FirstRoundContextCutStrategy implements ICutContextStrategy {
 
     @Override
-    public List<OLAPRel> cutOffContext(OLAPRel rootRel) {
+    public List<OLAPRel> cutOffContext(OLAPRel rootRel, RelNode parentOfRoot) {
         //Step 1.first round, cutting olap context
         KapRel.OLAPContextImplementor contextImplementor = new KapRel.OLAPContextImplementor();
         KapRel.ContextVisitorState initState = KapRel.ContextVisitorState.init();
         contextImplementor.visitChild(rootRel, rootRel, initState);
         if (initState.hasFreeTable()) {
             // if there are free tables, allocate a context for it
-            contextImplementor.allocateContext((KapRel) rootRel, null);
+            contextImplementor.allocateContext((KapRel) rootRel, parentOfRoot);
         }
+        toLeafJoinForm();
 
+        ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER HEP PLANNER", rootRel);
         contextImplementor.optimizeContextCut();
         return Lists.newArrayList(rootRel);
     }
 
     @Override
     public boolean needCutOff(OLAPRel rootRel) {
-        // @todo 1. add new judgement info for if need cutOff
         return true;
+    }
+
+    private void toLeafJoinForm() {
+        // filter and project pull up
+        for (OLAPContext context : ContextUtil.listContexts()) {
+            RelNode parentOfTopNode = context.getParentOfTopNode();
+            if (parentOfTopNode == null) {
+                for (int i = 0; i < context.getTopNode().getInputs().size(); i++) {
+                    context.getTopNode().replaceInput(i,
+                            HepUtils.runRuleCollection(context.getTopNode().getInput(i), HepUtils.CUBOID_OPT_RULES));
+                }
+                ((KapRel) context.getTopNode()).setContext(context);
+                return;
+            }
+
+            for (int i = 0; i < parentOfTopNode.getInputs().size(); i++) {
+                if (context.getTopNode() != parentOfTopNode.getInput(i))
+                    continue;
+
+                RelNode newInput = HepUtils.runRuleCollection(parentOfTopNode.getInput(i), HepUtils.CUBOID_OPT_RULES);
+                ((KapRel) newInput).setContext(context);
+                context.setTopNode((KapRel) newInput);
+                parentOfTopNode.replaceInput(i, newInput);
+            }
+        }
     }
 }

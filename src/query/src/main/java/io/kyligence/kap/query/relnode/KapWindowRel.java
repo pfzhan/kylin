@@ -71,7 +71,7 @@ public class KapWindowRel extends OLAPWindowRel implements KapRel {
 
         // window rel need a separate context
         if (tempState.hasFreeTable()) {
-            olapContextImplementor.allocateContext(this, null);
+            olapContextImplementor.allocateContext(this, this);
             tempState.setHasFreeTable(false);
         }
 

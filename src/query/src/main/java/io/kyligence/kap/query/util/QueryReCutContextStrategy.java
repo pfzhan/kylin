@@ -26,6 +26,7 @@ package io.kyligence.kap.query.util;
 
 import java.util.List;
 
+import org.apache.calcite.rel.RelNode;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.relnode.OLAPRel;
 import org.apache.kylin.query.relnode.OLAPTableScan;
@@ -40,7 +41,7 @@ public class QueryReCutContextStrategy implements ICutContextStrategy {
     }
 
     @Override
-    public List<OLAPRel> cutOffContext(OLAPRel rootRel) {
+    public List<OLAPRel> cutOffContext(OLAPRel rootRel, RelNode parentOfRoot) {
         for (OLAPTableScan tableScan : rootRel.getContext().allTableScans) {
             tableScan.setColumnRowType(null);
         }

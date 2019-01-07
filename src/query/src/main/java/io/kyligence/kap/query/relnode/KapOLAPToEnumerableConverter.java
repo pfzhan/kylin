@@ -39,8 +39,6 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
-import org.apache.calcite.rel.rules.FilterMergeRule;
-import org.apache.calcite.rel.rules.ProjectMergeRule;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.QueryContext;
 import org.apache.kylin.common.debug.BackdoorToggles;
@@ -50,14 +48,7 @@ import org.apache.kylin.query.relnode.OLAPToEnumerableConverter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Lists;
-
 import io.kyligence.kap.query.exec.SparderMethod;
-import io.kyligence.kap.query.optrule.JoinFilterRule;
-import io.kyligence.kap.query.optrule.KapFilterRule;
-import io.kyligence.kap.query.optrule.KapProjectFilterTransposeRule;
-import io.kyligence.kap.query.optrule.KapProjectRule;
-import io.kyligence.kap.query.util.HepUtils;
 import io.kyligence.kap.query.util.QueryContextCutter;
 
 /**
@@ -91,22 +82,8 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
         //        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader());
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN BEFORE OLAPImplementor", this);
 
-        // filter up, project push down
-        this.replaceInput(0, HepUtils.runRuleCollection(getInput(), Lists.newArrayList(
-                // Transpose Rule
-                //                ProjectJoinTransposeRule.INSTANCE,
-                KapProjectRule.INSTANCE, KapFilterRule.INSTANCE, KapProjectFilterTransposeRule.INSTANCE,
-                //                AggregateJoinTransposeRule.EXTENDED,
-                //                AggregateFilterTransposeRule.INSTANCE,
-                JoinFilterRule.JOIN_LEFT_FILTER, JoinFilterRule.JOIN_RIGHT_FILTER, JoinFilterRule.JOIN_BOTH_FILTER,
-                // Merge Rule
-                ProjectMergeRule.INSTANCE, FilterMergeRule.INSTANCE)));
-
-        ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER HEP PLANNER", this);
-
         List<OLAPContext> contexts = QueryContextCutter.selectRealization(this,
                 BackdoorToggles.getIsQueryFromAutoModeling());
-
         ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER REALIZATION IS SET", this);
 
         // identify realization for each context
@@ -149,5 +126,4 @@ public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter impl
             return enumImplementor.result(physType, list.toBlock());
         }
     }
-
 }

@@ -55,13 +55,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.query.exception.NotSupportedSQLException;
 import io.kyligence.kap.query.util.ICutContextStrategy;
 
 public class KapJoinRel extends OLAPJoinRel implements KapRel {
     private Set<OLAPContext> subContexts = Sets.newHashSet();
     private boolean isPreCalJoin = true;
-    private boolean isTopPreCalcJoin = false;
+    private boolean aboveTopPreCalcJoin = false;
 
     public KapJoinRel(RelOptCluster cluster, RelTraitSet traits, RelNode left, RelNode right, RexNode condition,
             ImmutableIntList leftKeys, ImmutableIntList rightKeys, Set<CorrelationId> variablesSet,
@@ -76,8 +75,8 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
         final JoinInfo joinInfo = JoinInfo.of(left, right, conditionExpr);
         assert joinInfo.isEqui();
         try {
-            return new KapJoinRel(getCluster(), traitSet, left, right, conditionExpr, joinInfo.leftKeys, joinInfo.rightKeys,
-                    variablesSet, joinType);
+            return new KapJoinRel(getCluster(), traitSet, left, right, conditionExpr, joinInfo.leftKeys,
+                    joinInfo.rightKeys, variablesSet, joinType);
         } catch (InvalidRelException e) {
             // Semantic error not possible. Must be a bug. Convert to internal error.
             throw new AssertionError(e);
@@ -203,10 +202,9 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
     @Override
     public void implementOLAP(OLAPImplementor olapContextImplementor) {
         if (context != null) {
-            if (this.isPreCalJoin && !(this.getCondition() instanceof RexCall))
-                throw new NotSupportedSQLException("Cartesian Join is not supported");
             this.context.allOlapJoins.add(this);
-            this.isTopPreCalcJoin = !this.isPreCalJoin || !this.context.isHasPreCalcJoin();
+            this.aboveTopPreCalcJoin = !this.isPreCalJoin || !this.context.isHasPreCalcJoin();
+
             this.context.setHasJoin(true);
             this.context.setHasPreCalcJoin(this.context.isHasPreCalcJoin() || this.isPreCalJoin);
         }
@@ -227,7 +225,8 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
     }
 
     private void collectCtxOlapInfoIfExist() {
-        if (isPreCalJoin || this.context.getParentOfTopNode().getContext() != this.context) {
+        if (isPreCalJoin || this.context.getParentOfTopNode() instanceof OLAPRel
+                && ((OLAPRel) this.context.getParentOfTopNode()).getContext() != this.context) {
             // build JoinDesc for pre-calculate join
             JoinDesc join = buildJoin((RexCall) this.getCondition());
             String joinType = this.getJoinType() == JoinRelType.INNER || this.getJoinType() == JoinRelType.LEFT
@@ -258,7 +257,7 @@ public class KapJoinRel extends OLAPJoinRel implements KapRel {
         if (context != null) {
             this.rowType = deriveRowType();
 
-            if (this.context.hasPrecalculatedFields() && this.isTopPreCalcJoin
+            if (this.context.hasPrecalculatedFields() && this.aboveTopPreCalcJoin
                     && RewriteImplementor.needRewrite(this.context)) {
                 // find missed rewrite fields
                 int paramIndex = this.rowType.getFieldList().size();

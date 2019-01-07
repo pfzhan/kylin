@@ -269,28 +269,31 @@ public class KapTableScan extends OLAPTableScan implements EnumerableRel, KapRel
      */
     @Override
     protected boolean needCollectionColumns(Stack<RelNode> allParents) {
-        int index = allParents.size() - 1;
-
-        while (index >= 0) {
-            RelNode tempParent = allParents.get(index);
+        KapRel topProjParent = null;
+        for (RelNode tempParent : allParents) {
+            if (tempParent instanceof KapOLAPToEnumerableConverter) {
+                continue;
+            }
             if (!(tempParent instanceof KapRel)) {
                 break;
             }
-
             KapRel parent = (KapRel) tempParent;
 
-            if (parent instanceof OLAPProjectRel && !((OLAPProjectRel) parent).isMerelyPermutation()) {
-                return false;
+            if (topProjParent == null && parent instanceof OLAPProjectRel
+                    && !((OLAPProjectRel) parent).isMerelyPermutation()) {
+                topProjParent = parent;
             }
 
             if (parent instanceof OLAPToEnumerableConverter || parent instanceof OLAPUnionRel
-                    || parent instanceof KapWindowRel) {
-                return true;
+                    || parent instanceof KapWindowRel || parent instanceof KapAggregateRel) {
+                topProjParent = null;
             }
-            index--;
         }
 
-        return true;
+        if (topProjParent != null) {
+            ((KapProjectRel) topProjParent).setNeedPushInfoToSubCtx(true);
+        }
+        return topProjParent == null;
     }
 
     @Override

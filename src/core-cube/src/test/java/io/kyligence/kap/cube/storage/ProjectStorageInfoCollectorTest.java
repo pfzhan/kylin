@@ -33,6 +33,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -61,6 +62,7 @@ public class ProjectStorageInfoCollectorTest extends NLocalFileMetadataTestCase 
     }
 
     @Test
+    @Ignore
     public void testGetStorageVolumeInfo() throws Exception {
         mockHotModelLayouts();
         val storageInfoEnumList = Lists.newArrayList(StorageInfoEnum.GARBAGE_STORAGE, StorageInfoEnum.STORAGE_QUOTA,

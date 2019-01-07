@@ -46,7 +46,9 @@ package org.apache.kylin.metadata.model;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.io.Serializable;
+import java.util.List;
 
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.metadata.datatype.DataType;
 
@@ -104,6 +106,11 @@ public class TblColRef implements Serializable {
 
     // used by projection rewrite, see OLAPProjectRel
     public static TblColRef newInnerColumn(String columnName, InnerDataTypeEnum dataType, String parserDescription) {
+        return newInnerColumn(columnName, dataType, parserDescription, null, null);
+    }
+
+    public static TblColRef newInnerColumn(String columnName, InnerDataTypeEnum dataType, String parserDescription,
+            SqlOperator operator, List<TblColRef> opreands) {
         ColumnDesc column = new ColumnDesc();
         column.setName(columnName);
         TableDesc table = new TableDesc();
@@ -111,6 +118,8 @@ public class TblColRef implements Serializable {
         TblColRef colRef = new TblColRef(column);
         colRef.markInnerColumn(dataType);
         colRef.parserDescription = parserDescription;
+        colRef.setOperator(operator);
+        colRef.setOpreand(opreands);
         return colRef;
     }
 
@@ -160,6 +169,12 @@ public class TblColRef implements Serializable {
     @Getter
     @Setter
     private FilterColEnum filterLevel = FilterColEnum.NONE;
+    @Setter
+    @Getter
+    private SqlOperator operator;//only used for InnerCol, other case it should be null
+    @Setter
+    @Getter
+    private List<TblColRef> opreand;//only used for InnerCol
 
     TblColRef(ColumnDesc column) {
         this.column = column;

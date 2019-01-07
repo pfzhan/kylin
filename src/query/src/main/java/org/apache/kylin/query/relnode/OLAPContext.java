@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.calcite.DataContext;
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.kylin.common.KylinConfig;
@@ -156,7 +157,7 @@ public class OLAPContext {
     private OLAPRel topNode = null; // the context's toppest node
     @Setter
     @Getter
-    private OLAPRel parentOfTopNode = null; // record the JoinRel that cuts off its children into new context(s), in other case it should be null
+    private RelNode parentOfTopNode = null; // record the JoinRel that cuts off its children into new context(s), in other case it should be null
     public Set<OLAPTableScan> allTableScans = new HashSet<>();
     public Set<OLAPJoinRel> allOlapJoins = new HashSet<>();
     public Set<MeasureDesc> involvedMeasure = new HashSet<>();

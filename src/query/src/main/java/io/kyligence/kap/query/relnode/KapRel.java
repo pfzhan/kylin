@@ -72,7 +72,7 @@ public interface KapRel extends OLAPRel {
             return parentNodeStack.peek();
         }
 
-        public OLAPContext allocateContext(KapRel topNode, KapRel parentOfTopNode) {
+        public OLAPContext allocateContext(KapRel topNode, RelNode parentOfTopNode) {
             OLAPContext context = new OLAPContext(ctxSeq++);
             OLAPContext.registerContext(context);
             context.setTopNode(topNode);

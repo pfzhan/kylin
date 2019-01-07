@@ -39,6 +39,7 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlExplainFormat;
 import org.apache.calcite.sql.SqlExplainLevel;
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.query.relnode.OLAPContext;
 
 import com.google.common.collect.Lists;
@@ -87,6 +88,13 @@ public class ContextUtil {
                 result.add(ctx);
         }
         return result;
+    }
+
+    public static List<OLAPContext> listContexts() {
+        if (CollectionUtils.isEmpty(OLAPContext.getThreadLocalContexts()))
+            return Lists.newArrayList();
+
+        return Lists.newArrayList(OLAPContext.getThreadLocalContexts());
     }
 
     public static boolean qualifiedForAggInfoPushDown(RelNode currentRel, OLAPContext subContext) {

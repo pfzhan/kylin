@@ -267,10 +267,10 @@ public abstract class TupleFilter {
 
         if (filter instanceof ColumnTupleFilter) {
             ColumnTupleFilter columnTupleFilter = (ColumnTupleFilter) filter;
-            TblColRef filtercol = columnTupleFilter.getColumn();
-            filtercol.setFilterLevel(
+            TblColRef filterCol = columnTupleFilter.getColumn();
+            collector.add(filterCol);
+            filterCol.setFilterLevel(
                     isRangeFilter ? TblColRef.FilterColEnum.RANGE_FILTER : TblColRef.FilterColEnum.EQUALS_FILTER);
-            collector.add(filtercol);
         }
 
         for (TupleFilter child : filter.getChildren()) {

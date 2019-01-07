@@ -120,7 +120,7 @@ public class QueryContextCutter {
 
     private void cutContext(OLAPRel rootOfSubCtxTree, RelNode queryRoot) {
         if (strategy.needCutOff(rootOfSubCtxTree)) {
-            strategy.cutOffContext(rootOfSubCtxTree);
+            strategy.cutOffContext(rootOfSubCtxTree, queryRoot);
         }
         if (strategy instanceof FirstRoundContextCutStrategy) {
             ContextUtil.dumpCalcitePlan("EXECUTION PLAN AFTER OLAPCONTEXT IS SET IN FIRST ROUND", queryRoot);

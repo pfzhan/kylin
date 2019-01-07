@@ -34,7 +34,7 @@ import io.kyligence.kap.query.relnode.KapRel;
 
 public interface ICutContextStrategy {
 
-    public List<OLAPRel> cutOffContext(OLAPRel rootRel);
+    public List<OLAPRel> cutOffContext(OLAPRel rootRel, RelNode parentOfRoot);
 
     public boolean needCutOff(OLAPRel rootRel);
 
@@ -49,7 +49,7 @@ public interface ICutContextStrategy {
             ((KapRel) input).implementCutContext(this);
         }
 
-        public OLAPContext allocateContext(KapRel topNode, KapRel parentOfTopNode) {
+        public OLAPContext allocateContext(KapRel topNode, RelNode parentOfTopNode) {
             OLAPContext context = new OLAPContext(ctxSeq++);
             OLAPContext.registerContext(context);
             context.setTopNode(topNode);

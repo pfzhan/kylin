@@ -87,6 +87,7 @@ import org.apache.kylin.metadata.filter.ConstantTupleFilter;
 import org.apache.kylin.metadata.filter.DynamicTupleFilter;
 import org.apache.kylin.metadata.filter.ExtractTupleFilter;
 import org.apache.kylin.metadata.filter.FilterOptimizeTransformer;
+import org.apache.kylin.metadata.filter.InnerColumnTupleFilter;
 import org.apache.kylin.metadata.filter.LogicalTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter.FilterOperatorEnum;
@@ -308,8 +309,11 @@ public class OLAPFilterRel extends Filter implements OLAPRel {
         @Override
         public TupleFilter visitInputRef(RexInputRef inputRef) {
             TblColRef column = inputRowType.getColumnByIndex(inputRef.getIndex());
-            ColumnTupleFilter filter = new ColumnTupleFilter(column);
-            return filter;
+            if (column.isInnerColumn()) {
+                return new InnerColumnTupleFilter(column);
+            } else {
+                return new ColumnTupleFilter(column);
+            }
         }
 
         @SuppressWarnings("unused")

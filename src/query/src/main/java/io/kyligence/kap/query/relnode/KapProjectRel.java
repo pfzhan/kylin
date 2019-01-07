@@ -54,6 +54,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.query.util.ICutContextStrategy;
+import lombok.Setter;
 
 /**
  */
@@ -61,6 +62,8 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
     List<RexNode> exps;
     private boolean beforeTopPreCalcJoin = false;
     private Set<OLAPContext> subContexts = Sets.newHashSet();
+    @Setter
+    private boolean needPushInfoToSubCtx = false;
 
     @Override
     public void implementCutContext(ICutContextStrategy.CutContextImplementor implementor) {
@@ -135,7 +138,7 @@ public class KapProjectRel extends OLAPProjectRel implements KapRel {
             this.afterAggregate = context.afterAggregate;
             if (this == context.getTopNode() && !context.isHasAgg())
                 KapContext.amendAllColsIfNoAgg(this);
-        } else {
+        } else if (this.needPushInfoToSubCtx) {
             updateSubContexts(subContexts);
         }
     }
