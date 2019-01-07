@@ -95,7 +95,7 @@
       <!-- <span class="ksd-fleft up-performance"><i class="el-icon-ksd-arrow_up"></i>提升<i>5%</i></span> -->
       <!-- <span class="ksd-fleft down-performance"><i class="el-icon-ksd-arrow_down"></i>下降<span>5%</span></span> -->
       <el-button plain  size="medium" @click="isShow && handleClose(false)">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button type="primary" v-guide.partitionSaveBtn plain @click="savePartition()" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
+      <el-button type="primary" v-if="isShow" v-guide.partitionSaveBtn plain @click="savePartition" size="medium">{{$t('kylinLang.common.ok')}}</el-button>
     </div>
   </el-dialog>
 </template>

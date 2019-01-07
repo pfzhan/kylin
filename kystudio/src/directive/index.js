@@ -439,7 +439,15 @@ Vue.directive('drag', {
 })
 // 收集guide dom
 Vue.directive('guide', {
-  inserted: function (el, binding) {
+  // bind: function (el, binding, vnode) {
+  //   console.log('----', vnode.key, vnode)
+  //   // 设置alone参数 避免虚拟dom重用导致指令生命周期错误
+  //   let keys = binding.modifiers
+  //   if (binding.arg === 'alone') {
+  //     vnode.key = Object.keys(keys).join('-')
+  //   }
+  // },
+  inserted: function (el, binding, vnode) {
     let keys = binding.modifiers
     let storeGuide = store.state.system.guideConfig.targetList
     if (storeGuide) {

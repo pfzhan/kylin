@@ -274,17 +274,6 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      target: 'partitionFormat' // 飞向format输入框
-    },
-    {
-      eventID: 31,
-      done: false,
-      target: 'partitionFormat', // 输入partition输入
-      val: 'yyyyMMdd'
-    },
-    {
-      eventID: 1,
-      done: false,
       target: 'partitionSaveBtn' // 飞向partition保存按钮
     },
     {
