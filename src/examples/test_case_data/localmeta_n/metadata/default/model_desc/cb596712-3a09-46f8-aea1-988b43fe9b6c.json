@@ -116,6 +116,30 @@
         },
         "returntype": "bigint"
       }
+    },
+    {
+      "id": 100002,
+      "name": "SUM_2",
+      "function": {
+        "expression": "SUM",
+        "parameter": {
+          "type": "constant",
+          "value": "1.0"
+        },
+        "returntype": "double"
+      }
+    },
+    {
+      "id": 100003,
+      "name": "SUM_3",
+      "function": {
+        "expression": "SUM",
+        "parameter": {
+          "type": "constant",
+          "value": "1.0"
+        },
+        "returntype": "decimal(19,4)"
+      }
     }
   ],
   "column_correlations": [],

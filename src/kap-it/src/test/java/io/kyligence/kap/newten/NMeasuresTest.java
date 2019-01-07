@@ -53,6 +53,7 @@ import org.apache.kylin.metadata.model.ParameterDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.spark.SparkContext;
+import org.apache.spark.sql.execution.utils.SchemaProcessor;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -104,7 +105,6 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         config.setProperty("kap.storage.columnar.ii-spill-threshold-mb", "128");
 
         buildCuboid();
-
         //build is done, start to test query
         SparkContext existingCxt = SparkContext.getOrCreate(sparkConf);
         existingCxt.stop();
@@ -112,10 +112,10 @@ public class NMeasuresTest extends NLocalWithSparkSessionTest {
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));
         kapSparkSession.use("default");
         populateSSWithCSVData(config, "default", kapSparkSession);
-
+        SchemaProcessor.checkSchema(kapSparkSession, "cb596712-3a09-46f8-aea1-988b43fe9b6c", getProject());
         String querySql = fetchQuerySql();
         Assert.assertEquals(
-                "select ID1,COUNT(*),SUM(1),SUM(ID1),SUM(ID2),SUM(ID3),SUM(ID4),SUM(PRICE1),SUM(PRICE2),"
+                "select ID1,COUNT(*),SUM(1),SUM(1.0),SUM(1.0),SUM(ID1),SUM(ID2),SUM(ID3),SUM(ID4),SUM(PRICE1),SUM(PRICE2),"
                         + "SUM(PRICE3),SUM(PRICE5),SUM(PRICE6),SUM(PRICE7),SUM(NAME4),MAX(ID1),MAX(ID2),MAX(ID3),"
                         + "MAX(ID4),MAX(PRICE1),MAX(PRICE2),MAX(PRICE3),MAX(PRICE5),MAX(PRICE6),MAX(PRICE7),MAX(NAME1),"
                         + "MAX(NAME2),MAX(NAME3),MAX(NAME4),MAX(TIME1),MAX(TIME2),MAX(FLAG),MIN(ID1),MIN(ID2),MIN(ID3),"

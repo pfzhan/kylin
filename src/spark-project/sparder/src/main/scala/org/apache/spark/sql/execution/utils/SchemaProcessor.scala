@@ -23,39 +23,116 @@
  */
 package org.apache.spark.sql.execution.utils
 
+import java.util
+
+import io.kyligence.kap.cube.model.{LayoutEntity, NDataflow, NDataflowManager, NDataSegment}
+import io.kyligence.kap.query.runtime.plan.TableScanPlan
+import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.gridtable.GTInfo
-import org.apache.kylin.metadata.model.ColumnDesc
+import org.apache.kylin.metadata.model.{ColumnDesc, FunctionDesc}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.{SparderConstants, SparderTypeUtil}
+import org.apache.spark.sql.SparkSession
 
 import scala.collection.JavaConverters._
 
 // scalastyle:off
 object SchemaProcessor {
 
-  def buildGTSchema(coolumnMapping: Array[String],
+  def buildGTSchema(cuboid: LayoutEntity,
                     gTInfo: GTInfo,
-                    tableName: String): StructType = {
+                    tableName: String): (StructType, Seq[String]) = {
+
+    (genCuboidSchemaFromNCuboidLayout(cuboid),genColumnNames(tableName, cuboid, gTInfo))
+  }
+
+  private def genColumnNames(tableName: String, cuboid: LayoutEntity, gTInfo: GTInfo) = {
+    val coolumnMapping = initColumnNameMapping(cuboid).map(_._1)
     val measures = gTInfo.getAllColumns.andNot(gTInfo.getPrimaryKey).asScala
-    val dimensionStructType = gTInfo.getPrimaryKey.asScala.map { i =>
+    gTInfo.getPrimaryKey.asScala.map { i =>
+      FactTableCulumnInfo(tableName, i, coolumnMapping.apply(i)).toString
+    }.toSeq ++
+      measures
+        .map { i =>
+          FactTableCulumnInfo(tableName, i, coolumnMapping.apply(i)).toString
+        }
+        .toSeq
+  }
+
+  def genCuboidSchemaFromNCuboidLayout(cuboid: LayoutEntity) : StructType = {
+    StructType(cuboid.getOrderedDimensions.asScala.map { i =>
       StructField(
-        FactTableCulumnInfo(tableName, i, coolumnMapping.apply(i)).toString,
-        SparderTypeUtil.toSparkType(gTInfo.getColumnType(i)),
+        i._1.toString,
+        SparderTypeUtil.toSparkType(i._2.getType),
         nullable = true
       )
-    }.toSeq
+    }.toSeq ++
+      cuboid.getOrderedMeasures.asScala.map{
+      i =>
+        StructField(
+          i._1.toString,
+          generateFunctionReturnDataType(i._2.getFunction),
+          nullable = true)
+    }.toSeq)
+  }
 
-    val measuresStructType = StructType(
-      measures
-        .map(i => {
-          StructField(
-            FactTableCulumnInfo(tableName, i, coolumnMapping.apply(i)).toString,
-            SparderTypeUtil.toSparkType(
-              gTInfo.getColumnType(i)),
-            nullable = true)
-        })
-        .toSeq)
-    StructType(dimensionStructType).merge(measuresStructType)
+  def initColumnNameMapping(cuboid: LayoutEntity): Array[(String, String)] = {
+    val cols = cuboid.getColumns.asScala.map(col =>
+      (col.getIdentity.replace(".", "_"), col.getType.getName)
+    ).toArray
+
+    // "getOrderedMeasures" returns a map, need toList
+    val measures = cuboid.getOrderedMeasures.asScala.toList.map(measure =>
+      (measure._2.getName.replace(".", "_"), measure._2.getFunction.getReturnType)
+    ).toArray
+
+    cols ++ measures
+  }
+
+  def generateFunctionReturnDataType(function: FunctionDesc): DataType = {
+    function.getExpression.toUpperCase match {
+      case "SUM" =>
+        val parameter = function.getParameter
+        if (parameter.isColumnType) {
+          SparderTypeUtil.toSparkType(function.getParameter.getColRef.getType, true)
+        } else {
+          SparderTypeUtil.toSparkType(function.getReturnDataType, true)
+        }
+      case "COUNT" => LongType
+      case x if x.startsWith("TOP_N")  =>
+        val parameter = function.getParameter.getNextParameter
+        // only support 1 dim
+        DataTypes.createArrayType(StructType(Seq(
+          StructField("measure", DoubleType),
+          StructField("dim", StructType(Seq(StructField(s"DIMENSION_${parameter.getColRef.getName}", SparderTypeUtil.toSparkType(parameter.getColRef.getType)))))
+        )))
+      case "MAX" | "MIN" =>
+        val parameter = function.getParameter
+        if (parameter.isColumnType) {
+          SparderTypeUtil.toSparkType(function.getParameter.getColRef.getType)
+        } else {
+          SparderTypeUtil.toSparkType(function.getReturnDataType)
+        }
+      case _ =>  SparderTypeUtil.toSparkType(function.getReturnDataType)
+    }
+  }
+
+  def checkSchema(sparkSession: SparkSession, dfName: String, project: String): Unit = {
+    val config: KylinConfig = KylinConfig.getInstanceFromEnv
+    val dsMgr: NDataflowManager = NDataflowManager.getInstance(config, project)
+    val df: NDataflow = dsMgr.getDataflow(dfName)
+    val latestReadySegment: NDataSegment = df.getQueryableSegments.getFirstSegment
+    val allCuboidLayouts: util.List[LayoutEntity] = df.getIndexPlan.getAllLayouts
+    val base: String = KapConfig.getInstanceFromEnv.getReadParquetStoragePath(df.getProject)
+    import scala.collection.JavaConversions._
+    for (nCuboidLayout <- allCuboidLayouts) {
+      val path: String = TableScanPlan.toCuboidPath(df, nCuboidLayout.getId, base, latestReadySegment)
+      val schema: StructType = sparkSession.read.parquet(path).schema
+      val schemaFromNCuboidLayout: StructType = SchemaProcessor.genCuboidSchemaFromNCuboidLayout(nCuboidLayout)
+      if (!(schema == schemaFromNCuboidLayout)) {
+        throw new RuntimeException(s"Check schema failed : dfName: $dfName, layoutId: ${nCuboidLayout.getId}, actual: ${schemaFromNCuboidLayout.treeString}, expect: ${schema.treeString}")
+      }
+    }
   }
 
   def factTableSchemaNameToColumnId(schemaName: String): Int = {

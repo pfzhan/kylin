@@ -27,9 +27,7 @@ import org.apache.kylin.gridtable.GTInfo
 import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{SQLContext, SparderEnv, SparkSession}
-
-import scala.collection.JavaConverters._
+import org.apache.spark.sql.{SparderEnv, SparkSession, SQLContext}
 
 // scalastyle:off
 case class CubeRelation(tableName: String
@@ -38,24 +36,12 @@ case class CubeRelation(tableName: String
                         , cuboid: LayoutEntity
                         , metrics: java.util.Set[FunctionDesc]
                        )(val sparkSession: SparkSession) extends KylinRelation {
+  var columnNames: Seq[String] = _
 
   def initSchema(): StructType = {
-    val columnMapping = initColumnNameMapping(cuboid)
-    val sourceSchema = SchemaProcessor.buildGTSchema(columnMapping.map(_._1), info, tableName)
-    sourceSchema
-  }
-
-  def initColumnNameMapping(cuboid: LayoutEntity): Array[(String, String)] = {
-    val cols = cuboid.getColumns.asScala.map(col =>
-      (col.getIdentity.replace(".", "_"), col.getType.getName)
-    ).toArray
-
-    // "getOrderedMeasures" returns a map, need toList
-    val measures = cuboid.getOrderedMeasures.asScala.toList.map(measure =>
-      (measure._2.getName.replace(".", "_"), measure._2.getFunction.getReturnType)
-    ).toArray
-
-    cols ++ measures
+    val tp = SchemaProcessor.buildGTSchema(cuboid, info, tableName)
+    columnNames = tp._2
+    tp._1
   }
 
   override def sqlContext: SQLContext = SparderEnv.getSparkSession.sqlContext

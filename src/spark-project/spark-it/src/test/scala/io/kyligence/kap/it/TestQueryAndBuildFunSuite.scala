@@ -30,6 +30,7 @@ import io.netty.util.internal.ThrowableUtil
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.SparderEnv
 import org.apache.spark.sql.common.{LocalMetadata, SparderBaseFunSuite}
+import org.apache.spark.sql.execution.utils.SchemaProcessor
 
 class TestQueryAndBuildFunSuite
   extends SparderBaseFunSuite
@@ -172,6 +173,8 @@ class TestQueryAndBuildFunSuite
 
       // replace metadata with new one after build
       dumpMetadata()
+      SchemaProcessor.checkSchema(spark, "89af4ee2-2cdb-4b07-b39e-4c29856309aa", DEFAULT_PROJECT)
+      SchemaProcessor.checkSchema(spark, "741ca86a-1f13-46da-a59f-95fb68615e3a", DEFAULT_PROJECT)
     }
 
   }

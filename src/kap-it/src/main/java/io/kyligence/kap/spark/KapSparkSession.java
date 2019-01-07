@@ -52,6 +52,7 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.execution.utils.SchemaProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Sets;
@@ -273,6 +274,7 @@ public class KapSparkSession extends SparkSession {
                     merger.mergeAfterCatchup(df.getUuid(), segIds, layoutIds, buildStore);
                 }
                 merger.mergeAnalysis(df.getUuid(), analysisStore);
+                SchemaProcessor.checkSchema(this, df.getUuid(), project);
             }
         }
     }

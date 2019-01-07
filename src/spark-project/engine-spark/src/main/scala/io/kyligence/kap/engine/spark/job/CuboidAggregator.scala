@@ -29,7 +29,6 @@ import java.util
 import io.kyligence.kap.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.engine.spark.builder.DFFlatTableEncoder
 import io.kyligence.kap.metadata.model.NDataModel
-import org.apache.commons.lang3.StringUtils
 import org.apache.kylin.measure.bitmap.BitmapMeasureType
 import org.apache.kylin.measure.hllc.HLLCMeasureType
 import org.apache.kylin.metadata.model.TblColRef
@@ -37,6 +36,7 @@ import org.apache.spark.sql.functions.{col, _}
 import org.apache.spark.sql.types.{StringType, _}
 import org.apache.spark.sql.util.SparderTypeUtil.toSparkType
 import org.apache.spark.sql.{Column, DataFrame, SparkSession}
+import org.apache.spark.sql.util.SparderTypeUtil
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -64,7 +64,7 @@ object CuboidAggregator {
         .dropDuplicates()
     }
 
-    val afterAgg = dataSet.schema.fieldNames
+    val reuseLayout = dataSet.schema.fieldNames
       .contains(measures.keySet().asScala.head.toString)
     val coulmnIndex =
       dataSet.schema.fieldNames.zipWithIndex.map(tp => (tp._2, tp._1)).toMap
@@ -76,7 +76,7 @@ object CuboidAggregator {
       val columns = new mutable.ListBuffer[Column]
       if (parameters.head.isColumnType) {
         try {
-          if (afterAgg) {
+          if (reuseLayout) {
             columns.append(col(measureEntry._1.toString))
           } else {
             columns.appendAll(parameters.map(p => col(coulmnIndex.apply(flatTableDesc.getColumnIndex(p.getColRef)))))
@@ -86,18 +86,12 @@ object CuboidAggregator {
             throw e
         }
       } else {
-        if (afterAgg) {
+        if (reuseLayout) {
           columns.append(col(measureEntry._1.toString))
         } else {
           if (function.getExpression.equalsIgnoreCase("SUM")) {
             val parameteter = parameters.head.getValue
-            if (StringUtils.isNumeric(parameteter))  {
-                if (parameteter.contains(".")) {
-                  columns.append(lit(parameteter.toDouble))
-                } else {
-                  columns.append(lit(parameteter.toLong))
-                }
-            }
+            columns.append(lit(parameteter).cast(SparderTypeUtil.toSparkType(function.getReturnDataType)))
           } else {
             columns.append(lit(parameters.head.getValue))
           }
@@ -112,7 +106,7 @@ object CuboidAggregator {
         case "SUM" =>
           sum(columns.head).as(measureEntry._1.toString)
         case "COUNT" =>
-          if (afterAgg) {
+          if (reuseLayout) {
             sum(columns.head).as(measureEntry._1.toString)
           } else {
             count(columns.head).as(measureEntry._1.toString)
@@ -124,8 +118,8 @@ object CuboidAggregator {
             val udfName = UdfManager.register(function.getReturnDataType,
               function.getExpression,
               null,
-              !afterAgg)
-            if (!afterAgg) {
+              !reuseLayout)
+            if (!reuseLayout) {
               var col = columns.head
               if (function.getReturnDataType.getName.equalsIgnoreCase(BitmapMeasureType.DATATYPE_BITMAP)) {
                 col = wrapEncodeColumn(parameters.head.getColRef, columns.head)
@@ -152,11 +146,11 @@ object CuboidAggregator {
           })
 
           val udfName = UdfManager.register(function.getReturnDataType,
-            function.getExpression, schema, !afterAgg)
+            function.getExpression, schema, !reuseLayout)
           callUDF(udfName, columns: _*).as(measureEntry._1.toString)
         case "PERCENTILE_APPROX" =>
-          val udfName = UdfManager.register(function.getReturnDataType, function.getExpression, null, !afterAgg)
-          if (!afterAgg) {
+          val udfName = UdfManager.register(function.getReturnDataType, function.getExpression, null, !reuseLayout)
+          if (!reuseLayout) {
             callUDF(udfName, columns.head.cast(StringType)).as(measureEntry._1.toString)
           } else {
             callUDF(udfName, columns.head).as(measureEntry._1.toString)
@@ -165,11 +159,50 @@ object CuboidAggregator {
     }.toSeq
 
     if (!dimensions.isEmpty) {
-      dataSet
+      val df = dataSet
         .groupBy(NSparkCubingUtil.getColumns(dimensions): _*)
         .agg(agg.head, agg.drop(1): _*)
+
+      // to avoid sum(decimal) add more precision for example: sum(decimal(19,4)) -> decimal(29,4)  sum(sum(decimal(19,4))) -> decimal(38,4)
+      if (reuseLayout) {
+        val seq = dataSet.schema
+        val columns = NSparkCubingUtil.getColumns(dimensions)  ++
+          measures.asScala.map{
+            measure =>
+              measure._2.getFunction.getExpression.toUpperCase match {
+                case "SUM" =>
+                  val measureId = measure._1.toString
+                  val dataType = seq.find(_.name.equals(measureId)).map(_.dataType).get
+                  col(measureId).cast(dataType).as(measureId)
+                case _ =>
+                  val measureId = measure._1.toString
+                  col(measureId)
+              }
+          }
+        df.select(columns: _*)
+      } else {
+        df
+      }
     } else {
-      dataSet.agg(agg.head, agg.drop(1): _*)
+     val df = dataSet.agg(agg.head, agg.drop(1): _*)
+      if (reuseLayout) {
+        val seq = dataSet.schema
+        val columns = measures.asScala.map{
+          measure =>
+            measure._2.getFunction.getExpression.toUpperCase match {
+              case "SUM" =>
+                val measureId = measure._1.toString
+                val dataType = seq.find(_.name.equals(measureId)).map(_.dataType).get
+                col(measureId).cast(dataType).as(measureId)
+              case _ =>
+                val measureId = measure._1.toString
+                col(measureId)
+            }
+        }.toSeq
+        df.select(columns: _*)
+      } else {
+        df
+      }
     }
   }
 

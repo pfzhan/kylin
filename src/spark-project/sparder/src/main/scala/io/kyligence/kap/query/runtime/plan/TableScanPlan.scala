@@ -41,10 +41,10 @@ import org.apache.kylin.metadata.realization.IRealization
 import org.apache.kylin.metadata.tuple.TupleInfo
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.datasource.CubeRelation
-import org.apache.spark.sql.execution.utils.SchemaProcessor
+import org.apache.spark.sql.execution.utils.{FactTableCulumnInfo, SchemaProcessor}
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.manager.SparderLookupManager
-import org.apache.spark.sql.types.{ArrayType, LongType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, DataTypes, DoubleType, LongType, StructField, StructType}
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, _}
 
@@ -55,10 +55,12 @@ object TableScanPlan extends Logging {
   private var session: SparkSession = SparderEnv.getSparkSession
   private val kylinConfig: KapConfig = KapConfig.getInstanceFromEnv
 
+  //
+  //
   def listSegmentsForQuery(cube: NDataflow): util.List[NDataSegment] = {
-    val r: util.List[NDataSegment] = new util.ArrayList[NDataSegment]
+    val r = new util.ArrayList[NDataSegment]
     import scala.collection.JavaConversions._
-    for (seg <- cube.getQuerableSegments()) {
+    for (seg <- cube.getQueryableSegments()) {
       r.add(seg)
     }
     r
@@ -85,11 +87,12 @@ object TableScanPlan extends Logging {
     val cuboidDF = cubeInstances
       .map {
         case dataflow: NDataflow =>
+          val segments = dataflow.getQueryableSegments
           olapContext.resetSQLDigest()
           val context = olapContext.storageContext
           val cuboidLayout = context.getCandidate.getCuboidLayout
 
-          val sourceBytes = dataflow.getSegments.asScala.map(_.getLayout(cuboidLayout.getId).getByteSize).sum
+          val sourceBytes = segments.asScala.map(_.getLayout(cuboidLayout.getId).getByteSize).sum
           QueryContext.current().addAndGetSourceScanBytes(sourceBytes)
 
           val tableName = olapContext.firstTableScan.getBackupAlias
@@ -101,37 +104,23 @@ object TableScanPlan extends Logging {
             CubeRelation(tableName, dataflow, info, cuboidLayout, context.getMetrics)(session)
           /////////////////////////////////////////////
           val kapConfig = KapConfig.wrap(dataflow.getConfig)
-          val segments = listSegmentsForQuery(dataflow)
           val basePath = kapConfig.getReadParquetStoragePath(dataflow.getProject)
           val fileList = segments.asScala.map(
             seg =>
-              s"$basePath${dataflow.getUuid}/${seg.getId}/${relation.cuboid.getId}"
+              toCuboidPath(dataflow, relation.cuboid.getId, basePath, seg)
           )
-          val dimFields = cuboidLayout.getOrderedDimensions.asScala.map {
-            entity =>
-              val dataType = SparderTypeUtil.toSparkType(entity._2.getColumnDesc.getType)
-              StructField(entity._1.toString, dataType)
-          }.toArray
-          val meaFields = cuboidLayout.getOrderedMeasures.asScala.map {
-            entity =>
-              val function = entity._2.getFunction
-              val dataType = generateFunctionReturnDataType(function)
-              StructField(entity._1.toString, dataType)
-          }.toArray
-
-          val parquetSchema = new StructType(dimFields ++ meaFields)
           cuboidLayout.getOrderedMeasures.asScala.map(entity => entity._2.getId)
           var df = if (cuboidLayout.getShardByColumns == null || cuboidLayout.getShardByColumns.isEmpty) {
-            session.read.schema(parquetSchema).parquet(fileList: _*).toDF(relation.schema.fieldNames: _*)
+            session.read.schema(relation.schema).parquet(fileList: _*).toDF(relation.columnNames: _*)
           } else {
             session.index
               .shardBy(
                 cuboidLayout.getShardByColumns.asScala
                   .map(column => column.toString)
                   .toArray)
-              .schema(parquetSchema)
+              .schema(relation.schema)
               .parquet(fileList.mkString(","))
-              .toDF(relation.schema.fieldNames: _*)
+              .toDF(relation.columnNames: _*)
           }
           /////////////////////////////////////////////
           val groups: util.Collection[TblColRef] =
@@ -178,7 +167,7 @@ object TableScanPlan extends Logging {
             derived,
             tableName,
             rel.getColumnRowType.getAllColumns.asScala.toList,
-            relation.schema,
+            df.schema,
             gtColIdx,
             tupleIdx,
             topNMapping)
@@ -189,18 +178,8 @@ object TableScanPlan extends Logging {
     cuboidDF
   }
 
-  def generateFunctionReturnDataType(function: FunctionDesc) = {
-    function.getExpression.toUpperCase match {
-      case "SUM" =>
-        val parameter = function.getParameter
-        if (parameter.isColumnType) {
-          SparderTypeUtil.toSparkType(function.getParameter.getColRef.getType, true)
-        } else {
-          SparderTypeUtil.toSparkType(function.getReturnDataType, true)
-        }
-      case "COUNT" => LongType
-      case _ => SparderTypeUtil.toSparkType(function.getReturnDataType)
-    }
+  def toCuboidPath(dataflow: NDataflow, cuboidId: Long, basePath: String, seg: NDataSegment): String = {
+    s"$basePath${dataflow.getUuid}/${seg.getId}/$cuboidId"
   }
 
   private def processTopN(topNMetric: FunctionDesc, df: DataFrame, topNFieldIndex: Int, tupleInfo: TupleInfo, tableName: String, relation: CubeRelation): (DataFrame, Map[Int, Column]) = {

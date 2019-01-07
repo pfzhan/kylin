@@ -572,7 +572,7 @@
       "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "DEAL_AMOUNT",
       "expression": "TEST_KYLIN_FACT.PRICE * TEST_KYLIN_FACT.ITEM_COUNT",
-      "datatype": "decimal",
+      "datatype": "decimal(30,4)",
       "comment": "deal amount of inner join model (with legacy expression format)"
     },
     {
@@ -588,7 +588,7 @@
       "tableAlias": "TEST_KYLIN_FACT",
       "columnName": "NEST1",
       "expression": "TEST_KYLIN_FACT.PRICE + 11",
-      "datatype": "decimal",
+      "datatype": "decimal(20,4)",
       "comment": "test nest1"
     },
     {
@@ -597,7 +597,7 @@
       "columnName": "NEST2",
       "expression": "TEST_KYLIN_FACT.NEST1 * 12",
       "innerExpression": "(TEST_KYLIN_FACT.PRICE + 11) * 12",
-      "datatype": "decimal",
+      "datatype": "decimal(23,4)",
       "comment": "test nest2"
     },
     {
@@ -606,7 +606,7 @@
       "columnName": "NEST3",
       "expression": "round(TEST_KYLIN_FACT.NEST2, 0)",
       "innerExpression": "round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0)",
-      "datatype": "decimal",
+      "datatype": "decimal(23,0)",
       "comment": "test nest3"
     },
     {
@@ -615,7 +615,7 @@
       "columnName": "NEST4",
       "expression": "TEST_KYLIN_FACT.NEST3 * TEST_KYLIN_FACT.ITEM_COUNT",
       "innerExpression": "round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0) * TEST_KYLIN_FACT.ITEM_COUNT",
-      "datatype": "decimal",
+      "datatype": "decimal(34,0)",
       "comment": "test nest4"
     }
   ],

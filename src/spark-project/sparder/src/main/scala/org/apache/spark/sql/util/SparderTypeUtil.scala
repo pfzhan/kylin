@@ -33,7 +33,7 @@ import org.apache.kylin.common.util.DateFormat
 import org.apache.kylin.metadata.datatype.DataType
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.Column
+import org.apache.spark.sql.{types, Column}
 import org.apache.spark.sql.catalyst.expressions.Cast
 import org.apache.spark.sql.functions._
 
@@ -103,7 +103,12 @@ object SparderTypeUtil extends Logging {
   def toSparkType(dataTp: DataType, isSum: Boolean = false): org.apache.spark.sql.types.DataType = {
     dataTp.getName match {
     // org.apache.spark.sql.catalyst.expressions.aggregate.Sum#resultType
-      case "decimal" => if (isSum) DecimalType(dataTp.getPrecision + 10, dataTp.getScale) else DecimalType(dataTp.getPrecision, dataTp.getScale)
+      case "decimal" =>
+        if (isSum) {
+        val i = dataTp.getPrecision + 10
+        DecimalType(Math.min(DecimalType.MAX_PRECISION, i), dataTp.getScale)
+      }
+        else DecimalType(dataTp.getPrecision, dataTp.getScale)
       case "date" => DateType
       case "time" => DateType
       case "timestamp" => TimestampType
@@ -121,12 +126,6 @@ object SparderTypeUtil extends Logging {
       case "dim_dc" => LongType
       case "boolean" => BooleanType
       case tp if tp.startsWith("hllc") => BinaryType
-      case tp if tp.startsWith("topn") => ArrayType(
-        // will not use this schema, just for placeholder
-        StructType(Seq(
-          StructField("dim", StringType),
-          StructField("measure", DoubleType)
-        )))
       case tp if tp.startsWith("bitmap") => BinaryType
       case tp if tp.startsWith("extendedcolumn") => BinaryType
       case tp if tp.startsWith("percentile") => BinaryType

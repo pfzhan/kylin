@@ -356,7 +356,7 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals("1305680419000", range.getEnd().toString());
 
         df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
-        val segs = df.getQuerableSegments();
+        val segs = df.getQueryableSegments();
         Assert.assertEquals(1, segs.size());
 
         Assert.assertEquals("1293194019000", segs.get(0).getSegRange().getStart().toString());

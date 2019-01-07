@@ -252,7 +252,7 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
         return segments.getMergingSegments(mergedSegment);
     }
 
-    public Segments<NDataSegment> getQuerableSegments() {
+    public Segments<NDataSegment> getQueryableSegments() {
         val loadingRangeManager = NDataLoadingRangeManager.getInstance(config, project);
         val loadingRange = loadingRangeManager.getDataLoadingRange(getModel().getRootFactTableName());
         if (loadingRange == null) {
