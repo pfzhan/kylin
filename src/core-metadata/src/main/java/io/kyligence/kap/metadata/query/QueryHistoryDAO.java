@@ -26,6 +26,7 @@ package io.kyligence.kap.metadata.query;
 
 import java.util.List;
 
+import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -149,6 +150,8 @@ public class QueryHistoryDAO {
     public QueryStatistics getQueryCountAndAvgDuration(long startTime, long endTime) {
         String sql = getQueryStatisticsSql(startTime, endTime);
         List<QueryStatistics> result = getResultBySql(sql, QueryStatistics.class, this.queryMetricMeasurement);
+        if (CollectionUtils.isEmpty(result))
+            return new QueryStatistics();
         return result.get(0);
     }
 

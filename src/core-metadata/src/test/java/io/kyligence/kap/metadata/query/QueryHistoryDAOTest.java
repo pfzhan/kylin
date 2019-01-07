@@ -270,6 +270,13 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         Assert.assertNotNull(queryStatistics);
         Assert.assertEquals(1000, queryStatistics.getCount());
         Assert.assertEquals(3000, queryStatistics.getMeanDuration(), 0.1);
+
+        // case of no data
+        QueryHistoryDAO.influxDB = mockInfluxDB(getEmptyQueryStatistics());
+        queryStatistics = queryHistoryDAO.getQueryCountAndAvgDuration(0L, Long.MAX_VALUE);
+        Assert.assertNotNull(queryStatistics);
+        Assert.assertEquals(0, queryStatistics.getCount());
+        Assert.assertEquals(0, queryStatistics.getMeanDuration(), 0.1);
     }
 
     @Test
@@ -394,6 +401,16 @@ public class QueryHistoryDAOTest extends NLocalFileMetadataTestCase {
         sb.append("\"columns\":[\"count\",\"mean\"],");
         // row
         sb.append("\"values\":[[1000,3000]]}]}]}");
+        return sb.toString();
+    }
+
+    private String getEmptyQueryStatistics() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("{\"results\":[{\"series\":[{\"name\":\"%s\",", queryMeasurement));
+        // column
+        sb.append("\"columns\":[\"count\",\"mean\"],");
+        // row
+        sb.append("\"values\":[]}]}]}");
         return sb.toString();
     }
 
