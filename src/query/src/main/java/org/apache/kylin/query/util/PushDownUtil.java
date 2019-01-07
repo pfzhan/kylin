@@ -46,7 +46,6 @@ package org.apache.kylin.query.util;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 import org.apache.calcite.sql.SqlBasicCall;
@@ -131,7 +130,7 @@ public class PushDownUtil {
                 completed = schemaCompletion(sql, defaultSchema);
             } catch (SqlParseException e) {
                 // fail to parse the pushdown sql, ignore
-                logger.debug("fail to do schema completion on the pushdown sql, ignore it.", e.getMessage());
+                logger.debug("fail to do schema completion on the pushdown sql, ignore it. {}", e.getMessage());
             }
             if (!sql.equals(completed)) {
                 logger.info("the query is converted to {} after schema completion", completed);
@@ -139,7 +138,7 @@ public class PushDownUtil {
             }
         }
 
-        QueryUtil.massagePushDownSql(kylinConfig, sql, project, defaultSchema, isPrepare);
+        sql = QueryUtil.massagePushDownSql(kylinConfig, sql, project, defaultSchema, isPrepare);
 
         List<List<String>> returnRows = Lists.newArrayList();
         List<SelectedColumnMeta> returnColumnMeta = Lists.newArrayList();
@@ -247,12 +246,9 @@ public class PushDownUtil {
         }
 
         // make the behind position in the front of the list, so that the front position will not be affected when replaced
-        Collections.sort(tablesPos, new Comparator<Pair<Integer, Integer>>() {
-            @Override
-            public int compare(Pair<Integer, Integer> o1, Pair<Integer, Integer> o2) {
-                int r = o2.getFirst() - o1.getFirst();
-                return r == 0 ? o2.getSecond() - o1.getSecond() : r;
-            }
+        Collections.sort(tablesPos, (o1, o2) -> {
+            int r = o2.getFirst() - o1.getFirst();
+            return r == 0 ? o2.getSecond() - o1.getSecond() : r;
         });
 
         StrBuilder afterConvert = new StrBuilder(inputSql);
