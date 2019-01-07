@@ -6,7 +6,7 @@
     :placeholder="$t('kylinLang.project.selectProject')"
     v-model="selected_project"
     @change="changeProject">
-    <span slot="prefix" class="el-input__icon" :class="isAutoProject ? 'el-icon-ksd-smart_mode' : 'el-icon-ksd-expert_mode'"></span>
+    <span slot="prefix" class="el-input__icon" :class="isAutoProject ? 'el-icon-ksd-smart_mode_small' : 'el-icon-ksd-expert_mode_small'"></span>
     <el-option
       v-for="item in projectList" :key="item.name"
       :label="item.name"

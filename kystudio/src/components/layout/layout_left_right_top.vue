@@ -222,8 +222,8 @@ let MessageBox = ElementUI.MessageBox
     }
   },
   locales: {
-    'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Are you sure to exit?', validPeriod: 'Valid Period: ', overtip1: 'This License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know', speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> models! Do you want to apply it?', ignore: 'Ignore', apply: 'Apply', hello: 'Hi {user},', leaveAdmin: 'You will leave Admin mode...', enterAdmin: 'You will enter Admin mode...'},
-    'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '我知道了', speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的模型有 <span class="ky-highlight-text">{modelCount}</span> 个！同意此次加速吗？', ignore: '忽略建议', apply: '同意', hello: '{user} 你好，', leaveAdmin: '你即将离开 Admin 模式...', enterAdmin: '你即将进入 Admin 模式...'}
+    'en': {resetPassword: 'Reset Password', confirmLoginOut: 'Are you sure to exit?', validPeriod: 'Valid Period: ', overtip1: 'This License will be expired in ', overtip2: 'days. Please contact sales support to apply for the Enterprise License.', applayLisence: 'Apply for Enterprise License', 'continueUse': 'I Know', speedTip: 'System will accelerate <span class="ky-highlight-text">{queryCount}</span> queries: this will optimize <span class="ky-highlight-text">{modelCount}</span> models! Do you want to apply it?', ignore: 'Ignore', apply: 'Apply', hello: 'Hi {user},', leaveAdmin: 'Going to leave the administration mode.', enterAdmin: 'Hi {username}, welcome to the administration mode.'},
+    'zh-cn': {resetPassword: '重置密码', confirmLoginOut: '确认退出吗？', validPeriod: '使用期限: ', overtip1: '当前使用的许可证将在 ', overtip2: '天后过期。欢迎联系销售支持人员申请企业版许可证。', applayLisence: '申请企业版许可证', 'continueUse': '我知道了', speedTip: '系统即将加速 <span class="ky-highlight-text">{queryCount}</span> 条查询：需要优化的模型有 <span class="ky-highlight-text">{modelCount}</span> 个！同意此次加速吗？', ignore: '忽略建议', apply: '同意', hello: '{user} 你好，', leaveAdmin: '您即将离开系统管理。', enterAdmin: '{username} 你好，欢迎进入系统管理。'}
   }
 })
 export default class LayoutLeftRightTop extends Vue {
@@ -279,7 +279,7 @@ export default class LayoutLeftRightTop extends Vue {
   }
   setGlobalMask (notifyContect) {
     this.isGlobalMaskShow = true
-    this.notifyContect = this.$t(notifyContect)
+    this.notifyContect = this.$t(notifyContect, this.currentUserInfo)
   }
   hideGlobalMask () {
     this.isGlobalMaskShow = false
@@ -908,7 +908,9 @@ export default class LayoutLeftRightTop extends Vue {
         left: 50%;
         transform: translateX(-50%);
         height: 50px;
-        width: 300px;
+        min-width: 300px;
+        white-space: nowrap;
+        padding: 0 40px;
         line-height: 50px;
         background: @base-color;
         color: @fff;

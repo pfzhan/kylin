@@ -310,8 +310,8 @@ export default class SettingBasic extends Vue {
     transform: scale(0.8);
     transform-origin: left;
   }
-  .el-icon-ksd-expert_mode,
-  .el-icon-ksd-smart_mode {
+  .el-icon-ksd-expert_mode_small,
+  .el-icon-ksd-smart_mode_small {
     margin-right: 5px;
   }
 }

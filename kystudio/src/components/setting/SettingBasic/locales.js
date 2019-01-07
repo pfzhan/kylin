@@ -81,12 +81,12 @@ export default {
     MONTH: '一月',
     QUARTER: '三个月',
     YEAR: '一年',
-    storageSettings: 'Storage Settings',
-    storageQuota: 'Storage Quota:',
-    storageQuotaDesc: 'Granted storage quota by system admin. If your project storage exceeds the quota, you would be forbidden to build new index or load more data.',
-    storageGarbage: 'Storage Garbage',
-    storageGarbageDesc1: 'Index or query repeatedly used',
-    storageGarbageDesc2: 'times or below in a month.',
-    snapshotSize: 'Snapshot Size'
+    storageSettings: '存储设置',
+    storageQuota: '存储配额：',
+    storageQuotaDesc: '系统管理员授权存储配额。如果当前项目达到存储配额，您将会被禁止创建新的索引或者加载更多数据。',
+    storageGarbage: '存储垃圾',
+    storageGarbageDesc1: '索引或者查询将会被复用',
+    storageGarbageDesc2: '次一个月。',
+    snapshotSize: '快照大小'
   }
 }

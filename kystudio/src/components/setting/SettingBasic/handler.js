@@ -1,6 +1,6 @@
 export const projectTypeIcons = {
-  MANUAL_MAINTAIN: 'el-icon-ksd-expert_mode',
-  AUTO_MAINTAIN: 'el-icon-ksd-smart_mode'
+  MANUAL_MAINTAIN: 'el-icon-ksd-expert_mode_small',
+  AUTO_MAINTAIN: 'el-icon-ksd-smart_mode_small'
 }
 export const autoMergeTypes = [
   'DAY',
