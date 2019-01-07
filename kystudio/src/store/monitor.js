@@ -10,6 +10,12 @@ export default {
     [types.GET_JOB_DETAIL]: function ({ commit }, para) {
       return api.monitor.getJobDetail(para)
     },
+    [types.LOAD_WAITTING_JOB_MODELS]: function ({ commit }, para) {
+      return api.monitor.losdWaittingJobModels(para)
+    },
+    [types.LOAD_WAITTING_JOBS_BY_MODEL]: function ({ commit }, para) {
+      return api.monitor.laodWaittingJobsByModel(para)
+    },
     [types.EXPORT_PUSHDOWN]: function ({ commit }, para) {
       return api.monitor.exportPushDownQueries(para)
     },

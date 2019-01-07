@@ -52,7 +52,7 @@
     </el-table-column>
     <el-table-column :label="$t('kylinLang.common.action')" align="center" width="100">
       <template slot-scope="props">
-        <span @click="delFav(props.row.uuid)">
+        <span @click="delFav(props.row.uuid, props.row.channel)">
           <i class="el-icon-ksd-table_delete" v-if="props.row.channel==='Imported'"></i>
           <i class="el-icon-ksd-table_discard" v-if="props.row.channel==='Rule-based'"></i>
         </span>
@@ -81,8 +81,8 @@ import { handleError } from '../../util/index'
     })
   },
   locales: {
-    'en': {delSql: 'Are you sure to delete this sql?'},
-    'zh-cn': {delSql: '确定删除这条查询语句吗？'}
+    'en': {delSql: 'Are you sure to delete this sql?', addToBlackList: 'Are you sure add this sql to the Black List'},
+    'zh-cn': {delSql: '确定删除这条查询语句吗？', addToBlackList: '确定将这条查询语句加入进勇名单吗？'}
   }
 })
 export default class FavoriteTable extends Vue {
@@ -143,8 +143,14 @@ export default class FavoriteTable extends Vue {
     this.$emit('filterFav', this.checkedStatus)
   }
 
-  delFav (uuid) {
-    kapConfirm(this.$t('delSql')).then(() => {
+  delFav (uuid, channel) {
+    let confirmMsg = ''
+    if (channel === 'Imported') {
+      confirmMsg = this.$t('delSql')
+    } else if (channel === 'Rule-based') {
+      confirmMsg = this.$t('addToBlackList')
+    }
+    kapConfirm(confirmMsg).then(() => {
       this.removeFavSql({project: this.currentSelectedProject, uuid: uuid}).then((res) => {
         handleSuccess(res, (data) => {
           this.filterFav()

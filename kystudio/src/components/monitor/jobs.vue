@@ -2,13 +2,13 @@
   <div class="jobs_list ksd-mrl-20" @click.stop>
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
       <el-col :span="18">
-        <el-dropdown class="ksd-fleft waiting-jobs" @command="handleCommand">
+        <el-dropdown class="ksd-fleft waiting-jobs" placement="bottom-start" @command="handleCommand">
           <el-button plain class="el-dropdown-link" size="medium">
-            50 {{$t('waitingjobs')}}<i class="el-icon-arrow-down el-icon--right"></i>
+            {{waittingJobModels.size}} {{$t('waitingjobs')}}<i class="el-icon-arrow-down el-icon--right"></i>
           </el-button>
           <el-dropdown-menu slot="dropdown">
-            <el-dropdown-item v-for="(item, index) in waitingJobs" :key="item.modelName" :command="index">
-              {{item.modelName}}: {{item.jobList.length}}{{$t('waitingjobs')}}
+            <el-dropdown-item v-for="(item, uuid) in waittingJobModels.data" :key="item.model_alias" :command="uuid">
+              {{item.model_alias}}: {{item.size}}{{$t('waitingjobs')}}
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
@@ -230,15 +230,16 @@
     <el-dialog :title="$t('waitingJobList')" :visible.sync="waitingJobListVisibel" width="440px">
       <div v-if="waitingJob">
         <span class="ksd-title-label ksd-fs-14">{{$t('jobTarget')}}</span>{{waitingJob.modelName}}
-        <el-table :data="waitingJob.jobList" border class="ksd-mt-10">
-          <el-table-column property="order" :label="$t('order')" width="60" align="center"></el-table-column>
-          <el-table-column property="jobType" :label="$t('JobType')" width="140"></el-table-column>
-          <el-table-column property="triggerTime" :label="$t('triggerTime')">
+        <el-table :data="waitingJob.jobsList" border class="ksd-mt-10">
+          <el-table-column type="index" :label="$t('order')" width="60" align="center"></el-table-column>
+          <el-table-column property="job_type" :label="$t('JobType')" width="140"></el-table-column>
+          <el-table-column property="create_time" :label="$t('triggerTime')">
             <template slot-scope="scope">
-              {{transToGmtTime(scope.row.triggerTime)}}
+              {{transToGmtTime(scope.row.create_time)}}
             </template>
           </el-table-column>
         </el-table>
+        <kap-pager :totalSize="waitingJob.jobsSize" v-if="waitingJob.jobsSize>10" v-on:handleCurrentChange='waitingJobsCurrentChange' ref="waitingJobPager" class="ksd-mt-20 ksd-mb-20 ksd-center" ></kap-pager>
       </div>
       <span slot="footer" class="dialog-footer">
         <el-button type="primary" plain size="medium" @click="waitingJobListVisibel = false">{{$t('kylinLang.common.ok')}}</el-button>
@@ -272,7 +273,9 @@ import { transToGmtTime, kapConfirm, handleError, handleSuccess } from 'util/bus
       removeJob: 'REMOVE_JOB',
       pauseJob: 'PAUSE_JOB',
       restartJob: 'RESTART_JOB',
-      resumeJob: 'RESUME_JOB'
+      resumeJob: 'RESUME_JOB',
+      losdWaittingJobModels: 'LOAD_WAITTING_JOB_MODELS',
+      laodWaittingJobsByModel: 'LOAD_WAITTING_JOBS_BY_MODEL'
     })
   },
   computed: {
@@ -317,6 +320,10 @@ export default class JobsList extends Vue {
     status: '',
     subjectAlias: ''
   }
+  waittingJobsFilter = {
+    offset: 0,
+    limit: 10
+  }
   jobsList = []
   jobTotal = 0
   allStatus = ['PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
@@ -330,16 +337,18 @@ export default class JobsList extends Vue {
     drop: false
   }
   waitingJobListVisibel = false
-  waitingJob = null
-  waitingJobs = [
-    {modelName: 'Model_a', jobList: [{order: 1, jobType: 'INDEX_BUILD', triggerTime: 1546433376619}]},
-    {modelName: 'Model_b', jobList: [{order: 1, jobType: 'INDEX_BUILD', triggerTime: 1546433376619}]},
-    {modelName: 'Model_c', jobList: [{order: 1, jobType: 'INDEX_BUILD', triggerTime: 1546433376619}]},
-    {modelName: 'Model_d', jobList: [{order: 1, jobType: 'INDEX_BUILD', triggerTime: 1546433376619}]}
-  ]
-  handleCommand (index) {
+  waitingJob = {modelName: '', jobsList: [], jobsSize: 0}
+  waittingJobModels = {size: 0, data: null}
+  handleCommand (uuid) {
     this.waitingJobListVisibel = true
-    this.waitingJob = this.waitingJobs[index]
+    this.waittingJobsFilter.project = this.currentSelectedProject
+    this.waittingJobsFilter.model = uuid
+    this.laodWaittingJobsByModel(this.waittingJobsFilter).then((res) => {
+      handleSuccess(res, (data) => {
+        this.waitingJob.jobsList = data.data
+        this.waitingJob.jobsSize = data.size
+      })
+    })
   }
   getBatchBtnStatus (statusArr) {
     const batchBtns = {
@@ -404,6 +413,7 @@ export default class JobsList extends Vue {
     if (this.currentSelectedProject) {
       this.autoFilter()
       this.getJobsList()
+      this.getWaittingJobModels()
     }
   }
   destroyed () {
@@ -424,34 +434,51 @@ export default class JobsList extends Vue {
     }
   }
   getJobsList () {
-    return this.loadJobsList(this.filter).then((res) => {
-      handleSuccess(res, (data) => {
-        if (data.size) {
-          this.jobsList = data.jobList.map((m) => {
-            if (this.selectedJob) {
-              if (m.id === this.selectedJob.id) {
-                this.getJobDetail({project: this.currentSelectedProject, jobId: m.id}).then((res) => {
-                  handleSuccess(res, (data) => {
-                    this.selectedJob = m
-                    this.selectedJob['details'] = data
+    return new Promise((resolve, reject) => {
+      this.loadJobsList(this.filter).then((res) => {
+        handleSuccess(res, (data) => {
+          if (data.size) {
+            this.jobsList = data.jobList.map((m) => {
+              if (this.selectedJob) {
+                if (m.id === this.selectedJob.id) {
+                  this.getJobDetail({project: this.filter.project, jobId: m.id}).then((res) => {
+                    handleSuccess(res, (data) => {
+                      this.selectedJob = m
+                      this.selectedJob['details'] = data
+                    })
+                  }, (resError) => {
+                    handleError(resError)
                   })
-                }, (resError) => {
-                  handleError(resError)
-                })
+                }
               }
-            }
-            return m
-          })
-          this.jobTotal = data.size
-        } else {
-          this.jobsList = []
-          this.jobTotal = 0
-        }
+              return m
+            })
+            this.jobTotal = data.size
+          } else {
+            this.jobsList = []
+            this.jobTotal = 0
+          }
+          this.searchLoading = false
+          resolve()
+        })
+      }, (res) => {
+        handleError(res)
         this.searchLoading = false
+        reject()
       })
-    }, (res) => {
-      handleError(res)
-      this.searchLoading = false
+    })
+  }
+  getWaittingJobModels () {
+    return new Promise((resolve, reject) => {
+      this.losdWaittingJobModels({project: this.filter.project}).then((res) => {
+        handleSuccess(res, (data) => {
+          this.waittingJobModels = data
+          resolve()
+        })
+      }, (res) => {
+        handleError(res)
+        reject()
+      })
     })
   }
   get getJobStatusTag () {
@@ -619,7 +646,12 @@ export default class JobsList extends Vue {
   currentChange (size, count) {
     this.filter.pageOffset = size
     this.filter.pageSize = count
-    this.refreshJobs()
+    this.getJobsList()
+  }
+  waitingJobsCurrentChange (size, count) {
+    this.waittingJobsFilter.offset = size
+    this.waittingJobsFilter.limit = count
+    this.getWaittingJobModels()
   }
   closeIt () {
     if (this.showStep) {
@@ -645,7 +677,7 @@ export default class JobsList extends Vue {
   }
   refreshJobs () {
     this.filter.project = this.currentSelectedProject
-    return this.getJobsList()
+    return Promise.all([this.getJobsList(), this.getWaittingJobModels()])
   }
   sortJobList ({ column, prop, order }) {
     if (order === 'ascending') {

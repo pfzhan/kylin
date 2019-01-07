@@ -692,7 +692,7 @@ export default class FavoriteQuery extends Vue {
       return item.raw ? item.raw : item
     })
     if (totalSize > 20 * 1024 * 1024) { // 附件不能大于20M
-      this.$messages.warning(this.$t('filesSizeError'))
+      this.$message.warning(this.$t('filesSizeError'))
       this.fileSizeError = true
     } else {
       this.fileSizeError = false
@@ -724,12 +724,15 @@ export default class FavoriteQuery extends Vue {
     })
     this.importLoading = true
     this.importSqlFiles({project: this.currentSelectedProject, formData: formData}).then((res) => {
-      handleSuccess(res, (data) => {
+      handleSuccess(res, (data, code, status, msg) => {
         this.importLoading = false
         this.isUploaded = true
         this.whiteSqlData = data
         this.selectAll()
         this.whiteSqlDatasPageChange(0)
+        if (msg) {
+          this.$message.warning(msg)
+        }
       })
     }, (res) => {
       handleError(res)
