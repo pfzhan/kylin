@@ -255,12 +255,13 @@ export default class ModelSegment extends Vue {
       } else {
         const projectName = this.currentSelectedProject
         const modelName = this.model.name
+        const segmentIdStr = this.selectedSegmentIds.join(',')
         const confirmTitle = this.$t('kylinLang.common.notice')
         const confirmMessage = this.$t('confirmDeleteSegments')
         const confirmButtonText = this.$t('kylinLang.common.ok')
         const cancelButtonText = this.$t('kylinLang.common.cancel')
         await this.$confirm(confirmMessage, confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText })
-        await this.deleteSegments({ projectName, modelName, segmentIds })
+        await this.deleteSegments({ projectName, modelName, segmentIds: segmentIdStr })
         this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
         await this.loadSegments()
       }
