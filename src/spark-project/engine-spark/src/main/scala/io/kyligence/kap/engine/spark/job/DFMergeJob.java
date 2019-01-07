@@ -30,30 +30,24 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.engine.spark.utils.RepartitionHelper;
-import org.apache.commons.cli.Options;
+import io.kyligence.kap.metadata.cube.utils.ParameterType;
+import io.kyligence.kap.metadata.cube.utils.ParametersUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.builder.DFLayoutMergeAssist;
 import io.kyligence.kap.engine.spark.builder.NDataflowJob;
@@ -61,25 +55,30 @@ import io.kyligence.kap.engine.spark.utils.JobMetrics;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.engine.spark.utils.Metrics;
 import io.kyligence.kap.engine.spark.utils.QueryExecutionCache;
+import io.kyligence.kap.engine.spark.utils.RepartitionHelper;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.shaded.influxdb.com.google.common.common.collect.Lists;
 
 public class DFMergeJob extends NDataflowJob {
     protected static final Logger logger = LoggerFactory.getLogger(DFMergeJob.class);
 
     @Override
-    protected Options getOptions() {
-        return super.getOptions();
-    }
-
-    protected void doExecute(OptionsHelper optionsHelper) throws Exception {
-        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_ID);
-        String newSegmentId = optionsHelper.getOptionValue(OPTION_SEGMENT_IDS);
-        Set<Long> layoutIds = getLayoutsFromPath(optionsHelper.getOptionValue(OPTION_LAYOUT_ID_PATH));
-        project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
-
-        mergeSnapshot(dfName, newSegmentId);
+    protected void doExecute() throws Exception {
+        String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
+        project = getParam(NBatchConstants.P_PROJECT_NAME);
+        String newSegmentId = getParam(NBatchConstants.P_SEGMENT_IDS);
+        Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
+        mergeSnapshot(dataflowId, newSegmentId);
 
         //merge and save segments
-        mergeSegments(dfName, newSegmentId, layoutIds);
+        mergeSegments(dataflowId, newSegmentId, layoutIds);
     }
 
     private void mergeSnapshot(String dataflowId, String segmentId) {
@@ -114,6 +113,44 @@ public class DFMergeJob extends NDataflowJob {
         final NDataSegment mergedSeg = dataflow.getSegment(segmentId);
         final List<NDataSegment> mergingSegments = dataflow.getMergingSegments(mergedSeg);
 
+        Map<Long, DFLayoutMergeAssist> mergeCuboidsAsssit = generateMergeAssist(mergingSegments, ss, mergedSeg);
+        for (DFLayoutMergeAssist assist : mergeCuboidsAsssit.values()) {
+            Dataset<Row> afterMerge = assist.merge();
+            LayoutEntity layout = assist.getLayout();
+            if (layout.getIndex().getId() > IndexEntity.TABLE_INDEX_START_ID) {
+                Dataset<Row> afterSort = afterMerge
+                        .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
+                saveAndUpdateCuboid(afterSort, mergedSeg, layout, assist);
+            } else {
+                Column[] dimsCols = NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet());
+                Dataset<Row> afterAgg = CuboidAggregator.agg(ss, afterMerge, layout.getOrderedDimensions().keySet(),
+                        layout.getOrderedMeasures(), mergedSeg);
+                Dataset<Row> afterSort = afterAgg.sortWithinPartitions(dimsCols);
+                saveAndUpdateCuboid(afterSort, mergedSeg, layout, assist);
+            }
+        }
+
+        Set<String> resourcePaths = Sets.newHashSet();
+        for (NDataSegment seg : mergingSegments) {
+            String parameter = seg.getParameter(ParameterType.RESOURCE_PATHS.getKey());
+            if (parameter != null) {
+                List<String> paths = (List<String>) ParametersUtils.deSerializeValue(parameter,
+                        ParameterType.RESOURCE_PATHS.getClz());
+                resourcePaths.addAll(paths);
+            }
+        }
+
+        String value = ParametersUtils.serializeValue(Lists.newArrayList(resourcePaths));
+        NDataflow flowCopy = mgr.getDataflow(dataflowId).copy();
+        NDataSegment segCopy = flowCopy.getSegment(segmentId);
+        segCopy.addParameter(ParameterType.RESOURCE_PATHS.getKey(), value);
+        NDataflowUpdate update = new NDataflowUpdate(dataflowId);
+        update.setToUpdateSegs(segCopy);
+        mgr.updateDataflow(update);
+    }
+
+    public static Map<Long, DFLayoutMergeAssist> generateMergeAssist(List<NDataSegment> mergingSegments,
+            SparkSession ss, NDataSegment mergedSeg) {
         // collect layouts need to merge
         Map<Long, DFLayoutMergeAssist> mergeCuboidsAsssit = Maps.newConcurrentMap();
         for (NDataSegment seg : mergingSegments) {
@@ -133,22 +170,7 @@ public class DFMergeJob extends NDataflowJob {
                     assist.addCuboid(cuboid);
             }
         }
-
-        for (DFLayoutMergeAssist assist : mergeCuboidsAsssit.values()) {
-            Dataset<Row> afterMerge = assist.merge();
-            LayoutEntity layout = assist.getLayout();
-            if (layout.getIndex().getId() > IndexEntity.TABLE_INDEX_START_ID) {
-                Dataset<Row> afterSort = afterMerge
-                        .sortWithinPartitions(NSparkCubingUtil.getColumns(layout.getSortByColumns()));
-                saveAndUpdateCuboid(afterSort, mergedSeg, layout, assist);
-            } else {
-                Column[] dimsCols = NSparkCubingUtil.getColumns(layout.getOrderedDimensions().keySet());
-                Dataset<Row> afterAgg = CuboidAggregator.agg(ss, afterMerge, layout.getOrderedDimensions().keySet(),
-                        layout.getOrderedMeasures(), mergedSeg);
-                Dataset<Row> afterSort = afterAgg.sortWithinPartitions(dimsCols);
-                saveAndUpdateCuboid(afterSort, mergedSeg, layout, assist);
-            }
-        }
+        return mergeCuboidsAsssit;
     }
 
     private void saveAndUpdateCuboid(Dataset<Row> dataset, NDataSegment seg, LayoutEntity layout,
@@ -182,12 +204,12 @@ public class DFMergeJob extends NDataflowJob {
         if (fs.exists(new Path(tempPath))) {
             ContentSummary summary = fs.getContentSummary(new Path(tempPath));
             RepartitionHelper helper = new RepartitionHelper(KapConfig.wrap(config).getParquetStorageShardSize(),
-                    KapConfig.wrap(config).getParquetStorageRepartitionThresholdSize(),
-                    summary, layout.getShardByColumns());
+                    KapConfig.wrap(config).getParquetStorageRepartitionThresholdSize(), summary,
+                    layout.getShardByColumns());
             DFBuildJob.repartition(storage, path, ss, helper);
         } else {
-            throw new RuntimeException(String.format(
-                    "Temp path does not exist before repartition. Temp path: %s.", tempPath));
+            throw new RuntimeException(
+                    String.format("Temp path does not exist before repartition. Temp path: %s.", tempPath));
         }
 
         ss.sparkContext().setLocalProperty(QueryExecutionCache.N_EXECUTION_ID_KEY(), null);
@@ -203,5 +225,10 @@ public class DFMergeJob extends NDataflowJob {
     public static void main(String[] args) {
         DFMergeJob nDataflowBuildJob = new DFMergeJob();
         nDataflowBuildJob.execute(args);
+    }
+
+    @Override
+    public void checkArgs() {
+
     }
 }

@@ -25,7 +25,6 @@
 package io.kyligence.kap.engine.spark.job;
 
 import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_LAYOUT_IDS;
-import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_LAYOUT_ID_PATH;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +36,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -67,6 +65,13 @@ import org.spark_project.guava.collect.Sets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
+import io.kyligence.kap.engine.spark.builder.DFSnapshotBuilder;
+import io.kyligence.kap.engine.spark.builder.NDictionaryBuilder;
+import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.engine.spark.storage.ParquetStorage;
 import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
@@ -80,14 +85,7 @@ import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.engine.spark.ExecutableUtils;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.builder.DFSnapshotBuilder;
-import io.kyligence.kap.engine.spark.builder.NDataflowJob;
-import io.kyligence.kap.engine.spark.builder.NDictionaryBuilder;
-import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
-import io.kyligence.kap.engine.spark.storage.ParquetStorage;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -154,7 +152,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         seg.setDictionaries(null);
         Assert.assertEquals(0, seg.getDictionaries().size());
         NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getIndexPlan(), seg.getSegRange());
-        Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTable, ss);
+        Dataset<Row> ds = CreateFlatTable.generateDataset(flatTable, ss);
 
         NDictionaryBuilder dictionaryBuilder = new NDictionaryBuilder(seg, ds);
         seg = dictionaryBuilder.buildDictionary();
@@ -416,7 +414,7 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
         //waitThreadInterrupt(thread, 1000000);
         //Assert.assertEquals(true, thread.isInterrupted());
         df = dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(df.getSegment(firstMergeJob.getSparkCubingStep().getSegmentIds()), null);
+        Assert.assertEquals(df.getSegment(firstMergeJob.getSparkMergingStep().getSegmentIds().iterator().next()), null);
         execMgr.discardJob(firstMergeJob.getId());
     }
 
@@ -615,7 +613,8 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
     }
 
     private void validateCube(String segmentId) {
-        NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataflow df = NDataflowManager.getInstance(config, getProject())
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataSegment seg = df.getSegment(segmentId);
 
         // check row count in NDataSegDetails
@@ -720,9 +719,10 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
 
         // get SparkConfigOverride from indexPlan overrideProps
         executable.setParam(NBatchConstants.P_DATAFLOW_ID, "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        NIndexPlanManager.getInstance(getTestConfig(), project).updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
-            copyForWrite.getOverrideProps().put("kylin.engine.spark-conf.spark.locality.wait", "20");
-        });
+        NIndexPlanManager.getInstance(getTestConfig(), project).updateIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+                copyForWrite -> {
+                    copyForWrite.getOverrideProps().put("kylin.engine.spark-conf.spark.locality.wait", "20");
+                });
         config = executable.wrapConfig(context);
         Assert.assertEquals(getTestConfig(), config.base());
         Assert.assertNull(getTestConfig().getSparkConfigOverride().get("spark.locality.wait"));
@@ -740,12 +740,11 @@ public class NSparkCubingJobTest extends NLocalWithSparkSessionTest {
             }
             executable.setParam(P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(randomLayouts));
             executable.dumpCuboidLayoutIdsIfNeed();
-            path = executable.getParam(P_LAYOUT_ID_PATH);
-            Set<Long> layouts = NDataflowJob.getLayoutsFromPath(path);
+            Set<Long> layouts = NSparkCubingUtil.str2Longs(executable.getParam(P_LAYOUT_IDS));
             randomLayouts.removeAll(layouts);
             Assert.assertEquals(0, randomLayouts.size());
         } finally {
-            if(path != null) {
+            if (path != null) {
                 File file = new File(path);
                 if (file.exists()) {
                     file.delete();

@@ -25,22 +25,22 @@
 package io.kyligence.kap.engine.spark.builder;
 
 import org.apache.hadoop.util.StringUtils;
-import org.apache.kylin.common.util.OptionsHelper;
 
+import io.kyligence.kap.engine.spark.stats.analyzer.ModelAnalyzer;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.stats.analyzer.ModelAnalyzer;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
 
 public class NModelAnalysisJob extends NDataflowJob {
 
     @Override
-    protected void doExecute(OptionsHelper optionsHelper) throws Exception {
-        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_ID);
-        project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
-        val segmentIds = StringUtils.split(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS));
+    protected void doExecute() throws Exception {
+        String dfName = getParam(NBatchConstants.P_DATAFLOW_ID);
+        project = getParam(NBatchConstants.P_PROJECT_NAME);
+        val segmentIds = StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS));
 
         final NDataflowManager mgr = NDataflowManager.getInstance(config, project);
         final NDataflow dataflow = mgr.getDataflow(dfName);
@@ -58,5 +58,10 @@ public class NModelAnalysisJob extends NDataflowJob {
     public static void main(String[] args) {
         NModelAnalysisJob modelAnalysisJob = new NModelAnalysisJob();
         modelAnalysisJob.execute(args);
+    }
+
+    @Override
+    public void checkArgs() {
+
     }
 }

@@ -52,8 +52,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
 import io.kyligence.kap.engine.spark.builder.NSizeEstimator;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
@@ -128,7 +128,7 @@ public class ModelAnalyzer implements Serializable {
             return dataset;
         }
 
-        final String dateRangeCondition = NJoinedFlatTable.replaceDot(
+        final String dateRangeCondition = CreateFlatTable.replaceDot(
                 partitionDesc.getPartitionConditionBuilder().buildDateRangeCondition(partitionDesc, segment, segRange),
                 dataModel);
         logger.info("Select date range condition [{}]", dateRangeCondition);
@@ -167,7 +167,7 @@ public class ModelAnalyzer implements Serializable {
 
         logger.info("Loading table {} sampling data. \n {}", tableDesc.getName(), dataset.schema().treeString());
 
-        return NJoinedFlatTable.changeSchemaToAliasDotName(dataset, tableRef.getAlias());
+        return CreateFlatTable.changeSchemaToAliasDotName(dataset, tableRef.getAlias());
     }
 
     private TableAnalyzerResult analysisTable(final Dataset<Row> tableDS, final TableDesc tableDesc) {

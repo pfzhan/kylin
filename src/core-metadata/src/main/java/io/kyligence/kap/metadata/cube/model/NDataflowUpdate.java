@@ -42,8 +42,8 @@ public class NDataflowUpdate {
     private String owner;
     private int cost = -1;
 
-    public NDataflowUpdate(String dfName) {
-        this.dataflowId = dfName;
+    public NDataflowUpdate(String dataflowId) {
+        this.dataflowId = dataflowId;
     }
     
     public String getDataflowId() {

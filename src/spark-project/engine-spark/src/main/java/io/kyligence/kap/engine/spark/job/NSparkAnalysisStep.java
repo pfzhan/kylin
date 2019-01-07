@@ -24,24 +24,25 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Sets;
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.builder.NModelAnalysisJob;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import org.apache.commons.lang.StringUtils;
+import java.util.Set;
+
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 
-import java.util.Set;
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.engine.spark.builder.NModelAnalysisJob;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
 public class NSparkAnalysisStep extends NSparkExecutable {
 
     public NSparkAnalysisStep() {
         this.setSparkSubmitClassName(NModelAnalysisJob.class.getName());
+        this.setName(ExecutableConstants.STEP_NAME_DATA_PROFILING);
     }
 
     @Override
@@ -61,33 +62,4 @@ public class NSparkAnalysisStep extends NSparkExecutable {
         }
         return dumpList;
     }
-
-    void setDataflowId(String dataflowId) {
-        this.setParam(NBatchConstants.P_DATAFLOW_ID, dataflowId);
-    }
-
-    void setJobId(String jobId) {
-        this.setParam(NBatchConstants.P_JOB_ID, jobId);
-    }
-
-    public String getDataflowId() {
-        return this.getParam(NBatchConstants.P_DATAFLOW_ID);
-    }
-
-    void setSegmentIds(Set<String> segmentIds) {
-        this.setParam(NBatchConstants.P_SEGMENT_IDS, Joiner.on(",").join(segmentIds));
-    }
-
-    public Set<String> getSegmentIds() {
-        return Sets.newHashSet(StringUtils.split(this.getParam(NBatchConstants.P_SEGMENT_IDS)));
-    }
-
-    void setCuboidLayoutIds(Set<Long> clIds) {
-        this.setParam(NBatchConstants.P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(clIds));
-    }
-
-    public Set<Long> getCuboidLayoutIds() {
-        return NSparkCubingUtil.str2Longs(this.getParam(NBatchConstants.P_LAYOUT_IDS));
-    }
-
 }

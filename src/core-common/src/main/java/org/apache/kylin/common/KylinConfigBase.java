@@ -606,12 +606,27 @@ abstract public class KylinConfigBase implements Serializable {
 
     public StorageURL getJobTmpMetaStoreUrl(String project, String jobId) {
         Map<String, String> params = new HashMap<>();
-        params.put("path", getJobTmpDir(project) + jobId + "/meta");
+        params.put("path", getJobTmpDir(project) + getNestedPath(jobId) + "meta");
         return new StorageURL(getMetadataUrlPrefix(), HDFSMetadataStore.HDFS_SCHEME, params);
     }
 
     public String getJobTmpOutputStorePath(String project, String jobId) {
-        return  getJobTmpDir(project) + jobId + "/execute_output.json";
+        return getJobTmpDir(project) + getNestedPath(jobId) + "/execute_output.json";
+    }
+
+    public Path getJobTmpShareDir(String project, String jobId) {
+        String path = getJobTmpDir(project) + jobId + "/share/";
+        return new Path(path);
+    }
+
+    // a_b => a/b/
+    private String getNestedPath(String id) {
+        String[] ids = id.split("_");
+        StringBuilder builder = new StringBuilder();
+        for (String subId : ids) {
+            builder.append(subId).append("/");
+        }
+        return builder.toString();
     }
 
     public CliCommandExecutor getCliCommandExecutor() {
@@ -977,6 +992,10 @@ abstract public class KylinConfigBase implements Serializable {
 
     public Map<String, String> getSparkConfigOverride() {
         return getPropertiesByPrefix("kylin.engine.spark-conf.");
+    }
+
+    public boolean isAutoSetSparkConf() {
+        return Boolean.parseBoolean(getOptional("kylin.spark-conf.auto.prior", "true"));
     }
 
     public double getDefaultHadoopJobReducerInputMB() {

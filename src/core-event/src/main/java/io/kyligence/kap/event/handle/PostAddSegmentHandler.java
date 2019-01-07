@@ -38,6 +38,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.engine.spark.ExecutableUtils;
+import io.kyligence.kap.engine.spark.job.NSparkAnalysisStep;
+import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.EventContext;
@@ -63,15 +65,15 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
         PostAddSegmentEvent event = (PostAddSegmentEvent) eventContext.getEvent();
         String project = eventContext.getProject();
         val jobId = event.getJobId();
+        Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
 
-        val tasks = executable.getTasks();
-        Preconditions.checkState(tasks.size() > 1, "job " + jobId + " steps is not enough");
-        val buildTask = tasks.get(1);
+        val buildTask = executable.getTask(NSparkCubingStep.class);
         val dataflowId = ExecutableUtils.getDataflowId(buildTask);
         val segmentIds = ExecutableUtils.getSegmentIds(buildTask);
         val layoutIds = ExecutableUtils.getLayoutIds(buildTask);
 
-        val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), tasks.get(0));
+        val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(),
+                executable.getTask(NSparkAnalysisStep.class));
         val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask);
         try {
             if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {

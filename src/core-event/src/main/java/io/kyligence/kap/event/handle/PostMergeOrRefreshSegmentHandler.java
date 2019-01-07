@@ -25,6 +25,8 @@ package io.kyligence.kap.event.handle;
 
 import java.util.List;
 
+import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
+import io.kyligence.kap.engine.spark.job.NSparkMergingStep;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
@@ -83,12 +85,11 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
     }
 
     private AbstractExecutable getBuildTask(ChainedExecutable executable) {
-        val tasks = executable.getTasks();
-        Preconditions.checkState(tasks.size() > 0, "job " + executable.getId() + " steps is not enough");
+        Preconditions.checkState(executable.getTasks().size() > 0, "job " + executable.getId() + " steps is not enough");
         if (executable instanceof NSparkCubingJob) {
-            return tasks.get(1);
+            return executable.getTask(NSparkCubingStep.class);
         } else if (executable instanceof NSparkMergingJob) {
-            return tasks.get(0);
+            return executable.getTask(NSparkMergingStep.class);
         }
         return null;
 

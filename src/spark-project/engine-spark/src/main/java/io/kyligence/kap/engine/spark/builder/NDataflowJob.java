@@ -24,57 +24,34 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
-import org.apache.commons.cli.Options;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
-import org.apache.kylin.common.util.AbstractApplication;
-import org.apache.kylin.common.util.OptionsHelper;
+import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.spark.SparkConf;
 import org.apache.spark.sql.SparderEnv;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.common.persistence.metadata.MetadataStore;
+import io.kyligence.kap.engine.spark.application.SparkApplication;
 import io.kyligence.kap.engine.spark.job.UdfManager;
 import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
+import io.kyligence.kap.engine.spark.utils.SparkConfHelper;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.val;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Set;
-
-public abstract class NDataflowJob extends AbstractApplication {
+public abstract class NDataflowJob extends SparkApplication {
     protected static final Logger logger = LoggerFactory.getLogger(NDataflowJob.class);
-
-    @SuppressWarnings("static-access")
-    public static final Option OPTION_DATAFLOW_ID = OptionBuilder.withArgName(NBatchConstants.P_DATAFLOW_ID)
-            .hasArg().isRequired(true).withDescription("DataFlow Id").create(NBatchConstants.P_DATAFLOW_ID);
-    @SuppressWarnings("static-access")
-    public static final Option OPTION_PROJECT_NAME = OptionBuilder.withArgName(NBatchConstants.P_PROJECT_NAME).hasArg()
-            .isRequired(true).withDescription("Project Name").create(NBatchConstants.P_PROJECT_NAME);
-    @SuppressWarnings("static-access")
-    public static final Option OPTION_SEGMENT_IDS = OptionBuilder.withArgName(NBatchConstants.P_SEGMENT_IDS).hasArg()
-            .isRequired(true).withDescription("Segment indices").create(NBatchConstants.P_SEGMENT_IDS);
-    @SuppressWarnings("static-access")
-    public static final Option OPTION_LAYOUT_ID_PATH = OptionBuilder.withArgName(NBatchConstants.P_LAYOUT_ID_PATH)
-            .hasArg().isRequired(true).withDescription("Layout indices").create(NBatchConstants.P_LAYOUT_ID_PATH);
-    @SuppressWarnings("static-access")
-    public static final Option OPTION_META_URL = OptionBuilder.withArgName(NBatchConstants.P_DIST_META_URL).hasArg()
-            .isRequired(true).withDescription("Cubing metadata url").create(NBatchConstants.P_DIST_META_URL);
-
-    @SuppressWarnings("static-access")
-    public static final Option OPTION_OUTPUT_META_URL = OptionBuilder.withArgName(NBatchConstants.P_OUTPUT_META_URL)
-            .hasArg().isRequired(true).withDescription("Cubing output metadata url")
-            .create(NBatchConstants.P_OUTPUT_META_URL);
-
-    @SuppressWarnings("static-access")
-    public static final Option OPTION_JOB_ID = OptionBuilder.withArgName(NBatchConstants.P_JOB_ID).hasArg()
-            .isRequired(true).withDescription("Current job id").create(NBatchConstants.P_JOB_ID);
 
     protected volatile KylinConfig config;
     protected volatile String jobId;
@@ -82,47 +59,37 @@ public abstract class NDataflowJob extends AbstractApplication {
     protected String project;
 
     @Override
-    protected Options getOptions() {
-        Options options = new Options();
-        options.addOption(OPTION_DATAFLOW_ID);
-        options.addOption(OPTION_PROJECT_NAME);
-        options.addOption(OPTION_SEGMENT_IDS);
-        options.addOption(OPTION_LAYOUT_ID_PATH);
-        options.addOption(OPTION_META_URL);
-        options.addOption(OPTION_JOB_ID);
-        options.addOption(OPTION_OUTPUT_META_URL);
-        return options;
-    }
+    final protected void execute() throws Exception {
+        String hdfsMetalUrl = getParam(NBatchConstants.P_DIST_META_URL);
+        jobId = getParam(NBatchConstants.P_JOB_ID);
 
-    @Override
-    final protected void execute(OptionsHelper optionsHelper) throws Exception {
-        String hdfsMetalUrl = optionsHelper.getOptionValue(OPTION_META_URL);
-        jobId = optionsHelper.getOptionValue(OPTION_JOB_ID);
-        ss = SparkSession.builder()
-                .enableHiveSupport()
-                .config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false")
-                .getOrCreate();
-        // for spark metrics
-        JobMetricsUtils.registerListener(ss);
+        try (KylinConfig.SetAndUnsetThreadLocalConfig autoCloseConfig = KylinConfig
+                .setAndUnsetThreadLocalConfig(KylinConfig.loadKylinConfigFromHdfs(hdfsMetalUrl))) {
+            config = autoCloseConfig.get();
+            SparkConf sparkConf = new SparkConf();
+            if (config.isAutoSetSparkConf() && isAutoSetSparkConfEnabled()) {
+                autoSetSparkConf(sparkConf);
+            }
+            ss = SparkSession.builder().enableHiveSupport().config(sparkConf)
+                    .config("mapreduce.fileoutputcommitter.marksuccessfuljobs", "false").getOrCreate();
 
-        //#8341
-        SparderEnv.setSparkSession(ss);
-        UdfManager.create(ss);
+            // for spark metrics
+            JobMetricsUtils.registerListener(ss);
 
-        try {
-            config = KylinConfig.loadKylinConfigFromHdfs(hdfsMetalUrl);
-            KylinConfig.setKylinConfigThreadLocal(config);
+            //#8341
+            SparderEnv.setSparkSession(ss);
+            UdfManager.create(ss);
+
             if (!config.isUTEnv()) {
                 System.setProperty("kylin.env", config.getDeployEnv());
             }
-            doExecute(optionsHelper);
+            doExecute();
             // Output metadata to another folder
             val resourceStore = ResourceStore.getKylinMetaStore(config);
             val outputConfig = KylinConfig.createKylinConfig(config);
-            outputConfig.setMetadataUrl(optionsHelper.getOptionValue(OPTION_OUTPUT_META_URL));
+            outputConfig.setMetadataUrl(getParam(NBatchConstants.P_OUTPUT_META_URL));
             ResourceStore.createMetadataStore(outputConfig).dump(resourceStore);
         } finally {
-            KylinConfig.removeKylinConfigThreadLocal();
             if (ss != null && !ss.conf().get("spark.master").startsWith("local")) {
                 JobMetricsUtils.unRegisterListener(ss);
                 ss.stop();
@@ -130,10 +97,35 @@ public abstract class NDataflowJob extends AbstractApplication {
         }
     }
 
-    protected abstract void doExecute(OptionsHelper optionsHelper) throws Exception;
+    public boolean isAutoSetSparkConfEnabled() {
+        return true;
+    }
 
-   static public Set<Long> getLayoutsFromPath(String path) throws IOException {
-        String layoutIdsValue = Files.readAllLines(Paths.get(path), StandardCharsets.UTF_8).get(0);
-        return NSparkCubingUtil.str2Longs(layoutIdsValue);
+    protected abstract void doExecute() throws Exception;
+
+    private void autoSetSparkConf(SparkConf sparkConf) {
+        logger.info("Start set spark conf automatically.");
+        SparkConfHelper helper = new SparkConfHelper();
+        try {
+            Path shareDir = config.getJobTmpShareDir(project, jobId);
+            FileSystem fs = HadoopUtil.getFileSystem(shareDir);
+            FileStatus[] fileStatuses = fs.listStatus(shareDir,
+                    path -> path.toString().endsWith(ResourceDetectUtils.fileName()));
+            Map<String, List<String>> resourcePaths = Maps.newHashMap();
+            for (FileStatus file : fileStatuses) {
+                resourcePaths.putAll(ResourceDetectUtils.readResourcePaths(file.getPath()));
+            }
+            long maxContentSize = ResourceDetectUtils.getMaxResourceSize(resourcePaths);
+
+            helper.setOption(SparkConfHelper.SOURCE_TABLE_SIZE, String.valueOf(maxContentSize));
+            Map<String, String> override = config.getSparkConfigOverride();
+            helper.setConf(SparkConfHelper.EXECUTOR_INSTANCES, override.get(SparkConfHelper.EXECUTOR_INSTANCES));
+            helper.generateSparkConf(override);
+        } catch (Exception e) {
+            logger.warn("Auto set spark conf failed. Load spark conf from system properties");
+            logger.warn("stack trace", e);
+            return;
+        }
+        helper.applySparkConf(sparkConf);
     }
 }

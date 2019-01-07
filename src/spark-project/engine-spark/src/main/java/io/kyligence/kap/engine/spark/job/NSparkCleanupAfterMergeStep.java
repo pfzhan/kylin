@@ -25,15 +25,13 @@
 package io.kyligence.kap.engine.spark.job;
 
 import java.io.IOException;
-import java.util.Set;
 
-import com.google.common.base.Joiner;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
-import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ExecutableContext;
 import org.apache.kylin.job.execution.ExecuteResult;
 
@@ -41,14 +39,9 @@ import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 
-public class NSparkCleanupAfterMergeStep extends AbstractExecutable {
-
-    public void setSegmentIds(Set<String> segmentIds) {
-        this.setParam(NBatchConstants.P_SEGMENT_IDS, Joiner.on(",").join(segmentIds));
-    }
-
-    public void setDataflowId(String dataflowId) {
-        this.setParam(NBatchConstants.P_DATAFLOW_ID, dataflowId);
+public class NSparkCleanupAfterMergeStep extends NSparkExecutable {
+    public NSparkCleanupAfterMergeStep() {
+        this.setName(ExecutableConstants.STEP_NAME_CLEANUP);
     }
 
     @Override

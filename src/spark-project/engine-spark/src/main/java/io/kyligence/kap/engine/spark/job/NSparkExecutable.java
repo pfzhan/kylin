@@ -26,11 +26,9 @@ package io.kyligence.kap.engine.spark.job;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +42,8 @@ import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.util.ClassUtil;
 import org.apache.kylin.common.util.CliCommandExecutor;
+import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
-import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.common.PatternedLogger;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.execution.AbstractExecutable;
@@ -54,8 +52,10 @@ import org.apache.kylin.job.execution.ExecuteResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
@@ -67,6 +67,34 @@ import lombok.val;
 public class NSparkExecutable extends AbstractExecutable {
 
     private static final Logger logger = LoggerFactory.getLogger(NSparkExecutable.class);
+
+    void setDataflowId(String dataflowId) {
+        this.setParam(NBatchConstants.P_DATAFLOW_ID, dataflowId);
+    }
+
+    public String getDataflowId() {
+        return this.getParam(NBatchConstants.P_DATAFLOW_ID);
+    }
+
+    void setJobId(String jobId) {
+        this.setParam(NBatchConstants.P_JOB_ID, jobId);
+    }
+
+    void setSegmentIds(Set<String> segmentIds) {
+        this.setParam(NBatchConstants.P_SEGMENT_IDS, Joiner.on(",").join(segmentIds));
+    }
+
+    public Set<String> getSegmentIds() {
+        return Sets.newHashSet(StringUtils.split(this.getParam(NBatchConstants.P_SEGMENT_IDS)));
+    }
+
+    void setCuboidLayoutIds(Set<Long> clIds) {
+        this.setParam(NBatchConstants.P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(clIds));
+    }
+
+    public Set<Long> getCuboidLayoutIds() {
+        return NSparkCubingUtil.str2Longs(this.getParam(NBatchConstants.P_LAYOUT_IDS));
+    }
 
     protected void setProjectParam() {
         this.setParam(NBatchConstants.P_PROJECT_NAME, getProject());
@@ -133,26 +161,22 @@ public class NSparkExecutable extends AbstractExecutable {
         } catch (IOException e) {
             throw new ExecuteException("meta dump failed", e);
         }
-        dumpCuboidLayoutIdsIfNeed();
+        String filePath = dumpCuboidLayoutIdsIfNeed();
         if (config.isUTEnv()) {
-            return runLocalMode(formatAppArgsForSparkLocal());
+            return runLocalMode(filePath);
         } else {
-            String[] appArgs = formatAppArgs();
-            return runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar, appArgs, getParent().getId());
+            return runSparkSubmit(config, sparkHome, hadoopConf, jars, kylinJobJar,
+                    "-className " + getSparkSubmitClassName() + " " + filePath, getParent().getId());
         }
     }
 
-    void dumpCuboidLayoutIdsIfNeed() throws ExecuteException {
-        if (getParams().containsKey(NBatchConstants.P_LAYOUT_IDS)) {
+    String dumpCuboidLayoutIdsIfNeed() throws ExecuteException {
             File tmpDir = null;
             try {
                 tmpDir = File.createTempFile(NBatchConstants.P_LAYOUT_IDS, "");
                 FileUtils.writeByteArrayToFile(tmpDir,
-                        getParam(NBatchConstants.P_LAYOUT_IDS).getBytes(StandardCharsets.UTF_8));
-                int layoutSize = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS)).size();
-                getParams().remove(NBatchConstants.P_LAYOUT_IDS);
-                setParam(NBatchConstants.P_LAYOUT_ID_PATH, tmpDir.getCanonicalPath());
-                logger.info("Layout size : {}", layoutSize);
+                        JsonUtil.writeValueAsBytes(getParams()));
+                return tmpDir.getCanonicalPath();
             } catch (IOException e) {
                 if (tmpDir != null && tmpDir.exists()) {
                     try {
@@ -164,8 +188,6 @@ public class NSparkExecutable extends AbstractExecutable {
                 }
                 throw new ExecuteException("Write cuboidLayoutIds failed: ", e);
             }
-
-        }
     }
 
     protected KylinConfig wrapConfig(ExecutableContext context) {
@@ -194,7 +216,7 @@ public class NSparkExecutable extends AbstractExecutable {
     }
 
     private ExecuteResult runSparkSubmit(KylinConfig config, String sparkHome, String hadoopConf, String jars,
-            String kylinJobJar, String[] appArgs, String jobId) {
+            String kylinJobJar, String appArgs, String jobId) {
 
         PatternedLogger patternedLogger = new PatternedLogger(logger);
         try {
@@ -213,10 +235,10 @@ public class NSparkExecutable extends AbstractExecutable {
         }
     }
 
-    private String generateSparkCmd(KylinConfig config, String hadoopConf, String jars, String kylinJobJar,
-            String[] appArgs) {
+    protected String generateSparkCmd(KylinConfig config, String hadoopConf, String jars, String kylinJobJar,
+            String appArgs) {
         StringBuilder sb = new StringBuilder();
-        sb.append("export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class org.apache.kylin.common.util.SparkEntry ");
+        sb.append("export HADOOP_CONF_DIR=%s && %s/bin/spark-submit --class io.kyligence.kap.engine.spark.application.SparkEntry ");
 
         Map<String, String> sparkConfs = config.getSparkConfigOverride();
         for (Map.Entry<String, String> entry : sparkConfs.entrySet()) {
@@ -226,21 +248,21 @@ public class NSparkExecutable extends AbstractExecutable {
 
         sb.append("--name job_step_%s ");
         sb.append("--jars %s %s %s");
-        String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), getId(), jars, kylinJobJar,
-                StringUtil.join(Arrays.asList(appArgs), " "));
+        String cmd = String.format(sb.toString(), hadoopConf, KylinConfig.getSparkHome(), jars, kylinJobJar,
+                appArgs);
         logger.debug("spark submit cmd: {}", cmd);
         return cmd;
     }
 
-    private void appendSparkConf(StringBuilder sb, String key, String value) {
+    protected void appendSparkConf(StringBuilder sb, String key, String value) {
         // Multiple parameters in "--conf" need to be enclosed in single quotes
         sb.append(" --conf '").append(key).append("=").append(value).append("' ");
     }
 
-    private ExecuteResult runLocalMode(String[] appArgs) {
+    private ExecuteResult runLocalMode(String appArgs) {
         try {
             Class<? extends Object> appClz = ClassUtil.forName(getSparkSubmitClassName(), Object.class);
-            appClz.getMethod("main", String[].class).invoke(null, (Object) appArgs);
+            appClz.getMethod("main", String[].class).invoke(null, (Object) new String[]{appArgs});
             return ExecuteResult.createSucceed();
         } catch (Exception e) {
             return ExecuteResult.createError(e);

@@ -24,10 +24,10 @@
 
 package io.kyligence.kap.engine.spark.utils;
 
+import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -46,7 +46,7 @@ public class NUtilsTest extends NLocalWithSparkSessionTest {
 
         NDataModel model = (NDataModel) NDataModelManager.getInstance(getTestConfig(), "default")
                 .getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        String replaced = NJoinedFlatTable.replaceDot(condition, model);
+        String replaced = CreateFlatTable.replaceDot(condition, model);
         Assert.assertEquals("TEST_KYLIN_FACT" + NSparkCubingUtil.SEPARATOR + "CAL_DT > 2017-09-12 AND TEST_KYLIN_FACT"
                 + NSparkCubingUtil.SEPARATOR + "CAL_DT < 2017-11-12", replaced);
     }

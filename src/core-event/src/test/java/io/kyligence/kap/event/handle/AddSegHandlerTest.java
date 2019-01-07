@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 
 import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
 import org.apache.kylin.job.execution.NExecutableManager;
@@ -108,9 +109,9 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
         String jobId = ((AddSegmentEvent) eventContext.getEvent()).getJobId();
         AbstractExecutable job = NExecutableManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getJob(jobId);
         Assert.assertNotNull(job);
-        Assert.assertEquals(dataSegment2.getId(), ((ChainedExecutable) job).getTasks().get(1).getParam("segmentIds"));
+        Assert.assertEquals(dataSegment2.getId(), ((ChainedExecutable) job).getTask(NSparkCubingStep.class).getParam("segmentIds"));
         Assert.assertEquals(Joiner.on(",")
-                .join(Stream.of(((ChainedExecutable) job).getTasks().get(1).getParam(NBatchConstants.P_LAYOUT_IDS).split(","))
+                .join(Stream.of(((ChainedExecutable) job).getTask(NSparkCubingStep.class).getParam(NBatchConstants.P_LAYOUT_IDS).split(","))
                         .sorted(Comparator.comparing(a -> Long.parseLong(a))).collect(Collectors.toList())),
                 Joiner.on(",").join(Stream.of(update.getToAddOrUpdateCuboids()).map(c -> c.getLayoutId())
                         .sorted(Comparator.naturalOrder()).collect(Collectors.toList())));
@@ -174,9 +175,9 @@ public class AddSegHandlerTest extends NLocalFileMetadataTestCase {
         NDataflow df2 = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertNotNull(job);
         Assert.assertEquals(df2.getSegments().get(0).getId(),
-                ((ChainedExecutable) job).getTasks().get(1).getParam("segmentIds"));
+                ((ChainedExecutable) job).getTask(NSparkCubingStep.class).getParam("segmentIds"));
         Assert.assertEquals(Joiner.on(",")
-                .join(Stream.of(((ChainedExecutable) job).getTasks().get(1).getParam(NBatchConstants.P_LAYOUT_IDS).split(","))
+                .join(Stream.of(((ChainedExecutable) job).getTask(NSparkCubingStep.class).getParam(NBatchConstants.P_LAYOUT_IDS).split(","))
                         .sorted(Comparator.comparing(a -> Long.parseLong(a))).collect(Collectors.toList())),
                 Joiner.on(",")
                         .join(NIndexPlanManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")

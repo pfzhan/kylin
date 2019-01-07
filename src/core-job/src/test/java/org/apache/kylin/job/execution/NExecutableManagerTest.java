@@ -96,9 +96,11 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
 
         manager.addJob(job);
         assertEquals(2, job.getTasks().size());
+        assertNotNull(job.getTask(SucceedTestExecutable.class));
         AbstractExecutable anotherJob = manager.getJob(job.getId());
         assertEquals(DefaultChainedExecutable.class, anotherJob.getClass());
         assertEquals(2, ((DefaultChainedExecutable) anotherJob).getTasks().size());
+        assertNotNull(((DefaultChainedExecutable) anotherJob).getTask(SucceedTestExecutable.class));
 
         job.setProject("default");
         executable.setProject("default");

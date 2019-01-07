@@ -222,7 +222,7 @@ trait JobSupport
     // wait job done
     Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob))
     val merger = new AfterMergeOrRefreshResourceMerger(config, prj)
-    var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkCubingStep)
+    var mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkMergingStep)
     merger.mergeAfterJob(df.getUuid, firstMergeSeg.getId, mergeStore)
 
     df = dsMgr.getDataflow(dfName)
@@ -237,7 +237,7 @@ trait JobSupport
                                                 "ADMIN", UUID.randomUUID().toString)
     execMgr.addJob(secondMergeJob)
     Assert.assertEquals(ExecutableState.SUCCEED, wait(secondMergeJob))
-    mergeStore = ExecutableUtils.getRemoteStore(config, secondMergeJob.getSparkCubingStep)
+    mergeStore = ExecutableUtils.getRemoteStore(config, secondMergeJob.getSparkMergingStep)
     merger.mergeAfterJob(df.getUuid, secondMergeSeg.getId, mergeStore)
 
     /**
@@ -306,7 +306,7 @@ trait JobSupport
     // wait job done
     Assert.assertEquals(ExecutableState.SUCCEED, wait(firstMergeJob))
     val merger = new AfterMergeOrRefreshResourceMerger(config, prj)
-    val mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkCubingStep)
+    val mergeStore = ExecutableUtils.getRemoteStore(config, firstMergeJob.getSparkMergingStep)
     merger.mergeAfterJob(df.getUuid, firstMergeSeg.getId, mergeStore)
 
     /**

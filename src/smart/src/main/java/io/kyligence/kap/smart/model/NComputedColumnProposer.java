@@ -62,8 +62,8 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
     protected void doPropose(NDataModel nDataModel) {
         LOGGER.trace("Propose computed column for model [{}]", nDataModel.getId());
 
-        List<NDataModel> otherModels = NDataflowManager.getInstance(kylinConfig, project).listUnderliningDataModels().stream()
-                .filter(m -> !m.getUuid().equals(nDataModel.getUuid())).collect(Collectors.toList());
+        List<NDataModel> otherModels = NDataflowManager.getInstance(kylinConfig, project).listUnderliningDataModels()
+                .stream().filter(m -> !m.getUuid().equals(nDataModel.getUuid())).collect(Collectors.toList());
         otherModels.addAll(
                 getModelContext().getSmartContext().getModelContexts().stream().filter(ctx -> ctx != getModelContext())
                         .map(NModelContext::getTargetModel).filter(Objects::nonNull).collect(Collectors.toList()));

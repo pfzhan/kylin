@@ -71,6 +71,9 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     @JsonProperty("timeRange")
     private TimeRange timeRange;
 
+    @JsonProperty("parameters")
+    private Map<String, String> parameters;
+
     @JsonProperty("dictionaries")
     private Map<String, String> dictionaries; // table/column ==> dictionary resource path
     @JsonProperty("snapshots")
@@ -275,6 +278,33 @@ public class NDataSegment implements ISegment, Serializable, IKeep {
     public void setLastBuildTime(long lastBuildTime) {
         checkIsNotCachedAndShared();
         this.lastBuildTime = lastBuildTime;
+    }
+
+    public Map<String, String> getParameters() {
+        if (parameters == null)
+            parameters = Maps.newConcurrentMap();
+
+        return isCachedAndShared() ? ImmutableMap.copyOf(parameters) : parameters;
+    }
+
+    public String getParameter(String key) {
+        if (parameters == null) {
+            return null;
+        } else {
+            return parameters.get(key);
+        }
+    }
+
+    public void setParameters(Map<String, String> parameters) {
+        checkIsNotCachedAndShared();
+        this.parameters = parameters;
+    }
+
+    public void addParameter(String key, String value) {
+        checkIsNotCachedAndShared();
+        if (parameters == null)
+            parameters = Maps.newConcurrentMap();
+        parameters.put(key, value);
     }
 
     public Map<String, String> getDictionaries() {

@@ -34,12 +34,8 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import org.apache.commons.cli.Options;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
@@ -55,17 +51,20 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.builder.DictionaryBuilder;
+import io.kyligence.kap.engine.spark.builder.NDataflowJob;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.builder.DFTableEncoder;
-import io.kyligence.kap.engine.spark.builder.DictionaryBuilder;
-import io.kyligence.kap.engine.spark.builder.NDataflowJob;
 import lombok.val;
 import lombok.var;
 
@@ -74,19 +73,14 @@ public class MockedDFBuildJob extends NDataflowJob {
     protected volatile NSpanningTree nSpanningTree;
 
     @Override
-    protected Options getOptions() {
-        return super.getOptions();
-    }
-
-    @Override
-    protected void doExecute(OptionsHelper optionsHelper) throws Exception {
+    protected void doExecute() throws Exception {
         long start = System.currentTimeMillis();
         logger.info("Start Build");
-        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_ID);
-        project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
+        String dfName = getParam(NBatchConstants.P_DATAFLOW_ID);
+        project = getParam(NBatchConstants.P_PROJECT_NAME);
 
-        Set<String> segmentIds = Sets.newHashSet(StringUtils.split(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS)));
-        Set<Long> layoutIds = getLayoutsFromPath(optionsHelper.getOptionValue(OPTION_LAYOUT_ID_PATH));
+        Set<String> segmentIds = Sets.newHashSet(StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS)));
+        Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
 
         try {
             NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
@@ -138,13 +132,22 @@ public class MockedDFBuildJob extends NDataflowJob {
             }
 
         } finally {
-            KylinConfig.removeKylinConfigThreadLocal();
             logger.info("Finish build take" + (System.currentTimeMillis() - start) + " ms");
         }
+    }
+
+    @Override
+    public boolean isAutoSetSparkConfEnabled() {
+        return false;
     }
 
     public static void main(String[] args) {
         MockedDFBuildJob nDataflowBuildJob = new MockedDFBuildJob();
         nDataflowBuildJob.execute(args);
+    }
+
+    @Override
+    public void checkArgs() {
+
     }
 }

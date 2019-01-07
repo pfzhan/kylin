@@ -53,4 +53,5 @@ public interface ChainedExecutable extends Executable {
 
     void addTask(AbstractExecutable executable);
 
+    <T extends AbstractExecutable> T getTask(Class<T> clz);
 }

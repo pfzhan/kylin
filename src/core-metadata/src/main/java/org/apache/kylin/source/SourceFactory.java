@@ -83,5 +83,4 @@ public class SourceFactory {
     public static List<String> getMRDependentResources(TableDesc table) {
         return getSource(table).getSourceMetadataExplorer().getRelatedKylinResources(table);
     }
-
 }

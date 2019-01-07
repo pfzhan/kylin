@@ -570,8 +570,7 @@ public class ModelService extends BasicService {
     }
 
     public boolean isModelsUsingTable(String table, String project) {
-        return getDataflowManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table))
-                .size() > 0;
+        return getDataflowManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table)).size() > 0;
     }
 
     public List<NDataModel> getModelsUsingTable(String table, String project) {
@@ -1111,7 +1110,8 @@ public class ModelService extends BasicService {
         semanticUpdater.updateModelColumns(copyModel, request);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
-        copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(), project);
+        copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(),
+                project);
 
         val indexPlan = cubeManager.getIndexPlan(request.getUuid());
         // check agg group contains removed dimensions
@@ -1313,7 +1313,8 @@ public class ModelService extends BasicService {
         }
     }
 
-    public ExistedDataRangeResponse getLatestDataRange(String project, String table, String column, String modelId) throws Exception {
+    public ExistedDataRangeResponse getLatestDataRange(String project, String table, String column, String modelId)
+            throws Exception {
         Pair<String, String> pushdownResult = new Pair<>();
         if (StringUtils.isNotEmpty(modelId)) {
             val df = getDataflowManager(project).getDataflow(modelId);

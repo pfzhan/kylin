@@ -93,7 +93,7 @@ class TestQueryAndBuildFunSuite
     SparderEnv.skipCompute()
     build()
   }
-
+  
   override def afterAll(): Unit = {
     SparderEnv.cleanCompute()
   }

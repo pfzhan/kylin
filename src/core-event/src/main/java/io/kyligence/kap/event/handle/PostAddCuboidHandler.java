@@ -26,6 +26,8 @@ package io.kyligence.kap.event.handle;
 import java.util.List;
 import java.util.UUID;
 
+import io.kyligence.kap.engine.spark.job.NSparkAnalysisStep;
+import io.kyligence.kap.engine.spark.job.NSparkCubingStep;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
@@ -57,14 +59,12 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
         List<String> sqlList = event.getSqlPatterns();
         val jobId = event.getJobId();
 
-        val tasks = executable.getTasks();
-        Preconditions.checkState(tasks.size() > 1, "job " + jobId + " steps is not enough");
-        val buildTask = tasks.get(1);
+        Preconditions.checkState(executable.getTasks().size() > 1, "job " + jobId + " steps is not enough");
+        val buildTask = executable.getTask(NSparkCubingStep.class);
         val dataflowId = ExecutableUtils.getDataflowId(buildTask);
         val segmentIds = ExecutableUtils.getSegmentIds(buildTask);
         val layoutIds = ExecutableUtils.getLayoutIds(buildTask);
-
-        val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), tasks.get(0));
+        val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), executable.getTask(NSparkAnalysisStep.class));
         val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask);
         try {
             if (!checkSubjectExists(project, event.getModelId(), null, event)) {

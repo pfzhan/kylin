@@ -24,13 +24,8 @@
 
 package org.apache.spark.sql
 
+import java.lang.{Boolean => JBoolean, String => JString}
 import java.util.concurrent.atomic.AtomicReference
-import java.lang.{
-  Boolean => JBoolean,
-  Integer => JInteger,
-  Long => JLong,
-  String => JString
-}
 
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.KylinSession._
@@ -80,7 +75,7 @@ object SparderEnv extends Logging {
 
   def getTotalCore: Int = {
     val sparkConf = getSparkSession.sparkContext.getConf
-    if(sparkConf.get("spark.master").startsWith("local")){
+    if (sparkConf.get("spark.master").startsWith("local")) {
       return 1
     }
     val instances = sparkConf.get("spark.executor.instances").toInt
@@ -129,11 +124,11 @@ object SparderEnv extends Logging {
     * @return The body return
     */
   def withClassLoad[T](body: => T): T = {
-//    val originClassLoad = Thread.currentThread().getContextClassLoader
+    //    val originClassLoad = Thread.currentThread().getContextClassLoader
     // fixme aron
-//        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader)
+    //        Thread.currentThread().setContextClassLoader(ClassLoaderUtils.getSparkClassLoader)
     val t = body
-//    Thread.currentThread().setContextClassLoader(originClassLoad)
+    //    Thread.currentThread().setContextClassLoader(originClassLoad)
     t
   }
 

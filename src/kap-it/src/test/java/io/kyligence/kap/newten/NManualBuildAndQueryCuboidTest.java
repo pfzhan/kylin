@@ -23,20 +23,11 @@
  */
 package io.kyligence.kap.newten;
 
-import com.google.common.collect.ImmutableBiMap;
-import com.google.common.collect.Lists;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.engine.spark.job.CuboidAggregator;
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import io.kyligence.kap.metadata.model.NDataModel;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
 import org.apache.kylin.measure.bitmap.BitmapCounter;
@@ -62,10 +53,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.spark_project.guava.collect.Sets;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.google.common.collect.ImmutableBiMap;
+import com.google.common.collect.Lists;
+
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
+import io.kyligence.kap.engine.spark.job.CuboidAggregator;
+import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.NDataModel;
 
 public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
@@ -120,20 +122,25 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         for (NDataLayout cuboid : dataLayouts) {
             Set<Integer> rowKeys = cuboid.getLayout().getOrderedDimensions().keySet();
 
-            Dataset<Row> layoutDataset = StorageFactory.createEngineAdapter(cuboid.getLayout(), NSparkCubingEngine.NSparkCubingStorage.class).getFrom(NSparkCubingUtil.getStoragePath(cuboid), ss);
-            layoutDataset = layoutDataset.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid))).sort(NSparkCubingUtil.getColumns(rowKeys));
+            Dataset<Row> layoutDataset = StorageFactory
+                    .createEngineAdapter(cuboid.getLayout(), NSparkCubingEngine.NSparkCubingStorage.class)
+                    .getFrom(NSparkCubingUtil.getStoragePath(cuboid), ss);
+            layoutDataset = layoutDataset.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid)))
+                    .sort(NSparkCubingUtil.getColumns(rowKeys));
             System.out.println("Query cuboid ------------ " + cuboid.getLayoutId());
             layoutDataset = dsConvertToOriginal(layoutDataset, cuboid.getLayout());
             layoutDataset.show(10);
 
             NDataSegment segment = cuboid.getSegDetails().getDataSegment();
-            Dataset<Row> ds = initFlatTable(dfName, new SegmentRange.TimePartitionedSegmentRange(segment.getTSRange().getStart(), segment.getTSRange().getEnd()));
+            Dataset<Row> ds = initFlatTable(dfName, new SegmentRange.TimePartitionedSegmentRange(
+                    segment.getTSRange().getStart(), segment.getTSRange().getEnd()));
 
             if (cuboid.getLayout().getIndex().getId() < IndexEntity.TABLE_INDEX_START_ID) {
                 ds = queryCuboidLayout(cuboid.getLayout(), ds);
             }
 
-            Dataset<Row> exceptDs = ds.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid))).sort(NSparkCubingUtil.getColumns(rowKeys));
+            Dataset<Row> exceptDs = ds.select(NSparkCubingUtil.getColumns(rowKeys, chooseMeas(cuboid)))
+                    .sort(NSparkCubingUtil.getColumns(rowKeys));
 
             System.out.println("Spark sql ------------ ");
             exceptDs.show(10);
@@ -158,7 +165,8 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
 
     private Dataset<Row> queryCuboidLayout(LayoutEntity layout, Dataset<Row> ds) {
         NCubeJoinedFlatTableDesc flatTableDesc = new NCubeJoinedFlatTableDesc(layout.getIndex().getIndexPlan());
-        return CuboidAggregator.agg(ss, ds, layout.getIndex().getEffectiveDimCols().keySet(), layout.getIndex().getIndexPlan().getEffectiveMeasures(), flatTableDesc, true);
+        return CuboidAggregator.agg(ss, ds, layout.getIndex().getEffectiveDimCols().keySet(),
+                layout.getIndex().getIndexPlan().getEffectiveMeasures(), flatTableDesc, true);
     }
 
     private Dataset<Row> dsConvertToOriginal(Dataset<Row> layoutDs, LayoutEntity layout) {
@@ -193,7 +201,8 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         return layoutDs;
     }
 
-    private Integer convertOutSchema(Dataset<Row> layoutDs, String fieldName, org.apache.spark.sql.types.DataType dataType) {
+    private Integer convertOutSchema(Dataset<Row> layoutDs, String fieldName,
+            org.apache.spark.sql.types.DataType dataType) {
         StructField[] structFieldList = layoutDs.schema().fields();
         String[] columns = layoutDs.columns();
 
@@ -221,7 +230,7 @@ public class NManualBuildAndQueryCuboidTest extends NManualBuildAndQueryTest {
         NDataModel model = df.getModel();
 
         NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getIndexPlan(), segmentRange);
-        Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTable, ss);
+        Dataset<Row> ds = CreateFlatTable.generateDataset(flatTable, ss);
 
         StructType schema = ds.schema();
         for (StructField field : schema.fields()) {

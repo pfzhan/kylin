@@ -30,8 +30,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.apache.kylin.common.KylinConfigExt;
-import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.execution.DefaultChainedExecutable;
 import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
@@ -84,52 +82,18 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         job.setTargetSegments(segments.stream().map(x -> String.valueOf(x.getId())).collect(Collectors.toList()));
         job.setProject(df.getProject());
         job.setSubmitter(submitter);
-        job.addSparkAnalysisStep(segments, layouts);
-        job.addSparkCubingStep(segments, layouts);
+        JobStepFactory.addStep(job, JobStepType.RESOURCE_DETECT, segments, layouts);
+        JobStepFactory.addStep(job, JobStepType.ANALYSIS, segments, layouts);
+        JobStepFactory.addStep(job, JobStepType.CUBING, segments, layouts);
         return job;
     }
 
     public NSparkAnalysisStep getSparkAnalysisStep() {
-        return (NSparkAnalysisStep) getTasks().get(0);
+        return getTask(NSparkAnalysisStep.class);
     }
 
     public NSparkCubingStep getSparkCubingStep() {
-        return (NSparkCubingStep) getTasks().get(1);
-    }
-
-    private void addSparkAnalysisStep(Set<NDataSegment> segments, Set<LayoutEntity> layouts) {
-        final NSparkAnalysisStep step = new NSparkAnalysisStep();
-        NDataflow df = segments.iterator().next().getDataflow();
-        KylinConfigExt config = df.getConfig();
-        step.setName(ExecutableConstants.STEP_NAME_DATA_PROFILING);
-        step.setTargetModel(segments.iterator().next().getModel().getUuid());
-        step.setJobId(getId());
-        step.setProject(getProject());
-        step.setProjectParam();
-        step.setDataflowId(df.getUuid());
-        step.setSegmentIds(NSparkCubingUtil.toSegmentIds(segments));
-        step.setCuboidLayoutIds(NSparkCubingUtil.toCuboidLayoutIds(layouts));
-        this.addTask(step);
-        //after addTask, step's id is changed
-        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(getProject(), step.getId()).toString());
-    }
-
-    private void addSparkCubingStep(Set<NDataSegment> segments, Set<LayoutEntity> layouts) {
-        NSparkCubingStep step = new NSparkCubingStep();
-        NDataflow df = segments.iterator().next().getDataflow();
-        KylinConfigExt config = df.getConfig();
-        step.setTargetModel(segments.iterator().next().getModel().getUuid());
-        step.setSparkSubmitClassName(config.getSparkBuildClassName());
-        step.setName(ExecutableConstants.STEP_NAME_BUILD_SPARK_CUBE);
-        step.setProject(getProject());
-        step.setProjectParam();
-        step.setDataflowId(df.getUuid());
-        step.setSegmentIds(NSparkCubingUtil.toSegmentIds(segments));
-        step.setCuboidLayoutIds(NSparkCubingUtil.toCuboidLayoutIds(layouts));
-        step.setJobId(getId());
-        this.addTask(step);
-        //after addTask, step's id is changed
-        step.setDistMetaUrl(config.getJobTmpMetaStoreUrl(getProject(), step.getId()).toString());
+        return getTask(NSparkCubingStep.class);
     }
 
     @Override

@@ -24,52 +24,32 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import io.kyligence.kap.metadata.cube.model.NBatchConstants;
-import io.kyligence.kap.metadata.cube.model.NDataflow;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import java.util.Arrays;
+import java.util.Set;
+
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.job.constant.ExecutableConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Arrays;
-import java.util.Set;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 
 public class NSparkMergingStep extends NSparkExecutable {
     private static final Logger logger = LoggerFactory.getLogger(NSparkCubingStep.class);
 
+    public NSparkMergingStep() {
+    }
+
+    public NSparkMergingStep(String sparkSubmitClassName) {
+        this.setSparkSubmitClassName(sparkSubmitClassName);
+        this.setName(ExecutableConstants.STEP_NAME_MERGER_SPARK_SEGMENT);
+    }
 
     @Override
     protected Set<String> getMetadataDumpList(KylinConfig config) {
         NDataflow df = NDataflowManager.getInstance(config, getProject()).getDataflow(getDataflowId());
         return df.collectPrecalculationResource();
-    }
-
-    void setDataflowId(String dataflowId) {
-        this.setParam(NBatchConstants.P_DATAFLOW_ID, dataflowId);
-    }
-
-    void setJobId(String jobId) {
-        this.setParam(NBatchConstants.P_JOB_ID, jobId);
-    }
-
-    public String getDataflowId() {
-        return this.getParam(NBatchConstants.P_DATAFLOW_ID);
-    }
-
-    void setSegmentId(String segmentId) {
-        this.setParam(NBatchConstants.P_SEGMENT_IDS, segmentId);
-    }
-
-    public String getSegmentIds() {
-        return this.getParam(NBatchConstants.P_SEGMENT_IDS);
-    }
-
-    void setCuboidLayoutIds(Set<Long> clIds) {
-        this.setParam(NBatchConstants.P_LAYOUT_IDS, NSparkCubingUtil.ids2Str(clIds));
-    }
-
-    public Set<Long> getCuboidLayoutIds() {
-        return NSparkCubingUtil.str2Longs(this.getParam(NBatchConstants.P_LAYOUT_IDS));
     }
 
     public static class Mockup {

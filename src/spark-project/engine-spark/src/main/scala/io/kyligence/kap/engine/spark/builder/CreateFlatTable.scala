@@ -24,72 +24,57 @@ package io.kyligence.kap.engine.spark.builder
 
 import java.util
 
-import com.google.common.collect.{Maps, Sets}
-import io.kyligence.kap.engine.spark.NSparkCubingEngine
+import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
-import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
-import io.kyligence.kap.metadata.model.NDataModel
+import io.kyligence.kap.engine.spark.utils.SparkDataSource._
+import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc
+import io.kyligence.kap.metadata.model.{NDataModel, NDataModelFlatTableDesc}
 import org.apache.commons.lang.StringUtils
 import org.apache.kylin.metadata.model._
-import org.apache.kylin.source.SourceFactory
+import org.apache.spark.internal.Logging
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ListBuffer
 
-object CreateFlatTable {
-  def generateDataset(flatTable: IJoinedFlatTableDesc, ss: SparkSession,
-                      encodeColMap: util.Map[String, util.Set[TblColRef]],
-                      seg: NDataSegment): Dataset[Row] = {
-    val model = flatTable.getDataModel.asInstanceOf[NDataModel]
+object CreateFlatTable extends Logging {
+  def generateDataset(model: NDataModel,
+                      ss: SparkSession): Dataset[Row] = {
     val rootFactDesc = model.getRootFactTable.getTableDesc
-    var ds = SourceFactory
-      .createEngineAdapter(rootFactDesc,
-        classOf[NSparkCubingEngine.NSparkCubingSource])
-      .getSourceData(rootFactDesc, ss, Maps.newHashMap())
-      .alias(model.getRootFactTable.getAlias)
-    ds = changeSchemaToAliasDotName(ds, model.getRootFactTable.getAlias)
-    ds = encodeDataset(ds, model.getRootFactTable.getAlias, encodeColMap, seg)
+    var ds = ss.table(rootFactDesc).alias(model.getRootFactTable.getAlias)
 
+    ds = changeSchemaToAliasDotName(ds, model.getRootFactTable.getAlias)
     for (lookupDesc <- model.getJoinTables.asScala) {
       val join = lookupDesc.getJoin
       if (join != null && !StringUtils.isEmpty(join.getType)) {
         val joinType = join.getType.toUpperCase
         val dimTable = lookupDesc.getTableRef
-        var dimDataset = SourceFactory
-          .createEngineAdapter(dimTable.getTableDesc,
-            classOf[NSparkCubingEngine.NSparkCubingSource])
-          .getSourceData(dimTable.getTableDesc, ss, Maps.newHashMap())
+        var lookupTable = ss.table(dimTable.getTableDesc)
           .alias(dimTable.getAlias)
-        dimDataset = changeSchemaToAliasDotName(dimDataset, dimTable.getAlias)
+        lookupTable = changeSchemaToAliasDotName(lookupTable, dimTable.getAlias)
         val pk = join.getPrimaryKeyColumns
         val fk = join.getForeignKeyColumns
         if (pk.length != fk.length) {
           throw new RuntimeException(
             "Invalid join condition of lookup table:" + lookupDesc)
         }
-        var joinCond: Column = null
-        var i = 0
-        while ( {
-          i < pk.length
-        }) {
-          val thisJoinCond = col(NSparkCubingUtil.convertFromDot(fk(i).getIdentity))
-            .equalTo(col(
-              NSparkCubingUtil.convertFromDot(pk(i).getIdentity)))
-          if (joinCond == null) joinCond = thisJoinCond
-          else joinCond = joinCond.and(thisJoinCond)
-
-          {
-            i += 1
-            i - 1
-          }
-        }
-
-        dimDataset = encodeDataset(dimDataset, dimTable.getTableName, encodeColMap, seg)
-        ds = ds.join(dimDataset, joinCond, joinType)
+        val condition = fk.zip(pk).map(joinKey =>
+          col(NSparkCubingUtil.convertFromDot(joinKey._1.getIdentity))
+            .equalTo(col(NSparkCubingUtil.convertFromDot(joinKey._2.getIdentity))))
+          .reduce(_.and(_))
+        logInfo(s"Root table ${rootFactDesc.getIdentity}, join table ${lookupDesc.getAlias}, condition: ${condition.toString()}")
+        ds = ds.join(lookupTable, condition, joinType)
       }
     }
+    ds
+  }
+
+  def generateDataset(flatTable: IJoinedFlatTableDesc,
+                      ss: SparkSession): Dataset[Row] = {
+    val model = flatTable.getDataModel
+    var ds = generateDataset(model, ss)
+
     if (StringUtils.isNotBlank(model.getFilterCondition)) {
       val afterConvertCondition = replaceDot(model.getFilterCondition, model)
       ds = ds.where(afterConvertCondition)
@@ -103,79 +88,42 @@ object CreateFlatTable {
           partDesc.getPartitionConditionBuilder
             .buildDateRangeCondition(partDesc, null, segRange),
           model)
+        logInfo(s"Partition filter $afterConvertPartition")
         ds = ds.where(afterConvertPartition) // TODO: mp not supported right now
       }
     }
-    if (flatTable.isInstanceOf[NCubeJoinedFlatTableDesc]) {
-      return selectNCubeJoinedFlatTable(
-        ds,
-        flatTable.asInstanceOf[NCubeJoinedFlatTableDesc])
+    flatTable match {
+      case joined: NCubeJoinedFlatTableDesc =>
+        selectNCubeJoinedFlatTable(ds, joined)
+      case model: NDataModelFlatTableDesc =>
+        selectNModelJoinedFlatTable(ds, model)
     }
+  }
 
+  /*
+     * Convert IJoinedFlatTableDesc to Dataset
+     */
+  def selectNModelJoinedFlatTable(ds: Dataset[Row], flatTable: NDataModelFlatTableDesc): Dataset[Row] = {
     val colRefs = flatTable.getAllColumns
     val exprs = new Array[String](colRefs.size)
     val names = new Array[String](exprs.length)
-    var i = 0
-    while ( {
-      i < exprs.length
-    }) {
-      exprs(i) =
-        NSparkCubingUtil.convertFromDot(colRefs.get(i).getExpressionInSourceDB)
+    for (i <- exprs.indices) {
+      exprs(i) = NSparkCubingUtil.convertFromDot(colRefs.get(i).getExpressionInSourceDB)
       names(i) = NSparkCubingUtil.convertFromDot(colRefs.get(i).getIdentity)
-
-      {
-        i += 1;
-        i - 1
-      }
     }
-    return ds.selectExpr(exprs: _*).toDF(names: _*)
+    ds.selectExpr(exprs: _*).toDF(names: _*)
   }
 
-  def selectNCubeJoinedFlatTable(
-                                  ds: Dataset[Row],
-                                  flatTable: NCubeJoinedFlatTableDesc): Dataset[Row] = {
-    val structType = ds.schema
-    val encodeSeq = structType.filter(_.name.endsWith(DFTableEncoder.ENCODE_SUFFIX)).seq
-
+  def selectNCubeJoinedFlatTable(ds: Dataset[Row], flatTable: NCubeJoinedFlatTableDesc): Dataset[Row] = {
     val colRefs = flatTable.getAllColumns
     val colIndices = flatTable.getIndices
-    val exprs = new Array[String](colRefs.size + encodeSeq.size)
+    val exprs = new Array[String](colRefs.size)
     val indices = new Array[String](exprs.length)
-    var i = 0
-    while ( {
-      i < colRefs.size
-    }) {
-      exprs(i) =
-        NSparkCubingUtil.convertFromDot(colRefs.get(i).getExpressionInSourceDB)
+    for (i <- exprs.indices) {
+      exprs(i) = NSparkCubingUtil.convertFromDot(colRefs.get(i).getExpressionInSourceDB)
       indices(i) = String.valueOf(colIndices.get(i))
-
-      {
-        i += 1;
-        i - 1
-      }
     }
-
-    encodeSeq.foreach {
-      field =>
-        exprs(i) = field.name
-        indices(i) = String.valueOf(
-          indices.apply(exprs.indexOf(field.name.replaceFirst(
-            DFTableEncoder.ENCODE_SUFFIX, "")))) + DFTableEncoder.ENCODE_SUFFIX
-        i = i + 1
-    }
-
-    return ds.selectExpr(exprs: _*).toDF(indices: _*)
-  }
-
-  def encodeDataset(ds: Dataset[Row], tableName: String, encodeColMap: util.Map[String, util.Set[TblColRef]],
-                    seg: NDataSegment): Dataset[Row] = {
-    var encodeDs = ds
-    encodeColMap.asScala.get(tableName).headOption match {
-      case Some(cols) =>
-        encodeDs = DFTableEncoder.encode(ds, seg, cols)
-      case None => None
-    }
-    encodeDs
+    ds.selectExpr(exprs: _*).toDF(indices: _*)
   }
 
   def replaceDot(original: String, model: NDataModel): String = {
@@ -221,20 +169,15 @@ object CreateFlatTable {
     val sql: StringBuilder = new StringBuilder
     sql.append("SELECT" + sep)
     var i: Int = 0
-    while ( {
-      i < flatDesc.getAllColumns.size
-    }) {
+    for (i <- 0 until flatDesc.getAllColumns.size()) {
       val col: TblColRef = flatDesc.getAllColumns.get(i)
-      if (i > 0) sql.append(",")
+      sql.append(",")
       val colTotalName: String =
         String.format("%s.%s", col.getTableRef.getTableName, col.getName)
       if (skipAsList.contains(colTotalName)) {
         sql.append(col.getExpressionInSourceDB + sep)
       } else {
-        sql.append(col.getExpressionInSourceDB + " as " + colName(col) + sep) {
-          i += 1
-          i - 1
-        }
+        sql.append(col.getExpressionInSourceDB + " as " + colName(col) + sep)
       }
     }
     appendJoinStatement(flatDesc, sql, singleLine)

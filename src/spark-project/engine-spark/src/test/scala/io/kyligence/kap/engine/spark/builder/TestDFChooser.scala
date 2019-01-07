@@ -26,6 +26,7 @@ import java.util
 import com.google.common.collect.Lists.newArrayList
 import com.google.common.collect.Sets
 import io.kyligence.kap.engine.spark.job.{CuboidAggregator, DFChooser, UdfManager}
+import io.kyligence.kap.engine.spark.job.{CuboidAggregator, UdfManager}
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
 import io.kyligence.kap.metadata.cube.model._
@@ -124,11 +125,11 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
     val segDict = dictionaryBuilder.buildDictionary
     dictColSet.asScala.foreach(
       col => {
-        val dict1 = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, segDict.getConfig.getHdfsWorkingDirectory)
+        val dict1 = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, seg.getConfig.getHdfsWorkingDirectory)
         val meta1 = dict1.getMetaInfo
         val needResizeBucketSize = dict1.getBucketSizeOrDefault(seg.getConfig.getGlobalDictV2MinHashPartitions) + 10
-        NGlobalDictionaryBuilderAssist.resize(col, segDict, needResizeBucketSize, spark.sparkContext)
-        val dict2 = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, segDict.getConfig.getHdfsWorkingDirectory)
+        NGlobalDictionaryBuilderAssist.resize(col, seg, needResizeBucketSize, spark.sparkContext)
+        val dict2 = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, seg.getConfig.getHdfsWorkingDirectory)
         Assert.assertEquals(meta1.getDictCount, dict2.getMetaInfo.getDictCount)
         Assert.assertEquals(meta1.getBucketSize + 10, dict2.getMetaInfo.getBucketSize)
       }

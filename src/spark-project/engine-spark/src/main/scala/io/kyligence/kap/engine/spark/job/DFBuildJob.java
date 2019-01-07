@@ -33,34 +33,23 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import org.apache.commons.cli.Options;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.KapConfig;
-import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.HadoopUtil;
-import org.apache.kylin.common.util.OptionsHelper;
 import org.apache.kylin.storage.StorageFactory;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.hive.utils.ResourceDetectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.metadata.cube.model.IndexEntity;
-import io.kyligence.kap.metadata.cube.model.NDataLayout;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.builder.NBuildSourceInfo;
 import io.kyligence.kap.engine.spark.builder.NDataflowJob;
@@ -69,49 +58,57 @@ import io.kyligence.kap.engine.spark.utils.JobMetricsUtils;
 import io.kyligence.kap.engine.spark.utils.Metrics;
 import io.kyligence.kap.engine.spark.utils.QueryExecutionCache;
 import io.kyligence.kap.engine.spark.utils.RepartitionHelper;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.utils.ParameterType;
+import io.kyligence.kap.metadata.cube.utils.ParametersUtils;
 import io.kyligence.kap.metadata.model.NDataModel;
 
 public class DFBuildJob extends NDataflowJob {
+    public static final Long FLAT_TABLE_FLAG = -1L;
     protected static final Logger logger = LoggerFactory.getLogger(DFBuildJob.class);
     protected static String tempDirSuffix = "_temp";
     protected volatile NSpanningTree nSpanningTree;
     protected volatile List<NBuildSourceInfo> sources = new ArrayList<>();
 
     @Override
-    protected Options getOptions() {
-        return super.getOptions();
-    }
-
-    @Override
-    protected void doExecute(OptionsHelper optionsHelper) throws Exception {
+    protected void doExecute() throws Exception {
         long start = System.currentTimeMillis();
         logger.info("Start Build");
-        String dfName = optionsHelper.getOptionValue(OPTION_DATAFLOW_ID);
-        project = optionsHelper.getOptionValue(OPTION_PROJECT_NAME);
-
-        Set<String> segmentIds = Sets.newHashSet(StringUtils.split(optionsHelper.getOptionValue(OPTION_SEGMENT_IDS)));
-        Set<Long> layoutIds = getLayoutsFromPath(optionsHelper.getOptionValue(OPTION_LAYOUT_ID_PATH));
+        String dataflowId = getParam(NBatchConstants.P_DATAFLOW_ID);
+        project = getParam(NBatchConstants.P_PROJECT_NAME);
+        Set<String> segmentIds = Sets.newHashSet(StringUtils.split(getParam(NBatchConstants.P_SEGMENT_IDS)));
+        Set<Long> layoutIds = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS));
 
         try {
             NDataflowManager dfMgr = NDataflowManager.getInstance(config, project);
-            IndexPlan indexPlan = dfMgr.getDataflow(dfName).getIndexPlan();
+            IndexPlan indexPlan = dfMgr.getDataflow(dataflowId).getIndexPlan();
             Set<LayoutEntity> cuboids = NSparkCubingUtil.toLayouts(indexPlan, layoutIds).stream()
                     .filter(Objects::nonNull).collect(Collectors.toSet());
-            nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dfName);
+            nSpanningTree = NSpanningTreeFactory.fromLayouts(cuboids, dataflowId);
 
             //TODO: what if a segment is deleted during building?
 
             for (String segId : segmentIds) {
-                NDataSegment seg = dfMgr.getDataflow(dfName).getSegment(segId);
+                NDataSegment seg = dfMgr.getDataflow(dataflowId).getSegment(segId);
 
                 // choose source
-                DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, ss, config);
+                DFChooser datasetChooser = new DFChooser(nSpanningTree, seg, ss, config, true);
                 datasetChooser.decideSources();
                 NBuildSourceInfo buildFromFlatTable = datasetChooser.flatTableSource();
                 Map<Long, NBuildSourceInfo> buildFromLayouts = datasetChooser.reuseSources();
 
                 // note segment (source count, dictionary etc) maybe updated as a result of source select
-                seg = dfMgr.getDataflow(dfName).getSegment(segId);
+                seg = dfMgr.getDataflow(dataflowId).getSegment(segId);
                 if (buildFromFlatTable != null) {
                     buildFromFlatTable.getDataset().cache();
                     buildFromFlatTable.setSegment(seg);
@@ -132,18 +129,29 @@ public class DFBuildJob extends NDataflowJob {
                                 indexPlan.getCuboidLayout(source.getLayoutId()).getOrderedMeasures(), nSpanningTree);
                     }
                 }
-                if (buildFromFlatTable != null)
+                if (buildFromFlatTable != null) {
                     buildFromFlatTable.getDataset().unpersist();
+
+                    // update resource paths when build from flat table
+                    Map<String, List<String>> resourcePaths = ResourceDetectUtils.readResourcePaths(
+                            new Path(config.getJobTmpShareDir(project, jobId), segId + "_" + ResourceDetectUtils.fileName()));
+                    String value = ParametersUtils.serializeValue(resourcePaths.get(String.valueOf(FLAT_TABLE_FLAG)));
+                    NDataflow flowCopy = dfMgr.getDataflow(dataflowId).copy();
+                    NDataSegment segCopy = flowCopy.getSegment(segId);
+                    segCopy.addParameter(ParameterType.RESOURCE_PATHS.getKey(), value);
+                    NDataflowUpdate update = new NDataflowUpdate(dataflowId);
+                    update.setToUpdateSegs(segCopy);
+                    dfMgr.updateDataflow(update);
+                }
             }
 
         } finally {
-            KylinConfig.removeKylinConfigThreadLocal();
             logger.info("Finish build take" + (System.currentTimeMillis() - start) + " ms");
         }
     }
 
     private void recursiveBuildCuboid(NDataSegment seg, IndexEntity cuboid, Dataset<Row> parent,
-                                      Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
+            Map<Integer, NDataModel.Measure> measures, NSpanningTree nSpanningTree) throws IOException {
         if (cuboid.getId() >= IndexEntity.TABLE_INDEX_START_ID) {
             Preconditions.checkArgument(cuboid.getMeasures().isEmpty());
             Set<Integer> dimIndexes = cuboid.getEffectiveDimCols().keySet();
@@ -275,5 +283,10 @@ public class DFBuildJob extends NDataflowJob {
     public static void main(String[] args) {
         DFBuildJob nDataflowBuildJob = new DFBuildJob();
         nDataflowBuildJob.execute(args);
+    }
+
+    @Override
+    public void checkArgs() {
+
     }
 }

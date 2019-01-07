@@ -74,7 +74,7 @@ public class DictionaryBuilder {
         lock = KylinConfig.getInstanceFromEnv().getDistributedLockFactory().lockForCurrentThread();
     }
 
-    public NDataSegment buildDictionary() throws IOException {
+    public void buildDictionary() throws IOException {
 
         logger.info("Building global dictionaries V2 for seg {}", seg);
 
@@ -87,8 +87,6 @@ public class DictionaryBuilder {
         final long end = System.currentTimeMillis();
 
         logger.info("Building global dictionaries V2 for seg {} , cost {} ms", seg, end - start);
-
-        return seg;
     }
 
     void safeBuild(TblColRef col) throws IOException {

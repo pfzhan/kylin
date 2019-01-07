@@ -45,12 +45,12 @@ import org.junit.Test;
 
 import com.google.common.collect.Maps;
 
+import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
+import io.kyligence.kap.engine.spark.builder.CreateFlatTable;
 import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine.NSparkCubingSource;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 
@@ -103,7 +103,7 @@ public class CsvSourceTest extends NLocalWithSparkSessionTest {
 
         NCubeJoinedFlatTableDesc flatTable = new NCubeJoinedFlatTableDesc(df.getIndexPlan(),
                 new SegmentRange.TimePartitionedSegmentRange(0L, System.currentTimeMillis()));
-        Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTable, ss);
+        Dataset<Row> ds = CreateFlatTable.generateDataset(flatTable, ss);
         ds.show(10);
 
         StructType schema = ds.schema();
