@@ -30,6 +30,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import io.kyligence.kap.engine.spark.builder.NGlobalDictMetaInfo;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.kylin.common.KylinConfig;
@@ -51,7 +52,6 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;
 import io.kyligence.kap.engine.spark.builder.NBucketDictionary;
 import io.kyligence.kap.engine.spark.builder.NGlobalDictHDFSStore;
-import io.kyligence.kap.engine.spark.builder.NGlobalDictMetadata;
 import io.kyligence.kap.engine.spark.builder.NGlobalDictStore;
 import io.kyligence.kap.engine.spark.builder.NGlobalDictionaryV2;
 import io.kyligence.kap.engine.spark.builder.NHashPartitioner;
@@ -166,13 +166,10 @@ public class NGlobalDictionaryV2Test extends NLocalWithSparkSessionTest {
     }
 
     private void compareTwoVersionDict(NGlobalDictionaryV2 dict1, NGlobalDictionaryV2 dict2) throws IOException {
-        NGlobalDictMetadata metadata1 = dict1.getMetaDict();
-        NGlobalDictMetadata metadata2 = dict2.getMetaDict();
-
+        NGlobalDictMetaInfo metadata1 = dict1.getMetaInfo();
+        NGlobalDictMetaInfo metadata2 = dict2.getMetaInfo();
         // compare dict meta info
-        Assert.assertEquals(metadata1.getDictCount(), metadata2.getDictCount());
-        Assert.assertEquals(metadata1.getBucketSize(), metadata2.getBucketSize());
-        Assert.assertArrayEquals(metadata1.getOffset(), metadata2.getOffset());
+        Assert.assertTrue(metadata1.equals(metadata2));
 
         for (int i = 0; i < metadata1.getBucketSize(); i++) {
             NBucketDictionary bucket1 = dict1.loadBucketDictionary(i);

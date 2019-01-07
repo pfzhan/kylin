@@ -35,13 +35,14 @@ public class NGlobalDictionaryV2 implements Serializable {
     protected static final Logger logger = LoggerFactory.getLogger(NGlobalDictionaryV2.class);
 
     private String baseDir;
-    private NGlobalDictMetadata metadata;
+    private NGlobalDictMetaInfo metadata;
 
     private final static String WORKING_DIR = "working";
 
     private String project;
     private String sourceTable;
     private String sourceColumn;
+    private boolean isFirst = true;
 
     public String getResourceDir() {
         return "/" + project + ResourceStore.GLOBAL_DICT_RESOURCE_ROOT + "/" + sourceTable + "/" + sourceColumn + "/";
@@ -57,18 +58,21 @@ public class NGlobalDictionaryV2 implements Serializable {
         this.sourceTable = sourceTable;
         this.sourceColumn = sourceColumn;
         this.baseDir = baseDir + getResourceDir();
-        this.metadata = getMetaDict();
+        this.metadata = getMetaInfo();
+        if (metadata != null) {
+            isFirst = false;
+        }
     }
 
     public NBucketDictionary loadBucketDictionary(int bucketId) throws IOException {
         if (null == metadata) {
-            metadata = getMetaDict();
+            metadata = getMetaInfo();
         }
         return new NBucketDictionary(baseDir, getWorkingDir(), bucketId, metadata);
     }
 
-    public NBucketDictionary createNewBucketDictionary(int bucketId) throws IOException {
-        return new NBucketDictionary(baseDir, getWorkingDir(), bucketId);
+    public NBucketDictionary createNewBucketDictionary() {
+        return new NBucketDictionary(getWorkingDir());
     }
 
     public void prepareWrite() throws IOException {
@@ -78,19 +82,19 @@ public class NGlobalDictionaryV2 implements Serializable {
 
     public void writeMetaDict(int bucketSize, int maxVersions, int versionTTL) throws IOException {
         NGlobalDictStore globalDictStore = getResourceStore(baseDir);
-        globalDictStore.writeMetaDict(bucketSize, getWorkingDir());
+        globalDictStore.writeMetaInfo(bucketSize, getWorkingDir());
         commit(maxVersions, versionTTL);
     }
 
-    public NGlobalDictMetadata getMetaDict() throws IOException {
+    public NGlobalDictMetaInfo getMetaInfo() throws IOException {
         NGlobalDictStore globalDictStore = getResourceStore(baseDir);
-        NGlobalDictMetadata metadata;
+        NGlobalDictMetaInfo metadata;
         Long[] versions = globalDictStore.listAllVersions();
 
         if (versions.length == 0) {
             return null;
         } else {
-            metadata = globalDictStore.getMetadata(versions[versions.length - 1]);
+            metadata = globalDictStore.getMetaInfo(versions[versions.length - 1]);
         }
         return metadata;
     }
@@ -104,6 +108,14 @@ public class NGlobalDictionaryV2 implements Serializable {
         }
 
         return bucketPartitionSize;
+    }
+
+    public boolean isFirst() {
+        return isFirst;
+    }
+
+    public void setFirst(boolean first) {
+        isFirst = first;
     }
 
     private void commit(int maxVersions, int versionTTL) throws IOException {

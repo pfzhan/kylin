@@ -55,10 +55,10 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
   }
 
   test("[INDEX_BUILD] - global dict reuse") {
-    var dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    var df: NDataflow = dsMgr.getDataflow(CUBE_NAME1)
+    val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
+    val df: NDataflow = dsMgr.getDataflow(CUBE_NAME1)
     var cubeMgr: NCubePlanManager = NCubePlanManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    var dfCopy = df.copy()
+    val dfCopy = df.copy()
     checkFlatTableEncoding(dfCopy.getName, dfCopy.getLastSegment, 0)
 
     var modelMgr: NDataModelManager = NDataModelManager.getInstance(getTestConfig, DEFAULT_PROJECT)
@@ -72,7 +72,6 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
     model = modelMgr.getDataModelDesc(MODEL_NAME)
 
     cubeMgr = NCubePlanManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    var cubePlan = cubeMgr.getCubePlan(CUBE_NAME1)
     cubeMgr.updateCubePlan(CUBE_NAME1, new NCubePlanUpdater {
       override def modify(copyForWrite: NCubePlan): Unit = {
         val cuboidDesc = copyForWrite.getAllCuboids.get(0)
@@ -96,8 +95,8 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
     UdfManager.create(spark)
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
     Assert.assertTrue(getTestConfig.getHdfsWorkingDirectory.startsWith("file:"))
-    var df: NDataflow = dsMgr.getDataflow(CUBE_NAME2)
-    var dfCopy = df.copy()
+    val df: NDataflow = dsMgr.getDataflow(CUBE_NAME2)
+    val dfCopy: NDataflow = df.copy()
     // cleanup all segments first
     val update = new NDataflowUpdate(dfCopy.getName)
     for (seg <- dfCopy.getSegments.asScala) {
@@ -128,12 +127,12 @@ class TestDFChooser extends SparderBaseFunSuite with SharedSparkSession with Loc
     dictColSet.asScala.foreach(
       col => {
         val dict1 = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, segDict.getConfig.getHdfsWorkingDirectory)
-        val meta1 = dict1.getMetaDict;
-        NGlobalDictionaryBuilderAssist.resize(col, segDict, (seg.getConfig.getGlobalDictV2HashPartitions + 10),
-          spark.sparkContext)
+        val meta1 = dict1.getMetaInfo
+        val needResizeBucketSize = dict1.getBucketSizeOrDefault(seg.getConfig.getGlobalDictV2MinHashPartitions) + 10
+        NGlobalDictionaryBuilderAssist.resize(col, segDict, needResizeBucketSize, spark.sparkContext)
         val dict2 = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, segDict.getConfig.getHdfsWorkingDirectory)
-        Assert.assertEquals(meta1.getDictCount, dict2.getMetaDict.getDictCount)
-        Assert.assertEquals(meta1.getBucketSize + 10, dict2.getMetaDict.getBucketSize)
+        Assert.assertEquals(meta1.getDictCount, dict2.getMetaInfo.getDictCount)
+        Assert.assertEquals(meta1.getBucketSize + 10, dict2.getMetaInfo.getBucketSize)
       }
     )
     afterJoin.unpersist

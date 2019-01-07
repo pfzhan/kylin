@@ -22,6 +22,8 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
+import static io.kyligence.kap.engine.spark.builder.NGlobalDictionaryBuilderAssist.resize;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
@@ -33,6 +35,7 @@ import org.apache.kylin.common.lock.DistributedLock;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.metadata.model.MeasureDesc;
 import org.apache.kylin.metadata.model.TblColRef;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function2;
 import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.broadcast.Broadcast;
@@ -51,7 +54,6 @@ import io.kyligence.kap.cube.model.NCuboidLayout;
 import io.kyligence.kap.cube.model.NDataCuboid;
 import io.kyligence.kap.cube.model.NDataSegment;
 import scala.Tuple2;
-import scala.reflect.ClassTag$;
 
 public class DictionaryBuilder {
     protected static final Logger logger = LoggerFactory.getLogger(DictionaryBuilder.class);
@@ -69,7 +71,7 @@ public class DictionaryBuilder {
 
     public NDataSegment buildDictionary() throws IOException {
 
-        logger.info("building global dictionaries V2 for seg {}", seg);
+        logger.info("Building global dictionaries V2 for seg {}", seg);
 
         final long start = System.currentTimeMillis();
 
@@ -79,23 +81,19 @@ public class DictionaryBuilder {
 
         final long end = System.currentTimeMillis();
 
-        logger.info("building global dictionaries V2 for seg {} , cost {} ms", seg, end - start);
+        logger.info("Building global dictionaries V2 for seg {} , cost {} ms", seg, end - start);
 
         return seg;
     }
 
-    private void safeBuild(TblColRef col) throws IOException {
-        String sourceColumn = col.getTable() + "_" + col.getName();
+    void safeBuild(TblColRef col) throws IOException {
+        String sourceColumn = col.getTable() + "." + col.getName();
         lock.lock(getLockPath(sourceColumn), Long.MAX_VALUE);
         try {
             if (lock.lock(getLockPath(sourceColumn))) {
                 int id = seg.getDataflow().getCubePlan().getModel().getColumnIdByColumnName(col.getIdentity());
                 Dataset<Row> afterDistinct = dataSet.select(String.valueOf(id)).distinct();
-                int bucketPartitionSize = seg.getConfig().getGlobalDictV2HashPartitions();
-                if (needResize(col)) {
-                    NGlobalDictionaryBuilderAssist.resize(col, seg, bucketPartitionSize,
-                            afterDistinct.sparkSession().sparkContext());
-                }
+                int bucketPartitionSize = calculateBucketSize(col, afterDistinct);
                 build(col, bucketPartitionSize, afterDistinct);
             }
         } finally {
@@ -103,23 +101,82 @@ public class DictionaryBuilder {
         }
     }
 
-    private boolean needResize(TblColRef col) throws IOException {
+    /**
+     * Dictionary resize in three cases
+     *  #1 The number of dictionaries currently needed to be built is greater than the number of
+     *  buckets multiplied by the threshold
+     *  #2 After the last build, the total number of existing dictionaries is greater than the total
+     *  number of buckets multiplied by the threshold
+     *  #3 After the last build, the number of individual buckets in the existing dictionary is greater
+     *  than the threshold multiplied by KylinConfigBase.getGlobalDictV2BucketOverheadFactor
+     */
+    private int calculateBucketSize(TblColRef col, Dataset<Row> afterDistinct) throws IOException {
         NGlobalDictionaryV2 globalDict = new NGlobalDictionaryV2(seg.getProject(), col.getTable(), col.getName(),
                 seg.getConfig().getHdfsWorkingDirectory());
-        int bucketPartitionSize = globalDict.getBucketSizeOrDefault(seg.getConfig().getGlobalDictV2HashPartitions());
-        int globalDictPartitions = seg.getConfig().getGlobalDictV2HashPartitions();
-        return bucketPartitionSize != globalDictPartitions;
+        int bucketPartitionSize = globalDict.getBucketSizeOrDefault(seg.getConfig().getGlobalDictV2MinHashPartitions());
+        int bucketThreshold = seg.getConfig().getGlobalDictV2ThresholdBucketSize();
+        int resizeBucketSize = bucketPartitionSize;
+
+        if (globalDict.isFirst()) {
+            long afterDisCount = afterDistinct.count();
+            double loadFactor = seg.getConfig().getGlobalDictV2InitLoadFactor();
+            resizeBucketSize = Math.max(Math.toIntExact(afterDisCount / (int) (bucketThreshold * loadFactor)),
+                    bucketPartitionSize);
+            logger.info("Building a global dictionary column first for  {} , the size of the bucket is set to {}",
+                    col.getName(), bucketPartitionSize);
+        } else {
+            long afterDisCount = afterDistinct.count();
+            NGlobalDictMetaInfo metaInfo = globalDict.getMetaInfo();
+            long[] bucketCntArray = metaInfo.getBucketCount();
+
+            double loadFactor = seg.getConfig().getGlobalDictV2InitLoadFactor();
+            double bucketOverheadFactor = seg.getConfig().getGlobalDictV2BucketOverheadFactor();
+
+            int averageBucketSize = 0;
+
+            // rule #1
+            int newDataBucketSize = Math.toIntExact(afterDisCount / bucketThreshold);
+            if (newDataBucketSize > metaInfo.getBucketSize()) {
+                newDataBucketSize = Math.toIntExact(afterDisCount / (int) (bucketThreshold * loadFactor));
+            }
+
+            // rule #2
+            if (metaInfo.getDictCount() >= bucketThreshold * metaInfo.getBucketSize()) {
+                averageBucketSize = Math.toIntExact(metaInfo.getDictCount() / (int) (bucketThreshold * loadFactor));
+            }
+
+            int peakBucketSize = 0;
+            //rule #3
+            for (long bucketCnt : bucketCntArray) {
+                if (bucketCnt > bucketThreshold * bucketOverheadFactor) {
+                    peakBucketSize = bucketPartitionSize * 2;
+                    break;
+                }
+            }
+
+            resizeBucketSize = Math.max(Math.max(newDataBucketSize, averageBucketSize),
+                    Math.max(peakBucketSize, bucketPartitionSize));
+        }
+
+        if (resizeBucketSize != bucketPartitionSize) {
+            logger.info("Start building a global dictionary column for {}, need resize from {} to {} ", col.getName(),
+                    bucketPartitionSize, resizeBucketSize);
+            resize(col, seg, resizeBucketSize, afterDistinct.sparkSession().sparkContext());
+            logger.info("End building a global dictionary column for {}, need resize from {} to {} ", col.getName(),
+                    bucketPartitionSize, resizeBucketSize);
+        }
+
+        return resizeBucketSize;
     }
 
     private void build(TblColRef col, int bucketPartitionSize, Dataset<Row> afterDistinct) throws IOException {
-        logger.info("building global dict V2 for column {}", col.getTable() + "_" + col.getName());
+        logger.info("Start building global dict V2 for column {}.", col.getTable() + "." + col.getName());
 
         NGlobalDictionaryV2 globalDict = new NGlobalDictionaryV2(seg.getProject(), col.getTable(), col.getName(),
                 seg.getConfig().getHdfsWorkingDirectory());
         globalDict.prepareWrite();
-        Broadcast<NGlobalDictionaryV2> broadcastDict = afterDistinct.sparkSession().sparkContext().broadcast(globalDict,
-                ClassTag$.MODULE$.apply(NGlobalDictionaryV2.class));
-
+        Broadcast<NGlobalDictionaryV2> broadcastDict = JavaSparkContext
+                .fromSparkContext(afterDistinct.sparkSession().sparkContext()).broadcast(globalDict);
         afterDistinct.toJavaRDD().mapToPair((PairFunction<Row, String, String>) row -> {
             if (row.get(0) == null)
                 return new Tuple2<>(null, null);
@@ -141,6 +198,8 @@ public class DictionaryBuilder {
 
         globalDict.writeMetaDict(bucketPartitionSize, seg.getConfig().getGlobalDictV2MaxVersions(),
                 seg.getConfig().getGlobalDictV2VersionTTL());
+
+        logger.info("Build global dict V2 for column {} success.", col.getName());
     }
 
     private static Set<TblColRef> extractGlobalColumns(NDataSegment seg, NSpanningTree toBuildTree, Boolean isBuild) {

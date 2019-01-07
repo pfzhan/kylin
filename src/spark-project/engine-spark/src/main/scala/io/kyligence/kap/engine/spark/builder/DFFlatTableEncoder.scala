@@ -54,7 +54,7 @@ object DFFlatTableEncoder extends Logging {
         structType = structType.add(structType.apply(columnIndex).name + ENCODE_SUFFIX, LongType)
         val globalDict = new NGlobalDictionaryV2(seg.getProject, ref.getTable, ref.getName, seg.getConfig.getHdfsWorkingDirectory)
 
-        val bucketPartitionSize = globalDict.getBucketSizeOrDefault(seg.getConfig.getGlobalDictV2HashPartitions)
+        val bucketPartitionSize = globalDict.getBucketSizeOrDefault(seg.getConfig.getGlobalDictV2MinHashPartitions)
         val broadDict: Broadcast[NGlobalDictionaryV2] = globalDictRdd.sparkContext.broadcast[NGlobalDictionaryV2](globalDict)
 
         globalDictRdd = globalDictRdd.map {

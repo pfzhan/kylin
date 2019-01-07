@@ -115,7 +115,7 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
     }
 
     @Override
-    public NGlobalDictMetadata getMetadata(long version) throws IOException {
+    public NGlobalDictMetaInfo getMetaInfo(long version) throws IOException {
         Path versionDir = getVersionDir(version);
         FileStatus[] metaFiles = fileSystem.listStatus(versionDir,
                 path -> path.getName().startsWith(DICT_METADATA_NAME));
@@ -129,22 +129,27 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
         if (!fileSystem.exists(metaPath))
             return null;
 
-        NGlobalDictMetadata metadata;
+        NGlobalDictMetaInfo metaInfo;
+
         try (FSDataInputStream is = fileSystem.open(metaPath)) {
             int bucketSize = is.readInt();
-            long[] offset = new long[bucketSize];
+            long[] bucketOffsets = new long[bucketSize];
+            long[] bucketCount = new long[bucketSize];
             long dictCount = is.readLong();
             for (int i = 0; i < bucketSize; i++) {
-                offset[i] = is.readLong();
+                bucketOffsets[i] = is.readLong();
             }
-            metadata = new NGlobalDictMetadata(bucketSize, offset, dictCount);
+            for (int i = 0; i < bucketSize; i++) {
+                bucketCount[i] = is.readLong();
+            }
+            metaInfo = new NGlobalDictMetaInfo(bucketSize, bucketOffsets, dictCount, bucketCount);
         }
 
-        return metadata;
+        return metaInfo;
     }
 
     @Override
-    public Object2LongMap<String> getBucketDict(long version, NGlobalDictMetadata metadata, int bucketId)
+    public Object2LongMap<String> getBucketDict(long version, NGlobalDictMetaInfo metaInfo, int bucketId)
             throws IOException {
         Object2LongMap<String> object2IntMap = new Object2LongOpenHashMap<>();
         Path versionDir = getVersionDir(version);
@@ -152,7 +157,7 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
 
         for (FileStatus file : bucketFiles) {
             if (file.getPath().getName().startsWith(DICT_CURR_PREFIX)) {
-                object2IntMap.putAll(getBucketDict(file.getPath(), metadata.getPointOffset(bucketId)));
+                object2IntMap.putAll(getBucketDict(file.getPath(), metaInfo.getOffset(bucketId)));
             }
             if (file.getPath().getName().startsWith(DICT_PREV_PREFIX)) {
                 object2IntMap.putAll(getBucketDict(file.getPath(), 0));
@@ -196,7 +201,7 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
         if (fileSystem.exists(dictPath)) {
             fileSystem.delete(dictPath, true);
         }
-        logger.info("write dict path: {}", dictPath);
+        logger.info("Write dict path: {}", dictPath);
         try (FSDataOutputStream dos = fileSystem.create(dictPath)) {
             dos.writeInt(openHashMap.size());
             for (Object2LongMap.Entry<String> entry : openHashMap.object2LongEntrySet()) {
@@ -208,15 +213,15 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
             dos.flush();
         }
 
-        logger.info("write dict path: {} , dict num: {} success", dictPath, openHashMap.size());
+        logger.info("Write dict path: {} , dict num: {} success", dictPath, openHashMap.size());
     }
 
-    public void writeMetaDict(int bucketSize, String workingPath) throws IOException {
+    public void writeMetaInfo(int bucketSize, String workingPath) throws IOException {
         Path metaPath = new Path(workingPath, DICT_METADATA_NAME);
         if (fileSystem.exists(metaPath)) {
             fileSystem.delete(metaPath, true);
         }
-        logger.info("write dict meta path: {}", metaPath);
+        logger.info("Write dict meta path: {}", metaPath);
 
         Path workPath = new Path(workingPath);
         FileStatus[] dictPrevFiles = fileSystem.listStatus(workPath,
@@ -224,16 +229,29 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
         FileStatus[] dictCurrFiles = fileSystem.listStatus(workPath,
                 path -> StringUtils.contains(path.getName(), DICT_CURR_PREFIX));
 
-        long dictCount = 0;
+        long prevDictCount = 0;
+        long[] bucketCnts = new long[bucketSize];
+        long[] bucketOffsets = new long[bucketSize];
+
         for (FileStatus fileStatus : dictPrevFiles) {
             try (FSDataInputStream is = fileSystem.open(fileStatus.getPath())) {
-                dictCount = dictCount + is.readInt();
+                String bucketId = fileStatus.getPath().getName().replaceAll(DICT_PREV_PREFIX, "");
+                int cnt = is.readInt();
+                prevDictCount = prevDictCount + cnt;
+                bucketCnts[Integer.parseInt(bucketId)] = cnt;
             }
         }
 
-        long[] offset = new long[bucketSize];
-
+        /**
+         * MetaInfo file structure
+         *     NGlobalDictMetaInfo: [bucketSize][dictCount][bucketOffsets...][bucketCount...]
+         *         bucketSize: The number of buckets used by the dictionary
+         *         dictCount: The total number of dictionaries in all buckets
+         *         bucketOffsets: Offset of the curr dictionary in each bucket
+         *         bucketCount: Number of dictionaries per bucket
+         */
         try (FSDataOutputStream dos = fileSystem.create(metaPath)) {
+            // #1 Total number of buckets written
             dos.writeInt(bucketSize);
 
             int currDictCnt = 0;
@@ -241,15 +259,25 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
                 try (FSDataInputStream is = fileSystem.open(fileStatus.getPath())) {
                     String bucketId = fileStatus.getPath().getName().replaceAll(DICT_CURR_PREFIX, "");
                     int cnt = is.readInt();
+                    int bucket = Integer.parseInt(bucketId);
+                    bucketCnts[bucket] = bucketCnts[bucket] + cnt;
+                    bucketOffsets[bucket] = cnt;
                     currDictCnt = currDictCnt + cnt;
-                    offset[Integer.parseInt(bucketId)] = cnt;
                 }
             }
-            dos.writeLong(dictCount + currDictCnt);
 
-            for (long i : offset) {
-                dos.writeLong(dictCount);
-                dictCount = dictCount + i;
+            // #2 Write the total number of all bucket dicts
+            dos.writeLong(prevDictCount + currDictCnt);
+
+            // #3 Write the bucketOffsets of each bucket, mainly used to calculate the curr dictionary file
+            for (long offset : bucketOffsets) {
+                dos.writeLong(prevDictCount);
+                prevDictCount = prevDictCount + offset;
+            }
+
+            // #4 Write the size of each bucket
+            for (long cnt : bucketCnts) {
+                dos.writeLong(cnt);
             }
             dos.flush();
         }
@@ -261,7 +289,7 @@ public class NGlobalDictHDFSStore extends NGlobalDictStore {
         // copy working dir to newVersion dir
         Path newVersionPath = new Path(basePath, VERSION_PREFIX + System.currentTimeMillis());
         fileSystem.rename(workingPath, newVersionPath);
-        logger.info("commit from {} to {}", workingPath, newVersionPath);
+        logger.info("Commit from {} to {}", workingPath, newVersionPath);
         cleanUp(maxVersions, versionTTL);
     }
 

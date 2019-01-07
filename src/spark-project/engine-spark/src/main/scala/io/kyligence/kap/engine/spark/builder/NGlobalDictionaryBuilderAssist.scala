@@ -52,8 +52,6 @@ import scala.collection.JavaConverters._
 
 object NGlobalDictionaryBuilderAssist {
 
-  private var seg = null
-
   @throws[IOException]
   def resize(col: TblColRef, seg: NDataSegment, bucketPartitionSize: Int, sc: SparkContext): Unit = {
     val globalDict = new NGlobalDictionaryV2(seg.getProject, col.getTable, col.getName, seg.getConfig.getHdfsWorkingDirectory)
@@ -75,7 +73,7 @@ object NGlobalDictionaryBuilderAssist {
       .mapPartitionsWithIndex({
         case (bucketId, iterator) =>
           val gDict = broadcastDict.value
-          val bucketDict = gDict.createNewBucketDictionary(bucketId)
+          val bucketDict = gDict.createNewBucketDictionary()
 
           while (iterator.hasNext) {
             val tuple2 = iterator.next

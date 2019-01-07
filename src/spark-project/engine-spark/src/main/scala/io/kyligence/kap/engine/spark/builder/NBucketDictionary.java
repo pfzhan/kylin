@@ -38,10 +38,10 @@ public class NBucketDictionary {
     private String workingDir;
 
     private Object2LongMap<String> absoluteDictMap;
-    // Relative dictionary needs to calculate dictionary code according to NGlobalDictMetadata's offset
+    // Relative dictionary needs to calculate dictionary code according to NGlobalDictMetaInfo's bucketOffsets
     private Object2LongMap<String> relativeDictMap;
 
-    NBucketDictionary(String baseDir, String workingDir, int bucketId, NGlobalDictMetadata metadata)
+    NBucketDictionary(String baseDir, String workingDir, int bucketId, NGlobalDictMetaInfo metainfo)
             throws IOException {
         this.workingDir = workingDir;
         final NGlobalDictStore globalDictStore = new NGlobalDictHDFSStore(baseDir);
@@ -49,12 +49,12 @@ public class NBucketDictionary {
         if (versions.length == 0) {
             this.absoluteDictMap = new Object2LongOpenHashMap<>();
         } else {
-            this.absoluteDictMap = globalDictStore.getBucketDict(versions[versions.length - 1], metadata, bucketId);
+            this.absoluteDictMap = globalDictStore.getBucketDict(versions[versions.length - 1], metainfo, bucketId);
         }
         this.relativeDictMap = new Object2LongOpenHashMap<>();
     }
 
-    NBucketDictionary(String baseDir, String workingDir, int bucketId) {
+    NBucketDictionary(String workingDir) {
         this.workingDir = workingDir;
         this.absoluteDictMap = new Object2LongOpenHashMap<>();
         this.relativeDictMap = new Object2LongOpenHashMap<>();
@@ -67,7 +67,7 @@ public class NBucketDictionary {
         if (absoluteDictMap.containsKey(value)) {
             return;
         }
-        relativeDictMap.put(value, relativeDictMap.size() + 1);
+        relativeDictMap.put(value, relativeDictMap.size() + 1l);
     }
 
     public void addAbsoluteValue(String value, long encodeValue) {

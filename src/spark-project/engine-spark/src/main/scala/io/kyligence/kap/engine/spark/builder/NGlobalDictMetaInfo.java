@@ -25,24 +25,29 @@ package io.kyligence.kap.engine.spark.builder;
 
 import java.io.Serializable;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class NGlobalDictMetadata implements Serializable {
+@EqualsAndHashCode
+public class NGlobalDictMetaInfo implements Serializable {
 
     private int bucketSize;
-    private long[] offset;
     private long dictCount;
+    private long[] bucketOffsets;
+    private long[] bucketCount;
 
-    NGlobalDictMetadata(int bucketSize, long[] offset, long dictCount) {
+    NGlobalDictMetaInfo(int bucketSize, long[] bucketOffsets, long dictCount, long[] bucketCount) {
         this.bucketSize = bucketSize;
-        this.offset = offset;
         this.dictCount = dictCount;
+        this.bucketOffsets = bucketOffsets;
+        this.bucketCount = bucketCount;
     }
 
-    long getPointOffset(int point) {
-        return offset[point];
+    long getOffset(int point) {
+        return bucketOffsets[point];
     }
+
 }

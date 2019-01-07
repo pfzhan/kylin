@@ -461,8 +461,20 @@ abstract public class KylinConfigBase implements Serializable {
         return Integer.parseInt(getOptional("kylin.dictionary.append-version-ttl", "259200000"));
     }
 
-    public int getGlobalDictV2HashPartitions() {
-        return Integer.parseInt(getOptional("kylin.dictionary.globalV2-hash-partitions", "100"));
+    public int getGlobalDictV2MinHashPartitions() {
+        return Integer.parseInt(getOptional("kylin.dictionary.globalV2-min-hash-partitions", "10"));
+    }
+
+    public int getGlobalDictV2ThresholdBucketSize() {
+        return Integer.parseInt(getOptional("kylin.dictionary.globalV2-threshold-bucket-size", "1000000"));
+    }
+
+    public double getGlobalDictV2InitLoadFactor() {
+        return Double.parseDouble(getOptional("kylin.dictionary.globalV2-init-load-factor", "0.5"));
+    }
+
+    public double getGlobalDictV2BucketOverheadFactor() {
+        return Double.parseDouble(getOptional("kylin.dictionary.globalV2-bucket-overhead-factor", "1.5"));
     }
 
     public int getGlobalDictV2MaxVersions() {

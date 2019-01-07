@@ -62,9 +62,9 @@ public abstract class NGlobalDictStore {
     // return the path of specified version dir
     public abstract Path getVersionDir(long version);
 
-    public abstract NGlobalDictMetadata getMetadata(long version) throws IOException;
+    public abstract NGlobalDictMetaInfo getMetaInfo(long version) throws IOException;
 
-    public abstract Object2LongMap<String> getBucketDict(long version, NGlobalDictMetadata metadata, int bucketId)
+    public abstract Object2LongMap<String> getBucketDict(long version, NGlobalDictMetaInfo metadata, int bucketId)
             throws IOException;
 
     public abstract void writeBucketCurrDict(String workingPath, int bucketId, Object2LongMap<String> openHashMap)
@@ -73,7 +73,7 @@ public abstract class NGlobalDictStore {
     public abstract void writeBucketPrevDict(String workingPath, int bucketId, Object2LongMap<String> openHashMap)
             throws IOException;
 
-    public abstract void writeMetaDict(int bucketSize, String workingDir) throws IOException;
+    public abstract void writeMetaInfo(int bucketSize, String workingDir) throws IOException;
 
     public abstract void commit(String workingDir, int maxVersions, int versionTTL) throws IOException;
 }
