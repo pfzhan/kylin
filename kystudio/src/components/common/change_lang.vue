@@ -1,7 +1,7 @@
 <template>
   <el-button-group class="change_lang">
-    <el-button round size="mini" @click="changeLang('en')" :class="{'active':lang=='en'}">EN</el-button>
-    <el-button round size="mini" @click="changeLang('zh-cn')" :class="{'active':lang=='zh-cn'}">中</el-button>
+    <el-button size="mini" @click="changeLang('en')" :class="{'active':lang=='en'}">EN</el-button>
+    <el-button size="mini" @click="changeLang('zh-cn')" :class="{'active':lang=='zh-cn'}">中</el-button>
 </el-button-group>
 </template>
 <script>
@@ -70,5 +70,21 @@
   @import '../../assets/styles/variables.less';
   .change_lang{
     height: 24px;
+    .el-button {
+      min-width: 36px;
+      border-color: @text-disabled-color;
+      &:first-child {
+        border-top-left-radius: 2px;
+        border-bottom-left-radius: 2px;
+      }
+      &:last-child {
+        border-top-right-radius: 2px;
+        border-bottom-right-radius: 2px;
+      }
+      &.active {
+        background: @line-border-color;
+        box-shadow: inset 1px 1px 2px 0 @grey-1;
+      }
+    }
   }
 </style>

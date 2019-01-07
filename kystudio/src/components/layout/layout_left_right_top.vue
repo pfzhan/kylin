@@ -876,7 +876,6 @@ export default class LayoutLeftRightTop extends Vue {
       border-radius: 2px;
       font-size: 14px;
       padding: 6px 12px;
-      box-shadow: inset 1px 1px 2px 0 @grey-1;
       border-color: @text-disabled-color;
       &:hover {
         background: @fff;
@@ -884,6 +883,7 @@ export default class LayoutLeftRightTop extends Vue {
       }
     }
     .entry-admin.active {
+      box-shadow: inset 1px 1px 2px 0 @grey-1;
       background-color: @line-border-color;
       &:hover {
         border-color: @base-color;

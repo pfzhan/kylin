@@ -159,7 +159,8 @@ exports.default = {
     catchUp: '保存后，向新索引中加载数据',
     null: '无',
     nan: 'NaN',
-    purge: '清空'
+    purge: '清空',
+    reset: '重置'
   },
   model: {
     modelName: '模型名称：',

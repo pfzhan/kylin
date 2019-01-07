@@ -10,7 +10,9 @@ export default {
     errorJob: 'Error Job',
     errorJobDesc: 'Notify me if there is a error job. ',
     emails: 'Emails:',
-    noData: 'No Data'
+    noData: 'No Data',
+    pleaseInputEmail: 'Please input email.',
+    pleaseInputVaildEmail: 'Please input vaild email.'
   },
   'zh-cn': {
     acceThreshold: '加速阈值',
@@ -23,6 +25,8 @@ export default {
     errorJob: 'Error Job',
     errorJobDesc: 'Notify me if there is a error job. ',
     emails: '邮箱：',
-    noData: '暂无数据'
+    noData: '暂无数据',
+    pleaseInputEmail: '请输入邮箱地址。',
+    pleaseInputVaildEmail: '请输入正确的邮箱地址。'
   }
 }

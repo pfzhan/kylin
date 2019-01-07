@@ -11,8 +11,8 @@
       <slot></slot>
     </div>
     <div class="block-foot" v-if="isEditing">
-      <el-button size="small" :disabled="isLoading" @click="handleCancel">{{$t('kylinLang.common.cancel')}}</el-button>
-      <el-button plain size="small" type="primary" :loading="isLoading" @click="handleSubmit">{{$t('kylinLang.common.save')}}</el-button>
+      <el-button size="small" :disabled="isLoading || (!isEdited && isKeepEditing)" @click="handleCancel">{{cancelText}}</el-button>
+      <el-button plain size="small" type="primary" :loading="isLoading" :disabled="!isEdited && isKeepEditing" @click="handleSubmit">{{$t('kylinLang.common.save')}}</el-button>
     </div>
   </div>
 </template>
@@ -29,12 +29,29 @@ import { Component } from 'vue-property-decorator'
     },
     headerContent: {
       type: String
+    },
+    isKeepEditing: {
+      type: Boolean,
+      default: false
+    },
+    isEdited: {
+      type: Boolean,
+      default: false
     }
   }
 })
 export default class EditableBlock extends Vue {
-  isEditing = false
+  isUserEditing = false
   isLoading = false
+  set isEditing (value) {
+    this.isUserEditing = value
+  }
+  get isEditing () {
+    return (this.isUserEditing || this.isKeepEditing) && this.isEditable
+  }
+  get cancelText () {
+    return this.isKeepEditing ? this.$t('kylinLang.common.reset') : this.$t('kylinLang.common.cancel')
+  }
   handleEdit () {
     this.isEditing = true
   }

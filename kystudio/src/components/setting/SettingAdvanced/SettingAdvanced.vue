@@ -2,7 +2,9 @@
   <div class="accelerate-setting">
     <!-- 加速设置 -->
     <EditableBlock
-      :headerContent="$t('accePreference')"
+      :header-content="$t('accePreference')"
+      :is-keep-editing="true"
+      :is-edited="isFormEdited(form, 'accelerate-settings')"
       @submit="(scb, ecb) => handleSubmit('accelerate-settings', scb, ecb)"
       @cancel="() => handleReset('accelerate-settings')">
       <div class="setting-item">
@@ -10,20 +12,19 @@
         <span class="setting-value fixed">
           <el-switch
             class="ksd-switch"
-            :value="project.batch_enabled"
+            v-model="form.batch_enabled"
             :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')"
-            @input="value => handleSwitch('auto-merge', value)">
+            :inactive-text="$t('kylinLang.common.ON')">
           </el-switch>
         </span>
         <div class="setting-desc large"
-           :class="{'disabled': !project.batch_enabled }">
+           :class="{'disabled': !form.batch_enabled }">
           {{$t('notifyLeftTips')}}
           <b class="setting-value">{{project.threshold}}</b>
           <el-input
             size="small"
             class="acce-input setting-input"
-            :disabled="!project.batch_enabled"
+            :disabled="!form.batch_enabled"
             v-model.number="form.threshold">
           </el-input>
           {{$t('notifyRightTips')}}
@@ -32,7 +33,9 @@
     </EditableBlock>
     <!-- 任务邮件通知设置 -->
     <EditableBlock
-      :headerContent="$t('jobAlert')"
+      :header-content="$t('jobAlert')"
+      :is-keep-editing="true"
+      :is-edited="isFormEdited(form, 'job-alert')"
       @submit="(scb, ecb) => handleSubmit('job-alert', scb, ecb)"
       @cancel="() => handleReset('job-alert')">
       <!-- 空任务邮件通知 -->
@@ -41,10 +44,9 @@
         <span class="setting-value fixed">
           <el-switch
             class="ksd-switch"
-            :value="project.data_load_empty_notification_enabled"
+            v-model="form.data_load_empty_notification_enabled"
             :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')"
-            @input="value => handleSwitch('enable-empty-job-alert', value)">
+            :inactive-text="$t('kylinLang.common.ON')">
           </el-switch>
         </span>
         <div class="setting-desc">{{$t('emptyDataLoadDesc')}}</div>
@@ -53,10 +55,9 @@
         <span class="setting-value fixed">
           <el-switch
             class="ksd-switch"
-            :value="project.job_error_notification_enabled"
+            v-model="form.job_error_notification_enabled"
             :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')"
-            @input="value => handleSwitch('enable-error-job-alert', value)">
+            :inactive-text="$t('kylinLang.common.ON')">
           </el-switch>
         </span>
         <div class="setting-desc">{{$t('errorJobDesc')}}</div>
@@ -73,7 +74,7 @@
           <el-form ref="job-alert" :model="form" size="small">
             <div class="item-value" v-for="(email, index) in form.job_notification_emails" :key="index">
               <span class="setting-label font-medium email-fix-top">{{$t('emails')}}</span>
-              <el-form-item :prop="`job_notification_emails.${index}`" :rules="validator">
+              <el-form-item :prop="`job_notification_emails.${index}`" :rules="rules">
                 <el-input v-model="form.job_notification_emails[index]"></el-input>
                 <el-button icon="el-icon-plus" circle size="mini" @click="handleAddItem('job_notification_emails', index)"></el-button>
                 <el-button icon="el-icon-minus" circle size="mini" @click="handleRemoveItem('job_notification_emails', index)"></el-button>
@@ -128,10 +129,12 @@ export default class SettingAdvanced extends Vue {
     data_load_empty_notification_enabled: true,
     job_notification_emails: []
   }
-  validator = [
-    { required: true, message: '请输入邮箱地址', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱地址', trigger: 'blur' }
-  ]
+  get rules () {
+    return [
+      { required: true, message: this.$t('pleaseInputEmail'), trigger: 'blur' },
+      { type: 'email', message: this.$t('pleaseInputVaildEmail'), trigger: 'blur' }
+    ]
+  }
   mounted () {
     this.initForm()
   }
@@ -202,6 +205,15 @@ export default class SettingAdvanced extends Vue {
   handleRemoveItem (key, index) {
     if (this.form[key].length > 1) {
       this.form[key].splice(index, 1)
+    }
+  }
+  isFormEdited (form, type) {
+    const project = { ...this.project, alias: this.project.alias || this.project.project }
+    switch (type) {
+      case 'accelerate-settings':
+        return JSON.stringify(_getAccelerationSettings(form)) !== JSON.stringify(_getAccelerationSettings(project))
+      case 'job-alert':
+        return JSON.stringify(_getJobAlertSettings(form, true)) !== JSON.stringify(_getJobAlertSettings(project, true))
     }
   }
 }

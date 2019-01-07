@@ -116,6 +116,7 @@ export default class Setting extends Vue {
   .setting-item {
     border-bottom: 1px solid @line-border-color;
     padding: 15px 20px;
+    margin: 0;
   }
   .setting-item:last-child {
     border: none;
@@ -158,6 +159,7 @@ export default class Setting extends Vue {
     .setting-input {
       display: none;
       float: left;
+      margin-left: 3px;
     }
   }
   .setting-desc {
@@ -177,11 +179,13 @@ export default class Setting extends Vue {
   }
   .field-item {
     margin-top: 10px;
+    margin-left: 20px;
+    display: list-item;
   }
   .setting-input+.setting-input {
     margin-left: 7px;
   }
-  .editable-block:not(.is-edit) {
+  .editable-block {
     .disabled {
       * {
         color: @text-disabled-color;

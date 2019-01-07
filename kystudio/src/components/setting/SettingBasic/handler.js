@@ -1,6 +1,6 @@
 export const projectTypeIcons = {
-  MANUAL_MAINTAIN: 'el-icon-ksd-model_designer',
-  AUTO_MAINTAIN: 'el-icon-ksd-sql_acceleration'
+  MANUAL_MAINTAIN: 'el-icon-ksd-expert_mode',
+  AUTO_MAINTAIN: 'el-icon-ksd-smart_mode'
 }
 export const autoMergeTypes = [
   'DAY',
@@ -54,15 +54,15 @@ export function _getSegmentSettings (data, project) {
   return {
     project: data.project,
     auto_merge_time_ranges: data.auto_merge_time_ranges,
-    auto_merge_enabled: project ? project.auto_merge_enabled : data.auto_merge_enabled,
+    auto_merge_enabled: data.auto_merge_enabled,
     volatile_range: {
       ...data.volatile_range,
-      volatile_range_enabled: project ? project.auto_merge_enabled : data.auto_merge_enabled
+      volatile_range_enabled: data.auto_merge_enabled
     },
     retention_range: {
       ...data.retention_range,
-      retention_range_enabled: project ? project.retention_range.retention_range_enabled : data.retention_range.retention_range_enabled,
-      retention_range_type: data.auto_merge_time_ranges[data.auto_merge_time_ranges.length - 1]
+      retention_range_enabled: data.retention_range.retention_range_enabled,
+      retention_range_type: _getRetentionRangeScale(data)
     }
   }
 }
@@ -79,4 +79,15 @@ export function _getStorageQuota (data) {
     storage_garbage: data.storage_garbage,
     storage_quota_size: data.storage_quota_size
   }
+}
+
+export function _getRetentionRangeScale (form) {
+  let largestIdx = -1
+  form.auto_merge_time_ranges.forEach(option => {
+    const currentIdx = autoMergeTypes.indexOf(option)
+    if (currentIdx > largestIdx) {
+      largestIdx = currentIdx
+    }
+  })
+  return autoMergeTypes[largestIdx]
 }

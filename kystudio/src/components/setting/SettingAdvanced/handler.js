@@ -8,7 +8,7 @@ export function _getAccelerationSettings (data) {
 }
 
 export function _getJobAlertSettings (data, isArrayDefaultValue) {
-  let jobEmails = data.job_notification_emails
+  let jobEmails = [...data.job_notification_emails]
 
   if (isArrayDefaultValue) {
     !jobEmails.length && jobEmails.push('')
