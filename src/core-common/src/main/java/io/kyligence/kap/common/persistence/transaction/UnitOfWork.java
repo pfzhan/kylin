@@ -74,34 +74,37 @@ public class UnitOfWork {
     }
 
     public static <T> T doInTransactionWithRetry(Callback<T> f, String unitName, int maxRetry) {
+
+        // reused transaction, won't retry
+        if (isReusableTransaction()) {
+            UnitOfWork unitOfWork = UnitOfWork.get();
+            Preconditions.checkState(unitOfWork.project.equals(unitName),
+                    "re-entry of UnitOfWork with different unit name? existing: %s, new: %s", unitOfWork.project,
+                    unitName);
+            try {
+                f.preProcess();
+                return f.process();
+            } catch (Throwable throwable) {
+                f.onProcessError(throwable);
+                throw new TransactionException("transaction failed due to inconsistent state", throwable);
+            }
+        }
+
+        // new independent transaction with retry
         int retry = 0;
-        boolean isIndependentTransaction = true;
-        long startTime = 0;
         while (retry++ < maxRetry) {
             try {
                 T ret;
                 log.debug("start unit of work for project {}", unitName);
+
+                long startTime = System.currentTimeMillis();
                 f.preProcess();
-                if (threadLocals.get() != null) {
-
-                    if (!threadLocals.get().project.equals(unitName)) {
-                        throw new IllegalStateException(
-                                String.format("re-entry of UnitOfWork with different unit name? existing: %s, new: %s",
-                                        threadLocals.get().project, unitName));
-                    }
-
-                    isIndependentTransaction = false;
-                    retry = 100; // don't retry even sth go wrong
-                    ret = f.process();
-                } else {
-                    startTime = System.currentTimeMillis();
-                    UnitOfWork.startTransaction(unitName, true);
-                    ret = f.process();
-                    UnitOfWork.endTransaction();
-                    long duration = System.currentTimeMillis() - startTime;
-                    if (duration > 3000) {
-                        log.warn("a UnitOfWork takes too long time: {}", duration);
-                    }
+                UnitOfWork.startTransaction(unitName, true);
+                ret = f.process();
+                UnitOfWork.endTransaction();
+                long duration = System.currentTimeMillis() - startTime;
+                if (duration > 3000) {
+                    log.warn("a UnitOfWork takes too long time: {}", duration);
                 }
                 return ret;
             } catch (MQPublishFailureException mqe) {
@@ -114,23 +117,27 @@ public class UnitOfWork {
                 }
                 //else proceed retry
             } finally {
-                if (isIndependentTransaction) {
+                if (isReusableTransaction()) {
                     try {
-                        UnitOfWork.get().unlock();
+                        UnitOfWork unitOfWork = UnitOfWork.get();
+                        unitOfWork.unlock();
+                        unitOfWork.done();
+                        log.debug("UnitOfWork for {} is done", unitOfWork.project);
                     } catch (IllegalStateException e) {
                         //has not hold the lock yet, it's ok
+                        log.warn(e.getMessage());
+                    } catch (Exception e) {
+                        log.error("Failed to close UnitOfWork", e);
                     }
-
-                    if (threadLocals.get() != null) {
-                        UnitOfWork work = threadLocals.get();
-                        work.done();
-                        threadLocals.remove();
-                        log.debug("UnitOfWork for {} is done", work.project);
-                    }
+                    threadLocals.remove();
                 }
             }
         }
-        throw new IllegalStateException();
+        throw new IllegalStateException("Unexpected doInTransactionWithRetry end");
+    }
+
+    private static boolean isReusableTransaction() {
+        return threadLocals.get() != null;
     }
 
     static UnitOfWork startTransaction(String project, boolean useSandboxStore) {
@@ -176,6 +183,7 @@ public class UnitOfWork {
         if (localConfig == null) {
             return;
         }
+
         KylinConfig config = localConfig.get();
         ResourceStore.clearCache(config);
         localConfig.close();
