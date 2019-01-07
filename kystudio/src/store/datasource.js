@@ -96,12 +96,6 @@ export default {
     [types.DELETE_QUERY]: function ({commit}, para) {
       return api.datasource.deleteQuery(para)
     },
-    [types.DELETE_FAV]: function ({commit}, para) {
-      return api.datasource.deleteFav(para)
-    },
-    [types.MARK_FAV]: function ({commit}, para) {
-      return api.datasource.markFav(para)
-    },
     [types.GET_FREQUENCY]: function ({commit}, para) {
       return api.datasource.getFrequency(para)
     },
@@ -138,20 +132,20 @@ export default {
     [types.GET_FAVORITE_LIST]: function ({commit}, para) {
       return api.datasource.getFavoriteList(para)
     },
-    [types.LOAD_WHITE_LIST]: function ({commit}, para) {
-      return api.datasource.loadWhiteList(para)
+    [types.IMPORT_SQL_FILES]: function ({commit}, para) {
+      return api.datasource.importSqlFiles(para)
     },
-    [types.SAVE_WHITE_SQL]: function ({commit}, para) {
-      return api.datasource.saveWhite(para)
+    [types.VALIDATE_WHITE_SQL]: function ({commit}, para) {
+      return api.datasource.validateWhite(para)
     },
-    [types.DELETE_WHITE_SQL]: function ({commit}, para) {
-      return api.datasource.deleteWhite(para)
+    [types.ADD_TO_FAVORITE_LIST]: function ({commit}, para) {
+      return api.datasource.addToFavoriteList(para)
+    },
+    [types.REMOVE_FAVORITE_SQL]: function ({commit}, para) {
+      return api.datasource.removeFavSql(para)
     },
     [types.LOAD_BLACK_LIST]: function ({commit}, para) {
       return api.datasource.loadBlackList(para)
-    },
-    [types.ADD_BLACK_SQL]: function ({commit}, para) {
-      return api.datasource.addBlack(para)
     },
     [types.DELETE_BLACK_SQL]: function ({commit}, para) {
       return api.datasource.deleteBlack(para)

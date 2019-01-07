@@ -50,17 +50,39 @@
         </el-tooltip>
       </template>
     </el-table-column>
+    <el-table-column :label="$t('kylinLang.common.action')" align="center" width="100">
+      <template slot-scope="props">
+        <span @click="delFav(props.row.uuid)">
+          <i class="el-icon-ksd-table_delete" v-if="props.row.channel==='Imported'"></i>
+          <i class="el-icon-ksd-table_discard" v-if="props.row.channel==='Rule-based'"></i>
+        </span>
+      </template>
+    </el-table-column>
   </el-table>
 </template>
 
 <script>
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
-import { transToGmtTime } from '../../util/business'
+import { mapActions, mapGetters } from 'vuex'
+import { handleSuccess, transToGmtTime, kapConfirm } from '../../util/business'
+import { handleError } from '../../util/index'
 @Component({
   props: ['favoriteTableData', 'isAccelerated'],
+  computed: {
+    ...mapGetters([
+      'currentSelectedProject'
+    ])
+  },
   methods: {
-    transToGmtTime: transToGmtTime
+    transToGmtTime: transToGmtTime,
+    ...mapActions({
+      removeFavSql: 'REMOVE_FAVORITE_SQL'
+    })
+  },
+  locales: {
+    'en': {delSql: 'Are you sure to delete this sql?'},
+    'zh-cn': {delSql: '确定删除这条查询语句吗？'}
   }
 })
 export default class FavoriteTable extends Vue {
@@ -101,7 +123,7 @@ export default class FavoriteTable extends Vue {
   }
 
   tableRowClassName ({row, rowIndex}) {
-    if (row.channel === 'whitelist-based') {
+    if (row.channel === 'Imported') {
       return 'impored-row'
     }
     return ''
@@ -118,7 +140,19 @@ export default class FavoriteTable extends Vue {
   }
 
   filterFav () {
-    this.$emit('loadFavoriteList', this.checkedStatus)
+    this.$emit('filterFav', this.checkedStatus)
+  }
+
+  delFav (uuid) {
+    kapConfirm(this.$t('delSql')).then(() => {
+      this.removeFavSql({project: this.currentSelectedProject, uuid: uuid}).then((res) => {
+        handleSuccess(res, (data) => {
+          this.filterFav()
+        })
+      }, (res) => {
+        handleError(res)
+      })
+    })
   }
 }
 </script>

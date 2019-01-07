@@ -52,12 +52,6 @@ export default {
   deleteQuery: (para) => {
     return Vue.resource(apiUrl + 'query/saved_queries/' + para.project + '/' + para.id).delete()
   },
-  deleteFav: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/unfavorite').save(para)
-  },
-  markFav: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries').save(para)
-  },
   getFrequency: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/rules/frequency').get(para)
   },
@@ -91,20 +85,20 @@ export default {
   getFavoriteList: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries{?status}').get(para)
   },
-  loadWhiteList: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/whitelist').get(para)
+  importSqlFiles: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/sql_files?project=' + para.project).save(para.formData)
   },
-  saveWhite: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/whitelist').update(para)
+  validateWhite: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries/sql_validation').update(para)
   },
-  deleteWhite: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/whitelist').delete(para)
+  addToFavoriteList: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries').save(para)
+  },
+  removeFavSql: (para) => {
+    return Vue.resource(apiUrl + 'query/favorite_queries').delete(para)
   },
   loadBlackList: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/blacklist').get(para)
-  },
-  addBlack: (para) => {
-    return Vue.resource(apiUrl + 'query/favorite_queries/blacklist').save(para)
   },
   deleteBlack: (para) => {
     return Vue.resource(apiUrl + 'query/favorite_queries/blacklist').delete(para)

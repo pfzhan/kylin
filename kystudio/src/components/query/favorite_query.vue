@@ -37,12 +37,12 @@
       <el-tabs v-model="activeList" @tab-click="handleClick">
         <el-tab-pane name="wartingAcce">
           <span slot="label">{{$t('kylinLang.query.unAcce1')}}({{unAcceListSize}})</span>
-          <favorite_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" :filterFav="filterFav"></favorite_table>
+          <favorite_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" v-on:filterFav="filterFav"></favorite_table>
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
         <el-tab-pane name="accelerated">
           <span slot="label">{{$t('kylinLang.query.fullyAcce')}}({{patternNum}})</span>
-          <favorite_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" :filterFav="filterFav" :isAccelerated="true"></favorite_table>
+          <favorite_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" v-on:filterFav="filterFav" :isAccelerated="true"></favorite_table>
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
       </el-tabs>
@@ -55,36 +55,48 @@
       class="importSqlDialog">
       <span slot="title" class="ky-list-title">{{$t('importSql')}}</span>
       <div class="upload-block" v-if="!isUploaded">
-        <img src="../../assets/img/license.png" alt="">
-        <div class="ksd-mt-10 text">{{$t('pleImport')}}</div>
+        <img src="../../assets/img/license.png" alt="" v-show="!uploadItems.length">
+        <div class="ksd-mt-10 text" v-show="!uploadItems.length">{{$t('pleImport')}}</div>
         <el-upload
-          :headers="uploadHeader"
-          :action="actionUrl"
-          :data="uploadData"
           ref="sqlUpload"
+          :headers="uploadHeader"
+          action=""
+          accept="text/plain"
           :before-upload="beforeUpload"
-          multiple :auto-upload="true"
-          :on-success="uploadSuccess"
-          :on-error="uploadError">
-          <el-button type="primary" size="medium" :loading="importLoading">{{$t('sqlFiles')}}
+          :on-remove="handleRemove"
+          :on-change="fileItemChange"
+          :file-list="uploadItems"
+          multiple
+          :auto-upload="false">
+          <el-button type="primary" size="medium">{{$t('sqlFiles')}}
           </el-button>
         </el-upload>
       </div>
       <el-row :gutter="20" v-else>
         <el-col :span="16">
           <div class="clearfix ksd-mb-10">
-            <div class="ksd-fleft query-count">
-              <span>{{$t('selectedQuery')}} (99) </span>
-              <span><i class="el-icon-ksd-good_health"></i>97 <i class="el-icon-ksd-error_01"></i>2</span>
+            <div class="ksd-fleft">
+              <div v-if="pagerTableData.length&&whiteSqlData.capable_sql_num" class="ksd-fleft ksd-mr-10">
+                <el-button type="primary" size="medium" plain @click="selectAll" v-if="selectSqls.length!==whiteSqlData.capable_sql_num">{{$t('checkAll')}}</el-button>
+                <el-button type="primary" size="medium" plain @click="cancelSelectAll" v-else>{{$t('cancelAll')}}</el-button>
+              </div>
+              <el-button type="primary" size="medium" :disabled="!finalSelectSqls.length" :loading="submitSqlLoading" @click="addTofav">{{$t('addTofavorite')}}({{finalSelectSqls.length}})</el-button>
             </div>
-            <div class="ksd-fright ksd-inline searchInput" v-if="whiteSqlList.size">
+            <div class="ksd-fright ksd-inline searchInput" v-if="whiteSqlData.size">
               <el-input v-model="whiteSqlFilter" @input="onWhiteSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
             </div>
           </div>
-          <el-table :data="whiteSqlList.sqls" border @row-click="activeSql" class="import-table" style="width: 100%">
+          <el-table
+            :data="pagerTableData"
+            border
+            ref="multipleTable"
+            @row-click="activeSql"
+            @select="handleSelectionChange"
+            @select-all="handleSelectAllChange"
+            class="import-table"
+            style="width: 100%">
             <el-table-column type="selection" align="center" width="44" :selectable="selectable"></el-table-column>
-            <el-table-column prop="sql" label="SQL" header-align="center" show-overflow-tooltip min-width="350"></el-table-column>
-            <el-table-column prop="createdTime" :label="$t('createdTime')" show-overflow-tooltip header-align="center" min-width="180"></el-table-column>
+            <el-table-column prop="sql" label="SQL" header-align="center" show-overflow-tooltip min-width="530"></el-table-column>
             <el-table-column prop="capable" :label="$t('kylinLang.common.status')" align="center" min-width="80">
               <template slot-scope="props">
                 <i :class="{'el-icon-ksd-good_health': props.row.capable, 'el-icon-ksd-error_01': !props.row.capable}"></i>
@@ -93,11 +105,11 @@
             <el-table-column :label="$t('kylinLang.common.action')" align="center" min-width="80">
               <template slot-scope="props">
                 <i class="el-icon-ksd-table_edit" @click.stop="editWhiteSql(props.row)"></i>
-                <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delWhite(props.row.id)"></i>
+                <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delWhiteComfirm(props.row.id)"></i>
                </template>
             </el-table-column>
           </el-table>
-          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20" :totalSize="whiteSqlList.size"  v-on:handleCurrentChange='whiteSqlListsPageChange' :perPageSize="10" v-if="whiteSqlList.size > 0"></kap-pager>
+          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20" :totalSize="filteredDataSize"  v-on:handleCurrentChange='whiteSqlDatasPageChange' :perPageSize="whitePageSize" v-if="filteredDataSize > 0"></kap-pager>
         </el-col>
         <el-col :span="8">
           <div class="ky-list-title ksd-mt-10 ksd-fs-16">{{$t('sqlBox')}}</div>
@@ -107,7 +119,7 @@
             <div class="operatorBox" v-show="isEditSql">
               <div class="btn-group ksd-fright">
                 <el-button size="medium" @click="cancelEdit(isWhiteErrorMessage)">{{$t('kylinLang.common.cancel')}}</el-button>
-                <el-button type="primary" size="medium" plain @click="saveWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
+                <el-button type="primary" size="medium" plain :loading="validateLoading" @click="validateWhiteSql()">{{$t('kylinLang.common.submit')}}</el-button>
               </div>
             </div>
           </div>
@@ -122,8 +134,12 @@
         </el-col>
       </el-row>
       <span slot="footer" class="dialog-footer">
-        <el-button size="medium" @click="importSqlVisible = false">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button type="primary" size="medium" plain :disabled="!toShowList" @click="toImportList">{{$t('kylinLang.common.next')}}</el-button>
+        <div class="ksd-fleft query-count" v-if="isUploaded">
+          <span><i class="el-icon-ksd-good_health"></i>{{whiteSqlData.capable_sql_num}}
+          <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
+        </div>
+        <el-button size="medium" @click="importSqlVisible = false">{{$t('kylinLang.common.close')}}</el-button>
+        <el-button type="primary" size="medium" plain v-if="!isUploaded" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.submit')}}</el-button>
       </span>
     </el-dialog>
     <el-dialog
@@ -138,28 +154,31 @@
         </el-tooltip>
       </span>
       <el-row :gutter="20">
-        <el-col :span="16" v-if="blackSqlList.size">
+        <el-col :span="16" v-if="blackSqlData&&blackSqlData.size">
           <div class="clearfix ksd-mb-10">
             <span class="ksd-title-label query-count">{{$t('blackList')}}
-              <span v-if="blackSqlList.size">({{blackSqlList.size}})</span>
+              <span v-if="blackSqlData.size">({{blackSqlData.size}})</span>
             </span>
             <div class="ksd-fright ksd-inline searchInput">
               <el-input v-model="blackSqlFilter" @input="onblackSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')" size="medium"></el-input>
             </div>
           </div>
-          <el-table :data="blackSqlList.sqls" border @row-click="viewBlackSql" class="import-table" style="width: 100%">
-            <el-table-column type="selection" align="center" width="44" :selectable="selectable"></el-table-column>
-            <el-table-column prop="sql" label="SQL" header-align="center" show-overflow-tooltip min-width="350"></el-table-column>
-            <el-table-column prop="createdTime" :label="$t('createdTime')" show-overflow-tooltip header-align="center" min-width="180"></el-table-column>
+          <el-table :data="blackSqlData.sqls" border @row-click="viewBlackSql" class="import-table" style="width: 100%">
+            <el-table-column prop="sql_pattern" label="SQL" header-align="center" show-overflow-tooltip min-width="350"></el-table-column>
+            <el-table-column prop="create_time" :label="$t('createdTime')" show-overflow-tooltip header-align="center" min-width="180">
+              <template slot-scope="props">
+                {{transToGmtTime(props.row.create_time)}}
+              </template>
+            </el-table-column>
             <el-table-column :label="$t('kylinLang.common.action')" align="center" min-width="80">
               <template slot-scope="props">
                 <i class="el-icon-ksd-table_delete ksd-ml-10" @click.stop="delBlack(props.row.id)"></i>
                </template>
             </el-table-column>
           </el-table>
-          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="blackSqlList.size"  v-on:handleCurrentChange='blackSqlListsPageChange' :perPageSize="10" v-if="blackSqlList.size"></kap-pager>
+          <kap-pager ref="sqlListsPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="blackSqlData.size"  v-on:handleCurrentChange='blackSqlDatasPageChange' :perPageSize="10" v-if="blackSqlData.size"></kap-pager>
         </el-col>
-        <el-col :span="8" v-if="blackSqlList.size">
+        <el-col :span="8" v-if="blackSqlData&&blackSqlData.size">
           <div class="ky-list-title ksd-mt-10 ksd-fs-16">{{$t('sqlBox')}}</div>
           <div class="query_panel_box ksd-mt-10">
             <kap-editor ref="blackInputBox" :height="inputHeight" :isFormatter="true" lang="sql" theme="chrome" v-model="blackSql">
@@ -167,7 +186,7 @@
           </div>
         </el-col>
       </el-row>
-      <div class="ksd-null-pic-text" v-if="!blackSqlList.size && !isEditSql">
+      <div class="ksd-null-pic-text" v-if="blackSqlData&&!blackSqlData.size">
         <img  src="../../assets/img/no_data.png" />
         <p>{{$t('kylinLang.common.noData')}}</p>
       </div>
@@ -261,7 +280,6 @@
 
 <script>
 import Vue from 'vue'
-import { apiUrl } from '../../config'
 import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import $ from 'jquery'
@@ -279,14 +297,13 @@ import favoriteTable from './favorite_table'
       updateFrequency: 'UPDATE_FREQUENCY',
       updateSubmitter: 'UPDATE_SUBMITTER',
       updateDuration: 'UPDATE_DURATION',
-      loadWhiteList: 'LOAD_WHITE_LIST',
-      saveWhite: 'SAVE_WHITE_SQL',
-      deleteWhite: 'DELETE_WHITE_SQL',
+      validateWhite: 'VALIDATE_WHITE_SQL',
+      addTofavoriteList: 'ADD_TO_FAVORITE_LIST',
       loadBlackList: 'LOAD_BLACK_LIST',
-      addBlack: 'ADD_BLACK_SQL',
       deleteBlack: 'DELETE_BLACK_SQL',
       applySpeedInfo: 'APPLY_SPEED_INFO',
-      getSpeedInfo: 'GET_SPEED_INFO'
+      getSpeedInfo: 'GET_SPEED_INFO',
+      importSqlFiles: 'IMPORT_SQL_FILES'
     })
   },
   computed: {
@@ -298,8 +315,8 @@ import favoriteTable from './favorite_table'
     'favorite_table': favoriteTable
   },
   locales: {
-    'en': {importSql: 'Import SQL', pleImport: 'Please Import Files', sqlFiles: 'SQL Files', createdTime: 'Create Time', selectedQuery: 'Selected Query', sqlBox: 'SQL Box', blackList: 'Black List', ruleSetting: 'Rule-based Setting', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query.<br/> Favorite query represent your main business analysis scenarios and critical decision point.<br/> System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', submitterDesc: 'Optimize queries from critical users and groups', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the edit?', whiteListDesc: 'White list helps to manage user manually defined favorite SQLs, especially for SQLs from query history list and imported SQL files.', blackListDesc: 'Black list helps to manage SQLs which are undesired for accelerating, especially for those SQLs will require unreasonable large storage or computing resource to accelerate.', ruleImpact: 'Rules Impact', ruleImpactDesc: 'Percentage of SQL queries selected by the favorite rule.', thereAre: 'There are {modelSpeedEvents} SQLs waiting for acceleration on the threshold of <span class="highlight">{threshold}</span>.', accelerateNow: 'Accelerate now', openTips: 'Expand this block to set the "Acceleration Rule"', messages: 'Error Messages:', suggestion: 'Suggestion:', from: 'From', to: 'to', secondes: 'secondes', acceleratedSQL: 'Accelerated SQL'},
-    'zh-cn': {importSql: '导入SQL', pleImport: '请导入文件', sqlFiles: 'SQL文件', createdTime: '创建时间', selectedQuery: '已选择的SQL', sqlBox: 'SQL窗口', blackList: '禁用名单', ruleSetting: '规则设置', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。<br/>这类查询可以代表最主要的业务分析和重要的业务决策点。<br/>系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', submitterDesc: '优化重要⽤用户或⽤用户组发出的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？', whiteListDesc: '本列表管理用户人为指定加速的SQL查询。一般指用户从查询历史指定或导入的查询文件。', blackListDesc: '本列表管理用户不希望被加速的SQL查询。一般是指加速时对存储空间、计算力需求过大的查询。', ruleImpact: '加速规则影响⼒', ruleImpactDesc: '被加速规则选出的SQL查询的百分⽐。', thereAre: '已有{modelSpeedEvents}条SQL查询等待加速(阈值为<span class="highlight">{threshold}</span>条SQL)', accelerateNow: '立即加速', openTips: '展开此区块可设定"加速规则"', messages: '错误信息：', suggestion: '修改建议：', from: '从', to: '至', secondes: '秒', acceleratedSQL: '已加速SQL'}
+    'en': {importSql: 'Import SQL', pleImport: 'Please Import Files', sqlFiles: 'SQL Files', createdTime: 'Create Time', selectedQuery: 'Selected Query', sqlBox: 'SQL Box', blackList: 'Black List', ruleSetting: 'Rule-based Setting', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query.<br/> Favorite query represent your main business analysis scenarios and critical decision point.<br/> System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', submitterDesc: 'Optimize queries from critical users and groups', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the edit?', whiteListDesc: 'White list helps to manage user manually defined favorite SQLs, especially for SQLs from query history list and imported SQL files.', blackListDesc: 'Black list helps to manage SQLs which are undesired for accelerating, especially for those SQLs will require unreasonable large storage or computing resource to accelerate.', ruleImpact: 'Rules Impact', ruleImpactDesc: 'Percentage of SQL queries selected by the favorite rule.', thereAre: 'There are {modelSpeedEvents} SQLs waiting for acceleration on the threshold of <span class="highlight">{threshold}</span>.', accelerateNow: 'Accelerate now', openTips: 'Expand this block to set the "Acceleration Rule"', messages: 'Error Messages:', suggestion: 'Suggestion:', from: 'From', to: 'to', secondes: 'secondes', acceleratedSQL: 'Accelerated SQL', checkAll: 'Select All', cancelAll: 'Cancel All Selection', addTofavorite: 'Add To Unaccelerate List', filesSizeError: 'Files cannot exceed 20M.'},
+    'zh-cn': {importSql: '导入SQL', pleImport: '请导入文件', sqlFiles: 'SQL文件', createdTime: '创建时间', selectedQuery: '已选择的SQL', sqlBox: 'SQL窗口', blackList: '禁用名单', ruleSetting: '规则设置', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。<br/>这类查询可以代表最主要的业务分析和重要的业务决策点。<br/>系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', submitterDesc: '优化重要⽤用户或⽤用户组发出的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？', whiteListDesc: '本列表管理用户人为指定加速的SQL查询。一般指用户从查询历史指定或导入的查询文件。', blackListDesc: '本列表管理用户不希望被加速的SQL查询。一般是指加速时对存储空间、计算力需求过大的查询。', ruleImpact: '加速规则影响⼒', ruleImpactDesc: '被加速规则选出的SQL查询的百分⽐。', thereAre: '已有{modelSpeedEvents}条SQL查询等待加速(阈值为<span class="highlight">{threshold}</span>条SQL)', accelerateNow: '立即加速', openTips: '展开此区块可设定"加速规则"', messages: '错误信息：', suggestion: '修改建议：', from: '从', to: '至', secondes: '秒', acceleratedSQL: '已加速SQL', checkAll: '全选', cancelAll: '取消全选', addTofavorite: '加入待加速列表', filesSizeError: '文件大小不能超过20M!'}
   }
 })
 export default class FavoriteQuery extends Vue {
@@ -311,7 +328,6 @@ export default class FavoriteQuery extends Vue {
   patternNum = 0
   importSqlVisible = false
   isUploaded = false
-  toShowList = false
   ruleSettingVisible = false
   blackListVisible = false
   isShowInput = false
@@ -321,14 +337,25 @@ export default class FavoriteQuery extends Vue {
   whiteSqlFilter = ''
   activeIndex = 0
   activeSqlObj = null
-  whiteSqlList = []
-  blackSqlList = []
+  whiteSqlData = null
+  blackSqlData = null
   blackSql = ''
   whiteSql = ''
+  validateLoading = false
+  fileSizeError = false
   isWhiteErrorMessage = false
   whiteMessages = []
   importLoading = false
+  uploadItems = []
+  pagerTableData = []
+  multipleSelection = []
+  selectSqls = []
+  submitSqlLoading = false
+  filteredDataSize = 0
   favoriteCurrentPage = 1
+  whiteCurrentPage = 0
+  timer = null
+  whitePageSize = 10
   activeNames = ['rules']
   filterData = {
     sortBy: 'last_query_time',
@@ -529,10 +556,6 @@ export default class FavoriteQuery extends Vue {
     }
   }
 
-  formatTooltip (val) {
-    return val * 100
-  }
-
   openImportSql () {
     this.importSqlVisible = true
   }
@@ -609,26 +632,6 @@ export default class FavoriteQuery extends Vue {
     this.getBlackList()
   }
 
-  async getWhiteList (pageIndex, pageSize) {
-    const res = await this.loadWhiteList({
-      project: this.currentSelectedProject,
-      limit: pageSize || 10,
-      offset: pageIndex || 0
-    })
-    const data = await handleSuccessAsync(res)
-    this.whiteSqlList = data
-    if (this.whiteSqlList.size > 0) {
-      this.activeSql(this.whiteSqlList.sqls[0])
-    } else {
-      this.whiteSql = ''
-      this.activeSqlObj = null
-      this.isEditSql = false
-      this.whiteMessages = []
-      this.isWhiteErrorMessage = false
-      this.inputHeight = 574
-    }
-  }
-
   async getBlackList (pageIndex, pageSize) {
     const res = await this.loadBlackList({
       project: this.currentSelectedProject,
@@ -636,18 +639,12 @@ export default class FavoriteQuery extends Vue {
       offset: pageIndex || 0
     })
     const data = await handleSuccessAsync(res)
-    this.blackSqlList = data
-    if (this.blackSqlList.size > 0) {
-      this.viewBlackSql(this.blackSqlList.sqls[0])
+    this.blackSqlData = data
+    if (this.blackSqlData.size > 0) {
+      this.viewBlackSql(this.blackSqlData.sqls[0])
     } else {
       this.blackSql = ''
     }
-  }
-
-  openWhiteList () {
-    this.whiteListVisible = true
-    this.isEditSql = false
-    this.getWhiteList()
   }
 
   activeSql (sqlObj) {
@@ -688,28 +685,24 @@ export default class FavoriteQuery extends Vue {
       return {'Accept-Language': 'cn'}
     }
   }
-  get actionUrl () {
-    return apiUrl + 'query/favorite_queries/whitelist'
-  }
-  get uploadData () {
-    return {
-      project: this.currentSelectedProject
+  fileItemChange (file, fileList) {
+    let totalSize = 0
+    this.uploadItems = fileList.map((item) => {
+      totalSize = totalSize + item.size
+      return item.raw ? item.raw : item
+    })
+    if (totalSize > 20 * 1024 * 1024) { // 附件不能大于20M
+      this.$messages.warning(this.$t('filesSizeError'))
+      this.fileSizeError = true
+    } else {
+      this.fileSizeError = false
     }
   }
-  beforeUpload () {
-    this.importLoading = true
+  handleRemove (file, fileList) {
+    this.uploadItems = fileList
   }
-  uploadSuccess (response) {
-    this.importLoading = false
-    this.toShowList = true
-  }
-  uploadError (err, file, fileList) {
-    handleError({
-      data: JSON.parse(err.message),
-      status: err.status
-    })
-    this.importLoading = false
-    this.toShowList = true
+  beforeUpload (file) {
+    console.log(file)
   }
 
   selectable (row) {
@@ -718,12 +711,170 @@ export default class FavoriteQuery extends Vue {
 
   resetImport () {
     this.isUploaded = false
-    this.toShowList = false
+    this.uploadItems = []
+    this.whiteSqlData = null
+    this.pagerTableData = []
+    this.whiteSqlFilter = ''
   }
 
-  toImportList () {
-    this.isUploaded = true
-    this.getWhiteList()
+  submitFiles () {
+    const formData = new FormData()   // 利用H5 FORMDATA 同时传输多文件和数据
+    this.uploadItems.forEach(file => {
+      formData.append('files', file)
+    })
+    this.importLoading = true
+    this.importSqlFiles({project: this.currentSelectedProject, formData: formData}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.importLoading = false
+        this.isUploaded = true
+        this.whiteSqlData = data
+        this.selectAll()
+        this.whiteSqlDatasPageChange(0)
+      })
+    }, (res) => {
+      handleError(res)
+    })
+  }
+
+  get finalSelectSqls () {
+    let finalSqls = []
+    finalSqls = this.selectSqls.filter((item) => {
+      return item.sql.indexOf(this.whiteSqlFilter) !== -1
+    })
+    return finalSqls
+  }
+  selectAll () {
+    this.selectSqls = this.whiteSqlData.data.filter((item) => {
+      return item.capable
+    })
+    this.selectPagerSqls(true)
+  }
+  cancelSelectAll () {
+    this.selectSqls = []
+    this.selectPagerSqls(false)
+  }
+  handleSelectionChange (val, row) {
+    this.mergeSelectSqls(row)
+  }
+  handleSelectAllChange (val) {
+    if (val.length) {
+      val.forEach((item) => {
+        this.mergeSelectSqls(item, 'batchAdd')
+      })
+    } else {
+      this.pagerTableData.forEach((item) => {
+        this.mergeSelectSqls(item, 'batchRemove')
+      })
+    }
+  }
+  // 单选一条时：toggle row; batchFlag有值时：批量添加rows或者批量去除rows
+  mergeSelectSqls (row, batchFlag) {
+    let index = -1
+    for (const key in this.selectSqls) {
+      if (this.selectSqls[key].id === row.id) {
+        index = key
+        break
+      }
+    }
+    if (index === -1) {
+      if (batchFlag !== 'batchRemove') {
+        this.selectSqls.push(row)
+      }
+    } else {
+      if (batchFlag !== 'batchAdd') {
+        this.selectSqls.splice(index, 1)
+      }
+    }
+  }
+  whiteSqlDatasPageChange (currentPage, pageSize) {
+    const size = pageSize || 10
+    this.whiteCurrentPage = currentPage
+    this.whitePageSize = size
+    const filteredData = this.whiteFilter(this.whiteSqlData.data)
+    this.filteredDataSize = filteredData.length
+    this.pagerTableData = filteredData.slice(currentPage * size, (currentPage + 1) * size)
+    if (this.filteredDataSize) {
+      this.$nextTick(() => {
+        this.activeSql(this.pagerTableData[0])
+      })
+      let targetSelectSqls = []
+      this.pagerTableData.forEach((item) => {
+        let index = -1
+        for (const key in this.selectSqls) {
+          if (this.selectSqls[key].id === item.id) {
+            index = key
+            break
+          }
+        }
+        if (index !== -1) {
+          targetSelectSqls.push(item)
+        }
+      })
+      this.$nextTick(() => {
+        this.toggleSelection(targetSelectSqls)
+      })
+    } else {
+      this.whiteSql = ''
+      this.activeSqlObj = null
+      this.isEditSql = false
+      this.whiteMessages = []
+      this.isWhiteErrorMessage = false
+      this.inputHeight = 574
+    }
+  }
+  selectPagerSqls (isSelectAll) {
+    const selectedRows = isSelectAll ? this.pagerTableData.filter((item) => {
+      return item.capable
+    }) : []
+    this.$nextTick(() => {
+      this.toggleSelection(selectedRows)
+    })
+  }
+  whiteFilter (data) {
+    return data.filter((sqlObj) => {
+      return sqlObj.sql.indexOf(this.whiteSqlFilter) !== -1
+    })
+  }
+
+  toggleSelection (rows) {
+    if (rows && rows.length) {
+      this.$refs.multipleTable.clearSelection()
+      rows.forEach(row => {
+        this.$refs.multipleTable.toggleRowSelection(row)
+      })
+    } else {
+      this.$refs.multipleTable.clearSelection()
+    }
+  }
+  addTofav () {
+    this.submitSqlLoading = true
+    const sqlsData = this.finalSelectSqls
+    const sqls = sqlsData.map((item) => {
+      return item.sql
+    })
+    this.addTofavoriteList({project: this.currentSelectedProject, sqls: sqls}).then((res) => {
+      handleSuccess(res, (data) => {
+        this.submitSqlLoading = false
+        this.$message({
+          type: 'success',
+          message: this.$t('kylinLang.common.actionSuccess')
+        })
+        sqlsData.forEach((item) => {
+          this.delWhite(item.id)
+        })
+        this.loadFavoriteList()
+      })
+    }, (res) => {
+      handleError(res)
+      this.submitSqlLoading = false
+    })
+  }
+
+  onWhiteSqlFilterChange () {
+    clearTimeout(this.timer)
+    this.timer = setTimeout(() => {
+      this.whiteSqlDatasPageChange(0)
+    }, 500)
   }
 
   cancelEdit (isErrorMes) {
@@ -734,14 +885,31 @@ export default class FavoriteQuery extends Vue {
     }, 0)
   }
 
-  saveWhiteSql () {
-    this.saveWhite({sql: this.whiteSql, id: this.activeSqlObj.id, project: this.currentSelectedProject}).then((res) => {
+  validateWhiteSql () {
+    this.validateLoading = true
+    this.validateWhite({sql: this.whiteSql, project: this.currentSelectedProject}).then((res) => {
       handleSuccess(res, (data) => {
+        this.validateLoading = false
         if (data.capable) {
           this.$message({
             type: 'success',
             message: this.$t('kylinLang.common.actionSuccess')
           })
+          this.whiteMessages = []
+          this.inputHeight = 522
+          this.isWhiteErrorMessage = false
+          for (const key in this.whiteSqlData.data) {
+            if (this.whiteSqlData.data[key].id === this.activeSqlObj.id) {
+              this.whiteSqlData.data[key].sql = this.whiteSql
+              this.whiteSqlDatasPageChange(this.whiteCurrentPage)
+              if (!this.whiteSqlData.data[key].capable) {
+                this.whiteSqlData.data[key].capable = true
+                this.whiteSqlData.data[key].sqlAdvices = []
+                this.whiteSqlData.capable_sql_num++
+              }
+              break
+            }
+          }
         } else {
           this.whiteMessages = data.sqlAdvices
           this.inputHeight = 522 - 150
@@ -749,12 +917,38 @@ export default class FavoriteQuery extends Vue {
         }
       })
     }, (res) => {
+      this.validateLoading = false
       handleError(res)
     })
   }
 
+  delWhiteComfirm (id) {
+    kapConfirm(this.$t('delSql')).then(() => {
+      this.delWhite(id)
+    })
+  }
+
+  delWhite (id) {
+    for (const key in this.whiteSqlData.data) {
+      if (this.whiteSqlData.data[key].id === id) {
+        this.whiteSqlData.data.splice(key, 1)
+        this.whiteSqlData.size--
+        this.$nextTick(() => {
+          this.whiteSqlDatasPageChange(this.whiteCurrentPage)
+        })
+        break
+      }
+    }
+    for (const index in this.selectSqls) {
+      if (this.selectSqls[index].id === id) {
+        this.selectSqls.splice(index, 1)
+        break
+      }
+    }
+  }
+
   viewBlackSql (row) {
-    this.blackSql = row.sql
+    this.blackSql = row.sql_pattern
     setTimeout(() => {
       this.$refs.blackInputBox.$refs.kapEditor.editor.setReadOnly(true)
     }, 0)
@@ -776,36 +970,10 @@ export default class FavoriteQuery extends Vue {
     })
   }
 
-  delWhite (id) {
-    kapConfirm(this.$t('delSql')).then(() => {
-      this.deleteWhite({id: id, project: this.currentSelectedProject}).then((res) => {
-        handleSuccess(res, (data) => {
-          this.$message({
-            type: 'success',
-            message: this.$t('kylinLang.common.delSuccess')
-          })
-          this.getWhiteList()
-        })
-      }, (res) => {
-        handleError(res)
-      })
-    })
-  }
-
-  transformSql (sql) {
-    return sql.length > 350 ? sql.substr(0, 350) + '...' : sql
-  }
-
   onblackSqlFilterChange () {}
 
-  onWhiteSqlFilterChange () {}
-
-  blackSqlListsPageChange (offset, pageSize) {
+  blackSqlDatasPageChange (offset, pageSize) {
     this.getBlackList(offset, pageSize)
-  }
-
-  whiteSqlListsPageChange (offset, pageSize) {
-    this.getWhiteList(offset, pageSize)
   }
 }
 </script>
@@ -872,6 +1040,23 @@ export default class FavoriteQuery extends Vue {
     }
     .importSqlDialog,
     .blackListDialog {
+      .query-count {
+        color: @text-title-color;
+        font-size: 16px;
+        line-height: 32px;
+        height: 32px;
+        display: inline-block;
+      }
+      .el-icon-ksd-good_health {
+        color: @normal-color-1;
+        margin-right: 2px;
+        font-size: 14px;
+      }
+      .el-icon-ksd-error_01 {
+        color: @error-color-1;
+        margin-right: 2px;
+        font-size: 14px;
+      }
       .el-dialog__body {
         min-height: 600px;
         .import-table {
@@ -885,23 +1070,6 @@ export default class FavoriteQuery extends Vue {
             border-color: @base-color;
             border-bottom-color: @text-secondary-color;
           }
-        }
-        .query-count {
-          color: @text-title-color;
-          font-size: 16px;
-          line-height: 24px;
-          position: relative;
-          top: 10px;
-        }
-        .el-icon-ksd-good_health {
-          color: @normal-color-1;
-          margin-right: 2px;
-          font-size: 14px;
-        }
-        .el-icon-ksd-error_01 {
-          color: @error-color-1;
-          margin-right: 2px;
-          font-size: 14px;
         }
         .operatorBox{
           margin-top: 0;
