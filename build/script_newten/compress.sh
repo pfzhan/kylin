@@ -42,6 +42,7 @@ cp -rf conf/spark-executor-log4j.properties ${package_name}/conf/
 cp -rf conf/fairscheduler.xml ${package_name}/conf/
 cp -rf conf/setenv.sh ${package_name}/conf/
 cp -rf bin/ ${package_name}/bin/
+cp -rf ssb-kylin/ ${package_name}/ssb-kylin/
 
 cp -rf ../src/examples ${package_name}/
 
