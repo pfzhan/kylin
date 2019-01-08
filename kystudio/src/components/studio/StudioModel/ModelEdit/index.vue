@@ -1297,6 +1297,10 @@ export default class ModelEdit extends Vue {
     if (data.uuid) {
       action = 'updataModel'
     }
+    // 如果未选择partition 把partition desc 设置为null
+    if (!(data && data.partition_desc && data.partition_desc.partition_date_column)) {
+      data.partition_desc = null
+    }
     this[action](para).then((res) => {
       handleSuccess(res, () => {
         // kapMessage(this.$t('kylinLang.common.saveSuccess'))
