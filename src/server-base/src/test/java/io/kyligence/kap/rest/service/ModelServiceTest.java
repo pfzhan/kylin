@@ -64,6 +64,19 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.cube.model.NRuleBasedIndex;
+import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.project.NProjectManager;
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.rest.request.ModelConfigRequest;
+import io.kyligence.kap.rest.response.IndexEntityResponse;
+import io.kyligence.kap.rest.response.NDataSegmentResponse;
+import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -105,37 +118,28 @@ import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.cuboid.NAggregationGroup;
 import io.kyligence.kap.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.cube.model.IndexEntity;
 import io.kyligence.kap.cube.model.NDataLoadingRange;
 import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
-import io.kyligence.kap.cube.model.NIndexPlanManager;
-import io.kyligence.kap.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
-import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
 import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
-import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
-import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.metadata.query.QueryHistoryDAO;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.rest.execution.SucceedTestExecutable;
-import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
 import io.kyligence.kap.rest.response.CuboidStatus;
-import io.kyligence.kap.rest.response.IndexEntityResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
-import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
@@ -413,7 +417,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelUpdate.setManagementType(ManagementType.TABLE_ORIENTED);
         modelManager.updateDataModelDesc(modelUpdate);
         thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Model 'test_encoding' is table oriented, can not pruge the model!");
+        thrown.expectMessage("Model 'test_encoding' is table oriented, can not purge the model!");
         modelService.purgeModelManually("a8ba3ff1-83bd-4066-ad54-d2fb3d1f0e94", "default");
     }
 
@@ -828,10 +832,108 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         testCreateModel_PartitionNotNull();
         testBuildSegmentsManually_WithPushDown();
         testCreateModel_PartitionNotNull_WithStartAndEnd();
-        testCreateModel_PartitionNotNull_WithStartOnly();
-        testCreateModel_PartitionNotNull_WithEndOnly();
+        testBuildSegmentsManually();
+        testChangePartitionDesc();
+        testChangePartitionDesc_OriginModelNoPartition();
+        testChangePartitionDesc_NewModelNoPartitionColumn();
         cleanPushdownEnv();
     }
+
+    public void testChangePartitionDesc() throws Exception {
+
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+
+        var model = modelMgr.getDataModelDesc("nmodel_basic");
+        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request.setProject("default");
+        request.setUuid("nmodel_basic");
+        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .collect(Collectors.toList()));
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
+                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
+
+        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", modelRequest.getPartitionDesc().getPartitionDateColumn());
+
+        modelMgr.updateDataModel("nmodel_basic", copy -> {
+            copy.getPartitionDesc().setPartitionDateColumn("TRANS_ID");
+        });
+
+        model = modelMgr.getDataModelDesc("nmodel_basic");
+
+        Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", model.getPartitionDesc().getPartitionDateColumn());
+
+        modelService.updateDataModelSemantic("default", modelRequest);
+
+        model = modelMgr.getDataModelDesc("nmodel_basic");
+
+        Assert.assertEquals("yyyy-MM-dd", model.getPartitionDesc().getPartitionDateFormat());
+
+    }
+
+    public void testChangePartitionDesc_OriginModelNoPartition() throws Exception {
+
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+
+        var model = modelMgr.getDataModelDesc("nmodel_basic");
+        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request.setProject("default");
+        request.setUuid("nmodel_basic");
+        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .collect(Collectors.toList()));
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
+                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
+
+        Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", modelRequest.getPartitionDesc().getPartitionDateColumn());
+
+        modelMgr.updateDataModel("nmodel_basic", copy -> {
+            copy.setPartitionDesc(null);
+        });
+
+        model = modelMgr.getDataModelDesc("nmodel_basic");
+
+        Assert.assertNull(model.getPartitionDesc());
+
+        modelService.updateDataModelSemantic("default", modelRequest);
+
+        model = modelMgr.getDataModelDesc("nmodel_basic");
+
+        Assert.assertEquals("yyyy-MM-dd", model.getPartitionDesc().getPartitionDateFormat());
+
+    }
+
+    public void testChangePartitionDesc_NewModelNoPartitionColumn() throws Exception {
+
+        val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+
+        var model = modelMgr.getDataModelDesc("nmodel_basic");
+        val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
+        request.setProject("default");
+        request.setUuid("nmodel_basic");
+        request.getPartitionDesc().setPartitionDateColumn("");
+        request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
+                .collect(Collectors.toList()));
+        request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
+                .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
+        val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
+
+
+
+        model = modelMgr.getDataModelDesc("nmodel_basic");
+
+        Assert.assertEquals("yyyy-MM-dd", model.getPartitionDesc().getPartitionDateFormat());
+
+
+        modelService.updateDataModelSemantic("default", modelRequest);
+
+        model = modelMgr.getDataModelDesc("nmodel_basic");
+
+        Assert.assertEquals("", model.getPartitionDesc().getPartitionDateFormat());
+
+    }
+
+
 
     public void testCreateModel_PartitionNotNull() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -873,53 +975,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(100L, df.getSegments().get(0).getSegRange().getEnd());
         modelManager.dropModel(newModel);
     }
-
-    public void testCreateModel_PartitionNotNull_WithStartOnly() throws Exception {
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        model.setManagementType(ManagementType.MODEL_BASED);
-        ModelRequest modelRequest = new ModelRequest(model);
-        modelRequest.setProject("default");
-        modelRequest.setAlias("new_model3");
-        modelRequest.setStart("0");
-        modelRequest.setLastModified(0L);
-        modelRequest.getPartitionDesc().setPartitionDateFormat("");
-        Assert.assertEquals("", modelRequest.getPartitionDesc().getPartitionDateFormat());
-        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
-        Assert.assertEquals("new_model3", newModel.getAlias());
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val df = dfManager.getDataflow(newModel.getUuid());
-        Assert.assertEquals(1, df.getSegments().size());
-        Assert.assertEquals("yyyy-MM-dd", newModel.getPartitionDesc().getPartitionDateFormat());
-        Assert.assertEquals(0L, df.getSegments().get(0).getSegRange().getStart());
-        Assert.assertEquals(1388534400000L, df.getSegments().get(0).getSegRange().getEnd());
-        modelManager.dropModel(newModel);
-    }
-
-    public void testCreateModel_PartitionNotNull_WithEndOnly() throws Exception {
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel model = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        model.setManagementType(ManagementType.MODEL_BASED);
-        ModelRequest modelRequest = new ModelRequest(model);
-        modelRequest.setProject("default");
-        modelRequest.setAlias("new_model4");
-        modelRequest.setEnd("1388534400000");
-        modelRequest.setLastModified(0L);
-        modelRequest.getPartitionDesc().setPartitionDateFormat("");
-        Assert.assertEquals("", modelRequest.getPartitionDesc().getPartitionDateFormat());
-        val newModel = modelService.createModel(modelRequest.getProject(), modelRequest);
-        Assert.assertEquals("new_model4", newModel.getAlias());
-        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        val df = dfManager.getDataflow(newModel.getUuid());
-        Assert.assertEquals(1, df.getSegments().size());
-        Assert.assertEquals("yyyy-MM-dd", newModel.getPartitionDesc().getPartitionDateFormat());
-        Assert.assertEquals(1325376000000L, df.getSegments().get(0).getSegRange().getStart());
-        Assert.assertEquals(1388534400000L, df.getSegments().get(0).getSegRange().getEnd());
-        modelManager.dropModel(newModel);
-    }
-
-
-
 
     @Test
     public void testCreateModelWithDefaultMeasures() throws Exception {
@@ -1935,24 +1990,12 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         modelService.buildSegmentsManually("match", "new_model", "0", "100");
     }
 
-    @Test
-    public void testBuildSegmentsManuallyException2() throws Exception {
-        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-        NDataModel modelDesc = modelManager.getDataModelDesc("cb596712-3a09-46f8-aea1-988b43fe9b6c");
-        NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
-        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
-        modelManager.updateDataModelDesc(modelUpdate);
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage(
-                "Segments to build overlaps built or building segment(from 0 to 9223372036854775807), please select new data range and try again!");
-        modelService.buildSegmentsManually("default", "cb596712-3a09-46f8-aea1-988b43fe9b6c", "0", "100");
-    }
 
-    @Test
     public void testBuildSegmentsManually() throws Exception {
         NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         NDataModel modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
+        modelUpdate.getPartitionDesc().setPartitionDateFormat("");
         modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         modelManager.updateDataModelDesc(modelUpdate);
 
@@ -1962,6 +2005,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
         dataflowManager.updateDataflow(dataflowUpdate);
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
+
+        modelDesc = modelManager.getDataModelDesc("nmodel_basic");
+        Assert.assertEquals("yyyy-MM-dd", modelDesc.getPartitionDesc().getPartitionDateFormat());
+
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
         modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         modelUpdate = modelManager.copyForWrite(modelDesc);
@@ -2021,11 +2068,35 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         NDataflow dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         NDataflowUpdate dataflowUpdate = new NDataflowUpdate(dataflow.getUuid());
         dataflowUpdate.setToRemoveSegs(dataflow.getSegments().toArray(new NDataSegment[dataflow.getSegments().size()]));
-        dataflowManager.updateDataflow(dataflowUpdate);
-        thrown.expect(BadRequestException.class);
-        thrown.expectMessage("Model 'nmodel_basic' has no partition column!");
+        dataflow = dataflowManager.updateDataflow(dataflowUpdate);
+        Assert.assertEquals(0, dataflow.getSegments().size());
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
+        dataflow = dataflowManager.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals(1, dataflow.getSegments().size());
+        Assert.assertTrue(dataflow.getSegments().get(0).getSegRange().isInfinite());
 
+    }
+
+
+    @Test
+    public void testBuildSegmentsManually_NoPartition_FullSegExisted() throws Exception {
+        NDataModelManager modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
+        NDataModel modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        NDataModel modelUpdate = modelManager.copyForWrite(modelDesc);
+        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
+        modelManager.updateDataModelDesc(modelUpdate);
+
+        modelManager.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            copyForWrite.setManagementType(ManagementType.MODEL_BASED);
+            copyForWrite.setPartitionDesc(null);
+        });
+
+        val eventDao = EventDao.getInstance(getTestConfig(), "default");
+        eventDao.deleteAllEvents();
+        modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "", "");
+        val events = eventDao.getEvents();
+        Assert.assertEquals(2, events.size());
+        Assert.assertTrue(events.get(0) instanceof RefreshSegmentEvent || events.get(0) instanceof PostMergeOrRefreshSegmentEvent);
     }
 
     @Test

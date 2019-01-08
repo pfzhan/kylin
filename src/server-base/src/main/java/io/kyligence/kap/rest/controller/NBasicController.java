@@ -226,6 +226,17 @@ public class NBasicController {
         }
     }
 
+    public void validateStartAndEndExistBoth(String start, String end) {
+        if (StringUtils.isEmpty(start) && StringUtils.isEmpty(end)) {
+            return;
+        } else if (StringUtils.isNotEmpty(start) && StringUtils.isNotEmpty(end)) {
+            return;
+        } else {
+            throw new BadRequestException("Start and end must exist or not at the same time!");
+        }
+
+    }
+
     public void checkArgsAndValidateRangeForBatchLoad(List<DateRangeRequest> requests) {
         for (DateRangeRequest request : requests) {
             checkProjectName(request.getProject());
@@ -233,4 +244,5 @@ public class NBasicController {
             validateRange(request.getStart(), request.getEnd());
         }
     }
+
 }

@@ -117,6 +117,8 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse createModel(@RequestBody ModelRequest modelRequest) throws Exception {
         checkProjectName(modelRequest.getProject());
+        validateStartAndEndExistBoth(modelRequest.getStart(), modelRequest.getEnd());
+        validatePartionDesc(modelRequest);
         modelService.createModel(modelRequest.getProject(), modelRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
@@ -234,8 +236,9 @@ public class NModelController extends NBasicController {
 
     @PutMapping(value = "/semantic", produces = "application/vnd.apache.kylin-v2+json")
     @ResponseBody
-    public EnvelopeResponse updateSemantic(@RequestBody ModelRequest request) {
+    public EnvelopeResponse updateSemantic(@RequestBody ModelRequest request) throws Exception {
         checkProjectName(request.getProject());
+        validatePartionDesc(request);
         checkRequiredArg(MODEL_ID, request.getUuid());
         modelService.updateDataModelSemantic(request.getProject(), request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
@@ -336,6 +339,7 @@ public class NModelController extends NBasicController {
     @ResponseBody
     public EnvelopeResponse buildSegmentsManually(@RequestBody BuildSegmentsRequest buildSegmentsRequest) throws Exception {
         checkProjectName(buildSegmentsRequest.getProject());
+        validateStartAndEndExistBoth(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         if (StringUtils.isNotEmpty(buildSegmentsRequest.getStart()) && StringUtils.isNotEmpty(buildSegmentsRequest.getEnd())) {
             validateRange(buildSegmentsRequest.getStart(), buildSegmentsRequest.getEnd());
         }
@@ -395,5 +399,11 @@ public class NModelController extends NBasicController {
         checkProjectName(request.getProject());
         modelService.updateModelConfig(request.getProject(), modelId, request);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+    }
+
+    public void validatePartionDesc(NDataModel model) {
+        if (model.getPartitionDesc() != null && StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
+            throw new BadRequestException("Partition column does not exist!");
+        }
     }
 }

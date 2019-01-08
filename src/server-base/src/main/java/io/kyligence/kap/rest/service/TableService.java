@@ -477,9 +477,8 @@ public class TableService extends BasicService {
         Pair<String, String> pushdownResult;
         if (PushDownUtil.needPushdown(start, end)) {
             pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
-            val startAndEnd = PushDownUtil.calcStartAndEnd(pushdownResult, start, end, allRange);
-            start = startAndEnd.getFirst();
-            end = startAndEnd.getSecond();
+            start = PushDownUtil.calcStart(pushdownResult.getFirst(), allRange);
+            end = pushdownResult.getSecond();
         }
 
         if (allRange != null && allRange.getEnd().toString().equals(end))

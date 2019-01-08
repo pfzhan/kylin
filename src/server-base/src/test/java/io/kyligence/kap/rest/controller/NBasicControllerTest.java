@@ -41,6 +41,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+
 public class NBasicControllerTest {
 
     private MockMvc mockMvc;
@@ -109,6 +110,13 @@ public class NBasicControllerTest {
         thrown.expect(BadRequestException.class);
         thrown.expectMessage("model is required");
         nBasicController.checkRequiredArg("model", "");
+    }
+
+    @Test
+    public void testCheckStartAndEndException() {
+        thrown.expect(BadRequestException.class);
+        thrown.expectMessage("Start and end must exist or not at the same time!");
+        nBasicController.validateStartAndEndExistBoth("10", "");
     }
 
 }

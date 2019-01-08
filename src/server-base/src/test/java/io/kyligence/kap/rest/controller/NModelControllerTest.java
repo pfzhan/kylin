@@ -49,6 +49,7 @@ import java.util.UUID;
 import io.kyligence.kap.cube.model.IndexEntity;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
+import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
 import org.apache.kylin.metadata.model.Segments;
 import org.apache.kylin.rest.constant.Constant;
@@ -379,6 +380,19 @@ public class NModelControllerTest extends NLocalFileMetadataTestCase {
                 .content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk());
+        Mockito.verify(nModelController).createModel(Mockito.any(ModelRequest.class));
+    }
+
+    @Test
+    public void testCreateModel_PartitionColumnNotExistException() throws Exception {
+        ModelRequest request = new ModelRequest();
+        request.setPartitionDesc(new PartitionDesc());
+        request.setProject("default");
+        Mockito.doReturn(null).when(modelService).createModel(request.getProject(), request);
+        mockMvc.perform(MockMvcRequestBuilders.post("/api/models").contentType(MediaType.APPLICATION_JSON)
+                .content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest());
         Mockito.verify(nModelController).createModel(Mockito.any(ModelRequest.class));
     }
 

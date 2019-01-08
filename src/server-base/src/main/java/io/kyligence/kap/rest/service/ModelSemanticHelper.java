@@ -382,7 +382,7 @@ public class ModelSemanticHelper extends BasicService {
             copyForWrite.setSegments(new Segments<>());
         });
         List<SegmentRange> ranges = Lists.newArrayList();
-        if (model.getPartitionDesc() == null || StringUtils.isEmpty(model.getPartitionDesc().getPartitionDateColumn())) {
+        if (model.getPartitionDesc() == null) {
             //full load
             ranges.add(SegmentRange.TimePartitionedSegmentRange.createInfinite());
         } else if (Objects.equals(model.getPartitionDesc(), oriModel.getPartitionDesc())) {

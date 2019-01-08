@@ -185,6 +185,7 @@ public class NTableController extends NBasicController {
         checkProjectName(dateRangeRequest.getProject());
         checkRequiredArg(TABLE, dateRangeRequest.getTable());
         validateRangeIfExist(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
+        validateStartAndEndExistBoth(dateRangeRequest.getStart(), dateRangeRequest.getEnd());
         tableService.setDataRange(dateRangeRequest.getProject(), dateRangeRequest);
         return new EnvelopeResponse<>(ResponseCode.CODE_SUCCESS, null, "");
     }

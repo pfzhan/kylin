@@ -172,7 +172,7 @@ public class PushDownUtil {
 
 
     public static boolean needPushdown(String start, String end) {
-        if (StringUtils.isEmpty(start) || StringUtils.isEmpty(end))
+        if (StringUtils.isEmpty(start) && StringUtils.isEmpty(end))
             return true;
         else
             return false;
@@ -259,20 +259,11 @@ public class PushDownUtil {
         return afterConvert.toString();
     }
 
-    public static Pair<String, String> calcStartAndEnd(Pair<String, String> response, String start, String end, SegmentRange coveredRange) {
-        if (StringUtils.isEmpty(start)) {
-            if (coveredRange != null) {
-                start = coveredRange.getEnd().toString();
-            } else {
-                start = response.getFirst();
-            }
+    public static String calcStart(String start, SegmentRange coveredRange) {
+        if (coveredRange != null) {
+            start = coveredRange.getEnd().toString();
         }
-        if (StringUtils.isEmpty(end)) {
-            end = response.getSecond();
-        }
-        response.setFirst(start);
-        response.setSecond(end);
-        return response;
+        return start;
     }
 
     /**

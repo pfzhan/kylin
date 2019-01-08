@@ -67,7 +67,6 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -224,7 +223,6 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    @Ignore
     public void testSetPartitionKeyAndSetDataRange() throws Exception {
         setupPushdownEnv();
         testGetBatchLoadTablesBefore();
@@ -263,15 +261,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         rangeManager.updateDataLoadingRange(updateRange);
         DateRangeRequest request = mockDateRangeRequest();
         tableService.setDataRange("default", request);
-        dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-
-        // case of no start time
-        request.setStart(null);
-        request.setEnd("1328054400000");
-        tableService.setDataRange("default", request);
-        dataLoadingRange = rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
-        Assert.assertEquals("0", dataLoadingRange.getCoveredRange().getStart().toString());
-        Assert.assertEquals("1328054400000", dataLoadingRange.getCoveredRange().getEnd().toString());
+        rangeManager.getDataLoadingRange("DEFAULT.TEST_KYLIN_FACT");
 
         // case of load existing data
         tableService.setDataRange("default", mockeDateRangeRequestWithoutTime());

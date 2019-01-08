@@ -45,6 +45,7 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.common.util.Pair;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.PartitionDesc;
 import org.apache.kylin.metadata.model.SegmentRange;
@@ -144,7 +145,7 @@ public class ModelService extends BasicService {
 
     private static final String STORAGE = "storage";
 
-    public static final char[] VALID_MODEL_ALIAS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
+    public static char[] VALID_MODEL_ALIAS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_"
             .toCharArray();
 
     @Setter
@@ -446,7 +447,7 @@ public class ModelService extends BasicService {
         NDataModel dataModelDesc = getModelById(modelId, project);
         if (dataModelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
             throw new BadRequestException(
-                    MODEL + dataModelDesc.getAlias() + "' is table oriented, can not pruge the model!!");
+                    MODEL + dataModelDesc.getAlias() + "' is table oriented, can not purge the model!!");
         }
         purgeModel(modelId, project);
     }
@@ -647,8 +648,8 @@ public class ModelService extends BasicService {
         } else if (PushDownUtil.needPushdown(modelRequest.getStart(), modelRequest.getEnd())) {
             //load existing data
             val pushDownResponse = getMaxAndMinTimeInPartitionColumnByPushdown(project, model.getUuid());
-            val startAndEnd = PushDownUtil.calcStartAndEnd(pushDownResponse, modelRequest.getStart(), modelRequest.getEnd(), null);
-            range = getSegmentRangeByModel(project, model.getUuid(), startAndEnd.getFirst(), startAndEnd.getSecond());
+            val start = PushDownUtil.calcStart(pushDownResponse.getFirst(), null);
+            range = getSegmentRangeByModel(project, model.getUuid(), start, pushDownResponse.getSecond());
         } else {
             range = getSegmentRangeByModel(project, model.getUuid(), modelRequest.getStart(), modelRequest.getEnd());
         }
@@ -702,30 +703,47 @@ public class ModelService extends BasicService {
             throw new BadRequestException(
                     "Table oriented model '" + modelDesc.getAlias() + "' can not build segments manually!");
         }
-        if (modelDesc.getPartitionDesc() == null || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
-            throw new BadRequestException(MODEL + modelDesc.getAlias() + "' has no partition column!");
-        }
         val indexPlan = getIndexPlan(modelId, project);
         if (indexPlan == null) {
             throw new BadRequestException(
                     "Can not build segments, please define table index or aggregate index first!");
         }
-        val df = getDataflowManager(project).getDataflow(modelId);
-        if (PushDownUtil.needPushdown(start, end)) {
-            val response = getMaxAndMinTimeInPartitionColumnByPushdown(project, modelId);
-            val startAndEnd = PushDownUtil.calcStartAndEnd(response, start, end, df.getCoveredRange());
-            start = startAndEnd.getFirst();
-            end = startAndEnd.getSecond();
-        }
-        NDataflowManager dataflowManager = getDataflowManager(project);
-        EventManager eventManager = getEventManager(project);
+
+        SegmentRange segmentRangeToBuild = null;
+
+
         TableDesc table = getTableManager(project).getTableDesc(modelDesc.getRootFactTableName());
-        SegmentRange segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, end);
+
+        val df = getDataflowManager(project).getDataflow(modelId);
+
+        if (modelDesc.getPartitionDesc() == null || StringUtils.isEmpty(modelDesc.getPartitionDesc().getPartitionDateColumn())) {
+            //if full seg exists,refresh it
+            val segs = df.getSegments(SegmentStatusEnum.READY);
+            if (segs.size() == 1 && segs.get(0).getSegRange().isInfinite()) {
+                refreshSegmentById(modelId, project, Lists.newArrayList(df.getSegments().get(0).getId()).toArray(new String[0]));
+                return;
+            }
+            //build Full seg
+            segmentRangeToBuild = SegmentRange.TimePartitionedSegmentRange.createInfinite();
+        } else if (PushDownUtil.needPushdown(start, end)) {
+            val response = getMaxAndMinTimeInPartitionColumnByPushdown(project, modelId);
+            start = PushDownUtil.calcStart(response.getFirst(), df.getCoveredRange());
+            if (Long.parseLong(start) >= Long.parseLong(response.getSecond())) {
+                throw new BadRequestException("Entire existing data has already loaded!");
+            }
+            segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, response.getSecond());
+        } else {
+            segmentRangeToBuild = SourceFactory.getSource(table).getSegmentRange(start, end);
+        }
+
+        proposeAndSaveDateFormatIfNotExist(project, modelId);
+
 
         checkSegmentToBuildOverlapsBuilt(project, modelId, segmentRangeToBuild);
 
-        NDataflow dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
-        NDataSegment newSegment = dataflowManager.appendSegment(dataflow, segmentRangeToBuild);
+        NDataSegment newSegment = getDataflowManager(project).appendSegment(df, segmentRangeToBuild);
+
+        EventManager eventManager = getEventManager(project);
 
         AddSegmentEvent addSegmentEvent = new AddSegmentEvent();
         addSegmentEvent.setSegmentId(newSegment.getId());
@@ -993,7 +1011,7 @@ public class ModelService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void updateDataModelSemantic(String project, ModelRequest request) {
+    public void updateDataModelSemantic(String project, ModelRequest request) throws Exception {
         val modelManager = getDataModelManager(project);
         val cubeManager = getIndexPlanManager(project);
         val dataflowManager = getDataflowManager(project);
@@ -1021,7 +1039,29 @@ public class ModelService extends BasicService {
 
         preProcessBeforeModelSave(copyModel, project);
         modelManager.updateDataModelDesc(copyModel);
-        semanticUpdater.handleSemanticUpdate(project, request.getUuid(), originModel);
+
+        val newModel = modelManager.getDataModelDesc(request.getId());
+
+        if (needChangeFormat(originModel, newModel)) {
+            modelManager.updateDataModel(request.getId(), copyForWrite -> {
+                copyForWrite.getPartitionDesc().setPartitionDateFormat("");
+            });
+        }
+        proposeAndSaveDateFormatIfNotExist(project, request.getId());
+        semanticUpdater.handleSemanticUpdate(project, request.getId(), originModel);
+    }
+
+    private boolean needChangeFormat(NDataModel oriModel, NDataModel newModel) {
+        if (newModel.getPartitionDesc() == null) {
+            return false;
+        }
+        if (oriModel.getPartitionDesc() == null) {
+            return true;
+        }
+        if (!StringUtil.equals(newModel.getPartitionDesc().getPartitionDateColumn(), oriModel.getPartitionDesc().getPartitionDateColumn())) {
+            return true;
+        }
+        return false;
     }
 
     public NDataModel convertToDataModel(ModelRequest modelDesc) {
