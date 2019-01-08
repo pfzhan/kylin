@@ -93,9 +93,9 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
     @JsonProperty("index_plan_override_encodings")
     private Map<Integer, NEncodingDesc> indexPlanOverrideEnc = Maps.newHashMap();
 
-    @JsonProperty("index_plan_override_indices")
+    @JsonProperty("index_plan_override_indexes")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    private Map<Integer, String> indexPlanOverrideIndices = Maps.newHashMap();
+    private Map<Integer, String> indexPlanOverrideIndexes = Maps.newHashMap();
 
     @Getter
     @JsonManagedReference
@@ -585,13 +585,13 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         this.description = description;
     }
 
-    public ImmutableMap<Integer, String> getIndexPlanOverrideIndices() {
-        return ImmutableMap.copyOf(this.indexPlanOverrideIndices);
+    public ImmutableMap<Integer, String> getIndexPlanOverrideIndexes() {
+        return ImmutableMap.copyOf(this.indexPlanOverrideIndexes);
     }
 
-    public void setIndexPlanOverrideIndices(Map<Integer, String> m) {
+    public void setIndexPlanOverrideIndexes(Map<Integer, String> m) {
         checkIsNotCachedAndShared();
-        this.indexPlanOverrideIndices = m;
+        this.indexPlanOverrideIndexes = m;
     }
 
     public ImmutableMap<Integer, NEncodingDesc> getIndexPlanOverrideEncodings() {

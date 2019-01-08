@@ -74,9 +74,9 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     private List<Integer> colOrder = Lists.newArrayList();
 
     @EqualsAndHashCode.Include
-    @JsonProperty("layout_override_indices")
+    @JsonProperty("layout_override_indexes")
     @JsonInclude(JsonInclude.Include.NON_EMPTY)
-    private Map<Integer, String> layoutOverrideIndices = Maps.newHashMap();
+    private Map<Integer, String> layoutOverrideIndexes = Maps.newHashMap();
 
     @EqualsAndHashCode.Include
     @JsonProperty("shard_by_columns")
@@ -159,8 +159,8 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     }
 
     public String getColIndexType(int colId) {
-        return MapUtil.getOrElse(this.layoutOverrideIndices, colId,
-                MapUtil.getOrElse(getIndex().getIndexPlan().getIndexPlanOverrideIndices(), colId, "eq"));
+        return MapUtil.getOrElse(this.layoutOverrideIndexes, colId,
+                MapUtil.getOrElse(getIndex().getIndexPlan().getIndexPlanOverrideIndexes(), colId, "eq"));
     }
 
     public Integer getDimensionPos(TblColRef tblColRef) {
@@ -205,13 +205,13 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         this.colOrder = l;
     }
 
-    public ImmutableMap<Integer, String> getLayoutOverrideIndices() {
-        return ImmutableMap.copyOf(this.layoutOverrideIndices);
+    public ImmutableMap<Integer, String> getLayoutOverrideIndexes() {
+        return ImmutableMap.copyOf(this.layoutOverrideIndexes);
     }
 
-    public void setLayoutOverrideIndices(Map<Integer, String> m) {
+    public void setLayoutOverrideIndexes(Map<Integer, String> m) {
         checkIsNotCachedAndShared();
-        this.layoutOverrideIndices = m;
+        this.layoutOverrideIndexes = m;
     }
 
     public List<Integer> getShardByColumns() {
@@ -274,7 +274,7 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
     public boolean containMeasures(LayoutEntity other) {
         if (!(Objects.equal(this.getSortByColumns(), other.getSortByColumns())
                 && Objects.equal(this.getShardByColumns(), other.getShardByColumns())
-                && Objects.equal(this.getLayoutOverrideIndices(), other.getLayoutOverrideIndices())
+                && Objects.equal(this.getLayoutOverrideIndexes(), other.getLayoutOverrideIndexes())
                 && Objects.equal(this.getStorageType(), other.getStorageType()))
                 && Objects.equal(orderedDimensions.keySet(), other.getOrderedDimensions().keySet())) {
             return false;

@@ -155,7 +155,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
                         public void modify(IndexPlan copyForWrite) {
                             Map<Integer, String> map = Maps.newHashMap();
                             map.put(1, "non-eq");
-                            copyForWrite.setIndexPlanOverrideIndices(map);
+                            copyForWrite.setIndexPlanOverrideIndexes(map);
                         }
                     });
             LayoutEntity cuboidLayout = indexPlan.getCuboidLayout(1000001L);
@@ -169,11 +169,11 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
                         public void modify(IndexPlan copyForWrite) {
                             Map<Integer, String> map = Maps.newHashMap();
                             map.put(1, "non-eq");
-                            copyForWrite.setIndexPlanOverrideIndices(map);
+                            copyForWrite.setIndexPlanOverrideIndexes(map);
 
                             Map<Integer, String> map2 = Maps.newHashMap();
                             map.put(1, "non-eq-2");
-                            copyForWrite.getCuboidLayout(1000001L).setLayoutOverrideIndices(map2);
+                            copyForWrite.getCuboidLayout(1000001L).setLayoutOverrideIndexes(map2);
                         }
                     });
             LayoutEntity cuboidLayout = indexPlan.getCuboidLayout(1000001L);

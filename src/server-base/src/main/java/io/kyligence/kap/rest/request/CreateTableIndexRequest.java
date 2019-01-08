@@ -61,9 +61,9 @@ public class CreateTableIndexRequest {
     @JsonProperty("col_order")
     private List<String> colOrder;
 
-    @JsonProperty("layout_override_indices")
+    @JsonProperty("layout_override_indexes")
     @Builder.Default
-    private Map<String, String> layoutOverrideIndices = Maps.newHashMap();
+    private Map<String, String> layoutOverrideIndexes = Maps.newHashMap();
 
     @JsonProperty("shard_by_columns")
     private List<String> shardByColumns;

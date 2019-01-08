@@ -294,7 +294,7 @@ class CuboidSuggester {
 
         LayoutEntity layout = new LayoutEntity();
         layout.setId(suggestLayoutId(indexEntity));
-        //        layout.setLayoutOverrideIndices(suggestIndexMap(ctx, dimScores, model.getEffectiveColsMap()));
+        //        layout.setLayoutOverrideIndexes(suggestIndexMap(ctx, dimScores, model.getEffectiveColsMap()));
         layout.setColOrder(suggestColOrder(dimScores, measureIds));
         layout.setIndex(indexEntity);
         layout.setShardByColumns(shardBy);

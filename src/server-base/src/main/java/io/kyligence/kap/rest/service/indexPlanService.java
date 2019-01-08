@@ -122,12 +122,12 @@ public class indexPlanService extends BasicService {
         newLayout.setManual(true);
 
         Map<Integer, String> layoutOverride = Maps.newHashMap();
-        if (request.getLayoutOverrideIndices() != null) {
-            for (Map.Entry<String, String> entry : request.getLayoutOverrideIndices().entrySet()) {
+        if (request.getLayoutOverrideIndexes() != null) {
+            for (Map.Entry<String, String> entry : request.getLayoutOverrideIndexes().entrySet()) {
                 layoutOverride.put(model.getColumnIdByColumnName(entry.getKey()), entry.getValue());
             }
         }
-        newLayout.setLayoutOverrideIndices(layoutOverride);
+        newLayout.setLayoutOverrideIndexes(layoutOverride);
         for (LayoutEntity cuboidLayout : indexPlan.getAllLayouts()) {
             if (cuboidLayout.equals(newLayout) && cuboidLayout.isManual()) {
                 throw new IllegalStateException("Already exists same layout");

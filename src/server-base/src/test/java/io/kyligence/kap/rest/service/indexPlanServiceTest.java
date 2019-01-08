@@ -124,7 +124,7 @@ public class indexPlanServiceTest extends NLocalFileMetadataTestCase {
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
-                        .layoutOverrideIndices(new HashMap<String, String>() {
+                        .layoutOverrideIndexes(new HashMap<String, String>() {
                             {
                                 put("TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "eq");
                             }
