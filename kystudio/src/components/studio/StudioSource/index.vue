@@ -26,7 +26,7 @@
             <h1 class="table-name" :title="selectedTable.fullName">{{selectedTable.fullName}}</h1>
             <h2 class="table-update-at">{{$t('updateAt')}} {{selectedTable.updateAt | timestamp2GmtDate}}</h2>
             <div class="table-actions">
-              <el-button size="small" icon="el-icon-ksd-unload" @click="handleDelete">{{$t('delete')}}</el-button>
+              <el-button size="small" @click="handleDelete">{{$t('delete')}}</el-button>
             </div>
           </div>
           <!-- Source Table详细信息 -->
@@ -85,6 +85,7 @@ import { getFormattedTable } from '../../../util/UtilTable'
     ...mapActions({
       fetchTables: 'FETCH_TABLES',
       importTable: 'LOAD_HIVE_IN_PROJECT',
+      fetchChangeTypeInfo: 'FETCH_CHANGE_TYPE_INFO',
       deleteTable: 'DELETE_TABLE'
     })
   },
@@ -113,22 +114,35 @@ export default class StudioSource extends Vue {
       handleError(e)
     }
   }
-  showDeleteTableComfirm () {
-    const comfirmTitle = this.$t('kylinLang.common.notice')
-    const comfirmText = this.$t('unloadTable')
+  showDeleteTableConfirm (modelCount, modelSize) {
+    const storageSize = Vue.filter('dataSize')(modelSize)
+    const contentVal = { modelCount, storageSize }
+    const confirmTitle = this.$t('kylinLang.common.notice')
+    const confirmMessage1 = modelCount || modelSize ? this.$t('affactUnloadInfo', contentVal) : ''
+    const confirmMessage2 = this.$t('unloadTable')
+    const confirmMessage = _render(this.$createElement)
     const confirmButtonText = this.$t('kylinLang.common.ok')
     const cancelButtonText = this.$t('kylinLang.common.cancel')
-    const comfirmParams = { confirmButtonText, cancelButtonText, type: 'warning' }
+    const confirmParams = { confirmButtonText, cancelButtonText, type: 'warning' }
+    return this.$confirm(confirmMessage, confirmTitle, confirmParams)
 
-    return this.$confirm(comfirmText, comfirmTitle, comfirmParams)
+    function _render (h) {
+      return (
+        <div>
+          <p class="break-all">{confirmMessage1}</p>
+          <p>{confirmMessage2}</p>
+        </div>
+      )
+    }
   }
   async handleDelete () {
     try {
       const projectName = this.currentSelectedProject
       const databaseName = this.selectedTable.database
       const tableName = this.selectedTable.name
+      const { modelCount, modelSize } = await this._getAffectedModelCountAndSize()
 
-      await this.showDeleteTableComfirm()
+      await this.showDeleteTableConfirm(modelCount, modelSize)
       await this.deleteTable({ projectName, databaseName, tableName })
 
       this.$message({ type: 'success', message: this.$t('unloadSuccess') })
@@ -171,6 +185,14 @@ export default class StudioSource extends Vue {
     const confirmButtonText = this.$t('kylinLang.common.ok')
     const type = 'warning'
     return this.$alert(confirmMessage, confirmTitle, { confirmButtonText, type })
+  }
+  async _getAffectedModelCountAndSize () {
+    const projectName = this.currentSelectedProject
+    const tableName = this.selectedTable.fullName
+    const isSelectFact = !this.selectedTable.__data.increment_loading
+    const response = await this.fetchChangeTypeInfo({ projectName, tableName, isSelectFact })
+    const result = await handleSuccessAsync(response)
+    return { modelCount: result.models.length, modelSize: result.byte_size }
   }
   mounted () {
     if (!this.isAutoProject) {

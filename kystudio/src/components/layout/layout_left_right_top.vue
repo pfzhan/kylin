@@ -65,8 +65,8 @@
             <li><help></help></li>
             <li><change_lang ref="changeLangCom"></change_lang></li>
             <li>
-              <el-dropdown @command="handleCommand" trigger="click">
-                <span class="el-dropdown-link  ksd-ml-10">
+              <el-dropdown @command="handleCommand">
+                <span class="el-dropdown-link ksd-ml-10">
                   <i class="el-icon-ksd-user ksd-mr-10" style="transform:scale(1.7)"></i>
                   {{currentUserInfo && currentUserInfo.username}}
                   <i class="el-icon-caret-bottom"></i>
@@ -856,6 +856,12 @@ export default class LayoutLeftRightTop extends Vue {
               display: inline-block;
               margin-right: 30px;
               cursor: pointer;
+            }
+            .el-dropdown-link:hover {
+              color: @base-color;
+              * {
+                color: @base-color;
+              }
             }
           }
         }

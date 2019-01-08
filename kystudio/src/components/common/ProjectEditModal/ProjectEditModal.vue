@@ -7,7 +7,7 @@
     <el-form :model="form" label-position="top" :rules="rules" ref="form" v-if="isFormShow" label-width="110px">
       <div class="el-form-item is-required" v-if="isFieldShow('type')">
         <label for="name" class="el-form-item__label">{{$t('projectType')}}</label>
-        <el-row :gutter="40">
+        <el-row :gutter="20">
           <!-- project type 4 -->
           <el-col class="clearfix" :span="12">
             <div class="project-type" style="float: right;" :class="{ active: form.type === 'AUTO_MAINTAIN' }">
@@ -344,7 +344,8 @@ export default class ProjectEditModal extends Vue {
         border-color: @base-color;
         background: @base-color;
         box-shadow: 2px 2px 4px 0 @line-border-color;
-        * {
+        *,
+        &:hover * {
           color: @fff;
         }
       }
@@ -356,8 +357,8 @@ export default class ProjectEditModal extends Vue {
       }
     }
     .project-type-button {
-      width: 96px;
-      height: 96px;
+      width: 90px;
+      height: 90px;
       margin: 0 auto 10px auto;
       border: 1px solid @text-secondary-color;
       border-radius: 6px;
@@ -368,6 +369,9 @@ export default class ProjectEditModal extends Vue {
       }
       &:hover {
         border-color: @base-color;
+        * {
+          color: @base-color;
+        }
       }
     }
     .project-type-title {
@@ -375,12 +379,12 @@ export default class ProjectEditModal extends Vue {
       text-align: center;
       white-space: nowrap;
       color: @text-normal-color;
-      margin-bottom: 10px;
+      margin-bottom: 8px;
     }
     .project-type-icon {
       font-size: 55px;
       color: @base-color;
-      line-height: 96px;
+      line-height: 90px;
       text-align: center;
     }
     .project-type-desc {

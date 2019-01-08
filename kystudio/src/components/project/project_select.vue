@@ -3,6 +3,7 @@
     size="medium"
     class="project_select"
     filterable
+    :title="selected_project"
     :placeholder="$t('kylinLang.project.selectProject')"
     v-model="selected_project"
     @change="changeProject">
@@ -56,9 +57,16 @@ export default {
 }
 </script>
 <style lang="less">
-  .project_select{
-    margin: 14px 0 0 20px;
-    float: left;
-    width: 220px;
+@import "../../assets/styles/variables.less";
+
+.project_select{
+  margin: 14px 0 0 20px;
+  float: left;
+  width: 220px;
+  .el-input__icon {
+    font-size: 18px;
+    color: @text-disabled-color;
+    transform: translate(-1px, 0px);
   }
+}
 </style>

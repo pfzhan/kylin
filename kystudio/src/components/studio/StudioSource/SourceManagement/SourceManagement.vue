@@ -2,23 +2,24 @@
   <div class="source-management">
     <h1 class="title">{{$t('sourceManagement')}}</h1>
     <el-table border :data="sourceArray">
-      <el-table-column prop="name" :label="$t('name')" width="530"></el-table-column>
-      <el-table-column prop="type" :label="$t('type')"></el-table-column>
-      <el-table-column prop="createTime" :label="$t('createTime')">
+      <el-table-column prop="name" :label="$t('name')" width="530" header-align="center"></el-table-column>
+      <el-table-column prop="type" :label="$t('type')" header-align="center"></el-table-column>
+      <el-table-column prop="createTime" width="210" :label="$t('createTime')" header-align="center">
         <template slot-scope="scope">
           <span>{{scope.row.createTime | gmtTime}}</span>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.common.action')">
+      <el-table-column :label="$t('kylinLang.common.action')" width="120" header-align="center">
         <template slot-scope="scope">
-          <i class="el-icon-ksd-batch_check" @click="handleBatchLoad"></i>
-          <el-dropdown trigger="click">
-            <i class="el-icon-ksd-table_others"></i>
-            <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item @click.native="() => {}">{{$t('general')}}</el-dropdown-item>
-              <el-dropdown-item @click.native="() => {}">{{$t('removeSource')}}</el-dropdown-item>
-            </el-dropdown-menu>
-          </el-dropdown>
+          <el-tooltip :content="$t('batchLoad')" effect="dark" placement="top">
+            <i class="el-icon-ksd-batch_check ksd-fs-14 ksd-mr-10" @click="handleBatchLoad"></i>
+          </el-tooltip><span>
+          </span><el-tooltip :content="$t('general')" effect="dark" placement="top">
+            <i class="el-icon-ksd-setting ksd-fs-14 ksd-mr-10" @click="() => {}"></i>
+          </el-tooltip><span>
+          </span><el-tooltip :content="$t('removeSource')" effect="dark" placement="top">
+            <i class="el-icon-ksd-remove_source ksd-fs-14" @click="() => {}"></i>
+          </el-tooltip>
         </template>
       </el-table-column>
     </el-table>

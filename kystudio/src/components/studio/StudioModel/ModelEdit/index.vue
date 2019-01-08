@@ -38,7 +38,7 @@
       <transition name="bounceleft">
         <div class="panel-box panel-datasource"  v-show="panelAppear.datasource.display" :style="panelStyle('datasource')" v-event-stop>
           <div class="panel-title" v-drag:change.left.top="panelAppear.datasource"><span class="title">{{$t('kylinLang.common.dataSource')}}</span><span class="close" @click="toggleMenu('datasource')"><i class="el-icon-ksd-close"></i></span></div>
-          <div v-scroll v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 40px)" class="ksd-right-4">
+          <div v-scroll v-guide.modelDataSourceTreeScrollBox style="height:calc(100% - 29px)" class="ksd-right-4">
             <DataSourceBar 
               v-guide.modelDataSourceTree
               class="tree-box"

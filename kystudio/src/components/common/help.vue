@@ -4,7 +4,7 @@
       <span class="el-dropdown-link ky-a-like">
         {{$t('kylinLang.common.help')}} <i class="el-icon-caret-bottom"></i>
       </span>
-      <el-dropdown-menu slot="dropdown" >
+      <el-dropdown-menu slot="dropdown">
         <el-dropdown-item command="guide"><a class="ksd-block-a">{{$t('userGuide')}}</a></el-dropdown-item>
         <el-dropdown-item command="kapmanual"><a class="ksd-block-a" target="_blank" href="http://manual.kyligence.io/">{{$t('Manual')}}</a></el-dropdown-item>
         <el-dropdown-item command="kybotservice"><a class="ksd-block-a" target="_blank" :href="'https://kybot.io/#/home'+kapVersionPara"> {{$t('kybotService')}}</a></el-dropdown-item>

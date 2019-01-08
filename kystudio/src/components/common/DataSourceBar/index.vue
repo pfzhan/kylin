@@ -405,14 +405,17 @@ export default class DataSourceBar extends Vue {
   height: 100%;
   .header,
   .body {
-    padding: 20px;
     width: 250px;
     box-sizing: border-box;
   }
   .header {
+    padding: 15px 20px;
     font-size: 16px;
     color: @text-title-color;
     border-bottom: 1px solid @line-split-color;
+  }
+  .body {
+    padding: 20px;
   }
   .header-text {
     float: left;
@@ -437,7 +440,7 @@ export default class DataSourceBar extends Vue {
     }
   }
   .body {
-    height: calc(~"100% - 63px");
+    height: calc(~"100% - 51px");
     overflow: auto;
   }
   .body .btn-group {
