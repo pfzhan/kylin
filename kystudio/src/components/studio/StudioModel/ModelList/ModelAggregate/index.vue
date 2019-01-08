@@ -1,6 +1,6 @@
 <template>
   <div class="model-aggregate" v-if="model">
-    <div class="aggregate-actions">
+    <div class="aggregate-actions" v-if="isShowAggregateAction">
       <!-- <el-button type="primary" icon="el-icon-ksd-table_refresh">
         {{$t('kylinLang.common.refresh')}}
       </el-button>
@@ -101,12 +101,12 @@ import dayjs from 'dayjs'
 import { mapGetters, mapActions } from 'vuex'
 import { Component } from 'vue-property-decorator'
 import locales from './locales'
-import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMaps } from './handle'
 import FlowerChart from '../../../../common/FlowerChart'
 import PartitionChart from '../../../../common/PartitionChart'
 import { handleSuccessAsync } from '../../../../../util'
 import { speedProjectTypes } from '../../../../../config'
 import AggregateModal from './AggregateModal/index.vue'
+import { formatFlowerJson, getCuboidCounts, getStatusCuboidCounts, backgroundMaps } from './handler'
 
 @Component({
   props: {
@@ -115,6 +115,10 @@ import AggregateModal from './AggregateModal/index.vue'
     },
     projectName: {
       type: String
+    },
+    isShowAggregateAction: {
+      type: Boolean,
+      default: true
     }
   },
   computed: {
@@ -263,6 +267,7 @@ export default class ModelAggregate extends Vue {
       height: 583px;
       width: 100%;
       position: relative;
+      box-sizing: border-box;
       .detail-content {
         .el-row {
           margin-bottom: 10px;
