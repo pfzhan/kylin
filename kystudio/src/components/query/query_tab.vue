@@ -20,7 +20,7 @@
               <el-input placeholder="" size="small" style="width:90px;" @input="handleInputChange" v-model="listRows" class="limit-input"></el-input>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" plain size="small" :loading="isLoading" @click.native.prevent="submitQuery(sourceSchema)">{{$t('kylinLang.common.submit')}}</el-button>
+              <el-button type="primary" plain size="small" class="ksd-btn-minwidth" :loading="isLoading" @click.native.prevent="submitQuery(sourceSchema)">{{$t('kylinLang.common.submit')}}</el-button>
             </el-form-item>
           </el-form>
         </p>
@@ -113,9 +113,12 @@ export default class QueryTab extends Vue {
     })
   }
   resetQuery () {
-    this.sourceSchema = ''
-    this.extraoptionObj = null
-    this.errinfo = ''
+    this.$emit('resetQuery')
+    this.$nextTick(() => {
+      this.sourceSchema = ''
+      this.extraoptionObj = null
+      this.errinfo = ''
+    })
   }
   submitQuery (querySql) {
     if (!this.isWorkspace || !querySql) {
@@ -175,7 +178,11 @@ export default class QueryTab extends Vue {
     return this.$store.state.system.showHtrace === 'true'
   }
   mounted () {
-    this.$refs.insightBox.$emit('focus')
+    if (this.isWorkspace) {
+      this.$nextTick(() => {
+        this.$refs.insightBox.$emit('focus')
+      })
+    }
   }
   @Watch('completeData')
   onCompleteDataChange (val) {
@@ -185,7 +192,7 @@ export default class QueryTab extends Vue {
   }
   @Watch('tipsName')
   onTipsNameChange (val) {
-    if (val && this.$parent.label === 'New Query' && this.$parent.active) {
+    if (val && this.$parent.name === 'WorkSpace' && this.$parent.active) {
       const editor = this.$refs.insightBox
       editor.$emit('focus')
       editor.$emit('insert', val)
@@ -197,7 +204,7 @@ export default class QueryTab extends Vue {
     this.extraoptionObj = this.tabsItem.extraoption
     this.errinfo = this.tabsItem.queryErrorInfo
     this.sourceSchema = this.tabsItem.queryObj && this.tabsItem.queryObj.sql || ''
-    this.isWorkspace = this.tabsItem.name === 'NewQuery'
+    this.isWorkspace = this.tabsItem.name === 'WorkSpace'
     if (this.tabsItem.queryObj) {
       this.queryResult(this.tabsItem.queryObj)
     }
@@ -209,7 +216,7 @@ export default class QueryTab extends Vue {
     this.extraoptionObj = this.tabsItem.extraoption
     this.errinfo = this.tabsItem.queryErrorInfo
     this.sourceSchema = this.tabsItem.queryObj && this.tabsItem.queryObj.sql || ''
-    this.isWorkspace = this.tabsItem.name === 'NewQuery'
+    this.isWorkspace = this.tabsItem.name === 'WorkSpace'
     if (this.tabsItem.queryObj && !this.tabsItem.extraoption) {
       this.queryResult(this.tabsItem.queryObj)
     }

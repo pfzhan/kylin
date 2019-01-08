@@ -6,21 +6,12 @@
           <el-button plain class="el-dropdown-link" size="medium">
             {{waittingJobModels.size}} {{$t('waitingjobs')}}<i class="el-icon-arrow-down el-icon--right"></i>
           </el-button>
-          <el-dropdown-menu slot="dropdown">
+          <el-dropdown-menu slot="dropdown" v-if="waittingJobModels.data">
             <el-dropdown-item v-for="(item, uuid) in waittingJobModels.data" :key="item.model_alias" :command="uuid">
               {{item.model_alias}}: {{item.size}}{{$t('waitingjobs')}}
             </el-dropdown-item>
           </el-dropdown-menu>
         </el-dropdown>
-        <el-select v-model="filter.status" @change="filterChange2" class="ksd-fleft ksd-ml-10" style="width:140px;" size="medium">
-          <el-option :label="$t('ALL')" value=""></el-option>
-          <el-option
-            v-for="(status, status_index) in allStatus"
-            :key="status_index"
-            :label="$t(status)"
-            :value="status">
-          </el-option>
-        </el-select>
         <el-button-group class="action_groups ksd-ml-10 ksd-fleft">
           <el-button plain size="medium" icon="el-icon-ksd-table_resume" :disabled="!batchBtnsEnabled.resume" @click="batchResume">{{$t('jobResume')}}</el-button>
           <el-button plain size="medium" icon="el-icon-ksd-restart" :disabled="!batchBtnsEnabled.restart" @click="batchRestart">{{$t('jobRestart')}}</el-button>
@@ -82,7 +73,7 @@
       </el-table-column>
       <el-table-column
         :width="180"
-        :label="$t('ProgressStatus')">
+        :renderHeader="renderColumn2">
         <template slot-scope="scope">
           <kap-progress :percent="scope.row.step_ratio * 100 | number(0)" :status="scope.row.job_status"></kap-progress>
         </template>
@@ -326,7 +317,7 @@ export default class JobsList extends Vue {
   }
   jobsList = []
   jobTotal = 0
-  allStatus = ['PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
+  allStatus = ['ALL', 'PENDING', 'RUNNING', 'FINISHED', 'ERROR', 'DISCARDED', 'STOPPED']
   jobTypeFilteArr = ['INDEX_REFRESH', 'INDEX_MERGE', 'INDEX_BUILD', 'INDEX_RECONSTRUCT']
   targetId = ''
   searchLoading = false
@@ -385,6 +376,23 @@ export default class JobsList extends Vue {
         </el-checkbox-group>
         <i class="el-icon-ksd-filter" slot="reference"></i>
       </el-popover>
+    </span>)
+  }
+  renderColumn2 (h) {
+    let items = []
+    for (let i = 0; i < this.allStatus.length; i++) {
+      items.push(<div onClick={() => { this.filterChange2(this.allStatus[i]) }}><el-dropdown-item key={i}>{this.$t(this.allStatus[i])}</el-dropdown-item></div>)
+    }
+    return (<span>
+      <span>{this.$t('ProgressStatus')}</span>
+      <el-dropdown>
+        <i class="el-icon-ksd-filter el-dropdown-link"></i>
+        <template slot="dropdown">
+          <el-dropdown-menu>
+            {items}
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
     </span>)
   }
   autoFilter () {
@@ -666,7 +674,10 @@ export default class JobsList extends Vue {
       this.showStep = false
     }, 1000)
   }
-  filterChange2 () {
+  filterChange2 (status) {
+    if (status) {
+      this.filter.status = status === 'ALL' ? '' : status
+    }
     this.refreshJobs()
     this.showStep = false
   }
@@ -1028,6 +1039,10 @@ export default class JobsList extends Vue {
       }
     }
     .jobs-table {
+      th .el-dropdown {
+        display: inline;
+        padding: 0;
+      }
       .el-icon-ksd-filter {
         position: relative;
         top: 1px;

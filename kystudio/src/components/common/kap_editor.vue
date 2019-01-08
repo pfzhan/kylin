@@ -10,7 +10,7 @@
       <i class="el-icon-circle-check"></i> <span>{{$t('kylinLang.common.copySuccess')}}</span>
     </el-popover>
     <el-button size="mini" class="edit-copy-btn" plain
-      :disabled="!editorData"
+      :class="{'is-show': editorData}"
       v-clipboard:copy="editorData"
       v-clipboard:success="onCopy"
       v-clipboard:error="onError">
@@ -157,7 +157,17 @@ export default {
       right: 5px;
       top: 5px;
       z-index: 9;
-      background-color: rgba(255,255,255,0.2);
+      opacity: 0.45;
+      display: none;
+      // background-color: rgba(255,255,255,0.2);
+      &.is-show {
+        display: block;
+      }
+    }
+    &:hover {
+      .edit-copy-btn {
+        opacity: 1;
+      }
     }
     .el-popover {
       right: 5px;

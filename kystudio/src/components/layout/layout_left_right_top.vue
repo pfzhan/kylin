@@ -485,18 +485,7 @@ export default class LayoutLeftRightTop extends Vue {
     }
   }
   resetQueryTabs () {
-    const editableTabs = [{
-      title: 'New Query',
-      name: 'NewQuery',
-      icon: '',
-      spin: true,
-      extraoption: null,
-      queryErrorInfo: '',
-      queryObj: null,
-      index: 1,
-      submitImmediately: false
-    }]
-    this.saveTabs({tabs: editableTabs})
+    this.saveTabs({tabs: null})
   }
   handleCommand (command) {
     if (command === 'loginout') {

@@ -18,11 +18,12 @@
               <el-button size="mini" plain="plain" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button>
               <el-button size="mini" plain="plain" icon="el-icon-ksd-sql" @click.native="openSaveQueryListDialog" style="display:inline-block">{{$t('kylinLang.query.reLoad')}}</el-button>
             </div>
-            <tab class="insight_tab" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu"  v-on:removetab="delTab">
+            <tab class="insight_tab" :isedit="true" :tabslist="editableTabs" :active="activeSubMenu" v-on:clicktab="activeTab"  v-on:removetab="delTab">
               <template slot-scope="props">
                 <queryTab
                   v-on:addTab="addTab"
                   v-on:changeView="changeTab"
+                  v-on:resetQuery="resetQuery"
                   :completeData="completeData"
                   :tipsName="tipsName"
                   :tabsItem="props.item"></queryTab>
@@ -56,7 +57,7 @@
                           <i class="el-icon-arrow-down" v-show="!savequery.isShow"></i>
                           <i class="el-icon-arrow-up" v-show="savequery.isShow"></i>
                         </el-button>
-                        <kap-editor width="99%" height="80" lang="sql" theme="chrome" v-model="savequery.sql" dragbar="#393e53" ref="saveQueries" v-show="savequery.isShow" class="ksd-mt-6">
+                        <kap-editor width="99%" height="150" lang="sql" theme="chrome" v-model="savequery.sql" dragbar="#393e53" ref="saveQueries" v-show="savequery.isShow" class="ksd-mt-6">
                         </kap-editor>
                       </el-form-item>
                       <div class="btn-group">
@@ -118,7 +119,7 @@ import { insightKeyword } from '../../config'
 export default class NewQuery extends Vue {
   savedQueryListVisible = false
   editableTabs = []
-  activeSubMenu = 'NewQuery'
+  activeSubMenu = 'WorkSpace'
   savedQuriesSize = 0
   queryCurrentPage = 1
   datasource = []
@@ -151,35 +152,42 @@ export default class NewQuery extends Vue {
       handleError(res)
     })
   }
+  resetQuery () {
+    this.editableTabs[0].queryObj = null
+    this.editableTabs[0].queryErrorInfo = ''
+    this.editableTabs[0].queryErrorInfo = ''
+    this.cacheTabs()
+  }
   addTab (targetName, queryObj) {
-    if (this.editableTabs[0].queryObj) { // 不是第一次查询
-      var tabIndex = this.editableTabs[0].index + 1
-      var tabName = targetName + (tabIndex - 1)
-      this.editableTabs.unshift({
-        title: 'Work Space',
-        name: 'NewQuery',
-        icon: 'el-icon-loading',
-        spin: true,
-        extraoption: null,
-        queryErrorInfo: '',
-        queryObj: queryObj,
-        index: tabIndex
-      })
-      this.editableTabs[1].title = tabName
-      this.editableTabs[1].name = tabName
-    } else { // 第一次查询，当前tab显示结果
-      this.editableTabs[0].icon = 'el-icon-loading'
-      this.editableTabs[0].queryObj = queryObj
-    }
-    this.saveTabs({tabs: this.editableTabs})
+    this.editableTabs[0].queryObj = queryObj
+    var tabIndex = this.editableTabs.length > 1 ? this.editableTabs[1].index + 1 : this.editableTabs[0].index + 1
+    var tabName = targetName + tabIndex
+    this.editableTabs.splice(1, 0, {
+      title: tabName,
+      name: tabName,
+      icon: 'el-icon-loading',
+      spin: true,
+      extraoption: null,
+      queryErrorInfo: '',
+      queryObj: queryObj,
+      index: tabIndex
+    })
+    this.activeSubMenu = tabName
+    this.cacheTabs()
+  }
+  activeTab (tabName) {
+    this.activeSubMenu = tabName
   }
   delTab (targetName) {
+    if (targetName === 'WorkSpace') {
+      return
+    }
     let tabs = this.editableTabs
     let activeName = this.activeSubMenu
     if (activeName === targetName) {
       tabs.forEach((tab, index) => {
         if (tab.name === targetName) {
-          let nextTab = tabs[index + 1] || tabs[index - 1]
+          let nextTab = tabs[index - 1] || tabs[index + 1]
           if (nextTab) {
             activeName = nextTab.name
           }
@@ -188,7 +196,7 @@ export default class NewQuery extends Vue {
     }
     this.editableTabs = tabs.filter(tab => tab.name !== targetName)
     this.activeSubMenu = activeName
-    this.saveTabs({tabs: this.editableTabs})
+    this.cacheTabs()
   }
   clickTable (leaf) {
     if (leaf) {
@@ -196,18 +204,9 @@ export default class NewQuery extends Vue {
     }
   }
   closeAllTabs () {
-    this.editableTabs = [{
-      title: 'Work Space',
-      name: 'NewQuery',
-      icon: '',
-      spin: true,
-      extraoption: null,
-      queryErrorInfo: '',
-      queryObj: null,
-      index: 1,
-      submitImmediately: false
-    }]
-    this.saveTabs({tabs: this.editableTabs})
+    this.editableTabs.splice(1, this.editableTabs.length - 1)
+    this.activeSubMenu = 'WorkSpace'
+    this.cacheTabs()
   }
   pageCurrentChange () {
     this.queryCurrentPage++
@@ -244,17 +243,24 @@ export default class NewQuery extends Vue {
     this.savedQueryListVisible = false
   }
   changeTab (index, data, errorInfo) {
-    let tabs = this.editableTabs
-    for (var k = 0; k < tabs.length; k++) {
-      if (tabs[k].index === index) {
-        tabs[k].icon = errorInfo ? 'el-icon-ksd-error_01' : 'el-icon-ksd-good_health'
-        tabs[k].spin = errorInfo === 'circle-o-notch'
-        tabs[k].extraoption = data
-        tabs[k].queryErrorInfo = errorInfo
-        break
+    if (index) {
+      let tabs = this.editableTabs
+      for (var k = 0; k < tabs.length; k++) {
+        if (tabs[k].index === index) {
+          tabs[k].icon = errorInfo ? 'el-icon-ksd-error_01' : 'el-icon-ksd-good_health'
+          tabs[k].spin = errorInfo === 'circle-o-notch'
+          tabs[k].extraoption = data
+          tabs[k].queryErrorInfo = errorInfo
+          break
+        }
       }
+      this.cacheTabs()
     }
-    this.saveTabs({tabs: this.editableTabs})
+  }
+  cacheTabs () {
+    const project = this.currentSelectedProject
+    const obj = {[project]: this.editableTabs}
+    this.saveTabs({tabs: obj})
   }
   openSaveQueryDialog () {
     this.$nextTick(() => {
@@ -271,7 +277,18 @@ export default class NewQuery extends Vue {
     return hasRole(this, 'ROLE_ADMIN')
   }
   created () {
-    this.editableTabs = this.getQueryTabs
+    this.editableTabs = this.getQueryTabs && this.getQueryTabs[this.currentSelectedProject]
+    ? this.getQueryTabs[this.currentSelectedProject]
+    : [{
+      title: 'Work Space',
+      name: 'WorkSpace',
+      icon: '',
+      spin: true,
+      extraoption: null,
+      queryErrorInfo: '',
+      queryObj: null,
+      index: 0
+    }]
   }
 }
 </script>
@@ -281,9 +298,12 @@ export default class NewQuery extends Vue {
   #newQuery {
     position: relative;
     height: 100%;
-    #tab-NewQuery .el-icon-close {
+    #tab-WorkSpace .el-icon-close {
       visibility: hidden;
       display: none;
+    }
+    .el-icon-ksd-keyboard {
+      cursor: inherit;
     }
     .saved_query_dialog {
       .el-dialog__body {

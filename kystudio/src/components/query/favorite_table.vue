@@ -82,7 +82,7 @@ import { handleError } from '../../util/index'
   },
   locales: {
     'en': {delSql: 'Are you sure to delete this sql?', addToBlackList: 'Are you sure add this sql to the Black List'},
-    'zh-cn': {delSql: '确定删除这条查询语句吗？', addToBlackList: '确定将这条查询语句加入进勇名单吗？'}
+    'zh-cn': {delSql: '确定删除这条查询语句吗？', addToBlackList: '确定将这条查询语句加入禁用名单吗？'}
   }
 })
 export default class FavoriteTable extends Vue {

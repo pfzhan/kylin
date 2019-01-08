@@ -202,7 +202,7 @@
       <div class="conds">
         <div class="conds-title">
           <span>{{$t('queryFrequency')}}</span>
-          <el-switch class="ksd-switch" v-model="frequencyObj.enable" active-text="ON" inactive-text="OFF" @change="updateFre"></el-switch>
+          <el-switch class="ksd-switch" v-model="frequencyObj.enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')" @change="updateFre"></el-switch>
         </div>
         <div class="conds-content clearfix">
           <!-- <div class="desc">{{$t('frequencyDesc')}}</div> -->
@@ -215,7 +215,7 @@
       <div class="conds">
         <div class="conds-title">
           <span>{{$t('querySubmitter')}}</span>
-          <el-switch class="ksd-switch" v-model="submitterObj.enable" active-text="ON" inactive-text="OFF" @change="updateSub"></el-switch>
+          <el-switch class="ksd-switch" v-model="submitterObj.enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')" @change="updateSub"></el-switch>
         </div>
         <div class="conds-content">
           <!-- <div class="desc">{{$t('submitterDesc')}}</div> -->
@@ -257,7 +257,7 @@
       <div class="conds">
         <div class="conds-title">
           <span>{{$t('queryDuration')}}</span>
-          <el-switch class="ksd-switch" v-model="durationObj.enable" active-text="ON" inactive-text="OFF" @change="updateDura"></el-switch>
+          <el-switch class="ksd-switch" v-model="durationObj.enable" :active-text="$t('kylinLang.common.OFF')" :inactive-text="$t('kylinLang.common.ON')" @change="updateDura"></el-switch>
         </div>
         <div class="conds-content clearfix">
           <!-- <div class="desc">{{$t('durationDesc')}}</div> -->

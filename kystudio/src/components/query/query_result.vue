@@ -57,6 +57,7 @@
 		      :prop="''+index"
           :min-width="52+15*(value.label&&value.label.length || 0)"
 		      :label="value.label"
+          align="center"
           sortable
           >
 		    </el-table-column>

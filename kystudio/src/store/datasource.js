@@ -7,16 +7,7 @@ export default {
     encodingMatchs: null,
     encodingCache: {},
     currentShowTableData: null,
-    editableTabs: [{
-      title: 'Work Space',
-      name: 'NewQuery',
-      icon: '',
-      spin: true,
-      extraoption: null,
-      queryErrorInfo: '',
-      queryObj: null,
-      index: 1
-    }]
+    editableTabs: null
   },
   getters: {
     getQueryTabs (state) {
