@@ -35,9 +35,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.cube.model.IndexPlan;
-import io.kyligence.kap.cube.model.LayoutEntity;
-import io.kyligence.kap.cube.model.NIndexPlanManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -57,7 +54,10 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.cube.model.LayoutEntity;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddCuboidEvent;
@@ -289,8 +289,8 @@ public class ModelSemanticHelper extends BasicService {
         val newModel = modelMgr.getDataModelDesc(model);
 
         if (isSignificantChange(originModel, newModel)) {
-            handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasureMap().keySet(),
-                    IndexPlan::setRuleBasedIndex, indePlanManager);
+            handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasureMap().keySet(), IndexPlan::setRuleBasedIndex,
+                    indePlanManager);
             // do not need to fire this event, the follow logic will clear all segments
             removeUselessDimensions(indexPlan, newModel.getEffectiveDimenionsMap().keySet(), false, config);
             modelMgr.updateDataModel(newModel.getUuid(),
@@ -308,11 +308,10 @@ public class ModelSemanticHelper extends BasicService {
         // measure changed: does not matter to auto created cuboids' data, need refresh rule based cuboids
         if (!measuresNotChanged) {
             val oldRule = indexPlan.getRuleBasedIndex();
-            handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasureMap().keySet(),
-                    (copyForWrite, rule) -> {
-                        copyForWrite.setRuleBasedIndex(rule);
-                        handleCubeUpdateRule(project, model, oldRule, rule);
-                    }, indePlanManager);
+            handleMeasuresChanged(indexPlan, newModel.getEffectiveMeasureMap().keySet(), (copyForWrite, rule) -> {
+                copyForWrite.setRuleBasedIndex(rule);
+                handleCubeUpdateRule(project, model, oldRule, rule);
+            }, indePlanManager);
         }
         // dimension deleted: previous step is remove dimensions in rule,
         //   so we only remove the auto created cuboids
@@ -329,7 +328,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private boolean handleMeasuresChanged(IndexPlan cube, Set<Integer> measures,
-                                          BiConsumer<IndexPlan, NRuleBasedIndex> descConsumer, NIndexPlanManager indexPlanManager) {
+            BiConsumer<IndexPlan, NRuleBasedIndex> descConsumer, NIndexPlanManager indexPlanManager) {
         val savedCube = indexPlanManager.updateIndexPlan(cube.getUuid(), copyForWrite -> {
             copyForWrite.setIndexes(copyForWrite.getIndexes().stream().filter(cuboid -> {
                 val allMeasures = cuboid.getMeasures();
@@ -351,7 +350,7 @@ public class ModelSemanticHelper extends BasicService {
     }
 
     private void removeUselessDimensions(IndexPlan cube, Set<Integer> availableDimensions, boolean triggerEvent,
-                                         KylinConfig config) {
+            KylinConfig config) {
         val indexPlanManager = NIndexPlanManager.getInstance(config, cube.getProject());
         val dataflowManager = NDataflowManager.getInstance(config, cube.getProject());
         val layoutIds = cube.getWhitelistLayouts().stream()
@@ -374,8 +373,8 @@ public class ModelSemanticHelper extends BasicService {
         }
     }
 
-    private void handleReloadData(NDataModel model, NDataModel oriModel, NDataflowManager dataflowManager, KylinConfig config,
-                                  String project) {
+    private void handleReloadData(NDataModel model, NDataModel oriModel, NDataflowManager dataflowManager,
+            KylinConfig config, String project) {
         var df = dataflowManager.getDataflow(model.getUuid());
         val segments = df.getFlatSegments();
         df = dataflowManager.updateDataflow(df.getUuid(), copyForWrite -> {
@@ -408,52 +407,31 @@ public class ModelSemanticHelper extends BasicService {
         eventManager.post(postAddCuboidEvent);
     }
 
-    public void handleCubeUpdateRule(String project, String model, NRuleBasedIndex oldRule,
-            NRuleBasedIndex newRule) {
+    public void handleCubeUpdateRule(String project, String model, NRuleBasedIndex oldRule, NRuleBasedIndex newRule) {
         val kylinConfig = KylinConfig.getInstanceFromEnv();
         val eventManager = EventManager.getInstance(kylinConfig, project);
 
         val originLayouts = oldRule == null ? Sets.<LayoutEntity> newHashSet() : oldRule.genCuboidLayouts();
         val targetLayouts = newRule.genCuboidLayouts();
 
-        if (!onlyRemoveMeasures(originLayouts, targetLayouts)) {
-            val difference = Maps.difference(Maps.asMap(originLayouts, Functions.identity()),
-                    Maps.asMap(targetLayouts, Functions.identity()));
+        val difference = Maps.difference(Maps.asMap(originLayouts, Functions.identity()),
+                Maps.asMap(targetLayouts, Functions.identity()));
 
-            // new cuboid
-            if (difference.entriesOnlyOnRight().size() > 0) {
-                AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
-                addCuboidEvent.setModelId(model);
-                addCuboidEvent.setJobId(UUID.randomUUID().toString());
-                addCuboidEvent.setOwner(getUsername());
-                eventManager.post(addCuboidEvent);
+        // new cuboid
+        if (difference.entriesOnlyOnRight().size() > 0) {
+            AddCuboidEvent addCuboidEvent = new AddCuboidEvent();
+            addCuboidEvent.setModelId(model);
+            addCuboidEvent.setJobId(UUID.randomUUID().toString());
+            addCuboidEvent.setOwner(getUsername());
+            eventManager.post(addCuboidEvent);
 
-                PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
-                postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
-                postAddCuboidEvent.setModelId(model);
-                postAddCuboidEvent.setOwner(getUsername());
-                eventManager.post(postAddCuboidEvent);
-            }
-
+            PostAddCuboidEvent postAddCuboidEvent = new PostAddCuboidEvent();
+            postAddCuboidEvent.setJobId(addCuboidEvent.getJobId());
+            postAddCuboidEvent.setModelId(model);
+            postAddCuboidEvent.setOwner(getUsername());
+            eventManager.post(postAddCuboidEvent);
         }
+
     }
 
-    private boolean onlyRemoveMeasures(Set<LayoutEntity> originLayouts, Set<LayoutEntity> targetLayouts) {
-        if (originLayouts.size() != targetLayouts.size()) {
-            return false;
-        }
-        for (LayoutEntity originLayout : originLayouts) {
-            boolean result = false;
-            for (LayoutEntity targetLayout : targetLayouts) {
-                if (originLayout.containMeasures(targetLayout)) {
-                    result = true;
-                    break;
-                }
-            }
-            if (!result) {
-                return false;
-            }
-        }
-        return true;
-    }
 }

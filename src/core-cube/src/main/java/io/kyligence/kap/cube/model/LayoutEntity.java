@@ -271,17 +271,6 @@ public class LayoutEntity implements IStorageAware, Serializable, IKeep {
         return !isAuto && !isManual;
     }
 
-    public boolean containMeasures(LayoutEntity other) {
-        if (!(Objects.equal(this.getSortByColumns(), other.getSortByColumns())
-                && Objects.equal(this.getShardByColumns(), other.getShardByColumns())
-                && Objects.equal(this.getLayoutOverrideIndexes(), other.getLayoutOverrideIndexes())
-                && Objects.equal(this.getStorageType(), other.getStorageType()))
-                && Objects.equal(orderedDimensions.keySet(), other.getOrderedDimensions().keySet())) {
-            return false;
-        }
-        return getOrderedMeasures().keySet().containsAll(other.getOrderedMeasures().keySet());
-    }
-
     public boolean isCachedAndShared() {
         return index != null && index.isCachedAndShared();
     }

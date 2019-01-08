@@ -632,7 +632,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
-        Assert.assertEquals(0, events.size());
+        Assert.assertEquals(2, events.size());
 
         val newCube = indexPlanManager.getIndexPlan(indexPlan.getUuid());
         Assert.assertNotEquals(indexPlan.getRuleBasedIndex().getLayoutIdMapping().toString(),

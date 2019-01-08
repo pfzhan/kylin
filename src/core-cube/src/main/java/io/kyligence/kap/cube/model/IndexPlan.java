@@ -566,8 +566,8 @@ public class IndexPlan extends RootPersistentEntity implements Serializable, IEn
         updateNextId();
     }
 
-    public void setRuleBasedIndex(NRuleBasedIndex newRuleBasedCuboidsDesc) {
-        setRuleBasedIndex(newRuleBasedCuboidsDesc, false);
+    public void setRuleBasedIndex(NRuleBasedIndex ruleBasedIndex) {
+        setRuleBasedIndex(ruleBasedIndex, false);
     }
 
     private void updateNextId() {
