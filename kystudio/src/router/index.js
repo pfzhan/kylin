@@ -1,5 +1,6 @@
 import Vue from 'vue'
 import Router from 'vue-router'
+import Component from 'vue-class-component'
 import topLeftRightView from 'components/layout/layout_left_right_top'
 import layoutFull from 'components/layout/layout_full'
 import projectList from 'components/project/project_list'
@@ -11,7 +12,13 @@ import dashboard from 'components/dashboard'
 import messages from 'components/messages'
 import jobs from 'components/monitor/jobs'
 import { bindRouterGuard } from './routerGuard.js'
+
 Vue.use(Router)
+Component.registerHooks([
+  'beforeRouteEnter',
+  'beforeRouteLeave',
+  'beforeRouteUpdate'
+])
 let routerOptions = {
   routes: [
     {

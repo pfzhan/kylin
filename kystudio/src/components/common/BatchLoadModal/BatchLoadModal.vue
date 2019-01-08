@@ -144,8 +144,8 @@ export default class BatchLoadModal extends Vue {
     this.setModalForm(set(this.form, key, value))
   }
   async handleInputDate (key, value, popperId) {
-    const isVaild = await this.$refs['form'].validate()
-    if (isVaild) {
+    const isValid = await this.$refs['form'].validate()
+    if (isValid) {
       this.handleInput(key, value)
       this.handlePopperHide(popperId)
     }

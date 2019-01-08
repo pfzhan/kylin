@@ -287,7 +287,7 @@ export default class LayoutLeftRightTop extends Vue {
   }
   async handleSwitchAdmin () {
     this.setGlobalMask(this.isAdminView ? 'leaveAdmin' : 'enterAdmin')
-    await delayMs(2000)
+    await delayMs(1700)
 
     if (this.isAdminView) {
       const nextLocation = this.cachedHistory ? this.cachedHistory : '/'

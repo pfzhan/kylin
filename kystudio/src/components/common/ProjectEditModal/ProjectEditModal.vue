@@ -4,7 +4,44 @@
     :visible="isShow"
     @close="isShow && closeHandler(false)">
     
-    <el-form :model="form" :label-position="labelPosition" :rules="rules" ref="form" v-if="isFormShow" label-width="110px">
+    <el-form :model="form" label-position="top" :rules="rules" ref="form" v-if="isFormShow" label-width="110px">
+      <div class="el-form-item is-required" v-if="isFieldShow('type')">
+        <label for="name" class="el-form-item__label">{{$t('projectType')}}</label>
+        <el-row :gutter="40">
+          <!-- project type 4 -->
+          <el-col class="clearfix" :span="12">
+            <div class="project-type" style="float: right;" :class="{ active: form.type === 'AUTO_MAINTAIN' }">
+              <div class="project-type-button" @click="inputHandler('type', 'AUTO_MAINTAIN')" v-guide.changeAutoProjectType>
+                <div class="project-type-icon">
+                  <i class="el-icon-ksd-smart_mode"></i>
+                </div>
+              </div>
+              <div class="project-type-title">
+                <span class="font-medium">{{$t('projectType4')}}</span>
+              </div>
+              <div class="project-type-desc">
+                <span>{{$t('projectType4Desc')}}</span>
+              </div>
+            </div>
+          </el-col>
+          <el-col :span="12">
+            <!-- project type 2 -->
+            <div class="project-type" :class="{ active: form.type === 'MANUAL_MAINTAIN' }">
+              <div class="project-type-button" @click="inputHandler('type', 'MANUAL_MAINTAIN')" v-guide.changeAutoProjectType>
+                <div class="project-type-icon">
+                  <i class="el-icon-ksd-expert_mode"></i>
+                </div>
+              </div>
+              <div class="project-type-title">
+                <span class="font-medium">{{$t('projectType2')}}</span>
+              </div>
+              <div class="project-type-desc">
+                <span>{{$t('projectType2Desc')}}</span>
+              </div>
+            </div>
+          </el-col>
+        </el-row>
+      </div>
       <!-- 表单：项目名 -->
       <el-form-item :label="$t('projectName')" prop="name" v-if="isFieldShow('name')">
         <el-input v-guide.addProjectInput
@@ -16,39 +53,6 @@
           @input="value => inputHandler('name', value)">
         </el-input>
       </el-form-item>
-      <div class="el-form-item is-required" style="padding: 10px 0;" v-if="isFieldShow('type')">
-        <label for="name" class="el-form-item__label" style="width: 110px;line-height: 1;">{{$t('projectType')}}</label>
-        <div class="el-form-item__content clearfix" style="margin-left: 110px;">
-          <!-- project type 2 -->
-          <div class="project-type clearfix" :class="{ active: form.type === 'MANUAL_MAINTAIN' }">
-            <!-- <div class="project-type-status">
-              <span class="el-icon-ksd-good_health"></span>
-            </div> -->
-            <div class="project-type-button">
-              <div class="project-type-icon" @click="inputHandler('type', 'MANUAL_MAINTAIN')" v-guide.changeMunalProjectType>
-                <i class="el-icon-ksd-expert_mode"></i>
-              </div>
-              <div class="project-type-text">
-                <span class="font-medium">{{$t('projectType2')}}</span>
-              </div>
-            </div>
-          </div>
-          <!-- project type 4 -->
-          <div class="project-type clearfix" :class="{ active: form.type === 'AUTO_MAINTAIN' }">
-            <!-- <div class="project-type-status">
-              <span class="el-icon-ksd-good_health"></span>
-            </div> -->
-            <div class="project-type-button">
-              <div class="project-type-icon" @click="inputHandler('type', 'AUTO_MAINTAIN')" v-guide.changeAutoProjectType>
-                <i class="el-icon-ksd-smart_mode"></i>
-              </div>
-              <div class="project-type-text">
-                <span class="font-medium">{{$t('projectType4')}}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
       <!-- 表单：项目描述 -->
       <el-form-item :label="$t('description')" prop="description" v-if="isFieldShow('description')">
         <el-input v-guide.addProjectDesc
@@ -176,9 +180,6 @@ export default class ProjectEditModal extends Vue {
     name: [{
       validator: this.validate(PROJECT_NAME), trigger: 'blur', required: true
     }]
-  }
-  get labelPosition () {
-    return this.editType === 'new' ? 'left' : 'top'
   }
   // Computed: Modal宽度
   get modalWidth () {
@@ -319,7 +320,7 @@ export default class ProjectEditModal extends Vue {
 
 .project-edit-modal {
   .el-form-item {
-    margin-bottom: 15px;
+    margin-bottom: 20px;
   }
   .project-config .add-property {
     margin: 3px 0 10px 0;
@@ -332,57 +333,61 @@ export default class ProjectEditModal extends Vue {
     height: 32px;
     margin-bottom: 10px;
   }
-  .project-type,
-  .project-type-status,
-  .project-type-button {
-    display: block;
-    float: left;
-    height: 125px;
-    position: relative;
-  }
-  .project-type-status .el-icon-ksd-good_health {
-    vertical-align: top;
-  }
-  .project-type-status {
-    margin-right: 10px;
-  }
   .project-type {
-    margin-right: 25px;
-  }
-  .project-type:not(.active) {
-    color: @text-disabled-color;
-  }
-  .project-type-icon {
-    width: 90px;
-    height: 90px;
-    border: 1px solid @text-secondary-color;
-    text-align: center;
-    line-height: 90px;
-    border-radius: 6px;
-    font-size: 55px;
-    overflow: hidden;
-    color: @base-color;
-    cursor: pointer;
-    margin: 0 auto 15px auto;
-  }
-  .project-type-text {
-    line-height: 1;
-    text-align: center;
-    white-space: nowrap;
-  }
-  .project-type.active .project-type-text {
-    color: @text-title-color;
-  }
-  .project-type.active .project-type-icon {
-    border-color: @base-color;
-    background: @base-color;
-    color: @fff;
-  }
-  .project-type.active .el-icon-ksd-good_health {
-    color: @btn-success-normal;
-  }
-  .project-type-icon:hover {
-    border-color: @base-color;
+    width: 220px;
+    height: 200px;
+    * {
+      transition: all .15s;
+    }
+    &.active {
+      .project-type-button {
+        border-color: @base-color;
+        background: @base-color;
+        box-shadow: 2px 2px 4px 0 @line-border-color;
+        * {
+          color: @fff;
+        }
+      }
+      .project-type-title {
+        color: @base-color;
+      }
+      .project-type-desc {
+        color: @text-normal-color;
+      }
+    }
+    .project-type-button {
+      width: 96px;
+      height: 96px;
+      margin: 0 auto 10px auto;
+      border: 1px solid @text-secondary-color;
+      border-radius: 6px;
+      background: @fff;
+      cursor: pointer;
+      * {
+        color: @text-disabled-color;
+      }
+      &:hover {
+        border-color: @base-color;
+      }
+    }
+    .project-type-title {
+      line-height: 1;
+      text-align: center;
+      white-space: nowrap;
+      color: @text-normal-color;
+      margin-bottom: 10px;
+    }
+    .project-type-icon {
+      font-size: 55px;
+      color: @base-color;
+      line-height: 96px;
+      text-align: center;
+    }
+    .project-type-desc {
+      color: @text-disabled-color;
+      word-break: break-word;
+      hyphens: auto;
+    }
   }
   .el-form-item__label {
     font-weight: 500;

@@ -7,29 +7,33 @@
       :is-edited="isFormEdited(form, 'accelerate-settings')"
       @submit="(scb, ecb) => handleSubmit('accelerate-settings', scb, ecb)"
       @cancel="() => handleReset('accelerate-settings')">
-      <div class="setting-item">
-        <div class="setting-label font-medium">{{$t('acceThreshold')}}</div>
-        <span class="setting-value fixed">
-          <el-switch
-            class="ksd-switch"
-            v-model="form.batch_enabled"
-            :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')">
-          </el-switch>
-        </span>
-        <div class="setting-desc large"
-           :class="{'disabled': !form.batch_enabled }">
-          {{$t('notifyLeftTips')}}
-          <b class="setting-value">{{project.threshold}}</b>
-          <el-input
-            size="small"
-            class="acce-input setting-input"
-            :disabled="!form.batch_enabled"
-            v-model.number="form.threshold">
-          </el-input>
-          {{$t('notifyRightTips')}}
+      <el-form ref="accelerate-setting-form" :model="form" :rules="accelerateRules">
+        <div class="setting-item">
+          <div class="setting-label font-medium">{{$t('acceThreshold')}}</div>
+          <span class="setting-value fixed">
+            <el-switch
+              class="ksd-switch"
+              v-model="form.batch_enabled"
+              :active-text="$t('kylinLang.common.OFF')"
+              :inactive-text="$t('kylinLang.common.ON')">
+            </el-switch>
+          </span>
+          <div class="setting-desc large"
+            :class="{'disabled': !form.batch_enabled }">
+            {{$t('notifyLeftTips')}}
+            <b class="setting-value">{{project.threshold}}</b>
+            <el-form-item class="setting-input" :show-message="false" prop="threshold">
+              <el-input
+                size="small"
+                class="acce-input"
+                :disabled="!form.batch_enabled"
+                v-model.number="form.threshold">
+              </el-input>
+            </el-form-item>
+            {{$t('notifyRightTips')}}
+          </div>
         </div>
-      </div>
+      </el-form>
     </EditableBlock>
     <!-- 任务邮件通知设置 -->
     <EditableBlock
@@ -74,10 +78,10 @@
           <el-form ref="job-alert" :model="form" size="small">
             <div class="item-value" v-for="(email, index) in form.job_notification_emails" :key="index">
               <span class="setting-label font-medium email-fix-top">{{$t('emails')}}</span>
-              <el-form-item :prop="`job_notification_emails.${index}`" :rules="rules">
+              <el-form-item :prop="`job_notification_emails.${index}`" :rules="emailRules">
                 <el-input v-model="form.job_notification_emails[index]"></el-input>
                 <el-button icon="el-icon-plus" circle size="mini" @click="handleAddItem('job_notification_emails', index)"></el-button>
-                <el-button icon="el-icon-minus" circle size="mini" @click="handleRemoveItem('job_notification_emails', index)"></el-button>
+                <el-button icon="el-icon-minus" circle size="mini" @click="handleRemoveItem('job_notification_emails', index)" :disabled="form.job_notification_emails.length < 2"></el-button>
               </el-form-item>
             </div>
           </el-form>
@@ -91,10 +95,10 @@
 import Vue from 'vue'
 import locales from './locales'
 import { mapActions, mapGetters } from 'vuex'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 
 import { handleError } from '../../../util'
-import { _getAccelerationSettings, _getJobAlertSettings } from './handler'
+import { validate, _getAccelerationSettings, _getJobAlertSettings } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 @Component({
   props: {
@@ -129,11 +133,21 @@ export default class SettingAdvanced extends Vue {
     data_load_empty_notification_enabled: true,
     job_notification_emails: []
   }
-  get rules () {
+  get accelerateRules () {
+    return {
+      'threshold': [{ validator: validate['positiveNumber'], trigger: 'blur' }]
+    }
+  }
+  get emailRules () {
     return [
       { required: true, message: this.$t('pleaseInputEmail'), trigger: 'blur' },
       { type: 'email', message: this.$t('pleaseInputVaildEmail'), trigger: 'blur' }
     ]
+  }
+  @Watch('form', { deep: true })
+  onFormChange () {
+    const advanceSetting = this.isFormEdited(this.form, 'accelerate-settings') || this.isFormEdited(this.form, 'job-alert')
+    this.$emit('form-changed', { advanceSetting })
   }
   mounted () {
     this.initForm()
@@ -169,7 +183,9 @@ export default class SettingAdvanced extends Vue {
   handleReset (type) {
     switch (type) {
       case 'accelerate-settings': {
-        this.form = { ...this.form, ..._getAccelerationSettings(this.project) }; break
+        this.form = { ...this.form, ..._getAccelerationSettings(this.project) }
+        this.$refs['accelerate-setting-form'].clearValidate()
+        break
       }
       case 'job-alert': {
         this.form = { ...this.form, ..._getJobAlertSettings(this.project, true) }; break
@@ -178,25 +194,30 @@ export default class SettingAdvanced extends Vue {
   }
   async handleSubmit (type, successCallback, errorCallback) {
     try {
-      let isVaild = true
       switch (type) {
         case 'accelerate-settings': {
-          const submitData = _getAccelerationSettings(this.form)
-          await this.updateAccelerationSettings(submitData); break
+          if (await this.$refs['accelerate-setting-form'].validate()) {
+            const submitData = _getAccelerationSettings(this.form)
+            await this.updateAccelerationSettings(submitData); break
+          } else {
+            return errorCallback()
+          }
         }
         case 'job-alert': {
-          const submitData = _getJobAlertSettings(this.form)
-          const isVaild = await this.$refs['job-alert'].validate()
-          isVaild && await this.updateJobAlertSettings(submitData); break
+          if (await this.$refs['job-alert'].validate()) {
+            const submitData = _getJobAlertSettings(this.form)
+            await this.updateJobAlertSettings(submitData); break
+          } else {
+            return errorCallback()
+          }
         }
       }
-      if (isVaild) {
-        successCallback(); this.$emit('reload-setting')
-      } else {
-        errorCallback()
-      }
+      successCallback()
+      this.$emit('reload-setting')
+      this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
     } catch (e) {
-      errorCallback(); handleError(e)
+      errorCallback()
+      handleError(e)
     }
   }
   handleAddItem (key, index) {
@@ -252,7 +273,7 @@ export default class SettingAdvanced extends Vue {
     display: inline-block;
   }
   .ksd-switch {
-    transform: scale(0.8);
+    transform: scale(0.91);
     transform-origin: left;
   }
   .email-fix-top {
@@ -262,6 +283,11 @@ export default class SettingAdvanced extends Vue {
   }
   .split {
     margin-top: 15px;
+  }
+  .el-button.is-disabled {
+    * {
+      cursor: not-allowed;
+    }
   }
 }
 </style>

@@ -1,17 +1,18 @@
 <template>
   <div class="security-user">
-    <!-- 从Group页面跳至User页面的返回按钮 -->
-    <div v-if="currentGroup">
-      <router-link class="el-icon-ksd-more_04" to="/admin/group">
-        {{$t('backToGroupList')}}
-      </router-link>
-    </div>
     <!-- 新建/过滤用户 -->
     <el-row class="ksd-mt-10 ksd-mb-14">
       <el-col :span="24">
         <el-button plain type="primary"
           size="medium"
-          icon="el-icon-plus"
+          icon="el-icon-ksd-back"
+          v-if="currentGroup"
+          @click="$router.push('/admin/group')">
+          {{$t('back')}}
+        </el-button>
+        <el-button plain type="primary"
+          size="medium"
+          icon="el-icon-ksd-add_2"
           v-if="userActions.includes('addUser')"
           @click="editUser('new')">
           {{$t('user')}}
@@ -52,7 +53,7 @@
       <!-- 表：是否系统管理员列 -->
       <el-table-column :label="$t('admin')" :width="120" align="center">
         <template slot-scope="scope">
-          <i class="el-icon-ksd-right admin-svg" v-if="scope.row.admin"></i>
+          <i class="el-icon-ksd-good_health admin-svg" v-if="scope.row.admin"></i>
         </template>
       </el-table-column>
       <!-- 表：status列 -->
@@ -63,15 +64,17 @@
         </template>
       </el-table-column>
       <!-- 表：action列 -->
-      <el-table-column v-if="isActionShow" :label="$t('action')" :width="100" header-align="center">
+      <el-table-column v-if="isActionShow" :label="$t('action')" :width="92" header-align="center">
         <template slot-scope="scope">
           <el-tooltip :content="$t('resetPassword')" effect="dark" placement="top">
-            <i class="el-icon-ksd-table_reset_password ksd-mr-14" v-show="userActions.includes('changePassword') || scope.row.uuid === currentUser.uuid" @click="editUser('password', scope.row)"></i>
-          </el-tooltip>
-          <el-dropdown trigger="click">
+            <i class="el-icon-ksd-table_reset_password ksd-fs-14 ksd-mr-10" v-show="userActions.includes('changePassword') || scope.row.uuid === currentUser.uuid" @click="editUser('password', scope.row)"></i>
+          </el-tooltip><span>
+          </span><el-tooltip :content="$t('groupMembership')" effect="dark" placement="top">
+            <i class="el-icon-ksd-table_group ksd-fs-14 ksd-mr-10" v-show="userActions.includes('assignGroup')" @click="editUser('group', scope.row)"></i>
+          </el-tooltip><span>
+          </span><el-dropdown trigger="click">
             <i class="el-icon-ksd-table_others" v-show="isMoreActionShow"></i>
             <el-dropdown-menu slot="dropdown">
-              <el-dropdown-item v-if="userActions.includes('assignGroup')" @click.native="editUser('group', scope.row)">{{$t('groupMembership')}}</el-dropdown-item>
               <el-dropdown-item v-if="userActions.includes('editUser')" @click.native="editUser('edit', scope.row)">{{$t('editRole')}}</el-dropdown-item>
               <el-dropdown-item v-if="userActions.includes('deleteUser')" @click.native="dropUser(scope.row)">{{$t('drop')}}</el-dropdown-item>
               <el-dropdown-item v-if="userActions.includes('disableUser') && scope.row.disabled" @click.native="changeStatus(scope.row)">{{$t('enable')}}</el-dropdown-item>
@@ -230,5 +233,9 @@ export default class SecurityUser extends Vue {
 
 .security-user {
   padding: 0 20px;
+  .el-icon-ksd-good_health {
+    color: @btn-success-normal;
+    cursor: default;
+  }
 }
 </style>

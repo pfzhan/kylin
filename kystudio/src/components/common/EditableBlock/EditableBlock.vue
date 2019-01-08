@@ -111,9 +111,12 @@ export default class EditableBlock extends Vue {
     border-bottom: 1px solid @line-border-color;
     border-right: 1px solid @line-border-color;
     border-left: 1px solid @line-border-color;
-    padding: 20px;
+    padding: 10px 20px;
     background: @table-stripe-color;
     text-align: right;
+    .el-button+.el-button {
+      margin-left: 7px;
+    }
   }
 }
 </style>

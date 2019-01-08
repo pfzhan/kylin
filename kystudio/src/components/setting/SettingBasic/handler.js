@@ -42,6 +42,15 @@ export const initialFormValue = {
   description: '',
   maintain_model_type: ''
 }
+export const validate = {
+  'positiveNumber' (rule, value, callback) {
+    if (value === '' || value === undefined || value < 0) {
+      callback(new Error(null))
+    } else {
+      callback()
+    }
+  }
+}
 export function _getProjectGeneralInfo (data) {
   return {
     project: data.project,

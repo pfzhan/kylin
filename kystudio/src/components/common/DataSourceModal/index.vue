@@ -185,9 +185,9 @@ export default class DataSourceModal extends Vue {
   async _validate () {
     switch (this.editType) {
       case editTypes.SELECT_SOURCE: {
-        const isVaild = this.form.project.override_kylin_properties['kylin.source.default']
-        !isVaild && this.$message(this.$t('pleaseSelectSource'))
-        return isVaild
+        const isValid = this.form.project.override_kylin_properties['kylin.source.default']
+        !isValid && this.$message(this.$t('pleaseSelectSource'))
+        return isValid
       }
       case editTypes.CONFIG_SOURCE: {
         return await this.$refs['source-hive-setting-form'].$refs.form.validate()
@@ -195,9 +195,9 @@ export default class DataSourceModal extends Vue {
       case editTypes.HIVE:
       case editTypes.RDBMS:
       case editTypes.RDBMS2: {
-        const isVaild = this.form.selectedTables.length || this.form.selectedDatabases.length
-        !isVaild && this.$message(this.$t('pleaseSelectTableOrDatabase'))
-        return isVaild
+        const isValid = this.form.selectedTables.length || this.form.selectedDatabases.length
+        !isValid && this.$message(this.$t('pleaseSelectTableOrDatabase'))
+        return isValid
       }
       default:
         return true

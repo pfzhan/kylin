@@ -1,5 +1,5 @@
 export const viewTypes = {
-  BASIC: 'basic',
-  ADVANCED: 'advanced',
+  BASIC: 'basicSetting',
+  ADVANCED: 'advanceSetting',
   MODEL: 'model'
 }

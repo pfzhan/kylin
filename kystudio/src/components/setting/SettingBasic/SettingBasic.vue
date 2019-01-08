@@ -19,7 +19,7 @@
       <div class="setting-item clearfix">
         <div class="setting-label font-medium" style="width: 92px;">{{$t('description')}}</div>
         <div class="setting-value">{{project.description}}</div>
-        <el-input class="setting-input" type="textarea" size="small" v-model="form.description"></el-input>
+        <el-input class="setting-input" :rows="3" type="textarea" size="small" v-model="form.description"></el-input>
       </div>
     </EditableBlock>
     <!-- 项目存储设置 -->
@@ -46,7 +46,7 @@
           :class="{ disabled: !form.storage_garbage }">
           {{$t('storageGarbageDesc1')}}
           <b>5</b>
-          {{$t('storageGarbageDesc1')}}
+          {{$t('storageGarbageDesc2')}}
         </div>
       </div>
     </EditableBlock>
@@ -88,73 +88,80 @@
       :is-edited="isFormEdited(form, 'segment-settings')"
       @submit="(scb, ecb) => handleSubmit('segment-settings', scb, ecb)"
       @cancel="() => handleReset('segment-settings')">
-      <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('segmentMerge')}}</span>
-        <span class="setting-value fixed">
-          <el-switch
-            class="ksd-switch"
-            v-model="form.auto_merge_enabled"
-            :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')">
-          </el-switch>
-        </span>
-        <div class="setting-desc">{{$t('segmentMergeDesc')}}</div>
-        <div class="field-item" :class="{ disabled: !form.auto_merge_enabled }">
-          <span class="setting-label font-medium">{{$t('autoMerge')}}</span>
-          <span class="setting-value">
-            {{form.auto_merge_time_ranges.map(autoMergeConfig => $t(autoMergeConfig)).join(', ')}}
+      <el-form ref="segment-setting-form" :model="form" :rules="rules">
+        <div class="setting-item">
+          <span class="setting-label font-medium">{{$t('segmentMerge')}}</span>
+          <span class="setting-value fixed">
+            <el-switch
+              class="ksd-switch"
+              v-model="form.auto_merge_enabled"
+              :active-text="$t('kylinLang.common.OFF')"
+              :inactive-text="$t('kylinLang.common.ON')">
+            </el-switch>
           </span>
-          <el-checkbox-group class="setting-input" :value="form.auto_merge_time_ranges" @input="handleCheckMergeRanges" :disabled="!form.auto_merge_enabled">
-            <el-checkbox
-              v-for="autoMergeType in autoMergeTypes"
-              :key="autoMergeType"
-              :label="autoMergeType">
-              {{$t(autoMergeType)}}
-            </el-checkbox>
-          </el-checkbox-group>
+          <div class="setting-desc">{{$t('segmentMergeDesc')}}</div>
+          <div class="field-item" :class="{ disabled: !form.auto_merge_enabled }">
+            <span class="setting-label font-medium">{{$t('autoMerge')}}</span>
+            <span class="setting-value">
+              {{form.auto_merge_time_ranges.map(autoMergeConfig => $t(autoMergeConfig)).join(', ')}}
+            </span>
+            <el-checkbox-group class="setting-input" :value="form.auto_merge_time_ranges" @input="handleCheckMergeRanges" :disabled="!form.auto_merge_enabled">
+              <el-checkbox
+                v-for="autoMergeType in autoMergeTypes"
+                :key="autoMergeType"
+                :label="autoMergeType">
+                {{$t(autoMergeType)}}
+              </el-checkbox>
+            </el-checkbox-group>
+          </div>
+          <div class="field-item" :class="{ disabled: !form.auto_merge_enabled }">
+            <span class="setting-label font-medium">{{$t('volatile')}}</span>
+            <span class="setting-value">
+              {{form.volatile_range.volatile_range_number}} {{$t(form.volatile_range.volatile_range_type.toLowerCase())}}
+            </span>
+            <el-form-item class="setting-input" :show-message="false" prop="volatile_range.volatile_range_number">
+              <el-input size="small" style="width: 100px;" v-model.number="form.volatile_range.volatile_range_number" :disabled="!form.auto_merge_enabled"></el-input>
+            </el-form-item>
+            <el-select
+              class="setting-input"
+              size="small"
+              style="width: 100px;"
+              v-model="form.volatile_range.volatile_range_type"
+              :disabled="!form.auto_merge_enabled"
+              :placeholder="$t('kylinLang.common.pleaseChoose')">
+              <el-option
+                v-for="volatileType in volatileTypes"
+                :key="volatileType"
+                :label="$t(volatileType.toLowerCase())"
+                :value="volatileType">
+              </el-option>
+            </el-select>
+            <div class="setting-desc">{{$t('volatileTip')}}</div>
+          </div>
         </div>
-        <div class="field-item" :class="{ disabled: !form.auto_merge_enabled }">
-          <span class="setting-label font-medium">{{$t('volatile')}}</span>
-          <span class="setting-value">
-            {{form.volatile_range.volatile_range_number}} {{$t(form.volatile_range.volatile_range_type.toLowerCase())}}
-          </span>
-          <el-input class="setting-input" size="small" style="width: 100px;" v-model.number="form.volatile_range.volatile_range_number" :disabled="!form.auto_merge_enabled"></el-input>
-          <el-select
-            class="setting-input"
-            size="small"
-            style="width: 100px;"
-            v-model="form.volatile_range.volatile_range_type"
-            :disabled="!form.auto_merge_enabled"
-            :placeholder="$t('kylinLang.common.pleaseChoose')">
-            <el-option
-              v-for="volatileType in volatileTypes"
-              :key="volatileType"
-              :label="$t(volatileType.toLowerCase())"
-              :value="volatileType">
-            </el-option>
-          </el-select>
-        </div>
-      </div>
-      <div class="setting-item">
-        <span class="setting-label font-medium">{{$t('retentionThreshold')}}</span>
-        <span class="setting-value fixed">
-          <el-switch
-            class="ksd-switch"
-            v-model="form.retention_range.retention_range_enabled"
-            :active-text="$t('kylinLang.common.OFF')"
-            :inactive-text="$t('kylinLang.common.ON')">
-          </el-switch>
-        </span>
-        <div class="setting-desc">{{$t('retentionThresholdDesc')}}</div>
-        <div class="field-item" :class="{ disabled: !form.retention_range.retention_range_enabled }">
+        <div class="setting-item">
           <span class="setting-label font-medium">{{$t('retentionThreshold')}}</span>
-          <span class="setting-value">
-            {{form.retention_range.retention_range_number}} {{$t(form.retention_range.retention_range_type.toLowerCase())}}
+          <span class="setting-value fixed">
+            <el-switch
+              class="ksd-switch"
+              v-model="form.retention_range.retention_range_enabled"
+              :active-text="$t('kylinLang.common.OFF')"
+              :inactive-text="$t('kylinLang.common.ON')">
+            </el-switch>
           </span>
-          <el-input class="setting-input" size="small" style="width: 100px;" v-model.number="form.retention_range.retention_range_number" :disabled="!form.retention_range.retention_range_enabled"></el-input>
-          <span class="setting-input">{{$t(retentionRangeScale)}}</span>
+          <div class="setting-desc">{{$t('retentionThresholdDesc')}}</div>
+          <div class="field-item" :class="{ disabled: !form.retention_range.retention_range_enabled }">
+            <span class="setting-label font-medium">{{$t('retentionThreshold')}}</span>
+            <span class="setting-value">
+              {{form.retention_range.retention_range_number}} {{$t(form.retention_range.retention_range_type.toLowerCase())}}
+            </span>
+            <el-form-item class="setting-input" :show-message="false" prop="retention_range.retention_range_number">
+              <el-input size="small" style="width: 100px;" v-model.number="form.retention_range.retention_range_number" :disabled="!form.retention_range.retention_range_enabled"></el-input>
+            </el-form-item>
+            <span class="setting-input">{{$t(retentionRangeScale)}}</span>
+          </div>
         </div>
-      </div>
+      </el-form>
     </EditableBlock>
   </div>
 </template>
@@ -162,11 +169,11 @@
 <script>
 import Vue from 'vue'
 import { mapActions } from 'vuex'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 
 import locales from './locales'
 import { handleError } from '../../../util'
-import { projectTypeIcons, autoMergeTypes, volatileTypes, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getRetentionRangeScale } from './handler'
+import { projectTypeIcons, autoMergeTypes, volatileTypes, validate, retentionTypes, initialFormValue, _getProjectGeneralInfo, _getSegmentSettings, _getPushdownConfig, _getStorageQuota, _getRetentionRangeScale } from './handler'
 import EditableBlock from '../../common/EditableBlock/EditableBlock.vue'
 
 @Component({
@@ -200,6 +207,17 @@ export default class SettingBasic extends Vue {
   }
   get retentionRangeScale () {
     return _getRetentionRangeScale(this.form).toLowerCase()
+  }
+  get rules () {
+    return {
+      'volatile_range.volatile_range_number': [{ validator: validate['positiveNumber'], trigger: 'blur' }],
+      'retention_range.retention_range_number': [{ validator: validate['positiveNumber'], trigger: 'blur' }]
+    }
+  }
+  @Watch('form', { deep: true })
+  onFormChange () {
+    const basicSetting = this.isFormEdited(this.form, 'basic-info') || this.isFormEdited(this.form, 'segment-settings')
+    this.$emit('form-changed', { basicSetting })
   }
   initForm () {
     this.handleReset('basic-info')
@@ -258,8 +276,12 @@ export default class SettingBasic extends Vue {
           await this.updateProjectGeneralInfo(submitData); break
         }
         case 'segment-settings': {
-          const submitData = _getSegmentSettings(this.form, this.project)
-          await this.updateSegmentConfig(submitData); break
+          if (await this.$refs['segment-setting-form'].validate()) {
+            const submitData = _getSegmentSettings(this.form, this.project)
+            await this.updateSegmentConfig(submitData); break
+          } else {
+            return errorCallback()
+          }
         }
       }
       successCallback()
@@ -276,7 +298,9 @@ export default class SettingBasic extends Vue {
         this.form = { ...this.form, ..._getProjectGeneralInfo(this.project) }; break
       }
       case 'segment-settings': {
-        this.form = { ...this.form, ..._getSegmentSettings(this.project) }; break
+        this.form = { ...this.form, ..._getSegmentSettings(this.project) }
+        this.$refs['segment-setting-form'].clearValidate()
+        break
       }
       case 'pushdown-settings': {
         this.form = { ...this.form, ..._getPushdownConfig(this.project) }; break
@@ -307,7 +331,7 @@ export default class SettingBasic extends Vue {
     width: calc(~'100% - 106px');
   }
   .ksd-switch {
-    transform: scale(0.8);
+    transform: scale(0.91);
     transform-origin: left;
   }
   .el-icon-ksd-expert_mode_small,

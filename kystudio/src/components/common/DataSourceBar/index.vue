@@ -3,17 +3,15 @@
     <section class="header clearfix" v-if="isShowActionGroup">
       <div class="header-text font-medium">
         <span>{{$t('kylinLang.common.dataSource')}}</span>
-        <div class="header-icon" v-if="isShowSourceSwitch" @click="handleSwitchSource">
-          <i :class="!isSwitchSource ? 'el-icon-ksd-more_03' : 'el-icon-ksd-more_04'"></i>
-        </div>
       </div>
-      <div class="header-icons">
+      <div class="header-icons clearfix">
+        <i class="ksd-fs-14 el-icon-ksd-setting" v-if="isShowSourceSwitch" @click="handleSwitchSource"></i>
       </div>
     </section>
 
     <section class="body" v-scroll>
       <div v-if="isShowLoadSource" class="btn-group">
-        <el-button  plain size="medium" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource('selectSource', currentProjectData)">
+        <el-button plain size="medium" type="primary" v-guide.addDatasource icon="el-icon-ksd-add_data_source" @click="importDataSource('selectSource', currentProjectData)">
           {{$t('addDatasource')}}
         </el-button>
       </div>
@@ -413,7 +411,7 @@ export default class DataSourceBar extends Vue {
   }
   .header {
     font-size: 16px;
-    color: #263238;
+    color: @text-title-color;
     border-bottom: 1px solid @line-split-color;
   }
   .header-text {
@@ -422,34 +420,17 @@ export default class DataSourceBar extends Vue {
       line-height: 20px;
     }
   }
-  .header-icon {
-    display: inline-block;
-    font-size: 14px;
-    padding: 3px;
-    border-radius: 50%;
-    color: @base-color;
-    &:hover {
-      background: @grey-3;
-    }
-    .el-icon-ksd-more_03 {
-      display: block;
-      position: relative;
-      left: 1px;
-    }
-    .el-icon-ksd-more_04 {
-      display: block;
-      position: relative;
-      left: -1px;
-    }
-  }
   .header-icons {
     position: relative;
     transform: translateY(4px);
-    &.right {
-      float: right;
-    }
     i {
+      float: right;
       margin-right: 4px;
+      color: @text-title-color;
+      cursor: pointer;
+      &:hover {
+        color: @base-color;
+      }
     }
     i:last-child {
       margin-right: 0;

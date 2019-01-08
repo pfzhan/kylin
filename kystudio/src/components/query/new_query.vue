@@ -4,7 +4,7 @@
       <div class="layout-left">
         <DataSourceBar
           :project-name="currentSelectedProject"
-          :is-show-load-source="true"
+          :is-show-load-source="false"
           :is-expand-on-click-node="false"
           :expand-node-types="['datasource', 'database']"
           @autoComplete="handleAutoComplete"

@@ -6,7 +6,7 @@ export const fieldVisiableMaps = {
 }
 
 export const titleMaps = {
-  'new': 'project',
+  'new': 'addProject',
   'edit': 'project'
 }
 

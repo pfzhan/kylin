@@ -1,11 +1,11 @@
 <template>
   <div class="paddingbox" id="project-list">
  <!-- <el-button type="primary" plain class="ksd-mb-20 ksd-mt-10" v-if="isAdmin && (projectList && projectList.length)" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button> -->
- <el-button type="primary" plain class="ksd-mb-20 ksd-mt-10" v-if="isAdmin && (projectList && projectList.length)" @click="newProject">+{{$t('kylinLang.common.project')}}</el-button>
+ <el-button type="primary" plain size="medium" class="ksd-mb-20 ksd-mt-10" icon="el-icon-ksd-add_2" v-if="isAdmin && (projectList && projectList.length)" @click="newProject">{{$t('kylinLang.common.project')}}</el-button>
  <div v-if="!(projectList && projectList.length)" class="nodata">
     <div class="ksd-mb-10"><img src="../../assets/img/default_project.png"></div>
     <div class="ksd-mb-20">{{$t('noProject')}}</div>
-    <el-button type="primary" class="ksd-mb-20 ksd-mt-20" v-if="isAdmin" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button>
+    <el-button type="primary" size="medium" class="ksd-mb-20 ksd-mt-20" v-if="isAdmin" @click="addProject">+{{$t('kylinLang.common.project')}}</el-button>
  </div>
   <el-table v-if="projectList && projectList.length"
     :data="projectList"
@@ -37,40 +37,39 @@
       :label="$t('name')"
       show-overflow-tooltip
       :width="320"
+      header-align="center"
       prop="name">
     </el-table-column>
     <el-table-column
       :label="$t('owner')"
       :width="220"
       show-overflow-tooltip
+      header-align="center"
       prop="owner">
     </el-table-column>
     <el-table-column
       :label="$t('description')"
       show-overflow-tooltip
+      header-align="center"
       prop="description">
     </el-table-column>
     <el-table-column
       show-overflow-tooltip
-      :width="196"
+      :width="210"
       :label="$t('createTime')"
+      header-align="center"
       prop="gmtTime">
     </el-table-column>
     <el-table-column
-      :width="100"
+      :width="92"
+      header-align="center"
       :label="$t('actions')">
       <template slot-scope="scope">
       <!--<span v-if="!(isAdmin || hasAdminProjectPermission(scope.row.uuid))">N/A</span> v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"-->
       <!-- <i class="el-icon-ksd-setting ksd-fs-16" @click="editProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"></i> -->
-      <i class="el-icon-ksd-setting ksd-fs-16" @click="changeProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"></i>
-      <el-dropdown trigger="click" class="ksd-ml-10">
-        <i class="el-icon-ksd-table_others ksd-fs-16" el-dropdown-link></i>
-      <el-dropdown-menu slot="dropdown" >
-        <!-- <el-dropdown-item @click.native="editProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)">{{$t('edit')}}</el-dropdown-item> -->
-        <el-dropdown-item @click.native="backup(scope.row)">{{$t('backup')}}</el-dropdown-item>
-        <el-dropdown-item @click.native="removeProject(scope.row)" v-if="isAdmin">{{$t('delete')}}</el-dropdown-item>
-      </el-dropdown-menu>
-      </el-dropdown>
+        <i class="el-icon-ksd-setting ksd-mr-10 ksd-fs-14" @click="changeProject(scope.row)" v-if="isAdmin || hasAdminProjectPermission(scope.row.uuid)"></i><span>
+        </span><i class="el-icon-ksd-backup ksd-mr-10 ksd-fs-14" @click="backup(scope.row)"></i><span>
+        </span><i class="el-icon-ksd-table_delete ksd-fs-14" @click="removeProject(scope.row)" v-if="isAdmin"></i>
       </template>
     </el-table-column>
     </el-table>

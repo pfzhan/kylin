@@ -1,6 +1,6 @@
 export default {
   en: {
-    backToGroupList: 'Back To Group List',
+    back: 'Back',
     user: 'User',
     userName: 'User Name',
     securityProfileTip: 'User management does not apply to the current security configuration, go to the correct permissions management page for editing.',
@@ -16,7 +16,7 @@ export default {
     cofirmDelUser: 'Are you sure to delete this user?'
   },
   'zh-cn': {
-    backToGroupList: '返回群组列表',
+    back: 'Back',
     user: '用户',
     userName: '用户名',
     securityProfileTip: '用户管理不适用于当前安全配置，请前往正确的权限管理页面编辑。',
