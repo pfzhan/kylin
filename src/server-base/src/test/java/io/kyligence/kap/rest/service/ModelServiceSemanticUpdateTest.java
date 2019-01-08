@@ -30,9 +30,6 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import io.kyligence.kap.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.cube.model.NDataLayout;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.MeasureDesc;
@@ -54,14 +51,17 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NDataLayout;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.cube.model.NRuleBasedIndex;
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModel.ColumnStatus;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
@@ -415,17 +415,22 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
     @Test
     public void testChangeJoinType() throws Exception {
         val modelMgr = NDataModelManager.getInstance(getTestConfig(), "default");
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         val originModel = getTestBasicModel();
         modelMgr.updateDataModel(MODEL_ID, model -> {
             val joins = model.getJoinTables();
             joins.get(0).getJoin().setType("inner");
         });
+        val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
+        val tableIndexCount = cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count();
         semanticService.handleSemanticUpdate("default", MODEL_ID, originModel);
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();
         events.sort(Event::compareTo);
 
         log.debug("events are {}", events);
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
+        Assert.assertEquals(tableIndexCount,
+                cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count());
     }
 
     @Test
@@ -434,6 +439,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         val originModel = getTestBasicModel();
         val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
+        val tableIndexCount = cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count();
         val ids = cube.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
 
         modelMgr.updateDataModel(MODEL_ID, model -> {
@@ -449,10 +455,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val df = dfMgr.getDataflow(MODEL_ID);
 
         Assert.assertEquals(0, df.getSegments().size());
-
-        //        val savedIds = ((AddCuboidEvent) events.get(1)).getLayoutIds();
-        //        Assert.assertTrue(CollectionUtils.isEqualCollection(savedIds,
-        //                Arrays.<Long> asList(1000001L, 1L, 100001L, 100002L, 2001L, 3001L, 2000000100001L)));
+        Assert.assertEquals(tableIndexCount,
+                df.getIndexPlan().getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count());
     }
 
     @Test
@@ -461,6 +465,7 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), "default");
         val originModel = getTestBasicModel();
         val cube = dfMgr.getDataflow(originModel.getUuid()).getIndexPlan();
+        val tableIndexCount = cube.getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count();
         val ids = cube.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toList());
 
         modelMgr.updateDataModel(MODEL_ID, model -> {
@@ -475,6 +480,8 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(events.get(0) instanceof AddCuboidEvent);
         Assert.assertEquals(1, df.getSegments().size());
         Assert.assertEquals(true, df.getSegments().get(0).getSegRange().isInfinite());
+        Assert.assertEquals(tableIndexCount,
+                df.getIndexPlan().getAllLayouts().stream().filter(l -> l.getIndex().isTableIndex()).count());
 
     }
 
@@ -626,8 +633,9 @@ public class ModelServiceSemanticUpdateTest extends NLocalFileMetadataTestCase {
 
         val indexPlan = indexPlanManager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
         val originModel = getTestInnerModel();
-        modelManager.updateDataModel(originModel.getUuid(), model -> model.setAllMeasures(model.getAllMeasures().stream()
-                .filter(m -> m.id != 100002 && m.id != 100001 && m.id != 100011).collect(Collectors.toList())));
+        modelManager.updateDataModel(originModel.getUuid(),
+                model -> model.setAllMeasures(model.getAllMeasures().stream()
+                        .filter(m -> m.id != 100002 && m.id != 100001 && m.id != 100011).collect(Collectors.toList())));
         semanticService.handleSemanticUpdate("default", indexPlan.getUuid(), originModel);
 
         val events = EventDao.getInstance(getTestConfig(), "default").getEvents();

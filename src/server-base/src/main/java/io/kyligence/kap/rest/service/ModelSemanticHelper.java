@@ -354,6 +354,7 @@ public class ModelSemanticHelper extends BasicService {
         val indexPlanManager = NIndexPlanManager.getInstance(config, cube.getProject());
         val dataflowManager = NDataflowManager.getInstance(config, cube.getProject());
         val layoutIds = cube.getWhitelistLayouts().stream()
+                .filter(layout -> !layout.getIndex().isTableIndex())
                 .filter(layout -> layout.getColOrder().stream()
                         .anyMatch(col -> col < NDataModel.MEASURE_ID_BASE && !availableDimensions.contains(col)))
                 .map(LayoutEntity::getId).collect(Collectors.toSet());
