@@ -61,8 +61,6 @@
           ref="sqlUpload"
           :headers="uploadHeader"
           action=""
-          accept="text/plain"
-          :before-upload="beforeUpload"
           :on-remove="handleRemove"
           :on-change="fileItemChange"
           :file-list="uploadItems"
@@ -227,7 +225,7 @@
             </el-option-group>
           </el-select>
           <div class="vip-users-block ksd-mb-10">
-            <div class="ksd-mt-10" v-if="submitterObj.users.length"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
+            <div class="ksd-mt-20 conds-title" v-if="submitterObj.users.length"><i class="el-icon-ksd-table_admin"></i> VIP User</div>
             <div class="vip-users">
               <el-tag
                 v-for="(user, index) in submitterObj.users"
@@ -239,7 +237,7 @@
                 {{user}}
               </el-tag>
             </div>
-            <div class="ksd-mt-10" v-if="submitterObj.groups.length"><i class="el-icon-ksd-table_group"></i> VIP Group</div>
+            <div class="ksd-mt-20 conds-title" v-if="submitterObj.groups.length"><i class="el-icon-ksd-table_group"></i> VIP Group</div>
             <div class="vip-users">
               <el-tag
                 v-for="(userGroup, index) in submitterObj.groups"
@@ -315,8 +313,8 @@ import favoriteTable from './favorite_table'
     'favorite_table': favoriteTable
   },
   locales: {
-    'en': {importSql: 'Import SQL', pleImport: 'Please Import Files', sqlFiles: 'SQL Files', createdTime: 'Create Time', selectedQuery: 'Selected Query', sqlBox: 'SQL Box', blackList: 'Black List', ruleSetting: 'Rule-based Setting', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query.<br/> Favorite query represent your main business analysis scenarios and critical decision point.<br/> System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', submitterDesc: 'Optimize queries from critical users and groups', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the edit?', whiteListDesc: 'White list helps to manage user manually defined favorite SQLs, especially for SQLs from query history list and imported SQL files.', blackListDesc: 'Black list helps to manage SQLs which are undesired for accelerating, especially for those SQLs will require unreasonable large storage or computing resource to accelerate.', ruleImpact: 'Rules Impact', ruleImpactDesc: 'Percentage of SQL queries selected by the favorite rule.', thereAre: 'There are {modelSpeedEvents} SQLs waiting for acceleration on the threshold of <span class="highlight">{threshold}</span>.', accelerateNow: 'Accelerate now', openTips: 'Expand this block to set the "Acceleration Rule"', messages: 'Error Messages:', suggestion: 'Suggestion:', from: 'From', to: 'to', secondes: 'secondes', acceleratedSQL: 'Accelerated SQL', checkAll: 'Select All', cancelAll: 'Cancel All Selection', addTofavorite: 'Add To Unaccelerate List', filesSizeError: 'Files cannot exceed 20M.'},
-    'zh-cn': {importSql: '导入SQL', pleImport: '请导入文件', sqlFiles: 'SQL文件', createdTime: '创建时间', selectedQuery: '已选择的SQL', sqlBox: 'SQL窗口', blackList: '禁用名单', ruleSetting: '规则设置', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。<br/>这类查询可以代表最主要的业务分析和重要的业务决策点。<br/>系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', submitterDesc: '优化重要⽤用户或⽤用户组发出的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？', whiteListDesc: '本列表管理用户人为指定加速的SQL查询。一般指用户从查询历史指定或导入的查询文件。', blackListDesc: '本列表管理用户不希望被加速的SQL查询。一般是指加速时对存储空间、计算力需求过大的查询。', ruleImpact: '加速规则影响⼒', ruleImpactDesc: '被加速规则选出的SQL查询的百分⽐。', thereAre: '已有{modelSpeedEvents}条SQL查询等待加速(阈值为<span class="highlight">{threshold}</span>条SQL)', accelerateNow: '立即加速', openTips: '展开此区块可设定"加速规则"', messages: '错误信息：', suggestion: '修改建议：', from: '从', to: '至', secondes: '秒', acceleratedSQL: '已加速SQL', checkAll: '全选', cancelAll: '取消全选', addTofavorite: '加入待加速列表', filesSizeError: '文件大小不能超过20M!'}
+    'en': {importSql: 'Import SQL', pleImport: 'Please Import Files', sqlFiles: 'SQL Files', createdTime: 'Create Time', selectedQuery: 'Selected Query', sqlBox: 'SQL Box', blackList: 'Black List', ruleSetting: 'Rule-based Setting', favDesc: 'Favorite queries are from both favorite rule filtered query and user defined query.<br/> Favorite query represent your main business analysis scenarios and critical decision point.<br/> System will optimize its to max performance by auto-modeling and pre-calculating.', favoriteRules: 'Favorite Rules', favRulesDesc: 'By filtering SQL\'s frequency, duration and submitter, favorite rule will catch up frequently used and business critical queries.', queryFrequency: 'Query Frequency', querySubmitter: 'Query Submitter', queryDuration: 'Query Duration', frequencyDesc: 'Optimize queries frequently used over last 24 hours', submitterDesc: 'Optimize queries from critical users and groups', durationDesc: 'Optimize queries with long duration', unit: 'Seconds / Job', inputSql: 'Add SQL', delSql: 'Are you sure to delete this sql?', giveUpEdit: 'Are you sure to give up the edit?', whiteListDesc: 'White list helps to manage user manually defined favorite SQLs, especially for SQLs from query history list and imported SQL files.', blackListDesc: 'Black list helps to manage SQLs which are undesired for accelerating, especially for those SQLs will require unreasonable large storage or computing resource to accelerate.', ruleImpact: 'Rules Impact', ruleImpactDesc: 'Percentage of SQL queries selected by the favorite rule.', thereAre: 'There are {modelSpeedEvents} SQLs waiting for acceleration on the threshold of <span class="highlight">{threshold}</span>.', accelerateNow: 'Accelerate now', openTips: 'Expand this block to set the "Acceleration Rule"', messages: 'Error Messages:', suggestion: 'Suggestion:', from: 'From', to: 'to', secondes: 'secondes', acceleratedSQL: 'Accelerated SQL', checkAll: 'Select All', cancelAll: 'Cancel All Selection', addTofavorite: 'Add To Unaccelerate List', filesSizeError: 'Files cannot exceed 20M.', fileTypeError: 'Invalid file format。'},
+    'zh-cn': {importSql: '导入SQL', pleImport: '请导入文件', sqlFiles: 'SQL文件', createdTime: '创建时间', selectedQuery: '已选择的SQL', sqlBox: 'SQL窗口', blackList: '禁用名单', ruleSetting: '规则设置', favDesc: '经过加速规则筛选或者用户主动选择的SQL查询将成为加速查询。<br/>这类查询可以代表最主要的业务分析和重要的业务决策点。<br/>系统将对其进行自动建模和预计算，确保查询效率得到提升。', favRulesDesc: '加速规则过滤不同SQL查询的频率、时长、用户等特征，筛选出高频使用的、对业务分析重要的SQL查询。', favoriteRules: '加速规则', queryFrequency: '查询频率', querySubmitter: '查询用户', queryDuration: '查询时长', frequencyDesc: '优化过去24小时内查询频率较高的查询', submitterDesc: '优化重要⽤用户或⽤用户组发出的查询', durationDesc: '优化慢查询', unit: '秒 / 任务', inputSql: '新增查询语句', delSql: '确定删除这条查询语句吗？', giveUpEdit: '确定放弃本次编辑吗？', whiteListDesc: '本列表管理用户人为指定加速的SQL查询。一般指用户从查询历史指定或导入的查询文件。', blackListDesc: '本列表管理用户不希望被加速的SQL查询。一般是指加速时对存储空间、计算力需求过大的查询。', ruleImpact: '加速规则影响⼒', ruleImpactDesc: '被加速规则选出的SQL查询的百分⽐。', thereAre: '已有{modelSpeedEvents}条SQL查询等待加速(阈值为<span class="highlight">{threshold}</span>条SQL)', accelerateNow: '立即加速', openTips: '展开此区块可设定"加速规则"', messages: '错误信息：', suggestion: '修改建议：', from: '从', to: '至', secondes: '秒', acceleratedSQL: '已加速SQL', checkAll: '全选', cancelAll: '取消全选', addTofavorite: '加入待加速列表', filesSizeError: '文件大小不能超过20M!', fileTypeError: '不支持的文件格式！'}
   }
 })
 export default class FavoriteQuery extends Vue {
@@ -686,25 +684,26 @@ export default class FavoriteQuery extends Vue {
     }
   }
   fileItemChange (file, fileList) {
-    let totalSize = 0
-    this.uploadItems = fileList.map((item) => {
-      totalSize = totalSize + item.size
-      return item.raw ? item.raw : item
-    })
-    if (totalSize > 20 * 1024 * 1024) { // 附件不能大于20M
-      this.$message.warning(this.$t('filesSizeError'))
-      this.fileSizeError = true
+    if (file.name.indexOf('.txt') !== -1 || file.name.indexOf('.sql') !== -1) {
+      let totalSize = 0
+      this.uploadItems = fileList.map((item) => {
+        totalSize = totalSize + item.size
+        return item.raw ? item.raw : item
+      })
+      if (totalSize > 20 * 1024 * 1024) { // 附件不能大于20M
+        this.$message.warning(this.$t('filesSizeError'))
+        this.fileSizeError = true
+      } else {
+        this.fileSizeError = false
+      }
     } else {
-      this.fileSizeError = false
+      this.$message.error(this.$t('fileTypeError'))
+      this.$refs['sqlUpload'].clearFiles()
     }
   }
   handleRemove (file, fileList) {
     this.uploadItems = fileList
   }
-  beforeUpload (file) {
-    console.log(file)
-  }
-
   selectable (row) {
     return row.capable ? 1 : 0
   }
@@ -1132,6 +1131,9 @@ export default class FavoriteQuery extends Vue {
       }
     }
     .ruleSettingDialog {
+      .conds-title {
+        font-weight: 500;
+      }
       .conds:not(:last-child) {
         margin-bottom: 20px;
         padding-bottom: 20px;

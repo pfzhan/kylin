@@ -58,7 +58,7 @@ export default {
       position: absolute;
       right: 0;
       top: 5px;
-      cursor: default;
+      cursor: default !important;
     }
     &.success {
       .el-progress-bar__inner {

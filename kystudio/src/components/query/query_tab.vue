@@ -118,6 +118,8 @@ export default class QueryTab extends Vue {
       this.sourceSchema = ''
       this.extraoptionObj = null
       this.errinfo = ''
+      const editor = this.$refs.insightBox
+      editor.$emit('setValue', '')
     })
   }
   submitQuery (querySql) {
@@ -182,6 +184,8 @@ export default class QueryTab extends Vue {
       this.$nextTick(() => {
         this.$refs.insightBox.$emit('focus')
       })
+    } else {
+      this.$refs.insightBox.$emit('setReadOnly', false)
     }
   }
   @Watch('completeData')

@@ -76,6 +76,9 @@ export default {
     this.$on('insert', (val) => {
       editor.insert(val)
     })
+    this.$on('setValue', (val) => {
+      editor.setValue(val)
+    })
     this.$on('setAutoCompleteData', (autoCompleteData) => {
       editor.completers.splice(0, editor.completers.length - 3)
       editor.completers.unshift({
