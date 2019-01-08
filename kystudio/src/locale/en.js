@@ -185,7 +185,7 @@ exports.default = {
     primaryPartitionWarring: 'Please set time partition column before you set primary partition column.',
     scanRangeSetting: 'Time range setting',
     sameModelName: 'Model with the same name existed.',
-    modelNameTips: '1. Model name is unique name of entire system.<br/> 2. Can not edit model name after created.',
+    modelNameTips: '1. In each project, the model name needs to be unique.<br/> 2. You can rename the model after it is created.',
     partitionDateTip: '1. Time Partition Column is not required, leave as default if cube always need full build.<br/> 2. Column should contain time value. (type can be date, timestamp, string, varchar, int, integer, bigint, etc.)',
     partitionSplitTip: 'Add multi-level partition column.',
     secondaryPartitionWarring: 'Please set time partition column before you set primary partition column.',

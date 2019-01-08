@@ -1,4 +1,4 @@
-export function addProjectDrama () {
+export function addProjectDrama (isAuto) {
   return [
     // 添加project
     {
@@ -32,12 +32,12 @@ export function addProjectDrama () {
       eventID: 1,
       done: false,
       tip: '选择project类型，分为手动设计模型和SQL加速项目',
-      target: 'changeMunalProjectType' // 鼠标移动到选择类型
+      target: isAuto ? 'changeAutoProjectType' : 'changeMunalProjectType' // 鼠标移动到选择类型
     },
     {
       eventID: 2,
       done: false,
-      target: 'changeMunalProjectType' // 鼠标点击选择类型
+      target: isAuto ? 'changeAutoProjectType' : 'changeMunalProjectType' // 鼠标点击选择类型
     },
     {
       eventID: 1,

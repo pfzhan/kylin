@@ -90,6 +90,13 @@ import Guide from 'util/guide'
       }
       return styleObj
     },
+    guideSteps () {
+      if (this.$store.state.system.guideConfig.guideType === 'auto') {
+        return this.autoGuideSteps
+      } else {
+        return this.manualGuideSteps
+      }
+    },
     globalMaksShow () {
       let showGuideMask = this.$store.state.system.guideConfig.globalMaskVisible
       if (showGuideMask) {
@@ -138,10 +145,17 @@ export default class GuidePannel extends Vue {
   guideLoading = false
   stepsList = null
   activeName = 'project'
-  guideSteps = [
+  manualGuideSteps = [
     {name: 'project', label: 'Add Project', done: false},
     {name: 'loadTable', label: 'Load Table', done: false},
     {name: 'addModel', label: 'Add Model', done: false},
+    {name: 'monitor', label: 'Monitor', done: false}
+  ]
+  autoGuideSteps = [
+    {name: 'project', label: 'Add Project', done: false},
+    {name: 'loadTable', label: 'Load Table', done: false},
+    {name: 'insight', label: 'Insight', done: false},
+    {name: 'Acceleration', label: 'Acceleration', done: false},
     {name: 'monitor', label: 'Monitor', done: false}
   ]
   guide = null

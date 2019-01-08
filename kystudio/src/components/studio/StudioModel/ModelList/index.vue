@@ -19,8 +19,8 @@
           <template slot-scope="props">
             <transition name="full-model-slide-fade">
               <div class="cell-content" v-if="props.row.showModelDetail">
-                <div  v-if="!showFull" class="row-action"><span class="tip-text">Full Screen</span><i class="el-icon-ksd-full_screen_1 full-model-box"  @click="toggleShowFull(props.$index, props.row)"></i></div>
-                <div v-else class="row-action"><span class="tip-text">Exit Full Screen</span><i class="el-icon-ksd-collapse_1 full-model-box"  @click="toggleShowFull(props.$index, props.row)"></i></div>
+                <div  v-if="!showFull" class="row-action" @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">Full Screen</span><i class="el-icon-ksd-full_screen_1 full-model-box"></i></div>
+                <div v-else class="row-action"  @click="toggleShowFull(props.$index, props.row)"><span class="tip-text">Exit Full Screen</span><i class="el-icon-ksd-collapse_1 full-model-box" ></i></div>
                 <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" />
@@ -491,6 +491,14 @@ export default class ModelList extends Vue {
     width:300px;
     text-align: right;
     z-index: 2;
+    cursor: pointer;
+    color: @text-normal-color;
+    &:hover {
+      color: @base-color;
+      .tip-text {
+        color: @base-color;
+      }
+    }
     .tip-text {
       top:10px;
       color: @text-normal-color;
@@ -522,14 +530,9 @@ export default class ModelList extends Vue {
       position: relative;
       .full-model-box {
         vertical-align:middle;
-        color: #455A64;
         font-size: 20px;
         margin-left:10px;
-        cursor: pointer;
         z-index: 10;
-        &:hover {
-          color: @base-color;
-        }
       }
     }
   }

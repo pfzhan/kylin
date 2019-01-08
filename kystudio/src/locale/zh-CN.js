@@ -182,7 +182,7 @@ exports.default = {
     checkModel: '模型检测',
     scanRangeSetting: '时间范围设置',
     sameModelName: '已存在同名的模型。',
-    modelNameTips: '1. 模型名称需要是所有项目中是唯一的。<br/> 2. 模型创建后将不能重命名。',
+    modelNameTips: '1. 在一个项目中，模型名称需要是唯一的。<br/> 2. 模型创建后，支持重命名。',
     partitionDateTip: '1. 时间分区列是可选的；如果需要经常全量构建, 请将分区时间列留空。<br/> 2. 时间分区列中应该为时间值。（类型可以是date，timestamp，string，varchar，int，integer，bigint）',
     partitionSplitTip: '增加多级分区列。',
     secondaryPartitionWarring: '设置一级分区列之前，请先设置时间分区列。',

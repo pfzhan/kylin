@@ -49,7 +49,6 @@ import { Component } from 'vue-property-decorator'
 import { mapActions } from 'vuex'
 import GuidType from '../common/Guide/GuideType'
 import Modal from '../common/Modal/Modal'
-import Guide from '../../util/guide'
 import GuidePanel from '../common/Guide/GuidePanel'
 @Component({
   methods: {
@@ -61,64 +60,11 @@ import GuidePanel from '../common/Guide/GuidePanel'
     Modal,
     GuidType,
     GuidePanel
-  },
-  computed: {
-    showGuideModeCheckDialog () {
-      return this.$store.state.system.guideConfig.guideModeCheckDialog
-    },
-    globalMaksShow () {
-      let showGuideMask = this.$store.state.system.guideConfig.globalMaskVisible
-      if (showGuideMask) {
-        this.$nextTick(() => {
-          this.showGuid.showTitle = showGuideMask
-          this.showGuid.showContent = showGuideMask
-        })
-      }
-      return showGuideMask
-    },
-    globalMouseShow () {
-      return this.$store.state.system.guideConfig.globalMouseVisible
-    },
-    globalMouseClick () {
-      return this.$store.state.system.guideConfig.globalMouseClick
-    },
-    globalMouseDrag () {
-      return this.$store.state.system.guideConfig.globalMouseDrag
-    },
-    mousePos () {
-      return {
-        position: 'absolute',
-        left: this.$store.state.system.guideConfig.mousePos.x + 'px',
-        top: this.$store.state.system.guideConfig.mousePos.y + 'px'
-      }
-    }
   }
 })
 export default class LayoutFull extends Vue {
   showDetail = false
   showCopyStatus = false
-  showGuid = {
-    showTitle: false,
-    showContent: false
-  }
-  guide = null
-  startManual () {
-    this.closeShowGuideModeCheckDialog()
-    setTimeout(() => {
-      this.guide = new Guide({}, this)
-      this.guide.start()
-    }, 1000)
-  }
-  closeShowGuideModeCheckDialog () {
-    this.$store.state.system.guideConfig.guideModeCheckDialog = false
-  }
-  closeGuide () {
-    this.showGuid.showTitle = false
-    this.showGuid.showContent = false
-    setTimeout(() => {
-      this.$store.state.system.guideConfig.globalMaskVisible = false
-    }, 500)
-  }
   toggleDetail () {
     this.showDetail = !this.showDetail
   }
