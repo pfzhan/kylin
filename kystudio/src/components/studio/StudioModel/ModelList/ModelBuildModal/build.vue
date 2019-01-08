@@ -99,9 +99,9 @@
     get timeRange () {
 
     }
-    _buildModel ({start, end, modelName}) {
+    _buildModel ({start, end, modelId}) {
       this.buildModel({
-        model: modelName,
+        modelId: modelId,
         start: start,
         end: end,
         project: this.currentSelectedProject
@@ -125,7 +125,7 @@
           start = transToUTCMs(this.modelBuildMeta.dataRangeVal[0]) || null
           end = transToUTCMs(this.modelBuildMeta.dataRangeVal[1]) || null
         }
-        this._buildModel({start: start, end: end, modelName: this.modelDesc.name})
+        this._buildModel({start: start, end: end, modelId: this.modelDesc.uuid})
       })
     }
     created () {

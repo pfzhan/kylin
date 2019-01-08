@@ -82,7 +82,7 @@
       this.$refs.renameForm.validate((valid) => {
         if (!valid) { return }
         this.btnLoading = true
-        this.renameModel({modelName: this.modelDesc.name, newModelName: this.modelEdit.newName, project: this.currentSelectedProject}).then(() => {
+        this.renameModel({modelId: this.modelDesc.uuid, newModelName: this.modelEdit.newName, project: this.currentSelectedProject}).then(() => {
           this.btnLoading = false
           kapMessage(this.$t('updateSuccessful'))
           this.closeModal(true)

@@ -106,12 +106,12 @@ export default {
       const { dispatch } = this
 
       return new Promise(async (resolve, reject) => {
-        const modelName = model && model.name
+        const modelId = model && model.uuid
 
         commit(types.SET_MODAL, { editType, model, projectName, callback: resolve })
         commit(types.SHOW_LOADING)
         commit(types.SHOW_MODAL)
-        const response = await dispatch('FETCH_AGGREGATE_GROUPS', { projectName, modelName })
+        const response = await dispatch('FETCH_AGGREGATE_GROUPS', { projectName, modelId })
         const aggregateGroupRule = await handleSuccessAsync(response)
         commit(types.INIT_FORM, aggregateGroupRule)
         commit(types.HIDE_LOADING)

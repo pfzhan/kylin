@@ -72,7 +72,7 @@ export default {
       return api.model.ignoreSpeedModelInfo(projectName)
     },
     [types.PURGE_MODEL]: function ({ commit }, para) {
-      return api.model.purgeModel(para.project, para.modelName)
+      return api.model.purgeModel(para.project, para.modelId)
     },
     [types.RENAME_MODEL]: function ({ commit }, para) {
       return api.model.renameModel(para)
@@ -188,16 +188,16 @@ export default {
       return api.model.fetchSegments(params.modelName, params.projectName, startTime, endTime, params.sortBy, params.reverse, params.pageOffset, params.pageSize)
     },
     [types.FETCH_CUBOID] ({ commit }, params) {
-      return api.model.fetchCuboid(params.modelName, params.projectName, params.cuboidId)
+      return api.model.fetchCuboid(params.modelId, params.projectName, params.cuboidId)
     },
     [types.FETCH_CUBOIDS] ({ commit }, params) {
-      return api.model.fetchCuboids(params.modelName, params.projectName)
+      return api.model.fetchCuboids(params.modelId, params.projectName)
     },
     [types.REFRESH_SEGMENTS] ({ commit }, params) {
-      return api.model.refreshSegments(params.modelName, params.projectName, params.segmentIds)
+      return api.model.refreshSegments(params.modelId, params.projectName, params.segmentIds)
     },
     [types.DELETE_SEGMENTS] ({ commit }, params) {
-      return api.model.deleteSegments(params.modelName, params.projectName, params.segmentIds)
+      return api.model.deleteSegments(params.modelId, params.projectName, params.segmentIds)
     },
     [types.MODEL_DATA_CHECK] ({ commit }, para) {
       return api.model.modelDataCheck(para)
@@ -209,10 +209,10 @@ export default {
       return api.model.setPartition(para)
     },
     [types.FETCH_AGGREGATE_GROUPS] ({ commit }, params) {
-      return api.model.fetchAggregateGroups(params.projectName, params.modelName)
+      return api.model.fetchAggregateGroups(params.projectName, params.modelId)
     },
     [types.UPDATE_AGGREGATE_GROUPS] ({ commit }, params) {
-      return api.model.updateAggregateGroups(params.projectName, params.modelName, params.dimensions, params.aggregationGroups, params.isCatchUp)
+      return api.model.updateAggregateGroups(params.projectName, params.modelId, params.dimensions, params.aggregationGroups, params.isCatchUp)
     },
     [types.FETCH_RELATED_MODEL_STATUS] ({ commit }, params) {
       return api.model.fetchRelatedModelStatus(params.projectName, params.uuids)

@@ -37,8 +37,9 @@
                   <tr class="ksd-tr">
                     <th class="label">{{$t('kylinLang.query.answered_by')}}</th>
                     <td>
-                      <el-tag v-if="!props.row.cube_hit" type="warning" size="small" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag>
-                      <el-tag v-else size="small" v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName" @click.native="openAgg(modelName)">{{modelName}}</el-tag>
+                      <!-- {{props.row.model_alias_mapping[name]}} -->
+                      <div v-if="!props.row.realizations"><el-tag  type="warning" size="small" v-for="pushdown in getAnsweredByList(props.row.answered_by)" :key="pushdown">{{pushdown}}</el-tag></div>
+                      <div v-else><el-tag size="small" v-for="modelName in getAnsweredByList(props.row.answered_by)" :key="modelName" @click.native="openAgg(props.row.model_alias_mapping[modelName])">{{modelName}}</el-tag></div>
                     </td>
                   </tr>
                   <tr class="ksd-tr">
@@ -245,8 +246,8 @@ export default class QueryHistoryTable extends Vue {
     this.$emit('loadFilterList', this.filterData)
   }
 
-  openAgg (modelName) {
-    this.$emit('openAgg', modelName)
+  openAgg (modelId) {
+    this.$emit('openAgg', modelId)
   }
   renderColumn (h) {
     if (this.filterData.startTimeFrom && this.filterData.startTimeTo) {

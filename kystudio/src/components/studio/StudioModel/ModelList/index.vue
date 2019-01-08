@@ -294,7 +294,7 @@ export default class ModelList extends Vue {
         this.$refs.modelBuildComp.$emit('buildModel', {
           start: null,
           end: null,
-          modelName: modelDesc.alias
+          modelId: modelDesc.uuid
         })
       })
     }
@@ -351,7 +351,7 @@ export default class ModelList extends Vue {
     })
   }
   handleModel (action, modelDesc, successTip) {
-    this[action]({modelName: modelDesc.name, project: this.currentSelectedProject}).then(() => {
+    this[action]({modelId: modelDesc.uuid, project: this.currentSelectedProject}).then(() => {
       kapMessage(successTip)
       this.loadModelsList()
     }, (res) => {

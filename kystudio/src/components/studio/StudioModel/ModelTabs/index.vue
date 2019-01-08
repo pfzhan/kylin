@@ -69,7 +69,6 @@ let MessageBox = ElementUI.MessageBox
   methods: {
     ...mapActions({
       loadModels: 'LOAD_MODEL_LIST',
-      cloneModel: 'CLONE_MODEL',
       delModel: 'DELETE_MODEL',
       checkModelName: 'CHECK_MODELNAME',
       getUserAccess: 'USER_ACCESS'

@@ -261,7 +261,7 @@ export default {
       return api.datasource.fetchPushdownConfig(para.projectName, para.tableFullName)
     },
     [types.DISCARD_TABLE_MODEL]: function ({commit}, para) {
-      return api.datasource.discardTableModel(para.projectName, para.modelName)
+      return api.datasource.discardTableModel(para.projectName, para.modelId)
     },
     [types.FETCH_NEWEST_TABLE_RANGE]: function ({commit}, para) {
       return api.datasource.fetchNewestTableRange(para.projectName, para.tableFullName)

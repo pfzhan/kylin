@@ -163,7 +163,7 @@
         if (!valid) { return }
         this.btnLoading = true
         this.checkModelData({
-          modelName: this.modelDesc.name,
+          modelId: this.modelDesc.uuid,
           data: {
             project: this.currentSelectedProject,
             check_options: this.checkDataOptionsVal,

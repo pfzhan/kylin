@@ -82,7 +82,7 @@
       this.$refs.cloneForm.validate((valid) => {
         if (!valid) { return }
         this.btnLoading = true
-        this.cloneModel({modelName: this.modelDesc.name, newModelName: this.modelClone.newName, project: this.currentSelectedProject}).then(() => {
+        this.cloneModel({modelId: this.modelDesc.uuid, newModelName: this.modelClone.newName, project: this.currentSelectedProject}).then(() => {
           this.btnLoading = false
           kapMessage(this.$t('cloneSuccessful'))
           this.closeModal(true)

@@ -197,7 +197,7 @@ export default class ModelSegment extends Vue {
     try {
       const { startDate, endDate, sortBy, reverse } = this.filter
       const projectName = this.currentSelectedProject
-      const modelName = this.model.name
+      const modelName = this.model.uuid
       const startTime = startDate && transToUTCMs(startDate)
       const endTime = endDate && transToUTCMs(endDate)
 
@@ -219,14 +219,14 @@ export default class ModelSegment extends Vue {
         const segmentNames = this.selectedSegments.map(segment => segment.name)
         const segmentArray = `[${segmentNames.join('\r\n')}]`
         const projectName = this.currentSelectedProject
-        const modelName = this.model.name
+        const modelId = this.model.uuid
         const confirmTitle = this.$t('kylinLang.common.notice')
         const confirmMessage = this.$t('confirmRefreshSegments', { segmentArray })
         const confirmButtonText = this.$t('kylinLang.common.ok')
         const cancelButtonText = this.$t('kylinLang.common.cancel')
         const customClass = 'pre'
         await this.$confirm(confirmMessage, confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText, customClass })
-        const isSubmit = await this.refreshSegments({ projectName, modelName, segmentIds })
+        const isSubmit = await this.refreshSegments({ projectName, modelId, segmentIds })
         if (isSubmit) {
           await this.loadSegments()
           this.$message({ type: 'success', message: this.$t('kylinLang.common.updateSuccess') })
@@ -254,14 +254,14 @@ export default class ModelSegment extends Vue {
         this.$message(this.$t('pleaseSelectSegments'))
       } else {
         const projectName = this.currentSelectedProject
-        const modelName = this.model.name
+        const modelId = this.model.uuid
         const segmentIdStr = this.selectedSegmentIds.join(',')
         const confirmTitle = this.$t('kylinLang.common.notice')
         const confirmMessage = this.$t('confirmDeleteSegments')
         const confirmButtonText = this.$t('kylinLang.common.ok')
         const cancelButtonText = this.$t('kylinLang.common.cancel')
         await this.$confirm(confirmMessage, confirmTitle, { type: 'warning', confirmButtonText, cancelButtonText })
-        await this.deleteSegments({ projectName, modelName, segmentIds: segmentIdStr })
+        await this.deleteSegments({ projectName, modelId, segmentIds: segmentIdStr })
         this.$message({ type: 'success', message: this.$t('kylinLang.common.delSuccess') })
         await this.loadSegments()
       }

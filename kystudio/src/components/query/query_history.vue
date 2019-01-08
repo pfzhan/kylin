@@ -91,11 +91,11 @@ export default class QueryHistory extends Vue {
   }
   modelName = 'query_history_table.vue'
 
-  async openAgg (modelName) {
+  async openAgg (modelId) {
     this.aggDetailVisible = true
-    this.modelName = modelName
+    this.modelName = modelId
 
-    const res = await this.fetchCuboids({modelName: this.modelName, projectName: this.currentSelectedProject})
+    const res = await this.fetchCuboids({modelId: this.modelName, projectName: this.currentSelectedProject})
     const data = await handleSuccessAsync(res)
     this.cuboids = formatFlowerJson(data)
     this.cuboidCount = getCuboidCounts(data)
@@ -105,7 +105,7 @@ export default class QueryHistory extends Vue {
     const cuboidId = node.cuboid.id
     const res = await this.fetchCuboid({
       projectName: this.currentSelectedProject,
-      modelName: this.modelName,
+      modelId: this.modelName,
       cuboidId
     })
     const cuboid = await handleSuccessAsync(res)

@@ -18,8 +18,8 @@ export default {
     return Vue.resource(apiUrl + 'query/favorite_queries/ignore/' + projectName).update()
   },
   // purge
-  purgeModel: (project, modelName) => {
-    return Vue.resource(apiUrl + 'models/segments/' + project + '/' + modelName).delete()
+  purgeModel: (project, modelId) => {
+    return Vue.resource(apiUrl + 'models/segments/' + project + '/' + modelId).delete()
   },
   getModelList: (params) => {
     return Vue.resource(apiUrl + 'models').get(params)
@@ -42,7 +42,7 @@ export default {
     return Vue.resource(apiUrl + 'models').get(para)
   },
   deleteModel: (para) => {
-    return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.modelName).delete()
+    return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.modelId).delete()
   },
   collectStats: (para) => {
     return Vue.resource(apiUrl + 'models/' + para.project + '/' + para.modelname + '/stats').save(para.data)
@@ -120,29 +120,29 @@ export default {
     return Vue.resource(`${apiUrl}models/relations`).get({model, project})
   },
   getTableIndex: (para) => {
-    return Vue.resource(apiUrl + 'cube_plans/table_index').get(para)
+    return Vue.resource(apiUrl + 'index_plans/table_index').get(para)
   },
   editTableIndex: (para) => {
-    return Vue.resource(apiUrl + 'cube_plans/table_index').update(para)
+    return Vue.resource(apiUrl + 'index_plans/table_index').update(para)
   },
   delTableIndex: (para) => {
-    return Vue.resource(apiUrl + 'cube_plans/table_index/' + para.project + '/' + para.model + '/' + para.tableIndexId).delete()
+    return Vue.resource(apiUrl + 'index_plans/table_index/' + para.project + '/' + para.model + '/' + para.tableIndexId).delete()
   },
   addTableIndex: (para) => {
-    return Vue.resource(apiUrl + 'cube_plans/table_index').save(para)
+    return Vue.resource(apiUrl + 'index_plans/table_index').save(para)
   },
   refreshTableIndex: (para) => {
-    return Vue.resource(apiUrl + 'cube_plans/table_index').save(para)
+    return Vue.resource(apiUrl + 'index_plans/table_index').save(para)
   },
-  refreshSegments: (modelName, project, ids) => {
-    return Vue.resource(apiUrl + 'models/segments').update({ modelName, project, ids })
+  refreshSegments: (modelId, project, ids) => {
+    return Vue.resource(apiUrl + 'models/segments').update({ modelId, project, ids })
   },
   deleteSegments: (model, project, ids) => {
     return Vue.resource(`${apiUrl}models/segments/${project}/${model}`).delete({ ids })
   },
   // 弃用
   modelDataCheck: (para) => {
-    return Vue.resource(apiUrl + 'models/' + para.modelName + '/data_check').update(para.data)
+    return Vue.resource(apiUrl + 'models/' + para.modelId + '/data_check').update(para.data)
   },
   buildModel: (para) => {
     return Vue.resource(apiUrl + 'models/segments').save(para)
@@ -151,10 +151,10 @@ export default {
     return Vue.resource(apiUrl + 'models/partition_desc').save(para)
   },
   fetchAggregateGroups: (project, model) => {
-    return Vue.resource(apiUrl + 'cube_plans/rule').get({ project, model })
+    return Vue.resource(apiUrl + 'index_plans/rule').get({ project, model })
   },
-  updateAggregateGroups: (project, model, dimensions, aggregationGroups, isCatchUp) => {
-    return Vue.resource(apiUrl + 'cube_plans/rule').update({ project, model, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp })
+  updateAggregateGroups: (project, modelId, dimensions, aggregationGroups, isCatchUp) => {
+    return Vue.resource(apiUrl + 'index_plans/rule').update({ project, modelId, dimensions, aggregation_groups: aggregationGroups, load_data: isCatchUp })
   },
   fetchRelatedModelStatus: (project, uuids) => {
     const body = { project, uuids }

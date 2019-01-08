@@ -166,7 +166,7 @@ export default class RelatedModels extends Vue {
   }
   async handleDiscard (relatedModel) {
     try {
-      const modelName = relatedModel.name
+      const modelId = relatedModel.uuid
       const { projectName } = this
       const message = this.$t('kylinLang.common.updateSuccess')
       const confirmMessage = this.$t('dicardConfirm')
@@ -176,7 +176,7 @@ export default class RelatedModels extends Vue {
         cancelButtonText: this.$t('kylinLang.common.cancel'),
         type: 'warning'
       })
-      await this.discardTableModel({ projectName, modelName })
+      await this.discardTableModel({ projectName, modelId })
       this.$message({ message, type: 'success' })
       relatedModel.management_type = 'MODEL_BASED'
     } catch (e) {

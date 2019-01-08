@@ -176,15 +176,16 @@ export default class ModelAggregate extends Vue {
   async handleClickNode (node) {
     const res = await this.fetchCuboid({
       projectName: this.projectName,
-      modelName: this.model.name,
+      modelId: this.model.uuid,
       cuboidId: node.cuboid.id
     })
     this.cuboidData = await handleSuccessAsync(res)
   }
   async freshCuboids () {
-    const projectName = this.projectName
-    const modelName = this.model.name
-    const res = await this.fetchCuboids({ modelName, projectName })
+    const res = await this.fetchCuboids({
+      projectName: this.projectName,
+      modelId: this.model.uuid
+    })
     const data = await handleSuccessAsync(res)
     this.cuboids = formatFlowerJson(data)
     this.cuboidCount = getCuboidCounts(data)

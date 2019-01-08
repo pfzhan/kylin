@@ -384,7 +384,7 @@ export default class AggregateModal extends Vue {
         const { aggregateArray, isCatchUp } = form
         return {
           projectName,
-          modelName: model.name,
+          modelId: model.uuid,
           isCatchUp,
           dimensions: usedDimensions.map(dimensionItem => dimensionIdMapping[dimensionItem]),
           aggregationGroups: aggregateArray.map(aggregate => ({

@@ -220,7 +220,7 @@ export default class TableIndex extends Vue {
     kapConfirm(this.$t('kylinLang.common.confirmDel')).then(() => {
       this.deleteTableIndex({
         project: this.currentSelectedProject,
-        model: this.modelDesc.name,
+        model: this.modelDesc.uuid,
         tableIndexId: id
       }).then((res) => {
         handleSuccess(res, (data) => {
@@ -238,7 +238,7 @@ export default class TableIndex extends Vue {
   getAllTableIndex () {
     this.loadAllTableIndex({
       project: this.currentSelectedProject,
-      model: this.modelDesc.name
+      model: this.modelDesc.uuid
     }).then((res) => {
       handleSuccess(res, (data) => {
         this.tableIndexBaseList.splice(0, this.tableIndexBaseList.length - 1)

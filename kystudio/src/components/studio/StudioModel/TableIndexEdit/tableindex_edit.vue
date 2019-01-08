@@ -305,7 +305,7 @@
           }
         })
         this.tableIndexMeta.project = this.currentSelectedProject
-        this.tableIndexMeta.model = this.modelInstance.name
+        this.tableIndexMeta.modelId = this.modelInstance.uuid
         if (this.tableIndexMeta.id) {
           this.editTableIndex(this.tableIndexMeta).then(successCb, errorCb)
         } else {
