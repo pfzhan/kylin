@@ -150,8 +150,8 @@ public class EventDao {
                 .collect(Collectors.toList());
     }
 
-    public List<Event> getJobRelatedEventsByModel(String modelName) {
-        return getJobRelatedEvents().stream().filter(event -> event.getModelName().equals(modelName))
+    public List<Event> getJobRelatedEventsByModel(String modelId) {
+        return getJobRelatedEvents().stream().filter(event -> event.getModelId().equals(modelId))
                 .collect(Collectors.toList());
     }
 }

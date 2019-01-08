@@ -363,16 +363,16 @@ public class JobService extends BasicService {
         List<Event> jobRelatedEvents = getEventDao(project).getJobRelatedEvents();
 
         jobRelatedEvents.forEach(event -> {
-            String modelName = event.getModelName();
-            EventModelResponse eventModelResponse = models.get(modelName);
+            String modelId = event.getModelId();
+            EventModelResponse eventModelResponse = models.get(modelId);
 
             if (eventModelResponse == null) {
-                String modelAlias = getDataModelManager(project).getDataModelDesc(modelName).getAlias();
+                String modelAlias = getDataModelManager(project).getDataModelDesc(modelId).getAlias();
                 eventModelResponse = new EventModelResponse(0, modelAlias);
             }
 
             eventModelResponse.updateSize();
-            models.put(modelName, eventModelResponse);
+            models.put(modelId, eventModelResponse);
         });
 
         result.put("data", models);
@@ -380,8 +380,8 @@ public class JobService extends BasicService {
         return result;
     }
 
-    public List<EventResponse> getWaitingJobsByModel(String project, String modelName) {
-        List<Event> jobRelatedEvents = getEventDao(project).getJobRelatedEventsByModel(modelName);
+    public List<EventResponse> getWaitingJobsByModel(String project, String modelId) {
+        List<Event> jobRelatedEvents = getEventDao(project).getJobRelatedEventsByModel(modelId);
 
         jobRelatedEvents.sort(Comparator.comparingLong(Event::getSequenceId).reversed());
         return jobRelatedEvents.stream().map(event -> new EventResponse(getJobType(event), event.getLastModified()))

@@ -313,20 +313,20 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(6, result.get("size"));
         Map<String, EventModelResponse> models = (Map<String, EventModelResponse>) result.get("data");
         Assert.assertEquals(2, models.size());
-        Assert.assertTrue(models.containsKey("nmodel_basic"));
-        Assert.assertTrue(models.containsKey("all_fixed_length"));
-        EventModelResponse model1 = models.get("nmodel_basic");
+        Assert.assertTrue(models.containsKey("89af4ee2-2cdb-4b07-b39e-4c29856309aa"));
+        Assert.assertTrue(models.containsKey("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96"));
+        EventModelResponse model1 = models.get("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(4, model1.getSize());
         Assert.assertEquals("nmodel_basic", model1.getModelAlias());
-        EventModelResponse model2 = models.get("all_fixed_length");
+        EventModelResponse model2 = models.get("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
         Assert.assertEquals(2, model2.getSize());
         Assert.assertEquals("all_fixed_length", model2.getModelAlias());
 
-        List<EventResponse> response = jobService.getWaitingJobsByModel("default", "nmodel_basic");
+        List<EventResponse> response = jobService.getWaitingJobsByModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(4, response.size());
         Assert.assertEquals(JobTypeEnum.INDEX_BUILD.toString(), response.get(3).getJobType());
         Assert.assertEquals(JobTypeEnum.INDEX_REFRESH.toString(), response.get(0).getJobType());
-        response = jobService.getWaitingJobsByModel("default", "all_fixed_length");
+        response = jobService.getWaitingJobsByModel("default", "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
         Assert.assertEquals(2, response.size());
         Assert.assertEquals(JobTypeEnum.INDEX_BUILD.toString(), response.get(1).getJobType());
         Assert.assertEquals(JobTypeEnum.INC_BUILD.toString(), response.get(0).getJobType());
@@ -335,31 +335,31 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
     private void prepareEventData() {
         EventDao eventDao = EventDao.getInstance(getTestConfig(), "default");
         Event event1 = new AddCuboidEvent();
-        event1.setModelName("nmodel_basic");
+        event1.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         eventDao.addEvent(event1);
 
         Event event2 = new AddSegmentEvent();
-        event2.setModelName("nmodel_basic");
+        event2.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         eventDao.addEvent(event2);
 
         Event event3 = new MergeSegmentEvent();
-        event3.setModelName("nmodel_basic");
+        event3.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         eventDao.addEvent(event3);
 
         Event event4 = new RefreshSegmentEvent();
-        event4.setModelName("nmodel_basic");
+        event4.setModelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         eventDao.addEvent(event4);
 
         Event event5 = new AddCuboidEvent();
-        event5.setModelName("all_fixed_length");
+        event5.setModelId("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
         eventDao.addEvent(event5);
 
         Event event6 = new AddSegmentEvent();
-        event6.setModelName("all_fixed_length");
+        event6.setModelId("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
         eventDao.addEvent(event6);
 
         Event event7 = new PostAddCuboidEvent();
-        event7.setModelName("all_fixed_length");
+        event7.setModelId("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
         eventDao.addEvent(event7);
     }
 
