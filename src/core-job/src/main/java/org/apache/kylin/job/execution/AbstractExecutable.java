@@ -56,11 +56,15 @@ import java.util.function.Consumer;
 
 import lombok.Getter;
 import lombok.Setter;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.MailService;
+import org.apache.kylin.common.util.StringUtil;
 import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobSuicideException;
@@ -76,10 +80,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
@@ -166,7 +172,18 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         return topJobTargetSegments.stream().anyMatch(this::checkTargetSegmentExists);
     }
 
-    public void suicideIfNecessary() {
+    private boolean checkAnyLayoutExists() {
+        val layouts = getParam(NBatchConstants.P_LAYOUT_IDS);
+        if (StringUtils.isEmpty(layouts)) {
+            return true;
+        }
+        val cubeManager = NIndexPlanManager.getInstance(config, getProject());
+        val cube = cubeManager.getIndexPlan(targetModel);
+        val allLayoutIds = cube.getAllLayouts().stream().map(l -> l.getId() + "").collect(Collectors.toSet());
+        return Stream.of(StringUtil.splitAndTrim(layouts, ",")).anyMatch(allLayoutIds::contains);
+    }
+
+    private void suicideIfNecessary() {
         if (needSuicide()) {
             Map<String, String> info = Maps.newHashMap();
             info.put(END_TIME, Long.toString(System.currentTimeMillis()));
@@ -176,8 +193,8 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         }
     }
 
-    public boolean needSuicide() {
-        return !checkAnyTargetSegmentExists() || checkCuttingInJobByModel();
+    private boolean needSuicide() {
+        return !checkAnyTargetSegmentExists() || checkCuttingInJobByModel() || !checkAnyLayoutExists();
     }
 
     public boolean checkCuttingInJobByModel() {

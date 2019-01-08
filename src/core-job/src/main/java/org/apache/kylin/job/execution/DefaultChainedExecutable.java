@@ -47,6 +47,7 @@ import java.util.Map;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
+import org.apache.kylin.job.exception.JobSuicideException;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -61,6 +62,7 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
         super();
     }
 
+    @Override
     public void initConfig(KylinConfig config) {
         super.initConfig(config);
         for (AbstractExecutable sub : subTasks) {
@@ -86,16 +88,20 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                         "invalid subtask state, subtask:" + subTask.getName() + ", state:" + subTask.getStatus());
             }
             if (subTask.isRunnable()) {
-                return subTask.execute(context);
+                try {
+                    return subTask.execute(context);
+                } catch (JobSuicideException e) {
+                    return ExecuteResult.createSucceed();
+                } catch (ExecuteException e) {
+                    if (e.getCause() instanceof JobSuicideException) {
+                        return ExecuteResult.createSucceed();
+                    }
+                    throw e;
+                }
             }
         }
         return ExecuteResult.createSucceed();
 
-    }
-
-    @Override
-    protected void onExecuteStart(ExecutableContext executableContext) {
-        super.onExecuteStart(executableContext);
     }
 
     @Override
@@ -106,8 +112,6 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
 
     @Override
     protected void onExecuteFinished(ExecuteResult result, ExecutableContext executableContext) {
-        NExecutableManager mgr = getManager();
-
         Map<String, String> info = Maps.newHashMap();
 
         if (isDiscarded()) {
@@ -120,30 +124,32 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             List<? extends Executable> jobs = getTasks();
             boolean allSucceed = true;
             boolean hasError = false;
-            boolean hasRunning = false;
             boolean hasDiscarded = false;
+            boolean hasSuicidal = false;
             for (Executable task : jobs) {
-                if (task.getStatus() == ExecutableState.RUNNING) {
+                switch (task.getStatus()) {
+                case RUNNING:
                     logger.error(
                             "There shouldn't be a running subtask[jobId: {}, jobName: {}], \n"
                                     + "it might cause endless state, will retry to fetch subtask's state.",
                             task.getId(), task.getName());
-                    boolean retryRet = retryFetchTaskStatus(task);
-                    if (!retryRet)
-                        hasError = true;
+                    hasError = true;
+                    break;
+                case ERROR:
+                    hasError = true;
+                    break;
+                case DISCARDED:
+                    hasDiscarded = true;
+                    break;
+                case SUICIDAL:
+                    hasSuicidal = true;
+                    break;
+                default:
+                    break;
                 }
                 final ExecutableState status = task.getStatus();
-                if (status == ExecutableState.ERROR) {
-                    hasError = true;
-                }
                 if (status != ExecutableState.SUCCEED) {
                     allSucceed = false;
-                }
-                if (status == ExecutableState.RUNNING) {
-                    hasRunning = true;
-                }
-                if (status == ExecutableState.DISCARDED) {
-                    hasDiscarded = true;
                 }
             }
             if (allSucceed) {
@@ -152,22 +158,21 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 notifyUserStatusChange(executableContext, ExecutableState.SUCCEED);
             } else if (hasError) {
                 setEndTime(info);
-                updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null,
-                        jobId -> onExecuteErrorHook(jobId));
+                updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null, this::onExecuteErrorHook);
                 notifyUserStatusChange(executableContext, ExecutableState.ERROR);
-            } else if (hasRunning) {
-                updateJobOutput(getProject(), getId(), ExecutableState.RUNNING, null, null);
             } else if (hasDiscarded) {
                 setEndTime(info);
                 updateJobOutput(getProject(), getId(), ExecutableState.DISCARDED, info, null);
+            } else if (hasSuicidal) {
+                setEndTime(info);
+                updateJobOutput(getProject(), getId(), ExecutableState.SUICIDAL, info, null);
             } else {
                 //TODO: normal?
                 updateJobOutput(getProject(), getId(), ExecutableState.READY, null, null);
             }
         } else {
             setEndTime(info);
-            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null,
-                    jobId -> onExecuteErrorHook(jobId));
+            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null, this::onExecuteErrorHook);
             notifyUserStatusChange(executableContext, ExecutableState.ERROR);
         }
     }

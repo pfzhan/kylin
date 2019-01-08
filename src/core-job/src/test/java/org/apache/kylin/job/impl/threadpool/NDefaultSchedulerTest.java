@@ -28,7 +28,6 @@ import java.io.FileNotFoundException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.BaseTestExecutable;
@@ -50,11 +49,17 @@ import org.junit.rules.ExpectedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Sets;
+
+import io.kyligence.kap.common.persistence.transaction.mq.MessageQueue;
+import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.cube.model.NBatchConstants;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.cube.model.NIndexPlanManager;
 import lombok.val;
 
 public class NDefaultSchedulerTest extends BaseSchedulerTest {
@@ -77,7 +82,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     @Test
     public void testSingleTaskJob() throws Exception {
         logger.info("testSingleTaskJob");
-        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
@@ -95,7 +101,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     @Test
     public void testSucceed() throws Exception {
         logger.info("testSucceed");
-        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
@@ -118,7 +125,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     @Test
     public void testSucceedAndFailed() throws Exception {
         logger.info("testSucceedAndFailed");
-        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
@@ -141,7 +149,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     @Test
     public void testSucceedAndError() throws Exception {
         logger.info("testSucceedAndError");
-        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
@@ -164,7 +173,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     @Test
     public void testDiscard() throws Exception {
         logger.info("testDiscard");
-        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
@@ -186,7 +196,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     @Test
     public void testIllegalState() throws Exception {
         logger.info("testIllegalState");
-        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
@@ -234,6 +245,50 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     }
 
     @Test
+    public void testSuicide_RemoveLayout() {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val job = initNoErrorJob(modelId);
+        val mgr = NIndexPlanManager.getInstance(getTestConfig(), project);
+        mgr.updateIndexPlan(modelId, copyForWrite -> {
+            copyForWrite.removeLayouts(Sets.newHashSet(1L, 10001L), LayoutEntity::equals, true, true);
+        });
+
+        waitForJobFinish(job.getId());
+        val output = executableManager.getOutput(job.getId());
+        Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
+    }
+
+    @Test
+    public void testSuccess_RemoveSomeLayout() {
+        val modelId = "89af4ee2-2cdb-4b07-b39e-4c29856309aa";
+        val job = initNoErrorJob(modelId);
+        val mgr = NIndexPlanManager.getInstance(getTestConfig(), project);
+        mgr.updateIndexPlan(modelId, copyForWrite -> {
+            copyForWrite.removeLayouts(Sets.newHashSet(1L), LayoutEntity::equals, true, true);
+        });
+
+        waitForJobFinish(job.getId());
+        val output = executableManager.getOutput(job.getId());
+        Assert.assertEquals(ExecutableState.SUCCEED, output.getState());
+    }
+
+    private AbstractExecutable initNoErrorJob(String modelId) {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+        NoErrorStatusExecutable job = new NoErrorStatusExecutable();
+        job.setProject("default");
+        job.setTargetModel(modelId);
+        val df = dfMgr.getDataflow(job.getTargetModel());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        val task = new SucceedTestExecutable();
+        task.setTargetModel(modelId);
+        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        task.setParam(NBatchConstants.P_LAYOUT_IDS, "1,10001");
+        job.addTask(task);
+        executableManager.addJob(job);
+        return job;
+    }
+
+    @Test
     public void testSuicide_AfterSuccess() throws Exception {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutable job = new NoErrorStatusExecutable();
@@ -255,11 +310,10 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         waitForJobFinish(job.getId());
         val output = executableManager.getOutput(job.getId());
         Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
-        Assert.assertTrue(output.getVerboseMsg().contains("suicide"));
     }
 
     @Test
-    public void testSuicide_JobCuttingIn() {
+    public void testSuicide_JobCuttingIn() throws InterruptedException {
         val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
         NoErrorStatusExecutable job = new NoErrorStatusExecutable();
         job.setProject("default");
@@ -275,6 +329,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         executableManager.addJob(job);
 
+        Thread.sleep(100);
         NoErrorStatusExecutable job2 = new NoErrorStatusExecutable();
         job2.setProject("default");
         job2.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
@@ -418,7 +473,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     public void testSchedulerStop() throws Exception {
         logger.info("testSchedulerStop");
 
-        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
@@ -449,7 +505,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
         // testSchedulerStopCase2 shutdown first, then the job added will not be scheduled
         scheduler.shutdown();
 
-        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
@@ -467,7 +524,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
     public void testSchedulerRestart() throws Exception {
         logger.info("testSchedulerRestart");
 
-        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
@@ -492,7 +550,8 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
     @Test
     public void testRetryableException() throws Exception {
-        val df = NDataflowManager.getInstance(getTestConfig(), project).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        val df = NDataflowManager.getInstance(getTestConfig(), project)
+                .getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         DefaultChainedExecutable job = new DefaultChainedExecutable();
         job.setProject("default");
         job.setTargetModel(df.getModel().getUuid());
