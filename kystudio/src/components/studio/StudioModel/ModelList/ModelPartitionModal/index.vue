@@ -30,6 +30,7 @@
         <el-col :span="12">
           <el-form-item prop="date1">
              <el-select v-guide.partitionTable v-model="partitionMeta.table" @change="partitionTableChange" :placeholder="$t('kylinLang.common.pleaseSelect')" style="width:248px">
+               <el-option :label="$t('noPartition')" value=""></el-option>
               <el-option :label="t.alias" :value="t.alias" v-for="t in partitionTables" :key="t.alias">{{t.alias}}</el-option>
             </el-select>
           </el-form-item>
@@ -184,7 +185,7 @@ export default class ModelPartitionModal extends Vue {
     {label: '', value: ''}
   ]
   get partitionTables () {
-    let result = ['']
+    let result = []
     if (this.isShow && this.modelInstance) {
       Object.values(this.modelInstance.tables).forEach((nTable) => {
         if (nTable.kind === 'FACT') {
