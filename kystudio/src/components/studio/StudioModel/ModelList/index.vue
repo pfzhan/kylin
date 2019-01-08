@@ -19,8 +19,8 @@
           <template slot-scope="props">
             <transition name="full-model-slide-fade">
               <div class="cell-content" v-if="props.row.showModelDetail">
-                <i class="el-icon-ksd-full_screen_1 ksd-fright full-model-box" v-if="!showFull" @click="toggleShowFull(props.$index, props.row)"></i>
-                <i class="el-icon-ksd-collapse_1 ksd-fright full-model-box" v-else @click="toggleShowFull(props.$index, props.row)"></i>
+                <div  v-if="!showFull" class="row-action"><span class="tip-text">Full Screen</span><i class="el-icon-ksd-full_screen_1 full-model-box"  @click="toggleShowFull(props.$index, props.row)"></i></div>
+                <div v-else class="row-action"><span class="tip-text">Exit Full Screen</span><i class="el-icon-ksd-collapse_1 full-model-box"  @click="toggleShowFull(props.$index, props.row)"></i></div>
                 <el-tabs class="el-tabs--default model-detail-tabs" v-model="props.row.tabTypes">
                   <el-tab-pane :label="$t('segment')" name="first">
                     <ModelSegment :model="props.row" v-if="props.row.tabTypes === 'first'" @purge-model="model => handleCommand('purge', model)" />
@@ -61,13 +61,13 @@
           prop="usage"
           show-overflow-tooltip
           width="90px"
-          :label="$t('Usage')">
+          :label="$t('usage')">
         </el-table-column>
          <el-table-column
           prop="storage"
           show-overflow-tooltip
           width="90px"
-          :label="$t('Storage')">
+          :label="$t('storage')">
         </el-table-column>
         <el-table-column
           prop="gmtTime"
@@ -172,6 +172,16 @@ import ModelPartitionModal from './ModelPartitionModal/index.vue'
 import { mockSQL } from './mock'
 import '../../../../util/fly.js'
 @Component({
+  beforeRouteEnter (to, from, next) {
+    next(vm => {
+      if (from.params.modelName) {
+        vm.currentEditModel = from.params.modelName
+      }
+      if (to.params.addIndex) {
+        vm.showFull = true
+      }
+    })
+  },
   computed: {
     ...mapGetters([
       'currentSelectedProject',
@@ -180,13 +190,7 @@ import '../../../../util/fly.js'
       'isAutoProject'
     ]),
     currentExtandRow () {
-      // toggleShowFull
-      let currentExtandRow = this.$store.state.model.currentEditModel
-      if (this.$store.state.model.currentEditModel) {
-        this.showFull = true
-        // this.$store.state.model.currentEditModel = null
-      }
-      return currentExtandRow
+      return [this.currentEditModel]
     }
   },
   methods: {
@@ -241,6 +245,7 @@ export default class ModelList extends Vue {
     sortBy: '',
     reverse: true
   }
+  currentEditModel = null
   showFull = false
   showSearchResult = false
   searchLoading = false
@@ -380,7 +385,7 @@ export default class ModelList extends Vue {
       this.$set(item, 'showModelDetail', true)
       this.modelArray.push({
         ...item,
-        tabTypes: this.$store.state.model.currentEditModel === item.alias ? 'second' : 'first'
+        tabTypes: this.currentEditModel === item.alias ? 'second' : 'first'
       })
     })
   }
@@ -405,7 +410,7 @@ export default class ModelList extends Vue {
       this.$nextTick(() => {
         if (scrollBoxDom) {
           if (this.showFull) {
-            this.$store.state.model.currentEditModel = row.alias
+            this.currentEditModel = row.alias
             scrollBoxDom.scrollTop = 0
           } else {
             scrollBoxDom.scrollTop = row.hisScrollTop
@@ -459,9 +464,6 @@ export default class ModelList extends Vue {
       this.loadModelsList()
     }
   }
-  destroyed () {
-    this.$store.state.model.currentEditModel = null
-  }
 }
 </script>
 <style lang="less">
@@ -480,6 +482,18 @@ export default class ModelList extends Vue {
   .model-detail-tabs {
     &>.el-tabs__header{
       margin-bottom:0;
+    }
+  }
+  .row-action {
+    position: absolute;
+    right:0;
+    top:8px;
+    width:300px;
+    text-align: right;
+    z-index: 2;
+    .tip-text {
+      top:10px;
+      color: @text-normal-color;
     }
   }
   .notice-box {
@@ -507,11 +521,10 @@ export default class ModelList extends Vue {
     .cell-content {
       position: relative;
       .full-model-box {
+        vertical-align:middle;
         color: #455A64;
         font-size: 20px;
-        top: 10px;
-        right: 0px;
-        position: absolute;
+        margin-left:10px;
         cursor: pointer;
         z-index: 10;
         &:hover {
@@ -523,6 +536,10 @@ export default class ModelList extends Vue {
   margin-left: 20px;
   margin-right: 20px;
   &.full-cell {
+    .row-action {
+      right:20px;
+      top:20px;
+    }
     margin: 0 20px;
     position: relative;
     .segment-settings {

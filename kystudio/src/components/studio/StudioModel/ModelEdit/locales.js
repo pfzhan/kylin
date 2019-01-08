@@ -37,7 +37,11 @@ export default {
     modelDataNullTip: 'Failed to find this model!',
     saveSuccessTip: 'Model saved successfully. To enable it, you may need to add some indexes and load data into the model.',
     addIndexTip: 'Add Index',
-    ignoreaddIndexTip: 'No Thanks'
+    ignoreaddIndexTip: 'No Thanks',
+    noDimensionTipContent: 'No dimension and measure in the model. After the save, you can add table index for query on transaction resords. If the model needs to serve aggregate query,  we would suggest you to add some dimensions and measures.',
+    noDimensionTipTitle: 'Add Dimension and Measure',
+    noDimensionGoOnSave: 'Save',
+    noDimensionBackEdit: 'Back to edit'
   },
   'zh-cn': {
     'adddimension': '添加维度',
@@ -77,6 +81,10 @@ export default {
     modelDataNullTip: '没有找到当前模型!',
     saveSuccessTip: '模型保存成功。为了真正启用本模型，您需要在模型中添加索引并向其加载数据。',
     addIndexTip: '添加索引',
-    ignoreaddIndexTip: '不需要'
+    ignoreaddIndexTip: '不需要',
+    noDimensionTipContent: '本模型中尚无维度和度量，如此保存后将无法添加聚合索引。如果只需要明细查询，继续保存即可。如果本模型后续将服务于聚合函数的查询，系统建议您添加一些要分析的维度和度量。',
+    noDimensionTipTitle: '添加维度和度量',
+    noDimensionGoOnSave: '继续保存',
+    noDimensionBackEdit: '回到编辑'
   }
 }

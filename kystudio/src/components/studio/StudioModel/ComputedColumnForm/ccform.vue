@@ -27,10 +27,10 @@
       <div class="ky-error-content">{{errorMsg}}</div>
     </div>
     <div class="btn-group clearfix ksd-mt-6">
-      <!-- <el-button size="small" plain @click="delCC" class="ksd-fleft" v-if="ccDesc">{{$t('kylinLang.common.delete')}}</el-button> -->
-      <el-button type="primary" size="small" @click="addCC" class="ksd-fright" v-if="isEdit && !isPureForm" :loading="checkBtnLoading">
+      <el-button type="primary" size="small" @click="addCC" class="ksd-fright ksd-ml-10" v-if="isEdit && !isPureForm" :loading="checkBtnLoading">
         {{$t('kylinLang.common.save')}}
       </el-button>
+      <el-button size="small" plain @click="cancelCC" class="ksd-fright" v-if="!isPureForm">{{$t('kylinLang.common.cancel')}}</el-button>
     </div>
   </el-form>
   </div>

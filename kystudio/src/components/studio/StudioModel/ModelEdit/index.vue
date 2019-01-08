@@ -82,7 +82,7 @@
           <div class="panel-box panel-dimension" @mousedown.stop="activePanel('dimension')" :style="panelStyle('dimension')" v-if="panelAppear.dimension.display">
             <div class="panel-title" @mousedown="activePanel('dimension')" v-drag:change.right.top="panelAppear.dimension">
               <span><i class="el-icon-ksd-dimension"></i></span>
-              <span class="title">{{$t('kylinLang.common.dimension')}} ({{allDimension.length}})</span>
+              <span class="title">{{$t('kylinLang.common.dimension')}} <template v-if="allDimension.length">({{allDimension.length}})</template></span>
               <span class="close" @click="toggleMenu('dimension')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
@@ -154,7 +154,7 @@
           <div class="panel-box panel-measure" @mousedown.stop="activePanel('measure')" :style="panelStyle('measure')"  v-if="panelAppear.measure.display">
             <div class="panel-title" @mousedown="activePanel('measure')" v-drag:change.right.top="panelAppear.measure">
               <span><i class="el-icon-ksd-measure"></i></span>
-              <span class="title">{{$t('kylinLang.common.measure')}} ({{modelRender.all_measures.length}})</span>
+              <span class="title">{{$t('kylinLang.common.measure')}}<template v-if="modelRender.all_measures.length">({{modelRender.all_measures.length}})</template></span>
               <span class="close" @click="toggleMenu('measure')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
@@ -222,7 +222,7 @@
           <div class="panel-box panel-cc" @mousedown.stop="activePanel('cc')" :style="panelStyle('cc')"  v-if="panelAppear.cc.display">
             <div class="panel-title" @mousedown="activePanel('cc')" v-drag:change.right.top="panelAppear.cc">
               <span><i class="el-icon-ksd-auto_computed_column"></i></span>
-              <span class="title">{{$t('kylinLang.model.computedColumn')}} ({{modelRender.computed_columns.length}})</span>
+              <span class="title">{{$t('kylinLang.model.computedColumn')}} <template v-if="modelRender.computed_columns.length">({{modelRender.computed_columns.length}})</template></span>
               <span class="close" @click="toggleMenu('cc')"><i class="el-icon-ksd-close"></i></span>
             </div>
             <div class="panel-sub-title">
@@ -405,7 +405,6 @@
       <DragBar :dragData="currentEditTable.drawSize"/>
       <!-- 拖动操纵 -->
     </div>
-    
   </div>
 </template>
 <script>
@@ -1249,18 +1248,29 @@ export default class ModelEdit extends Vue {
     })
     this.$on('saveModel', () => {
       this.modelInstance.generateMetadata().then((data) => {
-        if (this.modelRender.management_type !== 'TABLE_ORIENTED') {
-          this.showPartitionDialog({
-            modelDesc: data
-          }).then((res) => {
-            if (res.isSubmit) {
-              this.handleSaveModel(data)
-            } else {
-              this.$emit('saveRequestEnd')
-            }
+        let _saveFunc = () => {
+          if (this.modelRender.management_type !== 'TABLE_ORIENTED') {
+            this.showPartitionDialog({
+              modelDesc: data
+            }).then((res) => {
+              if (res.isSubmit) {
+                this.handleSaveModel(data)
+              } else {
+                this.$emit('saveRequestEnd')
+              }
+            })
+          } else {
+            this.handleSaveModel(data)
+          }
+        }
+        if (!(data.all_named_columns && data.all_named_columns.length)) {
+          this._tipNoDimension().then(() => {
+            _saveFunc()
+          }).catch(() => {
+            this.$emit('saveRequestEnd')
           })
         } else {
-          this.handleSaveModel(data)
+          _saveFunc()
         }
       }, (errMsg) => {
         kapMessage(this.$t(modelErrorMsg[errMsg]), {type: 'warning'})
@@ -1268,6 +1278,17 @@ export default class ModelEdit extends Vue {
       }).catch(() => {
         this.$emit('saveRequestEnd')
       })
+    })
+  }
+  _tipNoDimension () {
+    let tipContent = this.$t('noDimensionTipContent')
+    let tipTitle = this.$t('noDimensionTipTitle')
+    let saveBtnWord = this.$t('noDimensionGoOnSave')
+    let cancelBtnWord = this.$t('noDimensionBackEdit')
+    return this.$confirm(tipContent, tipTitle, {
+      confirmButtonText: saveBtnWord,
+      cancelButtonText: cancelBtnWord,
+      type: 'warning'
     })
   }
   handleSaveModel (data) {
@@ -1286,8 +1307,7 @@ export default class ModelEdit extends Vue {
             type: 'success',
             confirmButtonClass: 'guide-gotoindex-btn'
           }).then(() => {
-            this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
-            this.$store.state.model.currentEditModel = data.name
+            this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true, addIndex: true }})
           }).catch(() => {
             this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
           })

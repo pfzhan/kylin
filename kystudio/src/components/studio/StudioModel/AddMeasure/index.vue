@@ -42,7 +42,7 @@
                   :key="index"
                   :label="item.name"
                   :value="item.name">
-                  <span>{{item.name}}</span>
+                  <span :title="item.name">{{item.name | omit(26, '...')}}</span>
                   <span class="ky-option-sub-info">{{item.datatype}}</span>
                 </el-option>
               </el-option-group>
@@ -72,7 +72,7 @@
                 :key="index"
                 :label="item.name"
                 :value="item.name">
-                <span>{{item.name}}</span>
+                <span :title="item.name">{{item.name | omit(26, '...')}}</span>
                 <span class="ky-option-sub-info">{{item.datatype}}</span>
               </el-option>
             </el-select>
@@ -90,7 +90,7 @@
                 :key="index"
                 :label="item.name"
                 :value="item.name">
-                <span>{{item.name}}</span>
+                <span :title="item.name">{{item.name | omit(26, '...')}}</span>
                 <span class="ky-option-sub-info">{{item.datatype}}</span>
               </el-option>
             </el-option-group>

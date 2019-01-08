@@ -140,6 +140,7 @@ export default {
   deleteSegments: (model, project, ids) => {
     return Vue.resource(`${apiUrl}models/segments/${project}/${model}`).delete({ ids })
   },
+  // 弃用
   modelDataCheck: (para) => {
     return Vue.resource(apiUrl + 'models/' + para.modelName + '/data_check').update(para.data)
   },
