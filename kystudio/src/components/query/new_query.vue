@@ -280,7 +280,7 @@ export default class NewQuery extends Vue {
     this.editableTabs = this.getQueryTabs && this.getQueryTabs[this.currentSelectedProject]
     ? this.getQueryTabs[this.currentSelectedProject]
     : [{
-      title: 'Work Space',
+      title: this.$t('kylinLang.query.sqlEditor'),
       name: 'WorkSpace',
       icon: '',
       spin: true,

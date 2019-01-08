@@ -276,7 +276,8 @@ exports.default = {
   },
   query: {
     saveQuery: '保存查询',
-    reLoad: '重载',
+    reLoad: '已保存的查询',
+    sqlEditor: '查询编辑器',
     refreshQuery: '刷新',
     name: '查询名称',
     desc: '描述',

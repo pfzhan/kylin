@@ -279,7 +279,8 @@ exports.default = {
   },
   query: {
     saveQuery: 'Save Query',
-    reLoad: 'ReLoad',
+    reLoad: 'Saved Query',
+    sqlEditor: 'SQL Editor',
     refreshQuery: 'Refresh',
     name: 'Query Name',
     desc: 'Description',

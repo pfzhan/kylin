@@ -173,9 +173,12 @@ export default {
       }
     }
     .el-popover {
-      right: 5px;
-      top: -40px;
+      right: 40px;
+      top: 0px;
       min-width: 80px;
+      background-color: transparent;
+      border-color: transparent;
+      box-shadow: none;
       .el-icon-circle-check {
         color: @normal-color-1;
       }
