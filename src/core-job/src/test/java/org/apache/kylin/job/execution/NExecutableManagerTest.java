@@ -31,15 +31,17 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.List;
 
-import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.IllegalStateTranferException;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import lombok.val;
 
 /**
  */
@@ -153,8 +155,8 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         manager.addJob(executable);
         manager.discardJob(executable.getId());
 
-        val duration = AbstractExecutable.getDurationIncludingPendingTime(executable.getCreateTime(), executable.getEndTime(),
-                executable.getInterruptTime());
+        val duration = AbstractExecutable.getDurationIncludingPendingTime(executable.getCreateTime(),
+                executable.getEndTime(), executable.getInterruptTime());
         Thread.sleep(3000);
         Assert.assertEquals(duration, AbstractExecutable.getDurationIncludingPendingTime(executable.getCreateTime(),
                 executable.getEndTime(), executable.getInterruptTime()));
@@ -199,7 +201,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testResumeAllRunningJobsHappyCase(){
+    public void testResumeAllRunningJobsHappyCase() {
         BaseTestExecutable executable = new SucceedTestExecutable();
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
@@ -214,7 +216,7 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testResumeAllRunningJobsIsolationWithProject(){
+    public void testResumeAllRunningJobsIsolationWithProject() {
         BaseTestExecutable executable = new SucceedTestExecutable();
         manager.addJob(executable);
         manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
@@ -239,7 +241,6 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
         job = ssbManager.getJob(ssbExecutable.getId());
         // the status of jobs in project ssb is still running
         Assert.assertEquals(job.getStatus(), ExecutableState.RUNNING);
-
 
     }
 
@@ -271,5 +272,71 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
                 }
             }
         }
+    }
+
+    @Test
+    public void testResumeJob_AllStep() {
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setName(JobTypeEnum.INDEX_BUILD.toString());
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
+        job.setTargetModel("test");
+        SucceedTestExecutable executable = new SucceedTestExecutable();
+        job.addTask(executable);
+        SucceedTestExecutable executable2 = new SucceedTestExecutable();
+        job.addTask(executable2);
+        job.setProject("default");
+        manager.addJob(job);
+        manager.pauseJob(job.getId());
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUCCEED, null, null);
+        manager.updateJobOutput(executable2.getId(), ExecutableState.STOPPED, null, null);
+
+        manager.resumeJob(job.getId(), true);
+        DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
+        Assert.assertTrue(job1.getStatus().equals(ExecutableState.READY));
+
+        job1.getTasks().forEach(task -> {
+            Assert.assertEquals(ExecutableState.READY, task.getStatus());
+        });
+    }
+
+    @Test
+    public void testPauseJob_IncBuildJobDataFlowStatusChange() {
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setName(JobTypeEnum.INC_BUILD.toString());
+        job.setJobType(JobTypeEnum.INC_BUILD);
+        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        SucceedTestExecutable executable = new SucceedTestExecutable();
+        job.addTask(executable);
+        job.setProject("default");
+        manager.addJob(job);
+        manager.pauseJob(job.getId());
+
+        DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
+        Assert.assertTrue(job1.getStatus().equals(ExecutableState.STOPPED));
+
+        val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(RealizationStatusEnum.LAG_BEHIND, dataflow.getStatus());
+    }
+
+    @Test
+    public void testPauseJob_IndexBuildJobDataFlowStatusNotChange() {
+        DefaultChainedExecutable job = new DefaultChainedExecutable();
+        job.setName(JobTypeEnum.INDEX_BUILD.toString());
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
+        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        SucceedTestExecutable executable = new SucceedTestExecutable();
+        job.addTask(executable);
+        job.setProject("default");
+        manager.addJob(job);
+        manager.pauseJob(job.getId());
+
+        DefaultChainedExecutable job1 = (DefaultChainedExecutable) manager.getJob(job.getId());
+        Assert.assertTrue(job1.getStatus().equals(ExecutableState.STOPPED));
+
+        val dataflow = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), "default")
+                .getDataflowByModelAlias("nmodel_basic");
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, dataflow.getStatus());
     }
 }

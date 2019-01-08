@@ -117,6 +117,7 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 int nError = 0;
                 int nDiscarded = 0;
                 int nSucceed = 0;
+                int nSuicidal = 0;
                 for (final String path : executableManager.getJobPaths()) {
                     if (runningJobs.containsKey(NExecutableManager.extractId(path))) {
                         nRunning++;
@@ -142,6 +143,9 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                     case STOPPED:
                         nStopped++;
                         break;
+                    case SUICIDAL:
+                        nSuicidal++;
+                        break;
                     default:
                         nOthers++;
                         break;
@@ -149,8 +153,8 @@ public class NDefaultScheduler implements Scheduler<AbstractExecutable>, Connect
                 }
 
                 logger.info(
-                        "{} Job Status: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} others",
-                        project, nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded, nOthers);
+                        "{} Job Status: {} should running, {} actual running, {} stopped, {} ready, {} already succeed, {} error, {} discarded, {} suicidal,  {} others",
+                        project, nRunning, runningJobs.size(), nStopped, nReady, nSucceed, nError, nDiscarded, nSuicidal, nOthers);
             } catch (Exception e) {
                 logger.warn("Job Fetcher caught a exception ", e);
             }

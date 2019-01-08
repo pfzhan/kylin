@@ -49,7 +49,6 @@ import org.apache.kylin.common.util.Pair;
 import org.apache.kylin.job.common.ShellExecutable;
 import org.apache.kylin.job.constant.JobStatusEnum;
 import org.apache.kylin.job.constant.JobTimeFilterEnum;
-import org.apache.kylin.job.dao.ExecutablePO;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
@@ -188,7 +187,7 @@ public class JobService extends BasicService {
 
         switch (status) {
         case DISCARDED:
-            return ExecutableState.DISCARDED;
+            return ExecutableState.SUICIDAL;
         case ERROR:
             return ExecutableState.ERROR;
         case FINISHED:
@@ -214,12 +213,12 @@ public class JobService extends BasicService {
             return JobStatusEnum.RUNNING;
         case ERROR:
             return JobStatusEnum.ERROR;
-        case DISCARDED:
-            return JobStatusEnum.DISCARDED;
         case SUCCEED:
             return JobStatusEnum.FINISHED;
         case STOPPED:
             return JobStatusEnum.STOPPED;
+        case SUICIDAL:
+            return JobStatusEnum.DISCARDED;
         default:
             throw new RuntimeException("invalid state:" + state);
         }
@@ -236,6 +235,9 @@ public class JobService extends BasicService {
         switch (JobActionEnum.valueOf(action)) {
         case RESUME:
             executableManager.resumeJob(jobId);
+            break;
+        case RESTART:
+            executableManager.resumeJob(jobId, true);
             break;
         case DISCARD:
             cancelJob(project, jobId);
@@ -304,7 +306,7 @@ public class JobService extends BasicService {
     }
 
     @Transaction(project = 1)
-    public void updateJobStatusBatchly(List<String> jobIds, String project, String action, String status)
+    public void batchUpdateJobStatus(List<String> jobIds, String project, String action, String status)
             throws IOException {
         val executableManager = getExecutableManager(project);
         val jobs = executableManager.getExecutablesByStatus(jobIds, status);
@@ -314,24 +316,12 @@ public class JobService extends BasicService {
     }
 
     @Transaction(project = 0)
-    public void dropJobBatchly(String project, List<String> jobIds, String status) throws IOException {
+    public void batchDropJob(String project, List<String> jobIds, String status) throws IOException {
         val executableManager = getExecutableManager(project);
         val jobs = executableManager.getExecutablesByStatus(jobIds, status);
         for (val job : jobs) {
             dropJob(project, job.getId());
         }
-    }
-
-    @Transaction(project = 0)
-    public void addJob(String project, ExecutablePO executablePO) {
-        val executableManager = getExecutableManager(project);
-        executableManager.addJob(executablePO);
-    }
-
-    @Transaction(project = 0)
-    public void resumeJob(String project, String jobId) {
-        val executableManager = getExecutableManager(project);
-        executableManager.resumeJob(jobId);
     }
 
     public JobStatisticsResponse getJobStats(String project, long startTime, long endTime) {

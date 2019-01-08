@@ -138,7 +138,7 @@ public class NJobControllerTest {
 
     @Test
     public void testDropJob() throws Exception {
-        Mockito.doNothing().when(jobService).dropJobBatchly("default",
+        Mockito.doNothing().when(jobService).batchDropJob("default",
                 Lists.newArrayList("e1ad7bb0-522e-456a-859d-2eab1df448de"), "");
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs/{project}", "default")
                 .param("jobIds", "e1ad7bb0-522e-456a-859d-2eab1df448de").param("status", "")
@@ -151,7 +151,7 @@ public class NJobControllerTest {
 
     @Test
     public void testDropJob_selectNoneJob_exception() throws Exception {
-        Mockito.doNothing().when(jobService).dropJobBatchly("default", Lists.newArrayList(), "");
+        Mockito.doNothing().when(jobService).batchDropJob("default", Lists.newArrayList(), "");
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/jobs/{project}", "default").param("jobIds", "")
                 .param("status", "").accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isBadRequest());
@@ -162,7 +162,7 @@ public class NJobControllerTest {
     @Test
     public void testUpdateJobStatus_PASS() throws Exception {
         val request = mockJobUpdateRequest();
-        Mockito.doNothing().when(jobService).updateJobStatusBatchly(mockJobUpdateRequest().getJobIds(), "default",
+        Mockito.doNothing().when(jobService).batchUpdateJobStatus(mockJobUpdateRequest().getJobIds(), "default",
                 "RESUME", mockJobUpdateRequest().getStatus());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))
@@ -175,7 +175,7 @@ public class NJobControllerTest {
     public void testUpdateJobStatus_selectNoneJob_Exception() throws Exception {
         val request = mockJobUpdateRequest();
         request.setJobIds(Lists.newArrayList());
-        Mockito.doNothing().when(jobService).updateJobStatusBatchly(mockJobUpdateRequest().getJobIds(), "default",
+        Mockito.doNothing().when(jobService).batchUpdateJobStatus(mockJobUpdateRequest().getJobIds(), "default",
                 "RESUME", mockJobUpdateRequest().getStatus());
         mockMvc.perform(MockMvcRequestBuilders.put("/api/jobs/status").contentType(MediaType.APPLICATION_JSON)
                 .content(JsonUtil.writeValueAsString(request))

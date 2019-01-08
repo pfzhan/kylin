@@ -52,8 +52,10 @@ import java.util.IllegalFormatException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 
-import lombok.val;
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -63,6 +65,7 @@ import org.apache.kylin.job.constant.ExecutableConstants;
 import org.apache.kylin.job.exception.ExecuteException;
 import org.apache.kylin.job.exception.JobSuicideException;
 import org.apache.kylin.job.impl.threadpool.DefaultContext;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,8 +79,10 @@ import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import lombok.val;
 
 /**
  */
@@ -98,6 +103,9 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     private KylinConfig config;
     private String name;
+    @Getter
+    @Setter
+    private JobTypeEnum jobType;
 
     public long getDataRangeStart() {
         return dataRangeStart;
@@ -159,13 +167,29 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
     }
 
     public void suicideIfNecessary() {
-        if (!checkAnyTargetSegmentExists()) {
+        if (needSuicide()) {
             Map<String, String> info = Maps.newHashMap();
             info.put(END_TIME, Long.toString(System.currentTimeMillis()));
-            updateJobOutput(project, getId(), ExecutableState.DISCARDED, info,
+            updateJobOutput(project, getId(), ExecutableState.SUICIDAL, null,
                     "suicide as its subject model/segment no longer exists");
             throw new JobSuicideException();
         }
+    }
+
+    public boolean needSuicide() {
+        return !checkAnyTargetSegmentExists() || checkCuttingInJobByModel();
+    }
+
+    public boolean checkCuttingInJobByModel() {
+        AbstractExecutable parent = getParent();
+        if (parent == null) {
+            parent = this;
+        }
+        if (!JobTypeEnum.INDEX_BUILD.equals(parent.getJobType())) {
+            return false;
+        }
+        val model = parent.getTargetModel();
+        return NExecutableManager.getInstance(config, getProject()).countCuttingInJobByModel(model, parent) > 0;
     }
 
     public void setTargetModel(String targetModel) {
@@ -227,11 +251,53 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         Preconditions.checkState(this.getStatus() == ExecutableState.RUNNING);
 
         setEndTime(result);
-        updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg());
+        updateJobOutput(project, getId(), ExecutableState.ERROR, result.getExtraInfo(), result.getErrorMsg(),
+                jobId -> onExecuteErrorHook(jobId));
+    }
+
+    protected void onExecuteStopHook() {
+        onExecuteErrorHook(getId());
+    }
+
+    protected void onExecuteErrorHook(String jobId) {
+        if (!(this instanceof DefaultChainedExecutable)) {
+            return;
+        }
+        markDFLagBehindIfNecessary(jobId);
+    }
+
+    private void markDFLagBehindIfNecessary(String jobId) {
+        if (!JobTypeEnum.INC_BUILD.equals(this.jobType)) {
+            return;
+        }
+        val dataflow = getDataflow(jobId);
+        if (dataflow == null || RealizationStatusEnum.LAG_BEHIND.equals(dataflow.getStatus())) {
+            return;
+        }
+        val model = dataflow.getModel();
+        if (ManagementType.MODEL_BASED.equals(model.getManagementType())) {
+            return;
+        }
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        dfManager.updateDataflow(dataflow.getId(),
+                copyForWrite -> copyForWrite.setStatus(RealizationStatusEnum.LAG_BEHIND));
+    }
+
+    private NDataflow getDataflow(String jobId) {
+        val execManager = getExecutableManager(getProject());
+        val executable = (DefaultChainedExecutable) execManager.getJob(jobId);
+        val modelId = executable.getTargetModel();
+        val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), getProject());
+        return dfManager.getDataflow(modelId);
     }
 
     public static void updateJobOutput(String project, String jobId, ExecutableState newStatus,
             Map<String, String> info, String output) {
+        updateJobOutput(project, jobId, newStatus, info, output, null);
+    }
+
+    public static void updateJobOutput(String project, String jobId, ExecutableState newStatus,
+            Map<String, String> info, String output, Consumer<String> hook) {
         UnitOfWork.doInTransactionWithRetry(() -> {
             NExecutableManager executableManager = getExecutableManager(project);
             val existedInfo = executableManager.getOutput(jobId).getExtra();
@@ -239,11 +305,14 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
                 existedInfo.putAll(info);
             }
             executableManager.updateJobOutput(jobId, newStatus, existedInfo, output);
+            if (hook != null) {
+                hook.accept(jobId);
+            }
             return null;
         }, project);
     }
 
-    private static NExecutableManager getExecutableManager(String project) {
+    protected static NExecutableManager getExecutableManager(String project) {
         return NExecutableManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
     }
 

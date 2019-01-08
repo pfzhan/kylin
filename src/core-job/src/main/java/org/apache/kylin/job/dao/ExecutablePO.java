@@ -56,6 +56,7 @@ import org.apache.kylin.common.persistence.RootPersistentEntity;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
+import org.apache.kylin.job.execution.JobTypeEnum;
 
 /**
  */
@@ -81,7 +82,7 @@ public class ExecutablePO extends RootPersistentEntity {
     private Set<NDataSegment> segments = Sets.newHashSet();
 
     @JsonProperty("job_type")
-    private String jobType;
+    private JobTypeEnum jobType;
 
     @JsonProperty("data_range_start")
     private long dataRangeStart;

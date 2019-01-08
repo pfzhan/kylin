@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -56,23 +55,26 @@ import com.google.common.collect.Multimaps;
  */
 public enum ExecutableState {
 
-    READY, RUNNING, ERROR, STOPPED, DISCARDED, SUCCEED;
+    READY, RUNNING, ERROR, STOPPED, DISCARDED, SUCCEED, SUICIDAL;
 
     private static Multimap<ExecutableState, ExecutableState> VALID_STATE_TRANSFER;
 
     static {
-        VALID_STATE_TRANSFER = Multimaps.newSetMultimap(Maps.<ExecutableState, Collection<ExecutableState>> newEnumMap(ExecutableState.class), new Supplier<Set<ExecutableState>>() {
-            @Override
-            public Set<ExecutableState> get() {
-                return new CopyOnWriteArraySet<ExecutableState>();
-            }
-        });
+        VALID_STATE_TRANSFER = Multimaps.newSetMultimap(
+                Maps.<ExecutableState, Collection<ExecutableState>> newEnumMap(ExecutableState.class),
+                new Supplier<Set<ExecutableState>>() {
+                    @Override
+                    public Set<ExecutableState> get() {
+                        return new CopyOnWriteArraySet<ExecutableState>();
+                    }
+                });
 
         //scheduler
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.RUNNING);
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.ERROR);
         //user
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.DISCARDED);
+        VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.SUICIDAL);
 
         //job
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.READY);
@@ -82,6 +84,7 @@ public enum ExecutableState {
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.DISCARDED);
         //scheduler,job
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.ERROR);
+        VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.SUICIDAL);
 
         VALID_STATE_TRANSFER.put(ExecutableState.STOPPED, ExecutableState.DISCARDED);
         VALID_STATE_TRANSFER.put(ExecutableState.STOPPED, ExecutableState.READY);
@@ -89,10 +92,8 @@ public enum ExecutableState {
         VALID_STATE_TRANSFER.put(ExecutableState.ERROR, ExecutableState.DISCARDED);
         VALID_STATE_TRANSFER.put(ExecutableState.ERROR, ExecutableState.READY);
 
-
         VALID_STATE_TRANSFER.put(ExecutableState.READY, ExecutableState.STOPPED);
         VALID_STATE_TRANSFER.put(ExecutableState.RUNNING, ExecutableState.STOPPED);
-
 
         //rollback
         VALID_STATE_TRANSFER.put(ExecutableState.SUCCEED, ExecutableState.READY);
@@ -104,7 +105,7 @@ public enum ExecutableState {
     }
 
     public boolean isFinalState() {
-        return this == SUCCEED || this == DISCARDED;
+        return this == SUCCEED || this == DISCARDED || this == SUICIDAL;
     }
 
     public static boolean isValidStateTransfer(ExecutableState from, ExecutableState to) {

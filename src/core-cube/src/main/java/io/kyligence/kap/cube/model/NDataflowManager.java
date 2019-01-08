@@ -127,8 +127,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
     }
 
     @Override
-    public IRealization getRealization(String name) {
-        return getDataflow(name);
+    public IRealization getRealization(String id) {
+        return getDataflow(id);
     }
 
     private ResourceStore getStore() {
@@ -139,8 +139,8 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return crud.listAll();
     }
 
-    public NDataflow getDataflow(String name) {
-        return crud.get(name);
+    public NDataflow getDataflow(String id) {
+        return crud.get(id);
     }
 
     public NDataflow getDataflowByModelAlias(String name) {
@@ -386,12 +386,12 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         void modify(NDataflow copyForWrite);
     }
 
-    public NDataflow updateDataflow(String dfName, NDataflowUpdater updater) {
-        NDataflow cached = getDataflow(dfName);
+    public NDataflow updateDataflow(String dfId, NDataflowUpdater updater) {
+        NDataflow cached = getDataflow(dfId);
         NDataflow copy = copy(cached);
         updater.modify(copy);
         if (copy.getSegments().stream().map(seg -> seg.getLayoutsMap().keySet()).distinct().count() > 1) {
-            logger.warn("Dataflow <{}> is not a prefect square", dfName);
+            logger.warn("Dataflow <{}> is not a prefect square", dfId);
         }
         return crud.save(copy);
     }
@@ -472,10 +472,13 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         });
     }
 
-    public NDataflow dropDataflow(String dfName) {
-        logger.info("Dropping NDataflow '{}'", dfName);
-
-        NDataflow df = getDataflow(dfName);
+    public NDataflow dropDataflow(String dfId) {
+        NDataflow df = getDataflow(dfId);
+        var dfInfo = dfId;
+        if (df != null) {
+            dfInfo = df.toString();
+        }
+        logger.info("Dropping NDataflow '{}'", dfInfo);
 
         // delete NDataSegDetails first
         NDataSegDetailsManager segDetailsManager = NDataSegDetailsManager.getInstance(config, project);
@@ -489,9 +492,9 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         return df;
     }
 
-    public List<NDataSegment> calculateHoles(String dfName) {
+    public List<NDataSegment> calculateHoles(String dfId) {
         List<NDataSegment> holes = Lists.newArrayList();
-        final NDataflow df = getDataflow(dfName);
+        final NDataflow df = getDataflow(dfId);
         Preconditions.checkNotNull(df);
         final List<NDataSegment> segments = df.getSegments();
         if (segments.size() == 0) {

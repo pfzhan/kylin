@@ -183,15 +183,15 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         NDataflowManager dsMgr = NDataflowManager.getInstance(jobService.getConfig(), "default");
         SucceedTestExecutable executable = new SucceedTestExecutable();
         manager.addJob(executable);
-        jobService.updateJobStatusBatchly(Lists.newArrayList(executable.getId()), "default", "PAUSE", "");
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "PAUSE", "");
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.STOPPED));
-        jobService.updateJobStatusBatchly(Lists.newArrayList(executable.getId()), "default", "RESUME", "");
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "RESUME", "");
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.READY));
-        jobService.updateJobStatusBatchly(Lists.newArrayList(executable.getId()), "default", "DISCARD", "");
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD", "");
         Assert.assertTrue(manager.getJob(executable.getId()).getStatus().equals(ExecutableState.DISCARDED));
         Assert.assertTrue(dsMgr.getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa").getSegments().getFirstSegment() == null);
         Mockito.doNothing().when(tableExtService).removeJobIdFromTableExt(executable.getId(), "default");
-        jobService.dropJobBatchly("default", Lists.newArrayList(executable.getId()), "");
+        jobService.batchDropJob("default", Lists.newArrayList(executable.getId()), "");
         List<AbstractExecutable> executables = manager.getAllExecutables();
         Assert.assertTrue(!executables.contains(executable));
     }
@@ -207,7 +207,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(ExecutableState.SUCCEED, executable.getStatus());
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("The job " + executable.getId() + " has already been succeed and cannot be discarded.");
-        jobService.updateJobStatusBatchly(Lists.newArrayList(executable.getId()), "default", "DISCARD", "");
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "DISCARD", "");
     }
 
     @Test
@@ -221,7 +221,7 @@ public class JobServiceTest extends NLocalFileMetadataTestCase {
         executable.setName("test");
         manager.addJob(executable);
         thrown.expect(IllegalStateException.class);
-        jobService.updateJobStatusBatchly(Lists.newArrayList(executable.getId()), "default", "ROLLBACK", "");
+        jobService.batchUpdateJobStatus(Lists.newArrayList(executable.getId()), "default", "ROLLBACK", "");
     }
 
     @Test

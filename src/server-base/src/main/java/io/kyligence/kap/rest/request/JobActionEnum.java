@@ -26,5 +26,5 @@ package io.kyligence.kap.rest.request;
 
 public enum JobActionEnum {
 
-    RESUME, DISCARD, PAUSE, ROLLBACK
+    RESUME, DISCARD, PAUSE, ROLLBACK, RESTART
 }

@@ -37,10 +37,12 @@ import org.apache.kylin.job.execution.ErrorTestExecutable;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.FailedTestExecutable;
 import org.apache.kylin.job.execution.FiveSecondSucceedTestExecutable;
+import org.apache.kylin.job.execution.JobTypeEnum;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.apache.kylin.job.execution.NoErrorStatusExecutable;
 import org.apache.kylin.job.execution.SelfStopExecutable;
 import org.apache.kylin.job.execution.SucceedTestExecutable;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -51,6 +53,8 @@ import org.slf4j.LoggerFactory;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.model.ManagementType;
+import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
 
 public class NDefaultSchedulerTest extends BaseSchedulerTest {
@@ -224,7 +228,7 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         waitForJobFinish(job.getId());
         val output = executableManager.getOutput(job.getId());
-        Assert.assertEquals(ExecutableState.DISCARDED, output.getState());
+        Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
         Assert.assertTrue(output.getVerboseMsg().contains("suicide"));
 
     }
@@ -250,8 +254,106 @@ public class NDefaultSchedulerTest extends BaseSchedulerTest {
 
         waitForJobFinish(job.getId());
         val output = executableManager.getOutput(job.getId());
-        Assert.assertEquals(ExecutableState.DISCARDED, output.getState());
+        Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
         Assert.assertTrue(output.getVerboseMsg().contains("suicide"));
+    }
+
+    @Test
+    public void testSuicide_JobCuttingIn() {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+        NoErrorStatusExecutable job = new NoErrorStatusExecutable();
+        job.setProject("default");
+        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job.setName(JobTypeEnum.INDEX_BUILD.toString());
+        job.setJobType(JobTypeEnum.INDEX_BUILD);
+        val df = dfMgr.getDataflow(job.getTargetModel());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        val task = new FiveSecondSucceedTestExecutable();
+        task.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task);
+
+        executableManager.addJob(job);
+
+        NoErrorStatusExecutable job2 = new NoErrorStatusExecutable();
+        job2.setProject("default");
+        job2.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        val task2 = new SucceedTestExecutable();
+        task2.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task2.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+
+        job2.addTask(task2);
+        executableManager.addJob(job2);
+
+        waitForJobFinish(job.getId());
+        val output = executableManager.getOutput(job.getId());
+        Assert.assertEquals(ExecutableState.SUICIDAL, output.getState());
+        Assert.assertTrue(output.getVerboseMsg().contains("suicide"));
+
+    }
+
+    @Test
+    public void testIncBuildJobError_ModelBasedDataFlowOnline() {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+        val job = testDataflowStatusWhenJobError(ManagementType.MODEL_BASED, JobTypeEnum.INC_BUILD);
+
+        waitForJobFinish(job.getId());
+        val updateDf = dfMgr.getDataflow(job.getTargetModel());
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, updateDf.getStatus());
+    }
+
+    @Test
+    public void testIncBuildJobError_TableOrientedDataFlowLagBehind() {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+        val job = testDataflowStatusWhenJobError(ManagementType.TABLE_ORIENTED, JobTypeEnum.INC_BUILD);
+
+        waitForJobFinish(job.getId());
+        val updateDf = dfMgr.getDataflow(job.getTargetModel());
+        Assert.assertEquals(RealizationStatusEnum.LAG_BEHIND, updateDf.getStatus());
+    }
+
+    @Test
+    public void testIndexBuildJobError_TableOrientedDataFlowOnline() {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+        val job = testDataflowStatusWhenJobError(ManagementType.TABLE_ORIENTED, JobTypeEnum.INDEX_BUILD);
+
+        waitForJobFinish(job.getId());
+        val updateDf = dfMgr.getDataflow(job.getTargetModel());
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, updateDf.getStatus());
+    }
+
+    @Test
+    public void testIndexBuildJobError_ModelBasedDataFlowOnline() {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+        val job = testDataflowStatusWhenJobError(ManagementType.MODEL_BASED, JobTypeEnum.INDEX_BUILD);
+
+        waitForJobFinish(job.getId());
+        val updateDf = dfMgr.getDataflow(job.getTargetModel());
+        Assert.assertEquals(RealizationStatusEnum.ONLINE, updateDf.getStatus());
+    }
+
+    private DefaultChainedExecutable testDataflowStatusWhenJobError(ManagementType tableOriented,
+            JobTypeEnum indexBuild) {
+        val dfMgr = NDataflowManager.getInstance(getTestConfig(), project);
+        val modelMgr = NDataModelManager.getInstance(getTestConfig(), project);
+        modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copyForWrite -> {
+            copyForWrite.setManagementType(tableOriented);
+        });
+        NoErrorStatusExecutable job = new NoErrorStatusExecutable();
+        job.setProject("default");
+        job.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        job.setName(indexBuild.toString());
+        job.setJobType(indexBuild);
+        val df = dfMgr.getDataflow(job.getTargetModel());
+        job.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        val task = new ErrorTestExecutable();
+        task.setTargetModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        task.setTargetSegments(df.getSegments().stream().map(NDataSegment::getId).collect(Collectors.toList()));
+        job.addTask(task);
+
+        executableManager.addJob(job);
+        return job;
     }
 
     @Test

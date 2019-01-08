@@ -28,6 +28,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.dao.JobStatisticsManager;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
+import org.apache.kylin.job.execution.ExecutableState;
 
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.JobRelatedEvent;
@@ -51,8 +52,24 @@ public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
 
         val execManager = getExecutableManager(project, eventContext.getConfig());
         val executable = (ChainedExecutable) execManager.getJob(jobId);
+        if (executable == null) {
+            log.debug("executable is null when handling event {}", eventContext.getEvent());
+            // in case the job is skipped
+            doHandleWithNullJob(eventContext);
+            return;
+        } else if (executable.getStatus() == ExecutableState.SUICIDAL) {
+            restartNewJobIfNecessary(eventContext, executable);
+            log.debug("previous job suicide, current event:{} will be ignored", eventContext.getEvent());
+            finishEvent(eventContext.getProject(), eventContext.getEvent().getId());
+            return;
+        }
         doHandle(eventContext, executable);
     }
+
+    protected void restartNewJobIfNecessary(EventContext eventContext, ChainedExecutable executable) {
+    }
+
+    protected abstract void doHandleWithNullJob(EventContext eventContext);
 
     protected void recordDownJobStats(AbstractExecutable buildTask, NDataLayout[] addOrUpdateCuboids) {
         String model = buildTask.getTargetModel();
@@ -76,7 +93,7 @@ public abstract class AbstractEventPostJobHandler extends AbstractEventHandler {
     /**
      *
      * @param eventContext
-     * @param executable may be null !
+     * @param executable
      */
     protected abstract void doHandle(EventContext eventContext, ChainedExecutable executable);
 }

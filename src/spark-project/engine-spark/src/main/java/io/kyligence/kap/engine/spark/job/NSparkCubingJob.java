@@ -77,6 +77,7 @@ public class NSparkCubingJob extends DefaultChainedExecutable {
         }
         job.setId(jobId);
         job.setName(jobType.toString());
+        job.setJobType(jobType);
         job.setDataRangeStart(startTime);
         job.setDataRangeEnd(endTime);
         job.setTargetModel(segments.iterator().next().getModel().getUuid());

@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -46,11 +45,11 @@ package org.apache.kylin.job.execution;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.collect.Maps;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.exception.ExecuteException;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  */
@@ -153,7 +152,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
                 notifyUserStatusChange(executableContext, ExecutableState.SUCCEED);
             } else if (hasError) {
                 setEndTime(info);
-                updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null);
+                updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null,
+                        jobId -> onExecuteErrorHook(jobId));
                 notifyUserStatusChange(executableContext, ExecutableState.ERROR);
             } else if (hasRunning) {
                 updateJobOutput(getProject(), getId(), ExecutableState.RUNNING, null, null);
@@ -166,7 +166,8 @@ public class DefaultChainedExecutable extends AbstractExecutable implements Chai
             }
         } else {
             setEndTime(info);
-            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null);
+            updateJobOutput(getProject(), getId(), ExecutableState.ERROR, info, null,
+                    jobId -> onExecuteErrorHook(jobId));
             notifyUserStatusChange(executableContext, ExecutableState.ERROR);
         }
     }

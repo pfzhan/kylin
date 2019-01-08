@@ -95,7 +95,7 @@ public class NExecutableManager {
         result.setUuid(executable.getId());
         result.setType(executable.getClass().getName());
         result.setParams(executable.getParams());
-        result.setJobType(executable.getName());
+        result.setJobType(executable.getJobType());
         result.setDataRangeStart(executable.getDataRangeStart());
         result.setDataRangeEnd(executable.getDataRangeEnd());
         result.setTargetModel(executable.getTargetModel());
@@ -202,8 +202,24 @@ public class NExecutableManager {
     }
 
     public long countByModelAndStatus(String model, Set<ExecutableState> status) {
+        return countByModelAndStatus(model, status, null);
+    }
+
+    public long countByModelAndStatus(String model, Set<ExecutableState> status, JobTypeEnum jobType) {
         return getAllExecutables().stream().filter(e -> e.getTargetModel().equals(model))
-                .filter(e -> status.contains(e.getStatus())).count();
+                .filter(e -> status.contains(e.getStatus()))
+                .filter(e -> (jobType == null ? true : jobType.equals(e.getJobType()))).count();
+    }
+
+    public Map<String, List<String>> getModelExecutables(Set<String> models, Set<ExecutableState> status) {
+        Map<String, List<String>> result = getAllExecutables().stream().filter(e -> models.contains(e.getTargetModel()))
+                .filter(e -> status.contains(e.getStatus()))
+                .collect(Collectors.toMap(AbstractExecutable::getTargetModel,
+                        executable -> Lists.newArrayList(executable.getId()), (one, other) -> {
+                            one.addAll(other);
+                            return one;
+                        }));
+        return result;
     }
 
     public List<AbstractExecutable> getExecutablesByStatus(List<String> jobIds, String status) {
@@ -288,6 +304,10 @@ public class NExecutableManager {
     }
 
     public void resumeJob(String jobId) {
+        resumeJob(jobId, false);
+    }
+
+    public void resumeJob(String jobId, boolean allStep) {
         AbstractExecutable job = getJob(jobId);
         if (job == null) {
             return;
@@ -295,12 +315,11 @@ public class NExecutableManager {
         Map<String, String> info = null;
         if (job instanceof DefaultChainedExecutable) {
             List<AbstractExecutable> tasks = ((DefaultChainedExecutable) job).getTasks();
-            for (AbstractExecutable task : tasks) {
-                if (task.getStatus() == ExecutableState.ERROR || task.getStatus() == ExecutableState.STOPPED) {
-                    updateJobOutput(task.getId(), ExecutableState.READY, null, null);
-                    break;
-                }
-            }
+            tasks.stream().filter(task -> task.getStatus() != ExecutableState.READY)
+                    .filter(task -> (allStep || task.getStatus() == ExecutableState.ERROR
+                            || task.getStatus() == ExecutableState.STOPPED))
+                    .forEach(task -> updateJobOutput(task.getId(), ExecutableState.READY, null, null));
+
             final long endTime = job.getEndTime();
             if (endTime != 0) {
                 long interruptTime = System.currentTimeMillis() - endTime + job.getInterruptTime();
@@ -311,6 +330,11 @@ public class NExecutableManager {
             }
         }
         updateJobOutput(jobId, ExecutableState.READY, info, null);
+    }
+
+    public long countCuttingInJobByModel(String model, AbstractExecutable job) {
+        return getAllExecutables().stream().filter(e -> e.getTargetModel().equals(model))
+                .filter(executable -> executable.getCreateTime() > job.getCreateTime()).count();
     }
 
     public void discardJob(String jobId) {
@@ -340,6 +364,9 @@ public class NExecutableManager {
         val info = Maps.newHashMap(getJobOutput(pathOfOutput(jobId, project)).getInfo());
         info.put(AbstractExecutable.END_TIME, Long.toString(System.currentTimeMillis()));
         updateJobOutput(jobId, ExecutableState.STOPPED, info, null);
+        // pauseJob may happen when the job has not been scheduled
+        // then call this hook after updateJobOutput
+        job.onExecuteStopHook();
     }
 
     public ExecutableOutputPO getJobOutput(String path) {
@@ -398,7 +425,7 @@ public class NExecutableManager {
             result.setName(executablePO.getName());
             result.setProject(project);
             result.setParams(executablePO.getParams());
-            result.setName(executablePO.getJobType());
+            result.setJobType(executablePO.getJobType());
             result.setDataRangeStart(executablePO.getDataRangeStart());
             result.setDataRangeEnd(executablePO.getDataRangeEnd());
             result.setTargetModel(executablePO.getTargetModel());

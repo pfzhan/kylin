@@ -52,10 +52,12 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.event.manager.EventDao;
+import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -72,13 +74,20 @@ public abstract class AbstractEventHandler implements EventHandler {
     public final void handle(EventContext eventContext) {
 
         try {
-            //TODO: put them all to transaction!!!!!
-            boolean valid = checkBeforeHandle(eventContext);
-            if (!valid) {
+            // check twice to reduce the calls of transaction
+            // and avoid the problem when resuming job concurrently
+            if (!checkBeforeHandle(eventContext)) {
                 log.info("handle {} later", eventContext.getEvent());
                 return;
             }
-            doHandle(eventContext);
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                if (!checkBeforeHandle(eventContext)) {
+                    log.info("handle {} later", eventContext.getEvent());
+                    return null;
+                }
+                doHandle(eventContext);
+                return null;
+            }, eventContext.getProject());
         } catch (Exception e) {
             //TODO: how to handle error? will there be errors?
             throw e;
@@ -93,8 +102,8 @@ public abstract class AbstractEventHandler implements EventHandler {
         checkNotNull(project);
         checkNotNull(NProjectManager.getInstance(kylinConfig).getProject(project));
         val execManager = NExecutableManager.getInstance(kylinConfig, project);
-        val runningCount = execManager.countByModelAndStatus(event.getModelId(), Sets.newHashSet(
-                ExecutableState.RUNNING, ExecutableState.READY, ExecutableState.ERROR, ExecutableState.STOPPED));
+        val runningCount = execManager.countByModelAndStatus(event.getModelId(),
+                Sets.newHashSet(ExecutableState.RUNNING, ExecutableState.READY));
         log.debug("model {} has {} running jobs", event.getModelId(), runningCount);
         return runningCount == 0L;
     }
@@ -132,6 +141,10 @@ public abstract class AbstractEventHandler implements EventHandler {
 
     protected NExecutableManager getExecutableManager(String project, KylinConfig config) {
         return NExecutableManager.getInstance(config, project);
+    }
+
+    protected EventManager getEventManager(String project, KylinConfig config) {
+        return EventManager.getInstance(config, project);
     }
 
     protected void doHandle(EventContext eventContext) {

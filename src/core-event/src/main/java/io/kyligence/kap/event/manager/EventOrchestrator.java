@@ -47,20 +47,29 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
+import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 import io.kyligence.kap.event.handle.EventHandler;
+import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
+import io.kyligence.kap.event.model.JobRelatedEvent;
+import io.kyligence.kap.event.model.PostAddSegmentEvent;
+import lombok.val;
 
 /**
  */
@@ -108,7 +117,7 @@ public class EventOrchestrator {
                 String modelId = eventsEntry.getKey();
                 Event event = eventsEntry.getValue();
                 logger.trace("project: {}, model: {}, event to be processed: {}", project, modelId, event);
-                //
+
                 try {
                     EventContext eventContext = new EventContext(event, kylinConfig, project);
                     EventHandler eventHandler = event.getEventHandler();
@@ -132,10 +141,31 @@ public class EventOrchestrator {
 
             events.sort(Event::compareTo);
 
-            events.forEach(event -> {
-                String groupKey = genGroupKey(event);
-                map.putIfAbsent(groupKey, event);
+            Map<String, List<Event>> modelEvents = events.stream()
+                    .collect(Collectors.toMap(Event::getModelId, event -> Lists.newArrayList(event), (one, other) -> {
+                        one.addAll(other);
+                        return one;
+                    }));
+
+            val execManager = NExecutableManager.getInstance(kylinConfig, project);
+            val modelExecutables = execManager.getModelExecutables(modelEvents.keySet(),
+                    Sets.newHashSet(ExecutableState.STOPPED, ExecutableState.ERROR));
+
+            modelEvents.entrySet().forEach(entry -> {
+                val model = entry.getKey();
+                val executableIds = modelExecutables.getOrDefault(model, Lists.newArrayList());
+                val event = entry.getValue().stream()
+                        .filter(e -> CollectionUtils.isEmpty(executableIds)
+                                || ((e instanceof AddSegmentEvent || e instanceof PostAddSegmentEvent)
+                                        && !executableIds.contains(((JobRelatedEvent) e).getJobId()) // to skip Post*Event
+                )).findFirst().orElse(null);
+                if (event != null) {
+                    String groupKey = genGroupKey(event);
+                    map.put(groupKey, event);
+                }
+
             });
+
             return map;
         }
 

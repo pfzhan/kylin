@@ -40,7 +40,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -84,11 +83,11 @@ public class NJobController extends NBasicController {
     @RequestMapping(value = "/waiting_jobs", method = { RequestMethod.GET }, produces = { "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
     public EnvelopeResponse getWaitingJobs(@RequestParam(value = "project") String project,
-                                           @RequestParam(value = "model") String modelName,
+                                           @RequestParam(value = "model") String modelId,
                                            @RequestParam(value = "offset", required = false, defaultValue = "0") Integer offset,
                                            @RequestParam(value = "limit", required = false, defaultValue = "10") Integer limit) {
         checkProjectName(project);
-        List<EventResponse> waitingJobs = jobService.getWaitingJobsByModel(project, modelName);
+        List<EventResponse> waitingJobs = jobService.getWaitingJobsByModel(project, modelId);
         Map<String, Object> data = Maps.newHashMap();
         data.put("data", PagingUtil.cutPage(waitingJobs, offset, limit));
         data.put("size", waitingJobs.size());
@@ -112,14 +111,7 @@ public class NJobController extends NBasicController {
         if (CollectionUtils.isEmpty(jobIds) && StringUtils.isEmpty(status)) {
             throw new BadRequestException("At least one job should be selected to delete!");
         }
-        jobService.dropJobBatchly(project, jobIds, status);
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
-    }
-
-    @PutMapping(value = "/resume", produces = "application/vnd.apache.kylin-v2+json")
-    public EnvelopeResponse resumeJob(@RequestParam(value = "project") String project,
-            @RequestParam(value = "jobId") String jobId) {
-        jobService.resumeJob(project, jobId);
+        jobService.batchDropJob(project, jobIds, status);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
@@ -132,7 +124,7 @@ public class NJobController extends NBasicController {
                 && StringUtils.isEmpty(jobUpdateRequest.getStatus())) {
             throw new BadRequestException("At least one job should be selected to " + jobUpdateRequest.getAction());
         }
-        jobService.updateJobStatusBatchly(jobUpdateRequest.getJobIds(), jobUpdateRequest.getProject(),
+        jobService.batchUpdateJobStatus(jobUpdateRequest.getJobIds(), jobUpdateRequest.getProject(),
                 jobUpdateRequest.getAction(), jobUpdateRequest.getStatus());
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }

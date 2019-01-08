@@ -24,17 +24,18 @@
 package io.kyligence.kap.event.handle;
 
 import java.util.List;
+import java.util.UUID;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
+import org.apache.kylin.job.execution.DefaultChainedExecutable;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.merger.AfterBuildResourceMerger;
+import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.PostAddCuboidEvent;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
@@ -51,22 +52,9 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
 
     @Override
     protected void doHandle(EventContext eventContext, ChainedExecutable executable) {
-        String project = eventContext.getProject();
-        if (executable == null) {
-            log.debug("executable is null when handling event {}", eventContext.getEvent());
-            // in case the job is skipped
-            doHandleWithNullJob(eventContext);
-            return;
-        } else if (executable.getStatus() == ExecutableState.DISCARDED) {
-            log.debug("previous job suicide, current event:{} will be ignored", eventContext.getEvent());
-            UnitOfWork.doInTransactionWithRetry(() -> {
-                finishEvent(eventContext.getProject(), eventContext.getEvent().getId());
-                return null;
-            }, project);
-            return;
-        }
 
         PostAddCuboidEvent event = (PostAddCuboidEvent) eventContext.getEvent();
+        String project = eventContext.getProject();
         List<String> sqlList = event.getSqlPatterns();
         val jobId = event.getJobId();
 
@@ -80,48 +68,65 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
         val analysisResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), tasks.get(0));
         val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), buildTask);
         try {
-            UnitOfWork.doInTransactionWithRetry(() -> {
-                if (!checkSubjectExists(project, event.getModelId(), null, event)) {
-                    finishEvent(project, event.getId());
-                    return null;
-                }
-
-                val kylinConfig = KylinConfig.getInstanceFromEnv();
-                val merger = new AfterBuildResourceMerger(kylinConfig, project);
-                val addedCuboids = merger.mergeAfterCatchup(dataflowId, segmentIds, layoutIds, buildResourceStore);
-                merger.mergeAnalysis(dataflowId, analysisResourceStore);
-
-                recordDownJobStats(buildTask, addedCuboids);
-
-                handleFavoriteQuery(project, sqlList);
-
+            if (!checkSubjectExists(project, event.getModelId(), null, event)) {
                 finishEvent(project, event.getId());
-                return null;
-            }, project);
+                return;
+            }
+
+            val kylinConfig = KylinConfig.getInstanceFromEnv();
+            val merger = new AfterBuildResourceMerger(kylinConfig, project);
+            val addedCuboids = merger.mergeAfterCatchup(dataflowId, segmentIds, layoutIds, buildResourceStore);
+            merger.mergeAnalysis(dataflowId, analysisResourceStore);
+
+            recordDownJobStats(buildTask, addedCuboids);
+
+            handleFavoriteQuery(project, sqlList);
+
+            finishEvent(project, event.getId());
         } finally {
             analysisResourceStore.close();
             buildResourceStore.close();
         }
     }
 
-    private void doHandleWithNullJob(EventContext eventContext) {
+    @Override
+    protected void restartNewJobIfNecessary(EventContext eventContext, ChainedExecutable executable) {
+        val project = eventContext.getProject();
+        val postEvent = (PostAddCuboidEvent) eventContext.getEvent();
+        val job = (DefaultChainedExecutable) executable;
+        // anyTargetSegmentExists && checkCuttingInJobByModel need restart job
+        if (!(job.checkCuttingInJobByModel() && job.checkAnyTargetSegmentExists())) {
+            return;
+        }
+        val addEvent = new AddCuboidEvent();
+        addEvent.setModelId(postEvent.getModelId());
+        addEvent.setOwner(postEvent.getOwner());
+        addEvent.setJobId(UUID.randomUUID().toString());
+        addEvent.setSqlPatterns(postEvent.getSqlPatterns());
+        getEventManager(project, KylinConfig.getInstanceFromEnv()).post(addEvent);
+
+        val postAddEvent = new PostAddCuboidEvent();
+        postAddEvent.setModelId(addEvent.getModelId());
+        postAddEvent.setJobId(addEvent.getJobId());
+        postAddEvent.setOwner(addEvent.getOwner());
+        postAddEvent.setSqlPatterns(addEvent.getSqlPatterns());
+        getEventManager(project, KylinConfig.getInstanceFromEnv()).post(postAddEvent);
+    }
+
+    protected void doHandleWithNullJob(EventContext eventContext) {
 
         PostAddCuboidEvent event = (PostAddCuboidEvent) eventContext.getEvent();
         String project = eventContext.getProject();
         List<String> sqlList = event.getSqlPatterns();
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            if (!checkSubjectExists(project, event.getModelId(), null, event)) {
-                finishEvent(project, event.getId());
-                return null;
-            }
-
-            handleFavoriteQuery(project, sqlList);
-
+        if (!checkSubjectExists(project, event.getModelId(), null, event)) {
             finishEvent(project, event.getId());
+            return;
+        }
 
-            return null;
-        }, project);
+        handleFavoriteQuery(project, sqlList);
+
+        finishEvent(project, event.getId());
     }
 
     private void handleFavoriteQuery(String project, List<String> sqlList) {

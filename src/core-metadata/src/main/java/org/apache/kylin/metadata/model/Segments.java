@@ -754,7 +754,7 @@ public class Segments<T extends ISegment> extends ArrayList<T> implements Serial
 
     }
 
-    public Segments getSegmentsByRange(SegmentRange range) {
+    public Segments<T> getSegmentsByRange(SegmentRange range) {
         val result = new Segments<T>();
         for (val seg : this) {
             if (seg.getSegRange().overlaps(range)) {

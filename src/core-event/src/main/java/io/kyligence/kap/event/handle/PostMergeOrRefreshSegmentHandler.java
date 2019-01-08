@@ -28,18 +28,17 @@ import java.util.List;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.job.execution.AbstractExecutable;
 import org.apache.kylin.job.execution.ChainedExecutable;
-import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.job.NSparkCubingJob;
+import io.kyligence.kap.engine.spark.job.NSparkMergingJob;
 import io.kyligence.kap.engine.spark.merger.AfterMergeOrRefreshResourceMerger;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
@@ -54,41 +53,28 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
         val event = (PostMergeOrRefreshSegmentEvent) eventContext.getEvent();
         String project = eventContext.getProject();
 
-        if (executable == null) {
-            log.debug("executable is null when handling event {}", event);
-            // in case the job is skipped
-            doHandleWithNullJob(eventContext);
-            return;
-        } else if (executable.getStatus() == ExecutableState.DISCARDED) {
-            log.debug("previous job suicide, current event:{} will be ignored", eventContext.getEvent());
-            UnitOfWork.doInTransactionWithRetry(() -> {
-                finishEvent(eventContext.getProject(), eventContext.getEvent().getId());
-                return null;
-            }, project);
+        val task = getBuildTask(executable);
+        if (task == null) {
+            log.warn("Executable " + executable.getId() + " has no build task.");
             return;
         }
-
-        val task = getBuildTask(executable);
 
         val dataflowId = ExecutableUtils.getDataflowId(task);
         val segmentIds = ExecutableUtils.getSegmentIds(task);
         val buildResourceStore = ExecutableUtils.getRemoteStore(eventContext.getConfig(), task);
         try {
-            UnitOfWork.doInTransactionWithRetry(() -> {
-                if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
-                    finishEvent(project, event.getId());
-                    return null;
-                }
-
-                val kylinConfig = KylinConfig.getInstanceFromEnv();
-                val merger = new AfterMergeOrRefreshResourceMerger(kylinConfig, project);
-                val updatedCuboids = merger.mergeAfterJob(dataflowId, segmentIds.iterator().next(), buildResourceStore);
-
-                recordDownJobStats(task, updatedCuboids);
-
+            if (!checkSubjectExists(project, event.getModelId(), event.getSegmentId(), event)) {
                 finishEvent(project, event.getId());
-                return null;
-            }, project);
+                return;
+            }
+
+            val kylinConfig = KylinConfig.getInstanceFromEnv();
+            val merger = new AfterMergeOrRefreshResourceMerger(kylinConfig, project);
+            val updatedCuboids = merger.mergeAfterJob(dataflowId, segmentIds.iterator().next(), buildResourceStore);
+
+            recordDownJobStats(task, updatedCuboids);
+
+            finishEvent(project, event.getId());
         } finally {
             buildResourceStore.close();
         }
@@ -99,42 +85,40 @@ public class PostMergeOrRefreshSegmentHandler extends AbstractEventPostJobHandle
         Preconditions.checkState(tasks.size() > 0, "job " + executable.getId() + " steps is not enough");
         if (executable instanceof NSparkCubingJob) {
             return tasks.get(1);
-        } else {
+        } else if (executable instanceof NSparkMergingJob) {
             return tasks.get(0);
         }
+        return null;
 
     }
 
-    private void doHandleWithNullJob(EventContext eventContext) {
+    protected void doHandleWithNullJob(EventContext eventContext) {
         val event = (PostMergeOrRefreshSegmentEvent) eventContext.getEvent();
         String project = eventContext.getProject();
 
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            String modelId = event.getModelId();
-            String segmentId = event.getSegmentId();
-            if (!checkSubjectExists(project, modelId, segmentId, event)) {
-                finishEvent(project, event.getId());
-                return null;
-            }
-
-            NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            NDataflow df = dfMgr.getDataflow(modelId);
-
-            //update target seg's status
-            val dfUpdate = new NDataflowUpdate(modelId);
-            NDataflow copy = df.copy();
-            val seg = copy.getSegment(segmentId);
-            seg.setStatus(SegmentStatusEnum.READY);
-            dfUpdate.setToUpdateSegs(seg);
-            List<NDataSegment> toRemoveSegs = dfMgr.getToRemoveSegs(df, seg);
-            dfUpdate.setToRemoveSegs(toRemoveSegs.toArray(new NDataSegment[0]));
-
-            dfMgr.updateDataflow(dfUpdate);
-
+        String modelId = event.getModelId();
+        String segmentId = event.getSegmentId();
+        if (!checkSubjectExists(project, modelId, segmentId, event)) {
             finishEvent(project, event.getId());
+            return;
+        }
 
-            return null;
-        }, project);
+        NDataflowManager dfMgr = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        NDataflow df = dfMgr.getDataflow(modelId);
+
+        //update target seg's status
+        val dfUpdate = new NDataflowUpdate(modelId);
+        NDataflow copy = df.copy();
+        val seg = copy.getSegment(segmentId);
+        seg.setStatus(SegmentStatusEnum.READY);
+        dfUpdate.setToUpdateSegs(seg);
+        List<NDataSegment> toRemoveSegs = dfMgr.getToRemoveSegs(df, seg);
+        dfUpdate.setToRemoveSegs(toRemoveSegs.toArray(new NDataSegment[0]));
+
+        dfMgr.updateDataflow(dfUpdate);
+
+        finishEvent(project, event.getId());
+
     }
 
 }

@@ -29,7 +29,6 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import lombok.val;
@@ -44,26 +43,23 @@ abstract class AbstractEventWithJobHandler extends AbstractEventHandler {
 
         Event event = eventContext.getEvent();
         val project = eventContext.getProject();
-        UnitOfWork.doInTransactionWithRetry(() -> {
-            KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
-            val eventId = event.getId();
-            AbstractExecutable job = createJob(eventContext.getEvent(), project);
-            if (job == null) {
-                logger.info("No job is required by event {}, aborting handler...", event);
-                finishEvent(project, eventId);
-                return null;
-            }
-
-            job.initConfig(kylinConfig);
-            val po = NExecutableManager.toPO(job, project);
-
-            NExecutableManager executableManager = getExecutableManager(project, kylinConfig);
-            executableManager.addJob(po);
-
+        KylinConfig kylinConfig = KylinConfig.getInstanceFromEnv();
+        val eventId = event.getId();
+        AbstractExecutable job = createJob(eventContext.getEvent(), project);
+        if (job == null) {
+            logger.info("No job is required by event {}, aborting handler...", event);
             finishEvent(project, eventId);
+            return;
+        }
 
-            return null;
-        }, project);
+        job.initConfig(kylinConfig);
+        val po = NExecutableManager.toPO(job, project);
+
+        NExecutableManager executableManager = getExecutableManager(project, kylinConfig);
+        executableManager.addJob(po);
+
+        finishEvent(project, eventId);
+
     }
 
     /**
