@@ -328,7 +328,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
         // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
+        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1", "sa", "");
         H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
         h2DB.loadAllTables();
 
@@ -583,8 +583,6 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         // Load H2 Tables (inner join)
         Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa",
                 "");
-        H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
-        h2DB.dropAllTables();
         h2Connection.close();
         System.clearProperty("kylin.query.pushdown.jdbc.url");
         System.clearProperty("kylin.query.pushdown.jdbc.driver");

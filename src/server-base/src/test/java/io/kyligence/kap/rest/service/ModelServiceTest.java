@@ -834,7 +834,6 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    @Ignore
     public void testCreateModelAndBuildManully() throws Exception {
         setupPushdownEnv();
         testCreateModel_PartitionNotNull();
@@ -851,10 +850,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
 
-        var model = modelMgr.getDataModelDesc("nmodel_basic");
+        var model = modelMgr.getDataModelDescByAlias("nmodel_basic");
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
         request.setProject("default");
-        request.setUuid("nmodel_basic");
+        request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
@@ -863,17 +862,17 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", modelRequest.getPartitionDesc().getPartitionDateColumn());
 
-        modelMgr.updateDataModel("nmodel_basic", copy -> {
+        modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copy -> {
             copy.getPartitionDesc().setPartitionDateColumn("TRANS_ID");
         });
 
-        model = modelMgr.getDataModelDesc("nmodel_basic");
+        model = modelMgr.getDataModelDescByAlias("nmodel_basic");
 
         Assert.assertEquals("TEST_KYLIN_FACT.TRANS_ID", model.getPartitionDesc().getPartitionDateColumn());
 
         modelService.updateDataModelSemantic("default", modelRequest);
 
-        model = modelMgr.getDataModelDesc("nmodel_basic");
+        model = modelMgr.getDataModelDescByAlias("nmodel_basic");
 
         Assert.assertEquals("yyyy-MM-dd", model.getPartitionDesc().getPartitionDateFormat());
 
@@ -883,10 +882,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
 
-        var model = modelMgr.getDataModelDesc("nmodel_basic");
+        var model = modelMgr.getDataModelDescByAlias("nmodel_basic");
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
         request.setProject("default");
-        request.setUuid("nmodel_basic");
+        request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
         request.setSimplifiedMeasures(model.getAllMeasures().stream().filter(m -> !m.tomb)
@@ -895,17 +894,17 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         Assert.assertEquals("TEST_KYLIN_FACT.CAL_DT", modelRequest.getPartitionDesc().getPartitionDateColumn());
 
-        modelMgr.updateDataModel("nmodel_basic", copy -> {
+        modelMgr.updateDataModel("89af4ee2-2cdb-4b07-b39e-4c29856309aa", copy -> {
             copy.setPartitionDesc(null);
         });
 
-        model = modelMgr.getDataModelDesc("nmodel_basic");
+        model = modelMgr.getDataModelDescByAlias("nmodel_basic");
 
         Assert.assertNull(model.getPartitionDesc());
 
         modelService.updateDataModelSemantic("default", modelRequest);
 
-        model = modelMgr.getDataModelDesc("nmodel_basic");
+        model = modelMgr.getDataModelDescByAlias("nmodel_basic");
 
         Assert.assertEquals("yyyy-MM-dd", model.getPartitionDesc().getPartitionDateFormat());
 
@@ -915,10 +914,10 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         val modelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
 
-        var model = modelMgr.getDataModelDesc("nmodel_basic");
+        var model = modelMgr.getDataModelDescByAlias("nmodel_basic");
         val request = JsonUtil.readValue(JsonUtil.writeValueAsString(model), ModelRequest.class);
         request.setProject("default");
-        request.setUuid("nmodel_basic");
+        request.setUuid("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         request.getPartitionDesc().setPartitionDateColumn("");
         request.setAllNamedColumns(model.getAllNamedColumns().stream().filter(NDataModel.NamedColumn::isDimension)
                 .collect(Collectors.toList()));
@@ -926,13 +925,13 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
                 .map(SimplifiedMeasure::fromMeasure).collect(Collectors.toList()));
         val modelRequest = JsonUtil.readValue(JsonUtil.writeValueAsString(request), ModelRequest.class);
 
-        model = modelMgr.getDataModelDesc("nmodel_basic");
+        model = modelMgr.getDataModelDescByAlias("nmodel_basic");
 
         Assert.assertEquals("yyyy-MM-dd", model.getPartitionDesc().getPartitionDateFormat());
 
         modelService.updateDataModelSemantic("default", modelRequest);
 
-        model = modelMgr.getDataModelDesc("nmodel_basic");
+        model = modelMgr.getDataModelDescByAlias("nmodel_basic");
 
         Assert.assertEquals("", model.getPartitionDesc().getPartitionDateFormat());
 
@@ -2008,7 +2007,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         dataflowManager.updateDataflow(dataflowUpdate);
         modelService.buildSegmentsManually("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", "0", "100");
 
-        modelDesc = modelManager.getDataModelDesc("nmodel_basic");
+        modelDesc = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals("yyyy-MM-dd", modelDesc.getPartitionDesc().getPartitionDateFormat());
 
         EventDao eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), "default");
@@ -2244,7 +2243,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name",
                 "io.kyligence.kap.query.pushdown.PushDownRunnerJdbcImpl");
         // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
+        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default;DB_CLOSE_DELAY=-1", "sa", "");
         H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
         h2DB.loadAllTables();
 
@@ -2257,9 +2256,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     private void cleanPushdownEnv() throws Exception {
         getTestConfig().setProperty("kylin.query.pushdown.runner-class-name", "");
         // Load H2 Tables (inner join)
-        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa", "");
-        H2Database h2DB = new H2Database(h2Connection, getTestConfig(), "default");
-        h2DB.dropAllTables();
+        Connection h2Connection = DriverManager.getConnection("jdbc:h2:mem:db_default", "sa",
+                "");
         h2Connection.close();
         System.clearProperty("kylin.query.pushdown.jdbc.url");
         System.clearProperty("kylin.query.pushdown.jdbc.driver");

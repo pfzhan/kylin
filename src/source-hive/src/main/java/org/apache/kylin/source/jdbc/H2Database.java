@@ -105,13 +105,6 @@ public class H2Database {
         }
     }
 
-    public void dropAllTables() throws SQLException {
-        for (String tableName : ALL_TABLES) {
-            dropTable(tableName);
-        }
-    }
-
-
     private void loadH2Table(String tableName) throws SQLException {
         NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(config, project);
         TableDesc tableDesc = metaMgr.getTableDesc(tableName.toUpperCase());
@@ -146,26 +139,6 @@ public class H2Database {
         }
     }
 
-    private void dropTable(String tableName) {
-        NTableMetadataManager metaMgr = NTableMetadataManager.getInstance(config, project);
-        TableDesc tableDesc = metaMgr.getTableDesc(tableName.toUpperCase());
-
-        try (Statement stmt = h2Connection.createStatement()) {
-            String sql = generateDropH2TableSql(tableDesc);
-            stmt.executeUpdate(sql);
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    private String generateDropH2TableSql(TableDesc tableDesc) {
-        StringBuilder ddl = new StringBuilder();
-        ddl.append("DROP TABLE " + tableDesc.getIdentity() + " if exists");
-
-        return ddl.toString();
-    }
-
-
     private String path(TableDesc tableDesc) {
         if ("EDW.TEST_SELLER_TYPE_DIM".equals(tableDesc.getIdentity())) // it is a view of table below
             return "/data/" + "EDW.TEST_SELLER_TYPE_DIM" + ".csv";
@@ -177,7 +150,7 @@ public class H2Database {
         StringBuilder ddl = new StringBuilder();
         StringBuilder csvColumns = new StringBuilder();
 
-        ddl.append("CREATE TABLE " + tableDesc.getIdentity() + "\n");
+        ddl.append("CREATE TABLE IF NOT EXISTS " + tableDesc.getIdentity() + "\n");
         ddl.append("(" + "\n");
 
         for (int i = 0; i < tableDesc.getColumns().length; i++) {
@@ -205,7 +178,7 @@ public class H2Database {
         for (ColumnDesc col : tableDesc.getColumns()) {
             if ("T".equalsIgnoreCase(col.getIndex())) {
                 StringBuilder ddl = new StringBuilder();
-                ddl.append("CREATE INDEX IDX_" + tableDesc.getName() + "_" + x + " ON " + tableDesc.getIdentity() + "("
+                ddl.append("CREATE INDEX IF NOT EXISTS IDX_" + tableDesc.getName() + "_" + x + " ON " + tableDesc.getIdentity() + "("
                         + col.getName() + ")");
                 ddl.append("\n");
                 result.add(ddl.toString());
