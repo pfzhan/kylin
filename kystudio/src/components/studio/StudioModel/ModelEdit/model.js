@@ -216,6 +216,10 @@ class NModel {
         metaData.computed_columns = objectClone(this.computed_columns)
         metaData.last_modified = this.last_modified
         metaData.filter_condition = this.filter_condition
+        // 如果未选择partition 把partition desc 设置为null
+        if (!metaData.partition_desc.partition_date_column) {
+          metaData.partition_desc = null
+        }
         metaData.partition_desc = this.partition_desc
         metaData.maintain_model_type = this._mount.maintain_model_type
         metaData.management_type = this.management_type

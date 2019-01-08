@@ -1300,6 +1300,10 @@ export default class ModelEdit extends Vue {
     this[action](para).then((res) => {
       handleSuccess(res, () => {
         // kapMessage(this.$t('kylinLang.common.saveSuccess'))
+        if (!(data.all_named_columns && data.all_named_columns.length)) {
+          this.$router.replace({name: 'ModelList', params: { ignoreIntercept: true }})
+          return
+        }
         setTimeout(() => {
           kapConfirm(this.$t('saveSuccessTip'), {
             confirmButtonText: this.$t('addIndexTip'),

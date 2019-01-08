@@ -198,7 +198,7 @@ export default class DimensionsModal extends Vue {
       }
       // 将已经选上的dimension回显到界面上
       table.columns && table.columns.forEach((col) => {
-        this.$set(col, 'alias', col.alias || col.name)
+        this.$set(col, 'alias', col.alias || table.alias + '_' + col.name)
         let len = this.usedColumns.length
         for (let i = 0; i < len; i++) {
           let d = this.usedColumns[i]
