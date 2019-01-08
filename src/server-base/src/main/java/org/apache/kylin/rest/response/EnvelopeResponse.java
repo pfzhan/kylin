@@ -42,17 +42,10 @@
 
 package org.apache.kylin.rest.response;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
-
-@ApiModel(description = "返回值包装类")
 public class EnvelopeResponse<T> {
 
-    @ApiModelProperty("返回码")
     public String code;
-    @ApiModelProperty("返回值")
     public T data;
-    @ApiModelProperty("返回信息")
     public String msg;
 
     //only for child

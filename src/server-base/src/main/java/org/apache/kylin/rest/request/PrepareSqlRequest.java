@@ -42,7 +42,6 @@
 
 package org.apache.kylin.rest.request;
 
-import io.swagger.annotations.ApiModel;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -53,7 +52,6 @@ import java.util.Collections;
  * @author xduo
  * 
  */
-@ApiModel(description = "查询请求")
 public class PrepareSqlRequest extends SQLRequest {
 
     public PrepareSqlRequest() {

@@ -46,7 +46,6 @@ import java.io.Serializable;
 import java.util.List;
 
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
-import io.swagger.annotations.ApiModel;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -57,7 +56,6 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-@ApiModel(description = "查询返回值")
 public class SQLResponse implements Serializable {
     protected static final long serialVersionUID = 1L;
 
