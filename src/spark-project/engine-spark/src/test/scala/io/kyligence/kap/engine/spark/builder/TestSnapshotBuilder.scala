@@ -21,8 +21,10 @@
  */
 package io.kyligence.kap.engine.spark.builder
 
-import com.google.common.collect.Maps
-import io.kyligence.kap.cube.model.{NDataflow, NDataflowManager}
+import java.util.concurrent.{Callable, ExecutorService, Executors, Future}
+
+import com.google.common.collect.{Lists, Maps, Sets}
+import io.kyligence.kap.cube.model.{NDataSegment, NDataflow, NDataflowManager}
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.persistence.ResourceStore
 import org.apache.kylin.common.util.HadoopUtil
@@ -38,6 +40,11 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
 
   private val DF_NAME = "89af4ee2-2cdb-4b07-b39e-4c29856309aa"
 
+  private val DF_NAME_SEQ = Seq(
+    "89af4ee2-2cdb-4b07-b39e-4c29856309aa",
+    "741ca86a-1f13-46da-a59f-95fb68615e3a",
+    "abe3bf1a-c4bc-458d-8278-7ea8b00f5e96")
+
   def getTestConfig: KylinConfig = {
     val config = KylinConfig.getInstanceFromEnv
     config
@@ -45,15 +52,66 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
 
   test("snapshot -- check snapshot reuse") {
     val dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
-    var df: NDataflow = dsMgr.getDataflow(DF_NAME)
+    val df: NDataflow = dsMgr.getDataflow(DF_NAME)
     val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + df.getProject + ResourceStore.SNAPSHOT_RESOURCE_ROOT
     val fs = HadoopUtil.getWorkingFileSystem
     fs.delete(new Path(snapPath), true)
 
-    buildSnapshot(df, false, 1)
-    buildSnapshot(df, false, 1)
-    buildSnapshot(df, true, 2)
-    buildSnapshot(df, true, 2)
+    buildSnapshot(df, isMock = false, 1)
+    buildSnapshot(df, isMock = false, 1)
+    buildSnapshot(df, isMock = true, 2)
+    buildSnapshot(df, isMock = true, 2)
+  }
+
+  test("snapshot -- check snapshot concurrent construction") {
+    var dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
+    val snapPath = KapConfig.wrap(getTestConfig).getReadHdfsWorkingDirectory + DEFAULT_PROJECT + ResourceStore.SNAPSHOT_RESOURCE_ROOT
+    val fs = HadoopUtil.getWorkingFileSystem
+    fs.delete(new Path(snapPath), true)
+
+    roundTestBuildSnap()
+  }
+
+  private def roundTestBuildSnap(): Unit = {
+    val threadPool: ExecutorService = Executors.newFixedThreadPool(10)
+    try {
+      val futureList = Lists.newArrayList[Future[NDataSegment]]()
+      for (dfName <- DF_NAME_SEQ) {
+        futureList.add(threadPool.submit(new BuildSnapshotThread(dfName)))
+      }
+
+      var isBuilding = true
+      while (isBuilding) {
+        if (futureList.asScala.filter(!_.isDone).size == 0) {
+          isBuilding = false
+        }
+      }
+
+      val snapSet = Sets.newHashSet[String]()
+      var snapCount = 0
+      for (future <- futureList.asScala) {
+        snapSet.addAll(future.get().getSnapshots.values())
+        snapCount = snapCount + future.get().getSnapshots.size()
+      }
+
+      Assert.assertTrue((21 > snapSet.size()) && (snapSet.size() >= 7))
+
+    } finally {
+      threadPool.shutdown()
+    }
+  }
+
+  class BuildSnapshotThread(dfName: String) extends Callable[NDataSegment] {
+    override def call(): NDataSegment = {
+      var dsMgr: NDataflowManager = NDataflowManager.getInstance(getTestConfig, DEFAULT_PROJECT)
+      var df = dsMgr.getDataflow(dfName)
+      val seg = df.getFirstSegment
+      val dfCopy = df.copy
+      val segCopy = dfCopy.getSegment(seg.getId)
+      segCopy.setSnapshots(Maps.newHashMap())
+      var snapshotBuilder = new DFSnapshotBuilder(segCopy, spark)
+      snapshotBuilder.buildSnapshot
+    }
   }
 
   private def buildSnapshot(df: NDataflow, isMock: Boolean, expectedSize: Int): Unit = {
@@ -71,8 +129,8 @@ class TestSnapshotBuilder extends SparderBaseFunSuite with SharedSparkSession wi
       snapshotBuilder.buildSnapshot
     }
 
-    for (fstatus <- fs.listStatus(new Path(snapPath))) {
-      val list = fs.listStatus(fstatus.getPath)
+    for (fst <- fs.listStatus(new Path(snapPath))) {
+      val list = fs.listStatus(fst.getPath)
       Assert.assertEquals(expectedSize, list.size)
     }
   }

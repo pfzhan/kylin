@@ -27,6 +27,8 @@ import org.apache.spark.sql.{Dataset, Row, SparkSession}
 
 class MockDFSnapshotBuilder extends DFSnapshotBuilder {
 
+  var ds: Dataset[Row] = _
+
   def this(seg: NDataSegment, ss: SparkSession) {
     this()
     this.seg = seg
@@ -34,6 +36,9 @@ class MockDFSnapshotBuilder extends DFSnapshotBuilder {
   }
 
   override def getSourceData(tableDesc: TableDesc): Dataset[Row] = {
-    super.getSourceData(tableDesc).distinct()
+    if (ds == null) {
+      ds = super.getSourceData(tableDesc).distinct()
+    }
+    ds
   }
 }

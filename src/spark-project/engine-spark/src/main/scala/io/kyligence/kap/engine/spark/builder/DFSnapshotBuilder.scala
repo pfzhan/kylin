@@ -72,7 +72,7 @@ class DFSnapshotBuilder extends Logging {
 
   @throws[IOException]
   def buildSnapshot: NDataSegment = {
-    logInfo(s"building snapshots for: $seg")
+    logInfo(s"Building snapshots for: $seg")
     val model = seg.getDataflow.getModel
     val newSnapMap = Maps.newHashMap[String, String]
     val fs = HadoopUtil.getWorkingFileSystem
@@ -91,29 +91,39 @@ class DFSnapshotBuilder extends Logging {
         val currSnapFile = fs.listStatus(new Path(resourcePath), ParquetPathFilter).head
         val currSnapMd5 = getFileMd5(currSnapFile)
         val md5Path = resourcePath + "/" + "_" + currSnapMd5 + MD5_SUFFIX
-        fs.createNewFile(new Path(md5Path))
 
+        var isReuseSnap = false
         val existPath = baseDir + "/" + tablePath
         val existSnaps = fs.listStatus(new Path(existPath))
           .filterNot(_.getPath.getName == new Path(snapshotTablePath).getName)
         breakable {
           for (snap <- existSnaps) {
-            val existsSnapMd5 = fs.listStatus(snap.getPath, Md5PathFilter).head
-            if (existsSnapMd5 == null) {
-              logInfo(s"snapshot path: ${snap.getPath} not exists snapshot file")
-            } else {
-              val md5Snap = existsSnapMd5.getPath.getName
-                .replace(MD5_SUFFIX, "")
-                .replace("_", "")
-              if (currSnapMd5 == md5Snap) {
-                snapshotTablePath = tablePath + "/" + snap.getPath.getName
-                fs.delete(new Path(resourcePath), true)
-                break()
-              }
+            Try(fs.listStatus(snap.getPath, Md5PathFilter)) match {
+              case Success(list) =>
+                list.headOption match {
+                  case Some(file) =>
+                    val md5Snap = file.getPath.getName
+                      .replace(MD5_SUFFIX, "")
+                      .replace("_", "")
+                    if (currSnapMd5 == md5Snap) {
+                      snapshotTablePath = tablePath + "/" + snap.getPath.getName
+                      fs.delete(new Path(resourcePath), true)
+                      isReuseSnap = true
+                      break()
+                    }
+                  case None =>
+                    logInfo(s"Snapshot path: ${snap.getPath} not exists snapshot file")
+                }
+              case Failure(error) =>
+                logInfo(s"File not found", error)
             }
           }
         }
 
+        if (!isReuseSnap) {
+          fs.createNewFile(new Path(md5Path))
+          logInfo(s"Create md5 file: ${md5Path} for snap: ${currSnapFile}")
+        }
 
         newSnapMap.put(tableDesc.getIdentity, snapshotTablePath)
       }
