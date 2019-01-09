@@ -60,7 +60,6 @@ public class PostAddSegmentHandler extends AbstractEventPostJobHandler {
 
     @Override
     protected void doHandle(EventContext eventContext, ChainedExecutable executable) {
-
         PostAddSegmentEvent event = (PostAddSegmentEvent) eventContext.getEvent();
         String project = eventContext.getProject();
         val jobId = event.getJobId();

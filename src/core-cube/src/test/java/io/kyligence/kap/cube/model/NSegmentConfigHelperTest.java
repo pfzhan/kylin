@@ -67,7 +67,7 @@ public class NSegmentConfigHelperTest extends NLocalFileMetadataTestCase {
         SegmentConfig segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(DEFAULT_PROJECT, model);
 
         Assert.assertEquals(true, segmentConfig.getAutoMergeEnabled());
-        Assert.assertEquals(2, segmentConfig.getAutoMergeTimeRanges().size());
+        Assert.assertEquals(3, segmentConfig.getAutoMergeTimeRanges().size());
         Assert.assertEquals(0L, segmentConfig.getVolatileRange().getVolatileRangeNumber());
         Assert.assertEquals(false, segmentConfig.getRetentionRange().isRetentionRangeEnabled());
 
@@ -97,7 +97,7 @@ public class NSegmentConfigHelperTest extends NLocalFileMetadataTestCase {
 
         segmentConfig = NSegmentConfigHelper.getModelSegmentConfig(DEFAULT_PROJECT, model);
         Assert.assertEquals(true, segmentConfig.getAutoMergeEnabled());
-        Assert.assertEquals(2, segmentConfig.getAutoMergeTimeRanges().size());
+        Assert.assertEquals(3, segmentConfig.getAutoMergeTimeRanges().size());
         Assert.assertEquals(0L, segmentConfig.getVolatileRange().getVolatileRangeNumber());
         Assert.assertEquals(false, segmentConfig.getRetentionRange().isRetentionRangeEnabled());
 

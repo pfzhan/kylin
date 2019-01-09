@@ -32,6 +32,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfigExt;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -99,6 +101,11 @@ public class NDataflow extends RootPersistentEntity implements Serializable, IRe
     private RealizationStatusEnum status;
     @JsonProperty("cost")
     private int cost = 50;
+
+    @Getter
+    @Setter
+    @JsonProperty("event_error")
+    private boolean eventError;
 
     @JsonManagedReference
     @JsonProperty("segments")

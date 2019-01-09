@@ -49,10 +49,14 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.cube.model.NDataflowManager;
+import lombok.val;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.ExecutorServiceUtil;
+import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.job.execution.ExecutableState;
 import org.apache.kylin.job.execution.NExecutableManager;
 import org.slf4j.Logger;
@@ -69,13 +73,14 @@ import io.kyligence.kap.event.model.Event;
 import io.kyligence.kap.event.model.EventContext;
 import io.kyligence.kap.event.model.JobRelatedEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import lombok.val;
 
 /**
  */
 public class EventOrchestrator {
 
     private static final Logger logger = LoggerFactory.getLogger(EventOrchestrator.class);
+
+    private static final int maxRunTimes = 5;
 
     private String project;
     private EventDao eventDao;
@@ -116,6 +121,11 @@ public class EventOrchestrator {
 
                 String modelId = eventsEntry.getKey();
                 Event event = eventsEntry.getValue();
+                val runTimes = event.getRunTimes();
+                if (runTimes >= maxRunTimes) {
+                    handleEventError(modelId);
+                    continue;
+                }
                 logger.trace("project: {}, model: {}, event to be processed: {}", project, modelId, event);
 
                 try {
@@ -131,6 +141,20 @@ public class EventOrchestrator {
                     // continue to handle next model's event
                 }
             }
+        }
+
+        private void handleEventError(String modelId) {
+            UnitOfWork.doInTransactionWithRetry(() -> {
+                val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                eventDao.deleteEventsByModel(modelId);
+                val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+                val df = dfManager.getDataflow(modelId);
+                dfManager.updateDataflow(df.getId(), copyForWrite -> {
+                    copyForWrite.setStatus(RealizationStatusEnum.BROKEN);
+                    copyForWrite.setEventError(true);
+                });
+                return null;
+            }, project);
         }
 
         protected Map<String, Event> chooseEventForeachModel(List<Event> events) {
@@ -157,8 +181,8 @@ public class EventOrchestrator {
                 val event = entry.getValue().stream()
                         .filter(e -> CollectionUtils.isEmpty(executableIds)
                                 || ((e instanceof AddSegmentEvent || e instanceof PostAddSegmentEvent)
-                                        && !executableIds.contains(((JobRelatedEvent) e).getJobId()) // to skip Post*Event
-                )).findFirst().orElse(null);
+                                && !executableIds.contains(((JobRelatedEvent) e).getJobId()) // to skip Post*Event
+                        )).findFirst().orElse(null);
                 if (event != null) {
                     String groupKey = genGroupKey(event);
                     map.put(groupKey, event);

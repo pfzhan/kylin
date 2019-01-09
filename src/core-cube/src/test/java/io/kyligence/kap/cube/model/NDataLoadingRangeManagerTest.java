@@ -144,48 +144,6 @@ public class NDataLoadingRangeManagerTest extends NLocalFileMetadataTestCase {
         Assert.assertTrue(savedDataLoadingRange.getColumnName().equals(columnName));
     }
 
-    @Test
-    public void testGetSegRangeToBuildForNewDataflow_HasCandidateModel() {
-        long start = 1293194019000L;
-        long end = 1325680419000L;
-
-        val loadingRange = createDataLoadingRange(start, end);
-
-        removeAllSegments();
-        val segments = new Segments<NDataSegment>();
-
-
-        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
-
-        start = 1293194019000L;
-        end = 1305680419000L;
-        SegmentRange segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        NDataflow df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
-        NDataSegment dataSegment = dataflowManager.appendSegment(df, segmentRange);
-        dataSegment.setStatus(SegmentStatusEnum.READY);
-        segments.add(dataSegment);
-
-
-        start = 1305680419000L;
-        end = 1325680419000L;
-        segmentRange = new SegmentRange.TimePartitionedSegmentRange(start, end);
-        df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
-        dataSegment = dataflowManager.appendSegment(df, segmentRange);
-        dataSegment.setStatus(SegmentStatusEnum.READY);
-        segments.add(dataSegment);
-
-        NDataflowUpdate update = new NDataflowUpdate(df.getUuid());
-        update.setToUpdateSegs(segments.toArray(new NDataSegment[segments.size()]));
-        dataflowManager.updateDataflow(update);
-
-        val ranges = dataLoadingRangeManager.getSegRangesToBuildForNewDataflow(loadingRange);
-        Assert.assertEquals(2, ranges.size());
-        Assert.assertEquals("1293194019000", ranges.get(0).getStart().toString());
-        Assert.assertEquals("1305680419000", ranges.get(0).getEnd().toString());
-        Assert.assertEquals("1305680419000", ranges.get(1).getStart().toString());
-        Assert.assertEquals("1325680419000", ranges.get(1).getEnd().toString());
-    }
-
 
     @Test
     public void testGetSegRangeToBuildForNewDataflow_MonthAndWeek() {

@@ -51,6 +51,8 @@ import io.kyligence.kap.event.model.AddCuboidEvent;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.MergeSegmentEvent;
 import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import lombok.val;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.JsonSerializer;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -113,8 +115,20 @@ public class EventDao {
         store.checkAndPutResource(path, event, EVENT_SERIALIZER);
     }
 
+    private void updateEventResource(String path, Event update) {
+        store.checkAndPutResource(path, update, EVENT_SERIALIZER);
+    }
+
+    private Event copyForWrite(Event event) {
+        return (Event) SerializationUtils.clone(event);
+    }
+
     public List<Event> getEvents() {
         return store.getAllResources(resourceRootPath, EVENT_SERIALIZER);
+    }
+
+    public List<Event> getEventsOrdered() {
+        return getEvents().stream().sorted().collect(Collectors.toList());
     }
 
     //for UT
@@ -122,6 +136,15 @@ public class EventDao {
         List<Event> events = getEvents();
         for (Event event : events) {
             store.deleteResource(resourceRootPath + "/" + event.getUuid());
+        }
+    }
+
+    public void deleteEventsByModel(String modelId) {
+        List<Event> events = getEvents();
+        for (Event event : events) {
+            if (event.getModelId().equals(modelId)) {
+                store.deleteResource(resourceRootPath + "/" + event.getUuid());
+            }
         }
     }
 
@@ -153,5 +176,11 @@ public class EventDao {
     public List<Event> getJobRelatedEventsByModel(String modelId) {
         return getJobRelatedEvents().stream().filter(event -> event.getModelId().equals(modelId))
                 .collect(Collectors.toList());
+    }
+
+    public void incEventRunTimes(Event event) {
+        val copy = copyForWrite(event);
+        copy.setRunTimes(event.getRunTimes() + 1);
+        updateEventResource(pathOfEvent(copy.getUuid()), copy);
     }
 }

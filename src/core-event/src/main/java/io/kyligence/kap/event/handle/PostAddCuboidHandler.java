@@ -52,7 +52,6 @@ public class PostAddCuboidHandler extends AbstractEventPostJobHandler {
 
     @Override
     protected void doHandle(EventContext eventContext, ChainedExecutable executable) {
-
         PostAddCuboidEvent event = (PostAddCuboidEvent) eventContext.getEvent();
         String project = eventContext.getProject();
         List<String> sqlList = event.getSqlPatterns();

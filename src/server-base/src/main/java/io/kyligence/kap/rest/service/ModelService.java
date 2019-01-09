@@ -549,7 +549,7 @@ public class ModelService extends BasicService {
     }
 
     private void checkDataflowStatus(NDataflow dataflow, String modelId) {
-        if (dataflow.getStatus().equals(RealizationStatusEnum.DESCBROKEN)) {
+        if (dataflow.getStatus().equals(RealizationStatusEnum.BROKEN)) {
             throw new BadRequestException("DescBroken model " + modelId + " can not online or offline!");
         }
     }

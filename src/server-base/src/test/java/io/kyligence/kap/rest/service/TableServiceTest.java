@@ -404,7 +404,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         AutoMergeConfigResponse response = tableService.getAutoMergeConfigByTable("default", "DEFAULT.TEST_KYLIN_FACT");
         Assert.assertEquals(response.getVolatileRange().getVolatileRangeNumber(), 0);
         Assert.assertEquals(response.isAutoMergeEnabled(), true);
-        Assert.assertEquals(response.getAutoMergeTimeRanges().size(), 2);
+        Assert.assertEquals(response.getAutoMergeTimeRanges().size(), 3);
 
         dataModel = modelManager.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         dataModel.setManagementType(ManagementType.MODEL_BASED);
@@ -414,7 +414,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         response = tableService.getAutoMergeConfigByModel("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
         Assert.assertEquals(response.getVolatileRange().getVolatileRangeNumber(), 0);
         Assert.assertEquals(response.isAutoMergeEnabled(), true);
-        Assert.assertEquals(response.getAutoMergeTimeRanges().size(), 2);
+        Assert.assertEquals(3, response.getAutoMergeTimeRanges().size());
 
     }
 

@@ -233,10 +233,8 @@ public class NDataLoadingRangeManager {
     }
 
     public List<SegmentRange> getSegRangesToBuildForNewDataflow(NDataLoadingRange dataLoadingRange) {
-        val standardDataflow = getStandardDataflow(dataLoadingRange);
-
-        if (standardDataflow != null) {
-            return standardDataflow.getFlatSegments().getSegRanges();
+        if (dataLoadingRange == null) {
+            return Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite());
         }
         if (dataLoadingRange.getCoveredRange() == null) {
             return null;
@@ -249,31 +247,7 @@ public class NDataLoadingRangeManager {
 
     }
 
-    private NDataflow getStandardDataflow(NDataLoadingRange dataLoadingRange) {
-        val dataflows = getOnlineDataflow(dataLoadingRange);
-        NDataflow candidateDataflow = null;
-        if (CollectionUtils.isEmpty(dataflows)) {
-            return null;
-        }
-        var minSize = Integer.MAX_VALUE;
 
-        for (val df : dataflows) {
-            if (CollectionUtils.isEmpty(df.getFlatSegments())) {
-                continue;
-            }
-            val flatSegs = df.getFlatSegments();
-            val flatSegRange = flatSegs.getFirstSegment().getSegRange().coverWith(flatSegs.getLastSegment().getSegRange());
-            if (!flatSegRange.startStartMatch(dataLoadingRange.getCoveredRange()) || !flatSegRange.endEndMatch(dataLoadingRange.getCoveredRange())) {
-                continue;
-            }
-            val size = df.getFlatSegments().size();
-            minSize = Integer.min(minSize, size);
-            if (size == minSize) {
-                candidateDataflow = df;
-            }
-        }
-        return candidateDataflow;
-    }
 
     public void updateCoveredRangeAfterRetention(NDataModel model, NDataSegment lastSegment) {
         if (model.getManagementType().equals(ManagementType.MODEL_BASED)) {

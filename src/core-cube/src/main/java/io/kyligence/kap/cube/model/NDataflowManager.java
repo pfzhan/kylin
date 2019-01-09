@@ -167,23 +167,16 @@ public class NDataflowManager implements IRealizationProvider, IKeepNames {
         if (df.getModel().getManagementType() != ManagementType.TABLE_ORIENTED) {
             return;
         }
-        val rootTable = df.getModel().getRootFactTable();
         val dataLoadingRangeManager = NDataLoadingRangeManager
                 .getInstance(KylinConfig.getInstanceFromEnv(), project);
-        // if table is incremental load
-        if (rootTable.getTableDesc().isIncrementLoading()) {
-            String tableName = df.getModel().getRootFactTable().getTableIdentity();
-            NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
-            if (dataLoadingRange != null) {
-                val segmentRanges = dataLoadingRangeManager.getSegRangesToBuildForNewDataflow(dataLoadingRange);
-                if (CollectionUtils.isNotEmpty(segmentRanges)) {
-                    fillDfWithNewRanges(df, segmentRanges);
-                }
-            }
-        } else {
-            fillDfWithNewRanges(df, Lists.newArrayList(SegmentRange.TimePartitionedSegmentRange.createInfinite()));
-
+        String tableName = df.getModel().getRootFactTable().getTableIdentity();
+        NDataLoadingRange dataLoadingRange = dataLoadingRangeManager.getDataLoadingRange(tableName);
+        val segmentRanges = dataLoadingRangeManager.getSegRangesToBuildForNewDataflow(dataLoadingRange);
+        if (CollectionUtils.isNotEmpty(segmentRanges)) {
+            fillDfWithNewRanges(df, segmentRanges);
         }
+
+
     }
 
     public void fillDfWithNewRanges(NDataflow df, List<SegmentRange> segmentRanges) {

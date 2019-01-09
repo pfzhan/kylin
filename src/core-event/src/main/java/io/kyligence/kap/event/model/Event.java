@@ -78,6 +78,8 @@ abstract public class Event extends RootPersistentEntity implements Comparable<E
     protected long sequenceId;//in case two event happend in same nano second
     @JsonProperty("owner")
     protected String owner;
+    @JsonProperty("runTimes")
+    private int runTimes;
 
     private static Ordering<Event> comparator = Ordering.natural().onResultOf(Event::getLastModified)
             .compound(Comparator.comparing(Event::getSequenceId));

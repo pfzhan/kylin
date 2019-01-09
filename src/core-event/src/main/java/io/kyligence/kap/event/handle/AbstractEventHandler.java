@@ -44,6 +44,7 @@ package io.kyligence.kap.event.handle;
 
 import static com.google.common.base.Preconditions.checkNotNull;
 
+import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.job.execution.ExecutableState;
@@ -52,7 +53,6 @@ import org.apache.kylin.job.execution.NExecutableManager;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.cube.model.NDataSegment;
 import io.kyligence.kap.cube.model.NDataflow;
 import io.kyligence.kap.cube.model.NDataflowManager;
@@ -80,6 +80,7 @@ public abstract class AbstractEventHandler implements EventHandler {
                 log.info("handle {} later", eventContext.getEvent());
                 return;
             }
+            incRunTimes(eventContext);
             UnitOfWork.doInTransactionWithRetry(() -> {
                 if (!checkBeforeHandle(eventContext)) {
                     log.info("handle {} later", eventContext.getEvent());
@@ -93,6 +94,16 @@ public abstract class AbstractEventHandler implements EventHandler {
             throw e;
         }
     }
+
+    public void incRunTimes(EventContext eventContext) {
+        val event = eventContext.getEvent();
+        UnitOfWork.doInTransactionWithRetry(() -> {
+            val eventDao = EventDao.getInstance(KylinConfig.getInstanceFromEnv(), eventContext.getProject());
+            eventDao.incEventRunTimes(event);
+            return null;
+        }, eventContext.getProject());
+    }
+
 
     protected boolean checkBeforeHandle(EventContext eventContext) {
         Event event = eventContext.getEvent();
