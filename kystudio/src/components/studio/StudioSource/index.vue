@@ -177,7 +177,9 @@ export default class StudioSource extends Vue {
     }
   }
   handleTablesLoaded () {
-    this._showDataRangeConfrim()
+    if (this.isAutoProject) {
+      this._showDataRangeConfrim()
+    }
   }
   _showDataRangeConfrim () {
     const confirmTitle = this.$t('kylinLang.common.notice')

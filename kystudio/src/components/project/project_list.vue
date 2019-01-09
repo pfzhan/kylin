@@ -12,7 +12,7 @@
     tooltip-effect="dark"
     border
     style="width: 100%">
-    <el-table-column type="expand" :width="30">
+    <el-table-column type="expand" :width="34">
       <template slot-scope="props">
          <el-tabs activeName="first" class="el-tabs--default">
           <!-- <el-tab-pane label="Models" name="first">
@@ -253,9 +253,6 @@ export default {
         width: 80px;
         height: 80px;
       }
-    }
-    .el-table__expand-column {
-      border-right: none;
     }
     .el-table__expanded-cell[class*=cell] {
       padding: 20px 30px;
