@@ -70,7 +70,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
-import io.kyligence.kap.common.logging.QueryLoggerBufferUtil;
 import org.apache.calcite.avatica.ColumnMetaData.Rep;
 import org.apache.calcite.config.CalciteConnectionConfig;
 import org.apache.calcite.jdbc.CalcitePrepare;
@@ -191,7 +190,7 @@ public class QueryService extends BasicService {
     public SQLResponse query(SQLRequest sqlRequest) throws Exception {
         SQLResponse ret;
         try {
-            slowQueryDetector.queryStart(QueryContext.current().getQueryId());
+            slowQueryDetector.queryStart();
             ret = queryWithSqlMassage(sqlRequest);
             return ret;
         } finally {
@@ -335,7 +334,6 @@ public class QueryService extends BasicService {
         }
         String traceUrl = getTraceUrl(scope);
 
-        QueryLoggerBufferUtil.mark(queryContext.getQueryId());
         try (SetThreadName ignored = new SetThreadName("Query %s", queryContext.getQueryId())) {
             long startTime = System.currentTimeMillis();
 
@@ -386,14 +384,9 @@ public class QueryService extends BasicService {
                 logger.warn("Write metric error.", th);
             }
 
-            if (sqlResponse.getIsException()) {
-                QueryLoggerBufferUtil.dump(queryContext.getQueryId());
-            }
-
             return sqlResponse;
 
         } finally {
-            QueryLoggerBufferUtil.clear(queryContext.getQueryId());
             BackdoorToggles.cleanToggles();
             QueryContext.reset();
             if (QueryMetricsContext.isStarted()) {
@@ -1129,3 +1122,4 @@ public class QueryService extends BasicService {
     }
 
 }
+
