@@ -106,7 +106,7 @@
             <i class="el-icon-ksd-table_delete ksd-fs-16" @click.stop="drop([scope.row.id])"></i>
           </common-tip>
           <common-tip :content="$t('jobRestart')" v-if="scope.row.job_status=='ERROR'">
-            <i class="el-icon-ksd-table_discard ksd-fs-16" @click.stop="restart([scope.row.id])"></i>
+            <i class="el-icon-ksd-restart ksd-fs-16" @click.stop="restart([scope.row.id])"></i>
           </common-tip>
           <common-tip :content="$t('jobResume')" v-if="scope.row.job_status=='ERROR'|| scope.row.job_status=='STOPPED'">
             <i class="el-icon-ksd-table_resume ksd-fs-16" @click.stop="resume([scope.row.id])"></i>

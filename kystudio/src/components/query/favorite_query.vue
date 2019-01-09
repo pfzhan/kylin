@@ -278,7 +278,7 @@
 
 <script>
 import Vue from 'vue'
-import { Component } from 'vue-property-decorator'
+import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import $ from 'jquery'
 import { handleSuccessAsync, handleError } from '../../util/index'
@@ -353,6 +353,7 @@ export default class FavoriteQuery extends Vue {
   favoriteCurrentPage = 1
   whiteCurrentPage = 0
   timer = null
+  initTimer = null
   whitePageSize = 10
   activeNames = ['rules']
   filterData = {
@@ -443,6 +444,15 @@ export default class FavoriteQuery extends Vue {
 
   get modelSpeedEvents () {
     return this.$store.state.model.modelSpeedEvents
+  }
+  @Watch('modelSpeedEvents')
+  onSpeedEventsChange (val) {
+    if (val) {
+      clearTimeout(this.initTimer)
+      this.initTimer = setTimeout(() => {
+        this.init()
+      }, 1000)
+    }
   }
 
   openRuleSetting () {
@@ -595,7 +605,7 @@ export default class FavoriteQuery extends Vue {
     }
   }
 
-  async created () {
+  async init () {
     this.loadFavoriteList()
     const res = await this.getFavoriteList({
       project: this.currentSelectedProject || null,
@@ -610,6 +620,10 @@ export default class FavoriteQuery extends Vue {
     if (this.currentSelectedProject) {
       this.getSpeedInfo(this.currentSelectedProject)
     }
+  }
+
+  created () {
+    this.init()
   }
   mounted () {
     this.$nextTick(() => {

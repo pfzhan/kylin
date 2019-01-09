@@ -14,14 +14,18 @@
         <div class="column-list-box" @dragover='($event) => {allowDropColumn($event, t.guid)}' @drop='(e) => {dropColumn(e, null, t)}' v-scroll>
           <ul >
             <li v-guide="t.guid + col.name" v-on:dragover="(e) => {dragColumnEnter(e, t)}" v-on:dragleave="dragColumnLeave" class="column-li" :class="{'column-li-cc': col.is_computed_column}" @drop.stop='(e) => {dropColumn(e, col, t)}' @dragstart="(e) => {dragColumns(e, col, t)}"  draggable v-for="col in t.columns" :key="col.name">
-              <span class="col-type-icon"><i :class="columnTypeIconMap(col.datatype)"></i></span>
-              <span class="col-name">{{col.name|omit(14,'...')}}</span>
+              <span class="ksd-nobr-text">
+                <span class="col-type-icon"><i :class="columnTypeIconMap(col.datatype)"></i></span>
+                <span class="col-name">{{col.name}}</span>
+              </span>
               <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
             </li>
             <template v-if="t.kind=== 'FACT'">
               <li class="column-li column-li-cc" @drop='(e) => {dropColumn(e, {name: col.columnName }, t)}' @dragstart="(e) => {dragColumns(e, {name: col.columnName}, t)}"  draggable v-for="col in modelRender.computed_columns" :key="col.name">
-                <span class="col-type-icon"><i :class="columnTypeIconMap(col.datatype)"></i></span>
-                <span class="col-name">{{col.columnName|omit(14,'...')}}</span>
+                <span class="ksd-nobr-text">
+                  <span class="col-type-icon"><i :class="columnTypeIconMap(col.datatype)"></i></span>
+                  <span class="col-name">{{col.columnName}}</span>
+                </span>
                 <!-- <span class="li-type ky-option-sub-info">{{col.datatype}}</span> -->
               </li>
             </template>
@@ -134,12 +138,14 @@
             <div class="panel-main-content" @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "dimension")}' v-scroll>
               <ul class="dimension-list">
                 <li v-for="(d, i) in allDimension" :key="d.name" :class="{'is-checked':dimensionSelectedList.indexOf(d.name)>-1}">
-                  <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="d.name">{{d.name|omit(18,'...')}}</el-checkbox>
-                  <span v-else>{{d.name|omit(18,'...')}}</span>
-                  <span class="icon-group">
-                    <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteDimenison(d.name)"></i></span>
-                    <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i></span>
-                    <span class="li-type ky-option-sub-info">{{d.datatype}}</span>
+                  <span class="ksd-nobr-text">
+                    <el-checkbox v-model="dimensionSelectedList" v-if="isShowCheckbox" :label="d.name">{{d.name}}</el-checkbox>
+                    <span v-else>{{d.name}}</span>
+                    <span class="icon-group">
+                      <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="deleteDimenison(d.name)"></i></span>
+                      <span class="icon-span"><i class="el-icon-ksd-table_edit" @click="editDimension(d, i)"></i></span>
+                      <span class="li-type ky-option-sub-info">{{d.datatype}}</span>
+                    </span>
                   </span>
                 </li>
               </ul>
@@ -202,12 +208,14 @@
             <div class="panel-main-content"  @dragover='($event) => {allowDropColumnToPanle($event)}' v-event-stop @drop='(e) => {dropColumnToPanel(e, "measure")}' v-scroll>
               <ul class="measure-list">
                 <li v-for="m in modelRender.all_measures" :key="m.name" :class="{'is-checked':measureSelectedList.indexOf(m.name)>-1}">
-                  <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="m.name">{{m.name|omit(18,'...')}}</el-checkbox>
-                  <span v-else>{{m.name|omit(18,'...')}}</span>
-                  <span class="icon-group">
-                    <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(m.name)"></i></span>
-                    <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
-                    <span class="li-type ky-option-sub-info">{{m.return_type}}</span>
+                  <span class="ksd-nobr-text">
+                    <el-checkbox v-model="measureSelectedList" v-if="isShowMeaCheckbox" :disabled="m.name=='COUNT_ALL'" :label="m.name">{{m.name}}</el-checkbox>
+                    <span v-else>{{m.name}}</span>
+                    <span class="icon-group">
+                      <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_delete" @click="deleteMeasure(m.name)"></i></span>
+                      <span class="icon-span" v-if="m.name !== 'COUNT_ALL'"><i class="el-icon-ksd-table_edit" @click="editMeasure(m)"></i></span>
+                      <span class="li-type ky-option-sub-info">{{m.return_type}}</span>
+                    </span>
                   </span>
                 </li>
               </ul>
@@ -270,12 +278,14 @@
             <div class="panel-main-content" v-scroll>
               <ul class="cc-list">
                 <li v-for="m in modelRender.computed_columns" :key="m.name" :class="{'is-checked':ccSelectedList.indexOf(m.columnName)>-1}">
-                  <el-checkbox v-model="ccSelectedList" v-if="isShowCCCheckbox" :label="m.columnName">{{m.columnName|omit(18,'...')}}</el-checkbox>
-                  <span v-else>{{m.columnName|omit(18,'...')}}</span>
-                  <span class="icon-group">
-                    <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="delCC(m.columnName)"></i></span>
-                    <span class="icon-span"><i class="el-icon-ksd-details" @click="showCCDetail(m)"></i></span>
-                    <span class="li-type ky-option-sub-info">{{m.datatype}}</span>
+                  <span class="ksd-nobr-text">
+                    <el-checkbox v-model="ccSelectedList" v-if="isShowCCCheckbox" :label="m.columnName">{{m.columnName}}</el-checkbox>
+                    <span v-else>{{m.columnName}}</span>
+                    <span class="icon-group">
+                      <span class="icon-span"><i class="el-icon-ksd-table_delete" @click="delCC(m.columnName)"></i></span>
+                      <span class="icon-span"><i class="el-icon-ksd-details" @click="showCCDetail(m)"></i></span>
+                      <span class="li-type ky-option-sub-info">{{m.datatype}}</span>
+                    </span>
                   </span>
                 </li>
               </ul>
@@ -1493,6 +1503,9 @@ export default class ModelEdit extends Vue {
         top:62px;
         right:0;
         left:0;
+        .ksd-nobr-text {
+          width: calc(~'100% - 80px');
+        }
         ul {
           list-style: circle;
           margin-top:15px;

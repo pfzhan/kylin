@@ -23,6 +23,7 @@ export default {
     week: 'Week',
     month: 'Month',
     year: 'Year',
+    addSettingItem: 'Add Setting Item',
     isDel_auto_merge_time_ranges: 'Are you sure delete auto-merge setting item?',
     isDel_volatile_range: 'Are you sure delete volatile range setting item?',
     isDel_retention_range: 'Are you sure delete retention range setting item?'
@@ -51,6 +52,7 @@ export default {
     week: '周',
     month: '月',
     year: '年',
+    addSettingItem: '添加模型设置项',
     isDel_auto_merge_time_ranges: '确认删除自动合并设置项吗？',
     isDel_volatile_range: '确认删除动态区间设置项吗？',
     isDel_retention_range: '确认删除留存区间设置项吗？'

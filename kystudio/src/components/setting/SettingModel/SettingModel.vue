@@ -42,7 +42,10 @@
         align="center"
         :label="$t('kylinLang.common.action')">
           <template slot-scope="scope">
-            <i class="el-icon-ksd-table_add" :class="{'disabled': scope.row.auto_merge_time_ranges&&scope.row.volatile_range&&scope.row.retention_range}" @click="addSettingItem(scope.row)"></i>
+            <el-tooltip placement="top">
+              <div slot="content">{{$t('addSettingItem')}}</div>
+              <i class="el-icon-ksd-table_add" :class="{'disabled': scope.row.auto_merge_time_ranges&&scope.row.volatile_range&&scope.row.retention_range}" @click="addSettingItem(scope.row)"></i>
+            </el-tooltip>
           </template>
       </el-table-column>
     </el-table>
@@ -95,8 +98,8 @@
         </el-form-item>
       </el-form>
       <span slot="footer" class="dialog-footer">
-        <el-button @click="editModelSetting = false" size="medium" v-if="step=='stepOne'">{{$t('kylinLang.common.cancel')}}</el-button>
-        <el-button @click="preStep" icon="el-icon-ksd-more_01-copy" size="medium" v-if="step=='stepTwo'">{{$t('kylinLang.common.prev')}}</el-button>
+        <el-button @click="editModelSetting = false" size="medium">{{$t('kylinLang.common.cancel')}}</el-button>
+        <!-- <el-button @click="preStep" icon="el-icon-ksd-more_01-copy" size="medium" v-if="step=='stepTwo'">{{$t('kylinLang.common.prev')}}</el-button> -->
         <el-button type="primary" plain @click="nextStep" size="medium" v-if="step=='stepOne'" :disabled="modelSettingForm.settingItem==''">{{$t('kylinLang.common.next')}}<i class="el-icon-ksd-more_02 el-icon--right"></i></el-button>
         <el-button
           type="primary"
