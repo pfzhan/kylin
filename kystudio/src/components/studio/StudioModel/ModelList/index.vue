@@ -590,6 +590,9 @@ export default class ModelList extends Vue {
   }
   .model-json {
     margin: 20px 0;
+    .el-textarea__inner:focus {
+      border-color: @line-border-color;
+    }
   }
   .el-tabs__content {
     overflow: initial;

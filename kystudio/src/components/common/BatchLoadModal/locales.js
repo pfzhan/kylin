@@ -4,7 +4,7 @@ export default {
     table: 'Table',
     refresh: 'Refresh',
     loadRange: 'Load Range',
-    relatedIndex: 'RelatedIndex'
+    relatedIndex: 'Related Index'
   },
   'zh-cn': {
     batchLoad: '批量载入',

@@ -27,7 +27,7 @@
       <div>
         <el-form :inline="true" :model="accessMeta" ref="accessForm" :rules="rules"  class="demo-form-inline" label-position="right" label-width="50px">
          <el-form-item :label="$t('type')" prop="principal"  style="margin-bottom: 20px;">
-            <el-select  placeholder="Type" v-model="accessMeta.principal" :disabled="isEdit" @change="changeUserType" size="medium">
+            <el-select placeholder="Type" v-model="accessMeta.principal" :disabled="isEdit" @change="changeUserType" size="medium">
               <el-option label="user" :value="true"></el-option>
               <el-option label="group" :value="false"></el-option>
             </el-select>
@@ -67,23 +67,26 @@
 	    <el-table-column
 	      prop="type"
 	      :label="$t('type')"
+        header-align="center"
 	      >
 	    </el-table-column>
 	    <el-table-column
 	      prop="promission"
 	      :label="$t('access')"
+        header-align="center"
 	      >
 	    </el-table-column>
 	   <el-table-column
 	      :label="$t('kylinLang.common.action')"
-	      width="160">
+        header-align="center"
+	      width="83">
 	      <template slot-scope="scope">
           <span v-if="!projectActions.includes('editGrant') && !projectActions.includes('deleteGrant')">N/A</span>
-          <i class="el-icon-edit"
+          <i class="el-icon-ksd-table_edit ksd-fs-14 ksd-mr-10"
             v-if="projectActions.includes('editGrant')"
             @click="beginEdit(scope.row)">
-          </i>
-          <i class="el-icon-delete"
+          </i><span>
+          </span><i class="el-icon-ksd-table_delete ksd-fs-14"
             v-if="projectActions.includes('deleteGrant')"
             @click="removeAccess(scope.row.id, scope.row.roleOrName)">
           </i>

@@ -2,14 +2,14 @@
   <div class="source-management">
     <h1 class="title">{{$t('sourceManagement')}}</h1>
     <el-table border :data="sourceArray">
-      <el-table-column prop="name" :label="$t('name')" width="530" header-align="center"></el-table-column>
-      <el-table-column prop="type" :label="$t('type')" header-align="center"></el-table-column>
-      <el-table-column prop="createTime" width="210" :label="$t('createTime')" header-align="center">
+      <el-table-column prop="name" :label="$t('name')" header-align="center"></el-table-column>
+      <el-table-column prop="type" :label="$t('type')" width="80" header-align="center"></el-table-column>
+      <el-table-column prop="createTime" width="208" :label="$t('createTime')" align="center">
         <template slot-scope="scope">
-          <span>{{scope.row.createTime | gmtTime}}</span>
+          <span>{{scope.row.createTime | gmtTime}} GMT+8</span>
         </template>
       </el-table-column>
-      <el-table-column :label="$t('kylinLang.common.action')" width="120" header-align="center">
+      <el-table-column :label="$t('kylinLang.common.action')" width="87" header-align="center">
         <template slot-scope="scope">
           <el-tooltip :content="$t('batchLoad')" effect="dark" placement="top">
             <i class="el-icon-ksd-batch_check ksd-fs-14 ksd-mr-10" @click="handleBatchLoad"></i>

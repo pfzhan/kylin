@@ -81,7 +81,7 @@
         </div>
         <div class="panel-content" id="scrollBox" >
           <div class="grid-content bg-purple-light" id="scrollContent">
-            <el-col :span="24" v-show="gloalProjectSelectShow" class="bread-box" v-if="currentRouterNameArr[0]!=='dashboard'">
+            <el-col :span="24" v-show="gloalProjectSelectShow" class="bread-box">
               <!-- 面包屑在dashboard页面不显示 -->
               <el-breadcrumb separator="/" class="ksd-ml-30">
                 <el-breadcrumb-item>

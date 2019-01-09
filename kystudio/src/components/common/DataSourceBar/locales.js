@@ -9,7 +9,9 @@ export default {
     topSet: 'Set top',
     cancelTopSet: 'Cancel top set',
     loadSuccess: 'Load Success!',
-    loadFailed: 'Load Failed!'
+    loadFailed: 'Load Failed!',
+    sourceManagement: 'Source Management',
+    loadTables: 'Load Tables'
   },
   'zh-cn': {
     searchTable: '搜索数据源',
@@ -21,6 +23,8 @@ export default {
     topSet: '置顶',
     cancelTopSet: '取消置顶',
     loadSuccess: '加载成功！',
-    loadFailed: '加载失败！'
+    loadFailed: '加载失败！',
+    sourceManagement: '数据源管理',
+    loadTables: '加载源表'
   }
 }

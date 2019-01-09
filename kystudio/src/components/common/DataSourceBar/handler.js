@@ -10,7 +10,9 @@ export const render = {
           <span>{label}</span>
           <div class="right">
             { this.isShowLoadTable ? (
-              <i class="tree-icon table-action el-icon-ksd-add_table" onClick={event => this.importDataSource(sourceType, this.currentProjectData, event)}></i>
+              <el-tooltip content={this.$t('loadTables')} effect="dark" placement="top">
+                <i class="tree-icon table-action el-icon-ksd-add_table" onClick={event => this.importDataSource(sourceType, this.currentProjectData, event)}></i>
+              </el-tooltip>
             ) : null}
           </div>
         </div>

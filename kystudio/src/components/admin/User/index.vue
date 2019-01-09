@@ -39,7 +39,7 @@
       <el-table-column sortable :label="$t('userName')" prop="username" :width="220" header-align="center">
         <template slot-scope="scope">
           <i class="el-icon-ksd-table_admin ksd-fs-14" style="cursor: default;"></i>
-          <span class="ksd-ml-4">{{scope.row.username}}</span>
+          <span>{{scope.row.username}}</span>
         </template>
       </el-table-column>
       <!-- 表：group列 -->
@@ -64,7 +64,7 @@
         </template>
       </el-table-column>
       <!-- 表：action列 -->
-      <el-table-column v-if="isActionShow" :label="$t('action')" :width="92" header-align="center">
+      <el-table-column v-if="isActionShow" :label="$t('action')" :width="87" header-align="center">
         <template slot-scope="scope">
           <el-tooltip :content="$t('resetPassword')" effect="dark" placement="top">
             <i class="el-icon-ksd-table_reset_password ksd-fs-14 ksd-mr-10" v-show="userActions.includes('changePassword') || scope.row.uuid === currentUser.uuid" @click="editUser('password', scope.row)"></i>

@@ -48,20 +48,20 @@
       <el-table border :data="segments" @selection-change="handleSelectSegments" @sort-change="handleSortChange">
         <el-table-column type="selection" width="35" align="center">
         </el-table-column>
-        <el-table-column prop="id" label="Segment Id">
+        <el-table-column prop="id" header-align="center" label="Segment Id">
         </el-table-column>
-        <el-table-column prop="status" :label="$t('kylinLang.common.status')" width="155" align="center">
+        <el-table-column prop="status" :label="$t('kylinLang.common.status')" width="94" align="center">
         </el-table-column>
         <el-table-column :label="$t('storageSize')" width="145" header-align="center" align="right" prop="storage" sortable>
           <template slot-scope="scope">{{scope.row.bytes_size | dataSize}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.startTime')" width="155" align="center" prop="start_time" sortable>
+        <el-table-column :label="$t('kylinLang.common.startTime')" width="208" align="center" prop="start_time" sortable>
           <template slot-scope="scope">{{scope.row.startTime | utcTime}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.endTime')" width="155" align="center" prop="end_time" sortable>
+        <el-table-column :label="$t('kylinLang.common.endTime')" width="208" align="center" prop="end_time" sortable>
           <template slot-scope="scope">{{scope.row.endTime | utcTime}}</template>
         </el-table-column>
-        <el-table-column :label="$t('kylinLang.common.action')" width="100" align="center">
+        <el-table-column :label="$t('kylinLang.common.action')" width="83" header-align="center">
           <template slot-scope="scope">
             <i class="el-icon-ksd-type_date" @click="handleShowDetail(scope.row)"></i>
           </template>
@@ -74,7 +74,7 @@
       </kap-pager>
     </div>
 
-    <el-dialog :title="$t('segmentDetail')" :visible.sync="isShowDetail">
+    <el-dialog :title="$t('segmentDetail')" :visible.sync="isShowDetail" width="780px">
       <table class="ksd-table" v-if="detailSegment">
         <tr class="ksd-tr">
           <th>{{$t('segmentID')}}</th>

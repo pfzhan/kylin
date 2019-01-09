@@ -5,7 +5,9 @@
         <span>{{$t('kylinLang.common.dataSource')}}</span>
       </div>
       <div class="header-icons clearfix">
-        <i class="ksd-fs-14 el-icon-ksd-setting" v-if="isShowSourceSwitch" @click="handleSwitchSource"></i>
+        <el-tooltip :content="$t('sourceManagement')" effect="dark" placement="top">
+          <i class="ksd-fs-14 el-icon-ksd-setting" v-if="isShowSourceSwitch" @click="handleSwitchSource"></i>
+        </el-tooltip>
       </div>
     </section>
 

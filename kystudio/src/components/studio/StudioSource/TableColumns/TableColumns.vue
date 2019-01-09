@@ -18,36 +18,44 @@
         type="index"
         label="ID"
         align="center"
-        width="120px"
+        width="64"
+        header-align="center"
         :index="startIndex">
       </el-table-column>
       <el-table-column
         prop="name"
         sortable
         align="left"
-        min-width="300px"
+        min-width="300"
+        header-align="center"
         :label="$t('kylinLang.dataSource.columnName')">
       </el-table-column>
       <el-table-column
         prop="dataType"
         sortable
         align="left"
-        min-width="150px"
+        width="120"
+        header-align="center"
         :label="$t('kylinLang.dataSource.dataType')">
       </el-table-column>
       <el-table-column
         prop="cardinality"
         sortable
         align="left"
-        min-width="150px"
+        min-width="105"
+        header-align="center"
         :label="$t('kylinLang.dataSource.cardinality')">
       </el-table-column>
       <el-table-column
         prop="comment"
         sortable
         align="left"
-        min-width="440px"
+        min-width="200"
+        header-align="center"
         :label="$t('kylinLang.dataSource.comment')">
+        <template slot-scope="scope">
+          <span :title="scope.row.comment">{{scope.row.comment}}</span>
+        </template>
       </el-table-column>
     </el-table>
     <kap-pager

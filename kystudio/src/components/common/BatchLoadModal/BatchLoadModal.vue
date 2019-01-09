@@ -12,9 +12,8 @@
         <el-table-column type="selection" width="38"></el-table-column>
         <el-table-column prop="fullName" :label="$t('table')" header-align="center"></el-table-column>
         <el-table-column prop="refresh" :label="$t('refresh')" width="75" align="center"></el-table-column>
-        <el-table-column :label="$t('loadRange')" width="250" header-align="center">
+        <el-table-column :label="$t('loadRange')" width="210" header-align="center">
           <template slot-scope="scope">
-            {{getRangeString(scope.row)}}
             <el-popover
               width="338"
               placement="bottom"
@@ -49,10 +48,11 @@
                 <el-button type="primary" size="mini" @click="handleInputDate(`tables.${scope.$index}.loadRange`, tempForm.editDate, `popover${scope.$index}`)">{{$t('kylinLang.common.ok')}}</el-button>
               </div>
             </el-popover>
-            <i class="edit-action el-icon-ksd-table_edit" v-popover="`popover${scope.$index}`" @click="handlePopperShow(scope)"></i>
+            <span>{{getRangeString(scope.row)}}</span><span>
+            </span><i class="edit-action el-icon-ksd-table_edit" v-popover="`popover${scope.$index}`" @click="handlePopperShow(scope)"></i>
           </template>
         </el-table-column>
-        <el-table-column prop="relatedIndex" :label="$t('relatedIndex')" width="125" header-align="center"></el-table-column>
+        <el-table-column prop="relatedIndex" :label="$t('relatedIndex')" width="115" header-align="center"></el-table-column>
       </el-table>
       <div class="error-mask" v-if="!isDataLoading && isDataError">
         <div>error! please refresh</div>
@@ -253,10 +253,7 @@ export default class BatchLoadModal extends Vue {
     position: relative;
   }
   .edit-action {
-    position: absolute;
-    top: 50%;
-    right: 15px;
-    transform: translateY(-50%);
+    margin-left: 10px;
     cursor: pointer;
   }
   .edit-action:hover {

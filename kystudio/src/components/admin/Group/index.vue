@@ -29,7 +29,7 @@
           </template>
         </el-table-column>
         <el-table-column v-if="groupActions.includes('editGroup') && groupActions.includes('deleteGroup')"
-          :label="$t('kylinLang.common.action')" :width="80" header-align="center">
+          :label="$t('kylinLang.common.action')" :width="83" header-align="center">
           <template slot-scope="scope">
             <el-tooltip :content="$t('assignUsers')" effect="dark" placement="top" v-show="scope.row.first!=='ALL_USERS' && groupActions.includes('editGroup')">
               <i class="el-icon-ksd-table_assign ksd-fs-14 ksd-mr-10" @click="editGroup('assign', scope.row)"></i>

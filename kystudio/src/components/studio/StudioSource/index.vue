@@ -217,7 +217,7 @@ export default class StudioSource extends Vue {
   .table-name {
     font-size: 16px;
     color: #263238;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     overflow: hidden;
     text-overflow: ellipsis;
   }
@@ -263,7 +263,7 @@ export default class StudioSource extends Vue {
     margin-bottom: 10px;
   }
   .el-tabs__content {
-    padding: 20px 0;
+    padding: 10px 0 20px 0;
   }
   .slide-enter-active, .slide-leave-active {
     transition: transform .5s;
