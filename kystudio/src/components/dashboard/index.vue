@@ -4,7 +4,12 @@
       <el-col :span="8">
         <div class="dash-card">
           <div class="cart-title clearfix">
-            <span>{{$t('storageQuota')}}</span>
+            <span>{{$t('storageQuota')}}
+              <el-tooltip placement="right">
+                <div slot="content">{{$t('storageQuotaDesc')}}</div>
+                <i class="el-icon-ksd-what ksd-fs-14"></i>
+              </el-tooltip>
+            </span>
             <el-button plain size="mini" class="ksd-fright" @click="gotoSetting">{{$t('viewDetail')}}</el-button>
           </div>
           <el-row :gutter="35" class="quota-row">
@@ -63,8 +68,13 @@
       <el-col :span="8">
         <div class="dash-card">
           <div class="cart-title clearfix">
-            <span>{{$t('acceImpact')}}</span>
-            <!-- <el-button plain size="mini" class="ksd-fright">{{$t('ruleSetting')}}</el-button> -->
+            <span>{{$t('acceImpact')}}
+              <el-tooltip placement="right">
+                <div slot="content">{{$t('acceImpactDesc')}}</div>
+                <i class="el-icon-ksd-what ksd-fs-14"></i>
+              </el-tooltip>
+            </span>
+            <el-button plain size="mini" class="ksd-fright" @click="gotoFavorite">{{$t('viewDetail')}}</el-button>
           </div>
           <svg id="ruleImpact" width="100%" height="168" class="ksd-mt-20"></svg>
         </div>
@@ -155,7 +165,7 @@
       </el-col>
       <el-col :span="12" class="chart-block">
         <div>
-          <div class="cart-title">{{$t('queryByDay', {unit: $t(dateUnit), type: chartTitle})}}</div>
+          <div class="cart-title">{{$t('queryByDay', {type: chartTitle})}}</div>
           <el-select v-model="dateUnit" size="mini" class="line-chart-select" @change="loadLineChartData">
             <el-option
               v-for="item in unitOptions"
@@ -212,8 +222,8 @@ import LineChart from './LineChart'
     ])
   },
   locales: {
-    'en': {storageQuota: 'Storage Quota', acceImpact: 'Acceleration Impact', totalStorage: 'Total Storage', useageMana: 'Usage Manage', trash: 'Trash', clear: 'Clear', queryCount: 'Query Count', viewDetail: 'View Detail', avgQueryLatency: 'Avg. Query Latency', jobCount: 'Job Count', avgBulidTime: 'Avg. Build Time Per MB', queryByModel: '{type} by Model', queryByDay: '{type} by {unit}', queryByIndex: '{type} by Index', lastWeek: 'Last Week', lastMonth: 'Last Month', thisMonth: 'This Month', day: 'Day', week: 'Week', month: 'Month'},
-    'zh-cn': {storageQuota: '储存配额', acceImpact: '加速规则影响力', totalStorage: '总储存容量', useageMana: '占用资源管理', trash: '系统垃圾', clear: '清除', queryCount: '查询次数', viewDetail: '查看详情', avgQueryLatency: '平均查询延迟', jobCount: '任务次数', avgBulidTime: '每兆数据构建平均时间', queryByModel: '以模型{type}', queryByDay: '以{unit}{type}', queryByIndex: '以索引{type}', lastWeek: '最近一周', lastMonth: '上个月', thisMonth: '当前月', day: '天', week: '周', month: '月'}
+    'en': {storageQuota: 'Storage Quota', acceImpact: 'Acceleration Ratio', totalStorage: 'Total Storage', useageMana: 'Used Storage', trash: 'Garbage Storage', clear: 'Clear', queryCount: 'Query Count', viewDetail: 'View Detail', avgQueryLatency: 'Avg. Query Latency', jobCount: 'Job Count', avgBulidTime: 'Avg. Job Duration per MB', queryByModel: '{type} by Model', queryByDay: '{type}', queryByIndex: '{type} by Index', lastWeek: 'Last Week', lastMonth: 'Last Month', thisMonth: 'This Month', day: 'Day', week: 'Week', month: 'Month', storageQuotaDesc: 'In the project, the total storage can be used.', acceImpactDesc: 'In the project, accelerated queries ratio.'},
+    'zh-cn': {storageQuota: '存储配额', acceImpact: '加速比例', totalStorage: '总空间', useageMana: '已使用的存储', trash: '系统垃圾', clear: '清除', queryCount: '查询次数', viewDetail: '查看详情', avgQueryLatency: '平均查询延迟', jobCount: '任务次数', avgBulidTime: '构建1MB数据的平均时间', queryByModel: '以模型{type}', queryByDay: '{type}', queryByIndex: '以索引{type}', lastWeek: '最近一周', lastMonth: '上个月', thisMonth: '当前月', day: '天', week: '周', month: '月', storageQuotaDesc: '本项目可使用的存储空间总量。', acceImpactDesc: '本项目中，已经加速的查询的比例。'}
   }
 })
 export default class Dashboard extends Vue {
@@ -251,6 +261,9 @@ export default class Dashboard extends Vue {
   }
   gotoSetting () {
     this.$router.push('/setting')
+  }
+  gotoFavorite () {
+    this.$router.push('/studio/favorite_query')
   }
   resetShow () {
     this.showQueryChart = false
@@ -541,7 +554,7 @@ export default class Dashboard extends Vue {
         text-align: left;
       }
       .content {
-        margin: 30px 0 25px auto;
+        margin: 20px 0 20px auto;
         .num {
           color: @base-color;
           font-size: 36px;

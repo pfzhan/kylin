@@ -317,7 +317,7 @@ exports.default = {
     startTimeFilter: 'Start Time',
     endTimeFilter: 'End Time',
     latency: 'Duration',
-    clear: 'Clear',
+    clear: 'Reset',
     applyRule: 'Favorite Rule',
     lastModefied: 'Last Executed',
     rate: 'Success Rate',
