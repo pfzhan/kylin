@@ -6,7 +6,7 @@
           <el-button plain class="el-dropdown-link" size="medium">
             {{waittingJobModels.size}} {{$t('waitingjobs')}}<i class="el-icon-arrow-down el-icon--right"></i>
           </el-button>
-          <el-dropdown-menu slot="dropdown" v-if="waittingJobModels.data">
+          <el-dropdown-menu slot="dropdown" v-if="waittingJobModels.size">
             <el-dropdown-item v-for="(item, uuid) in waittingJobModels.data" :key="item.model_alias" :command="uuid">
               {{item.model_alias}}: {{item.size}}{{$t('waitingjobs')}}
             </el-dropdown-item>
@@ -480,7 +480,9 @@ export default class JobsList extends Vue {
     return new Promise((resolve, reject) => {
       this.losdWaittingJobModels({project: this.filter.project}).then((res) => {
         handleSuccess(res, (data) => {
-          this.waittingJobModels = data
+          this.$nextTick(() => {
+            this.waittingJobModels = data
+          })
           resolve()
         })
       }, (res) => {
