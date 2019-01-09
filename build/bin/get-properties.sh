@@ -9,12 +9,7 @@ then
     exit -1
 fi
 
-if [[ $CI_MODE == 'true' ]]; then
-    cd $dir
-    tool_jar=$(ls ../../kylin/tool-assembly/target/kylin-tool-*-assembly.jar)
-else
-    tool_jar=$(ls $KYLIN_HOME/tool/kylin-tool-*.jar)
-fi
+tool_jar=$(ls $KYLIN_HOME/tool/kap-tool-*.jar)
 
 kylin_conf_opts=
 if [ ! -z "$KYLIN_CONF" ]; then
