@@ -1,7 +1,7 @@
 <template>
   <el-dialog class="guide-box" :append-to-body="true" width="660px"
     :before-close="closeShowGuideModeCheckDialog"
-    title="Which mode do you want to explore ?"
+    :title="$t('switchModeTitle')"
     :close-on-click-modal="false"
     :visible="showGuideModeCheckDialog"
     :close-on-press-escape="false">
@@ -11,17 +11,17 @@
           <div class="guide-pic">
             <img src="../../../assets/img/guide/expert_mode_big.png"/>
           </div>
-          <div class="guide-title">Expert Mode Guide</div>
-          <div class="guide-desc">Expert Mode will assist you to add data source and scratch tables to your own models from blank</div>
-          <div class="guide-footer" @click="startManual">Start</div>
+          <div class="guide-title">{{$t('exportMode')}}</div>
+          <div class="guide-desc">{{$t('exportModeDesc')}}</div>
+          <div class="guide-footer" @click="startManual">{{$t('start')}}</div>
         </el-col>
         <el-col :span="12">
           <div class="guide-pic">
             <img src="../../../assets/img/guide/smart_mode_big.png"/>
           </div>
-          <div class="guide-title">Smart Mode Guide</div>
-          <div class="guide-desc">Ecpert Mode will assist you to add data source and scratch tables to your own models from blank</div>
-          <div class="guide-footer" @click="startAuto">Start</div>
+          <div class="guide-title">{{$t('smartMode')}}</div>
+          <div class="guide-desc">{{$t('smartModeDesc')}}</div>
+          <div class="guide-footer" @click="startAuto">{{$t('start')}}</div>
         </el-col>
       </el-row>
     </div>
@@ -44,6 +44,24 @@
           })
         }
         return showGuideMask
+      }
+    },
+    locales: {
+      'en': {
+        start: 'Start',
+        exportMode: 'Expert mode',
+        smartMode: 'Smart mode',
+        switchModeTitle: 'Which mode do you want to explore?',
+        exportModeDesc: 'recommended for analysis based on multi-dimensional models.',
+        smartModeDesc: 'recommended for exploring data via Business Intelligence tools, and SQL statements will be accelerated transparently by the system.'
+      },
+      'zh-cn': {
+        start: '开始',
+        exportMode: '专家模式',
+        smartMode: '智能模式',
+        switchModeTitle: '请选择你想探索的模式？',
+        exportModeDesc: '专适用于对多维建模进行分析。',
+        smartModeDesc: '适用于直接通过BI探索数据，系统将透明地加速BI发出的SQL语句。'
       }
     }
   })

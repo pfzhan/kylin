@@ -1,5 +1,6 @@
 <template>
-  <div id="newQuery">
+  <div id="newQuery" v-guide.queryBox>
+    <el-button @click="handleForGuide" v-visible v-guide.queryTriggerBtn></el-button>
     <div class="table-layout clearfix"> 
       <div class="layout-left">
         <DataSourceBar
@@ -94,7 +95,8 @@ import { insightKeyword } from '../../config'
     ...mapActions({
       getSavedQueries: 'GET_SAVE_QUERIES',
       delQuery: 'DELETE_QUERY',
-      loadDataSourceByProject: 'LOAD_DATASOURCE'
+      loadDataSourceByProject: 'LOAD_DATASOURCE',
+      query: 'QUERY_BUILD_TABLES'
     }),
     ...mapMutations({
       saveTabs: 'SET_QUERY_TABS'
@@ -128,7 +130,31 @@ export default class NewQuery extends Vue {
   checkedQueryList = []
   completeData = []
   tipsName = ''
-
+  // 为了guide
+  handleForGuide (obj) {
+    let action = obj.action
+    let data = obj.data
+    if (action === 'intoEditor') {
+      this.activeSubMenu = 'WorkSpace'
+    } else if (action === 'inputSql') {
+      this.editableTabs[0].queryObj = {
+        sql: data
+      }
+    } else if (action === 'requestSql') {
+      const queryObj = {
+        acceptPartial: true,
+        limit: 500,
+        offset: 0,
+        project: this.currentSelectedProject,
+        sql: data,
+        backdoorToggles: {
+          DEBUG_TOGGLE_HTRACE_ENABLED: false
+        }
+      }
+      this.query(queryObj)
+    }
+  }
+  // 为了guide
   handleAutoComplete (data) {
     this.completeData = [...data, ...insightKeyword]
   }

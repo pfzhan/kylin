@@ -205,7 +205,7 @@ export default class TreeList extends Vue {
       this.patchNodeMore(data, node)
     }
     return (
-      <div class={ 'tree-item guide-' + (data.database !== undefined ? data.database + node.label : node.label) }
+      <div class={ 'tree-item guide-' + (data.database !== undefined ? data.database.toLowerCase() + node.label.toLowerCase() : node.label.toLowerCase()) }
         style={treeItemStyle}
         draggable={isNodeDraggable}
         onMousedown={event => this.handleMouseDown(event, data, node)}

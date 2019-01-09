@@ -7,10 +7,11 @@ class Guide {
   constructor (options, _) {
     this.vm = _
     this.systemStore = store.state.system.guideConfig
-    this.mode = options.mode || 'manual' // 模式
+    this.mode = options.mode // 模式
     this.steps = null
     this.guiding = false
     this.stepsInfo = []
+    this.guideType = options.guideType
     this._mount = _.guideMount
     this.promiseObj = null
     this.STs = []
@@ -34,10 +35,14 @@ class Guide {
     ]
     this.drama = {
       manual: drama.manual(),
+      autoProject: drama.autoProject(),
       project: drama.project(),
       loadTable: drama.loadTable(),
+      autoLoadTable: drama.autoLoadTable(),
       addModel: drama.addModel(),
-      monitor: drama.monitor()
+      monitor: drama.monitor(),
+      query: drama.query(),
+      acceleration: drama.acceleration()
     }
     this.stepsInfo = this.drama[this.mode]
     this.steps = this.stepFuncs(this.stepsInfo)
@@ -65,7 +70,7 @@ class Guide {
     resolve()
   }
   _focus (el) {
-    el.focus()
+    el.focus && el.focus()
   }
   _input (el, val, resolve) {
     this._focus(el)

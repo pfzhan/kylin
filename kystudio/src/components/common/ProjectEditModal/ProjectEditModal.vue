@@ -27,7 +27,7 @@
           <el-col :span="12">
             <!-- project type 2 -->
             <div class="project-type" :class="{ active: form.type === 'MANUAL_MAINTAIN' }">
-              <div class="project-type-button" @click="inputHandler('type', 'MANUAL_MAINTAIN')" v-guide.changeAutoProjectType>
+              <div class="project-type-button" @click="inputHandler('type', 'MANUAL_MAINTAIN')" v-guide.changeMunalProjectType>
                 <div class="project-type-icon">
                   <i class="el-icon-ksd-expert_mode"></i>
                 </div>

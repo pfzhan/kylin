@@ -16,7 +16,7 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      tip: '点击添加模型按钮',
+      tip: 'addModelTip',
       target: 'addModelBtn', // 移动到模型添加按钮
       group: 1
     },
@@ -29,7 +29,6 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      tip: '输入模型名称（不能重复）',
       target: 'inputModelName', // 移动到模型名称输入框
       group: 1
     },
@@ -56,7 +55,6 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      tip: '点击保存开始创建模型',
       target: 'addModelSave', // 移动到模型保存按钮
       group: 1
     },
@@ -68,7 +66,7 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      tip: '从左侧树拖动需要建立关系的表到右侧',
+      tip: 'addModelTip1',
       target: 'modelDataSourceTreeScrollBox' // 进入可视区域
     },
     // 添加表SSB.P_LINEORDER
@@ -159,7 +157,7 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      tip: '批量添加Dimension',
+      tip: 'addModelTip2',
       target: 'dimensionPanelShowBtn' // 飞向dimension 面板触发按钮
     },
     {
@@ -209,7 +207,6 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      tip: '添加Measure',
       target: 'measurePanelShowBtn' // 飞向打开measure面板的按钮
     },
     {
@@ -240,7 +237,7 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      tip: '点击保存模型',
+      tip: 'addModelTip3',
       target: 'saveModelBtn' // 飞向保存模型
     },
     {
@@ -251,7 +248,6 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      tip: '设置Partition',
       target: 'partitionTable' // 飞向partition table
     },
     {
@@ -284,7 +280,7 @@ export function addModelDrama () {
     {
       eventID: 1,
       done: false,
-      tip: '继续添加Index设置',
+      tip: 'addModelTip4',
       search: '.guide-gotoindex-btn' // 飞向添加index 按钮
     },
     {

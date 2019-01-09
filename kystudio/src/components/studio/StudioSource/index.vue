@@ -3,6 +3,7 @@
     <div class="table-layout clearfix"> 
       <!-- 数据源导航栏 -->
       <DataSourceBar
+        v-guide.datasourceTree
         class="layout-left"
         ref="datasource-bar"
         :project-name="currentSelectedProject"
@@ -186,8 +187,9 @@ export default class StudioSource extends Vue {
     const confirmTitle = this.$t('kylinLang.common.notice')
     const confirmMessage = this.$t('remindLoadRange')
     const confirmButtonText = this.$t('kylinLang.common.ok')
+    const confirmButtonClass = 'guideTipSetPartitionConfitmBtn'
     const type = 'warning'
-    return this.$alert(confirmMessage, confirmTitle, { confirmButtonText, type })
+    return this.$alert(confirmMessage, confirmTitle, { confirmButtonText, type, confirmButtonClass })
   }
   async _getAffectedModelCountAndSize () {
     const projectName = this.currentSelectedProject

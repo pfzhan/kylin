@@ -11,7 +11,7 @@
           <span class="label">{{$t('kylinLang.query.status')}}</span>
           <span>{{$t('kylinLang.common.success')}}</span>
         </p>
-        <p class="resultText">
+        <p class="resultText" v-guide.queryAnswerBy>
           <span class="label">{{$t('kylinLang.query. answered_by')}}</span>
           <span class="text">{{extraoption.answeredBy | arrayToStr}}</span>
         </p>
@@ -38,7 +38,7 @@
     </div>
     <div class="clearfix">
       <div class="ksd-fleft ksd-mt-10">
-        <div class="ksd-title-label result-title">{{$t('queryResults')}}</div>
+        <div class="ksd-title-label result-title" v-guide.queryResultBox>{{$t('queryResults')}}</div>
         <kap-icon-button v-if="showExportCondition" size="small" icon="el-icon-ksd-download" @click.native="exportData">
           {{$t('kylinLang.query.export')}}
         </kap-icon-button>

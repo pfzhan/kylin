@@ -1,4 +1,5 @@
-export function addProjectDrama (isAuto) {
+import store from '../../store'
+export function addProjectDrama (guideType) {
   return [
     // 添加project
     {
@@ -9,7 +10,7 @@ export function addProjectDrama (isAuto) {
     {
       eventID: 1,
       done: false,
-      tip: '点击添加project',
+      tip: guideType === 'auto' ? 'addProjectTipAuto' : 'addProjectTip',
       target: 'addProjectBtn' // 鼠标移动到添加project按钮
     },
     {
@@ -20,24 +21,23 @@ export function addProjectDrama (isAuto) {
     {
       eventID: 1,
       done: false,
+      target: guideType === 'auto' ? 'changeAutoProjectType' : 'changeMunalProjectType' // 鼠标移动到选择类型
+    },
+    {
+      eventID: 2,
+      done: false,
+      target: guideType === 'auto' ? 'changeAutoProjectType' : 'changeMunalProjectType' // 鼠标点击选择类型
+    },
+    {
+      eventID: 1,
+      done: false,
       target: 'addProjectInput' // 鼠标移动到添加project 名称输入框
     },
     {
       eventID: 3,
       done: false,
       target: 'addProjectInput', // 输入添加project 名称
-      val: 'SSB123' + Date.now()
-    },
-    {
-      eventID: 1,
-      done: false,
-      tip: '选择project类型，分为手动设计模型和SQL加速项目',
-      target: isAuto ? 'changeAutoProjectType' : 'changeMunalProjectType' // 鼠标移动到选择类型
-    },
-    {
-      eventID: 2,
-      done: false,
-      target: isAuto ? 'changeAutoProjectType' : 'changeMunalProjectType' // 鼠标点击选择类型
+      val: (guideType === 'auto' ? 'Smart_mode_' : 'Expert_mode_') + (store.state.user.currentUser && store.state.user.currentUser.username || '') + Date.now()
     },
     {
       eventID: 1,
@@ -53,7 +53,6 @@ export function addProjectDrama (isAuto) {
     {
       eventID: 1,
       done: false,
-      tip: '保存project',
       target: 'saveProjectBtn' // 鼠标移动到project 保存按钮
     },
     {

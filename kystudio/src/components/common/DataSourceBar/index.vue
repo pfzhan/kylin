@@ -57,7 +57,7 @@
         :title="$t('loadFailed') + `[${table}]`">
       </el-alert>
       <div slot="footer" class="dialog-footer">
-        <el-button size="medium" plain type="primary" @click="isShowResultModal = false">{{$t('kylinLang.common.ok')}}</el-button>
+        <el-button size="medium" plain type="primary" v-guide.closeLoadResult @click="isShowResultModal = false">{{$t('kylinLang.common.ok')}}</el-button>
       </div>
     </el-dialog>
   </aside>

@@ -7,7 +7,7 @@
         <i class="el-icon-ksd-what ksd-fs-14"></i>
       </el-tooltip>
     </div>
-    <div class="img-groups">
+    <div class="img-groups" v-guide.speedProcess>
       <div class="label-groups">
         <span>{{$t('kylinLang.query.wartingAcce')}}: {{modelSpeedEvents}}</span>
         <span v-if="showGif" class="ongoing-label">{{$t('kylinLang.query.ongoingAcce')}}</span>
@@ -25,8 +25,9 @@
         <!-- <img src="../../assets/img/acc_01.jpg" width="245px" alt=""><img src="../../assets/img/acc_02.jpg" width="245px" alt=""><img src="../../assets/img/acc_03.jpg" width="245px" height="48px" alt=""> -->
       </div>
       <div class="btn-groups ksd-mt-10">
+        <span class="guide-checkData" v-if="!modelSpeedEvents"></span>
         <el-button size="mini" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
-        <el-button size="mini" type="primary" plain :disabled="!modelSpeedEvents" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
+        <el-button size="mini" type="primary" v-guide.speedSqlNowBtn plain :disabled="!modelSpeedEvents" @click="applySpeed($event)">{{$t('accelerateNow')}}</el-button>
       </div>
     </div>
     <div class="fav-tables">

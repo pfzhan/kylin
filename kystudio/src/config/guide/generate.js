@@ -3,6 +3,22 @@ import { highGuideSpeed, normalGuideSpeed } from './config'
 function switchGuideSpeed (i) {
   return i === 0 ? normalGuideSpeed : highGuideSpeed
 }
+export function batchRequest (sqls) {
+  let result = []
+  sqls.forEach((s) => {
+    result.push({
+      eventID: 21,
+      done: false,
+      target: 'queryTriggerBtn', // 在编辑器中输入需要查询的SQL
+      val: {
+        action: 'requestSql',
+        data: s
+      },
+      timer: 100
+    })
+  })
+  return result
+}
 export function renderModelAddTableData (tables, links, factTableName) {
   let guidMap = {}
   let result = []
@@ -15,14 +31,14 @@ export function renderModelAddTableData (tables, links, factTableName) {
         eventID: 6,
         done: false,
         target: 'modelDataSourceTreeScrollBox', // 进入可视区域
-        search: '.guide-' + t.name.replace('.', ''),
+        search: '.guide-' + t.name.replace('.', '').toLowerCase(),
         timer: timer
       },
       {
         eventID: 1,
         done: false,
         target: 'modelDataSourceTree', // 点击模型添加左侧树
-        search: '.guide-' + t.name.replace('.', ''),
+        search: '.guide-' + t.name.replace('.', '').toLowerCase(),
         timer: timer
       },
       {
@@ -64,7 +80,6 @@ export function renderModelAddTableData (tables, links, factTableName) {
     result.push(
       {
         eventID: 1,
-        tip: i === 0 ? '拖动表中列到另外一张表的列来建立关系' : null,
         done: false,
         offsetX: -100,
         target: fguid + fcolumn, // 连接列
@@ -109,7 +124,6 @@ export function renderModelAddTableData (tables, links, factTableName) {
   })
   let factguid = guidMap[factTableName]
   result.push({
-    tip: '设置Fact表',
     eventID: 1,
     done: false,
     target: factguid, // 飞向设置
@@ -161,36 +175,37 @@ export function renderDimensionData (dimensions) {
   return result
 }
 
-export function renderLoadHiveTables (tables) {
+export function renderLoadHiveTables (target, tables) {
   let result = []
   for (let i in tables) {
+    let dbname = i.toLowerCase()
     result.push({
       eventID: 1,
       done: false,
-      tip: '选择需要加载的表',
-      target: 'hiveTree', // 飞向指定的database
-      search: '.guide-' + i,
+      target: target, // 飞向指定的database
+      search: '.guide-' + dbname,
       offsetX: -370
     }, {
       eventID: 2,
       done: false,
-      target: 'hiveTree', // 点击指定的database
-      search: '.guide-' + i,
+      target: target, // 点击指定的database
+      search: '.guide-' + dbname,
       offsetX: -370
     })
     tables[i].forEach((t, i) => {
+      t = t.toLowerCase()
       let timer = switchGuideSpeed(i)
       result.push({
         eventID: 1,
         done: false,
-        target: 'hiveTree', // 飞向指定的列
+        target: target, // 飞向指定的列
         search: '.guide-' + t,
         offsetX: -370,
         timer: timer
       }, {
         eventID: 2,
         done: false,
-        target: 'hiveTree', // 点击指定的列
+        target: target, // 点击指定的列
         search: '.guide-' + t,
         offsetX: -370,
         timer: timer

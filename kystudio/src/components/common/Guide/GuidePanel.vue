@@ -3,30 +3,32 @@
         <el-button v-visible v-guide.moveGuidePanelBtn @click="moveGuidePanel"> </el-button>
         <div id="guid-panel" :style="guidePanelStyle">
           <div class="guid-icon">
-            <img style="width:30px;height:30px;" src="../../../assets/img/guide/expert_mode_small.png"/>
+            <img style="width:30px;height:30px;" v-if="guideType !== 'auto'" src="../../../assets/img/guide/expert_mode_small.png"/>
+             <img style="width:30px;height:30px;" v-else src="../../../assets/img/guide/smart_mode_small.png"/>
           </div>
           <transition name="bounce">
             <div class="guid-title" v-if="showGuid.showTitle">
-              <span>Manual Mode Guide</span>
+              <span v-if="guideType !== 'auto'">{{$t('expertMode')}}</span>
+              <span v-else>{{$t('smartMode')}}</span>
               <i class="el-icon-close ksd-fright ksd-mt-8 ksd-mr-10" @click="closeGuide"></i>
             </div>
           </transition>
           <transition name="panelani">
             <div class="guid-content" v-if="showGuid.showContent">
                 <el-tabs v-model="activeName" @tab-click="handleClickTab">
-                  <el-tab-pane :label="step.label" :key="step.name" :name="step.name" v-for="step in guideSteps">
+                  <el-tab-pane :label="$t(step.label)" :key="step.name" :name="step.name" v-for="step in guideSteps">
                     <!-- <div class="ksd-ml-20 ksd-mtb-6">操作提示：</div> -->
                     <ul class="steps-info">
                       <li class="guiding-step" :class="{'guide-end': x.done}" :key="x.tip" v-for="x in stepTipData">
                         <img v-if="x.done" style="width:12px;height:12px;" src="../../../assets/img/guide/icon_flag.png"/>
                         <span v-else class="dot"></span>
-                        {{x.tip}}
+                        {{$t('kylinLang.guide.' + x.tip)}}
                       </li>
                     </ul>
                   </el-tab-pane>
                 </el-tabs>
                 <el-button class="ksd-fright guide-btn" size="mini" :loading="guideLoading" @click="goNextStep" plain>{{getNextBtnText}}</el-button>
-                <el-button class="ksd-fright guide-btn" size="mini"  @click="stopGuide" v-if="currentStep" plain>{{isPause ? '继续' : '暂停'}}</el-button>
+                <el-button class="ksd-fright guide-btn" size="mini"  @click="stopGuide" v-if="currentStep" plain>{{isPause ? $t('goon') : $t('pause')}}</el-button>
                 <el-button class="ksd-fright guide-btn" size="mini"  @click="retryGuide" v-if="showRetryStep" plain>重放该步骤</el-button>
             </div>
           </transition>
@@ -52,15 +54,15 @@ import Guide from 'util/guide'
   computed: {
     getNextBtnText () {
       if (this.guideLoading) {
-        return '演示中'
+        return this.$t('guiding')
       }
-      if (this.currentStep === this.guideSteps.length - 1) {
-        return '结束'
+      if (this.currentStep === this.guideSteps.length - 1 && this.guideSteps[this.currentStep].done) {
+        return this.$t('end')
       }
       if (this.currentStep === 0 && !this.guideLoading && !this.guideSteps[this.currentStep].done) {
-        return '开始'
+        return this.$t('start')
       }
-      return '下一步'
+      return this.$t('next')
     },
     showRetryAll () {
       return this.currentStep === this.stepTipData.length - 1 && !this.guideLoading
@@ -90,8 +92,11 @@ import Guide from 'util/guide'
       }
       return styleObj
     },
+    guideType () {
+      return this.$store.state.system.guideConfig.guideType
+    },
     guideSteps () {
-      if (this.$store.state.system.guideConfig.guideType === 'auto') {
+      if (this.guideType === 'auto') {
         return this.autoGuideSteps
       } else {
         return this.manualGuideSteps
@@ -104,7 +109,7 @@ import Guide from 'util/guide'
           this.showGuid.showTitle = showGuideMask
           this.showGuid.showContent = showGuideMask
         })
-        this.activeName = 'project'
+        this.activeName = this.$store.state.system.guideConfig.guideType === 'auto' ? 'autoProject' : 'project'
         let currentGuidePage = this.guideSteps[0]
         this.guide = new Guide({
           mode: currentGuidePage.name
@@ -128,6 +133,40 @@ import Guide from 'util/guide'
         top: this.$store.state.system.guideConfig.mousePos.y + 'px'
       }
     }
+  },
+  locales: {
+    'en': {
+      expertMode: 'Expert mode',
+      smartMode: 'Smart mode',
+      start: 'Start',
+      next: 'Next',
+      end: 'End',
+      guiding: 'Running',
+      pause: 'Pause',
+      goon: 'Continue',
+      addProjectTitle: 'Add project',
+      loadTableTitle: 'Sync table schema',
+      addModelTitle: 'Create a model',
+      monitorTitle: 'Load data',
+      speedSqlTitle: 'Accelerate SQL',
+      queryTitle: 'Time to insight'
+    },
+    'zh-cn': {
+      expertMode: '专家模式',
+      smartMode: '智能模式',
+      start: '开始',
+      next: '下一步',
+      end: '结束',
+      guiding: '演示中',
+      pause: '暂停',
+      goon: '继续',
+      addProjectTitle: '添加项目',
+      loadTableTitle: '同步表的元数据',
+      addModelTitle: '创建模型',
+      monitorTitle: '加载数据',
+      speedSqlTitle: '加速查询',
+      queryTitle: '数据探索'
+    }
   }
 })
 export default class GuidePannel extends Vue {
@@ -146,17 +185,20 @@ export default class GuidePannel extends Vue {
   stepsList = null
   activeName = 'project'
   manualGuideSteps = [
-    {name: 'project', label: 'Add Project', done: false},
-    {name: 'loadTable', label: 'Load Table', done: false},
-    {name: 'addModel', label: 'Add Model', done: false},
-    {name: 'monitor', label: 'Monitor', done: false}
+    {name: 'project', label: 'addProjectTitle', done: false},
+    {name: 'loadTable', label: 'loadTableTitle', done: false},
+    {name: 'addModel', label: 'addModelTitle', done: false},
+    {name: 'monitor', label: 'monitorTitle', done: false}
   ]
   autoGuideSteps = [
-    {name: 'project', label: 'Add Project', done: false},
-    {name: 'loadTable', label: 'Load Table', done: false},
-    {name: 'insight', label: 'Insight', done: false},
-    {name: 'Acceleration', label: 'Acceleration', done: false},
-    {name: 'monitor', label: 'Monitor', done: false}
+    {name: 'autoProject', label: 'addProjectTitle', done: false},
+    {name: 'autoLoadTable', label: 'loadTableTitle', done: false},
+    {name: 'query', label: 'queryTitle', done: false},
+    {name: 'acceleration', label: 'speedSqlTitle', done: false},
+    {name: 'monitor', label: 'monitorTitle', done: false}
+    // {name: 'insight', label: 'Insight', done: false},
+    // {name: 'Acceleration', label: 'Acceleration', done: false},
+    // {name: 'monitor', label: 'Monitor', done: false}
   ]
   guide = null
   resetGuidSteps () {
@@ -176,7 +218,8 @@ export default class GuidePannel extends Vue {
     let tabIndex = +tab.index
     let currentGuidePage = this.guideSteps[tabIndex]
     this.guide = new Guide({
-      mode: currentGuidePage.name
+      mode: currentGuidePage.name,
+      guideType: this.guideType
     }, this)
     this.stepsList = this.guide.stepsInfo
     this.activeName = currentGuidePage.name
@@ -213,7 +256,8 @@ export default class GuidePannel extends Vue {
     }
     let currentGuidePage = this.guideSteps[this.currentStep]
     this.guide = new Guide({
-      mode: currentGuidePage.name
+      mode: currentGuidePage.name,
+      guideType: this.guideType
     }, this)
     this.stepsList = this.guide.stepsInfo
     this.activeName = currentGuidePage.name
@@ -387,12 +431,16 @@ export default class GuidePannel extends Vue {
       margin-top: 10px;
       .steps-info {
         li {
+          // &:last-child {
+          //   padding-bottom:10px;
+          // }
           cursor:pointer;
-          width: 360px;
-          height: 28px;
-          line-height:28px;
+          width: 325px;
           background-color: #087ac8;
           padding-left:24px;
+          padding-right:10px;
+          padding-top:5px;
+          padding-bottom: 5px;
           .dot {
             .ky-square-box(4px, 4px);
             border-radius:50%;
@@ -401,8 +449,7 @@ export default class GuidePannel extends Vue {
             margin-right:9px;
           }
           &.guiding-step {
-            width: 360px;
-            height: 28px;
+            width: 325px;
             &.guide-end {
               background-image: linear-gradient(193deg, #15bdf1, #0988de);
             }

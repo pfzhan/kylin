@@ -402,6 +402,22 @@ exports.default = {
     type: 'Type',
     status: 'Status'
   },
+  guide: {
+    addProjectTip: 'When you add a new project, choose a proper project type is essential. To analysis based on multi-dimensional models, you may choose the expert mode. You may choose the smart mode to explore data via Business Intelligence tools, and the system will accelerate SQL statements received.',
+    addProjectTipAuto: 'When you add a new project, choose a proper project type is essential. To explore data via Business Intelligence tools, you may choose the smart mode, and the system will accelerate SQL statements transparently. If you want to analysis based on multi-dimensional models, please choose the expert mode.',
+    // loadTableTipAuto: 'The Kyligence Enterprise platform may need to connect with your source data. Choose your desired dataset and sync its schema. Here we use the SSB dataset to do further tasks.',
+    queryTipAuto: 'Once source tables synced, you can explore data among the SSB dataset.',
+    speedTipAuto: 'SQL statements in the Waiting List are filtered by the system. You can adjust these rules to manage accelerating workload.',
+    speedTipAuto1: 'By default, all SQL sent by ADMIN would be accelerated.',
+    speedTipAuto2: 'Click the button Accelerate Now, the system will trigger multiple jobs to accelerate all waiting SQL statements.',
+    monitorTip: 'Tigger a loading data job and you can check jobs via the Monitor.',
+    addModelTip: 'Add a new model. Note that the model name should be unique in the project.',
+    addModelTip1: 'Scratch tables to the blank canvas and set at least one fact table.',
+    addModelTip2: 'Add dimensions and measures.',
+    addModelTip3: 'Save the model and set partition for it.',
+    addModelTip4: 'We suggest creating some indexes after saving the model. So you can load data to it and do analysis instantly.',
+    loadTableTip: 'The Kyligence Enterprise platform may need to connect with your source data. Choose your desired dataset and sync its schema. Here we will use the SSB dataset to do further tasks.'
+  },
   kybotXY: {
     agreement: `
 IF YOU (“YOU” OR “CUSTOMER”) PLAN TO USE ANY OF THE

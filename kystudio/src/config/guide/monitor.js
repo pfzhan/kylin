@@ -4,7 +4,7 @@ export function monitorDrama () {
     {
       eventID: 8,
       done: false,
-      tip: '查看任务列表',
+      tip: 'monitorTip',
       router: 'Job' // 跳转到monitor页面
     }
   ]

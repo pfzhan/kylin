@@ -1,7 +1,7 @@
 <template>
   <div id="queryTab">
     <div class="query_panel_box ksd-mb-40">
-      <kap-editor ref="insightBox" height="170" lang="sql" theme="chrome" @keydown.meta.enter.native="submitQuery(sourceSchema)" @keydown.ctrl.enter.native="submitQuery(sourceSchema)" v-model="sourceSchema">
+      <kap-editor ref="insightBox" :class="tabsItem.name" height="170" lang="sql" theme="chrome" @keydown.meta.enter.native="submitQuery(sourceSchema)" @keydown.ctrl.enter.native="submitQuery(sourceSchema)" v-model="sourceSchema">
       </kap-editor>
       <div class="clearfix operatorBox">
         <p class="tips_box">
@@ -20,7 +20,7 @@
               <el-input placeholder="" size="small" style="width:90px;" @input="handleInputChange" v-model="listRows" class="limit-input"></el-input>
             </el-form-item>
             <el-form-item>
-              <el-button type="primary" plain size="small" class="ksd-btn-minwidth" :loading="isLoading" @click.native.prevent="submitQuery(sourceSchema)">{{$t('kylinLang.common.submit')}}</el-button>
+              <el-button type="primary" :class="tabsItem.name + '-submit'" plain size="small" class="ksd-btn-minwidth" :loading="isLoading" @click.native.prevent="submitQuery(sourceSchema)">{{$t('kylinLang.common.submit')}}</el-button>
             </el-form-item>
           </el-form>
         </p>
