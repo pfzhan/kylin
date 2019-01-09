@@ -115,10 +115,11 @@ export default class StudioSource extends Vue {
     }
   }
   showDeleteTableConfirm (modelCount, modelSize) {
+    const tableName = this.selectedTable.name
     const storageSize = Vue.filter('dataSize')(modelSize)
-    const contentVal = { modelCount, storageSize }
-    const confirmTitle = this.$t('kylinLang.common.notice')
-    const confirmMessage1 = modelCount || modelSize ? this.$t('affactUnloadInfo', contentVal) : ''
+    const contentVal = { tableName, storageSize }
+    const confirmTitle = this.$t('unloadTableTitle')
+    const confirmMessage1 = modelSize ? this.$t('affactUnloadInfo', contentVal) : ''
     const confirmMessage2 = this.$t('unloadTable')
     const confirmMessage = _render(this.$createElement)
     const confirmButtonText = this.$t('kylinLang.common.ok')
