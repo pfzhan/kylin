@@ -1,3 +1,10 @@
+import { editTypes } from '../handler'
+
+export const fieldVisiableMaps = {
+  [editTypes.CONFIG_SOURCE]: ['name', 'creator', 'description', 'host', 'port', 'isAuthentication', 'username', 'password'],
+  [editTypes.VIEW_SOURCE]: ['type', 'name', 'host', 'port']
+}
+
 export const validate = {
   name (rule, value, callback) {
     if (!value) {

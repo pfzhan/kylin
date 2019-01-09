@@ -1,5 +1,6 @@
 export default {
   'en': {
+    type: 'Source Type',
     name: 'Name',
     creator: 'Creator',
     description: 'Description',
@@ -17,6 +18,7 @@ export default {
     portValidTip: 'Please input valid port.'
   },
   'zh-cn': {
+    type: '数据源类型',
     name: '数据源名',
     creator: '创建人',
     description: '描述',

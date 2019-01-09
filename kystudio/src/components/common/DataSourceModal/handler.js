@@ -4,14 +4,14 @@ import { sourceTypes } from '../../../config'
 export const editTypes = {
   SELECT_SOURCE: 'selectSource',
   CONFIG_SOURCE: 'configSource',
-  EDIT_SOURCE: 'editSource',
+  VIEW_SOURCE: 'viewSource',
   ...sourceTypes
 }
 
 export const titleMaps = {
   [editTypes.SELECT_SOURCE]: 'selectSource',
   [editTypes.CONFIG_SOURCE]: 'configSource',
-  [editTypes.EDIT_SOURCE]: 'editSource',
+  [editTypes.VIEW_SOURCE]: 'viewSource',
   [editTypes.HIVE]: 'loadhiveTables',
   [editTypes.RDBMS]: 'loadTables',
   [editTypes.RDBMS2]: 'loadTables',
@@ -21,7 +21,7 @@ export const titleMaps = {
 export const cancelMaps = {
   [editTypes.SELECT_SOURCE]: 'kylinLang.common.cancel',
   [editTypes.CONFIG_SOURCE]: 'kylinLang.common.prev',
-  [editTypes.EDIT_SOURCE]: 'kylinLang.common.cancel',
+  [editTypes.VIEW_SOURCE]: '',
   [editTypes.HIVE]: 'kylinLang.common.prev',
   [editTypes.RDBMS]: '',
   [editTypes.RDBMS2]: '',
@@ -31,7 +31,7 @@ export const cancelMaps = {
 export const confirmMaps = {
   [editTypes.SELECT_SOURCE]: 'kylinLang.common.next',
   [editTypes.CONFIG_SOURCE]: 'kylinLang.common.next',
-  [editTypes.EDIT_SOURCE]: 'kylinLang.common.ok',
+  [editTypes.VIEW_SOURCE]: 'kylinLang.common.ok',
   [editTypes.HIVE]: 'kylinLang.common.sync',
   [editTypes.RDBMS]: 'kylinLang.common.sync',
   [editTypes.RDBMS2]: 'kylinLang.common.sync',

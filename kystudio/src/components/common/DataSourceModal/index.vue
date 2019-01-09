@@ -15,9 +15,10 @@
       </SourceSelect>
       <SourceHiveSetting
         ref="source-hive-setting-form"
-        v-if="[editTypes.CONFIG_SOURCE, editTypes.EDIT_SOURCE].includes(editType) && [editTypes.HIVE].includes(sourceType)"
+        v-if="[editTypes.CONFIG_SOURCE, editTypes.VIEW_SOURCE].includes(editType) && [editTypes.HIVE].includes(sourceType)"
         :form="form.settings"
-        :is-edit-mode="editType === editTypes.EDIT_SOURCE"
+        :edit-type="editType"
+        :is-editable="editType !== editTypes.VIEW_SOURCE"
         @input="(key, value) => handleInput(`settings.${key}`, value)">
       </SourceHiveSetting>
       <SourceHive
@@ -91,7 +92,7 @@ export default class DataSourceModal extends Vue {
   get modalTitle () { return titleMaps[this.editType] }
   get modelWidth () { return this.editType === editTypes.HIVE ? '960px' : '780px' }
   get confirmText () { return this.$t(confirmMaps[this.editType]) }
-  get cancelText () { return this.firstEditType !== editTypes.SELECT_SOURCE ? this.$t('kylinLang.common.cancel') : this.$t(cancelMaps[this.editType]) }
+  get cancelText () { return ![editTypes.SELECT_SOURCE, editTypes.VIEW_SOURCE].includes(this.firstEditType) ? this.$t('kylinLang.common.cancel') : this.$t(cancelMaps[this.editType]) }
   get sourceType () { return this.form.project.override_kylin_properties['kylin.source.default'] }
   handleInput (key, value) {
     this.setModalForm(set(this.form, key, value))
@@ -173,6 +174,9 @@ export default class DataSourceModal extends Vue {
       case editTypes.SELECT_SOURCE: {
         await this.updateProject(submitData)
         return this.setModal({ editType: this.form.project.override_kylin_properties['kylin.source.default'] })
+      }
+      case editTypes.VIEW_SOURCE: {
+        return this.handleClose(false)
       }
       case editTypes.HIVE:
       case editTypes.RDBMS:

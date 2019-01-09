@@ -2,6 +2,7 @@ export default {
   'en': {
     selectSource: 'Add New Source',
     configSource: 'Add Hive Source',
+    viewSource: 'General Information',
     loadTables: 'Load Table Metadata',
     loadhiveTables: 'Load Hive Table Metadata',
     loadKafkaTopic: 'Load Kafka Topic',
@@ -11,6 +12,7 @@ export default {
   'zh-cn': {
     selectSource: '添加新数据源',
     configSource: '添加Hive数据源',
+    viewSource: '基本信息',
     loadTables: '加载表元数据',
     loadhiveTables: '加载Hive表元数据',
     loadKafkaTopic: '设置Kafka主题',

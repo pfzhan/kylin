@@ -19,6 +19,7 @@ const initialState = JSON.stringify({
     selectedTables: [],
     selectedDatabases: [],
     settings: {
+      type: '',
       name: '',
       creator: '',
       description: '',
@@ -29,6 +30,7 @@ const initialState = JSON.stringify({
       password: ''
     }
   },
+  datasource: null,
   project: null
 })
 
@@ -52,12 +54,13 @@ export default {
     [types.INIT_FORM]: (state) => {
       state.form = JSON.parse(initialState).form
       state.form.project = _getEmptySourceProject(state.project, state.editType)
+      state.datasource && _getDatasourceSettings(state)
     }
   },
   actions: {
-    [types.CALL_MODAL] ({ commit }, { editType, project }) {
+    [types.CALL_MODAL] ({ commit }, { editType, project, datasource }) {
       return new Promise(resolve => {
-        commit(types.SET_MODAL, { editType, project, firstEditType: editType, callback: resolve })
+        commit(types.SET_MODAL, { editType, project, firstEditType: editType, datasource, callback: resolve })
         commit(types.INIT_FORM)
         commit(types.SHOW_MODAL)
       })
@@ -71,4 +74,12 @@ function _getEmptySourceProject (project, editType) {
   project = set(project, 'override_kylin_properties', properties)
   project.override_kylin_properties['kylin.source.default'] = !isNaN(editType) ? editType : null
   return project
+}
+
+function _getDatasourceSettings (state) {
+  state.form.settings.name = state.datasource.name
+  state.form.settings.type = state.datasource.type
+  state.form.settings.host = state.datasource.host
+  state.form.settings.port = state.datasource.port
+  state.form.project.override_kylin_properties['kylin.source.default'] = state.datasource.sourceType
 }
