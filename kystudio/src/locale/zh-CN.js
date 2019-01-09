@@ -85,6 +85,7 @@ exports.default = {
     or: '或',
     saveAndClose: '保存并关闭',
     sameName: '命名重复',
+    sqlEditor: '查询编辑器',
     // 通用提示
     backupSuccessTip: '元数据备份成功: ',
     unknownError: '未知错误。',
@@ -277,7 +278,6 @@ exports.default = {
   query: {
     saveQuery: '保存查询',
     reLoad: '已保存的查询',
-    sqlEditor: '查询编辑器',
     refreshQuery: '刷新',
     name: '查询名称',
     desc: '描述',

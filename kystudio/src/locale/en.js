@@ -86,6 +86,7 @@ exports.default = {
     or: 'or',
     saveAndClose: 'Save and Close',
     sameName: 'Duplicate name',
+    sqlEditor: 'SQL Editor',
     // 通用提示
     backupSuccessTip: 'Metadata backup successfully: ',
     unknownError: 'Unknown Error.',
@@ -280,7 +281,6 @@ exports.default = {
   query: {
     saveQuery: 'Save Query',
     reLoad: 'Saved Query',
-    sqlEditor: 'SQL Editor',
     refreshQuery: 'Refresh',
     name: 'Query Name',
     desc: 'Description',

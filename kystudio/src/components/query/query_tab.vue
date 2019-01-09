@@ -209,9 +209,14 @@ export default class QueryTab extends Vue {
     this.errinfo = this.tabsItem.queryErrorInfo
     this.sourceSchema = this.tabsItem.queryObj && this.tabsItem.queryObj.sql || ''
     this.isWorkspace = this.tabsItem.name === 'WorkSpace'
-    if (this.tabsItem.queryObj) {
+    if (this.tabsItem.queryObj && this.tabsItem.index) {
       this.queryResult(this.tabsItem.queryObj)
     }
+  }
+  @Watch('tabsItem.extraoption')
+  onTabsResultChange (val) {
+    this.extraoptionObj = this.tabsItem.extraoption
+    this.errinfo = this.tabsItem.queryErrorInfo
   }
   destoryed () {
     clearInterval(this.ST)
@@ -221,7 +226,7 @@ export default class QueryTab extends Vue {
     this.errinfo = this.tabsItem.queryErrorInfo
     this.sourceSchema = this.tabsItem.queryObj && this.tabsItem.queryObj.sql || ''
     this.isWorkspace = this.tabsItem.name === 'WorkSpace'
-    if (this.tabsItem.queryObj && !this.tabsItem.extraoption) {
+    if (this.tabsItem.queryObj && !this.tabsItem.extraoption && this.tabsItem.index) {
       this.queryResult(this.tabsItem.queryObj)
     }
   }

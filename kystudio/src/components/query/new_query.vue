@@ -243,9 +243,11 @@ export default class NewQuery extends Vue {
     this.savedQueryListVisible = false
   }
   changeTab (index, data, errorInfo) {
+    this.editableTabs[0].extraoption = data
+    this.editableTabs[0].queryErrorInfo = errorInfo
     if (index) {
       let tabs = this.editableTabs
-      for (var k = 0; k < tabs.length; k++) {
+      for (var k = 1; k < tabs.length; k++) {
         if (tabs[k].index === index) {
           tabs[k].icon = errorInfo ? 'el-icon-ksd-error_01' : 'el-icon-ksd-good_health'
           tabs[k].spin = errorInfo === 'circle-o-notch'
@@ -280,7 +282,8 @@ export default class NewQuery extends Vue {
     this.editableTabs = this.getQueryTabs && this.getQueryTabs[this.currentSelectedProject]
     ? this.getQueryTabs[this.currentSelectedProject]
     : [{
-      title: this.$t('kylinLang.query.sqlEditor'),
+      title: 'sqlEditor',
+      i18n: 'sqlEditor',
       name: 'WorkSpace',
       icon: '',
       spin: true,
