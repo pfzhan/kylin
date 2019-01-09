@@ -30,6 +30,8 @@ import org.apache.kylin.common.KylinConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.smart.common.AccelerateInfo;
 
 public abstract class NAbstractProposer {
@@ -53,13 +55,9 @@ public abstract class NAbstractProposer {
     void recordException(NSmartContext.NModelContext modelCtx, Exception e) {
         modelCtx.getModelTree().getOlapContexts().forEach(olapCtx -> {
             String sql = olapCtx.sql;
-            if (!accelerateInfoMap.containsKey(sql)) {
-                AccelerateInfo info = new AccelerateInfo();
-                info.setBlockingCause(e);
-                accelerateInfoMap.put(sql, info);
-            } else {
-                accelerateInfoMap.get(sql).setBlockingCause(e);
-            }
+            final AccelerateInfo accelerateInfo = accelerateInfoMap.get(sql);
+            Preconditions.checkNotNull(accelerateInfo);
+            accelerateInfo.setBlockingCause(e);
         });
     }
 

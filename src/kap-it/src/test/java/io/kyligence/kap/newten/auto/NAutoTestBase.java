@@ -44,8 +44,6 @@ import org.apache.kylin.query.util.QueryUtil;
 import org.apache.spark.SparkContext;
 import org.junit.After;
 import org.junit.Before;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -60,10 +58,10 @@ import io.kyligence.kap.spark.KapSparkSession;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.AccelerationMatchedLevel;
 import io.kyligence.kap.utils.RecAndQueryCompareUtil.CompareEntity;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class NAutoTestBase extends NLocalWithSparkSessionTest {
-
-    private static final Logger logger = LoggerFactory.getLogger(NAutoTestBase.class);
 
     private static final String IT_SQL_KAP_DIR = "../kap-it/src/test/resources/query";
     private Map<String, String> systemProp = Maps.newHashMap();
@@ -73,7 +71,6 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     public void setup() throws Exception {
         super.init();
         kylinConfig = getTestConfig();
-        overwriteSystemProp("kap.smart.conf.model.inner-join.exactly-match", "true");
     }
 
     @Override
@@ -89,10 +86,10 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     private void restoreAllSystemProp() {
         systemProp.forEach((prop, value) -> {
             if (value == null) {
-                logger.info("Clear {}", prop);
+                log.info("Clear {}", prop);
                 System.clearProperty(prop);
             } else {
-                logger.info("restore {}", prop);
+                log.info("restore {}", prop);
                 System.setProperty(prop, value);
             }
         });
@@ -117,13 +114,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
     protected void executeTestScenario(TestScenario... testScenarios) throws Exception {
 
         // 1. execute auto-modeling propose
-        List<String> sqlList = collectQueries(testScenarios);
-
-        Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
-
-        String[] sqls = sqlList.toArray(new String[0]);
-        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, getProject(), sqls);
-        smartMaster.runAll();
+        final NSmartMaster smartMaster = proposeWithSmartMaster(testScenarios, getProject());
 
         final Map<String, CompareEntity> compareMap = collectCompareEntity(smartMaster);
         try (KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf))) {
@@ -160,6 +151,18 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         System.out.println(sb);
     }
 
+    NSmartMaster proposeWithSmartMaster(TestScenario[] testScenarios, String project) throws IOException {
+
+        List<String> sqlList = collectQueries(testScenarios);
+
+        Preconditions.checkArgument(CollectionUtils.isNotEmpty(sqlList));
+
+        String[] sqls = sqlList.toArray(new String[0]);
+        NSmartMaster smartMaster = new NSmartMaster(kylinConfig, project, sqls);
+        smartMaster.runAll();
+        return smartMaster;
+    }
+
     List<Pair<String, String>> fetchQueries(String subFolder, int fromIndex, int toIndex) throws IOException {
         List<Pair<String, String>> queries;
         String folder = getFolder(subFolder);
@@ -193,8 +196,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
             List<Pair<String, String>> queries = fetchQueries(test.folderName, test.fromIndex, test.toIndex);
             normalizeSql(test.joinType, queries);
             test.queries = test.exclusionList == null ? queries : NExecAndComp.doFilter(queries, test.exclusionList);
-            allQueries.addAll(test.queries.stream().map(Pair::getSecond)
-                    .collect(Collectors.toList()));
+            allQueries.addAll(test.queries.stream().map(Pair::getSecond).collect(Collectors.toList()));
         }
         return allQueries;
     }
@@ -241,7 +243,7 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
         }
 
         private TestScenario(CompareLevel compareLevel, JoinType joinType, boolean isLimit, String folderName,
-                             int fromIndex, int toIndex, Set<String> exclusionList) {
+                int fromIndex, int toIndex, Set<String> exclusionList) {
             this.compareLevel = compareLevel;
             this.folderName = folderName;
             this.joinType = joinType;

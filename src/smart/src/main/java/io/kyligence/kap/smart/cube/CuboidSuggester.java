@@ -135,12 +135,10 @@ class CuboidSuggester {
     void suggestCuboids(ModelTree modelTree) {
         final Map<String, AccelerateInfo> sql2AccelerateInfo = smartContext.getAccelerateInfoMap();
         for (OLAPContext ctx : modelTree.getOlapContexts()) {
-            String sql = ctx.sql;
-            if (!sql2AccelerateInfo.containsKey(sql)) {
-                sql2AccelerateInfo.put(sql, new AccelerateInfo());
-            }
 
-            AccelerateInfo accelerateInfo = sql2AccelerateInfo.get(sql);
+            // check keySet of sql2AccelerateInfo contains ctx.sql
+            AccelerateInfo accelerateInfo = sql2AccelerateInfo.get(ctx.sql);
+            Preconditions.checkNotNull(accelerateInfo);
             if (accelerateInfo.isBlocked()) {
                 continue;
             }

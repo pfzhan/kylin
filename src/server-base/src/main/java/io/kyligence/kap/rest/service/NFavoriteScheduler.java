@@ -125,8 +125,10 @@ public class NFavoriteScheduler {
                 .getProject(project);
 
         // init schedulers
-        autoFavoriteScheduler = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NAutoFavoriteScheduler-" + project));
-        updateFavoriteScheduler = Executors.newScheduledThreadPool(1, new NamedThreadFactory("NUpdateFavoriteScheduler-" + project));
+        autoFavoriteScheduler = Executors.newScheduledThreadPool(1,
+                new NamedThreadFactory("NAutoFavoriteScheduler-" + project));
+        updateFavoriteScheduler = Executors.newScheduledThreadPool(1,
+                new NamedThreadFactory("NUpdateFavoriteScheduler-" + project));
 
         // init frequency status
         autoFavoriteScheduler.schedule(this::initFrequencyStatus, 0, TimeUnit.SECONDS);
@@ -185,7 +187,7 @@ public class NFavoriteScheduler {
                     return 0;
                 }, project);
             } catch (Exception e) {
-                logger.error("Error caught when doing auto favorite: {} ", e.getMessage());
+                logger.error("Error caught when doing auto favorite: ", e);
             }
         }
     }
@@ -232,7 +234,7 @@ public class NFavoriteScheduler {
                 if (queryHistory.isException())
                     continue;
 
-                overallQueryNum ++;
+                overallQueryNum++;
                 if (!isQualifiedCandidate(queryHistory))
                     continue;
 

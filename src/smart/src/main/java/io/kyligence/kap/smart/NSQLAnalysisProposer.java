@@ -31,6 +31,8 @@ import java.util.stream.Collectors;
 
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
+import com.google.common.base.Preconditions;
+
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
@@ -54,6 +56,7 @@ class NSQLAnalysisProposer extends NAbstractProposer {
 
     @Override
     void propose() {
+        initAccelerationInfo(sqls);
         List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, project).getDataModels();
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project, sqls,
                 models, DEFAULT_THREAD_NUM)) {
@@ -70,20 +73,29 @@ class NSQLAnalysisProposer extends NAbstractProposer {
         }
     }
 
+    /**
+     * Init acceleration info
+     */
+    private void initAccelerationInfo(String[] sqls) {
+        Arrays.stream(sqls).forEach(sql -> {
+            AccelerateInfo accelerateInfo = new AccelerateInfo();
+            if (!this.accelerateInfoMap.containsKey(sql)) {
+                this.accelerateInfoMap.put(sql, accelerateInfo);
+            }
+        });
+    }
+
     private void logFailedQuery(AbstractQueryRunner extractor) {
         final Map<Integer, SQLResult> queryResultMap = extractor.getQueryResults();
 
         queryResultMap.forEach((index, sqlResult) -> {
             if (sqlResult.getStatus() == SQLResult.Status.FAILED) {
-                AccelerateInfo accelerateInfo = new AccelerateInfo();
+                AccelerateInfo accelerateInfo = accelerateInfoMap.get(sqls[index]);
+                Preconditions.checkNotNull(accelerateInfo);
                 Throwable throwable = sqlResult.getException();
                 if (!(throwable instanceof NoRealizationFoundException
                         || throwable.getCause() instanceof NoRealizationFoundException)) {
                     accelerateInfo.setBlockingCause(sqlResult.getException());
-                }
-
-                if (!this.accelerateInfoMap.containsKey(sqls[index])) {
-                    this.accelerateInfoMap.put(sqls[index], accelerateInfo);
                 }
             }
         });

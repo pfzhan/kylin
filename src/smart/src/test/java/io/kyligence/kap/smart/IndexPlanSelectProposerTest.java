@@ -24,9 +24,6 @@
 package io.kyligence.kap.smart;
 
 import org.apache.kylin.common.KylinConfig;
-import org.apache.kylin.job.engine.JobEngineConfig;
-import org.apache.kylin.job.impl.threadpool.NDefaultScheduler;
-import org.apache.kylin.job.lock.MockJobLock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,18 +40,9 @@ public class IndexPlanSelectProposerTest extends NLocalFileMetadataTestCase {
                     + " group by test_kylin_fact.lstg_format_name \n" + " having sum(price)>5000 or count(*)>20 " };
 
     @Before
-    public void init() throws Exception {
-        System.setProperty("kylin.job.scheduler.poll-interval-second", "1");
+    public void init() {
         this.createTestMetadata();
-        NDefaultScheduler scheduler = NDefaultScheduler.getInstance(DEFAULT_PROJECT);
-        scheduler.init(new JobEngineConfig(KylinConfig.getInstanceFromEnv()), new MockJobLock());
-        if (!scheduler.hasStarted()) {
-            throw new RuntimeException("scheduler has not been started");
-        }
-
         kylinConfig = getTestConfig();
-        kylinConfig.setProperty("kap.smart.conf.model.inner-join.exactly-match", "true");
-        kylinConfig.setProperty("kap.smart.conf.measure.count-distinct.return-type", "bitmap");
     }
 
     @Test
