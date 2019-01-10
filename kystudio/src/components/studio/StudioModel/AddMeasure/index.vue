@@ -236,19 +236,19 @@ export default class AddMeasure extends Vue {
       this.measure.parameterValue.type = 'column'
       this.measure.parameterValue.value = ''
     }
-    if (this.measure.expression === 'TOP_N') {
-      this.measure.convertedColumns = [{type: 'column', value: '', table_guid: null}]
-      this.measure.return_type = 'topn(100)'
-    }
-    if (this.measure.expression === 'CORR') {
-      this.measure.convertedColumns = [{type: 'column', value: '', table_guid: null}]
-    }
     if (this.measure.expression === 'COUNT_DISTINCT') {
-      this.measure.convertedColumns = []
       this.measure.return_type = 'hllc(10)'
     }
     if (this.measure.expression === 'PERCENTILE_APPROX') {
       this.measure.return_type = 'percentile(100)'
+    }
+    if (this.measure.expression === 'TOP_N') {
+      this.measure.return_type = 'topn(100)'
+    }
+    if (this.measure.expression === 'CORR' || this.measure.expression === 'TOP_N') {
+      this.measure.convertedColumns = [{type: 'column', value: '', table_guid: null}]
+    } else {
+      this.measure.convertedColumns = []
     }
   }
 
