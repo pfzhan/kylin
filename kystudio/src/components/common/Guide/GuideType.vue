@@ -52,16 +52,16 @@
         exportMode: 'Expert mode',
         smartMode: 'Smart mode',
         switchModeTitle: 'Which mode do you want to explore?',
-        exportModeDesc: 'recommended for analysis based on multi-dimensional models.',
-        smartModeDesc: 'recommended for exploring data via Business Intelligence tools, and SQL statements will be accelerated transparently by the system.'
+        exportModeDesc: 'The expert mode is recommended for analysis based on multi-dimensional models.',
+        smartModeDesc: 'The smart mode is recommended for exploring data via Business Intelligence tools, and SQL statements will be accelerated transparently by the system.'
       },
       'zh-cn': {
         start: '开始',
         exportMode: '专家模式',
         smartMode: '智能模式',
         switchModeTitle: '请选择你想探索的模式？',
-        exportModeDesc: '专适用于对多维建模进行分析。',
-        smartModeDesc: '适用于直接通过BI探索数据，系统将透明地加速BI发出的SQL语句。'
+        exportModeDesc: '专家模式适用于对多维建模进行分析。',
+        smartModeDesc: '智能模式适用于直接通过BI探索数据，系统将透明地加速BI发出的SQL语句。'
       }
     }
   })
@@ -123,10 +123,12 @@
       margin-top:14px;
     }
     .guide-desc {
-      text-align: center;
+      text-align: left;
       color:@text-disabled-color;
       font-size:12px;
-      margin-top:14px;
+      margin-top: 14px;
+      margin-left: 40px;
+      height:44px;
     }
     .guide-footer {
       font-size: 16px;

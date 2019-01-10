@@ -31,7 +31,7 @@
     </template>
     <div slot="footer" class="dialog-footer">
       <el-button size="medium" @click="handleCancel" v-if="cancelText">{{cancelText}}</el-button>
-      <el-button size="medium" plain type="primary" @click="handleSubmit" v-guide.saveSourceType v-if="confirmText" :loading="isLoading">{{confirmText}}</el-button>
+      <el-button size="medium" :key="editType" plain type="primary" @click="handleSubmit" v-guide.saveSourceType v-if="confirmText" :loading="isLoading">{{confirmText}}</el-button>
     </div>
   </el-dialog>
 </template>

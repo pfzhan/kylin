@@ -68,6 +68,9 @@
           show-overflow-tooltip
           width="90px"
           :label="$t('storage')">
+          <template slot-scope="scope">
+            {{scope.row.storage|dataSize}}
+          </template>
         </el-table-column>
         <el-table-column
           prop="gmtTime"
