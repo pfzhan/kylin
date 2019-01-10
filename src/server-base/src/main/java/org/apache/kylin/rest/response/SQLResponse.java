@@ -47,6 +47,8 @@ import java.util.List;
 
 import io.kyligence.kap.rest.metrics.QueryMetricsContext;
 import io.swagger.annotations.ApiModel;
+
+import org.apache.kylin.common.debug.BackdoorToggles;
 import org.apache.kylin.metadata.querymeta.SelectedColumnMeta;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -98,6 +100,8 @@ public class SQLResponse implements Serializable {
 
     protected boolean queryPushDown = false;
 
+    private boolean isPrepare = false;
+
     protected byte[] queryStatistics;
 
     protected String traceUrl = null;
@@ -139,6 +143,7 @@ public class SQLResponse implements Serializable {
         this.exceptionMessage = exceptionMessage;
         this.isPartial = isPartial;
         this.queryPushDown = isPushDown;
+        this.isPrepare = BackdoorToggles.getPrepareOnly();
         if(results != null){
             this.resultRowCount = results.size();
         }
@@ -208,6 +213,10 @@ public class SQLResponse implements Serializable {
 
     public boolean isPushDown() {
         return queryPushDown;
+    }
+
+    public boolean isPrepare() {
+        return isPrepare;
     }
 
     public long getTotalScanCount() {

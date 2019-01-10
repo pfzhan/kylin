@@ -259,8 +259,6 @@ public class QueryService extends BasicService {
         Collection<String> modelIds = Lists.newArrayList();
         Collection<String> cuboidLayoutIds = Lists.newArrayList();
         float duration = response.getDuration() / (float) 1000;
-        boolean storageCacheUsed = response.isStorageCacheUsed();
-        boolean isPushDown = response.isPushDown();
 
         if (response.getRealizationMetrics() != null) {
             modelIds = Collections2.transform(response.getRealizationMetrics(), input -> input.getModelId());
@@ -291,9 +289,9 @@ public class QueryService extends BasicService {
         stringBuilder.append("Accept Partial: ").append(request.isAcceptPartial()).append(newLine);
         stringBuilder.append("Is Partial Result: ").append(response.isPartial()).append(newLine);
         stringBuilder.append("Hit Exception Cache: ").append(response.isHitExceptionCache()).append(newLine);
-        stringBuilder.append("Storage Cache Used: ").append(storageCacheUsed).append(newLine);
-        stringBuilder.append("Is Query Push-Down: ").append(isPushDown).append(newLine);
-        stringBuilder.append("Is Prepare: ").append(BackdoorToggles.getPrepareOnly()).append(newLine);
+        stringBuilder.append("Storage Cache Used: ").append(response.isStorageCacheUsed()).append(newLine);
+        stringBuilder.append("Is Query Push-Down: ").append(response.isPushDown() ).append(newLine);
+        stringBuilder.append("Is Prepare: ").append(response.isPrepare()).append(newLine);
         stringBuilder.append("Trace URL: ").append(response.getTraceUrl()).append(newLine);
         stringBuilder.append("Message: ").append(response.getExceptionMessage()).append(newLine);
         stringBuilder.append("==========================[QUERY]===============================").append(newLine);

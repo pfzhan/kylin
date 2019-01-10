@@ -93,6 +93,11 @@ public class KapQueryService extends QueryService {
 
     @Override
     protected void recordMetric(SQLRequest sqlRequest, SQLResponse sqlResponse) throws UnknownHostException {
+        if (sqlResponse.isPrepare()) {
+            // preparing statement should not be recorded
+            return;
+        }
+        
         if (QueryMetricsContext.isStarted()) {
             final QueryMetricsContext queryMetricsContext = QueryMetricsContext.collect(sqlRequest, sqlResponse,
                     QueryContext.current());
