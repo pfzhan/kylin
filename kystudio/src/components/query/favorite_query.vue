@@ -133,9 +133,12 @@
         </el-col>
       </el-row>
       <span slot="footer" class="dialog-footer">
-        <div class="ksd-fleft query-count" v-if="isUploaded">
-          <span><i class="el-icon-ksd-good_health"></i>{{whiteSqlData.capable_sql_num}}
+        <div class="ksd-fleft query-count">
+          <span v-if="isUploaded"><i class="el-icon-ksd-good_health"></i>{{whiteSqlData.capable_sql_num}}
           <i class="el-icon-ksd-error_01"></i>{{whiteSqlData.size-whiteSqlData.capable_sql_num}}</span>
+          <span v-else class="tips">
+            <i class="el-icon-warning ksd-fs-16"></i><span class="ksd-fs-12">{{$t('uploadFileTips')}}</span>
+          </span>
         </div>
         <el-button size="medium" @click="importSqlVisible = false">{{$t('kylinLang.common.close')}}</el-button>
         <el-button type="primary" size="medium" plain v-if="!isUploaded" :loading="importLoading" :disabled="!uploadItems.length||fileSizeError"  @click="submitFiles">{{$t('kylinLang.common.submit')}}</el-button>
@@ -354,7 +357,8 @@ import favoriteTable from './favorite_table'
       filesSizeError: 'Files cannot exceed 20M.',
       fileTypeError: 'Invalid file format。',
       waitingList: 'Waiting List',
-      accelerated: 'Accelerated'
+      accelerated: 'Accelerated',
+      uploadFileTips: 'Supported file formats are txt and sql. Supported file size is up to 20 MB.'
     },
     'zh-cn': {
       acceleration: '加速引擎',
@@ -394,7 +398,8 @@ import favoriteTable from './favorite_table'
       filesSizeError: '文件大小不能超过20M!',
       fileTypeError: '不支持的文件格式！',
       waitingList: '未加速',
-      accelerated: '加速完毕'
+      accelerated: '加速完毕',
+      uploadFileTips: '支持的文件格式为 txt 和 sql，文件最大支持20 MB。'
     }
   }
 })
@@ -1143,6 +1148,17 @@ export default class FavoriteQuery extends Vue {
         line-height: 32px;
         height: 32px;
         display: inline-block;
+      }
+      .tips {
+        span {
+          position: relative;
+          bottom: 2px;
+          margin-left: 5px;
+          color: @text-normal-color;
+        }
+        i {
+          color: @text-secondary-color;
+        }
       }
       .el-icon-ksd-good_health {
         color: @normal-color-1;
