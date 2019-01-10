@@ -311,9 +311,18 @@ class Guide {
         p.then((stepInfo) => {
           this.currentStep = stepInfo
           this.vm.$set(stepInfo, 'done', true)
-          if ((step === undefined || isNaN(step) || step - 1 > 0) && !this.isPause) {
+          if ((step === undefined || isNaN(step) || step - 1 > 0)) {
+            let nextStep = () => {
+              if (!this.isPause) {
+                this.step(step - 1, resolve, reject)
+              } else {
+                setTimeout(() => {
+                  nextStep()
+                }, 400)
+              }
+            }
             let st = setTimeout(() => {
-              this.step(step - 1, resolve, reject)
+              nextStep()
             }, stepInfo.timer || this.stepSpeed)
             this.STs.push(st)
           }
@@ -346,6 +355,9 @@ class Guide {
   }
   pause () {
     this.isPause = true
+  }
+  restart () {
+    this.isPause = false
   }
   stop () {
     this.STs.forEach((i) => {

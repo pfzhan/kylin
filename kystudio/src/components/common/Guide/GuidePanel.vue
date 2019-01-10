@@ -28,7 +28,7 @@
                   </el-tab-pane>
                 </el-tabs>
                 <el-button class="ksd-fright guide-btn" size="mini" :loading="guideLoading" @click="goNextStep" plain>{{getNextBtnText}}</el-button>
-                <el-button class="ksd-fright guide-btn" size="mini"  @click="stopGuide" v-if="currentStep" plain>{{isPause ? $t('goon') : $t('pause')}}</el-button>
+                <el-button class="ksd-fright guide-btn" size="mini"  @click="stopGuide" v-if="showPauseBtn" plain>{{isPause ? $t('goon') : $t('pause')}}</el-button>
                 <!-- <el-button class="ksd-fright guide-btn" size="mini"  @click="retryGuide" v-if="showRetryStep" plain>重放该步骤</el-button> -->
             </div>
           </transition>
@@ -66,6 +66,9 @@ import Guide from 'util/guide'
     },
     showRetryAll () {
       return this.currentStep === this.stepTipData.length - 1 && !this.guideLoading
+    },
+    showPauseBtn () {
+      return this.guideLoading
     },
     showRetryStep () {
       let cur = this.currentStep
@@ -239,7 +242,7 @@ export default class GuidePannel extends Vue {
     if (this.isPause) {
       this.guide.pause()
     } else {
-      this._guideGo()
+      this.guide.restart()
     }
   }
   // 下一步
