@@ -11,9 +11,8 @@ current_branch=${branch}
 if [ "${current_branch}" = "" ]; then
     current_branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
 fi
-feature="-0.0.1"
 
-package_name=newten${feature}-${release_version}
+package_name="KE-Newten-${release_version}"
 # package as *.tar.gz
 echo "package name: ${package_name}"
 cd build/
@@ -69,6 +68,7 @@ cp spark/jars/jersey-server-*.jar ${package_name}/ext/
 mkdir ${package_name}/server
 cp -rf server/webapp/dist ${package_name}/server/public
 cp -rf server/newten.jar ${package_name}/server/
+cp -rf server/jars ${package_name}/server/
 rm -rf server/
 
 #add udf jar to lib

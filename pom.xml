@@ -270,6 +270,12 @@
             <dependency>
                 <groupId>com.microsoft.sqlserver</groupId>
                 <artifactId>mssql-jdbc</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
                 <version>${mssql-jdbc.version}</version>
                 <scope>test</scope>
             </dependency>
@@ -385,11 +391,21 @@
                         <groupId>javax.servlet.jsp</groupId>
                         <artifactId>jsp-api</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-hdfs</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
                 <version>${hadoop2.version}</version>
             </dependency>
             <dependency>
@@ -405,6 +421,12 @@
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-yarn-common</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
                 <version>${hadoop2.version}</version>
             </dependency>
             <dependency>
@@ -415,6 +437,12 @@
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-mapreduce-client-jobclient</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
                 <version>${hadoop2.version}</version>
             </dependency>
             <dependency>
@@ -436,6 +464,12 @@
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-minicluster</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
                 <version>${hadoop2.version}</version>
                 <optional>true</optional>
             </dependency>
@@ -525,6 +559,12 @@
             <dependency>
                 <groupId>org.apache.hbase</groupId>
                 <artifactId>hbase-common</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
                 <version>${hbase-hadoop2.version}</version>
             </dependency>
             <dependency>
@@ -535,6 +575,12 @@
             <dependency>
                 <groupId>org.apache.hbase</groupId>
                 <artifactId>hbase-server</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
                 <version>${hbase-hadoop2.version}</version>
             </dependency>
             <dependency>
@@ -546,6 +592,12 @@
             <dependency>
                 <groupId>org.apache.hbase</groupId>
                 <artifactId>hbase-testing-util</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
                 <version>${hbase-hadoop2.version}</version>
                 <scope>test</scope>
             </dependency>
@@ -553,6 +605,12 @@
             <dependency>
                 <groupId>org.apache.hive</groupId>
                 <artifactId>hive-jdbc</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
                 <version>${hive.version}</version>
             </dependency>
             <dependency>
@@ -564,12 +622,22 @@
                         <groupId>com.twitter</groupId>
                         <artifactId>parquet-hadoop-bundle</artifactId>
                     </exclusion>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
                 </exclusions>
             </dependency>
             <!-- Yarn dependencies -->
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-yarn-server-resourcemanager</artifactId>
+                <exclusions>
+                    <exclusion>
+                        <groupId>com.sun.jersey</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
                 <version>${yarn.version}</version>
             </dependency>
 
@@ -1130,12 +1198,6 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
 
-        <!--for transitive dependencies like commons-collectinos, commons-lang -->
-        <dependency>
-            <groupId>org.apache.hadoop</groupId>
-            <artifactId>hadoop-common</artifactId>
-        </dependency>
-
         <dependency>
             <groupId>org.scala-lang</groupId>
             <artifactId>scala-library</artifactId>
@@ -1638,6 +1700,12 @@
                     <dependency>
                         <groupId>org.apache.hadoop</groupId>
                         <artifactId>hadoop-hdfs</artifactId>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>com.sun.jersey</groupId>
+                                <artifactId>*</artifactId>
+                            </exclusion>
+                        </exclusions>
                         <version>${hadoop2.version}</version>
                     </dependency>
                     <dependency>
@@ -1653,6 +1721,12 @@
                     <dependency>
                         <groupId>org.apache.hadoop</groupId>
                         <artifactId>hadoop-yarn-common</artifactId>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>com.sun.jersey</groupId>
+                                <artifactId>*</artifactId>
+                            </exclusion>
+                        </exclusions>
                         <version>${hadoop2.version}</version>
                     </dependency>
                     <dependency>
@@ -1663,11 +1737,23 @@
                     <dependency>
                         <groupId>org.apache.hadoop</groupId>
                         <artifactId>hadoop-mapreduce-client-jobclient</artifactId>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>com.sun.jersey</groupId>
+                                <artifactId>*</artifactId>
+                            </exclusion>
+                        </exclusions>
                         <version>${hadoop2.version}</version>
                     </dependency>
                     <dependency>
                         <groupId>org.apache.hadoop</groupId>
                         <artifactId>hadoop-mapreduce-client-jobclient</artifactId>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>com.sun.jersey</groupId>
+                                <artifactId>*</artifactId>
+                            </exclusion>
+                        </exclusions>
                         <version>${hadoop2.version}</version>
                         <type>test-jar</type>
                     </dependency>
@@ -1690,6 +1776,12 @@
                     <dependency>
                         <groupId>org.apache.hadoop</groupId>
                         <artifactId>hadoop-minicluster</artifactId>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>com.sun.jersey</groupId>
+                                <artifactId>*</artifactId>
+                            </exclusion>
+                        </exclusions>
                         <version>${hadoop2.version}</version>
                         <optional>true</optional>
                     </dependency>
@@ -1703,6 +1795,12 @@
                     <dependency>
                         <groupId>org.apache.hbase</groupId>
                         <artifactId>hbase-common</artifactId>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>com.sun.jersey</groupId>
+                                <artifactId>*</artifactId>
+                            </exclusion>
+                        </exclusions>
                         <version>${hbase-hadoop2.version}</version>
                     </dependency>
                     <dependency>
@@ -1713,11 +1811,23 @@
                     <dependency>
                         <groupId>org.apache.hbase</groupId>
                         <artifactId>hbase-server</artifactId>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>com.sun.jersey</groupId>
+                                <artifactId>*</artifactId>
+                            </exclusion>
+                        </exclusions>
                         <version>${hbase-hadoop2.version}</version>
                     </dependency>
                     <dependency>
                         <groupId>org.apache.hbase</groupId>
                         <artifactId>hbase-testing-util</artifactId>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>com.sun.jersey</groupId>
+                                <artifactId>*</artifactId>
+                            </exclusion>
+                        </exclusions>
                         <version>${hbase-hadoop2.version}</version>
                         <scope>test</scope>
                     </dependency>
@@ -1726,11 +1836,23 @@
                     <dependency>
                         <groupId>org.apache.hive</groupId>
                         <artifactId>hive-jdbc</artifactId>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>com.sun.jersey</groupId>
+                                <artifactId>*</artifactId>
+                            </exclusion>
+                        </exclusions>
                         <version>${hive.version}</version>
                     </dependency>
                     <dependency>
                         <groupId>org.apache.hive.hcatalog</groupId>
                         <artifactId>hive-hcatalog-core</artifactId>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>com.sun.jersey</groupId>
+                                <artifactId>*</artifactId>
+                            </exclusion>
+                        </exclusions>
                         <version>${hive-hcatalog.version}</version>
                     </dependency>
 
@@ -1738,6 +1860,12 @@
                     <dependency>
                         <groupId>org.apache.hadoop</groupId>
                         <artifactId>hadoop-yarn-server-resourcemanager</artifactId>
+                        <exclusions>
+                            <exclusion>
+                                <groupId>com.sun.jersey</groupId>
+                                <artifactId>*</artifactId>
+                            </exclusion>
+                        </exclusions>
                         <version>${yarn.version}</version>
                     </dependency>
                 </dependencies>

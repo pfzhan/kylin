@@ -67,11 +67,11 @@ echo "Build with ${BUILD_SYSTEM} at" `date "+%Y-%m-%d %H:%M:%S"` >> build/commit
 cat > build/CHANGELOG.md <<EOL
 ### Release History
 
-#### Newten 0.0.1 release note
+#### KE 4.0.0 release note
 
 **Feature & Enhancement**
 
-- Newten version 0.0.1
+- KE version 4.0.0
 
 
 EOL

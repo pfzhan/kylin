@@ -24,9 +24,10 @@ fi
 mkdir -p build/ext
 
 mkdir -p build/server
+chmod -R 755 build/server
 
 cp src/server/target/kap-server-${kap_version}.jar build/server/newten.jar
-chmod 644 build/server/newten.jar
+cp -r src/server/target/jars build/server/
 
 echo "Start to add js & css to war..."
 if [ ! -d "kystudio/dist" ]

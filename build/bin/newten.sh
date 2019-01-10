@@ -1,9 +1,24 @@
 #!/bin/bash
 # Kyligence Inc. License
 
-
+alias cd='cd -P'
 dir=$(dirname ${0})
 cd "${dir}"
+
+# setup verbose
+verbose=${verbose:-""}
+while getopts ":v" opt; do
+    case $opt in
+        v)
+            echo "Turn on verbose mode." >&2
+            export verbose=true
+            shift 1
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            ;;
+    esac
+done
 
 function quit {
         echo "$@"
@@ -18,12 +33,30 @@ function quit {
         fi
     }
 
+function verbose {
+    if [[ -n "$verbose" ]]; then
+        echo "$@"
+    fi
+}
+
+function replaceHadoopConfValue() {
+    line_num=`sed -n "/${2}/=" ${1}`
+    let value_line=$line_num+1
+    verbose "find in ${2}:${value_line}"
+    sed -i "${value_line}s/${3}/${4}/" $1
+}
+
 # start command
 if [ "$1" == "start" ]
 then
 
-    export KYLIN_HOME=../
-    export SPARK_HOME=../spark
+    export KYLIN_HOME=`cd ../; pwd`
+    export KYLIN_HADOOP_CONF=${KYLIN_HOME}/hadoop_conf
+    export SPARK_HOME=${KYLIN_HOME}/spark
+
+    echo "KYLIN_HOME is:${KYLIN_HOME}"
+    echo "KYLIN_HADOOP_CONF is:${KYLIN_HADOOP_CONF}"
+    echo "SPARK_HOME is:${SPARK_HOME}"
 
     if [ -f "../pid" ]
     then
@@ -34,20 +67,34 @@ then
         fi
     fi
 
-    cd ../server
+    cd ${KYLIN_HOME}/server
 
-    mkdir -p ../logs
-    mkdir -p ../hadoop_conf
+    mkdir -p ${KYLIN_HOME}/logs
+    mkdir -p ${KYLIN_HOME}/hadoop_conf
 
-    cp -rf /etc/hadoop/conf/* ../hadoop_conf
-    cp -rf /etc/hive/conf/hive-site.xml ../hadoop_conf
+    cp -rf /etc/hadoop/conf/core-site.xml ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hadoop/conf/hdfs-site.xml ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hadoop/conf/yarn-site.xml ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hive/conf/hive-site.xml ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hadoop/conf/mapred-site.xml ${KYLIN_HADOOP_CONF}
 
+    cp -rf /etc/hadoop/conf/topology.map ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hadoop/conf/topology.py ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hadoop/conf/ssl-client.xml ${KYLIN_HADOOP_CONF}
+    cp -rf /etc/hadoop/conf/hadoop-env.sh ${KYLIN_HADOOP_CONF}
+
+    replaceHadoopConfValue ${KYLIN_HADOOP_CONF}/hive-site.xml hive.execution.engine tez mr
     port=7070
-    java -Dlogging.path=${KYLIN_HOME}/logs -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-server-log4j.properties -Dkylin.hadoop.conf.dir=../hadoop_conf -Dhdp.version=current -Dserver.port=$port -Dloader.path=../hadoop_conf  -jar newten.jar PROD >> ../logs/kylin.out 2>&1 & echo $! > ../pid &
 
-    echo "Kylin is starting. Please checkout http://localhost:$port/kylin/index.html"
+    #retrive $KYLIN_EXTRA_START_OPTS
+    if [ -f "${KYLIN_HOME}/conf/setenv.sh" ]; then
+        source ${KYLIN_HOME}/conf/setenv.sh
+        export KYLIN_EXTRA_START_OPTS=`echo ${KYLIN_JVM_SETTINGS}|sed  "s/-XX:+PrintFlagsFinal//g"`
+    fi
 
+    java ${KYLIN_EXTRA_START_OPTS} -Dlogging.path=${KYLIN_HOME}/logs -Dlogging.config=file:${KYLIN_HOME}/conf/kylin-server-log4j.properties -Dkylin.hadoop.conf.dir=${KYLIN_HADOOP_CONF} -Dhdp.version=current -Dserver.port=$port -Dloader.path="${KYLIN_HADOOP_CONF},${KYLIN_HOME}/server/jars,${SPARK_HOME}/jars"  -jar newten.jar PROD >> ../logs/kylin.out 2>&1 & echo $! > ../pid &
 
+    echo "Kylin is starting, PID:`cat ../pid`. Please checkout http://`hostname`:$port/kylin/index.html"
 
 # stop command
 elif [ "$1" == "stop" ]

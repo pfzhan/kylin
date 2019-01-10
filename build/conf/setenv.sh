@@ -19,10 +19,28 @@
 
 # source me
 
-# (if your're deploying KYLIN on a powerful server and want to replace the default conservative settings)
+
+JAVA_VERSION=`java -version 2>&1 | awk -F\" '/version/ {print $2}'`
+
+if [[ $JAVA_VERSION ]] && [[ "$JAVA_VERSION" > "1.8" ]]; then
+    export KYLIN_JVM_SETTINGS="-XX:+UseG1GC -Xms1g -Xmx4g -XX:G1HeapRegionSize=16m -XX:+PrintFlagsFinal -XX:+PrintReferenceGC -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintAdaptiveSizePolicy -XX:+UnlockDiagnosticVMOptions -XX:+G1SummarizeConcMark  -Xloggc:$KYLIN_HOME/logs/kylin.gc.$$  -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=64M"
+else
+    quit "Java 1.8 or above is required."
+fi
+
+# Newer versions of glibc use an arena memory allocator that causes virtual
+# memory usage to explode. Tune the variable down to prevent vmem explosion.
+# See HADOOP-7154.
+export MALLOC_ARENA_MAX=${MALLOC_ARENA_MAX:-4}
+
+# (if you're deploying KYLIN on a powerful server and want to replace the default conservative settings)
 # uncomment following to for it to take effect
-export KYLIN_JVM_SETTINGS="-XX:+UseG1GC -Xms1g -Xmx4g -XX:G1HeapRegionSize=16m -XX:MaxPermSize=256M -XX:ReservedCodeCacheSize=128M -XX:+PrintFlagsFinal -XX:+PrintReferenceGC -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintAdaptiveSizePolicy -XX:+UnlockDiagnosticVMOptions -XX:+G1SummarizeConcMark  -Xloggc:$KYLIN_HOME/logs/kylin.gc.$$  -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=64M"
-#export KYLIN_JVM_SETTINGS="-XX:+UseG1GC -Xms24g -Xmx24g -XX:G1HeapRegionSize=16m -XX:MaxPermSize=256M -XX:ReservedCodeCacheSize=128M -XX:+PrintFlagsFinal -XX:+PrintReferenceGC -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintAdaptiveSizePolicy -XX:+UnlockDiagnosticVMOptions -XX:+G1SummarizeConcMark  -Xloggc:$KYLIN_HOME/logs/kylin.gc.$$  -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=64M"
+
+#if [[ $JAVA_VERSION ]] && [[ "$JAVA_VERSION" > "1.8" ]]; then
+#    export KYLIN_JVM_SETTINGS="-XX:+UseG1GC -Xms24g -Xmx24g -XX:G1HeapRegionSize=32m -XX:+PrintFlagsFinal -XX:+PrintReferenceGC -verbose:gc -XX:+PrintGCDetails -XX:+PrintGCTimeStamps -XX:+PrintGCDateStamps -XX:+PrintAdaptiveSizePolicy -XX:+UnlockDiagnosticVMOptions -XX:+G1SummarizeConcMark  -Xloggc:$KYLIN_HOME/logs/kylin.gc.$$  -XX:+UseGCLogFileRotation -XX:NumberOfGCLogFiles=10 -XX:GCLogFileSize=64M"
+#else
+#    quit "Java 1.8 or above is required."
+#fi
 
 # uncomment following to for it to take effect(the values need adjusting to fit your env)
 # export KYLIN_DEBUG_SETTINGS="-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false"

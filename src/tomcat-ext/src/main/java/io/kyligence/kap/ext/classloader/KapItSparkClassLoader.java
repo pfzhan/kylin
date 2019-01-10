@@ -31,12 +31,11 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
+import java.util.HashSet;
 import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Sets;
 
 public class KapItSparkClassLoader extends URLClassLoader {
     private static final String[] SPARK_CL_PREEMPT_CLASSES = new String[] { "org.apache.spark", "scala.",
@@ -58,7 +57,7 @@ public class KapItSparkClassLoader extends URLClassLoader {
             // Hadoop/HBase/ZK:
             "org.apache.hadoop", "org.apache.zookeeper", "io.kyligence", "org.apache.kylin", "com.intellij",
             "org.apache.calcite", "org.roaringbitmap", "org.apache.parquet" };
-    private static final Set<String> classNotFoundCache = Sets.newHashSet();
+    private static final Set<String> classNotFoundCache = new HashSet<>();
     private static Logger logger = LoggerFactory.getLogger(KapItSparkClassLoader.class);
 
     /**

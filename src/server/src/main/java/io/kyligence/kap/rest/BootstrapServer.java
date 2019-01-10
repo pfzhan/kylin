@@ -124,6 +124,7 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
 
         // pass checkHadoopHome
         System.setProperty("hadoop.home.dir", localMetadata.getAbsolutePath() + "/working-dir");
+        System.setProperty("spark.local", "true");
 
         // enable push down
         System.setProperty("kylin.query.pushdown.runner-class-name",
