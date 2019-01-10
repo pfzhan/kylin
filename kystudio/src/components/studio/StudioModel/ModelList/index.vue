@@ -343,6 +343,10 @@ export default class ModelList extends Vue {
     }
   }
   handleSaveModel (modelDesc) {
+    // 如果未选择partition 把partition desc 设置为null
+    if (!(modelDesc && modelDesc.partition_desc && modelDesc.partition_desc.partition_date_column)) {
+      modelDesc.partition_desc = null
+    }
     this.updataModel(modelDesc).then(() => {
       kapMessage(this.$t('kylinLang.common.saveSuccess'))
       this.loadModelsList()
