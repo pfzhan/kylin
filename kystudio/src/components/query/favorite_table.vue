@@ -13,7 +13,7 @@
         {{transToGmtTime(props.row.last_query_time)}}
       </template>
     </el-table-column>
-    <el-table-column :label="$t('kylinLang.query.type')" prop="channel" align="center" width="135">
+    <el-table-column :label="$t('kylinLang.query.original')" prop="channel" align="center" width="135">
     </el-table-column>
     <el-table-column :label="$t('kylinLang.query.rate')" prop="success_rate" sortable align="center" width="135" v-if="isAccelerated">
       <template slot-scope="props">

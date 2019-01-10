@@ -307,6 +307,7 @@ exports.default = {
     query_id: 'Query ID:',
     to: 'To',
     type: 'Type',
+    original: 'Original',
     startTime_th: 'Start Time',
     latency_th: 'Duration',
     realization_th: 'Answered By',
