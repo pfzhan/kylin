@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -49,7 +50,6 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
 import lombok.val;
@@ -123,8 +123,8 @@ class NProjectLoader {
 
     public List<ColumnDesc> listComputedColumns(String project, TableDesc tableDesc) {
         List<ColumnDesc> result = Lists.newArrayList();
-        val modelMgr = NDataModelManager.getInstance(mgr.getConfig(), project);
-        for (NDataModel r : modelMgr.getDataModels()) {
+        val dfMgr = NDataflowManager.getInstance(mgr.getConfig(), project);
+        for (NDataModel r : dfMgr.listUnderliningDataModels()) {
             val computedColumns = ComputedColumnUtil.createComputedColumns(r.getComputedColumnDescs(), tableDesc);
             if (belongToTable(tableDesc.getIdentity(), r)) {
                 result.addAll(Arrays.asList(computedColumns));

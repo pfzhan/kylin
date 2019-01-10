@@ -46,8 +46,8 @@ import com.google.common.collect.Sets;
 import com.google.common.io.Files;
 
 import io.kyligence.kap.common.persistence.metadata.MetadataStore;
-import io.kyligence.kap.cube.model.IndexEntity;
-import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;

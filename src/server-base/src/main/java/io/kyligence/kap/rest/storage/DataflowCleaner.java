@@ -26,14 +26,14 @@ package io.kyligence.kap.rest.storage;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import org.apache.kylin.common.KylinConfig;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;
 

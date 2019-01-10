@@ -33,7 +33,6 @@ import org.apache.kylin.metadata.model.TableExtDesc;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -59,16 +58,12 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("usage")
     private long usage;
 
-    @JsonIgnore
-    private NDataModel model;
-
     public NDataModelResponse() {
         super();
     }
 
     public NDataModelResponse(NDataModel dataModel) {
         super(dataModel);
-        this.model = dataModel;
     }
 
     @JsonProperty("all_named_columns")
@@ -84,7 +79,10 @@ public class NDataModelResponse extends NDataModel {
     @JsonProperty("simplified_tables")
     public List<SimplifiedTableResponse> getSimpleTables() {
         List<SimplifiedTableResponse> simpleTables = new ArrayList<>();
-        for (TableRef tableRef : model.getAllTables()) {
+        if (RealizationStatusEnum.BROKEN.equals(status)) {
+            return simpleTables;
+        }
+        for (TableRef tableRef : getAllTables()) {
             SimplifiedTableResponse simpleTable = new SimplifiedTableResponse();
             simpleTable.setTable(tableRef.getTableIdentity());
             List<SimplifiedColumnResponse> columns = getSimplifiedColumns(tableRef);
@@ -109,7 +107,7 @@ public class NDataModelResponse extends NDataModel {
 
     private List<SimplifiedColumnResponse> getSimplifiedColumns(TableRef tableRef) {
         List<SimplifiedColumnResponse> columns = new ArrayList<>();
-        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(model.getConfig(), model.getProject());
+        NTableMetadataManager tableMetadataManager = NTableMetadataManager.getInstance(getConfig(), getProject());
         for (ColumnDesc columnDesc : tableRef.getTableDesc().getColumns()) {
             TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(tableRef.getTableDesc());
             SimplifiedColumnResponse simplifiedColumnResponse = new SimplifiedColumnResponse();

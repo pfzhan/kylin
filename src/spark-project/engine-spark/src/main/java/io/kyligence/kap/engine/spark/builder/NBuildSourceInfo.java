@@ -27,11 +27,11 @@ package io.kyligence.kap.engine.spark.builder;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
-import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 
-import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 
 public class NBuildSourceInfo {
     private Dataset<Row> dataset;

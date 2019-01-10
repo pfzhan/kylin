@@ -40,7 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 
 /**

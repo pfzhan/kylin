@@ -29,15 +29,15 @@ import java.util.Objects;
 
 import javax.validation.constraints.AssertFalse;
 
-import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.IStorageAware;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.IndexEntity;
-import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

@@ -27,15 +27,15 @@ package io.kyligence.kap.smart.cube;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.IndexEntity;
-import io.kyligence.kap.cube.model.IndexEntity.IndexIdentifier;
-import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity.IndexIdentifier;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 
 class NCuboidReducer extends NAbstractCubeProposer {

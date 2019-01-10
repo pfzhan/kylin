@@ -26,10 +26,10 @@ import java.util
 
 import com.google.common.base.{Preconditions, Predicate}
 import com.google.common.collect.{Collections2, Maps}
-import io.kyligence.kap.cube.cuboid.{NCuboidLayoutChooser, NSpanningTree}
-import io.kyligence.kap.cube.model._
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.builder._
+import io.kyligence.kap.metadata.cube.cuboid.{NCuboidLayoutChooser, NSpanningTree}
+import io.kyligence.kap.metadata.cube.model._
 import javax.annotation.Nullable
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.storage.StorageFactory

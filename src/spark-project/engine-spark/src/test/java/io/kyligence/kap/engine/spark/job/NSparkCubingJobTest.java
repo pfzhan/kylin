@@ -24,8 +24,8 @@
 
 package io.kyligence.kap.engine.spark.job;
 
-import static io.kyligence.kap.cube.model.NBatchConstants.P_LAYOUT_IDS;
-import static io.kyligence.kap.cube.model.NBatchConstants.P_LAYOUT_ID_PATH;
+import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_LAYOUT_IDS;
+import static io.kyligence.kap.metadata.cube.model.NBatchConstants.P_LAYOUT_ID_PATH;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,7 +37,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -67,19 +67,19 @@ import org.spark_project.guava.collect.Sets;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.cuboid.NCuboidLayoutChooser;
-import io.kyligence.kap.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.cube.model.IndexEntity;
-import io.kyligence.kap.cube.model.LayoutEntity;
-import io.kyligence.kap.cube.model.NBatchConstants;
-import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
-import io.kyligence.kap.cube.model.NDataLayout;
-import io.kyligence.kap.cube.model.NDataSegDetails;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.cuboid.NCuboidLayoutChooser;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.ExecutableUtils;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.NLocalWithSparkSessionTest;

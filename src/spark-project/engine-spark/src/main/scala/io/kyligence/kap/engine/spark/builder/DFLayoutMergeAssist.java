@@ -24,9 +24,9 @@
 
 package io.kyligence.kap.engine.spark.builder;
 
-import io.kyligence.kap.cube.model.LayoutEntity;
-import io.kyligence.kap.cube.model.NDataLayout;
-import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.engine.spark.NSparkCubingEngine;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import org.apache.kylin.storage.StorageFactory;

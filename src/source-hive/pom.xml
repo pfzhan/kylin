@@ -40,10 +40,6 @@
         </dependency>
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-cube</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-job</artifactId>
         </dependency>
 

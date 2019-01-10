@@ -1,0 +1,30 @@
+{
+  "uuid" : "e1b97475-1a89-4840-808f-5addba8f4d76",
+  "last_modified" : 1546997675587,
+  "version" : "3.0.0.0",
+  "mvcc" : 2,
+  "description" : null,
+  "owner" : "ADMIN",
+  "mp_values" : [ ],
+  "create_time_utc" : 1546997675514,
+  "status" : "ONLINE",
+  "cost" : 50,
+  "segments" : [ {
+    "id" : "9fd825b4-38f4-4ebc-b526-b90e6e5c1e9a",
+    "name" : "20120101000000_20120131000000",
+    "create_time_utc" : 1546997675575,
+    "status" : "READY",
+    "segRange" : {
+      "@class" : "org.apache.kylin.metadata.model.SegmentRange$TimePartitionedSegmentRange",
+      "date_range_start" : 1325376000000,
+      "date_range_end" : 1327968000000
+    },
+    "timeRange" : null,
+    "dictionaries" : null,
+    "snapshots" : { },
+    "last_build_time" : 0,
+    "source_count" : -1,
+    "additionalInfo" : { }
+  } ],
+  "storage_location_identifier" : null
+}

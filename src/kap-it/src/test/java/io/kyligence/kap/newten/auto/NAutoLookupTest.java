@@ -26,13 +26,13 @@ package io.kyligence.kap.newten.auto;
 
 import java.util.List;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.spark.SparkContext;
 import org.junit.Assert;
 import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.NSmartMaster;
 import io.kyligence.kap.spark.KapSparkSession;
 
@@ -70,7 +70,7 @@ public class NAutoLookupTest extends NAutoTestBase {
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             Assert.assertNotNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
 
-            List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, getProject()).getDataModels();
+            List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();
             Assert.assertEquals(1, models.size());
             NDataModel model = models.get(0);
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
@@ -87,7 +87,7 @@ public class NAutoLookupTest extends NAutoTestBase {
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             Assert.assertNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
 
-            List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, getProject()).getDataModels();
+            List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();
             Assert.assertEquals(1, models.size());
             NDataModel model = models.get(0);
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
@@ -128,7 +128,7 @@ public class NAutoLookupTest extends NAutoTestBase {
             Assert.assertEquals(1, smartMaster.getContext().getModelContexts().size());
             Assert.assertNotNull(smartMaster.getContext().getModelContexts().get(0).getTargetModel());
 
-            List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, getProject()).getDataModels();
+            List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();
             Assert.assertEquals(1, models.size());
             NDataModel model = models.get(0);
             Assert.assertTrue(model.isLookupTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
@@ -144,7 +144,7 @@ public class NAutoLookupTest extends NAutoTestBase {
             Assert.assertNotNull(model);
             Assert.assertTrue(model.isFactTable("DEFAULT.TEST_CATEGORY_GROUPINGS"));
 
-            List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, getProject()).getDataModels();
+            List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();
             Assert.assertEquals(2, models.size());
         }
     }
@@ -178,7 +178,7 @@ public class NAutoLookupTest extends NAutoTestBase {
         smartMaster.runAll();
         Assert.assertEquals(2, smartMaster.getContext().getModelContexts().size());
 
-        List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, getProject()).getDataModels();
+        List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, getProject()).listUnderliningDataModels();
         Assert.assertEquals(2, models.size());
 
         KapSparkSession kapSparkSession = new KapSparkSession(SparkContext.getOrCreate(sparkConf));

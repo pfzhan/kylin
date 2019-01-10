@@ -405,8 +405,7 @@ public class NTableControllerTest {
         Mockito.doReturn(true).when(modelService).isModelsUsingTable("DEFAULT.TABLE", "default");
         Mockito.doNothing().when(tableService).unloadTable("default", "DEFAULT.TABLE");
         mockMvc.perform(MockMvcRequestBuilders.delete("/api/tables/{project}/{database}/{table}", "default", "DEFAULT", "TABLE")
-                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
-                .andExpect(MockMvcResultMatchers.status().isBadRequest());
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")));
         Mockito.verify(nTableController).unloadTable("default", "DEFAULT", "TABLE");
     }
 

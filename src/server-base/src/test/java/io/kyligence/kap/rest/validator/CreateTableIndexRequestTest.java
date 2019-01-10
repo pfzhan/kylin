@@ -23,7 +23,7 @@
  */
 package io.kyligence.kap.rest.validator;
 
-import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -32,8 +32,8 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NIndexPlanManager;
-import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.rest.request.CreateTableIndexRequest;
 import lombok.val;
 

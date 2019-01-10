@@ -32,7 +32,7 @@ import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.job.execution.AbstractExecutable;
 
-import io.kyligence.kap.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 import lombok.val;
 
 public class ExecutableUtils {

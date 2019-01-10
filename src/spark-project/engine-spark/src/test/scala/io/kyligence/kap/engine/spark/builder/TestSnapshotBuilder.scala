@@ -24,7 +24,7 @@ package io.kyligence.kap.engine.spark.builder
 import java.util.concurrent.{Callable, ExecutorService, Executors, Future}
 
 import com.google.common.collect.{Lists, Maps, Sets}
-import io.kyligence.kap.cube.model.{NDataSegment, NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow, NDataflowManager}
 import org.apache.hadoop.fs.Path
 import org.apache.kylin.common.persistence.ResourceStore
 import org.apache.kylin.common.util.HadoopUtil

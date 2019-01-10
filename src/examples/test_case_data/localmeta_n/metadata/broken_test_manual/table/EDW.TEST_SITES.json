@@ -1,0 +1,56 @@
+{
+  "uuid" : "9bf5bc8e-95f6-446e-b77e-c4c2bec7c817",
+  "last_modified" : 0,
+  "version" : "3.0.0.0",
+  "mvcc" : 0,
+  "name" : "TEST_SITES",
+  "columns" : [ {
+    "id" : "1",
+    "name" : "SITE_ID",
+    "datatype" : "integer",
+    "index" : "T"
+  }, {
+    "id" : "2",
+    "name" : "SITE_NAME",
+    "datatype" : "varchar(256)",
+    "index" : "T"
+  }, {
+    "id" : "3",
+    "name" : "SITE_DOMAIN_CODE",
+    "datatype" : "varchar(256)"
+  }, {
+    "id" : "4",
+    "name" : "DFAULT_LSTG_CURNCY",
+    "datatype" : "integer"
+  }, {
+    "id" : "5",
+    "name" : "EOA_EMAIL_CSTMZBL_SITE_YN_ID",
+    "datatype" : "tinyint"
+  }, {
+    "id" : "6",
+    "name" : "SITE_CNTRY_ID",
+    "datatype" : "integer",
+    "index" : "T"
+  }, {
+    "id" : "7",
+    "name" : "CRE_DATE",
+    "datatype" : "varchar(256)"
+  }, {
+    "id" : "8",
+    "name" : "SITES_UPD_DATE",
+    "datatype" : "varchar(256)"
+  }, {
+    "id" : "9",
+    "name" : "CRE_USER",
+    "datatype" : "varchar(256)"
+  }, {
+    "id" : "10",
+    "name" : "SITES_UPD_USER",
+    "datatype" : "varchar(256)"
+  } ],
+  "source_type" : 11,
+  "table_type" : "defaultTable",
+  "top" : false,
+  "increment_loading" : false,
+  "database" : "EDW"
+}

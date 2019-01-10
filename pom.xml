@@ -179,12 +179,10 @@
         <module>src/core-common</module>
         <module>src/core-metadata</module>
         <module>src/core-metrics</module>
-        <module>src/core-cube</module>
         <module>src/jdbc</module>
         <module>src/source-hive</module>
         <module>src/server-base</module>
         <module>src/server</module>
-        <module>src/core-dictionary</module>
         <module>src/core-event</module>
         <module>src/spark-project</module>
         <module>src/assembly</module>
@@ -287,16 +285,6 @@
             </dependency>
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-dictionary</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-cube</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-job</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -368,12 +356,6 @@
             <dependency>
                 <groupId>io.kyligence.ke</groupId>
                 <artifactId>kap-core-job</artifactId>
-                <version>${project.version}</version>
-                <type>test-jar</type>
-            </dependency>
-            <dependency>
-                <groupId>io.kyligence.ke</groupId>
-                <artifactId>kap-core-cube</artifactId>
                 <version>${project.version}</version>
                 <type>test-jar</type>
             </dependency>

@@ -30,7 +30,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.cuboid.NAggregationGroup;
+import io.kyligence.kap.metadata.cube.cuboid.NAggregationGroup;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

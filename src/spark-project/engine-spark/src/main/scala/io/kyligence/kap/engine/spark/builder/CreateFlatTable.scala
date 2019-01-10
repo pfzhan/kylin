@@ -25,19 +25,12 @@ package io.kyligence.kap.engine.spark.builder
 import java.util
 
 import com.google.common.collect.{Maps, Sets}
-import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil
+import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.commons.lang.StringUtils
-import org.apache.kylin.metadata.model.{
-  IJoinedFlatTableDesc,
-  JoinDesc,
-  PartitionDesc,
-  SegmentRange,
-  TableRef,
-  TblColRef
-}
+import org.apache.kylin.metadata.model.{IJoinedFlatTableDesc, JoinDesc, PartitionDesc, SegmentRange, TableRef, TblColRef}
 import org.apache.kylin.source.SourceFactory
 import org.apache.spark.sql.{Column, Dataset, Row, SparkSession}
 

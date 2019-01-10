@@ -57,6 +57,7 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -84,7 +85,6 @@ import com.google.common.collect.Ordering;
 import io.kyligence.kap.common.obf.IKeep;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
 
 public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKeep {
@@ -104,8 +104,8 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
     }
 
     public String transformImpl(String originSql, String project, String defaultSchema) throws SqlParseException {
-        NDataModelManager metadataManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-        List<NDataModel> dataModelDescs = metadataManager.getDataModels();
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+        List<NDataModel> dataModelDescs = dataflowManager.listUnderliningDataModels();
         return transformImpl(originSql, project, defaultSchema, dataModelDescs);
     }
 

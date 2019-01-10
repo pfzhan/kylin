@@ -27,17 +27,14 @@ package io.kyligence.kap.query.util
 import java.util
 
 import com.google.common.collect.Maps
-import io.kyligence.kap.cube.cuboid.NLayoutCandidate
-import io.kyligence.kap.cube.model.NDataSegment
+import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
+import io.kyligence.kap.metadata.cube.model.NDataSegment
 import io.kyligence.kap.metadata.model.NTableMetadataManager
 import org.apache.kylin.metadata.model.DeriveInfo.DeriveType
 import org.apache.kylin.metadata.model.{DeriveInfo, TblColRef}
 import org.apache.kylin.metadata.tuple.TupleInfo
 import org.apache.spark.sql.derived.DerivedInfo
-import org.apache.spark.sql.execution.utils.{
-  DeriveTableColumnInfo,
-  SchemaProcessor
-}
+import org.apache.spark.sql.execution.utils.{DeriveTableColumnInfo, SchemaProcessor}
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.manager.SparderLookupManager
 import org.apache.spark.sql.{Column, DataFrame}

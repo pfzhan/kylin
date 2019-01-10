@@ -32,9 +32,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.IndexPlan;
-import io.kyligence.kap.cube.model.IndexEntity;
-import io.kyligence.kap.cube.model.NEncodingDesc;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.NEncodingDesc;
 import io.kyligence.kap.smart.NSmartContext;
 
 public class NDimensionReducer extends NAbstractCubeProposer {

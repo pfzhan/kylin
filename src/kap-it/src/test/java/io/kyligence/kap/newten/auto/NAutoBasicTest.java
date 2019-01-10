@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.apache.commons.io.FileUtils;
 import org.apache.kylin.common.util.Pair;
 import org.apache.spark.SparkContext;
@@ -37,7 +37,7 @@ import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 
-import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.newten.NExecAndComp;
 import io.kyligence.kap.smart.NSmartContext;

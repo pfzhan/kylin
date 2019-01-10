@@ -36,9 +36,11 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.cube.model.IndexPlan;
-import io.kyligence.kap.cube.model.LayoutEntity;
-import io.kyligence.kap.cube.model.NIndexPlanManager;
+import com.google.common.base.Preconditions;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.rest.storage.ModelCleaner;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.response.ModelConfigResponse;
@@ -85,16 +87,16 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.cuboid.NForestSpanningTree;
-import io.kyligence.kap.cube.cuboid.NSpanningTree;
-import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory;
-import io.kyligence.kap.cube.model.IndexEntity;
-import io.kyligence.kap.cube.model.NDataLoadingRange;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.cuboid.NForestSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.engine.spark.NJoinedFlatTable;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.event.manager.EventManager;
@@ -172,13 +174,23 @@ public class ModelService extends BasicService {
     public List<NDataModelResponse> getModels(final String modelAlias, final String projectName, boolean exactMatch,
             String owner, String status, String sortBy, boolean reverse) {
 
-        List<NDataModel> models = getDataModelManager(projectName).getDataModels();
+        List<NDataflow> dataflowList = getDataflowManager(projectName).listAllDataflows(true);
         val dfManager = getDataflowManager(projectName);
 
         val resultMap = getModelQueryTimesMap("*", projectName, "*", 0, 0);
 
         List<NDataModelResponse> filterModels = new ArrayList<>();
-        for (NDataModel modelDesc : models) {
+        List<NDataModelResponse> brokenModels = new ArrayList<>();
+        for (NDataflow dataflow : dataflowList) {
+            val modelDesc = dataflow.getModel();
+            if (dataflow.checkBrokenWithRelatedInfo()) {
+                val nDataModelResponse = new NDataModelResponse();
+                nDataModelResponse.setUuid(dataflow.getId());
+                nDataModelResponse.setStatus(RealizationStatusEnum.BROKEN);
+                nDataModelResponse.setAlias(modelDesc.getAlias());
+                brokenModels.add(nDataModelResponse);
+                continue;
+            }
             boolean isModelNameMatch = isArgMatch(modelAlias, exactMatch, modelDesc.getAlias());
             boolean isModelOwnerMatch = isArgMatch(owner, exactMatch, modelDesc.getOwner());
             if (isModelNameMatch && isModelOwnerMatch) {
@@ -197,7 +209,12 @@ public class ModelService extends BasicService {
                 }
             }
         }
-        return sortModelResponses(sortBy, reverse, filterModels);
+        val sortModelResponses = sortModelResponses(sortBy, reverse, filterModels);
+        if ((StringUtils.isBlank(status) || RealizationStatusEnum.BROKEN.toString().equalsIgnoreCase(status))
+                && StringUtils.isBlank(modelAlias) && StringUtils.isBlank(owner)) {
+            sortModelResponses.addAll(brokenModels);
+        }
+        return sortModelResponses;
     }
 
     private boolean isArgMatch(String valueToMatch, boolean exactMatch, String originValue) {
@@ -369,8 +386,8 @@ public class ModelService extends BasicService {
 
     public List<RelatedModelResponse> getRelateModels(String project, String table, String modelId) {
         TableDesc tableDesc = getTableManager(project).getTableDesc(table);
-        NDataModelManager dataModelManager = getDataModelManager(project);
-        val models = dataModelManager.getTableOrientedModelsUsingRootTable(tableDesc);
+        val dataflowManager = getDataflowManager(project);
+        val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
         List<RelatedModelResponse> relatedModel = new ArrayList<>();
         val errorExecutables = getExecutableManager(project).getExecutablesByStatus(ExecutableState.ERROR);
         for (var dataModelDesc : models) {
@@ -402,8 +419,7 @@ public class ModelService extends BasicService {
     }
 
     private void checkAliasExist(String modelId, String newAlias, String project) {
-        NDataModelManager dataModelManager = getDataModelManager(project);
-        List<NDataModel> models = dataModelManager.getDataModels();
+        List<NDataModel> models = getDataflowManager(project).listUnderliningDataModels();
         for (NDataModel model : models) {
             if (!StringUtils.isNotEmpty(modelId) && model.getUuid().equals(modelId)) {
                 continue;
@@ -415,17 +431,13 @@ public class ModelService extends BasicService {
 
     @Transaction(project = 1)
     public void dropModel(String modelId, String project) {
+        val projectInstance = getProjectManager().getProject(project);
+        Preconditions.checkState(MaintainModelType.MANUAL_MAINTAIN.equals(projectInstance.getMaintainModelType()));
+
         NDataModel dataModelDesc = getModelById(modelId, project);
-        NIndexPlanManager indexPlanManager = getIndexPlanManager(project);
-        NDataflowManager dataflowManager = getDataflowManager(project);
-        IndexPlan indexPlan = getIndexPlan(modelId, project);
-        Segments<NDataSegment> segments = dataflowManager.getDataflow(indexPlan.getUuid()).getSegments();
-        if (CollectionUtils.isNotEmpty(segments)) {
-            throw new IllegalStateException("You should purge your model first before you drop it!");
-        }
-        indexPlanManager.removeIndexPlan(indexPlan);
-        dataflowManager.dropDataflow(indexPlan.getUuid());
-        getDataModelManager(project).dropModel(dataModelDesc);
+        val cleaner = new ModelCleaner();
+        cleaner.collect(dataModelDesc);
+        cleaner.cleanup();
     }
 
     @Transaction(project = 1)
@@ -561,12 +573,12 @@ public class ModelService extends BasicService {
     }
 
     public boolean isModelsUsingTable(String table, String project) {
-        return getDataModelManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table))
+        return getDataflowManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table))
                 .size() > 0;
     }
 
     public List<NDataModel> getModelsUsingTable(String table, String project) {
-        return getDataModelManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table));
+        return getDataflowManager(project).getModelsUsingTable(getTableManager(project).getTableDesc(table));
     }
 
     public RefreshAffectedSegmentsResponse getAffectedSegmentsResponse(String project, String table, String start,
@@ -889,7 +901,7 @@ public class ModelService extends BasicService {
 
     public ComputedColumnUsageResponse getComputedColumnUsages(String project) {
         ComputedColumnUsageResponse ret = new ComputedColumnUsageResponse();
-        List<NDataModel> models = getDataModelManager(project).getDataModels();
+        List<NDataModel> models = getDataflowManager(project).listUnderliningDataModels();
         for (NDataModel model : models) {
             for (ComputedColumnDesc computedColumnDesc : model.getComputedColumnDescs()) {
                 ret.addUsage(computedColumnDesc, model.getUuid());
@@ -910,7 +922,7 @@ public class ModelService extends BasicService {
             dataModelDesc.updateRandomUuid();
 
         dataModelDesc.init(getConfig(), getTableManager(project).getAllTablesMap(),
-                getDataModelManager(project).getDataModels(), project);
+                getDataflowManager(project).listUnderliningDataModels(), project);
 
         if (dataModelDesc.isSeekingCCAdvice()) {
             // if it's seeking for advice, it should have thrown exceptions by far
@@ -954,7 +966,7 @@ public class ModelService extends BasicService {
     public void preProcessBeforeModelSave(NDataModel model, String project) {
 
         model.init(getConfig(), getTableManager(project).getAllTablesMap(),
-                getDataModelManager(project).getDataModels(), project);
+                getDataflowManager(project).listUnderliningDataModels(), project);
 
         // Update CC expression from query transformers
         for (ComputedColumnDesc ccDesc : model.getComputedColumnDescs()) {
@@ -1093,7 +1105,7 @@ public class ModelService extends BasicService {
         semanticUpdater.updateModelColumns(copyModel, request);
         val allTables = NTableMetadataManager.getInstance(modelManager.getConfig(), request.getProject())
                 .getAllTablesMap();
-        copyModel.init(modelManager.getConfig(), allTables, modelManager.getDataModels(), project);
+        copyModel.init(modelManager.getConfig(), allTables, getDataflowManager(project).listUnderliningDataModels(), project);
 
         val indexPlan = cubeManager.getIndexPlan(request.getUuid());
         // check agg group contains removed dimensions
@@ -1142,13 +1154,12 @@ public class ModelService extends BasicService {
 
     public AffectedModelsResponse getAffectedModelsByToggleTableType(String tableName, String project, boolean fact) {
         val dataflowManager = getDataflowManager(project);
-        val modelManager = getDataModelManager(project);
         val table = getTableManager(project).getTableDesc(tableName);
         if (fact) {
             checkSingleIncrementingLoadingTable(project, tableName);
         }
         val response = new AffectedModelsResponse();
-        val models = modelManager.getTableOrientedModelsUsingRootTable(table).stream()
+        val models = dataflowManager.getTableOrientedModelsUsingRootTable(table).stream()
                 .map(RootPersistentEntity::getUuid).collect(Collectors.toList());
         var size = 0;
         response.setModels(models);
@@ -1160,9 +1171,9 @@ public class ModelService extends BasicService {
     }
 
     public void checkSingleIncrementingLoadingTable(String project, String tableName) {
-        val modelManager = getDataModelManager(project);
+        val dataflowManager = getDataflowManager(project);
         val table = getTableManager(project).getTableDesc(tableName);
-        val modelsUsingTable = modelManager.getModelsUsingTable(table);
+        val modelsUsingTable = dataflowManager.getModelsUsingTable(table);
         for (val modelDesc : modelsUsingTable) {
             if (!modelDesc.getRootFactTable().getTableDesc().getIdentity().equals(tableName)
                     || modelDesc.isJoinTable(tableName)) {
@@ -1259,7 +1270,7 @@ public class ModelService extends BasicService {
 
     public List<ModelConfigResponse> getModelConfig(String project) {
         val responseList = Lists.<ModelConfigResponse> newArrayList();
-        getDataModelManager(project).getDataModels().forEach(dataModel -> {
+        getDataflowManager(project).listUnderliningDataModels().forEach(dataModel -> {
             val response = new ModelConfigResponse();
             response.setModel(dataModel.getUuid());
             response.setAlias(dataModel.getAlias());
@@ -1298,5 +1309,11 @@ public class ModelService extends BasicService {
         indexPlanManager.updateIndexPlan(indexPlan.getUuid(), copyForWrite -> {
             copyForWrite.setOverrideProps(request.getOverrideProps());
         });
+    }
+
+    public void reloadModels(List<String> models, String project) {
+        if (CollectionUtils.isNotEmpty(models)) {
+            models.forEach(modelId -> getDataModelManager(project).reload(modelId));
+        }
     }
 }

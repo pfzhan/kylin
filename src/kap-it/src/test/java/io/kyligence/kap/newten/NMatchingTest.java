@@ -27,7 +27,7 @@ package io.kyligence.kap.newten;
 import java.util.ArrayList;
 import java.util.List;
 
-import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.util.Pair;

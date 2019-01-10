@@ -28,14 +28,14 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import io.kyligence.kap.cube.model.IndexPlan;
-import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.kylin.common.KapConfig;
 import org.apache.spark.sql.Column;
 
-import io.kyligence.kap.cube.model.NDataLayout;
-import io.kyligence.kap.cube.model.NDataSegDetails;
-import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegDetails;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 
 public class NSparkCubingUtil {
     public static final String SEPARATOR = "_0_DOT_0_";

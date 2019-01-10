@@ -50,7 +50,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.val;
 
 /**

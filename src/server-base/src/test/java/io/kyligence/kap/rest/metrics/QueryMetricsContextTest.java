@@ -27,7 +27,7 @@ package io.kyligence.kap.rest.metrics;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.query.QueryHistory;
 import io.kyligence.kap.query.util.QueryPatternUtil;
 import org.apache.calcite.sql.validate.SqlValidatorException;

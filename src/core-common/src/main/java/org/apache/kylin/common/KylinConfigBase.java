@@ -411,7 +411,7 @@ abstract public class KylinConfigBase implements Serializable {
 
     public String[] getRealizationProviders() {
         return getOptionalStringArray("kylin.metadata.realization-providers", //
-                new String[] { "io.kyligence.kap.cube.model.NDataflowManager" });
+                new String[] { "io.kyligence.kap.metadata.cube.model.NDataflowManager" });
     }
 
     public String[] getCubeDimensionCustomEncodingFactories() {

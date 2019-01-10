@@ -27,10 +27,10 @@ import java.util.{Objects, UUID}
 
 import com.google.common.collect.{Lists, Maps, Sets}
 import io.kyligence.kap.common.persistence.metadata.MetadataStore
-import io.kyligence.kap.cube.model._
 import io.kyligence.kap.engine.spark.ExecutableUtils
 import io.kyligence.kap.engine.spark.job.{NSparkCubingJob, NSparkCubingStep, NSparkMergingJob}
 import io.kyligence.kap.engine.spark.merger.{AfterBuildResourceMerger, AfterMergeOrRefreshResourceMerger}
+import io.kyligence.kap.metadata.cube.model._
 import org.apache.commons.io.FileUtils
 import org.apache.kylin.common.persistence.ResourceStore
 import org.apache.kylin.common.{KylinConfig, StorageURL}

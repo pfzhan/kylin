@@ -1,0 +1,51 @@
+{
+  "uuid" : "34997730-f6c5-442e-ae29-a730abf2c83b",
+  "last_modified" : 0,
+  "version" : "3.0.0.0",
+  "mvcc" : 0,
+  "name" : "TEST_SELLER_TYPE_DIM",
+  "columns" : [ {
+    "id" : "1",
+    "name" : "SELLER_TYPE_CD",
+    "datatype" : "smallint",
+    "index" : "T"
+  }, {
+    "id" : "2",
+    "name" : "SELLER_TYPE_DESC",
+    "datatype" : "varchar(256)"
+  }, {
+    "id" : "3",
+    "name" : "GLBL_RPRT_SLR_SGMNT_CD",
+    "datatype" : "tinyint"
+  }, {
+    "id" : "4",
+    "name" : "SELLER_GROUP_CD",
+    "datatype" : "tinyint",
+    "index" : "T"
+  }, {
+    "id" : "5",
+    "name" : "SELLER_GROUP_DESC",
+    "datatype" : "varchar(256)"
+  }, {
+    "id" : "6",
+    "name" : "DIM_CRE_DATE",
+    "datatype" : "varchar(256)"
+  }, {
+    "id" : "7",
+    "name" : "DIM_CRE_USER",
+    "datatype" : "varchar(256)"
+  }, {
+    "id" : "8",
+    "name" : "DIM_UPD_DATE",
+    "datatype" : "varchar(256)"
+  }, {
+    "id" : "9",
+    "name" : "DIM_UPD_USER",
+    "datatype" : "varchar(256)"
+  } ],
+  "source_type" : 11,
+  "table_type" : "defaultTable",
+  "top" : false,
+  "increment_loading" : false,
+  "database" : "EDW"
+}

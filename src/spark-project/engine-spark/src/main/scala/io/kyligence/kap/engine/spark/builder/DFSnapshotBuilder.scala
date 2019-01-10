@@ -28,8 +28,8 @@ import java.io.IOException
 import java.util.UUID
 
 import com.google.common.collect.Maps
-import io.kyligence.kap.cube.model.{NDataSegment, NDataflowManager, NDataflowUpdate}
 import io.kyligence.kap.engine.spark.NSparkCubingEngine
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflowManager, NDataflowUpdate}
 import org.apache.commons.codec.digest.DigestUtils
 import org.apache.hadoop.fs.{FileStatus, Path, PathFilter}
 import org.apache.kylin.common.KapConfig

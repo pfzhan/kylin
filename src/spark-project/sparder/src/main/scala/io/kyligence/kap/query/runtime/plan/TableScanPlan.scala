@@ -25,10 +25,10 @@ import java.util
 
 import com.github.lightcopy.implicits._
 import com.google.common.collect.Sets
-import io.kyligence.kap.cube.cuboid.NLayoutCandidate
-import io.kyligence.kap.cube.gridtable.NCuboidToGridTableMapping
-import io.kyligence.kap.cube.kv.NCubeDimEncMap
-import io.kyligence.kap.cube.model.{NDataflow, NDataSegment}
+import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
+import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
+import io.kyligence.kap.metadata.cube.kv.NCubeDimEncMap
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow}
 import io.kyligence.kap.query.exception.UnsupportedQueryException
 import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
@@ -41,10 +41,10 @@ import org.apache.kylin.metadata.realization.IRealization
 import org.apache.kylin.metadata.tuple.TupleInfo
 import org.apache.spark.internal.Logging
 import org.apache.spark.sql.execution.datasource.CubeRelation
-import org.apache.spark.sql.execution.utils.{FactTableCulumnInfo, SchemaProcessor}
+import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.manager.SparderLookupManager
-import org.apache.spark.sql.types.{ArrayType, DataTypes, DoubleType, LongType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, _}
 

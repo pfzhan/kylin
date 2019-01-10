@@ -25,14 +25,14 @@ package org.apache.spark.sql.execution.utils
 
 import java.util
 
-import io.kyligence.kap.cube.model.{LayoutEntity, NDataflow, NDataflowManager, NDataSegment}
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataSegment, NDataflow, NDataflowManager}
 import io.kyligence.kap.query.runtime.plan.TableScanPlan
 import org.apache.kylin.common.{KapConfig, KylinConfig}
 import org.apache.kylin.gridtable.GTInfo
 import org.apache.kylin.metadata.model.{ColumnDesc, FunctionDesc}
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.util.{SparderConstants, SparderTypeUtil}
-import org.apache.spark.sql.SparkSession
 
 import scala.collection.JavaConverters._
 

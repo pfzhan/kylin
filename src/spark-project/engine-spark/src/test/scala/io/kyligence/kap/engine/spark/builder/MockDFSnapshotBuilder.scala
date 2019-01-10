@@ -21,7 +21,7 @@
  */
 package io.kyligence.kap.engine.spark.builder
 
-import io.kyligence.kap.cube.model.NDataSegment
+import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.kylin.metadata.model.TableDesc
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
 

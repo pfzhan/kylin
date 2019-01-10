@@ -44,7 +44,7 @@ package io.kyligence.kap.query.util;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.kylin.common.util.DateFormat;
 import org.apache.kylin.metadata.model.SegmentRange;

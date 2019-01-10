@@ -23,8 +23,8 @@ package io.kyligence.kap.engine.spark.builder
 
 import java.util.Set
 
-import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory
-import io.kyligence.kap.cube.model.{NDataSegment, NDataflow, NDataflowManager}
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
+import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow, NDataflowManager}
 import org.apache.commons.lang3.RandomStringUtils
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TblColRef

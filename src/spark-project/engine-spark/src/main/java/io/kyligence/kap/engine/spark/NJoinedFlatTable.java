@@ -47,7 +47,7 @@ import org.apache.spark.sql.types.StructField;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NCubeJoinedFlatTableDesc;
+import io.kyligence.kap.metadata.cube.model.NCubeJoinedFlatTableDesc;
 import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;

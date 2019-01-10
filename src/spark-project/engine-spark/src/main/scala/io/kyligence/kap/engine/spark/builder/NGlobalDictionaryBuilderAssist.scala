@@ -44,7 +44,7 @@ package io.kyligence.kap.engine.spark.builder
 import java.io.IOException
 import java.util
 
-import io.kyligence.kap.cube.model.NDataSegment
+import io.kyligence.kap.metadata.cube.model.NDataSegment
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.SparkContext
 

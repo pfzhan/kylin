@@ -47,6 +47,7 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.UUID;
 
+import lombok.Setter;
 import org.apache.commons.lang.time.FastDateFormat;
 import org.apache.kylin.common.KylinVersion;
 
@@ -101,6 +102,10 @@ abstract public class RootPersistentEntity implements AclEntity, Serializable {
     @Getter
     @JsonProperty("mvcc")
     private long mvcc = -1;
+
+    @Getter
+    @Setter
+    private boolean isBroken = false;
 
     public String getVersion() {
         return version;

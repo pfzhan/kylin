@@ -23,7 +23,7 @@ package io.kyligence.kap.engine.spark.builder
 
 import java.util
 
-import io.kyligence.kap.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
+import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import org.apache.kylin.common.KylinConfig
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.broadcast.Broadcast

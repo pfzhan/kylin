@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
@@ -60,8 +61,8 @@ public class QueryHistoryService extends BasicService {
     public HashMap<String, Object> getQueryHistories(QueryHistoryRequest request, final int limit, final int offset) {
         Preconditions.checkArgument(request.getProject() != null && StringUtils.isNotEmpty(request.getProject()));
         QueryHistoryDAO queryHistoryDAO = getQueryHistoryDao(request.getProject());
-        val modalManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
-        val modelAliasMap = modalManager.getDataModels().stream()
+        val dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), request.getProject());
+        val modelAliasMap = dataflowManager.listUnderliningDataModels().stream()
                 .collect(Collectors.toMap(NDataModel::getAlias, RootPersistentEntity::getUuid));
 
         HashMap<String, Object> data = new HashMap<>();

@@ -23,11 +23,11 @@ package io.kyligence.kap.engine.spark.builder
 
 import com.google.common.collect.Lists.newArrayList
 import com.google.common.collect.Sets
-import io.kyligence.kap.cube.cuboid.NSpanningTreeFactory
-import io.kyligence.kap.cube.model.NIndexPlanManager.NIndexPlanUpdater
-import io.kyligence.kap.cube.model._
 import io.kyligence.kap.engine.spark.NJoinedFlatTable
 import io.kyligence.kap.engine.spark.job.{CuboidAggregator, UdfManager}
+import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager.NIndexPlanUpdater
+import io.kyligence.kap.metadata.cube.model._
 import io.kyligence.kap.metadata.model.NDataModel.Measure
 import io.kyligence.kap.metadata.model.{ManagementType, NDataModel, NDataModelManager}
 import org.apache.commons.lang3.StringUtils

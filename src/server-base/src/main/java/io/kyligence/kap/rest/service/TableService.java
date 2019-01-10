@@ -35,8 +35,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.cube.model.IndexPlan;
-import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.fs.ContentSummary;
@@ -71,12 +71,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.SetMultimap;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.cube.model.NDataLoadingRange;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.cube.model.NSegmentConfigHelper;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NSegmentConfigHelper;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.model.AddSegmentEvent;
 import io.kyligence.kap.event.model.PostAddSegmentEvent;
@@ -279,11 +279,11 @@ public class TableService extends BasicService {
     private List<TableDesc> getTablesResponse(List<TableDesc> tables, String project, boolean withExt)
             throws IOException {
         List<TableDesc> descs = new ArrayList<TableDesc>();
-        NDataModelManager dataModelManager = getDataModelManager(project);
+        val dataflowManager = getDataflowManager(project);
         for (val table : tables) {
             TableDescResponse rtableDesc;
-            val models = dataModelManager.getModelsUsingRootTable(table);
-            val modelsUsingTable = dataModelManager.getModelsUsingTable(table);
+            val models = dataflowManager.getModelsUsingRootTable(table);
+            val modelsUsingTable = dataflowManager.getModelsUsingTable(table);
             if (withExt) {
                 rtableDesc = getTableResponse(table, project);
             } else {
@@ -364,8 +364,8 @@ public class TableService extends BasicService {
 
     //get table's primaryKeys(pair first) and foreignKeys(pair second)
     private Pair<Set<String>, Set<String>> getTableColumnType(TableDesc table, String project) {
-        NDataModelManager dataModelManager = getDataModelManager(project);
-        val models = dataModelManager.getModelsUsingTable(table);
+        val dataModelManager = getDataModelManager(project);
+        val models = getDataflowManager(project).getModelsUsingTable(table);
         Set<String> primaryKey = new HashSet<>();
         Set<String> foreignKey = new HashSet<>();
         for (val model : models) {
@@ -393,7 +393,7 @@ public class TableService extends BasicService {
     public void setPartitionKey(String table, String project, String column) {
         NTableMetadataManager tableManager = getTableManager(project);
 
-        val modelManager = getDataModelManager(project);
+        val dataflowManager = getDataflowManager(project);
         TableDesc tableDesc = tableManager.getTableDesc(table);
         tableDesc = tableManager.copyForWrite(tableDesc);
         NDataLoadingRangeManager dataLoadingRangeManager = getDataLoadingRangeManager(project);
@@ -427,7 +427,7 @@ public class TableService extends BasicService {
         }
 
         // toggle table type, remove all segments in related models
-        val models = modelManager.getTableOrientedModelsUsingRootTable(tableDesc);
+        val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
         for (val model : models) {
             //follow semanticVersion,#8196
             modelService.purgeModel(model.getUuid(), project);
@@ -540,9 +540,9 @@ public class TableService extends BasicService {
             rangeManager.updateDataLoadingRange(copy);
 
             // sync to all related models
-            NDataModelManager modelManager = getDataModelManager(project);
+            val dataflowManager = getDataflowManager(project);
             TableDesc tableDesc = getTableManager(project).getTableDesc(table);
-            val models = modelManager.getTableOrientedModelsUsingRootTable(tableDesc);
+            val models = dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc);
             for (val model : models) {
                 modelService.syncPartitionDesc(model.getUuid(), project);
             }
@@ -572,7 +572,7 @@ public class TableService extends BasicService {
         if (tableDesc == null) {
             throw new IllegalArgumentException("TableDesc '" + tableName + "' does not exist");
         }
-        List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, project)
+        List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, project)
                 .getTableOrientedModelsUsingRootTable(tableDesc);
         if (CollectionUtils.isNotEmpty(models)) {
             EventManager eventManager = EventManager.getInstance(kylinConfig, project);
@@ -628,8 +628,8 @@ public class TableService extends BasicService {
 
     private int getRelatedIndexNumOfATable(TableDesc tableDesc, String project) {
         int result = 0;
-        NDataModelManager modelManager = getDataModelManager(project);
-        for (val model : modelManager.getTableOrientedModelsUsingRootTable(tableDesc)) {
+        val dataflowManager = getDataflowManager(project);
+        for (val model : dataflowManager.getTableOrientedModelsUsingRootTable(tableDesc)) {
             IndexPlan indexPlan = getIndexPlanManager(project).getIndexPlan(model.getUuid());
             result += indexPlan.getAllIndexes().size();
         }

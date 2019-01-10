@@ -1,0 +1,35 @@
+{
+  "uuid" : "29da1d43-b0e2-41d2-b515-2604891145d4",
+  "last_modified" : 1546997908646,
+  "version" : "3.0.0.0",
+  "mvcc" : 1,
+  "dataflow" : "b2af0316-cbf3-44aa-9247-0cf177207b80",
+  "layout_instances" : [ {
+    "layout_id" : 1,
+    "build_job_id" : "b98d7ce4-9c29-4143-a543-feb279b05a96",
+    "rows" : 244,
+    "byte_size" : 3332,
+    "file_count" : 1,
+    "source_rows" : 244,
+    "source_byte_size" : 0,
+    "create_time" : 1546997939981
+  }, {
+    "layout_id" : 20001,
+    "build_job_id" : "b98d7ce4-9c29-4143-a543-feb279b05a96",
+    "rows" : 244,
+    "byte_size" : 4532,
+    "file_count" : 1,
+    "source_rows" : 244,
+    "source_byte_size" : 0,
+    "create_time" : 1546997938369
+  }, {
+    "layout_id" : 10001,
+    "build_job_id" : "b98d7ce4-9c29-4143-a543-feb279b05a96",
+    "rows" : 244,
+    "byte_size" : 1675,
+    "file_count" : 1,
+    "source_rows" : 244,
+    "source_byte_size" : 0,
+    "create_time" : 1546997942462
+  } ]
+}

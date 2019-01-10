@@ -25,10 +25,9 @@
 package io.kyligence.kap.metadata.model;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.ResourceStore;
@@ -83,7 +82,17 @@ public class NDataModelManager {
             @Override
             protected NDataModel initEntityAfterReload(NDataModel model, String resourceName) {
                 if (!model.isDraft()) {
-                    model.init(config, getAllTablesMap(), listAllValidCache(), project);
+                    model.init(config, getAllTablesMap(), listAllValidCache().stream().filter(m -> !m.isBroken()).collect(Collectors.toList()), project);
+                }
+                return model;
+            }
+
+            @Override
+            protected NDataModel initBrokenEntity(NDataModel entity, String resourceName) {
+                NDataModel model = super.initBrokenEntity(entity, resourceName);
+                model.setProject(project);
+                if (entity != null) {
+                    model.setAlias(entity.getAlias());
                 }
                 return model;
             }
@@ -107,10 +116,6 @@ public class NDataModelManager {
         return crud.getSerializer();
     }
 
-    public List<NDataModel> getDataModels() {
-        return crud.listAll();
-    }
-
     public NDataModel getDataModelDesc(String modelId) {
         if (modelId == null) {
             return null;
@@ -123,46 +128,6 @@ public class NDataModelManager {
                 .orElse(null);
     }
 
-    // within a project, find models that use the specified table
-    public List<NDataModel> getModelsUsingTable(TableDesc table) {
-        List<NDataModel> models = new ArrayList<>();
-        for (NDataModel modelDesc : getDataModels()) {
-            if (modelDesc.containsTable(table))
-                models.add(modelDesc);
-        }
-        return models;
-    }
-
-    // within a project, find models that use the specified table as root table
-    public List<NDataModel> getModelsUsingRootTable(TableDesc table) {
-        List<NDataModel> models = new ArrayList<>();
-        for (NDataModel modelDesc : getDataModels()) {
-            if (modelDesc.isRootFactTable(table)) {
-                models.add(modelDesc);
-            }
-        }
-        return models;
-    }
-
-    public List<NDataModel> getTableOrientedModelsUsingRootTable(TableDesc table) {
-        List<NDataModel> models = new ArrayList<>();
-        for (NDataModel modelDesc : getDataModels()) {
-            if (modelDesc.isRootFactTable(table)
-                    && modelDesc.getManagementType().equals(ManagementType.TABLE_ORIENTED)) {
-                models.add(modelDesc);
-            }
-        }
-        return models;
-    }
-
-    public boolean isTableInAnyModel(TableDesc table) {
-        for (NDataModel model : getDataModels()) {
-            if (model.containsTable(table))
-                return true;
-        }
-        return false;
-    }
-
     public NDataModel dropModel(NDataModel desc) {
         crud.delete(desc);
         return desc;
@@ -170,7 +135,8 @@ public class NDataModelManager {
 
     public NDataModel createDataModelDesc(NDataModel desc, String owner) {
         String name = desc.getAlias();
-        for (NDataModel model : crud.listAll()) {
+        for (NDataModel model : crud.listAll().stream().filter(model -> !model.isBroken())
+                .collect(Collectors.toList())) {
             if (model.getAlias().equals(name)) {
                 throw new IllegalArgumentException("DataModelDesc '" + name + "' already exists");
             }
@@ -205,7 +171,8 @@ public class NDataModelManager {
     private NDataModel saveDataModelDesc(NDataModel dataModelDesc) {
         dataModelDesc.checkSingleIncrementingLoadingTable();
         if (!dataModelDesc.isDraft())
-            dataModelDesc.init(config, this.getAllTablesMap(), getDataModels(), project);
+            dataModelDesc.init(config, this.getAllTablesMap(),
+                    crud.listAll().stream().filter(model -> !model.isBroken()).collect(Collectors.toList()), project);
 
         crud.save(dataModelDesc);
 
@@ -239,5 +206,12 @@ public class NDataModelManager {
 
     public interface NDataModelUpdater {
         void modify(NDataModel copyForWrite);
+    }
+
+    public void reload(String modelId) {
+        val model = getDataModelDesc(modelId);
+        if (model != null) {
+            crud.reloadAt(model.getResourcePath());
+        }
     }
 }

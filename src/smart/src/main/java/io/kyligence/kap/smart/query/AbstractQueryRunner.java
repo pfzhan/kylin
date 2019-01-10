@@ -34,6 +34,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.KylinConfig.SetAndUnsetThreadLocalConfig;
 import org.apache.kylin.common.QueryContext;
@@ -90,6 +92,8 @@ public abstract class AbstractQueryRunner implements Closeable {
                             .setAndUnsetThreadLocalConfig(kylinConfig)) {
                         NTableMetadataManager.getInstance(kylinConfig, project);
                         NDataModelManager.getInstance(kylinConfig, project);
+                        NDataflowManager.getInstance(kylinConfig, project);
+                        NIndexPlanManager.getInstance(kylinConfig, project);
                         record = executor.execute(project, sql);
                     }
                     queryCache.put(sql, record);

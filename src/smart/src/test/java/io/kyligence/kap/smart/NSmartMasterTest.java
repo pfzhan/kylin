@@ -29,8 +29,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import io.kyligence.kap.cube.model.IndexPlan;
-import io.kyligence.kap.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -40,7 +40,7 @@ import org.junit.Test;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -586,10 +586,13 @@ public class NSmartMasterTest extends NTestBase {
         smartMaster.analyzeSQLs();
         smartMaster.selectModel();
         smartMaster.optimizeModel();
+        smartMaster.selectIndexPlan();
+        smartMaster.optimizeIndexPlan();
         NSmartContext ctx = smartMaster.getContext();
         NSmartContext.NModelContext modelContext = ctx.getModelContexts().get(0);
         smartMaster.renameModel();
         smartMaster.saveModel();
+        smartMaster.saveIndexPlan();
         return modelContext.getTargetModel();
     }
 }

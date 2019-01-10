@@ -26,16 +26,16 @@ package io.kyligence.kap.engine.spark;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.cube.model.LayoutEntity;
-import io.kyligence.kap.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.apache.kylin.metadata.model.Segments;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

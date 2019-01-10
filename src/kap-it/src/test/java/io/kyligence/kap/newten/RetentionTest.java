@@ -24,12 +24,12 @@
 package io.kyligence.kap.newten;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NDataLoadingRange;
-import io.kyligence.kap.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
-import io.kyligence.kap.cube.model.NDataflowUpdate;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import io.kyligence.kap.event.handle.PostAddSegmentHandler;
 
 import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
@@ -154,9 +154,7 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
         retentionRange.setRetentionRangeNumber(2);
         retentionRange.setRetentionRangeType(AutoMergeTimeEnum.WEEK);
         modelUpdate.getSegmentConfig().setRetentionRange(retentionRange);
-        modelUpdate.setManagementType(ManagementType.MODEL_BASED);
         dataModelManager.updateDataModelDesc(modelUpdate);
-
 
         df = dataflowManager.getDataflowByModelAlias("nmodel_basic");
         val dataLoadingRangeManager = NDataLoadingRangeManager.getInstance(getTestConfig(), DEFAULT_PROJECT);
@@ -180,7 +178,6 @@ public class RetentionTest extends NLocalFileMetadataTestCase {
 
 
     }
-
 
     @Test
     public void testRetention_2Week_3WeekAndOneDayData() throws Exception {

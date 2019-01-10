@@ -1,0 +1,16 @@
+{
+  "uuid" : "112caa93-865a-4256-ad74-9ff3807b8955",
+  "last_modified" : 0,
+  "version" : "3.0.0.0",
+  "mvcc" : 0,
+  "table_name" : "SSB.P_LINEORDER",
+  "last_build_job_id" : null,
+  "frequency" : 0,
+  "columns_stats" : [ ],
+  "sample_rows" : [ ],
+  "last_modified_time" : 0,
+  "total_rows" : 0,
+  "mapper_rows" : [ ],
+  "data_source_properties" : { },
+  "loading_range" : [ ]
+}

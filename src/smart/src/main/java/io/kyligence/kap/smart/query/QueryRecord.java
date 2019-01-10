@@ -29,7 +29,7 @@ import java.util.Collection;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.storage.StorageContext;
 
-import io.kyligence.kap.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
 
 public class QueryRecord {
     private NDataflow dataflow;

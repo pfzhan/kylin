@@ -26,9 +26,9 @@ package io.kyligence.kap.engine.spark.job;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
-import io.kyligence.kap.cube.model.NBatchConstants;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.builder.NModelAnalysisJob;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import org.apache.commons.lang.StringUtils;

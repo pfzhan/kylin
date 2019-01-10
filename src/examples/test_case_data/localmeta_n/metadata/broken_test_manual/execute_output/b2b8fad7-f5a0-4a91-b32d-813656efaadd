@@ -1,0 +1,13 @@
+{
+  "uuid" : "b2b8fad7-f5a0-4a91-b32d-813656efaadd",
+  "last_modified" : 1546997703752,
+  "version" : "3.0.0.0",
+  "mvcc" : 4,
+  "content" : null,
+  "status" : "SUCCEED",
+  "info" : {
+    "createTime" : "1546997687306",
+    "startTime" : "1546997696211",
+    "endTime" : "1546997709951"
+  }
+}

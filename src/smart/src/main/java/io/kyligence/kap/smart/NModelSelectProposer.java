@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
@@ -40,7 +41,6 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.smart.common.AccelerateInfo;
@@ -48,12 +48,12 @@ import io.kyligence.kap.smart.model.ModelTree;
 
 public class NModelSelectProposer extends NAbstractProposer {
 
-    private final NDataModelManager modelManager;
+    private final NDataflowManager dataflowManager;
 
     NModelSelectProposer(NSmartContext smartContext) {
         super(smartContext);
 
-        modelManager = NDataModelManager.getInstance(kylinConfig, project);
+        dataflowManager = NDataflowManager.getInstance(kylinConfig, project);
     }
 
     @Override
@@ -104,7 +104,7 @@ public class NModelSelectProposer extends NAbstractProposer {
     }
 
     private NDataModel compareWithFactTable(ModelTree modelTree) {
-        for (NDataModel model : modelManager.getDataModels()) {
+        for (NDataModel model : dataflowManager.listUnderliningDataModels()) {
             if (matchModelTree(model, modelTree)) {
                 return model;
             }

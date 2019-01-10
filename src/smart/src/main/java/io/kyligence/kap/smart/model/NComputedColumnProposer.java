@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -53,7 +54,6 @@ import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
 import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
@@ -71,7 +71,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
     protected void doPropose(NDataModel nDataModel) {
         LOGGER.trace("Propose computed column for model [{}]", nDataModel.getId());
 
-        List<NDataModel> otherModels = NDataModelManager.getInstance(kylinConfig, project).getDataModels().stream()
+        List<NDataModel> otherModels = NDataflowManager.getInstance(kylinConfig, project).listUnderliningDataModels().stream()
                 .filter(m -> !m.getUuid().equals(nDataModel.getUuid())).collect(Collectors.toList());
         otherModels.addAll(
                 getModelContext().getSmartContext().getModelContexts().stream().filter(ctx -> ctx != getModelContext())

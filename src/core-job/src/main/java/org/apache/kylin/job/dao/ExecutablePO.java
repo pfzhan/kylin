@@ -48,7 +48,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.google.common.collect.Sets;
-import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import lombok.Getter;
 import lombok.Setter;
 import org.apache.kylin.common.persistence.RootPersistentEntity;

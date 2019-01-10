@@ -29,12 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.realization.NoRealizationFoundException;
 
 import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.model.GreedyModelTreesBuilder;
@@ -57,7 +57,7 @@ class NSQLAnalysisProposer extends NAbstractProposer {
     @Override
     void propose() {
         initAccelerationInfo(sqls);
-        List<NDataModel> models = NDataModelManager.getInstance(kylinConfig, project).getDataModels();
+        List<NDataModel> models = NDataflowManager.getInstance(kylinConfig, project).listUnderliningDataModels();
         try (AbstractQueryRunner extractor = NQueryRunnerFactory.createForModelSuggestion(kylinConfig, project, sqls,
                 models, DEFAULT_THREAD_NUM)) {
             extractor.execute();

@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.smart;
 
-import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.smart.cube.NCubeMaster;
 
 class NIndexPlanRefreshProposer extends NAbstractProposer {

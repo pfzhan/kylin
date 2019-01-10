@@ -53,5 +53,5 @@ public class MergeSegmentHandlerTest extends NLocalFileMetadataTestCase {
 
     }
 
-    //moved the only one to io.kyligence.kap.cube.model.NDataflowManagerTest.testInvalidMerge()
+    //moved the only one to io.kyligence.kap.metadata.cube.model.NDataflowManagerTest.testInvalidMerge()
 }

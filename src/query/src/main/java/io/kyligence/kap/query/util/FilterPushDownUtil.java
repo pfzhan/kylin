@@ -44,7 +44,7 @@ package io.kyligence.kap.query.util;
 import java.util.LinkedList;
 import java.util.List;
 
-import io.kyligence.kap.cube.model.NDataLoadingRange;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDialect;

@@ -28,6 +28,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.metadata.project.ProjectInstance;
@@ -76,6 +79,22 @@ class NLocalQueryRunnerBuilder {
         NTableMetadataManager metadataManager = NTableMetadataManager.getInstance(srcKylinConfig, projectName);
         metadataManager.listAllTables().forEach(tableDesc -> dumpResources.add(tableDesc.getResourcePath()));
 
-        dataModels.forEach(dataModel -> mockupResources.put(dataModel.getResourcePath(), dataModel));
+        dataModels.forEach(dataModel -> {
+            mockupResources.put(dataModel.getResourcePath(), dataModel);
+            // now get healthy model list through NDataflowManager.listUnderliningDataModels,
+            // then here mockup the dataflow and indexPlan for the dataModel
+            mockupDataflowAndIndexPlan(dataModel, projectName, mockupResources);
+        });
+    }
+
+    private void mockupDataflowAndIndexPlan(NDataModel dataModel, String projectName, Map<String, RootPersistentEntity> mockupResources) {
+        IndexPlan indexPlan = new IndexPlan();
+        indexPlan.setUuid(dataModel.getUuid());
+        indexPlan.setProject(projectName);
+        indexPlan.setDescription(StringUtils.EMPTY);
+        NDataflow dataflow = NDataflow.create(indexPlan);
+        dataflow.setProject(projectName);
+        mockupResources.put(indexPlan.getResourcePath(), indexPlan);
+        mockupResources.put(dataflow.getResourcePath(), dataflow);
     }
 }

@@ -29,9 +29,9 @@ import java.util.List;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.LayoutEntity;
-import io.kyligence.kap.cube.model.IndexPlan;
-import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.smart.NSmartContext;
 
 abstract class NAbstractCubeProposer {

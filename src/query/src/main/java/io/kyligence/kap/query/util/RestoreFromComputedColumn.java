@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -81,7 +82,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 
 //very similar to ConvertToComputedColumn in structure, maybe we should extract a common base class?
 public class RestoreFromComputedColumn implements IPushDownConverter {
@@ -99,8 +99,8 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
 
             Map<String, NDataModel> dataModelDescs = new LinkedHashMap<>();
 
-            NDataModelManager metadataManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            for (NDataModel modelDesc: metadataManager.getDataModels()) {
+            NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
+            for (NDataModel modelDesc: dataflowManager.listUnderliningDataModels()) {
                 dataModelDescs.put(modelDesc.getUuid(), modelDesc);
             }
 

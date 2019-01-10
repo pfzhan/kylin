@@ -22,12 +22,12 @@
 
 package org.apache.spark.sql.execution.datasource
 
-import io.kyligence.kap.cube.model.{LayoutEntity, NDataflow}
+import io.kyligence.kap.metadata.cube.model.{LayoutEntity, NDataflow}
 import org.apache.kylin.gridtable.GTInfo
 import org.apache.kylin.metadata.model.FunctionDesc
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{SparderEnv, SparkSession, SQLContext}
+import org.apache.spark.sql.{SQLContext, SparderEnv, SparkSession}
 
 // scalastyle:off
 case class CubeRelation(tableName: String

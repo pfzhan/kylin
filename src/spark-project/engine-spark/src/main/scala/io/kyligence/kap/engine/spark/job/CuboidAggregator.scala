@@ -26,17 +26,17 @@ package io.kyligence.kap.engine.spark.job
 
 import java.util
 
-import io.kyligence.kap.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.engine.spark.builder.DFFlatTableEncoder
+import io.kyligence.kap.metadata.cube.model.{NCubeJoinedFlatTableDesc, NDataSegment}
 import io.kyligence.kap.metadata.model.NDataModel
 import org.apache.kylin.measure.bitmap.BitmapMeasureType
 import org.apache.kylin.measure.hllc.HLLCMeasureType
 import org.apache.kylin.metadata.model.TblColRef
 import org.apache.spark.sql.functions.{col, _}
 import org.apache.spark.sql.types.{StringType, _}
+import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.util.SparderTypeUtil.toSparkType
 import org.apache.spark.sql.{Column, DataFrame, SparkSession}
-import org.apache.spark.sql.util.SparderTypeUtil
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable

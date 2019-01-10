@@ -55,6 +55,7 @@ import org.apache.kylin.common.persistence.ResourceStore;
 import org.apache.kylin.common.persistence.RootPersistentEntity;
 import org.apache.kylin.common.persistence.Serializer;
 import org.apache.kylin.metadata.MetadataConstants;
+import org.apache.kylin.util.BrokenEntityProxy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -178,12 +179,12 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     }
 
     public T reloadAt(String path) {
+        T entity = null;
         try {
-            T entity = store.getResource(path, serializer);
+            entity = store.getResource(path, serializer);
             if (entity == null) {
-                logger.warn("No " + entityType.getSimpleName() + " found at " + path + ", returning null");
-                cache.invalidate(resourceName(path));
-                return null;
+                throw new IllegalStateException(
+                        "No " + entityType.getSimpleName() + " found at " + path + ", returning null");
             }
 
             // mark cached object
@@ -194,11 +195,14 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
                 throw new IllegalStateException("The entity " + entity + " read from " + path
                         + " will save to a different path " + resourcePath(entity.resourceName()));
 
-            cache.put(entity.resourceName(), entity);
-            return entity;
+
         } catch (Exception e) {
-            throw new IllegalStateException("Error loading " + entityType.getSimpleName() + " at " + path, e);
+            entity = initBrokenEntity(entity, resourceName(path));
+            entity.setCachedAndShared(false);
+            logger.warn("Error loading " + entityType.getSimpleName() + " at " + path + " entity", e);
         }
+        cache.put(entity.resourceName(), entity);
+        return entity;
     }
 
     public boolean exists(String resourceName) {
@@ -223,6 +227,15 @@ public abstract class CachedCrudAssist<T extends RootPersistentEntity> {
     }
 
     abstract protected T initEntityAfterReload(T entity, String resourceName);
+
+    protected T initBrokenEntity(T entity, String resourceName) {
+        BrokenEntityProxy brokenEntityProxy = new BrokenEntityProxy();
+        T brokenEntity = brokenEntityProxy.getProxy(entityType);
+        brokenEntity.setBroken(true);
+        brokenEntity.setUuid(resourceName);
+        brokenEntity.setMvcc(-1L);
+        return brokenEntity;
+    }
 
     public T save(T entity) {
         Preconditions.checkArgument(entity != null);

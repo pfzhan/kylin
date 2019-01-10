@@ -1,0 +1,16 @@
+{
+  "uuid" : "86a84fe3-6cfe-4ec7-8a63-44fa52859aad",
+  "last_modified" : 0,
+  "version" : "3.0.0.0",
+  "mvcc" : 0,
+  "table_name" : "DEFAULT.TEST_MEASURE",
+  "last_build_job_id" : null,
+  "frequency" : 0,
+  "columns_stats" : [ ],
+  "sample_rows" : [ ],
+  "last_modified_time" : 0,
+  "total_rows" : 0,
+  "mapper_rows" : [ ],
+  "data_source_properties" : { },
+  "loading_range" : [ ]
+}

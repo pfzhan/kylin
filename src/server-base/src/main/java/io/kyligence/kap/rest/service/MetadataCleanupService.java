@@ -23,6 +23,9 @@
  */
 package io.kyligence.kap.rest.service;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
+import io.kyligence.kap.rest.storage.ModelCleaner;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -32,7 +35,6 @@ import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.storage.DataflowCleaner;
 import io.kyligence.kap.rest.storage.FavoriteQueryCleaner;
@@ -61,17 +63,26 @@ public class MetadataCleanupService {
 
     public void cleanupProject(ProjectInstance project) throws Exception {
         UnitOfWork.doInTransactionWithRetry(() -> {
-            val modelManager = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName());
+            val dfManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project.getName());
             val favoriteQueryCleaner = new FavoriteQueryCleaner(project);
             val dataflowCleaner = new DataflowCleaner();
+            val brokenModelCleaner = new ModelCleaner(true);
             val cleaners = Lists.newArrayList(favoriteQueryCleaner, dataflowCleaner);
-            for (NDataModel model : modelManager.getDataModels()) {
+            for (NDataModel model : dfManager.listUnderliningDataModels()) {
                 for (GarbageCleaner cleaner : cleaners) {
                     cleaner.collect(model);
                 }
             }
             for (GarbageCleaner cleaner : cleaners) {
                 cleaner.cleanup();
+            }
+            if (MaintainModelType.MANUAL_MAINTAIN.equals(project.getMaintainModelType())) {
+                return 0;
+            }
+            // clean checkBrokenWithRelatedInfo model only when project's maintainModelType is AUTO_MAINTAIN
+            for (NDataModel model : dfManager.listUnderliningDataModels(true)) {
+                brokenModelCleaner.collect(model);
+                brokenModelCleaner.cleanup();
             }
             return 0;
         }, project.getName());

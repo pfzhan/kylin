@@ -1,0 +1,16 @@
+{
+  "uuid" : "b3602b0a-4e4f-4091-9351-724411654187",
+  "last_modified" : 0,
+  "version" : "3.0.0.0",
+  "mvcc" : 0,
+  "table_name" : "DEFAULT.STREAMING_TABLE",
+  "last_build_job_id" : null,
+  "frequency" : 0,
+  "columns_stats" : [ ],
+  "sample_rows" : [ ],
+  "last_modified_time" : 0,
+  "total_rows" : 0,
+  "mapper_rows" : [ ],
+  "data_source_properties" : { },
+  "loading_range" : [ ]
+}

@@ -25,13 +25,13 @@ package io.kyligence.kap.event.handle;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
 
-import io.kyligence.kap.cube.model.NDataflowManager;
 import io.kyligence.kap.event.event.ErrorEvent;
 
 import io.kyligence.kap.event.manager.EventDao;
 import io.kyligence.kap.event.manager.EventManager;
 import io.kyligence.kap.event.manager.EventOrchestrator;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import lombok.val;
 import lombok.var;
 import org.apache.kylin.common.KylinConfig;

@@ -136,6 +136,8 @@ public class NAutoTestBase extends NLocalWithSparkSessionTest {
                 // 4. compare layout propose result and query cube result
                 RecAndQueryCompareUtil.computeCompareRank(kylinConfig, getProject(), compareMap);
             });
+        } finally {
+            FileUtils.deleteDirectory(new File("../kap-it/metastore_db"));
         }
 
         // print details

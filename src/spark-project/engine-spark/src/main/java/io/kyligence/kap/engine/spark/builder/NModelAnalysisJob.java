@@ -27,9 +27,9 @@ package io.kyligence.kap.engine.spark.builder;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.kylin.common.util.OptionsHelper;
 
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.engine.spark.stats.analyzer.ModelAnalyzer;
 import io.kyligence.kap.metadata.model.NDataModel;
 import lombok.val;

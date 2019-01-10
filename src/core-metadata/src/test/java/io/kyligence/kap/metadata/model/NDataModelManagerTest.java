@@ -28,11 +28,9 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
-import lombok.val;
 import org.apache.kylin.common.util.JsonUtil;
 import org.apache.kylin.metadata.model.FunctionDesc;
 import org.apache.kylin.metadata.model.ParameterDesc;
-import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -43,7 +41,9 @@ import org.junit.rules.ExpectedException;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel.Measure;
+import lombok.val;
 
 public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
 
@@ -60,7 +60,6 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     public void setUp() throws Exception {
         this.createTestMetadata();
         mgrDefault = NDataModelManager.getInstance(getTestConfig(), projectDefault);
-
     }
 
     @After
@@ -73,17 +72,8 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         NDataModelManager mgrSsb = NDataModelManager.getInstance(getTestConfig(), "ssb");
         Assert.assertNotEquals(mgrDefault, mgrSsb);
 
-        NDataModelManager mgrInvalid = NDataModelManager.getInstance(getTestConfig(), "not_exist_prj");
-        Assert.assertEquals(0, mgrInvalid.getDataModels().size());
-    }
-
-    @Test
-    public void testIsTableInAnyModel() {
-        NTableMetadataManager tableMgr = NTableMetadataManager.getInstance(getTestConfig(), projectDefault);
-        TableDesc table1 = tableMgr.getTableDesc("DEFAULT.TEST_KYLIN_FACT");
-        TableDesc table2 = tableMgr.getTableDesc("DEFAULT.STREAMING_TABLE");
-        Assert.assertTrue(mgrDefault.isTableInAnyModel(table1));
-        Assert.assertFalse(mgrDefault.isTableInAnyModel(table2));
+        NDataflowManager dataflowManager = NDataflowManager.getInstance(getTestConfig(), "not_exist_prj");
+        Assert.assertEquals(0, dataflowManager.listUnderliningDataModels().size());
     }
 
     @Test
@@ -93,26 +83,10 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
-    public void testListDataModels() {
-        Assert.assertEquals(6, mgrDefault.getDataModels().size());
-    }
-
-    @Test
     public void testGetDataModelDesc() {
         NDataModel dataModel = mgrDefault.getDataModelDesc(modelBasic);
         Assert.assertEquals(modelBasic, dataModel.getUuid());
         Assert.assertEquals(projectDefault, dataModel.getProject());
-    }
-
-    @Test
-    public void testGetModels() {
-        List<NDataModel> models = mgrDefault.getDataModels();
-        Assert.assertEquals(6, models.size());
-
-        NDataModelManager mgrSsb;
-        mgrSsb = NDataModelManager.getInstance(getTestConfig(), "ssb");
-        List<NDataModel> models2 = mgrSsb.getDataModels();
-        Assert.assertEquals(0, models2.size());
     }
 
     @Test
@@ -172,7 +146,6 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void createDataModelDesc_simpleModel_succeed() throws IOException {
-        int modelNum = mgrDefault.getDataModels().size();
         NDataModel nDataModel = JsonUtil.deepCopy((NDataModel) mgrDefault.getDataModelDesc("89af4ee2-2cdb-4b07-b39e-4c29856309aa"),
                 NDataModel.class);
 
@@ -182,7 +155,9 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         nDataModel.setMvcc(-1);
         mgrDefault.createDataModelDesc(nDataModel, "root");
 
-        Assert.assertEquals(modelNum + 1, mgrDefault.getDataModels().size());
+        NDataModel model = mgrDefault.getDataModelDesc(nDataModel.getId());
+        Assert.assertNotNull(model);
+        Assert.assertEquals(nDataModel, model);
     }
 
     @Test
@@ -235,5 +210,17 @@ public class NDataModelManagerTest extends NLocalFileMetadataTestCase {
         thrown.expect(IllegalStateException.class);
         thrown.expectMessage("Only one incremental loading table can be set in model!");
         mgrDefault.updateDataModelDesc(nDataModel);
+    }
+
+    @Test
+    public void getModel_WithSelfBroken() {
+        val project = "broken_test";
+        val modelId = "3f8941de-d01c-42b8-91b5-44646390864b";
+        val modelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        val model = modelManager.getDataModelDesc(modelId);
+        Assert.assertEquals(true, model.isBroken());
+
+        val model2 = modelManager.getDataModelDescByAlias("AUTO_MODEL_TEST_COUNTRY_1");
+        Assert.assertNull(model2);
     }
 }

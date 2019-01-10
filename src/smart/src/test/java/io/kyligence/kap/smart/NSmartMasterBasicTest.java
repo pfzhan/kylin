@@ -27,8 +27,8 @@ package io.kyligence.kap.smart;
 import java.io.IOException;
 import java.util.List;
 
-import io.kyligence.kap.cube.model.IndexPlan;
-import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableDesc;
 import org.junit.Assert;
@@ -36,8 +36,8 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 
-import io.kyligence.kap.cube.model.IndexEntity;
-import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -161,14 +161,14 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // save
         {
-            Assert.assertEquals(0, dataModelManager.getDataModels().size());
+            Assert.assertEquals(0, dataflowManager.listUnderliningDataModels().size());
             Assert.assertEquals(0, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(0, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveModel();
             smartMaster.saveIndexPlan();
 
-            Assert.assertEquals(1, dataModelManager.getDataModels().size());
+            Assert.assertEquals(1, dataflowManager.listUnderliningDataModels().size());
             Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
         }
@@ -252,14 +252,14 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // save
         {
-            Assert.assertEquals(1, dataModelManager.getDataModels().size());
+            Assert.assertEquals(1, dataflowManager.listUnderliningDataModels().size());
             Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveModel();
             smartMaster.saveIndexPlan();
 
-            Assert.assertEquals(1, dataModelManager.getDataModels().size());
+            Assert.assertEquals(1, dataflowManager.listUnderliningDataModels().size());
             Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
         }
@@ -328,14 +328,14 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // save
         {
-            Assert.assertEquals(1, dataModelManager.getDataModels().size());
+            Assert.assertEquals(1, dataflowManager.listUnderliningDataModels().size());
             Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveIndexPlan();
             smartMaster.saveModel();
 
-            Assert.assertEquals(1, dataModelManager.getDataModels().size());
+            Assert.assertEquals(1, dataflowManager.listUnderliningDataModels().size());
             Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
         }
@@ -405,14 +405,14 @@ public class NSmartMasterBasicTest extends NTestBase {
 
         // save
         {
-            Assert.assertEquals(1, dataModelManager.getDataModels().size());
+            Assert.assertEquals(1, dataflowManager.listUnderliningDataModels().size());
             Assert.assertEquals(1, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(1, dataflowManager.listAllDataflows().size());
 
             smartMaster.saveModel();
             smartMaster.saveIndexPlan();
 
-            Assert.assertEquals(3, dataModelManager.getDataModels().size());
+            Assert.assertEquals(3, dataflowManager.listUnderliningDataModels().size());
             Assert.assertEquals(3, indexPlanManager.listAllIndexPlans().size());
             Assert.assertEquals(3, dataflowManager.listAllDataflows().size());
         }

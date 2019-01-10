@@ -52,11 +52,6 @@
 
         <dependency>
             <groupId>io.kyligence.ke</groupId>
-            <artifactId>kap-core-cube</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.kyligence.ke</groupId>
             <artifactId>kap-core-metrics</artifactId>
             <version>${project.version}</version>
         </dependency>

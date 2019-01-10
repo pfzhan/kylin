@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.rest.response;
 
-import io.kyligence.kap.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
 
 
 import com.fasterxml.jackson.annotation.JsonProperty;

@@ -1,0 +1,68 @@
+{
+  "uuid" : "41c20031-0e1c-4605-beaf-0a633dd0821b",
+  "last_modified" : 0,
+  "version" : "3.0.0.0",
+  "mvcc" : 0,
+  "name" : "INDEX_BUILD",
+  "tasks" : [ {
+    "uuid" : "41c20031-0e1c-4605-beaf-0a633dd0821b-00",
+    "last_modified" : 0,
+    "version" : "3.0.0.0",
+    "mvcc" : -1,
+    "name" : "Data Profiling",
+    "tasks" : null,
+    "type" : "io.kyligence.kap.engine.spark.job.NSparkAnalysisStep",
+    "params" : {
+      "distMetaUrl" : "../examples/test_metadata@hdfs,path=file:///Users/feng.zhu/JavaDev/code/dev/KE/src/examples/test_metadata/working-dir/..-examples-test_metadata/job_tmp/41c20031-0e1c-4605-beaf-0a633dd0821b-00/meta",
+      "jobId" : "41c20031-0e1c-4605-beaf-0a633dd0821b",
+      "outputMetaUrl" : "../examples/test_metadata@hdfs,path=file:///Users/feng.zhu/JavaDev/code/dev/KE/src/examples/test_metadata/working-dir/..-examples-test_metadata/job_tmp/41c20031-0e1c-4605-beaf-0a633dd0821b-00/meta_output",
+      "dataflowId" : "f1bb4bbd-a638-442b-a276-e301fde0d7f6",
+      "project" : "broken_test",
+      "className" : "io.kyligence.kap.engine.spark.builder.NModelAnalysisJob",
+      "layoutIds" : "1,20000000001",
+      "segmentIds" : "33579303-de88-4961-b214-106388243c53,e42ff69e-9fe2-483d-a760-736498fc1133,0dee5a53-84e0-479b-8804-ead352b50d04",
+      "parentId" : "41c20031-0e1c-4605-beaf-0a633dd0821b"
+    },
+    "segments" : [ ],
+    "job_type" : null,
+    "data_range_start" : 0,
+    "data_range_end" : 0,
+    "target_model" : "f1bb4bbd-a638-442b-a276-e301fde0d7f6",
+    "target_segments" : [ ]
+  }, {
+    "uuid" : "41c20031-0e1c-4605-beaf-0a633dd0821b-01",
+    "last_modified" : 0,
+    "version" : "3.0.0.0",
+    "mvcc" : -1,
+    "name" : "Load Data To Index",
+    "tasks" : null,
+    "type" : "io.kyligence.kap.engine.spark.job.NSparkCubingStep",
+    "params" : {
+      "distMetaUrl" : "../examples/test_metadata@hdfs,path=file:///Users/feng.zhu/JavaDev/code/dev/KE/src/examples/test_metadata/working-dir/..-examples-test_metadata/job_tmp/41c20031-0e1c-4605-beaf-0a633dd0821b-01/meta",
+      "jobId" : "41c20031-0e1c-4605-beaf-0a633dd0821b",
+      "outputMetaUrl" : "../examples/test_metadata@hdfs,path=file:///Users/feng.zhu/JavaDev/code/dev/KE/src/examples/test_metadata/working-dir/..-examples-test_metadata/job_tmp/41c20031-0e1c-4605-beaf-0a633dd0821b-01/meta_output",
+      "dataflowId" : "f1bb4bbd-a638-442b-a276-e301fde0d7f6",
+      "project" : "broken_test",
+      "className" : "io.kyligence.kap.engine.spark.job.DFBuildJob",
+      "layoutIds" : "1,20000000001",
+      "segmentIds" : "33579303-de88-4961-b214-106388243c53,e42ff69e-9fe2-483d-a760-736498fc1133,0dee5a53-84e0-479b-8804-ead352b50d04",
+      "parentId" : "41c20031-0e1c-4605-beaf-0a633dd0821b"
+    },
+    "segments" : [ ],
+    "job_type" : null,
+    "data_range_start" : 0,
+    "data_range_end" : 0,
+    "target_model" : "f1bb4bbd-a638-442b-a276-e301fde0d7f6",
+    "target_segments" : [ ]
+  } ],
+  "type" : "io.kyligence.kap.engine.spark.job.NSparkCubingJob",
+  "params" : {
+    "submitter" : "ADMIN"
+  },
+  "segments" : [ ],
+  "job_type" : "INDEX_BUILD",
+  "data_range_start" : 1325376000000,
+  "data_range_end" : 1326153600000,
+  "target_model" : "f1bb4bbd-a638-442b-a276-e301fde0d7f6",
+  "target_segments" : [ "33579303-de88-4961-b214-106388243c53", "e42ff69e-9fe2-483d-a760-736498fc1133", "0dee5a53-84e0-479b-8804-ead352b50d04" ]
+}

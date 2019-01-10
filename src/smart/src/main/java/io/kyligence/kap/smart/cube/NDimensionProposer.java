@@ -26,7 +26,7 @@ package io.kyligence.kap.smart.cube;
 
 import java.util.Map;
 
-import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.apache.kylin.dimension.DateDimEnc;
 import org.apache.kylin.dimension.DictionaryDimEnc;
 import org.apache.kylin.dimension.FixedLenDimEnc;
@@ -38,7 +38,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.model.NEncodingDesc;
+import io.kyligence.kap.metadata.cube.model.NEncodingDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.smart.NSmartContext;
 import io.kyligence.kap.smart.common.SmartConfig;

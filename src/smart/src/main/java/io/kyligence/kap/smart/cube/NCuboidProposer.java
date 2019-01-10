@@ -28,8 +28,8 @@ import java.util.Map;
 
 import com.google.common.collect.Lists;
 
-import io.kyligence.kap.cube.model.IndexPlan;
-import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.smart.NSmartContext;
 
 class NCuboidProposer extends NAbstractCubeProposer {

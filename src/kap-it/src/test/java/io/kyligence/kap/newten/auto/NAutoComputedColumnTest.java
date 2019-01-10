@@ -24,7 +24,7 @@
 
 package io.kyligence.kap.newten.auto;
 
-import io.kyligence.kap.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import org.junit.Assert;
 import org.junit.Test;
 

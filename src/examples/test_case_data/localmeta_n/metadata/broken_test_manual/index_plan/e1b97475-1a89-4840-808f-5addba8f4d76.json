@@ -1,0 +1,35 @@
+{
+  "uuid" : "e1b97475-1a89-4840-808f-5addba8f4d76",
+  "last_modified" : 1546997675587,
+  "version" : "3.0.0.0",
+  "mvcc" : 1,
+  "description" : null,
+  "index_plan_override_encodings" : { },
+  "rule_based_index" : {
+    "dimensions" : [ 2 ],
+    "measures" : [ 100000, 100001 ],
+    "aggregation_groups" : [ {
+      "includes" : [ 2 ],
+      "select_rule" : {
+        "hierarchy_dims" : [ ],
+        "mandatory_dims" : [ ],
+        "joint_dims" : [ ]
+      }
+    } ],
+    "index_black_list" : [ ],
+    "parent_forward" : 3,
+    "layout_id_mapping" : [ 1 ],
+    "index_start_id" : 0
+  },
+  "indexes" : [ ],
+  "override_properties" : { },
+  "segment_range_start" : 0,
+  "segment_range_end" : 9223372036854775807,
+  "auto_merge_time_ranges" : null,
+  "retention_range" : 0,
+  "notify_list" : [ ],
+  "status_need_notify" : [ ],
+  "engine_type" : 80,
+  "next_aggregation_index_id" : 10000,
+  "next_table_index_id" : 20000000000
+}

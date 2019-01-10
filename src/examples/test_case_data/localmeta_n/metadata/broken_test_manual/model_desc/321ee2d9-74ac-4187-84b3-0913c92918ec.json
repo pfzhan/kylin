@@ -1,0 +1,77 @@
+{
+  "uuid" : "321ee2d9-74ac-4187-84b3-0913c92918ec",
+  "last_modified" : 1546997746512,
+  "version" : "3.0.0.0",
+  "mvcc" : 1,
+  "alias" : "test_2",
+  "owner" : "ADMIN",
+  "config_last_modifier" : null,
+  "config_last_modified" : 0,
+  "is_draft" : false,
+  "description" : "",
+  "fact_table" : "DEFAULT.TEST_ACCOUNT",
+  "fact_table_alias" : null,
+  "management_type" : "MODEL_BASED",
+  "join_tables" : [ ],
+  "filter_condition" : "",
+  "partition_desc" : null,
+  "capacity" : "MEDIUM",
+  "segment_config" : {
+    "auto_merge_enabled" : null,
+    "auto_merge_time_ranges" : null,
+    "volatile_range" : null,
+    "retention_range" : null
+  },
+  "data_check_desc" : null,
+  "semantic_version" : 0,
+  "all_named_columns" : [ {
+    "id" : 0,
+    "name" : "ACCOUNT_ID",
+    "column" : "TEST_ACCOUNT.ACCOUNT_ID"
+  }, {
+    "id" : 1,
+    "name" : "TEST_ACCOUNT_ACCOUNT_BUYER_LEVEL",
+    "column" : "TEST_ACCOUNT.ACCOUNT_BUYER_LEVEL",
+    "status" : "DIMENSION"
+  }, {
+    "id" : 2,
+    "name" : "TEST_ACCOUNT_ACCOUNT_SELLER_LEVEL",
+    "column" : "TEST_ACCOUNT.ACCOUNT_SELLER_LEVEL",
+    "status" : "DIMENSION"
+  }, {
+    "id" : 3,
+    "name" : "TEST_ACCOUNT_ACCOUNT_COUNTRY",
+    "column" : "TEST_ACCOUNT.ACCOUNT_COUNTRY",
+    "status" : "DIMENSION"
+  }, {
+    "id" : 4,
+    "name" : "ACCOUNT_CONTACT",
+    "column" : "TEST_ACCOUNT.ACCOUNT_CONTACT"
+  } ],
+  "all_measures" : [ {
+    "name" : "COUNT_ALL",
+    "function" : {
+      "expression" : "COUNT",
+      "parameter" : {
+        "type" : "constant",
+        "value" : "1"
+      },
+      "returntype" : "bigint"
+    },
+    "id" : 100000
+  } ],
+  "column_correlations" : [ ],
+  "multilevel_partition_cols" : [ ],
+  "computed_columns" : [ ],
+  "canvas" : {
+    "coordinate" : {
+      "TEST_ACCOUNT" : {
+        "x" : 581.55,
+        "y" : 135.85,
+        "width" : 220.0,
+        "height" : 195.0
+      }
+    },
+    "zoom" : 9.0
+  }
+}

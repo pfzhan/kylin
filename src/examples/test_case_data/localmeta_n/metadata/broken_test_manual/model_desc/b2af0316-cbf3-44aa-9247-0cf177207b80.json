@@ -1,0 +1,72 @@
+{
+  "uuid" : "b2af0316-cbf3-44aa-9247-0cf177207b80",
+  "last_modified" : 0,
+  "version" : "3.0.0.0",
+  "mvcc" : 0,
+  "alias" : "test_3",
+  "owner" : "ADMIN",
+  "config_last_modifier" : null,
+  "config_last_modified" : 0,
+  "is_draft" : false,
+  "description" : "",
+  "fact_table" : "DEFAULT.TEST_COUNTRY",
+  "fact_table_alias" : null,
+  "management_type" : "MODEL_BASED",
+  "join_tables" : [ ],
+  "filter_condition" : "",
+  "partition_desc" : null,
+  "capacity" : "MEDIUM",
+  "segment_config" : {
+    "auto_merge_enabled" : null,
+    "auto_merge_time_ranges" : null,
+    "volatile_range" : null,
+    "retention_range" : null
+  },
+  "data_check_desc" : null,
+  "semantic_version" : 0,
+  "all_named_columns" : [ {
+    "id" : 0,
+    "name" : "TEST_COUNTRY_COUNTRY",
+    "column" : "TEST_COUNTRY.COUNTRY",
+    "status" : "DIMENSION"
+  }, {
+    "id" : 1,
+    "name" : "LATITUDE",
+    "column" : "TEST_COUNTRY.LATITUDE"
+  }, {
+    "id" : 2,
+    "name" : "LONGITUDE",
+    "column" : "TEST_COUNTRY.LONGITUDE"
+  }, {
+    "id" : 3,
+    "name" : "TEST_COUNTRY_NAME",
+    "column" : "TEST_COUNTRY.NAME",
+    "status" : "DIMENSION"
+  } ],
+  "all_measures" : [ {
+    "name" : "COUNT_ALL",
+    "function" : {
+      "expression" : "COUNT",
+      "parameter" : {
+        "type" : "constant",
+        "value" : "1"
+      },
+      "returntype" : "bigint"
+    },
+    "id" : 100000
+  } ],
+  "column_correlations" : [ ],
+  "multilevel_partition_cols" : [ ],
+  "computed_columns" : [ ],
+  "canvas" : {
+    "coordinate" : {
+      "TEST_COUNTRY" : {
+        "x" : 434.55,
+        "y" : 119.85000000000001,
+        "width" : 220.0,
+        "height" : 195.0
+      }
+    },
+    "zoom" : 9.0
+  }
+}

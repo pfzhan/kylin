@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlIdentifier;
 import org.apache.calcite.sql.SqlNode;
@@ -45,7 +46,6 @@ import com.google.common.base.Preconditions;
 
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelManager;
 
 public class ComputedColumnUtil {
     public static class ExprIdentifierFinder extends SqlBasicVisitor<SqlNode> {
@@ -146,7 +146,7 @@ public class ComputedColumnUtil {
     }
 
     private static NDataModel getModel(String project, String ccName) {
-        List<NDataModel> models = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), project).getDataModels();
+        List<NDataModel> models = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project).listUnderliningDataModels();
         for (NDataModel modelDesc : models) {
             NDataModel model = modelDesc;
             Set<String> computedColumnNames = model.getComputedColumnNames();

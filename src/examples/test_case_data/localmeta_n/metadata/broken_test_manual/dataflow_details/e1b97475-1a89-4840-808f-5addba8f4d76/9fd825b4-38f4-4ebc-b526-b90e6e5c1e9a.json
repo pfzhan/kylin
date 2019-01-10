@@ -1,0 +1,17 @@
+{
+  "uuid" : "9fd825b4-38f4-4ebc-b526-b90e6e5c1e9a",
+  "last_modified" : 1546997675587,
+  "version" : "3.0.0.0",
+  "mvcc" : 1,
+  "dataflow" : "e1b97475-1a89-4840-808f-5addba8f4d76",
+  "layout_instances" : [ {
+    "layout_id" : 1,
+    "build_job_id" : "b2b8fad7-f5a0-4a91-b32d-813656efaadd",
+    "rows" : 30,
+    "byte_size" : 1354,
+    "file_count" : 1,
+    "source_rows" : 400,
+    "source_byte_size" : 0,
+    "create_time" : 1546997705360
+  } ]
+}

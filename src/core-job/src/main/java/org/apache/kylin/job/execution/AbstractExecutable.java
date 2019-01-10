@@ -80,12 +80,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
-import io.kyligence.kap.cube.model.NBatchConstants;
-import io.kyligence.kap.cube.model.NDataSegment;
-import io.kyligence.kap.cube.model.NDataflow;
-import io.kyligence.kap.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflow;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ManagementType;
-import io.kyligence.kap.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import lombok.val;
@@ -148,7 +148,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
 
     public String getTargetModelAlias() {
         NDataModel dataModelDesc = NDataModelManager.getInstance(config, getProject()).getDataModelDesc(targetModel);
-        return dataModelDesc == null ? null : dataModelDesc.getAlias();
+        return (dataModelDesc == null || dataModelDesc.isBroken()) ? null : dataModelDesc.getAlias();
     }
 
     private boolean checkTargetSegmentExists(String segmentId) {
@@ -187,7 +187,7 @@ public abstract class AbstractExecutable implements Executable, Idempotent {
         if (needSuicide()) {
             Map<String, String> info = Maps.newHashMap();
             info.put(END_TIME, Long.toString(System.currentTimeMillis()));
-            updateJobOutput(project, getId(), ExecutableState.SUICIDAL, null,
+            updateJobOutput(project, getId(), ExecutableState.SUICIDAL, info,
                     "suicide as its subject model/segment no longer exists");
             throw new JobSuicideException();
         }

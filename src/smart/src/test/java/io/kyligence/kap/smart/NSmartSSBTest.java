@@ -32,7 +32,8 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -41,9 +42,8 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
-import io.kyligence.kap.cube.model.NIndexPlanManager;
-import io.kyligence.kap.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.var;
@@ -63,7 +63,6 @@ public class NSmartSSBTest extends NLocalFileMetadataTestCase {
     @Test
     public void testSSB() throws IOException {
         final String project = "ssb";
-        NDataModelManager dataModelManager = NDataModelManager.getInstance(getTestConfig(), project);
         NProjectManager projectManager = NProjectManager.getInstance(getTestConfig());
 
         final String sqlsPath = "./src/test/resources/nsmart/ssb/sql";
@@ -80,11 +79,11 @@ public class NSmartSSBTest extends NLocalFileMetadataTestCase {
 
         getTestConfig().clearManagers();
 
-        dataModelManager = NDataModelManager.getInstance(getTestConfig(), project);
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), project);
         projectManager = NProjectManager.getInstance(getTestConfig());
 
         Assert.assertFalse(projectManager.listAllRealizations(project).isEmpty());
-        Assert.assertFalse(dataModelManager.getDataModels().isEmpty());
+        Assert.assertFalse(dataflowManager.listUnderliningDataModels().isEmpty());
     }
 
     @Test

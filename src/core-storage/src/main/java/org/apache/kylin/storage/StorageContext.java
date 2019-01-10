@@ -58,7 +58,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Range;
 
-import io.kyligence.kap.cube.cuboid.NLayoutCandidate;
+import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate;
 import lombok.Getter;
 import lombok.Setter;
 

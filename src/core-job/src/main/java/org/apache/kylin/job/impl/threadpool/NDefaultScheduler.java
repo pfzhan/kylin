@@ -56,8 +56,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import io.kyligence.kap.cube.storage.ProjectStorageInfoCollector;
-import io.kyligence.kap.cube.storage.StorageInfoEnum;
+import io.kyligence.kap.metadata.cube.storage.ProjectStorageInfoCollector;
+import io.kyligence.kap.metadata.cube.storage.StorageInfoEnum;
 import lombok.val;
 
 /**

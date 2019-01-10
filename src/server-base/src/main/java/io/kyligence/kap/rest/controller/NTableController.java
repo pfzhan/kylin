@@ -118,12 +118,13 @@ public class NTableController extends NBasicController {
 
         checkProjectName(project);
         String tableName = database + "." + table;
+        List<String> models = null;
         if (modelService.isModelsUsingTable(tableName, project)) {
-            List<String> models = modelService.getModelsUsingTable(tableName, project).stream()
-                    .map(NDataModel::getAlias).collect(Collectors.toList());
-            throw new BadRequestException(String.format(msg.getTABLE_IN_USE_BY_MODEL(), models));
+            models = modelService.getModelsUsingTable(tableName, project).stream()
+                    .map(NDataModel::getId).collect(Collectors.toList());
         }
         tableService.unloadTable(project, tableName);
+        modelService.reloadModels(models, project);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 

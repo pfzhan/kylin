@@ -46,7 +46,7 @@ import org.apache.spark.sql.types.StructType;
 
 import com.google.common.base.Preconditions;
 
-import io.kyligence.kap.cube.model.NBatchConstants;
+import io.kyligence.kap.metadata.cube.model.NBatchConstants;
 
 public class NSizeEstimator {
     public static long estimate(Dataset<Row> ds, float ratio) {

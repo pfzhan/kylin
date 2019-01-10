@@ -560,7 +560,7 @@ public class KapConfig {
      * Newten
      */
     public String getCuboidSpanningTree() {
-        return config.getOptional("kap.cube.cuboid-spanning-tree", "io.kyligence.kap.cube.cuboid.NForestSpanningTree");
+        return config.getOptional("kap.cube.cuboid-spanning-tree", "io.kyligence.kap.metadata.cube.cuboid.NForestSpanningTree");
     }
 
     public float getSampleDatasetSizeRatio() {
