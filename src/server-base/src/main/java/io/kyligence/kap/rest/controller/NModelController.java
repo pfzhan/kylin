@@ -53,6 +53,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.google.common.base.Preconditions;
 
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.rest.request.BuildSegmentsRequest;
 import io.kyligence.kap.rest.request.ComputedColumnCheckRequest;
@@ -370,8 +371,9 @@ public class NModelController extends NBasicController {
         NDataModel modelDesc = modelService.convertToDataModel(modelRequest.getModelDesc());
         modelDesc.setSeekingCCAdvice(modelRequest.isSeekingExprAdvice());
         modelService.primaryCheck(modelDesc);
-        modelService.checkComputedColumn(modelDesc, modelRequest.getProject(), modelRequest.getCcInCheck());
-        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
+        ComputedColumnDesc checkedCC = modelService.checkComputedColumn(modelDesc, modelRequest.getProject(),
+                modelRequest.getCcInCheck());
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, checkedCC, "");
     }
 
     @RequestMapping(value = "/computed_columns/usage", method = RequestMethod.GET, produces = {

@@ -36,16 +36,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import com.google.common.base.Preconditions;
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
-import io.kyligence.kap.rest.storage.ModelCleaner;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.rest.request.ModelConfigRequest;
-import io.kyligence.kap.rest.response.ModelConfigResponse;
-import io.kyligence.kap.rest.response.SimplifiedMeasure;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
@@ -72,10 +62,6 @@ import org.apache.kylin.rest.msg.MsgPicker;
 import org.apache.kylin.rest.service.BasicService;
 import org.apache.kylin.source.SourceFactory;
 import org.apache.kylin.source.adhocquery.PushDownConverterKeyWords;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparderEnv;
-import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,46 +71,54 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.event.manager.EventManager;
+import io.kyligence.kap.event.model.AddSegmentEvent;
+import io.kyligence.kap.event.model.PostAddSegmentEvent;
+import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
+import io.kyligence.kap.event.model.RefreshSegmentEvent;
 import io.kyligence.kap.metadata.cube.cuboid.NForestSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTree;
 import io.kyligence.kap.metadata.cube.cuboid.NSpanningTreeFactory;
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
 import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflow;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
-import io.kyligence.kap.event.manager.EventManager;
-import io.kyligence.kap.event.model.AddSegmentEvent;
-import io.kyligence.kap.event.model.PostAddSegmentEvent;
-import io.kyligence.kap.event.model.PostMergeOrRefreshSegmentEvent;
-import io.kyligence.kap.event.model.RefreshSegmentEvent;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.DataCheckDesc;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.ManagementType;
 import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NDataModelFlatTableDesc;
 import io.kyligence.kap.metadata.model.NDataModelManager;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.query.QueryTimesResponse;
 import io.kyligence.kap.query.util.KapQueryUtil;
+import io.kyligence.kap.rest.request.ModelConfigRequest;
 import io.kyligence.kap.rest.request.ModelRequest;
 import io.kyligence.kap.rest.response.AffectedModelsResponse;
 import io.kyligence.kap.rest.response.ComputedColumnUsageResponse;
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.response.IndexEntityResponse;
+import io.kyligence.kap.rest.response.ModelConfigResponse;
 import io.kyligence.kap.rest.response.ModelInfoResponse;
 import io.kyligence.kap.rest.response.NDataModelResponse;
 import io.kyligence.kap.rest.response.NDataSegmentResponse;
 import io.kyligence.kap.rest.response.NSpanningTreeResponse;
 import io.kyligence.kap.rest.response.RefreshAffectedSegmentsResponse;
 import io.kyligence.kap.rest.response.RelatedModelResponse;
+import io.kyligence.kap.rest.response.SimplifiedMeasure;
+import io.kyligence.kap.rest.storage.ModelCleaner;
 import io.kyligence.kap.rest.transaction.Transaction;
+import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 import lombok.Setter;
 import lombok.val;
 import lombok.var;
@@ -916,7 +910,7 @@ public class ModelService extends BasicService {
      * <p>
      * ccInCheck is optional, if provided, other cc in the model will skip hive check
      */
-    public void checkComputedColumn(final NDataModel dataModelDesc, String project, String ccInCheck) {
+    public ComputedColumnDesc checkComputedColumn(final NDataModel dataModelDesc, String project, String ccInCheck) {
 
         dataModelDesc.setDraft(false);
         if (dataModelDesc.getUuid() == null)
@@ -938,22 +932,17 @@ public class ModelService extends BasicService {
 
             //replace computed columns with basic columns
             String ccExpression = KapQueryUtil.massageComputedColumn(dataModelDesc, project, cc);
-            cc.simpleParserCheck(ccExpression, dataModelDesc.getAliasMap().keySet());
+            ComputedColumnDesc.simpleParserCheck(ccExpression, dataModelDesc.getAliasMap().keySet());
+            cc.setInnerExpression(ccExpression);
 
             //check by data source, this could be slow
             long ts = System.currentTimeMillis();
-            try {
-                NDataModelFlatTableDesc flatTableDesc = new NDataModelFlatTableDesc(dataModelDesc, true);
-                SparkSession ss = SparderEnv.getSparkSession();
-                Dataset<Row> ds = NJoinedFlatTable.generateDataset(flatTableDesc, ss);
-                ds.selectExpr(NSparkCubingUtil.convertFromDot(ccExpression));
-            } catch (Exception e) {
-                throw new IllegalArgumentException("The expression " + cc.getExpression() + " failed syntax check", e);
-            }
-
+            ComputedColumnEvalUtil.evaluateExprAndTypes(dataModelDesc, Lists.newArrayList(cc));
             logger.debug("Spent {} ms to visit data source to validate computed column expression: {}",
                     (System.currentTimeMillis() - ts), cc.getExpression());
+            return cc;
         }
+        throw new IllegalStateException("No computed column match: " + ccInCheck);
     }
 
     static void checkCCName(String name) {

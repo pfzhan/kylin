@@ -32,31 +32,22 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import org.apache.calcite.sql.type.SqlTypeName;
-import org.apache.commons.lang.StringUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.TableRef;
 import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.apache.spark.sql.SparderEnv;
-import org.apache.spark.sql.SparkSession;
-import org.apache.spark.sql.types.DecimalType;
-import org.apache.spark.sql.util.SparderTypeUtil;
 
 import com.google.common.collect.Sets;
 
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.job.NSparkCubingUtil;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.BadModelException;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.query.util.KapQueryUtil;
 import io.kyligence.kap.smart.NSmartContext.NModelContext;
+import io.kyligence.kap.smart.util.ComputedColumnEvalUtil;
 
 public class NComputedColumnProposer extends NAbstractModelProposer {
 
@@ -109,28 +100,7 @@ public class NComputedColumnProposer extends NAbstractModelProposer {
             }
         }
 
-        // evaluate CC expression types
-        List<String> expressions = validCCs.stream().map(ComputedColumnDesc::getInnerExpression)
-                .collect(Collectors.toList());
-        String cols = StringUtils.join(expressions, ",");
-        try {
-            SparkSession ss = SparderEnv.getSparkSession();
-            Dataset<Row> ds = NJoinedFlatTable.generateDataset(nDataModel, ss)
-                    .selectExpr(expressions.stream().map(NSparkCubingUtil::convertFromDot).toArray(String[]::new));
-            for (int i = 0; i < validCCs.size(); i++) {
-                SqlTypeName typeName = SparderTypeUtil.convertSparkTypeToSqlType(ds.schema().fields()[i].dataType());
-                String dataType = typeName.getName();
-                if (dataType.equalsIgnoreCase("DECIMAL")) {
-                    DecimalType decimalType = (DecimalType) ds.schema().fields()[i].dataType();
-                    dataType += "(" + decimalType.precision() + "," + decimalType.scale() + ")";
-                }
-                validCCs.get(i).setDatatype(dataType);
-            }
-        } catch (Exception e) {
-            // Fail directly if error in validating SQL
-            throw new IllegalStateException(
-                    "Auto model failed to evaluate CC " + cols + ", suggested CC expression not valid.", e);
-        }
+        ComputedColumnEvalUtil.evaluateExprAndTypes(nDataModel, validCCs);
     }
 
     private Set<String> collectComputedColumnSuggestion(NModelContext modelContext, NDataModel nDataModel) {
