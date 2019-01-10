@@ -80,6 +80,7 @@ import org.apache.kylin.metadata.realization.RealizationStatusEnum;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.rest.constant.Constant;
 import org.apache.kylin.rest.exception.InternalErrorException;
+import org.apache.kylin.rest.model.Query;
 import org.apache.kylin.rest.request.SQLRequest;
 import org.apache.kylin.rest.response.SQLResponse;
 import org.apache.kylin.rest.util.AclEvaluate;
@@ -564,6 +565,27 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
         SQLResponse response = queryService.doQueryWithCache(request, false);
         Assert.assertEquals("CONSTANTS", response.getAnsweredBy().get(0));
         Assert.assertEquals("CONSTANTS", response.getEngineType());
+    }
+
+    @Test
+    public void testSaveQuery() throws IOException {
+        Query query = new Query("test", "default", "test_sql", "test_description");
+        queryService.saveQuery("admin", "default", query);
+        QueryService.QueryRecord queryRecord = queryService.getSavedQueries("admin", "default");
+        Assert.assertEquals(1, queryRecord.getQueries().size());
+        Assert.assertEquals("test", queryRecord.getQueries().get(0).getName());
+
+        query.setSql("test_sql_2");
+        try {
+            queryService.saveQuery("admin", "default", query);
+        } catch (Exception ex) {
+            Assert.assertEquals(IllegalArgumentException.class, ex.getClass());
+            Assert.assertEquals("Duplicate query name 'test'", ex.getMessage());
+        }
+
+        queryRecord = queryService.getSavedQueries("admin", "default");
+        Assert.assertEquals(1, queryRecord.getQueries().size());
+        Assert.assertEquals("test", queryRecord.getQueries().get(0).getName());
     }
 
 }

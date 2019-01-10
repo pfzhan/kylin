@@ -463,6 +463,10 @@ public class Message {
         return "Current user is not allowed to export query result.";
     }
 
+    public String getDUPLICATE_QUERY_NAME() {
+        return "Duplicate query name '%s'";
+    }
+
     // Access
     public String getACL_PERMISSION_REQUIRED() {
         return "Acl permission required.";

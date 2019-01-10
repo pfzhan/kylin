@@ -394,6 +394,10 @@ public class CnMessage extends Message {
         return "列元数据与JDBC 元数据不一致";
     }
 
+    public String getDUPLICATE_QUERY_NAME() {
+        return "查询名称重复 '%s'";
+    }
+
     // Access
     public String getACL_PERMISSION_REQUIRED() {
         return "需要授权";

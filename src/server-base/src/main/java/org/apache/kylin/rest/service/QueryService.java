@@ -224,8 +224,13 @@ public class QueryService extends BasicService {
 
     @Transaction(project = 1)
     public void saveQuery(final String creator, final String project, final Query query) throws IOException {
+        Message msg = MsgPicker.getMsg();
         val record = getSavedQueries(creator, project);
-        record.getQueries().add(query);
+        List<Query> currentQueries = record.getQueries();
+        if (currentQueries.stream().map(Query::getName).collect(Collectors.toSet()).contains(query.getName()))
+            throw new IllegalArgumentException(String.format(msg.getDUPLICATE_QUERY_NAME(), query.getName()));
+
+        currentQueries.add(query);
         getStore().checkAndPutResource(getQueryKeyById(project, creator), record, QueryRecordSerializer.getInstance());
     }
 
