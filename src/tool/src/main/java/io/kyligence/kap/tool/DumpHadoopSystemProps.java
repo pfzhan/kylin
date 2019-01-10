@@ -33,6 +33,8 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.TreeMap;
@@ -135,7 +137,7 @@ public class DumpHadoopSystemProps implements IKeep {
             }
         }
 
-        new File(inPath).delete();
+        Files.delete(Paths.get(inPath));
 
         return map;
     }
