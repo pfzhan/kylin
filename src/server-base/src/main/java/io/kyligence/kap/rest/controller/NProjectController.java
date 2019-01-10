@@ -235,6 +235,7 @@ public class NProjectController extends NBasicController {
     public EnvelopeResponse updateSegmentConfig(
             @RequestBody SegmentConfigRequest segmentConfigRequest) {
         checkProjectName(segmentConfigRequest.getProject());
+        checkSegmentConfigArg(segmentConfigRequest);
         projectService.updateSegmentConfig(segmentConfigRequest.getProject(), segmentConfigRequest);
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }

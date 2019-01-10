@@ -55,6 +55,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import io.kyligence.kap.rest.request.DateRangeRequest;
+import io.kyligence.kap.rest.request.SegmentConfigRequest;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.yarn.webapp.ForbiddenException;
@@ -243,6 +244,14 @@ public class NBasicController {
             checkRequiredArg("table", request.getTable());
             validateRange(request.getStart(), request.getEnd());
         }
+    }
+
+    public void checkSegmentConfigArg(SegmentConfigRequest segmentConfigRequest) {
+        if (segmentConfigRequest.getRetentionRange().getRetentionRangeNumber() < 0)
+            throw new BadRequestException("Retention range number must be greater than 0.");
+
+        if (segmentConfigRequest.getVolatileRange().getVolatileRangeNumber() < 0)
+            throw new BadRequestException("Volatile range number must be greater than 0.");
     }
 
 }

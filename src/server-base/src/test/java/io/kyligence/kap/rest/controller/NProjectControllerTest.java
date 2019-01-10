@@ -45,6 +45,9 @@ package io.kyligence.kap.rest.controller;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.kyligence.kap.metadata.model.AutoMergeTimeEnum;
+import io.kyligence.kap.metadata.model.RetentionRange;
+import io.kyligence.kap.metadata.model.VolatileRange;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.request.JobNotificationConfigRequest;
 import io.kyligence.kap.rest.request.ProjectGeneralInfoRequest;
@@ -251,13 +254,43 @@ public class NProjectControllerTest {
     @Test
     public void testUpdateSegmentConfig() throws Exception {
         val request = new SegmentConfigRequest();
+        request.setVolatileRange(new VolatileRange());
+        request.setRetentionRange(new RetentionRange());
         request.setProject("default");
         Mockito.doNothing().when(projectService).updateSegmentConfig("default", request);
         mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/segment_config")
                 .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
                 .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
                 .andExpect(MockMvcResultMatchers.status().isOk()).andReturn();
-        Mockito.verify(nProjectController).updateSegmentConfig(request);
+        Mockito.verify(nProjectController).updateSegmentConfig(Mockito.any(request.getClass()));
+    }
+
+    @Test
+    public void testUpdateSegmentConfigWithIllegalRetentionRange() throws Exception {
+        val request = new SegmentConfigRequest();
+        request.setVolatileRange(new VolatileRange());
+        request.setRetentionRange(new RetentionRange(-1, true, AutoMergeTimeEnum.DAY));
+        request.setProject("default");
+        Mockito.doNothing().when(projectService).updateSegmentConfig("default", request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/segment_config")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        Mockito.verify(nProjectController, Mockito.never()).updateSegmentConfig(request);
+    }
+
+    @Test
+    public void testUpdateSegmentConfigWithIllegalVolatileRange() throws Exception {
+        val request = new SegmentConfigRequest();
+        request.setRetentionRange(new RetentionRange());
+        request.setVolatileRange(new VolatileRange(-1, true, AutoMergeTimeEnum.DAY));
+        request.setProject("default");
+        Mockito.doNothing().when(projectService).updateSegmentConfig("default", request);
+        mockMvc.perform(MockMvcRequestBuilders.put("/api/projects/segment_config")
+                .contentType(MediaType.APPLICATION_JSON).content(JsonUtil.writeValueAsString(request))
+                .accept(MediaType.parseMediaType("application/vnd.apache.kylin-v2+json")))
+                .andExpect(MockMvcResultMatchers.status().isBadRequest()).andReturn();
+        Mockito.verify(nProjectController, Mockito.never()).updateSegmentConfig(request);
     }
 
     @Test
