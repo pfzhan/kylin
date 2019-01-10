@@ -61,7 +61,11 @@ class Guide {
     setTimeout(() => {
       this.systemStore.globalMouseClick = false
       this.systemStore.globalMouseVisible = true
-      el._isVue ? el.$emit('click', stepInfo.val) : el.click(stepInfo.val)
+      if (stepInfo.withEvent) {
+        el._isVue ? el.$el.click(stepInfo.val) : el.click(stepInfo.val)
+      } else {
+        el._isVue ? el.$emit('click', stepInfo.val) : el.click(stepInfo.val)
+      }
       resolve()
     }, 100)
   }

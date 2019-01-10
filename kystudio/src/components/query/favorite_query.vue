@@ -23,7 +23,7 @@
       <div class="btn-groups ksd-mt-10">
         <span class="guide-checkData" v-if="!modelSpeedEvents"></span>
         <el-button size="mini" type="primary" plain @click="openImportSql">{{$t('importSql')}}</el-button>
-        <el-button size="mini" type="primary" v-guide.speedSqlNowBtn plain :disabled="!modelSpeedEvents" @click="applySpeed($event)">{{$t('accelerateNow')}}</el-button>
+        <el-button size="mini" type="primary" v-guide.speedSqlNowBtn plain :disabled="!modelSpeedEvents" @click="applySpeed">{{$t('accelerateNow')}}</el-button>
       </div>
     </div>
     <div class="fav-tables">

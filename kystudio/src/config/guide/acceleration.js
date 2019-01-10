@@ -40,7 +40,8 @@ export function accelerationDrama () {
     {
       eventID: 2,
       done: false,
-      target: 'speedSqlNowBtn' // 点击立即加速页面
+      target: 'speedSqlNowBtn', // 点击立即加速页面
+      withEvent: true
     }
   ]
 }
