@@ -235,8 +235,12 @@ export default {
       }
     },
     availableAggregateActions: (state, getters, rootState, rootGetters) => {
-      const projectType = rootGetters.currentProjectData.maintain_model_type
-      return getAvailableOptions('aggregateActions', { projectType })
+      if (rootGetters.currentProjectData) {
+        const projectType = rootGetters.currentProjectData.maintain_model_type
+        return getAvailableOptions('aggregateActions', { projectType })
+      } else {
+        return []
+      }
     },
     modelsPagerRenderData: (state) => {
       return {

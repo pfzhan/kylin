@@ -387,7 +387,8 @@ exports.default = {
     source: '数据源',
     model: '模型',
     index: '索引',
-    modeledit: '编辑模型'
+    modeledit: '编辑模型',
+    refresh: '刷新'
   },
   user: {
     tip_password_unsafe: '密码包含至少一个数字、字母及特殊字符（~!@#$%^&*(){}|:"<>?[];\',./`)'

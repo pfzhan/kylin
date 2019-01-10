@@ -104,7 +104,7 @@
         </div>
         <div class="global-mask" v-if="isGlobalMaskShow">
           <div class="background"></div>
-          <div class="notify-contect font-medium">{{$t(notifyContect)}}</div>
+          <div class="notify-contect font-medium">{{notifyContect}}</div>
         </div>
       </el-col>
     </el-row>
@@ -399,13 +399,14 @@ export default class LayoutLeftRightTop extends Vue {
       return obj
     }
   }
-  _replaceRouter (currentPathName) {
+  _replaceRouter (currentPathName, currentPath) {
     this.$router.replace('/refresh')
     this.$nextTick(() => {
       if (currentPathName === 'Job' && !this.hasPermissionWithoutQuery && !this.isAdmin) {
         this.$router.replace({name: 'Dashboard', params: { refresh: true }})
       } else {
         this.$router.replace({name: currentPathName, params: { refresh: true }})
+        currentPath && (this.defaultActive = currentPath)
       }
     })
   }
@@ -428,7 +429,7 @@ export default class LayoutLeftRightTop extends Vue {
         this.$store.state.project.selected_project = data.name
         this.FormVisible = false
         this.projectSaveLoading = false
-        this._replaceRouter('Source')
+        this._replaceRouter('Source', '/studio/source')
       }
     } catch (e) {
       handleError(e)
