@@ -191,14 +191,11 @@ export default class GuidePannel extends Vue {
     {name: 'monitor', label: 'monitorTitle', done: false}
   ]
   autoGuideSteps = [
-    // {name: 'autoProject', label: 'addProjectTitle', done: false},
-    // {name: 'autoLoadTable', label: 'loadTableTitle', done: false},
-    {name: 'query', label: 'queryTitle', done: false}
-    // {name: 'acceleration', label: 'speedSqlTitle', done: false},
-    // {name: 'monitor', label: 'monitorTitle', done: false}
-    // {name: 'insight', label: 'Insight', done: false},
-    // {name: 'Acceleration', label: 'Acceleration', done: false},
-    // {name: 'monitor', label: 'Monitor', done: false}
+    {name: 'autoProject', label: 'addProjectTitle', done: false},
+    {name: 'autoLoadTable', label: 'loadTableTitle', done: false},
+    {name: 'query', label: 'queryTitle', done: false},
+    {name: 'acceleration', label: 'speedSqlTitle', done: false},
+    {name: 'monitor', label: 'monitorTitle', done: false}
   ]
   guide = null
   resetGuidSteps () {
