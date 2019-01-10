@@ -80,7 +80,7 @@ public class EventOrchestrator {
 
     private static final Logger logger = LoggerFactory.getLogger(EventOrchestrator.class);
 
-    private static final int maxRunTimes = 5;
+    private static final int MAX_RUN_TIMES = 5;
 
     private String project;
     private EventDao eventDao;
@@ -122,7 +122,7 @@ public class EventOrchestrator {
                 String modelId = eventsEntry.getKey();
                 Event event = eventsEntry.getValue();
                 val runTimes = event.getRunTimes();
-                if (runTimes >= maxRunTimes) {
+                if (runTimes >= MAX_RUN_TIMES) {
                     handleEventError(modelId);
                     continue;
                 }

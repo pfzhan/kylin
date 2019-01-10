@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.NavigableSet;
 import java.util.Optional;
 
+import lombok.var;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.dbcp2.BasicDataSource;
 import org.apache.kylin.common.KylinConfig;
@@ -173,9 +174,12 @@ public class JdbcMetadataStore extends MetadataStore {
     }
 
     private void createIfNotExist() {
-        jdbcTemplate.execute(String.format(
-                "create table if not exists %s ( %s varchar(255) primary key, %s longblob, %s bigint, %s bigint)",
-                table, META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC));
+        var sql = "create table if not exists %s ( %s varchar(255) primary key";
+        if (((BasicDataSource) jdbcTemplate.getDataSource()).getDriverClassName().equals("com.mysql.jdbc.Driver")) {
+            sql += " COLLATE utf8_bin";
+        }
+        sql += ", %s longblob, %s bigint, %s bigint)";
+        jdbcTemplate.execute(String.format(sql, table, META_TABLE_KEY, META_TABLE_CONTENT, META_TABLE_TS, META_TABLE_MVCC));
     }
 
     private <T> T withTransaction(Callback<T> consumer) {
