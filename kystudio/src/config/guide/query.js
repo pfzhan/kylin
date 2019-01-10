@@ -115,7 +115,7 @@ export function queryDrama () {
       eventID: 1,
       done: false,
       target: 'queryBox', // 飞向输入sql的框子
-      search: '.WorkSpace',
+      search: '.guide-WorkSpaceEditor',
       tip: 'queryTipAuto'
     },
     {
@@ -144,20 +144,13 @@ export function queryDrama () {
       eventID: 1,
       done: false,
       target: 'queryBox', // 飞向提交按钮
-      search: '.WorkSpace-submit'
+      search: '.guid-WorkSpace-submit'
     },
     {
       eventID: 2,
       done: false,
       target: 'queryBox', // 飞向提交按钮
-      search: '.WorkSpace-submit'
-    },
-    {
-      eventID: 1,
-      done: false,
-      target: 'queryBox', // 飞向输入sql的框子
-      search: '.WorkSpace',
-      tip: 'queryTipAuto'
+      search: '.guid-WorkSpace-submit'
     },
     {
       eventID: 21,
@@ -166,6 +159,12 @@ export function queryDrama () {
       val: {
         action: 'intoEditor'
       }
+    },
+    {
+      eventID: 1,
+      done: false,
+      target: 'queryBox', // 飞向输入sql的框子
+      search: '.guide-WorkSpaceEditor'
     },
     {
       eventID: 21,
@@ -182,37 +181,47 @@ export function queryDrama () {
       target: 'queryTriggerBtn', // 飞向输入sql的框子
       val: {
         action: 'inputSql',
-        data: `select sum(lo_revenue) as lo_revenue, d_year, p_brand
+        data: `select c_city, s_city, d_year, sum(lo_revenue) as lo_revenue
         from ssb.lineorder
         left join ssb.dates on lo_orderdate = d_datekey
-        left join ssb.part on lo_partkey = p_partkey
+        left join ssb.customer on lo_custkey = c_custkey
         left join ssb.supplier on lo_suppkey = s_suppkey
-        where p_brand = 'MFGR#2239' and s_region = 'EUROPE'
-        group by d_year, p_brand
-        order by d_year, p_brand;`
+        where (c_city='UNITED KI1' or c_city='UNITED KI5')
+        and (s_city='UNITED KI1' or s_city='UNITED KI5')
+        and d_year >= 1992 and d_year <= 1997
+        group by c_city, s_city, d_year
+        order by d_year asc, lo_revenue desc;`
       }
     },
     {
       eventID: 1,
       done: false,
       target: 'queryBox', // 飞向提交按钮
-      search: '.WorkSpace-submit'
+      search: '.guid-WorkSpace-submit'
     },
     {
       eventID: 2,
       done: false,
       target: 'queryBox', // 飞向提交按钮
-      search: '.WorkSpace-submit'
+      search: '.guid-WorkSpace-submit'
+    },
+    {
+      eventID: 21,
+      done: false,
+      target: 'queryTriggerBtn', //
+      val: {
+        action: 'intoEditor'
+      }
     },
     {
       eventID: 1,
       done: false,
-      target: 'queryAnswerBy'
+      search: '.guide-queryAnswerBy'
     },
     {
       eventID: 1,
       done: false,
-      target: 'queryResultBox'
+      search: '.guide-queryResultBox'
     }
   ]
 }

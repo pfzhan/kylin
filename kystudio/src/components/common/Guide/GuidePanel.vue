@@ -29,7 +29,7 @@
                 </el-tabs>
                 <el-button class="ksd-fright guide-btn" size="mini" :loading="guideLoading" @click="goNextStep" plain>{{getNextBtnText}}</el-button>
                 <el-button class="ksd-fright guide-btn" size="mini"  @click="stopGuide" v-if="currentStep" plain>{{isPause ? $t('goon') : $t('pause')}}</el-button>
-                <el-button class="ksd-fright guide-btn" size="mini"  @click="retryGuide" v-if="showRetryStep" plain>重放该步骤</el-button>
+                <!-- <el-button class="ksd-fright guide-btn" size="mini"  @click="retryGuide" v-if="showRetryStep" plain>重放该步骤</el-button> -->
             </div>
           </transition>
         </div>
@@ -191,11 +191,11 @@ export default class GuidePannel extends Vue {
     {name: 'monitor', label: 'monitorTitle', done: false}
   ]
   autoGuideSteps = [
-    {name: 'autoProject', label: 'addProjectTitle', done: false},
-    {name: 'autoLoadTable', label: 'loadTableTitle', done: false},
-    {name: 'query', label: 'queryTitle', done: false},
-    {name: 'acceleration', label: 'speedSqlTitle', done: false},
-    {name: 'monitor', label: 'monitorTitle', done: false}
+    // {name: 'autoProject', label: 'addProjectTitle', done: false},
+    // {name: 'autoLoadTable', label: 'loadTableTitle', done: false},
+    {name: 'query', label: 'queryTitle', done: false}
+    // {name: 'acceleration', label: 'speedSqlTitle', done: false},
+    // {name: 'monitor', label: 'monitorTitle', done: false}
     // {name: 'insight', label: 'Insight', done: false},
     // {name: 'Acceleration', label: 'Acceleration', done: false},
     // {name: 'monitor', label: 'Monitor', done: false}
@@ -247,7 +247,8 @@ export default class GuidePannel extends Vue {
   }
   // 下一步
   goNextStep () {
-    if (this.currentStep === this.guideSteps.length - 1) {
+    // 到了最后一步，且最后一步结束
+    if (this.currentStep === this.guideSteps.length - 1 && this.guideSteps[this.currentStep].done) {
       this.closeGuide()
       return
     }

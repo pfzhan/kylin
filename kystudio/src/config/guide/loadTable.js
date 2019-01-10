@@ -38,7 +38,7 @@ export function loadTableDrama () {
       target: 'saveSourceType' // 鼠标点击保存hive数据源按钮
     },
     ...renderLoadHiveTables('hiveTree', {
-      'SSB': ['SSBCUSTOMER', 'SSBDATES', 'SSBPART', 'SSBP_LINEORDER', 'SSBSUPPLIER', 'SSBLINEORDER']
+      'SSB': ['SSBCUSTOMER', 'SSBDATES', 'SSBPART', 'SSBP_LINEORDER', 'SSBSUPPLIER']
     }),
     {
       eventID: 1,

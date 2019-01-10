@@ -1,6 +1,5 @@
 <template>
   <div id="newQuery" v-guide.queryBox>
-    <el-button @click="handleForGuide" v-visible v-guide.queryTriggerBtn></el-button>
     <div class="table-layout clearfix"> 
       <div class="layout-left">
         <DataSourceBar
@@ -14,6 +13,9 @@
       </div>
       <div class="layout-right">
         <div class="ksd_right_box">
+           <!-- for guide start -->
+          <el-button @click="handleForGuide" v-visible v-guide.queryTriggerBtn></el-button>
+          <!-- for guide end -->
           <div class="query_result_box ksd-border-tab">
             <div class="btn-group">
               <el-button size="mini" plain="plain" @click.native="closeAllTabs" style="display:inline-block">{{$t('closeAll')}}</el-button>

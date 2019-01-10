@@ -111,7 +111,7 @@ class Guide {
       }
       if (checkAbsent && result || !checkAbsent && !result) {
         if (this.waitCount > this.waitLimit) {
-          console.log('查找超时')
+          console.log('search timeout')
           return reject()
         }
         setTimeout(() => {
@@ -309,7 +309,7 @@ class Guide {
           this.vm.$set(stepInfo, 'done', true)
           if ((step === undefined || isNaN(step) || step - 1 > 0) && !this.isPause) {
             let st = setTimeout(() => {
-              this.step(step - 1, resolve)
+              this.step(step - 1, resolve, reject)
             }, stepInfo.timer || this.stepSpeed)
             this.STs.push(st)
           }
@@ -317,11 +317,11 @@ class Guide {
       } else {
         this.guiding = false
         resolve()
-        console.log('完成了！')
+        console.log('guide done')
       }
     } else {
       reject()
-      console.log('上一步还没完成')
+      console.log('guiding.. can not action other guide')
     }
   }
   getStepInfo (i) {
