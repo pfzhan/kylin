@@ -18,9 +18,9 @@
             <p>{{$t('kapMsg')}}</p>
             <div class="ky-line"></div>
             <ul>
-              <li><i class="el-icon-ksd-login_intro ksd-fs-12"></i><a href="http://kyligence.io/enterprise/#analytics" target="_blank">Kyligence Enterprise Introduction</a></li>
-              <li><i class="el-icon-ksd-login_manual ksd-fs-12"></i><a href="http://docs.kyligence.io" target="_blank">Kyligence Enterprise Manual</a></li>
-              <li><i class="el-icon-ksd-login_email ksd-fs-12"></i><a href="mailto:info@Kyligence.io">Contact Us</a></li>
+              <li><i class="el-icon-ksd-login_intro ksd-fs-12"></i><a href="http://kyligence.io/enterprise/#analytics" target="_blank">{{$t('introduction')}}</a></li>
+              <li><i class="el-icon-ksd-login_manual ksd-fs-12"></i><a href="http://docs.kyligence.io" target="_blank">{{$t('manual')}}</a></li>
+              <li><i class="el-icon-ksd-login_email ksd-fs-12"></i><a href="mailto:info@Kyligence.io">{{$t('contactUs')}}</a></li>
             </ul>
           </div>
         </el-col>
@@ -370,7 +370,10 @@ export default {
       businessEmail: 'Business Mail',
       companyName: 'Company Name',
       yourName: 'Your Name',
-      expiredOn: 'Expired On:'
+      expiredOn: 'Expired On:',
+      introduction: 'Introduction',
+      manual: 'Manual',
+      contactUs: 'Contact Us'
     },
     'zh-cn': {
       welcome: '欢迎使用Kyligence Enterprise',
@@ -398,7 +401,10 @@ export default {
       businessEmail: '企业邮箱',
       companyName: '公司名称',
       yourName: '用户名称',
-      expiredOn: '过期时间：'
+      expiredOn: '过期时间：',
+      introduction: '产品介绍',
+      manual: '用户手册',
+      contactUs: '联系我们'
     }
   }
 }
