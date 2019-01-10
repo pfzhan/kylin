@@ -45,7 +45,7 @@
                 <div class="info-title ksd-mt-10">{{$t('totalStorage')}}</div>
                 <div class="total-quota">
                   <span v-if="quotaInfo.storage_quota_size>=0">
-                    <span class="ksd-fs-28">{{quotaInfo.storage_quota_size | dataSize('GB', true)}}</span><span class="ksd-fs-18">G</span>
+                    <span class="ksd-fs-28">{{quotaTotalSize.size}}</span><span class="ksd-fs-18">{{quotaTotalSize.unit}}</span>
                   </span>
                   <span class="ksd-fs-28" v-else>--</span>
                 </div>
@@ -508,6 +508,14 @@ export default class Dashboard extends Vue {
       this.useageBlockHeight = this.useageRatio >= 1 ? this.quotaHeight : this.useageRatio * this.quotaHeight
       this.trashBlockHeight = this.trashRatio >= 1 ? this.quotaHeight : this.trashRatio * this.quotaHeight
     }, 0)
+  }
+  get quotaTotalSize () {
+    const totalSize = {size: 0.00, unit: 'KB'}
+    if (this.quotaInfo.storage_quota_size) {
+      totalSize.size = Vue.filter('dataSize')(this.quotaInfo.storage_quota_size).split(' ')[0]
+      totalSize.unit = Vue.filter('dataSize')(this.quotaInfo.storage_quota_size).split(' ')[1]
+    }
+    return totalSize
   }
   loadRuleImpactRatio () {
     this.getRulesImpact({project: this.currentSelectedProject}).then((res) => {
