@@ -6,7 +6,7 @@
       <el-table-column prop="type" :label="$t('type')" width="80" header-align="center"></el-table-column>
       <el-table-column prop="createTime" width="208" :label="$t('createTime')" align="center">
         <template slot-scope="scope">
-          <span>{{scope.row.createTime | gmtTime}} GMT+8</span>
+          <span>{{scope.row.createTime | timeFormatHasTimeZone}}</span>
         </template>
       </el-table-column>
       <el-table-column :label="$t('kylinLang.common.action')" width="87" header-align="center">
