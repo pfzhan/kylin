@@ -26,7 +26,14 @@ export default {
     addSettingItem: 'Add Setting Item',
     isDel_auto_merge_time_ranges: 'Are you sure delete auto-merge setting item?',
     isDel_volatile_range: 'Are you sure delete volatile range setting item?',
-    isDel_retention_range: 'Are you sure delete retention range setting item?'
+    isDel_retention_range: 'Are you sure delete retention range setting item?',
+    autoMergeTip: 'The system can auto-merge segment fragments over different merge threshold. Auto-merge, like defragmentation, will optimize storage to enhance query performance.',
+    volatileTip: '\'Auto-Merge\' will not merge latest [Volatile Range] days cube segments, by default is 0.',
+    retentionThresholdDesc: 'Only keep the segment whose data is in past given days in cube, the old segment will be automatically dropped from head.',
+    pleaseSetAutoMerge: 'Please add \'Auto Merge\' setting first.',
+    'Auto-merge': 'Auto Merge',
+    'Volatile Range': 'Volatile Range',
+    'Retention Threshold': 'Retention Threshold'
   },
   'zh-cn': {
     modifyTime: '修改时间',
@@ -34,7 +41,7 @@ export default {
     modifiedUser: '修改人',
     segmentMerge: 'Segment合并：',
     volatileRange: '动态区间：',
-    retention: '相关配置：',
+    retention: '留存设置：',
     newSetting: '添加重写设置项',
     editSetting: '编辑重写设置项',
     modelName: '模型名称',
@@ -55,6 +62,13 @@ export default {
     addSettingItem: '添加模型设置项',
     isDel_auto_merge_time_ranges: '确认删除自动合并设置项吗？',
     isDel_volatile_range: '确认删除动态区间设置项吗？',
-    isDel_retention_range: '确认删除留存区间设置项吗？'
+    isDel_retention_range: '确认删除留存区间设置项吗？',
+    autoMergeTip: '根据不同层级的时间周期，系统可以自动合并segment碎片。合并segment就像碎片整理，可以优化查询提升查询性能。',
+    volatileTip: '"自动合并"将不会合并[变动范围]内的cube segments，默认值为0。',
+    retentionThresholdDesc: '在留存阈值内的segment将会被系统保留，在阈值之外的segments将会被自动移除。',
+    pleaseSetAutoMerge: '请先添加"自动合并"设置项。',
+    'Auto-merge': '自动合并',
+    'Volatile Range': '动态区间',
+    'Retention Threshold': '留存设置'
   }
 }

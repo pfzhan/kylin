@@ -16,7 +16,7 @@ export default {
     cofirmDelUser: 'Are you sure to delete this user?'
   },
   'zh-cn': {
-    back: 'Back',
+    back: '返回',
     user: '用户',
     userName: '用户名',
     securityProfileTip: '用户管理不适用于当前安全配置，请前往正确的权限管理页面编辑。',

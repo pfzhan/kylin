@@ -42,11 +42,8 @@
             @input="value => handleSwitch('pushdown-engine', value)">
           </el-switch>
         </span>
-        <div class="setting-desc large"
-          :class="{ disabled: !form.storage_garbage }">
-          {{$t('storageGarbageDesc1')}}
-          <b>5</b>
-          {{$t('storageGarbageDesc2')}}
+        <div class="setting-desc">
+          {{$t('storageGarbageDesc')}}
         </div>
       </div>
     </EditableBlock>
@@ -215,6 +212,7 @@ export default class SettingBasic extends Vue {
     }
   }
   @Watch('form', { deep: true })
+  @Watch('project', { deep: true })
   onFormChange () {
     const basicSetting = this.isFormEdited(this.form, 'basic-info') || this.isFormEdited(this.form, 'segment-settings')
     this.$emit('form-changed', { basicSetting })

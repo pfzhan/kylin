@@ -78,6 +78,7 @@ export default class Setting extends Vue {
       next()
     } catch (e) {
       this.viewType = tabName
+      next(false)
     }
   }
   async getCurrentSettings () {

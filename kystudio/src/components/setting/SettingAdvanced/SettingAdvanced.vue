@@ -145,6 +145,7 @@ export default class SettingAdvanced extends Vue {
     ]
   }
   @Watch('form', { deep: true })
+  @Watch('project', { deep: true })
   onFormChange () {
     const advanceSetting = this.isFormEdited(this.form, 'accelerate-settings') || this.isFormEdited(this.form, 'job-alert')
     this.$emit('form-changed', { advanceSetting })

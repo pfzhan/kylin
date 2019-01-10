@@ -54,6 +54,7 @@ let MessageBox = ElementUI.MessageBox
             this.setProject(preProject)
             this.getUserAccess({project: preProject})
           }
+          next(false)
         })
       })
     } else {
