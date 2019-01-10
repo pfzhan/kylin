@@ -3,10 +3,10 @@
     <el-row :gutter="20" class="jobs_tools_row ksd-mt-10 ksd-mb-10">
       <el-col :span="18">
         <el-dropdown class="ksd-fleft waiting-jobs" placement="bottom-start" @command="handleCommand">
-          <el-button plain class="el-dropdown-link" size="medium">
+          <el-button plain class="el-dropdown-link" size="medium" :disabled="!waittingJobModels.size">
             {{waittingJobModels.size}} {{$t('waitingjobs')}}<i class="el-icon-arrow-down el-icon--right"></i>
           </el-button>
-          <el-dropdown-menu slot="dropdown" v-if="waittingJobModels.size">
+          <el-dropdown-menu slot="dropdown">
             <el-dropdown-item v-for="(item, uuid) in waittingJobModels.data" :key="item.model_alias" :command="uuid">
               {{item.model_alias}}: {{item.size}}{{$t('waitingjobs')}}
             </el-dropdown-item>
@@ -861,6 +861,17 @@ export default class JobsList extends Vue {
       &:hover {
         .el-icon-arrow-down {
           color: @base-color;
+        }
+      }
+      .el-button.is-disabled {
+        .el-icon-arrow-down {
+          color: inherit;
+          cursor: not-allowed;
+        }
+        &:hover {
+          .el-icon-arrow-down {
+            color: inherit;
+          }
         }
       }
     }
