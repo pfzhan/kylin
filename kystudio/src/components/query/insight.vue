@@ -183,7 +183,7 @@ export default class NewQuery extends Vue {
   resetQuery () {
     this.editableTabs[0].queryObj = null
     this.editableTabs[0].queryErrorInfo = ''
-    this.editableTabs[0].queryErrorInfo = ''
+    this.editableTabs[0].extraoption = null
     this.cacheTabs()
   }
   addTab (targetName, queryObj) {
