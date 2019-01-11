@@ -45,16 +45,24 @@
         type="success"
         v-for="table in loadedTables"
         :key="table"
-        :closable="false"
-        :title="$t('loadSuccess') + `[${table}]`">
+        :closable="false">
+        <span class="clearfix" slot="title">
+          <span class="desc">{{$t('loadSuccess1')}}</span>
+          <span class="table-name" :title="table">{{table}}</span>
+          <span class="desc">{{$t('loadSuccess2')}}</span>
+        </span>
       </el-alert>
       <el-alert
         show-icon
         type="error"
         v-for="table in failedTables"
         :key="table"
-        :closable="false"
-        :title="$t('loadFailed') + `[${table}]`">
+        :closable="false">
+        <span class="clearfix" slot="title">
+          <span class="desc">{{$t('loadFailed1')}}</span>
+          <span class="table-name" :title="table">{{table}}</span>
+          <span class="desc">{{$t('loadFailed2')}}</span>
+        </span>
       </el-alert>
       <div slot="footer" class="dialog-footer">
         <el-button size="medium" plain type="primary" v-guide.closeLoadResult @click="isShowResultModal = false">{{$t('kylinLang.common.ok')}}</el-button>
@@ -603,6 +611,24 @@ export default class DataSourceBar extends Vue {
 .datasource-result-modal {
   .el-alert:not(:last-child) {
     margin-bottom: 10px;
+  }
+  .el-alert .desc {
+    display: block;
+    float: left;
+    &:first-child {
+      margin-right: 3px;
+    }
+    &:last-child {
+      margin-left: 3px;
+    }
+  }
+  .el-alert .table-name {
+    display: block;
+    float: left;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 490px;
   }
 }
 </style>
