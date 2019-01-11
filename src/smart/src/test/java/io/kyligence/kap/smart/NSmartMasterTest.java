@@ -399,7 +399,7 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertEquals(0, accelerateInfoMapCase1.get(sqls[0]).getRelatedLayouts().size());
 
             String expectedMessage = "The model [AUTO_MODEL_KYLIN_SALES_1] matches this query, "
-                    + "but the measure [COUNT_DISTINCT(DEFAULT.KYLIN_SALES.PRICE)] are missing. "
+                    + "but the measure [COUNT_DISTINCT(DEFAULT.KYLIN_SALES.PRICE)] is missing. "
                     + "Please add the above measure before attempting to accelerate this query.";
             final Throwable blockingCause1 = accelerateInfoMapCase1.get(sqls[0]).getBlockingCause();
             Assert.assertEquals(expectedMessage, blockingCause1.getMessage());
@@ -429,7 +429,7 @@ public class NSmartMasterTest extends NTestBase {
             Assert.assertEquals(0, accelerateInfoMapCase2.get(sqls[0]).getRelatedLayouts().size());
 
             String expectedMessage = "The model [AUTO_MODEL_KYLIN_SALES_1] matches this query, "
-                    + "but the measure [SUM(DEFAULT.KYLIN_SALES.ITEM_COUNT)] are missing. "
+                    + "but the measure [SUM(DEFAULT.KYLIN_SALES.ITEM_COUNT)] is missing. "
                     + "Please add the above measure before attempting to accelerate this query.";
             final Throwable blockingCause2 = accelerateInfoMapCase2.get(sqls[0]).getBlockingCause();
             Assert.assertNotNull(blockingCause2);

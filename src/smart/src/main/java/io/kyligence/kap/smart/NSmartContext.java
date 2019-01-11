@@ -179,8 +179,9 @@ public class NSmartContext {
             return ret;
 
         TableExtDesc tableExtDesc = tableMetadataManager.getOrCreateTableExt(colRef.getTableRef().getTableDesc());
-        if (tableExtDesc != null && !tableExtDesc.getColumnStats().isEmpty()) {
-            ret = tableExtDesc.getColumnStats().get(colRef.getColumnDesc().getZeroBasedIndex());
+        int colIndex = colRef.getColumnDesc().getZeroBasedIndex();
+        if (tableExtDesc != null && colIndex < tableExtDesc.getColumnStats().size()) {
+            ret = tableExtDesc.getColumnStats().get(colIndex);
             columnStatsCache.put(colRef.getIdentity(), ret);
         } else {
             ret = null;
