@@ -28,7 +28,7 @@ import com.google.common.collect.Sets
 import io.kyligence.kap.metadata.cube.cuboid.NLayoutCandidate
 import io.kyligence.kap.metadata.cube.gridtable.NCuboidToGridTableMapping
 import io.kyligence.kap.metadata.cube.kv.NCubeDimEncMap
-import io.kyligence.kap.metadata.cube.model.{NDataSegment, NDataflow}
+import io.kyligence.kap.metadata.cube.model.{NDataflow, NDataSegment}
 import io.kyligence.kap.query.exception.UnsupportedQueryException
 import io.kyligence.kap.query.relnode.KapRel
 import io.kyligence.kap.query.runtime.RuntimeHelper
@@ -235,7 +235,7 @@ object TableScanPlan extends Logging {
     val sumColName = s"A_SUM_${sumCol.getName}_$numericTupleIdx"
     val measureSchema = StructField(sumColName, SparderTypeUtil.toSparkType(sumCol.getType))
     // flatten schema.
-    val newSchema = StructType(relation.schema.filter(_.name != topNField.get.name)
+    val newSchema = StructType(df.schema.filter(_.name != topNField.get.name)
       ++ dimWithType.map(tp => StructField(tp._1, tp._2)).+:(measureSchema))
 
     val topNMapping = literalTupleIdx.zipWithIndex.map(index => {
