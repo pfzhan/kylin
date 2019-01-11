@@ -14,7 +14,9 @@ export default {
     loadExistingDataDesc: 'Load new records existing from the last load job.',
     customLoadRange: 'Custom Load Range',
     loadRange: 'Loaded Range',
-    noPartition: 'No Partition'
+    noPartition: 'No Partition',
+    invaildDate: 'Please input vaild date.',
+    detectAvailableRange: 'Detect available range'
   },
   'zh-cn': {
     partitionSet: '分区设置',
@@ -31,6 +33,8 @@ export default {
     loadExistingDataDesc: '加载从最后一次任务开始之后的最新的数据。',
     customLoadRange: '自定义加载数据范围',
     loadRange: '加载范围',
-    noPartition: '无分区'
+    noPartition: '无分区',
+    invaildDate: '请输入合法的时间区间。',
+    detectAvailableRange: '获取最新数据范围'
   }
 }

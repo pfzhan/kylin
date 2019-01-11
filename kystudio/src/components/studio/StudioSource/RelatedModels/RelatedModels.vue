@@ -38,7 +38,7 @@
               <el-row class="model-body">
                 <el-col class="model-status" :span="24">
                   <template v-if="relatedModel.management_type !== 'MODEL_BASED'">
-                    <el-tag v-if="relatedModel.status === 'DESCBROKEN'" size="small" type="info">Broken</el-tag>
+                    <el-tag v-if="relatedModel.status === 'BROKEN'" size="small" type="info">Broken</el-tag>
                     <el-tag v-if="relatedModel.status === 'ONLINE'" size="small" type="success">Online</el-tag>
                     <el-tag v-if="~['OFFLINE', 'NEW'].indexOf(relatedModel.status)" size="small" type="danger">Offline</el-tag>
                   </template>

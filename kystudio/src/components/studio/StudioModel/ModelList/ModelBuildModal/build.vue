@@ -2,7 +2,7 @@
   <!-- 模型构建 -->
     <el-dialog :title="$t('modelBuild')" width="660px" :visible="isShow" :close-on-press-escape="false" :close-on-click-modal="false" @close="isShow && closeModal()">
       <div>
-        <el-form :model="modelBuildMeta" ref="buildForm" label-position="top">
+        <el-form :model="modelBuildMeta" ref="buildForm" :rules="rules" label-position="top">
           <div class="ky-list-title ksd-mt-14">{{$t('buildRange')}}</div>
           <el-form-item prop="isLoadExisted" class="ksd-mt-10 ksd-mb-2">
             <el-radio class="font-medium" v-model="modelBuildMeta.isLoadExisted" :label="true">
@@ -15,15 +15,34 @@
               {{$t('customLoadRange')}}
             </el-radio>
             <br/>
-            <el-date-picker
-              class="ksd-ml-24"
-             :disabled="modelBuildMeta.isLoadExisted"
-              v-model="modelBuildMeta.dataRangeVal"
-              type="datetimerange"
-              :range-separator="$t('to')"
-              :start-placeholder="$t('startDate')"
-              :end-placeholder="$t('endDate')">
-            </el-date-picker>
+          <el-date-picker
+            type="datetime"
+            v-model="modelBuildMeta.dataRangeVal[0]"
+            :is-auto-complete="true"
+            :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+            :picker-options="{ disabledDate: time => time.getTime() > modelBuildMeta.dataRangeVal[1] && modelBuildMeta.dataRangeVal[1] !== null }"
+            :placeholder="$t('kylinLang.common.startTime')">
+          </el-date-picker>
+          <span>-</span>
+          <el-date-picker
+            type="datetime"
+            v-model="modelBuildMeta.dataRangeVal[1]"
+            :is-auto-complete="true"
+            :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+            :picker-options="{ disabledDate: time => time.getTime() < modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[0] !== null }"
+            :placeholder="$t('kylinLang.common.endTime')">
+          </el-date-picker>
+          <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
+            <el-button
+              v-if="isShow"
+              size="small"
+              class="ksd-ml-10"
+              :disabled="modelBuildMeta.isLoadExisted"
+              :loading="isLoadingNewRange"
+              icon="el-icon-ksd-data_range_search"
+              @click="handleLoadNewestRange">
+            </el-button>
+          </el-tooltip>
           </el-form-item>
         </el-form>
       </div>
@@ -39,6 +58,7 @@
   import { mapState, mapMutations, mapActions, mapGetters } from 'vuex'
   import vuex from '../../../../../store'
   import { handleError, kapMessage, transToUTCMs, getGmtDateFromUtcLike } from 'util/business'
+  import { handleSuccessAsync } from 'util/index'
   import locales from './locales'
   import store, { types } from './store'
 
@@ -57,7 +77,8 @@
     },
     methods: {
       ...mapActions({
-        buildModel: 'MODEL_BUILD'
+        buildModel: 'MODEL_BUILD',
+        fetchNewestModelRange: 'GET_MODEL_NEWEST_RANGE'
       }),
       ...mapMutations('ModelBuildModal', {
         setModal: types.SET_MODAL,
@@ -70,9 +91,24 @@
   })
   export default class ModelBuildModal extends Vue {
     btnLoading = false
+    isLoadingNewRange = false
     modelBuildMeta = {
-      dataRangeVal: '',
+      dataRangeVal: [],
       isLoadExisted: true
+    }
+    rules = {
+      dataRangeVal: [{
+        validator: this.validateRange, trigger: 'blur'
+      }]
+    }
+    validateRange (rule, value, callback) {
+      const [ startValue, endValue ] = value
+      const isLoadExisted = this.modelBuildMeta.isLoadExisted
+      if ((!startValue || !endValue || transToUTCMs(startValue) >= transToUTCMs(endValue)) && !isLoadExisted) {
+        callback(new Error(this.$t('invaildDate')))
+      } else {
+        callback()
+      }
     }
     @Watch('isShow')
     initModelBuldRange () {
@@ -87,6 +123,23 @@
       } else {
         this.modelBuildMeta.dataRangeVal = []
       }
+    }
+    async handleLoadNewestRange () {
+      this.isLoadingNewRange = true
+      try {
+        const submitData = {
+          project: this.currentSelectedProject,
+          model: this.modelDesc.uuid
+        }
+        const response = await this.fetchNewestModelRange(submitData)
+        const result = await handleSuccessAsync(response)
+        const startTime = +result.start_time
+        const endTime = +result.end_time
+        this.modelBuildMeta.dataRangeVal = [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ]
+      } catch (e) {
+        handleError(e)
+      }
+      this.isLoadingNewRange = false
     }
     closeModal (isSubmit) {
       this.hideModal()

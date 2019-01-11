@@ -1,6 +1,7 @@
 <template>
   <div class="mode-list" :class="{'full-cell': showFull}">
-    <div class="ky-list-title ksd-mt-20">{{$t('kylinLang.model.modelList')}}</div>
+    <div class="ksd-title-label ksd-mt-20" v-if="!isAutoProject">{{$t('kylinLang.model.modelList')}}</div>
+    <div class="ksd-title-label ksd-mt-20" v-else>{{$t('kylinLang.model.indexGroup')}}</div>
     <div v-if="showSearchResult">
       <div  class="ksd-mb-14 ksd-fright ksd-mt-8">
         <el-input :placeholder="$t('kylinLang.common.pleaseFilterByModelName')" style="width:200px" size="medium" :prefix-icon="searchLoading? 'el-icon-loading':'el-icon-search'" v-model="filterArgs.model"  @input="searchModels" class="show-search-btn" >
@@ -85,10 +86,11 @@
           width="94"
           :label="$t('status')">
           <template slot-scope="scope">
-        <el-tag size="small" :type="scope.row.status === 'OFFLINE' ? 'info' : scope.row.status === 'DESCBROKEN'? 'danger' : 'success'">{{scope.row.status}}</el-tag>
+        <el-tag size="small" :type="scope.row.status === 'OFFLINE' ? 'info' : scope.row.status === 'BROKEN'? 'danger' : 'success'">{{scope.row.status}}</el-tag>
       </template>
         </el-table-column>
         <el-table-column
+          v-if="!isAutoProject"
           prop="owner"
           show-overflow-tooltip
           width="100"
@@ -114,15 +116,15 @@
                     <!-- 设置partition -->
                     <el-dropdown-item command="dataLoad" :disabled="scope.row.management_type==='TABLE_ORIENTED'">{{$t('dataloading')}}</el-dropdown-item>
                     <!-- <el-dropdown-item command="favorite" disabled>{{$t('favorite')}}</el-dropdown-item> -->
-                    <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'DESCBROKEN'">{{$t('importMdx')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'DESCBROKEN'">{{$t('exportTds')}}</el-dropdown-item>
-                    <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'DESCBROKEN'">{{$t('exportMdx')}}</el-dropdown-item>
-                    <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'DESCBROKEN'">{{$t('rename')}}</el-dropdown-item>
-                    <el-dropdown-item command="clone" v-if="scope.row.status !== 'DESCBROKEN'">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
+                    <el-dropdown-item command="importMDX" divided disabled v-if="scope.row.status !== 'BROKEN'">{{$t('importMdx')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportTDS" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportTds')}}</el-dropdown-item>
+                    <el-dropdown-item command="exportMDX" disabled v-if="scope.row.status !== 'BROKEN'">{{$t('exportMdx')}}</el-dropdown-item>
+                    <el-dropdown-item command="rename" divided v-if="scope.row.status !== 'BROKEN'">{{$t('rename')}}</el-dropdown-item>
+                    <el-dropdown-item command="clone" v-if="scope.row.status !== 'BROKEN'">{{$t('kylinLang.common.clone')}}</el-dropdown-item>
                     <el-dropdown-item command="delete">{{$t('delete')}}</el-dropdown-item>
                     <el-dropdown-item command="purge" v-if="scope.row.management_type!=='TABLE_ORIENTED'">{{$t('purge')}}</el-dropdown-item>
-                    <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'DESCBROKEN'">{{$t('offLine')}}</el-dropdown-item>
-                    <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'DESCBROKEN'">{{$t('onLine')}}</el-dropdown-item>
+                    <el-dropdown-item command="offline" v-if="scope.row.status !== 'OFFLINE' && scope.row.status !== 'BROKEN'">{{$t('offLine')}}</el-dropdown-item>
+                    <el-dropdown-item command="online" v-if="scope.row.status !== 'ONLINE' && scope.row.status !== 'BROKEN'">{{$t('onLine')}}</el-dropdown-item>
                     </el-dropdown-menu>
                   </el-dropdown>
                 </common-tip>

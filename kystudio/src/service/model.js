@@ -161,6 +161,9 @@ export default {
     const headers = { 'X-Progress-Invisiable': 'true' }
     return window.kapVm.$http.post(apiUrl + 'models/job_error_status', body, { headers })
   },
+  getModelDataNewestRange: (para) => {
+    return Vue.resource(apiUrl + 'models/data_range/latest_data').get(para)
+  },
   loadModelConfigList: (para) => {
     return Vue.resource(apiUrl + 'models/config').get(para)
   },

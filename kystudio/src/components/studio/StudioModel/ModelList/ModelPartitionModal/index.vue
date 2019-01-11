@@ -25,7 +25,7 @@
       </el-form-item>
     </el-form> -->
     <!-- <div class="ky-list-sub-title ksd-mt-16">时间分区</div> -->
-    <el-form :model="partitionMeta" label-width="85px" class="ksd-mt-16" label-position="top"> 
+    <el-form :model="partitionMeta" :rules="rules"  label-width="85px" class="ksd-mt-16" label-position="top"> 
       <el-form-item :label="$t('partitionDateColumn')">
         <el-col :span="12">
           <el-form-item prop="date1">
@@ -76,15 +76,34 @@
           {{$t('customLoadRange')}}
         </el-radio>
         <br/>
-        <el-date-picker 
-        class="ksd-ml-24"
-          :disabled="modelBuildMeta.isLoadExisted"
-          v-model="modelBuildMeta.dataRangeVal"
-          type="datetimerange"
-          :range-separator="$t('to')"
-          :start-placeholder="$t('startDate')"
-          :end-placeholder="$t('endDate')">
-        </el-date-picker>
+        <el-date-picker
+            type="datetime"
+            v-model="modelBuildMeta.dataRangeVal[0]"
+            :is-auto-complete="true"
+            :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+            :picker-options="{ disabledDate: time => time.getTime() > modelBuildMeta.dataRangeVal[1] && modelBuildMeta.dataRangeVal[1] !== null }"
+            :placeholder="$t('kylinLang.common.startTime')">
+          </el-date-picker>
+          <span>-</span>
+          <el-date-picker
+            type="datetime"
+            v-model="modelBuildMeta.dataRangeVal[1]"
+            :is-auto-complete="true"
+            :disabled="modelBuildMeta.isLoadExisted || isLoadingNewRange"
+            :picker-options="{ disabledDate: time => time.getTime() < modelBuildMeta.dataRangeVal[0] && modelBuildMeta.dataRangeVal[0] !== null }"
+            :placeholder="$t('kylinLang.common.endTime')">
+          </el-date-picker>
+          <el-tooltip effect="dark" :content="$t('detectAvailableRange')" placement="top">
+            <el-button
+              v-if="isShow"
+              size="small"
+              class="ksd-ml-10"
+              :disabled="modelBuildMeta.isLoadExisted"
+              :loading="isLoadingNewRange"
+              icon="el-icon-ksd-data_range_search"
+              @click="handleLoadNewestRange">
+            </el-button>
+          </el-tooltip>
       </el-form-item>
       </template>
     </el-form>
@@ -113,8 +132,8 @@ import { timeDataType } from '../../../../../config'
 import NModel from '../../ModelEdit/model.js'
 // import { titleMaps, cancelMaps, confirmMaps, getSubmitData } from './handler'
 import { isDatePartitionType } from '../../../../../util'
-import { transToUTCMs } from 'util/business'
-
+import { transToUTCMs, handleError, getGmtDateFromUtcLike } from 'util/business'
+import { handleSuccessAsync } from 'util/index'
 vuex.registerModule(['modals', 'ModelPartitionModal'], store)
 
 @Component({
@@ -145,7 +164,8 @@ vuex.registerModule(['modals', 'ModelPartitionModal'], store)
       saveKafka: 'SAVE_KAFKA',
       loadDataSourceByProject: 'LOAD_DATASOURCE',
       saveSampleData: 'SAVE_SAMPLE_DATA',
-      setModelPartition: 'MODEL_PARTITION_SET'
+      setModelPartition: 'MODEL_PARTITION_SET',
+      fetchNewestModelRange: 'GET_MODEL_NEWEST_RANGE'
     })
   },
   locales
@@ -153,6 +173,7 @@ vuex.registerModule(['modals', 'ModelPartitionModal'], store)
 export default class ModelPartitionModal extends Vue {
   isLoading = false
   isFormShow = false
+  isLoadingNewRange = false
   factTableColumns = [{tableName: 'DEFAULT.KYLIN_SALES', column: 'PRICE'}]
   lookupTableColumns = [{tableName: 'DEFAULT.KYLIN_CAL_DT', column: 'CAL_DT'}]
   partitionMeta = {
@@ -160,9 +181,42 @@ export default class ModelPartitionModal extends Vue {
     column: '',
     format: ''
   }
+  rules = {
+    dataRangeVal: [{
+      validator: this.validateRange, trigger: 'blur'
+    }]
+  }
+  validateRange (rule, value, callback) {
+    const [ startValue, endValue ] = value
+    const isLoadExisted = this.modelBuildMeta.isLoadExisted
+    if ((!startValue || !endValue || transToUTCMs(startValue) >= transToUTCMs(endValue)) && !isLoadExisted) {
+      callback(new Error(this.$t('invaildDate')))
+    } else {
+      callback()
+    }
+  }
   modelBuildMeta = {
     dataRangeVal: [],
     isLoadExisted: true
+  }
+  async handleLoadNewestRange () {
+    this.isLoadingNewRange = true
+    try {
+      let tableInfo = this.modelInstance.getTableByAlias(this.partitionMeta.table)
+      const submitData = {
+        project: this.currentSelectedProject,
+        table: tableInfo.name,
+        partitionColumn: this.partitionMeta.column
+      }
+      const response = await this.fetchNewestModelRange(submitData)
+      const result = await handleSuccessAsync(response)
+      const startTime = +result.start_time
+      const endTime = +result.end_time
+      this.modelBuildMeta.dataRangeVal = [ getGmtDateFromUtcLike(startTime), getGmtDateFromUtcLike(endTime) ]
+    } catch (e) {
+      handleError(e)
+    }
+    this.isLoadingNewRange = false
   }
   @Watch('isShow')
   initModelBuldRange () {

@@ -170,6 +170,7 @@ exports.default = {
     computedColumn: 'Computed Column',
     modelNameGrid: 'Model Name',
     modelList: 'Model List',
+    indexGroup: 'Index Group',
     modifiedGrid: 'Last Modified Time',
     statusGrid: 'Health Status',
     metaData: 'Metadata',

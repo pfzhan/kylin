@@ -114,6 +114,7 @@ import NModel from '../ModelEdit/model.js'
       'isAutoProject'
     ]),
     modelInstance () {
+      this.modelDesc.project = this.currentSelectedProject
       return new NModel(this.modelDesc)
     },
     // 当天的数据

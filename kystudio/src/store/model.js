@@ -222,6 +222,9 @@ export default {
     },
     [types.UPDATE_MODEL_CONFIG] ({ commit }, params) {
       return api.model.updateModelConfig(params)
+    },
+    [types.GET_MODEL_NEWEST_RANGE] ({ commit }, params) {
+      return api.model.getModelDataNewestRange(params)
     }
   },
   getters: {
