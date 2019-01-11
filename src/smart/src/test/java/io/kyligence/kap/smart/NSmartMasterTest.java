@@ -29,8 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.model.JoinTableDesc;
@@ -41,6 +39,8 @@ import org.junit.Test;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
@@ -398,12 +398,11 @@ public class NSmartMasterTest extends NTestBase {
             final Map<String, AccelerateInfo> accelerateInfoMapCase1 = smartMaster.getContext().getAccelerateInfoMap();
             Assert.assertEquals(0, accelerateInfoMapCase1.get(sqls[0]).getRelatedLayouts().size());
 
-            String prefix = "In the model designer project, the system is not allowed to modify the semantic layer"
-                    + " (dimensions, measures, tables, and joins) of the model. ";
-            String postFix = "to enable system accelerate this query.";
+            String expectedMessage = "The model [AUTO_MODEL_KYLIN_SALES_1] matches this query, "
+                    + "but the measure [COUNT_DISTINCT(DEFAULT.KYLIN_SALES.PRICE)] are missing. "
+                    + "Please add the above measure before attempting to accelerate this query.";
             final Throwable blockingCause1 = accelerateInfoMapCase1.get(sqls[0]).getBlockingCause();
-            Assert.assertTrue(blockingCause1.getMessage().startsWith(prefix) //
-                    && blockingCause1.getMessage().endsWith(postFix));
+            Assert.assertEquals(expectedMessage, blockingCause1.getMessage());
 
             final List<IndexEntity> allCuboids = smartMaster.getContext().getModelContexts().get(0).getTargetIndexPlan()
                     .getAllIndexes();
@@ -429,11 +428,12 @@ public class NSmartMasterTest extends NTestBase {
             final Map<String, AccelerateInfo> accelerateInfoMapCase2 = smartMaster.getContext().getAccelerateInfoMap();
             Assert.assertEquals(0, accelerateInfoMapCase2.get(sqls[0]).getRelatedLayouts().size());
 
-            String prefix = "In the model designer project, the system is not allowed to modify the semantic layer"
-                    + " (dimensions, measures, tables, and joins) of the model. Please add measure";
+            String expectedMessage = "The model [AUTO_MODEL_KYLIN_SALES_1] matches this query, "
+                    + "but the measure [SUM(DEFAULT.KYLIN_SALES.ITEM_COUNT)] are missing. "
+                    + "Please add the above measure before attempting to accelerate this query.";
             final Throwable blockingCause2 = accelerateInfoMapCase2.get(sqls[0]).getBlockingCause();
             Assert.assertNotNull(blockingCause2);
-            Assert.assertTrue(blockingCause2.getMessage().startsWith(prefix));
+            Assert.assertEquals(expectedMessage, blockingCause2.getMessage());
 
             final NDataModel targetModelCase2 = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
             final List<NDataModel.Measure> allMeasuresCase2 = targetModelCase2.getAllMeasures();
@@ -455,13 +455,11 @@ public class NSmartMasterTest extends NTestBase {
             final Map<String, AccelerateInfo> accelerateInfoMapCase3 = smartMaster.getContext().getAccelerateInfoMap();
             Assert.assertEquals(0, accelerateInfoMapCase3.get(sqls[0]).getRelatedLayouts().size());
 
-            String preFix = "In the model designer project, the system is not allowed to modify the semantic layer "
-                    + "(dimensions, measures, tables, and joins) of the model.";
-            String postFix = "has some difference with the joins of this query. Please adjust model's join to match the query.";
+            String expectedMessage = "The join of model [AUTO_MODEL_KYLIN_SALES_1] has some difference with the joins of this query. "
+                    + "Please adjust model's join to match the query.";
             final Throwable blockingCause3 = accelerateInfoMapCase3.get(sqls[0]).getBlockingCause();
             Assert.assertNotNull(blockingCause3);
-            Assert.assertTrue(blockingCause3.getMessage().startsWith(preFix) //
-                    && blockingCause3.getMessage().endsWith(postFix));
+            Assert.assertEquals(expectedMessage, blockingCause3.getMessage());
 
             final NDataModel targetModelCase3 = smartMaster.getContext().getModelContexts().get(0).getTargetModel();
             final List<NDataModel.Measure> allMeasuresCase3 = targetModelCase3.getAllMeasures();

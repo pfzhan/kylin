@@ -32,8 +32,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.IndexPlan;
-import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.filter.CompareTupleFilter;
 import org.apache.kylin.metadata.filter.TupleFilter;
@@ -43,8 +41,6 @@ import org.apache.kylin.metadata.model.TblColRef;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.apache.kylin.query.relnode.OLAPContext;
 import org.apache.kylin.query.routing.RealizationChooser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
@@ -53,6 +49,8 @@ import com.google.common.collect.Sets;
 
 import io.kyligence.kap.metadata.cube.model.IndexEntity;
 import io.kyligence.kap.metadata.cube.model.IndexEntity.IndexIdentifier;
+import io.kyligence.kap.metadata.cube.model.IndexPlan;
+import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
@@ -61,14 +59,14 @@ import io.kyligence.kap.smart.NSmartContext.NModelContext;
 import io.kyligence.kap.smart.common.AccelerateInfo;
 import io.kyligence.kap.smart.common.AccelerateInfo.QueryLayoutRelation;
 import io.kyligence.kap.smart.model.ModelTree;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 class CuboidSuggester {
 
-    private static final Logger logger = LoggerFactory.getLogger(CuboidSuggester.class);
-
-    private static final String COLUMN_NOT_FOUND_PTN = "Column not found. Please add column [%s] into the model [%s].";
-    private static final String MEASURE_NOT_FOUND_PTN = "Please add measure [%s] into model [%s] to enable system accelerate this query.";
-    private static final String TABLE_NOT_MATCHED = "The join of model [%s] has some difference with the joins of this query. Please adjust model's join to match the query.";
+    private static final String COLUMN_NOT_FOUND_PTN = "The model [%s] matches this query, but the dimension [%s] is missing. ";
+    private static final String MEASURE_NOT_FOUND_PTN = "The model [%s] matches this query, but the measure [%s] is missing. ";
+    private static final String TABLE_NOT_MATCHED = "The join of model [%s] has some difference with the joins of this query. ";
 
     private class ColIndexSuggester {
         OLAPContext olapContext;
@@ -145,13 +143,13 @@ class CuboidSuggester {
 
             try {
                 Map<String, String> aliasMap = RealizationChooser.matchJoins(model, ctx);
-                Preconditions.checkState(aliasMap != null, getMsgTemplateByModelMaintainType(TABLE_NOT_MATCHED),
-                        model.getAlias());
+                Preconditions.checkState(aliasMap != null,
+                        getMsgTemplateByModelMaintainType(TABLE_NOT_MATCHED, Type.TABLE), model.getAlias());
                 ctx.fixModel(model, aliasMap);
                 QueryLayoutRelation queryLayoutRelation = ingest(ctx, model);
                 accelerateInfo.getRelatedLayouts().add(queryLayoutRelation);
             } catch (Exception e) {
-                logger.error("Unable to suggest cuboid for IndexPlan", e);
+                log.error("Unable to suggest cuboid for IndexPlan", e);
                 accelerateInfo.setBlockingCause(e);
                 accelerateInfo.getRelatedLayouts().clear();
             } finally {
@@ -197,8 +195,8 @@ class CuboidSuggester {
         List<Integer> ret = Lists.newArrayList();
         for (TblColRef col : ctx.getSortColumns()) {
             final Integer id = colIdMap.get(col);
-            Preconditions.checkState(id != null, getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN),
-                    col.getIdentity(), model.getId());
+            Preconditions.checkState(id != null, getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN),
+                    model.getAlias(), col.getIdentity());
             ret.add(id);
         }
         return ret;
@@ -237,8 +235,9 @@ class CuboidSuggester {
 
         cols.forEach(colRef -> {
             Integer colId = colIdMap.get(colRef);
-            Preconditions.checkState(colId != null, getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN),
-                    colRef.getIdentity(), model.getId());
+            Preconditions.checkState(colId != null,
+                    getMsgTemplateByModelMaintainType(COLUMN_NOT_FOUND_PTN, Type.COLUMN), model.getAlias(),
+                    colRef.getIdentity());
             TableExtDesc.ColumnStats columnStats = smartContext.getColumnStats(colRef);
 
             // without column stats
@@ -292,7 +291,6 @@ class CuboidSuggester {
 
         LayoutEntity layout = new LayoutEntity();
         layout.setId(suggestLayoutId(indexEntity));
-        //        layout.setLayoutOverrideIndexes(suggestIndexMap(ctx, dimScores, model.getEffectiveColsMap()));
         layout.setColOrder(suggestColOrder(dimScores, measureIds));
         layout.setIndex(indexEntity);
         layout.setShardByColumns(shardBy);
@@ -332,7 +330,7 @@ class CuboidSuggester {
     }
 
     private IndexEntity createAggregatedIndex(OLAPContext ctx, Map<Integer, Double> dimScores,
-                                              SortedSet<Integer> measureIds, Map<TblColRef, Integer> colIdMap) {
+            SortedSet<Integer> measureIds, Map<TblColRef, Integer> colIdMap) {
         // Add default measure count(1)
         measureIds.add(NDataModel.MEASURE_ID_BASE);
 
@@ -342,8 +340,10 @@ class CuboidSuggester {
                 measureIds.add(measureId);
             } else if (aggFunc.getParameter() != null) {
                 for (TblColRef tblColRef : aggFunc.getParameter().getColRefs()) {
+                    String measure = String.format("%s(%s)", aggFunc.getExpression(), aggFunc.getParameter());
                     Preconditions.checkState(colIdMap.get(tblColRef) != null,
-                            getMsgTemplateByModelMaintainType(MEASURE_NOT_FOUND_PTN), aggFunc, model.getAlias());
+                            getMsgTemplateByModelMaintainType(MEASURE_NOT_FOUND_PTN, Type.MEASURE), model.getAlias(),
+                            measure);
                 }
             }
         });
@@ -351,17 +351,24 @@ class CuboidSuggester {
         return createIndexEntity(dimScores, measureIds, false);
     }
 
-    private String getMsgTemplateByModelMaintainType(String messagePattern) {
+    private String getMsgTemplateByModelMaintainType(String messagePattern, Type type) {
         Preconditions.checkNotNull(model);
-        String rst = "In the model designer project, the system is not allowed to modify the semantic layer "
-                + "(dimensions, measures, tables, and joins) of the model. ";
+        String suggestion;
+        if (type == Type.COLUMN) {
+            suggestion = "Please add the above dimension before attempting to accelerate this query.";
+        } else if (type == Type.MEASURE) {
+            suggestion = "Please add the above measure before attempting to accelerate this query.";
+        } else {
+            suggestion = "Please adjust model's join to match the query.";
+        }
+
         return projectInstance.getMaintainModelType() == MaintainModelType.MANUAL_MAINTAIN //
-                ? rst + messagePattern
+                ? messagePattern + suggestion
                 : messagePattern;
     }
 
     private IndexEntity createIndexEntity(Map<Integer, Double> dimScores, SortedSet<Integer> measureIds,
-                                          boolean isTableIndex) {
+            boolean isTableIndex) {
         Preconditions.checkState(!dimScores.isEmpty() || !measureIds.isEmpty(),
                 "Neither dimension nor measure could be proposed for indexEntity");
 
@@ -415,10 +422,15 @@ class CuboidSuggester {
     }
 
     private long suggestLayoutId(IndexEntity indexEntity) {
-        long s = indexEntity.getLastLayout() == null ? indexEntity.getId() + 1 : indexEntity.getLastLayout().getId() + 1;
+        long s = indexEntity.getLastLayout() == null ? indexEntity.getId() + 1
+                : indexEntity.getLastLayout().getId() + 1;
         while (cuboidLayoutIds.contains(s)) {
             s++;
         }
         return s;
+    }
+
+    private enum Type {
+        TABLE, COLUMN, MEASURE
     }
 }

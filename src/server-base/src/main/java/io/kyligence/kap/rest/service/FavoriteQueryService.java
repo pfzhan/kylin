@@ -382,7 +382,7 @@ public class FavoriteQueryService extends BasicService {
             favoriteQuery.setStatus(FavoriteQueryStatusEnum.BLOCKED);
             Throwable blockingCause = accelerateInfoEntry.getValue().getBlockingCause();
             if (blockingCause != null) {
-                String blockingCauseStr = blockingCause.toString();
+                String blockingCauseStr = blockingCause.getMessage();
                 if (blockingCauseStr.length() > BLOCKING_CAUSE_MAX_LENGTH) {
                     blockingCauseStr = blockingCauseStr.substring(0, BLOCKING_CAUSE_MAX_LENGTH - 1);
                 }

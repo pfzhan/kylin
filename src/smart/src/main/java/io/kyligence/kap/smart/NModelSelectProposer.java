@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.metadata.model.JoinDesc;
 import org.apache.kylin.metadata.model.JoinsGraph;
@@ -39,6 +38,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
@@ -48,6 +48,7 @@ import io.kyligence.kap.smart.model.ModelTree;
 
 public class NModelSelectProposer extends NAbstractProposer {
 
+    private static final String EXCEPTION_MSG = "No model matches the SQL. Please add a model matches the SQL before attempting to accelerate this query.";
     private final NDataflowManager dataflowManager;
 
     NModelSelectProposer(NSmartContext smartContext) {
@@ -76,8 +77,9 @@ public class NModelSelectProposer extends NAbstractProposer {
             selectedModel.add(model.getUuid());
             NDataModel targetModel = NDataModel.getCopyOf(model);
             initModel(targetModel);
-            targetModel.getComputedColumnDescs()
-                    .forEach(cc -> smartContext.getUsedCC().put(cc.getExpression(), cc));
+            targetModel.getComputedColumnDescs().forEach(cc -> {
+                smartContext.getUsedCC().put(cc.getExpression(), cc);
+            });
             modelContext.setTargetModel(targetModel);
         }
 
@@ -89,9 +91,7 @@ public class NModelSelectProposer extends NAbstractProposer {
                 if (modelCtx.withoutTargetModel()) {
                     modelCtx.getModelTree().getOlapContexts().forEach(olapContext -> {
                         AccelerateInfo accelerateInfo = accelerateInfoMap.get(olapContext.sql);
-                        accelerateInfo.setBlockingCause(
-                                new IllegalStateException("No model matches this query. In the model designer project, "
-                                        + "the system is not allowed to suggest a new model accelerate this query."));
+                        accelerateInfo.setBlockingCause(new IllegalStateException(EXCEPTION_MSG));
                     });
                 }
             });
@@ -133,8 +133,8 @@ public class NModelSelectProposer extends NAbstractProposer {
                 }
             }
             JoinsGraph joinsGraph = new JoinsGraph(factTblRef, modelTreeJoins);
-            return model.getJoinsGraph().match(joinsGraph, Maps.newHashMap()) ||
-                    joinsGraph.match(model.getJoinsGraph(), Maps.newHashMap());
+            return model.getJoinsGraph().match(joinsGraph, Maps.newHashMap())
+                    || joinsGraph.match(model.getJoinsGraph(), Maps.newHashMap());
         }
         return false;
     }
