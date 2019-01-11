@@ -30,6 +30,7 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 
+import io.kyligence.kap.rest.init.KerberosLoginTask;
 import org.apache.catalina.Context;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -99,6 +100,8 @@ public class BootstrapServer implements ApplicationListener<ApplicationReadyEven
     }
 
     private static void initSparkSession() {
+        KerberosLoginTask kerberosLoginTask = new KerberosLoginTask();
+        kerberosLoginTask.execute();
         SparderEnv.init();
         if ("true".equalsIgnoreCase(System.getProperty("spark.local"))) {
             logger.debug("spark.local=true");

@@ -135,6 +135,14 @@ object KylinSession extends Logging {
     private lazy val kapConfig: KapConfig = KapConfig.getInstanceFromEnv
 
     def initSparkConf(sparkConf: SparkConf): SparkConf = {
+      // kerberos
+      if (kapConfig.isKerberosEnabled) {
+        sparkConf.set("spark.yarn.keytab", kapConfig.getKerberosKeytabPath)
+        sparkConf.set("spark.yarn.principal", kapConfig.getKerberosPrincipal)
+        sparkConf.set("spark.yarn.security.credentials.hive.enabled", "false")
+        sparkConf.set("spark.yarn.security.credentials.hbase.enabled", "false")
+      }
+
       kapConfig.getSparkConf.asScala.foreach {
         case (k, v) =>
           sparkConf.set(k, v)

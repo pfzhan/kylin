@@ -587,4 +587,49 @@ public class KapConfig {
     public boolean shouldMockMetadataWithoutDictStore() {
         return Boolean.valueOf(config.getOptional("kap.metadata.mock.no-dict-store", "false"));
     }
+
+    /**
+     * Kerberos
+     */
+
+    public Boolean isKerberosEnabled() {
+        return Boolean.valueOf(config.getOptional("kap.kerberos.enabled", "false"));
+    }
+
+    public String getKerberosKeytab() {
+        return config.getOptional("kap.kerberos.keytab", "");
+    }
+
+    public String getKerberosKeytabPath() {
+        return KylinConfig.getKylinConfDir() + File.separator + getKerberosKeytab();
+    }
+
+    public String getKerberosZKPrincipal() {
+        return config.getOptional("kap.kerberos.zookeeper.server.principal", "zookeeper/hadoop");
+    }
+
+    public Long getKerberosTicketRefreshInterval() {
+        return Long.valueOf(config.getOptional("kap.kerberos.ticket.refresh.interval.minutes", "720"));
+    }
+
+    public Long getKerberosMonitorInterval() {
+        return Long.valueOf(config.getOptional("kap.kerberos.monitor.interval.minutes", "10"));
+    }
+
+    public String getKerberosPlatform() {
+        return config.getOptional("kap.kerberos.platform", "");
+    }
+
+    public String getKerberosKrb5Conf() {
+        return config.getOptional("kap.kerberos.krb5.conf", "");
+    }
+
+    public String getKerberosKrb5ConfPath() {
+        return KylinConfig.getKylinConfDir() + File.separator + getKerberosKrb5Conf();
+    }
+
+    public String getKerberosPrincipal() {
+        return config.getOptional("kap.kerberos.principal");
+    }
+
 }
