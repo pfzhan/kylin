@@ -44,7 +44,7 @@ import org.apache.spark.sql.execution.datasource.CubeRelation
 import org.apache.spark.sql.execution.utils.SchemaProcessor
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.manager.SparderLookupManager
-import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, DoubleType, StructField, StructType}
 import org.apache.spark.sql.util.SparderTypeUtil
 import org.apache.spark.sql.{DataFrame, _}
 
@@ -216,7 +216,17 @@ object TableScanPlan extends Logging {
         // for TopN, the aggr must be SUM
         val sumFunc = FunctionDesc.newInstance(FunctionDesc.FUNC_SUM,
           ParameterDesc.newInstance(numericCol), numericCol.getType.toString)
-        tupleInfo.getFieldIndex(sumFunc.getRewriteFieldName)
+        val refs = tupleInfo.getAllColumns.asScala.filter(_.getTableRef == null)
+        if (refs.nonEmpty) {
+          // only has topn measure
+          if (refs.size > 1 && refs.head.getName.contains("SUM")) {
+            throw new IllegalArgumentException(s"More than 1 unknow model column." +
+              s" Please add measure SUM(${sumFunc.getParameter.getColRef.getName})")
+          }
+          tupleInfo.getFieldIndex(tupleInfo.getAllColumns.asScala.filter(_.getTableRef == null).head.getName)
+        } else {
+          tupleInfo.getFieldIndex(sumFunc.getRewriteFieldName)
+        }
       } else {
         val countFunction = FunctionDesc.newInstance(FunctionDesc.FUNC_COUNT,
           ParameterDesc.newInstance("1"), "bigint")
@@ -233,7 +243,7 @@ object TableScanPlan extends Logging {
 
     val sumCol = tupleInfo.getAllColumns.get(numericTupleIdx)
     val sumColName = s"A_SUM_${sumCol.getName}_$numericTupleIdx"
-    val measureSchema = StructField(sumColName, SparderTypeUtil.toSparkType(sumCol.getType))
+    val measureSchema = StructField(sumColName, DoubleType)
     // flatten schema.
     val newSchema = StructType(df.schema.filter(_.name != topNField.get.name)
       ++ dimWithType.map(tp => StructField(tp._1, tp._2)).+:(measureSchema))
