@@ -23,9 +23,6 @@
  */
 package io.kyligence.kap.rest.service;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
-import io.kyligence.kap.metadata.model.MaintainModelType;
-import io.kyligence.kap.rest.storage.ModelCleaner;
 import org.apache.kylin.common.KylinConfig;
 import org.apache.kylin.metadata.project.ProjectInstance;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -34,11 +31,14 @@ import org.springframework.stereotype.Service;
 import com.google.common.collect.Lists;
 
 import io.kyligence.kap.common.persistence.transaction.UnitOfWork;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.project.NProjectManager;
 import io.kyligence.kap.rest.storage.DataflowCleaner;
 import io.kyligence.kap.rest.storage.FavoriteQueryCleaner;
 import io.kyligence.kap.rest.storage.GarbageCleaner;
+import io.kyligence.kap.rest.storage.ModelCleaner;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -82,8 +82,8 @@ public class MetadataCleanupService {
             // clean checkBrokenWithRelatedInfo model only when project's maintainModelType is AUTO_MAINTAIN
             for (NDataModel model : dfManager.listUnderliningDataModels(true)) {
                 brokenModelCleaner.collect(model);
-                brokenModelCleaner.cleanup();
             }
+            brokenModelCleaner.cleanup();
             return 0;
         }, project.getName());
     }

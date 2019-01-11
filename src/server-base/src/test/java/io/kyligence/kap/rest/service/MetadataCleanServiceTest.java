@@ -27,8 +27,6 @@ import java.io.IOException;
 import java.util.HashSet;
 import java.util.stream.Collectors;
 
-import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
-import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import org.apache.kylin.rest.service.ServiceTestBase;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -43,10 +41,13 @@ import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NDataLayout;
 import io.kyligence.kap.metadata.cube.model.NDataSegment;
 import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQuery;
+import io.kyligence.kap.metadata.favorite.FavoriteQueryManager;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryRealization;
 import io.kyligence.kap.metadata.favorite.FavoriteQueryStatusEnum;
 import io.kyligence.kap.metadata.model.NDataModelManager;
+import io.kyligence.kap.metadata.project.NProjectManager;
 import lombok.val;
 import lombok.extern.slf4j.Slf4j;
 
@@ -175,6 +176,15 @@ public class MetadataCleanServiceTest extends ServiceTestBase {
         Assert.assertNull(cube.getCuboidLayout(40001L));
         Assert.assertFalse(cube.getCuboidLayout(IndexEntity.TABLE_INDEX_START_ID + 40001L).isAuto());
         Assert.assertEquals(9, cube.getAllLayouts().size());
+    }
+
+    @Test
+    public void testCleanupBroken() throws Exception {
+        val projectName = "broken_test";
+        val project = NProjectManager.getInstance(getTestConfig()).getProject(projectName);
+        gcService.cleanupProject(project);
+        val dataflowManager = NDataflowManager.getInstance(getTestConfig(), projectName);
+        Assert.assertEquals(0, dataflowManager.listUnderliningDataModels(true).size());
     }
 
 }
