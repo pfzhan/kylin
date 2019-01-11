@@ -4,7 +4,7 @@ export function accelerationDrama () {
     {
       eventID: 8,
       done: false,
-      router: 'FavoriteQuery', // 跳转到加速页面
+      router: 'Acceleration', // 跳转到加速页面
       tip: 'speedTipAuto'
     },
     {

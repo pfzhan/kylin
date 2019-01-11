@@ -254,7 +254,7 @@ export default class Dashboard extends Vue {
   dateUnit = 'day'
   unitOptions = ['day', 'week', 'month']
   gotoQueryHistory () {
-    this.$router.push('/query/query_history')
+    this.$router.push('/query/queryhistory')
   }
   gotoJoblist () {
     this.$router.push('/monitor/job')
@@ -263,7 +263,7 @@ export default class Dashboard extends Vue {
     this.$router.push('/setting')
   }
   gotoFavorite () {
-    this.$router.push('/studio/favorite_query')
+    this.$router.push('/studio/acceleration')
   }
   resetShow () {
     this.showQueryChart = false

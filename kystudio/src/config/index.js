@@ -41,8 +41,8 @@ export const menusData = [
     path: '/query',
     icon: 'el-icon-ksd-insight',
     children: [
-      {name: 'insight', path: '/query/new_query'},
-      {name: 'queryhistory', path: '/query/query_history'}
+      {name: 'insight', path: '/query/insight'},
+      {name: 'queryhistory', path: '/query/queryhistory'}
     ]
   },
   {
@@ -51,7 +51,7 @@ export const menusData = [
     icon: 'el-icon-ksd-studio',
     children: [
       { name: 'source', path: '/studio/source' },
-      {name: 'favoritequery', path: '/studio/favorite_query'},
+      {name: 'acceleration', path: '/studio/acceleration'},
       { name: 'model', path: '/studio/model' }
     ]
   },

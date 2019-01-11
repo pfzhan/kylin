@@ -27,7 +27,7 @@
                     <template v-if="child.name !== 'model'">
                       <span style="position:relative;">
                         {{$t('kylinLang.menu.' + child.name)}}
-                        <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'favorite_query'"></span>
+                        <span id="favo-menu-item" v-if="item.name === 'query' && child.name === 'acceleration'"></span>
                       </span>
                     </template>
                     <template v-else>

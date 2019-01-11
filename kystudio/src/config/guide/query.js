@@ -107,7 +107,7 @@ export function queryDrama () {
     {
       eventID: 8,
       done: false,
-      router: 'NewQuery', // 跳转到query页面
+      router: 'Insight', // 跳转到query页面
       group: 1
     },
     // ...batchRequest(sqls),

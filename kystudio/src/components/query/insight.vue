@@ -1,6 +1,6 @@
 <template>
   <div id="newQuery" v-guide.queryBox>
-    <div class="table-layout clearfix"> 
+    <div class="table-layout clearfix">
       <div class="layout-left">
         <DataSourceBar
           :project-name="currentSelectedProject"

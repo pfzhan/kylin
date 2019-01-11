@@ -5,9 +5,9 @@ import topLeftRightView from 'components/layout/layout_left_right_top'
 import layoutFull from 'components/layout/layout_full'
 import projectList from 'components/project/project_list'
 import login from 'components/user/login'
-import newQuery from 'components/query/new_query'
+import Insight from 'components/query/insight'
 import queryHistory from 'components/query/query_history'
-import favoriteQuery from 'components/query/favorite_query'
+import Acceleration from 'components/studio/Acceleration/acceleration'
 import dashboard from 'components/dashboard'
 import messages from 'components/messages'
 import jobs from 'components/monitor/jobs'
@@ -55,9 +55,9 @@ let routerOptions = {
         path: 'studio/source',
         component: () => import('../components/studio/StudioSource/index.vue')
       }, {
-        name: 'FavoriteQuery',
-        path: 'studio/favorite_query',
-        component: favoriteQuery
+        name: 'Acceleration',
+        path: 'studio/acceleration',
+        component: Acceleration
       }, {
         name: 'ModelList',
         path: 'studio/model',
@@ -97,13 +97,13 @@ let routerOptions = {
         component: jobs
       },
       {
-        name: 'NewQuery',
-        path: 'query/new_query',
-        component: newQuery
+        name: 'Insight',
+        path: 'query/insight',
+        component: Insight
       },
       {
         name: 'QueryHistory',
-        path: 'query/query_history',
+        path: 'query/queryhistory',
         component: queryHistory
       },
       // {

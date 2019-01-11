@@ -65,8 +65,8 @@
 import Vue from 'vue'
 import { Component } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
-import { handleSuccess, transToGmtTime, kapConfirm } from '../../util/business'
-import { handleError } from '../../util/index'
+import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
+import { handleError } from '../../../util/index'
 @Component({
   props: ['favoriteTableData', 'isAccelerated'],
   computed: {

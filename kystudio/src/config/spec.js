@@ -9,7 +9,7 @@ export default {
       { "id": "query", "value": "query", "title": "Query" },
       { "id": "insight", "value": "insight", "title": "Insight" },
       { "id": "queryHistory", "value": "queryhistory", "title": "Query History" },
-      { "id": "favoriteQuery", "value": "favoritequery", "title": "Favorite Query" },
+      { "id": "acceleration", "value": "acceleration", "title": "Favorite Query" },
       { "id": "studio", "value": "studio", "title": "Studio" },
       { "id": "setting", "value": "setting", "title": "setting" },
       { "id": "source", "value": "source", "title": "Source" },
@@ -88,7 +88,7 @@ export default {
     "menu": {
       "keyPattern": "groupRole-projectRole-menu",
       "entries": [
-        { "key": "systemAdmin-*-[project,user,group,groupDetail]", "value": "dashboard,query,insight,queryHistory,favoriteQuery,studio,setting,source,model,index,modelEdit,monitor,job" },
+        { "key": "systemAdmin-*-[project,user,group,groupDetail]", "value": "dashboard,query,insight,queryHistory,acceleration,studio,setting,source,model,index,modelEdit,monitor,job" },
         { "key": "systemAdmin-*-*", "value": "project,user,group,groupDetail" },
         { "key": "systemUser-*-*", "value": "admin,project,group,groupDetail,user" }
       ]

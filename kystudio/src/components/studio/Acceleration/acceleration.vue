@@ -13,11 +13,11 @@
         </div>
       </div>
       <div v-if="showGif">
-        <img src="../../assets/img/merge1.gif" width="735px" alt=""><img src="../../assets/img/acc_light.png" class="ksd-ml-10" width="85px" alt="">
+        <img src="../../../assets/img/merge1.gif" width="735px" alt=""><img src="../../../assets/img/acc_light.png" class="ksd-ml-10" width="85px" alt="">
         <!-- <img src="../../assets/img/acc_01.gif" width="245px" alt=""><img src="../../assets/img/acc_02.gif" width="245px" alt=""><img src="../../assets/img/acc_03.gif" width="245px" height="48px" alt=""> -->
       </div>
       <div v-else>
-        <img src="../../assets/img/bg1.jpg" width="735px" alt=""><img src="../../assets/img/acc_light.png" class="ksd-ml-10" width="85px" alt="">
+        <img src="../../../assets/img/bg1.jpg" width="735px" alt=""><img src="../../../assets/img/acc_light.png" class="ksd-ml-10" width="85px" alt="">
         <!-- <img src="../../assets/img/acc_01.jpg" width="245px" alt=""><img src="../../assets/img/acc_02.jpg" width="245px" alt=""><img src="../../assets/img/acc_03.jpg" width="245px" height="48px" alt=""> -->
       </div>
       <div class="btn-groups ksd-mt-10">
@@ -34,12 +34,12 @@
       <el-tabs v-model="activeList" @tab-click="handleClick">
         <el-tab-pane name="wartingAcce">
           <span slot="label">{{$t('waitingList')}}({{unAcceListSize}})</span>
-          <favorite_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" v-on:filterFav="filterFav"></favorite_table>
+          <acceleration_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" v-on:filterFav="filterFav"></acceleration_table>
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
         <el-tab-pane name="accelerated">
           <span slot="label">{{$t('accelerated')}}({{patternNum}})</span>
-          <favorite_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" v-on:filterFav="filterFav" :isAccelerated="true"></favorite_table>
+          <acceleration_table :favoriteTableData="favQueList.favorite_queries" :sortTable="sortFavoriteList" v-on:filterFav="filterFav" :isAccelerated="true"></acceleration_table>
           <kap-pager ref="favoriteQueryPager" class="ksd-center ksd-mt-20 ksd-mb-20" :totalSize="favQueList.size"  v-on:handleCurrentChange='pageCurrentChange'></kap-pager>
         </el-tab-pane>
       </el-tabs>
@@ -52,7 +52,7 @@
       class="importSqlDialog">
       <span slot="title" class="ky-list-title">{{$t('importSql')}}</span>
       <div class="upload-block" v-if="!isUploaded">
-        <img src="../../assets/img/license.png" alt="" v-show="!uploadItems.length">
+        <img src="../../../assets/img/license.png" alt="" v-show="!uploadItems.length">
         <div class="ksd-mt-10 text" v-show="!uploadItems.length">{{$t('pleImport')}}</div>
         <el-upload
           ref="sqlUpload"
@@ -189,7 +189,7 @@
         </el-col>
       </el-row>
       <div class="ksd-null-pic-text" v-if="blackSqlData&&!blackSqlData.size">
-        <img  src="../../assets/img/no_data.png" />
+        <img  src="../../../assets/img/no_data.png" />
         <p>{{$t('kylinLang.common.noData')}}</p>
       </div>
       <span slot="footer" class="dialog-footer">
@@ -286,9 +286,9 @@ import Vue from 'vue'
 import { Component, Watch } from 'vue-property-decorator'
 import { mapActions, mapGetters } from 'vuex'
 import $ from 'jquery'
-import { handleSuccessAsync, handleError } from '../../util/index'
-import { handleSuccess, transToGmtTime, kapConfirm } from '../../util/business'
-import favoriteTable from './favorite_table'
+import { handleSuccessAsync, handleError } from '../../../util/index'
+import { handleSuccess, transToGmtTime, kapConfirm } from '../../../util/business'
+import accelerationTable from './acceleration_table'
 @Component({
   methods: {
     transToGmtTime: transToGmtTime,
@@ -315,7 +315,7 @@ import favoriteTable from './favorite_table'
     ])
   },
   components: {
-    'favorite_table': favoriteTable
+    'acceleration_table': accelerationTable
   },
   locales: {
     'en': {
@@ -1081,7 +1081,7 @@ export default class FavoriteQuery extends Vue {
 </script>
 
 <style lang="less">
-  @import '../../assets/styles/variables.less';
+  @import '../../../assets/styles/variables.less';
   #favoriteQuery {
     padding: 0px 20px 50px 20px;
     .table-title {

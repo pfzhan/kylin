@@ -2,7 +2,7 @@
   <div id="queryHistoryTable">
     <div class="clearfix ksd-mb-10">
       <div class="btn-group ksd-fleft">
-        <div class="ksd-title-label ksd-mt-10">{{$t('kylinLang.menu.query_history')}}</div>
+        <div class="ksd-title-label ksd-mt-10">{{$t('kylinLang.menu.queryhistory')}}</div>
       </div>
       <div class="ksd-fright ksd-inline searchInput ksd-ml-10">
         <el-input v-model="filterData.sql" @input="onSqlFilterChange" prefix-icon="el-icon-search" :placeholder="$t('kylinLang.common.search')+$t('kylinLang.query.sqlContent_th')" size="medium"></el-input>
