@@ -9,11 +9,17 @@ export function bindRouterGuard (router) {
     ElementUI.Message.closeAll() // 切换路由的时候关闭message
     store.state.config.showLoadingBox = false // 切换路由的时候关闭全局loading
     if (to.matched && to.matched.length) {
-      store.state.config.layoutConfig.gloalProjectSelectShow = to.name !== 'Overview'
+      store.state.config.layoutConfig.gloalProjectSelectShow = to.name !== 'Dashboard'
       // 确保在非点击菜单的路由跳转下还能够正确定位到指定的active name
       menusData.forEach((menu) => {
         if (menu.name.toLowerCase() === to.name.toLowerCase()) {
           store.state.config.routerConfig.currentPathName = menu.path
+        } else if (menu.children) {
+          menu.children.forEach((subMenu) => {
+            if (subMenu.name.toLowerCase() === to.name.toLowerCase()) {
+              store.state.config.routerConfig.currentPathName = subMenu.path
+            }
+          })
         }
       })
       let prepositionRequest = () => {
