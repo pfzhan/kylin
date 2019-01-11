@@ -1274,7 +1274,7 @@ export default class ModelEdit extends Vue {
           }
         }
         if (!(data.all_named_columns && data.all_named_columns.length)) {
-          this._tipNoDimension().then(() => {
+          this._tipNoDimension(data).then(() => {
             _saveFunc()
           }).catch(() => {
             this.$emit('saveRequestEnd')
@@ -1290,9 +1290,14 @@ export default class ModelEdit extends Vue {
       })
     })
   }
-  _tipNoDimension () {
-    let tipContent = this.$t('noDimensionTipContent')
-    let tipTitle = this.$t('noDimensionTipTitle')
+  _tipNoDimension (data) {
+    // 判断是 无dimension 和 measure 都无的情况 还是 只是没有dimension的情况
+    let tipContent = this.$t('noDimensionAndMeasureTipContent')
+    let tipTitle = this.$t('noDimensionAndMeasureTipTitle')
+    if (data && data.simplified_measures && data.simplified_measures.length) {
+      tipContent = this.$t('noDimensionTipContent')
+      tipTitle = this.$t('noDimensionTipTitle')
+    }
     let saveBtnWord = this.$t('noDimensionGoOnSave')
     let cancelBtnWord = this.$t('noDimensionBackEdit')
     return this.$confirm(tipContent, tipTitle, {
