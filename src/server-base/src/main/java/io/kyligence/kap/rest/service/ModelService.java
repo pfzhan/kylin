@@ -40,6 +40,7 @@ import com.google.common.base.Preconditions;
 import io.kyligence.kap.metadata.cube.model.IndexPlan;
 import io.kyligence.kap.metadata.cube.model.LayoutEntity;
 import io.kyligence.kap.metadata.cube.model.NIndexPlanManager;
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import io.kyligence.kap.rest.storage.ModelCleaner;
 import io.kyligence.kap.metadata.model.MaintainModelType;
 import io.kyligence.kap.rest.request.ModelConfigRequest;
@@ -237,6 +238,7 @@ public class ModelService extends BasicService {
 
     private NDataModelResponse enrichModelResponse(NDataModel modelDesc, String projectName) {
         NDataModelResponse nDataModelResponse = new NDataModelResponse(modelDesc);
+        nDataModelResponse.setAllTableRefs(modelDesc.getAllTables());
         if (modelDesc.getManagementType().equals(ManagementType.MODEL_BASED)) {
             Segments<NDataSegment> segments = getSegmentsByRange(modelDesc.getUuid(), projectName, "0",
                     "" + Long.MAX_VALUE);
@@ -1315,5 +1317,20 @@ public class ModelService extends BasicService {
         if (CollectionUtils.isNotEmpty(models)) {
             models.forEach(modelId -> getDataModelManager(project).reload(modelId));
         }
+    }
+
+    public ExistedDataRangeResponse getLatestDataRange(String project, String table, String column, String modelId) throws Exception {
+        Pair<String, String> pushdownResult = new Pair<>();
+        if (StringUtils.isNotEmpty(modelId)) {
+            val df = getDataflowManager(project).getDataflow(modelId);
+            pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, modelId);
+            pushdownResult.setFirst(PushDownUtil.calcStart(pushdownResult.getFirst(), df.getCoveredRange()));
+        } else {
+            val maxAndMin = PushDownUtil.getMaxAndMinTime(column, table);
+            val dateFormat = DateFormat.proposeDateFormat(maxAndMin.getFirst());
+            pushdownResult.setFirst(DateFormat.getFormattedDate(maxAndMin.getFirst(), dateFormat));
+            pushdownResult.setSecond(DateFormat.getFormattedDate(maxAndMin.getSecond(), dateFormat));
+        }
+        return new ExistedDataRangeResponse(pushdownResult.getFirst(), pushdownResult.getSecond());
     }
 }

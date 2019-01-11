@@ -64,6 +64,8 @@ public class NDataModelResponse extends NDataModel {
 
     public NDataModelResponse(NDataModel dataModel) {
         super(dataModel);
+        this.setConfig(dataModel.getConfig());
+        this.setProject(dataModel.getProject());
     }
 
     @JsonProperty("all_named_columns")

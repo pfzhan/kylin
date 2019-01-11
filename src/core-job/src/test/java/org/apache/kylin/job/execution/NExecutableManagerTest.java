@@ -146,6 +146,21 @@ public class NExecutableManagerTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    public void testDropJobSuicidal() {
+        BaseTestExecutable executable = new SucceedTestExecutable();
+        executable.setParam("test1", "test1");
+        executable.setParam("test2", "test2");
+        executable.setParam("test3", "test3");
+        executable.setProject("default");
+        manager.addJob(executable);
+        manager.updateJobOutput(executable.getId(), ExecutableState.RUNNING, null, null);
+        manager.updateJobOutput(executable.getId(), ExecutableState.SUICIDAL, null, null);
+        manager.deleteJob(executable.getId());
+        List<AbstractExecutable> executables = manager.getAllExecutables();
+        Assert.assertTrue(!executables.contains(executable));
+    }
+
+    @Test
     public void testDiscardAndDropJob() throws IOException, InterruptedException {
         BaseTestExecutable executable = new SucceedTestExecutable();
         executable.setParam("test1", "test1");

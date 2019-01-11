@@ -64,6 +64,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Nullable;
 
+import io.kyligence.kap.rest.response.ExistedDataRangeResponse;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
@@ -830,6 +831,8 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     @Test
     public void testCreateModelAndBuildManully() throws Exception {
         setupPushdownEnv();
+        testGetLatestData();
+        testGetLatestDataWhenCreateModel();
         testCreateModel_PartitionNotNull();
         testBuildSegmentsManually_WithPushDown();
         testCreateModel_PartitionNotNull_WithStartAndEnd();
@@ -838,6 +841,16 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
         testChangePartitionDesc_OriginModelNoPartition();
         testChangePartitionDesc_NewModelNoPartitionColumn();
         cleanPushdownEnv();
+    }
+
+    private void testGetLatestData() throws Exception {
+        ExistedDataRangeResponse response = modelService.getLatestDataRange("default", "", "", "89af4ee2-2cdb-4b07-b39e-4c29856309aa");
+        Assert.assertEquals("1388534400000", response.getEndTime());
+    }
+
+    private void testGetLatestDataWhenCreateModel() throws Exception {
+        ExistedDataRangeResponse response = modelService.getLatestDataRange("default", "DEFAULT.TEST_KYLIN_FACT", "CAL_DT", "");
+        Assert.assertEquals("1388534400000", response.getEndTime());
     }
 
     public void testChangePartitionDesc() throws Exception {

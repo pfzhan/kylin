@@ -144,7 +144,7 @@ public class NExecutableManager {
     public void deleteJob(String jobId) {
         AbstractExecutable executable = getJob(jobId);
         ExecutableState status = executable.getStatus();
-        if (!status.equals(ExecutableState.SUCCEED) && !status.equals(ExecutableState.DISCARDED)) {
+        if (!status.equals(ExecutableState.SUCCEED) && !status.equals(ExecutableState.DISCARDED) && !status.equals(ExecutableState.SUICIDAL)) {
             throw new IllegalStateException(
                     "Cannot drop running job " + executable.getName() + ", please discard it first.");
         }

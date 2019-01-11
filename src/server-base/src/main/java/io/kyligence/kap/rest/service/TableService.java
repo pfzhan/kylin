@@ -499,17 +499,10 @@ public class TableService extends BasicService {
 
     public ExistedDataRangeResponse getLatestDataRange(String project, String table) throws Exception {
         NDataLoadingRange dataLoadingRange = getDataLoadingRange(project, table);
-        String lastEnd;
         Pair<String, String> pushdownResult = getMaxAndMinTimeInPartitionColumnByPushdown(project, table);
+        val start = PushDownUtil.calcStart(pushdownResult.getFirst(), dataLoadingRange.getCoveredRange());
+        return new ExistedDataRangeResponse(start, pushdownResult.getSecond());
 
-        if (dataLoadingRange.getCoveredRange() != null)
-            lastEnd = dataLoadingRange.getCoveredRange().getEnd().toString();
-        else
-            lastEnd = pushdownResult.getFirst();
-
-        String currentMaxTime = pushdownResult.getSecond();
-
-        return new ExistedDataRangeResponse(lastEnd, currentMaxTime);
     }
 
     public Pair<String, String> getMaxAndMinTimeInPartitionColumnByPushdown(String project, String table)

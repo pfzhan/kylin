@@ -123,6 +123,17 @@ public class NModelController extends NBasicController {
         return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, null, "");
     }
 
+    @RequestMapping(value = "/data_range/latest_data", method = {RequestMethod.GET}, produces = {
+            "application/vnd.apache.kylin-v2+json"})
+    @ResponseBody
+    public EnvelopeResponse getLatestData(@RequestParam(value = "project") String project,
+                                          @RequestParam(value = "table", required = false) String table,
+                                          @RequestParam(value = "partitionColumn", required = false) String column,
+                                          @RequestParam(value = "model", required = false) String modelId) throws Exception {
+        checkProjectName(project);
+        return new EnvelopeResponse(ResponseCode.CODE_SUCCESS, modelService.getLatestDataRange(project, table, column, modelId), "");
+    }
+
     @RequestMapping(value = "/segments", method = RequestMethod.GET, produces = {
             "application/vnd.apache.kylin-v2+json" })
     @ResponseBody
