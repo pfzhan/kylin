@@ -882,8 +882,8 @@ public class NDataModel extends RootPersistentEntity {
             int id = e.getKey();
             T value = e.getValue();
             if (reverseMap.containsKey(value)) {
-                throw new IllegalStateException("Illegal model '" + id + "', " + value + " has duplicated ID: "
-                        + reverseMap.get(value) + " and " + id);
+                throw new IllegalStateException(String.format("Illegal model '%d', %s has duplicated ID: %s and %d", id,
+                        value, reverseMap.get(value), id));
             }
             reverseMap.put(value, id);
         }
@@ -933,8 +933,9 @@ public class NDataModel extends RootPersistentEntity {
                 countNum++;
         }
         if (countNum != 1)
-            throw new IllegalStateException("Illegal model '" + uuid
-                    + "', should have one and only one COUNT() measure but there are " + countNum);
+            throw new IllegalStateException(
+                    String.format("Illegal model '%s', should have one and only one COUNT() measure but there are %d",
+                            uuid, countNum));
 
         // check all measure columns are effective
         for (MeasureDesc m : effectiveMeasures.values()) {
@@ -942,8 +943,9 @@ public class NDataModel extends RootPersistentEntity {
             if (effectiveCols.values().containsAll(mCols) == false) {
                 List<TblColRef> notEffective = new ArrayList<>(mCols);
                 notEffective.removeAll(effectiveCols.values());
-                throw new IllegalStateException("Illegal model '" + uuid + "', some columns referenced in " + m
-                        + " is not on model: " + notEffective);
+                throw new IllegalStateException(
+                        String.format("Illegal model '%s', some columns referenced in %s is not on model: %s", uuid, m,
+                                notEffective));
             }
         }
     }

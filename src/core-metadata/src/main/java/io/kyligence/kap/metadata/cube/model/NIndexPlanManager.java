@@ -202,9 +202,9 @@ public class NIndexPlanManager implements IKeepNames {
 
         val dataflowManager = NDataflowManager.getInstance(config, project);
         val dataflow = dataflowManager.getDataflow(indexPlan.getUuid());
-        if (dataflow != null && dataflow.getLastSegment() != null) {
+        if (dataflow != null && dataflow.getLatestReadySegment() != null) {
             val livedIds = indexPlan.getAllLayouts().stream().map(LayoutEntity::getId).collect(Collectors.toSet());
-            val layoutIds = Sets.newHashSet(dataflow.getLastSegment().getLayoutsMap().keySet());
+            val layoutIds = Sets.newHashSet(dataflow.getLatestReadySegment().getLayoutsMap().keySet());
             layoutIds.removeAll(livedIds);
             dataflowManager.removeLayouts(dataflow, layoutIds);
         }

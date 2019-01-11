@@ -83,7 +83,8 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
     private boolean assertProjectFolder(File projectFolder) {
         Assertions.assertThat(projectFolder.list()).containsOnlyOnce("project.json").containsAnyOf("dataflow",
                 "dataflow_details", "cube_plan", "model_desc", "table");
-        Assertions.assertThat(projectFolder.listFiles()).filteredOn(f -> !f.getName().equals("project.json"))
+        Assertions.assertThat(projectFolder.listFiles())
+                .filteredOn(f -> !f.getName().equals("project.json") && !f.getName().startsWith("."))
                 .allMatch(f -> f.listFiles().length > 0);
 
         return true;
@@ -161,7 +162,6 @@ public class MetadataToolTest extends NLocalFileMetadataTestCase {
 
     private void assertBeforeRestoreTest() {
         val dataModelMgr = NDataModelManager.getInstance(KylinConfig.getInstanceFromEnv(), "default");
-
 
         val dataModel1 = dataModelMgr.getDataModelDescByAlias("nmodel_basic");
         Assertions.assertThat(dataModel1).isNotNull().hasFieldOrPropertyWithValue("owner", "who")

@@ -32,7 +32,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import io.kyligence.kap.metadata.cube.model.NDataLayout;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
+import io.kyligence.kap.metadata.cube.model.NDataflowUpdate;
 import org.apache.kylin.common.KylinConfig;
+import org.apache.kylin.metadata.model.SegmentRange;
+import org.apache.kylin.metadata.model.SegmentStatusEnum;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -112,6 +118,42 @@ public class NIndexPlanManagerTest {
         cube = manager.getIndexPlan(cubeName);
         Assert.assertNull(cube);
         Assert.assertEquals(cntBeforeCreate, manager.listAllIndexPlans().size());
+    }
+
+    @Test
+    public void testRemoveLayouts_cleanupDataflow() {
+        val config = KylinConfig.getInstanceFromEnv();
+        val manager = NIndexPlanManager.getInstance(config, DEFAULT_PROJECT);
+        var indexPlan = manager.getIndexPlan("741ca86a-1f13-46da-a59f-95fb68615e3a");
+        val dfManager = NDataflowManager.getInstance(config, DEFAULT_PROJECT);
+        var df = dfManager.getDataflow(indexPlan.getId());
+
+        val update = new NDataflowUpdate(df.getUuid());
+        update.setToRemoveSegs(df.getSegments().toArray(new NDataSegment[0]));
+        dfManager.updateDataflow(update);
+
+        val seg1 = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-01-01"), SegmentRange.dateToLong("" + "2012-02-01")));
+        val seg2 = dfManager.appendSegment(df, new SegmentRange.TimePartitionedSegmentRange(
+                SegmentRange.dateToLong("2012-02-01"), SegmentRange.dateToLong("" + "2012-03-01")));
+
+        val update2 = new NDataflowUpdate(df.getUuid());
+        seg1.setStatus(SegmentStatusEnum.READY);
+        update2.setToUpdateSegs(seg1);
+        update2.setToAddOrUpdateCuboids(NDataLayout.newDataLayout(df, seg1.getId(), 1L),
+                NDataLayout.newDataLayout(df, seg1.getId(), 10001L),
+                NDataLayout.newDataLayout(df, seg1.getId(), 10002L));
+        dfManager.updateDataflow(update2);
+
+        manager.updateIndexPlan(indexPlan.getId(), copyForWrite -> {
+            copyForWrite.removeLayouts(Sets.newHashSet(10001L, 10002L), LayoutEntity::equals, true, true);
+        });
+
+        df = dfManager.getDataflow(indexPlan.getId());
+        Assert.assertNotNull(df.getSegment(seg1.getId()).getLayoutsMap().get(1L));
+        Assert.assertNull(df.getSegment(seg1.getId()).getLayoutsMap().get(10001L));
+        Assert.assertNull(df.getSegment(seg1.getId()).getLayoutsMap().get(10002L));
+        Assert.assertEquals(0, df.getSegment(seg2.getId()).getLayoutsMap().size());
     }
 
     @Test
