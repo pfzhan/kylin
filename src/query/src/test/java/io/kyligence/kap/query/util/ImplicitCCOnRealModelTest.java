@@ -51,6 +51,7 @@ package io.kyligence.kap.query.util;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.common.util.NLocalFileMetadataTestCase;
@@ -77,7 +78,7 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
         {
             String originSql = "select count(*), sum (price * item_count) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID"
                     + " left join test_account a on o.buyer_id = a.account_id group by ACCOUNT_COUNTRY";
-            String ccSql = "select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on o.buyer_id = a.account_id group by ACCOUNT_COUNTRY";
+            String ccSql = "select count(*), sum (F._CC_DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on o.buyer_id = a.account_id group by ACCOUNT_COUNTRY";
 
             check(converter, originSql, ccSql);
 
@@ -86,7 +87,7 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
         {
             String originSql = "select count(*), sum (price * item_count) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID"
                     + " left join test_account a on o.buyer_id = a.account_id group by ACCOUNT_COUNTRY order by sum(price * item_count)";
-            String ccSql = "select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on o.buyer_id = a.account_id group by ACCOUNT_COUNTRY order by sum(F.DEAL_AMOUNT)";
+            String ccSql = "select count(*), sum (F._CC_DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on o.buyer_id = a.account_id group by ACCOUNT_COUNTRY order by sum(F._CC_DEAL_AMOUNT)";
 
             check(converter, originSql, ccSql);
 
@@ -97,7 +98,7 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
                     + " left join test_account a on o.buyer_id = a.account_id group by ACCOUNT_COUNTRY" + " union"
                     + " select count(*), sum (price * item_count) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID"
                     + " left join test_account a on o.buyer_id = a.account_id group by ACCOUNT_COUNTRY";
-            String ccSql = "select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on o.buyer_id = a.account_id group by ACCOUNT_COUNTRY union select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on o.buyer_id = a.account_id group by ACCOUNT_COUNTRY";
+            String ccSql = "select count(*), sum (F._CC_DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on o.buyer_id = a.account_id group by ACCOUNT_COUNTRY union select count(*), sum (F._CC_DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on o.buyer_id = a.account_id group by ACCOUNT_COUNTRY";
             check(converter, originSql, ccSql);
 
         }
@@ -105,8 +106,8 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
         {
             String originSql = "select count(*), sum (price * item_count) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID"
                     + " left join test_account a on o.buyer_id = a.account_id group by substr(ACCOUNT_COUNTRY,0,1)";
-            String ccSql = "select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID"
-                    + " left join test_account a on o.buyer_id = a.account_id group by F.LEFTJOIN_BUYER_COUNTRY_ABBR";
+            String ccSql = "select count(*), sum (F._CC_DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID"
+                    + " left join test_account a on o.buyer_id = a.account_id group by F._CC_LEFTJOIN_BUYER_COUNTRY_ABBR";
             check(converter, originSql, ccSql);
 
         }
@@ -121,7 +122,7 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
             //buyer
             String originSql = "select count(*), sum (price * item_count) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID"
                     + " left join test_account a on o.buyer_id = a.account_id  left join test_country c on a.account_country = c.country group by concat(a.ACCOUNT_ID, c.NAME)";
-            String ccSql = "select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on o.buyer_id = a.account_id  left join test_country c on a.account_country = c.country group by F.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME";
+            String ccSql = "select count(*), sum (F._CC_DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on o.buyer_id = a.account_id  left join test_country c on a.account_country = c.country group by F._CC_LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME";
             check(converter, originSql, ccSql);
 
         }
@@ -130,7 +131,7 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
             //seller
             String originSql = "select count(*), sum (price * item_count) from test_kylin_fact f"
                     + " left join test_account a on f.seller_id = a.account_id  left join test_country c on a.account_country = c.country group by concat(a.ACCOUNT_ID, c.NAME)";
-            String ccSql = "select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f left join test_account a on f.seller_id = a.account_id  left join test_country c on a.account_country = c.country group by F.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME";
+            String ccSql = "select count(*), sum (F._CC_DEAL_AMOUNT) from test_kylin_fact f left join test_account a on f.seller_id = a.account_id  left join test_country c on a.account_country = c.country group by F._CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME";
             check(converter, originSql, ccSql);
 
         }
@@ -139,7 +140,7 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
             //seller, but swap join condition
             String originSql = "select count(*), sum (price * item_count) from test_kylin_fact f"
                     + " left join test_account a on f.seller_id = a.account_id  left join test_country c on country = account_country group by concat(a.ACCOUNT_ID, c.NAME)";
-            String ccSql = "select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f left join test_account a on f.seller_id = a.account_id  left join test_country c on country = account_country group by F.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME";
+            String ccSql = "select count(*), sum (F._CC_DEAL_AMOUNT) from test_kylin_fact f left join test_account a on f.seller_id = a.account_id  left join test_country c on country = account_country group by F._CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME";
             check(converter, originSql, ccSql);
 
         }
@@ -159,7 +160,7 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
                     + "     select count(*), sum (price * item_count) ,country from test_kylin_fact f2"
                     + "     left join test_account a2 on f2.seller_id = a2.account_id  left join test_country c2 on account_country = country group by concat(ACCOUNT_ID, NAME), country"
                     + ") s on s.country = c.country  group by concat(a.ACCOUNT_ID, c.NAME)";
-            String ccSql = "select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on o.buyer_id = a.account_id  left join test_country c on a.account_country = c.country left join edw.test_cal_dt dt on f.cal_dt = dt.cal_dt left join TEST_CATEGORY_GROUPINGS x on x.LEAF_CATEG_ID = f.LEAF_CATEG_ID and x.SITE_ID = f.LSTG_SITE_ID left join (      select count(*), sum (F2.DEAL_AMOUNT) ,country from test_kylin_fact f2     left join test_account a2 on f2.seller_id = a2.account_id  left join test_country c2 on account_country = country group by F2.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME, country) s on s.country = c.country  group by F.LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME";
+            String ccSql = "select count(*), sum (F._CC_DEAL_AMOUNT) from test_kylin_fact f left join test_order o on f.ORDER_ID = o.ORDER_ID left join test_account a on o.buyer_id = a.account_id  left join test_country c on a.account_country = c.country left join edw.test_cal_dt dt on f.cal_dt = dt.cal_dt left join TEST_CATEGORY_GROUPINGS x on x.LEAF_CATEG_ID = f.LEAF_CATEG_ID and x.SITE_ID = f.LSTG_SITE_ID left join (      select count(*), sum (F2._CC_DEAL_AMOUNT) ,country from test_kylin_fact f2     left join test_account a2 on f2.seller_id = a2.account_id  left join test_country c2 on account_country = country group by F2._CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME, country) s on s.country = c.country  group by F._CC_LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME";
 
             check(converter, originSql, ccSql);
 
@@ -167,28 +168,28 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
 
         {
             String originSql = "select count(*) from (select count(*), sum (price * item_count) from test_kylin_fact)";
-            String ccSql = "select count(*) from (select count(*), sum (TEST_KYLIN_FACT.DEAL_AMOUNT) from test_kylin_fact)";
+            String ccSql = "select count(*) from (select count(*), sum (TEST_KYLIN_FACT._CC_DEAL_AMOUNT) from test_kylin_fact)";
 
             check(converter, originSql, ccSql);
         }
 
         {
             String originSql = "select count(*) from (select count(*), sum (price * item_count) from test_kylin_fact) f";
-            String ccSql = "select count(*) from (select count(*), sum (TEST_KYLIN_FACT.DEAL_AMOUNT) from test_kylin_fact) f";
+            String ccSql = "select count(*) from (select count(*), sum (TEST_KYLIN_FACT._CC_DEAL_AMOUNT) from test_kylin_fact) f";
 
             check(converter, originSql, ccSql);
         }
 
         {
             String originSql = "select sum (price * item_count) from (select * from test_kylin_fact)";
-            String ccSql = "select sum (TEST_KYLIN_FACT.DEAL_AMOUNT) from (select * from test_kylin_fact)";
+            String ccSql = "select sum (TEST_KYLIN_FACT._CC_DEAL_AMOUNT) from (select * from test_kylin_fact)";
 
             check(converter, originSql, ccSql);
         }
 
         {
             String originSql = "select sum (price * item_count) from (select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01' union select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01') ff";
-            String ccSql = "select sum (TEST_KYLIN_FACT.DEAL_AMOUNT) from (select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01' union select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01') ff";
+            String ccSql = "select sum (TEST_KYLIN_FACT._CC_DEAL_AMOUNT) from (select * from TEST_KYLIN_FACT where CAL_DT < DATE '2012-06-01' union select * from TEST_KYLIN_FACT where CAL_DT > DATE '2013-06-01') ff";
 
             check(converter, originSql, ccSql);
         }
@@ -212,17 +213,17 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
                 + "     group by concat(ACCOUNT_ID, NAME), country"
                 + " ) s on s.country = c.country"
                 + " group by a.ACCOUNT_ID";
-        String ccSql = "select count(*), sum (F.DEAL_AMOUNT) from test_kylin_fact f"
+        String ccSql = "select count(*), sum (F._CC_DEAL_AMOUNT) from test_kylin_fact f"
                 + " left join test_order o on f.ORDER_ID = o.ORDER_ID"
                 + " left join test_account a on o.buyer_id = a.account_id "
                 + " left join test_country c on a.account_country = c.country"
                 + " left join edw.test_cal_dt dt on f.cal_dt = dt.cal_dt"
                 + " left join TEST_CATEGORY_GROUPINGS x on x.LEAF_CATEG_ID = f.LEAF_CATEG_ID and x.SITE_ID = f.LSTG_SITE_ID"
                 + " inner join ( "
-                + "     select count(*), sum (F2.DEAL_AMOUNT), country from test_kylin_fact f2"
+                + "     select count(*), sum (F2._CC_DEAL_AMOUNT), country from test_kylin_fact f2"
                 + "     left join test_account a2 on f2.seller_id = a2.account_id"
                 + "     left join test_country c2 on account_country = country"
-                + "     group by F2.LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME, country"
+                + "     group by F2._CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME, country"
                 + " ) s on s.country = c.country"
                 + " group by a.ACCOUNT_ID";
         check(converter, originSql, ccSql);
@@ -230,13 +231,14 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
     }
 
     @Test
+    @Ignore("Not support CC on Join condition")
     public void testJoinOnCC() {
         ConvertToComputedColumn converter = new ConvertToComputedColumn();
         {
             String originSql = "select count(*) from TEST_KYLIN_FACT\n"
                     + "left join TEST_ORDER on TEST_KYLIN_FACT.ORDER_ID + 1 = TEST_ORDER.ORDER_ID + 1";
             String ccSql = "select count(*) from TEST_KYLIN_FACT\n"
-                    + "left join TEST_ORDER on TEST_KYLIN_FACT.ORDER_ID_PLUS_1 = TEST_ORDER.ID_PLUS_1";
+                    + "left join TEST_ORDER on TEST_KYLIN_FACT._CC_ORDER_ID_PLUS_1 = TEST_ORDER._CC_ID_PLUS_1";
             check(converter, originSql, ccSql);
         }
 
@@ -245,8 +247,8 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
                     + "left join TEST_ORDER on TEST_KYLIN_FACT.ORDER_ID + 1 = TEST_ORDER.ORDER_ID + 1\n"
                     + "left join TEST_ACCOUNT on (CASE WHEN TRUE THEN TEST_ACCOUNT.ACCOUNT_ID ELSE 0 END) = (CASE WHEN TRUE THEN TEST_ORDER.BUYER_ID ELSE 0 END)\n";
             String ccSql = "select count(*) from TEST_KYLIN_FACT\n"
-                    + "left join TEST_ORDER on TEST_KYLIN_FACT.ORDER_ID_PLUS_1 = TEST_ORDER.ID_PLUS_1\n"
-                    + "left join TEST_ACCOUNT on (TEST_ACCOUNT.BUYER_ACCOUNT_CASE_WHEN) = (TEST_ORDER.ACCOUNT_CASE_WHEN)\n";
+                    + "left join TEST_ORDER on TEST_KYLIN_FACT._CC_ORDER_ID_PLUS_1 = TEST_ORDER._CC_ID_PLUS_1\n"
+                    + "left join TEST_ACCOUNT on (TEST_ACCOUNT._CC_BUYER_ACCOUNT_CASE_WHEN) = (TEST_ORDER._CC_ACCOUNT_CASE_WHEN)\n";
             check(converter, originSql, ccSql);
         }
 
@@ -256,9 +258,9 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
                     + "left join TEST_ACCOUNT on (CASE WHEN TRUE THEN TEST_ACCOUNT.ACCOUNT_ID ELSE 0 END) = (CASE WHEN TRUE THEN TEST_ORDER.BUYER_ID ELSE 0 END)\n"
                     + "left join TEST_COUNTRY on UPPER(TEST_ACCOUNT.ACCOUNT_COUNTRY) = TEST_COUNTRY.COUNTRY";
             String ccSql = "select count(*) from TEST_KYLIN_FACT\n"
-                    + "left join TEST_ORDER on TEST_KYLIN_FACT.ORDER_ID_PLUS_1 = TEST_ORDER.ID_PLUS_1\n"
-                    + "left join TEST_ACCOUNT on (TEST_ACCOUNT.BUYER_ACCOUNT_CASE_WHEN) = (TEST_ORDER.ACCOUNT_CASE_WHEN)\n"
-                    + "left join TEST_COUNTRY on TEST_ACCOUNT.COUNTRY_UPPER = TEST_COUNTRY.COUNTRY";
+                    + "left join TEST_ORDER on TEST_KYLIN_FACT._CC_ORDER_ID_PLUS_1 = TEST_ORDER._CC_ID_PLUS_1\n"
+                    + "left join TEST_ACCOUNT on (TEST_ACCOUNT._CC_BUYER_ACCOUNT_CASE_WHEN) = (TEST_ORDER._CC_ACCOUNT_CASE_WHEN)\n"
+                    + "left join TEST_COUNTRY on TEST_ACCOUNT._CC_COUNTRY_UPPER = TEST_COUNTRY.COUNTRY";
             check(converter, originSql, ccSql);
         }
     }
@@ -268,7 +270,7 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
         ConvertToComputedColumn converter = new ConvertToComputedColumn();
 
         String originSql = "select sum(price * item_count),(SELECT 1 as VERSION) from test_kylin_fact";
-        String ccSql = "select sum(TEST_KYLIN_FACT.DEAL_AMOUNT),(SELECT 1 as VERSION) from test_kylin_fact";
+        String ccSql = "select sum(TEST_KYLIN_FACT._CC_DEAL_AMOUNT),(SELECT 1 as VERSION) from test_kylin_fact";
 
         check(converter, originSql, ccSql);
     }
@@ -278,7 +280,7 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
         ConvertToComputedColumn converter = new ConvertToComputedColumn();
 
         String originSql = "select sum(price * item_count),(SELECT 1 FROM (VALUES(1))) from test_kylin_fact";
-        String ccSql = "select sum(TEST_KYLIN_FACT.DEAL_AMOUNT),(SELECT 1 FROM (VALUES(1))) from test_kylin_fact";
+        String ccSql = "select sum(TEST_KYLIN_FACT._CC_DEAL_AMOUNT),(SELECT 1 FROM (VALUES(1))) from test_kylin_fact";
 
         check(converter, originSql, ccSql);
     }
@@ -287,7 +289,7 @@ public class ImplicitCCOnRealModelTest extends NLocalFileMetadataTestCase {
     public void testNestedCC() {
         ConvertToComputedColumn converter = new ConvertToComputedColumn();
         
-        String ccSql = "select count(*), sum (F.NEST4) from test_kylin_fact F";
+        String ccSql = "select count(*), sum (F._CC_NEST4) from test_kylin_fact F";
 
         {
             String originSql = "select count(*), sum ((round((F.PRICE + 11) * 12, 0)) * F.ITEM_COUNT) from test_kylin_fact F";

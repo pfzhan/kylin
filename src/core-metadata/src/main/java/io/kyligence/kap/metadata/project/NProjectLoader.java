@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.kylin.metadata.model.ColumnDesc;
 import org.apache.kylin.metadata.model.ExternalFilterDesc;
 import org.apache.kylin.metadata.model.FunctionDesc;
@@ -49,6 +48,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.NTableMetadataManager;
 import io.kyligence.kap.metadata.model.util.ComputedColumnUtil;
@@ -113,7 +113,7 @@ class NProjectLoader {
 
             for (MeasureDesc m : r.getMeasures()) {
                 FunctionDesc func = m.getFunction();
-                if (belongToTable(table, r.getModel()) && (!onlyRewriteMeasure || func.needRewrite())) {
+                if (belongToFactTable(table, r.getModel()) && (!onlyRewriteMeasure || func.needRewrite())) {
                     result.add(m);
                 }
             }
@@ -126,7 +126,7 @@ class NProjectLoader {
         val dfMgr = NDataflowManager.getInstance(mgr.getConfig(), project);
         for (NDataModel r : dfMgr.listUnderliningDataModels()) {
             val computedColumns = ComputedColumnUtil.createComputedColumns(r.getComputedColumnDescs(), tableDesc);
-            if (belongToTable(tableDesc.getIdentity(), r)) {
+            if (belongToFactTable(tableDesc.getIdentity(), r)) {
                 result.addAll(Arrays.asList(computedColumns));
             }
         }
@@ -134,7 +134,7 @@ class NProjectLoader {
         return result;
     }
 
-    private boolean belongToTable(String table, NDataModel model) {
+    private boolean belongToFactTable(String table, NDataModel model) {
         // measure belong to the fact table
         return model.getRootFactTable().getTableIdentity().equals(table);
     }

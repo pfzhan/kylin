@@ -81,22 +81,33 @@ public class ExpressionComparator {
         protected boolean isSqlIdentifierEqual(SqlIdentifier querySqlIdentifier, SqlIdentifier exprSqlIdentifier) {
             Preconditions.checkState(exprSqlIdentifier.names.size() == 2);
             String queryAlias = null, queryCol = null;
-            if (querySqlIdentifier.names.size() == 1) {
-                queryCol = querySqlIdentifier.names.get(0);
-
-                queryAlias = aliasDeduce.deduceAlias(queryCol);
-            } else if (querySqlIdentifier.names.size() == 2) {
-                queryCol = querySqlIdentifier.names.get(1);
-                queryAlias = querySqlIdentifier.names.get(0);
+            if (querySqlIdentifier.isStar()) {
+                return exprSqlIdentifier.isStar();
+            } else if (exprSqlIdentifier.isStar()) {
+                return false;
             }
 
-            //translate user alias to alias in model
-            String modelAlias = aliasMapping.getAliasMapping().get(queryAlias);
-            Preconditions.checkNotNull(modelAlias);
-            Preconditions.checkNotNull(queryCol);
+            try {
+                if (querySqlIdentifier.names.size() == 1) {
+                    queryCol = querySqlIdentifier.names.get(0);
+                    queryAlias = aliasDeduce.deduceAlias(queryCol);
+                } else if (querySqlIdentifier.names.size() == 2) {
+                    queryCol = querySqlIdentifier.names.get(1);
+                    queryAlias = querySqlIdentifier.names.get(0);
+                }
 
-            return StringUtils.equals(modelAlias, exprSqlIdentifier.names.get(0))
-                    && StringUtils.equals(queryCol, exprSqlIdentifier.names.get(1));
+                //translate user alias to alias in model
+                String modelAlias = aliasMapping.getAliasMapping().get(queryAlias);
+                Preconditions.checkNotNull(modelAlias);
+                Preconditions.checkNotNull(queryCol);
+
+                return StringUtils.equals(modelAlias, exprSqlIdentifier.names.get(0))
+                        && StringUtils.equals(queryCol, exprSqlIdentifier.names.get(1));
+            } catch (NullPointerException | IllegalStateException e) {
+                logger.trace("met exception when doing expressions[{}, {}] comparison", querySqlIdentifier,
+                        exprSqlIdentifier, e);
+                return false;
+            }
         }
     }
 
@@ -108,7 +119,7 @@ public class ExpressionComparator {
             if (queryNode == null) {
                 return exprNode == null;
             }
-            
+
             if (exprNode == null) {
                 return false;
             }
@@ -152,7 +163,7 @@ public class ExpressionComparator {
                 return isSqlIdentifierEqual(thisNode, thatNode);
             }
 
-            if (queryNode instanceof SqlDataTypeSpec){
+            if (queryNode instanceof SqlDataTypeSpec) {
                 SqlDataTypeSpec thisNode = (SqlDataTypeSpec) queryNode;
                 SqlDataTypeSpec thatNode = (SqlDataTypeSpec) exprNode;
                 return isSqlDataTypeSpecEqual(thisNode, thatNode);

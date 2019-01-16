@@ -55,6 +55,8 @@ import lombok.Data;
 public class ComputedColumnDesc implements Serializable {
     private static final Logger logger = LoggerFactory.getLogger(ComputedColumnDesc.class);
 
+    private static final String CC_PREFIX = "_CC_";
+
     // the table identity DB.TABLE (ignoring alias) in the model where the computed column belong to
     // this field is more useful for frontend, for backend code, usage should be avoided
     @JsonProperty
@@ -118,6 +120,20 @@ public class ComputedColumnDesc implements Serializable {
                 }
             }
         }
+    }
+
+    public static String getOriginCcName(String ccNameWithPrefix) {
+        return ccNameWithPrefix.startsWith(ComputedColumnDesc.CC_PREFIX)
+                ? ccNameWithPrefix.replaceFirst(ComputedColumnDesc.CC_PREFIX, "")
+                : ccNameWithPrefix;
+    }
+
+    public static String getInternalCcName(String originCcName) {
+        return originCcName.startsWith(ComputedColumnDesc.CC_PREFIX) ? originCcName : CC_PREFIX + originCcName;
+    }
+
+    public String getInternalCcName() {
+        return ComputedColumnDesc.CC_PREFIX + columnName;
     }
 
     private String handleLegacyCC(String expr, String rootFact, Set<String> aliasSet) {

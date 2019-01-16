@@ -234,7 +234,7 @@ public class ProjectServiceTest extends NLocalFileMetadataTestCase {
         mockHotModelLayouts();
         projectService.cleanupProjectGarbageIndex(project);
         val indexPlan = NIndexPlanManager.getInstance(getTestConfig(), project).getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa");
-        Assert.assertEquals(1L, indexPlan.getAllLayouts().size());
+        Assert.assertEquals(2L, indexPlan.getAllLayouts().size());
     }
 
     private void mockHotModelLayouts() throws NoSuchFieldException, IllegalAccessException {

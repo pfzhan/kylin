@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Copyright (C) 2016 Kyligence Inc. All rights reserved.
  *
@@ -57,7 +56,6 @@ import java.util.List;
 
 import javax.annotation.Nullable;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlDataTypeSpec;
 import org.apache.calcite.sql.SqlDynamicParam;
@@ -83,6 +81,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 
 import io.kyligence.kap.common.obf.IKeep;
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 import io.kyligence.kap.metadata.model.alias.ExpressionComparator;
@@ -125,8 +124,8 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         return transformImpl(originSql, new QueryAliasMatcher(project, defaultSchema), dataModelDescs);
     }
 
-    public String transformImpl(String originSql, QueryAliasMatcher queryAliasMatcher,
-                                 List<NDataModel> dataModelDescs) throws SqlParseException {
+    public String transformImpl(String originSql, QueryAliasMatcher queryAliasMatcher, List<NDataModel> dataModelDescs)
+            throws SqlParseException {
         if (!KapConfig.getInstanceFromEnv().isImplicitComputedColumnConvertEnabled()) {
             return originSql;
         }
@@ -140,7 +139,7 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         int maxRecursionTimes = KapConfig.getInstanceFromEnv().getComputedColumnMaxRecursionTimes();
 
         while ((recursionTimes++) < maxRecursionTimes) {
-            Pair<String, Boolean> result = transformImplRecursive(sql, queryAliasMatcher, dataModelDescs);
+            Pair<String, Boolean> result = transformImplRecursive(sql, queryAliasMatcher, dataModelDescs, false);
             sql = result.getFirst();
             boolean recursionCompleted = result.getSecond();
             if (recursionCompleted) {
@@ -148,11 +147,14 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             }
         }
 
+        Pair<String, Boolean> result = transformImplRecursive(sql, queryAliasMatcher, dataModelDescs, true);
+        sql = result.getFirst();
+
         return sql;
     }
-    
+
     private Pair<String, Boolean> transformImplRecursive(String sql, QueryAliasMatcher queryAliasMatcher,
-            List<NDataModel> dataModelDescs) throws SqlParseException {
+            List<NDataModel> dataModelDescs, boolean replaceCcName) throws SqlParseException {
         boolean recursionCompleted = true;
         List<SqlCall> selectOrOrderbys = SqlSubqueryFinder.getSubqueries(sql);
         Pair<String, Integer> choiceForCurrentSubquery = null; //<new sql, number of changes by the model>
@@ -177,13 +179,13 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
                 }
 
                 List<ComputedColumnDesc> computedColumns = getSortedComputedColumnWithModel(model);
-                Pair<String, Integer> ret = replaceComputedColumn(sql, selectOrOrderby, computedColumns, info);
+                Pair<String, Integer> ret = replaceComputedColumn(sql, selectOrOrderby, computedColumns, info,
+                        replaceCcName);
 
-                if (ret.getSecond() == 0)
+                if (ret.getSecond() == 0 && !replaceCcName)
                     continue;
 
-                if ((choiceForCurrentSubquery == null)
-                        || (ret.getSecond() > choiceForCurrentSubquery.getSecond())) {
+                if ((choiceForCurrentSubquery == null) || (ret.getSecond() > choiceForCurrentSubquery.getSecond())) {
                     choiceForCurrentSubquery = ret;
                     recursionCompleted = false;
                 }
@@ -199,6 +201,11 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
 
     static Pair<String, Integer> replaceComputedColumn(String inputSql, SqlCall selectOrOrderby,
             List<ComputedColumnDesc> computedColumns, QueryAliasMatchInfo queryAliasMatchInfo) {
+        return replaceComputedColumn(inputSql, selectOrOrderby, computedColumns, queryAliasMatchInfo, false);
+    }
+
+    private static Pair<String, Integer> replaceComputedColumn(String inputSql, SqlCall selectOrOrderby,
+            List<ComputedColumnDesc> computedColumns, QueryAliasMatchInfo queryAliasMatchInfo, boolean replaceCcName) {
 
         if (computedColumns == null || computedColumns.isEmpty()) {
             return Pair.newPair(inputSql, 0);
@@ -207,7 +214,8 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
         String result = inputSql;
         List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> toBeReplacedExp;
         try {
-            toBeReplacedExp = matchComputedColumn(inputSql, selectOrOrderby, computedColumns, queryAliasMatchInfo);
+            toBeReplacedExp = matchComputedColumn(inputSql, selectOrOrderby, computedColumns, queryAliasMatchInfo,
+                    replaceCcName);
         } catch (Exception e) {
             logger.debug("Convert to computedColumn Fail,parse sql fail ", e);
             return Pair.newPair(inputSql, 0);
@@ -235,9 +243,10 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             }
 
             String expr = inputSql.substring(start, end);
-            logger.debug("Computed column: {} matching {} at [{},{}] using alias in query: {}", 
-                    cc.getColumnName(), expr, start, end, alias);
-            result = result.substring(0, start) + alias + "." + cc.getColumnName() + result.substring(end);
+            String ccColumnName = replaceCcName ? cc.getInternalCcName() : cc.getColumnName();
+            logger.debug("Computed column: {} matching {} at [{},{}] using alias in query: {}", cc.getColumnName(),
+                    expr, start, end, alias);
+            result = result.substring(0, start) + alias + "." + ccColumnName + result.substring(end);
         }
         try {
             SqlNode inputNodes = CalciteParser.parse(inputSql);
@@ -250,14 +259,15 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             return Pair.newPair(inputSql, 0);
         }
     }
-    
+
     private static List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> matchComputedColumn(String inputSql,
-            SqlCall selectOrOrderby, List<ComputedColumnDesc> computedColumns,
-            QueryAliasMatchInfo queryAliasMatchInfo) {
+            SqlCall selectOrOrderby, List<ComputedColumnDesc> computedColumns, QueryAliasMatchInfo queryAliasMatchInfo,
+            boolean replaceCcName) {
         List<Pair<ComputedColumnDesc, Pair<Integer, Integer>>> toBeReplacedExp = new ArrayList<>();
         for (ComputedColumnDesc cc : computedColumns) {
             List<SqlNode> matchedNodes;
-            matchedNodes = getMatchedNodes(selectOrOrderby, cc.getExpression(), queryAliasMatchInfo);
+            matchedNodes = getMatchedNodes(selectOrOrderby, replaceCcName ? cc.getFullName() : cc.getExpression(),
+                    queryAliasMatchInfo);
 
             for (SqlNode node : matchedNodes) {
                 Pair<Integer, Integer> startEndPos = CalciteParser.getReplacePos(node, inputSql);
@@ -287,14 +297,16 @@ public class ConvertToComputedColumn implements QueryUtil.IQueryTransformer, IKe
             return Collections.emptyList();
         }
         ArrayList<SqlNode> matchedNodes = new ArrayList<>();
-        SqlNode ccNode = CalciteParser.getExpNode(ccExp);
+        SqlNode ccExpressionNode = CalciteParser.getExpNode(ccExp);
         List<SqlNode> inputNodes = getInputTreeNodes(selectOrOrderby);
 
         // find whether user input sql's tree node equals computed columns's define expression
         for (SqlNode inputNode : inputNodes) {
-            if (ExpressionComparator.isNodeEqual(inputNode, ccNode, matchInfo, new AliasDeduceImpl(matchInfo))) {
+            if (ExpressionComparator.isNodeEqual(inputNode, ccExpressionNode, matchInfo,
+                    new AliasDeduceImpl(matchInfo))) {
                 matchedNodes.add(inputNode);
             }
+
         }
         return matchedNodes;
     }

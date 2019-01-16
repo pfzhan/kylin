@@ -22,7 +22,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
- 
 /*
  * Copyright (C) 2016 Kyligence Inc. All rights reserved.
  *
@@ -57,7 +56,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import org.apache.calcite.sql.SqlAsOperator;
 import org.apache.calcite.sql.SqlBasicCall;
 import org.apache.calcite.sql.SqlCall;
@@ -79,7 +77,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
+import io.kyligence.kap.metadata.cube.model.NDataflowManager;
 import io.kyligence.kap.metadata.model.ComputedColumnDesc;
 import io.kyligence.kap.metadata.model.NDataModel;
 
@@ -100,7 +100,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
             Map<String, NDataModel> dataModelDescs = new LinkedHashMap<>();
 
             NDataflowManager dataflowManager = NDataflowManager.getInstance(KylinConfig.getInstanceFromEnv(), project);
-            for (NDataModel modelDesc: dataflowManager.listUnderliningDataModels()) {
+            for (NDataModel modelDesc : dataflowManager.listUnderliningDataModels()) {
                 dataModelDescs.put(modelDesc.getUuid(), modelDesc);
             }
 
@@ -177,7 +177,6 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         SqlIdentifier column;
     }
 
-
     /**
      * check whether it needs parenthesis
      * 1. not need if it is a top node
@@ -188,7 +187,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
      * @param replaceRange
      * @return
      */
-    private static boolean needParenthesis(String originSql,  List<SqlNode> topColumns, ReplaceRange replaceRange) {
+    private static boolean needParenthesis(String originSql, List<SqlNode> topColumns, ReplaceRange replaceRange) {
 
         boolean topColumn = false;
 
@@ -218,7 +217,7 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         }
 
         boolean hasRight = false;
-        for (int i = replaceRange.endPos ; i < originSql.length(); i++) {
+        for (int i = replaceRange.endPos; i < originSql.length(); i++) {
 
             char c = originSql.charAt(i);
             if (Character.isWhitespace(c)) {
@@ -269,17 +268,20 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
         return choiceForCurrentSubquery;
     }
 
-
     /**
      * return the replaced sql, and the count of changes in the replaced sql
      */
-    static Pair<String, Integer> restoreComputedColumn(String inputSql, SqlCall selectOrOrderby, List<SqlNode> topColumns,  NDataModel dataModelDesc,
-            QueryAliasMatchInfo matchInfo) throws SqlParseException {
+    static Pair<String, Integer> restoreComputedColumn(String inputSql, SqlCall selectOrOrderby,
+            List<SqlNode> topColumns, NDataModel dataModelDesc, QueryAliasMatchInfo matchInfo)
+            throws SqlParseException {
 
         String result = inputSql;
 
-        Set<String> ccColumnNames = dataModelDesc.getComputedColumnNames();
-        List<SqlIdentifier> columnUsages = ColumnUsagesFinder.getColumnUsages(selectOrOrderby, ccColumnNames);
+        Set<String> ccColNamesWithPrefix = Sets.newHashSet();
+        dataModelDesc.getComputedColumnNames()
+                .forEach(cc -> ccColNamesWithPrefix.add(ComputedColumnDesc.getInternalCcName(cc)));
+        ccColNamesWithPrefix.addAll(dataModelDesc.getComputedColumnNames());
+        List<SqlIdentifier> columnUsages = ColumnUsagesFinder.getColumnUsages(selectOrOrderby, ccColNamesWithPrefix);
         if (columnUsages.size() == 0) {
             return Pair.newPair(inputSql, 0);
         }
@@ -297,7 +299,8 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
             //            //for now, must be fact table
             //            Preconditions.checkState(tblColRef.getTableRef().getTableIdentity()
             //                    .equals(dataModelDesc.getRootFactTable().getTableIdentity()));
-            ComputedColumnDesc computedColumnDesc = dataModelDesc.findCCByCCColumnName(columnName);
+            ComputedColumnDesc computedColumnDesc = dataModelDesc
+                    .findCCByCCColumnName(ComputedColumnDesc.getOriginCcName(columnName));
             // The computed column expression is defined based on alias in model, e.g. BUYER_COUNTRY.x + BUYER_ACCOUNT.y
             // however user query might use a different alias, say bc.x + ba.y
             String replaced = CalciteParser.replaceAliasInExpr(computedColumnDesc.getExpression(),
@@ -332,11 +335,12 @@ public class RestoreFromComputedColumn implements IPushDownConverter {
                         "Positions for two column usage has overlaps");
             }
 
-            logger.debug("Column Usage at [" + toBeReplaced.beginPos + "," + toBeReplaced.endPos + "] " + " is replaced by  " + toBeReplaced.replaceExpr);
+            logger.debug("Column Usage at [" + toBeReplaced.beginPos + "," + toBeReplaced.endPos + "] "
+                    + " is replaced by  " + toBeReplaced.replaceExpr);
 
-            String pattern = (needParenthesis(inputSql, topColumns, toBeReplaced))? "{0}({1}){2}": "{0}{1}{2}";
-            result = MessageFormat.format(pattern,
-                    result.substring(0, toBeReplaced.beginPos), toBeReplaced.replaceExpr, result.substring(toBeReplaced.endPos));
+            String pattern = (needParenthesis(inputSql, topColumns, toBeReplaced)) ? "{0}({1}){2}" : "{0}{1}{2}";
+            result = MessageFormat.format(pattern, result.substring(0, toBeReplaced.beginPos), toBeReplaced.replaceExpr,
+                    result.substring(toBeReplaced.endPos));
 
             last = toBeReplaced;// new Pair<>(toBeReplaced.getFirst(), new Pair<>(start, end+6));// toBeReplaced;
         }

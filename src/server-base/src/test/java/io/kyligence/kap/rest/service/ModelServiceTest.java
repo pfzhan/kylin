@@ -302,7 +302,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
 
         List<IndexEntityResponse> indices = modelService.getTableIndices("89af4ee2-2cdb-4b07-b39e-4c29856309aa",
                 "default");
-        Assert.assertEquals(3, indices.size());
+        Assert.assertEquals(4, indices.size());
         Assert.assertTrue(indices.get(0).getId() >= IndexEntity.TABLE_INDEX_START_ID);
 
     }
@@ -311,7 +311,7 @@ public class ModelServiceTest extends NLocalFileMetadataTestCase {
     public void testGetCuboidDescs() {
 
         List<IndexEntity> cuboids = modelService.getIndexEntities("89af4ee2-2cdb-4b07-b39e-4c29856309aa", "default");
-        Assert.assertEquals(8, cuboids.size());
+        Assert.assertEquals(9, cuboids.size());
     }
 
     @Test

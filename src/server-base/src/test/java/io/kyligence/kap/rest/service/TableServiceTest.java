@@ -242,7 +242,7 @@ public class TableServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(1, responses.size());
         BatchLoadTableResponse response = responses.get(0);
         Assert.assertEquals("DEFAULT.TEST_KYLIN_FACT", response.getTable());
-        Assert.assertEquals(61, response.getRelatedIndexNum());
+        Assert.assertEquals(62, response.getRelatedIndexNum());
     }
 
     private void testSetPartitionKeyAndSetDataRangeWithoutException() throws Exception {

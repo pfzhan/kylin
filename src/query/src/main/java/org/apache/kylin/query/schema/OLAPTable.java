@@ -52,7 +52,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-import io.kyligence.kap.metadata.project.NProjectManager;
 import org.apache.calcite.DataContext;
 import org.apache.calcite.adapter.java.AbstractQueryableTable;
 import org.apache.calcite.linq4j.Enumerable;
@@ -85,6 +84,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
+
+import io.kyligence.kap.metadata.model.ComputedColumnDesc;
+import io.kyligence.kap.metadata.project.NProjectManager;
 
 /**
  */
@@ -165,7 +167,10 @@ public class OLAPTable extends AbstractQueryableTable implements TranslatableTab
         for (ColumnDesc column : sourceColumns) {
             RelDataType sqlType = createSqlType(typeFactory, column.getUpgradedType(), column.isNullable());
             sqlType = SqlTypeUtil.addCharsetAndCollation(sqlType, typeFactory);
-            fieldInfo.add(column.getName(), sqlType);
+            fieldInfo.add(
+                    column.isComputedColumn() ? ComputedColumnDesc.getInternalCcName(column.getName())
+                            : column.getName(),
+                    sqlType);
         }
         return typeFactory.createStructType(fieldInfo);
     }

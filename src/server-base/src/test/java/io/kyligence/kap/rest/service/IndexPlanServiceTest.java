@@ -208,10 +208,10 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
                                 "TEST_KYLIN_FACT.LSTG_FORMAT_NAME", "TEST_KYLIN_FACT.LSTG_SITE_ID"))
                         .shardByColumns(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID"))
                         .sortByColumns(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")).build());
-        indexPlanService.removeTableIndex("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 20000030001L);
+        indexPlanService.removeTableIndex("default", "89af4ee2-2cdb-4b07-b39e-4c29856309aa", 20000040001L);
 
         Assert.assertFalse(indexPlanService.getIndexPlanManager("default").getIndexPlan("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
-                .getAllLayouts().stream().anyMatch(l -> l.getId() == 20000030001L));
+                .getAllLayouts().stream().anyMatch(l -> l.getId() == 20000040001L));
     }
 
     @Test
@@ -222,7 +222,7 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
 
     @Test
     public void testUpdateTableIndex() {
-        long prevMaxId = 20000030001L;
+        long prevMaxId = 20000040001L;
         indexPlanService.createTableIndex("default",
                 CreateTableIndexRequest.builder().project("default").modelId("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                         .colOrder(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID", "TEST_KYLIN_FACT.CAL_DT",
@@ -278,7 +278,7 @@ public class IndexPlanServiceTest extends NLocalFileMetadataTestCase {
         Assert.assertThat(first.getShardByColumns(), CoreMatchers.is(Arrays.asList("TEST_KYLIN_FACT.TRANS_ID")));
         Assert.assertThat(first.getSortByColumns(), CoreMatchers.is(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")));
         Assert.assertThat(first.getSortByColumns(), CoreMatchers.is(Arrays.asList("TEST_KYLIN_FACT.CAL_DT")));
-        Assert.assertEquals(20000030001L, first.getId().longValue());
+        Assert.assertEquals(20000040001L, first.getId().longValue());
         Assert.assertEquals("default", first.getProject());
         Assert.assertEquals("ti1", first.getName());
         Assert.assertEquals("ADMIN", first.getOwner());

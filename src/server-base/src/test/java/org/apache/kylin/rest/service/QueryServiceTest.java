@@ -383,7 +383,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             //make sure test_kylin_fact contains all computed columns
             factColumns = getFactColumns(tableMetas);
-            Assert.assertEquals(21, factColumns.size());
+            Assert.assertEquals(22, factColumns.size());
         }
 
         //disable the one ready cube
@@ -442,7 +442,7 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             //make sure test_kylin_fact contains all computed columns
             factColumns = getFactColumns(tableMetas);
-            Assert.assertEquals(21, factColumns.size());
+            Assert.assertEquals(22, factColumns.size());
         }
     }
 
@@ -476,10 +476,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             //make sure test_kylin_fact contains all computed columns
             factColumns = getFactColumns(tableMetas4default);
-            Assert.assertEquals(21, factColumns.size());
-            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
-                    "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
-                    "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR")));
+            Assert.assertEquals(22, factColumns.size());
+            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("_CC_DEAL_YEAR", "_CC_DEAL_AMOUNT",
+                    "_CC_LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "_CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
+                    "_CC_LEFTJOIN_BUYER_COUNTRY_ABBR", "_CC_LEFTJOIN_SELLER_COUNTRY_ABBR")));
         }
 
         //add a new model with new cc
@@ -491,10 +491,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
 
             ColumnDesc[] columnDescs = findColumnDescs();
             factColumns = getFactColumns(tableMetas);
-            Assert.assertEquals(11 + columnDescs.length, factColumns.size());
-            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
-                    "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
-                    "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR", "DEAL_YEAR_PLUS_ONE")));
+            Assert.assertEquals(12 + columnDescs.length, factColumns.size());
+            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("_CC_DEAL_YEAR", "_CC_DEAL_AMOUNT",
+                    "_CC_LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "_CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
+                    "_CC_LEFTJOIN_BUYER_COUNTRY_ABBR", "_CC_LEFTJOIN_SELLER_COUNTRY_ABBR")));
         }
 
         //remove a cc from model
@@ -505,10 +505,10 @@ public class QueryServiceTest extends NLocalFileMetadataTestCase {
             final List<TableMetaWithType> tableMetas4default = queryService.getMetadataV2("default");
             ColumnDesc[] columnDescs = findColumnDescs();
             factColumns = getFactColumns(tableMetas4default);
-            Assert.assertEquals(10 + columnDescs.length, factColumns.size());
-            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("DEAL_YEAR", "DEAL_AMOUNT",
-                    "LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
-                    "LEFTJOIN_BUYER_COUNTRY_ABBR", "LEFTJOIN_SELLER_COUNTRY_ABBR")));
+            Assert.assertEquals(11 + columnDescs.length, factColumns.size());
+            Assert.assertTrue(getColumnNames(factColumns).containsAll(Arrays.asList("_CC_DEAL_YEAR", "_CC_DEAL_AMOUNT",
+                    "_CC_LEFTJOIN_BUYER_ID_AND_COUNTRY_NAME", "_CC_LEFTJOIN_SELLER_ID_AND_COUNTRY_NAME",
+                    "_CC_LEFTJOIN_BUYER_COUNTRY_ABBR", "_CC_LEFTJOIN_SELLER_COUNTRY_ABBR")));
         }
     }
 

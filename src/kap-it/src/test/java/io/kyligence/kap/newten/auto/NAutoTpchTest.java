@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.newten.auto;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.kyligence.kap.newten.NExecAndComp.CompareLevel;
@@ -46,5 +47,12 @@ public class NAutoTpchTest extends NAutoTestBase {
         for (int i = 0; i < 2; ++i) {
             new TestScenario(CompareLevel.SAME, "sql_tpch", 1, 2).execute();
         }
+    }
+
+    @Test
+    @Ignore
+    public void testTemp() throws Exception {
+        new TestScenario(CompareLevel.SAME, "temp").execute();
+
     }
 }

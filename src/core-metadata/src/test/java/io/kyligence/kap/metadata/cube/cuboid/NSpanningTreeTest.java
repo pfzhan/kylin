@@ -82,7 +82,7 @@ public class NSpanningTreeTest extends NLocalFileMetadataTestCase {
         IndexEntity cubeCuboidRoot = spanningTree.getIndexEntity(1000000L);
         IndexEntity tableIndexCuboidRoot = spanningTree.getIndexEntity(20000020000L);
 
-        Assert.assertEquals(2, spanningTree.getRootIndexEntities().size());
+        Assert.assertEquals(3, spanningTree.getRootIndexEntities().size());
         Assert.assertTrue(spanningTree.getRootIndexEntities().contains(tableIndexCuboidRoot));
         Assert.assertTrue(spanningTree.getRootIndexEntities().contains(cubeCuboidRoot));
         Assert.assertSame(cubeCuboidRoot, spanningTree.getRootIndexEntity(childCuboid1));

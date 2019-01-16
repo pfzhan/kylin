@@ -80,14 +80,14 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         Assert.assertSame(getTestConfig(), cube.getConfig().base());
         Assert.assertEquals(getTestConfig(), cube.getConfig());
         Assert.assertEquals(getTestConfig().hashCode(), cube.getConfig().hashCode());
-        Assert.assertEquals(8, cube.getAllIndexes().size());
+        Assert.assertEquals(9, cube.getAllIndexes().size());
         Assert.assertEquals("test_description", cube.getDescription());
 
         NDataModel model = cube.getModel();
         Assert.assertNotNull(cube.getModel());
 
         BiMap<Integer, TblColRef> effectiveDimCols = cube.getEffectiveDimCols();
-        Assert.assertEquals(36, effectiveDimCols.size());
+        Assert.assertEquals(37, effectiveDimCols.size());
         Assert.assertEquals(model.findColumn("TEST_KYLIN_FACT.TRANS_ID"), effectiveDimCols.get(1));
 
         BiMap<Integer, NDataModel.Measure> effectiveMeasures = cube.getEffectiveMeasures();
@@ -113,7 +113,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         }
 
         {
-            IndexEntity last = Iterables.getLast(cube.getAllIndexes(), null);
+            IndexEntity last = Iterables.get(cube.getAllIndexes(), cube.getAllIndexes().size() -2);
             Assert.assertNotNull(last);
             Assert.assertEquals(20000020000L, last.getId());
             Assert.assertEquals(1, last.getLayouts().size());
@@ -145,7 +145,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
             LayoutEntity cuboidLayout = indexPlan.getCuboidLayout(1000001L);
             final String colIndexType = cuboidLayout.getColIndexType(1);
             Assert.assertEquals("eq", colIndexType);
-            Assert.assertEquals(9, indexPlan.getWhitelistLayouts().size());
+            Assert.assertEquals(10, indexPlan.getWhitelistLayouts().size());
         }
 
         {
@@ -242,7 +242,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         NIndexPlanManager cubeDefaultMgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
         IndexPlan indexPlan = cubeDefaultMgr.getIndexPlanByModelAlias("nmodel_basic");
         Set<TblColRef> tblCols = indexPlan.getAllColumnsHaveDictionary();
-        Assert.assertEquals(31, tblCols.size());
+        Assert.assertEquals(32, tblCols.size());
 
         IndexPlan indexPlan2 = cubeDefaultMgr.getIndexPlan("abe3bf1a-c4bc-458d-8278-7ea8b00f5e96");
         Set<TblColRef> tblCols2 = indexPlan2.getAllColumnsHaveDictionary();
@@ -254,7 +254,7 @@ public class IndexPlanTest extends NLocalFileMetadataTestCase {
         NIndexPlanManager cubeDefaultMgr = NIndexPlanManager.getInstance(getTestConfig(), projectDefault);
         IndexPlan indexPlan = cubeDefaultMgr.getIndexPlanByModelAlias("nmodel_basic");
         Set<TblColRef> tblCols = indexPlan.getAllColumnsNeedDictionaryBuilt();
-        Assert.assertEquals(31, tblCols.size());
+        Assert.assertEquals(32, tblCols.size());
     }
 
     @Test

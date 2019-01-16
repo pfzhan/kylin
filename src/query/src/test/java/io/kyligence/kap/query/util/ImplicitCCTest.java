@@ -227,7 +227,8 @@ public class ImplicitCCTest {
         Assert.assertEquals(
                 "select T1.cc2 as aa, T2.cc3 as bb from table1 t1 inner join table2 t2 on t1.x = t2.y where T1.cc2 > T2.cc3 order by T1.cc2",
                 ConvertToComputedColumn.replaceComputedColumn(sql2tables,
-                        SqlSubqueryFinder.getSubqueries(sql2tables).get(0), mockCCs, queryAliasMatchInfo).getFirst());
+                        SqlSubqueryFinder.getSubqueries(sql2tables).get(0), mockCCs, queryAliasMatchInfo)
+                        .getFirst());
 
         String sql2tableswithquote = "\r\n select \"T1\".\"A\" + \"T1\".\"B\" as aa, \"T2\".\"C\" + \"T2\".\"D\" as bb from \r\n table1 \"T1\" inner join table2 \"T2\" on \"T1\".\"X\" = \"T2\".\"Y\" where \"T1\".\"A\" + \"T1\".\"B\" > \"T2\".\"C\" + \"T2\".\"D\" order by \"T1\".\"A\" + \"T1\".\"B\"";
         Assert.assertEquals(

@@ -93,7 +93,7 @@ public class AddCuboidHandlerTest extends NLocalFileMetadataTestCase {
         Assert.assertEquals(NDataflowManager.getInstance(getTestConfig(), DEFAULT_PROJECT).getDataflow("89af4ee2-2cdb-4b07-b39e-4c29856309aa")
                 .getSegments().getFirstSegment().getId(),
                 ((ChainedExecutable) job).getTasks().get(1).getParam("segmentIds"));
-        Assert.assertEquals("20000020001,1010001", ((ChainedExecutable) job).getTasks().get(1).getParam(NBatchConstants.P_LAYOUT_IDS));
+        Assert.assertEquals("20000020001,20000030001,1010001", ((ChainedExecutable) job).getTasks().get(1).getParam(NBatchConstants.P_LAYOUT_IDS));
     }
 
     @Test

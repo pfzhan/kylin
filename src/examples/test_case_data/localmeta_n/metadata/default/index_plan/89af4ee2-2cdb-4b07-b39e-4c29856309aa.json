@@ -417,6 +417,30 @@
           "storage_type": 20
         }
       ]
+    },
+    {
+      "id": 20000030000,
+      "dimensions": [
+        0,
+        1,
+        38
+      ],
+      "layouts": [
+        {
+          "id": 20000030001,
+          "auto": true,
+          "col_order": [
+            1,
+            0,
+            38
+          ],
+          "sort_by_columns": [
+            0,
+            38
+          ],
+          "storage_type": 20
+        }
+      ]
     }
   ],
   "dictionaries": [
@@ -426,7 +450,7 @@
     }
   ],
   "next_aggregation_index_id": 1010000,
-  "next_table_index_id": 20000030000,
+  "next_table_index_id": 20000040000,
   "override_properties": {},
   "segment_range_start": 0,
   "segment_range_end": 9223372036854775807,

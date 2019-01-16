@@ -348,6 +348,12 @@
       "name": "CAL_DT1",
       "column": "TEST_CAL_DT.CAL_DT",
       "status": "DIMENSION"
+    },
+    {
+      "id": 38,
+      "name": "NEST5",
+      "column": "TEST_KYLIN_FACT.NEST5",
+      "status": "DIMENSION"
     }
   ],
   "all_measures": [
@@ -672,6 +678,15 @@
       "columnName": "NEST4",
       "expression": "TEST_KYLIN_FACT.NEST3 * TEST_KYLIN_FACT.ITEM_COUNT",
       "innerExpression": "round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0) * TEST_KYLIN_FACT.ITEM_COUNT",
+      "datatype": "decimal(34,0)",
+      "comment": "test nest4"
+    },
+    {
+      "tableIdentity": "DEFAULT.TEST_KYLIN_FACT",
+      "tableAlias": "TEST_KYLIN_FACT",
+      "columnName": "NEST5",
+      "expression": "TEST_KYLIN_FACT.NEST3 * (TEST_KYLIN_FACT.ITEM_COUNT+100)",
+      "innerExpression": "round((TEST_KYLIN_FACT.PRICE + 11) * 12, 0) * (TEST_KYLIN_FACT.ITEM_COUNT+100)",
       "datatype": "decimal(34,0)",
       "comment": "test nest4"
     }
