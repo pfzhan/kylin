@@ -107,9 +107,11 @@ public class InnerColumnTupleFilter extends TupleFilter {
 
     @Override
     public void serialize(IFilterCodeSystem<?> cs, ByteBuffer buffer) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
     public void deserialize(IFilterCodeSystem<?> cs, ByteBuffer buffer) {
+        throw new UnsupportedOperationException();
     }
 }

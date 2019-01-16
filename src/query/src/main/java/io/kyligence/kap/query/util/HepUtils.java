@@ -44,7 +44,7 @@ import io.kyligence.kap.query.optrule.KapProjectRule;
  * Hep planner help utils
  */
 public class HepUtils {
-    public static ImmutableList<RelOptRule> CUBOID_OPT_RULES = ImmutableList.of(
+    public static final ImmutableList<RelOptRule> CUBOID_OPT_RULES = ImmutableList.of(
             // Transpose Rule
             KapJoinProjectTransposeRule.BOTH_PROJECT, KapJoinProjectTransposeRule.LEFT_PROJECT,
             KapJoinProjectTransposeRule.RIGHT_PROJECT,

@@ -171,7 +171,7 @@ public class TblColRef implements Serializable {
     private FilterColEnum filterLevel = FilterColEnum.NONE;
     @Setter
     @Getter
-    private SqlOperator operator;//only used for InnerCol, other case it should be null
+    private transient SqlOperator operator;//only used for InnerCol, other case it should be null
     @Setter
     @Getter
     private List<TblColRef> opreand;//only used for InnerCol

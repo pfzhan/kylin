@@ -41,7 +41,7 @@ public class KapJoinProjectTransposeRule extends RelOptRule {
 
     @Override
     public void onMatch(RelOptRuleCall call) {
-
+        throw new UnsupportedOperationException();
     }
 
     public static final JoinProjectTransposeRule BOTH_PROJECT = new JoinProjectTransposeRule(
