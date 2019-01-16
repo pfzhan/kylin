@@ -1,9 +1,0 @@
-{
-  "uuid" : "c5854178-c699-4270-9c0b-fafa66f65042",
-  "last_modified" : 0,
-  "version" : "3.0.0.0",
-  "mvcc" : 0,
-  "conds" : [ ],
-  "name" : "blacklist",
-  "enabled" : false
-}
