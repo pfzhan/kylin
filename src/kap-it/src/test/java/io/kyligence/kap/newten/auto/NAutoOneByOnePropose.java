@@ -30,7 +30,7 @@ public class NAutoOneByOnePropose {
     /**
      * For testing lower limit of NSmartMaster's performance
      *
-     * inside kap-it/ dir, run: mvn exec:java -Dexec.mainClass="io.kyligence.kap.newten.auto.NAutoOneByOnePropose”
+     * inside kap-it/ dir, run: mvn exec:java -Dexec.mainClass="io.kyligence.kap.newten.auto.NAutoOneByOnePropose"
      * -Dexec.args="10" -Dexec.classpathScope=test
      *
      * @param args only one arg, which is round of the test

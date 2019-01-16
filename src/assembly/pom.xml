@@ -145,6 +145,8 @@
                                     <exclude>com.sun.mail:javax.mail:*</exclude>
                                     <exclude>javax.activation:activation:*</exclude>
                                     <exclude>org.apache.parquet:*</exclude>
+                                    <exclude>org.apache.calcite:*</exclude>
+                                    <exclude>org.apache.calcite.avatica:*</exclude>
                                 </excludes>
                             </artifactSet>
                             <relocations>

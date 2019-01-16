@@ -19,10 +19,17 @@ echo "Packing for Newten..."
 
 export PACKAGE_SPARK=1
 export SKIP_FRONT=0
+export SKIP_OBF=0
 for PARAM in $@; do
     if [ "$PARAM" == "-noSpark" ]; then
         echo "Skip packaging Spark..."
         export PACKAGE_SPARK=0
+        shift
+    fi
+
+    if [[ "$PARAM" == "-skipObf" ]]; then
+        echo "Skip Obfuscation..."
+        export SKIP_OBF=1
         shift
     fi
 

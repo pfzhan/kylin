@@ -8,10 +8,6 @@
     <url>http://kyligence.io</url>
     <description>Kyligence Smart Modeling</description>
 
-    <properties>
-        <shadeBase>io.kyligence.kap.modeling.smart.shaded</shadeBase>
-    </properties>
-
     <parent>
         <groupId>io.kyligence.ke</groupId>
         <artifactId>ke</artifactId>

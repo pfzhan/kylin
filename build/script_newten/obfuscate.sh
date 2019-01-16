@@ -1,0 +1,119 @@
+#!/bin/bash
+
+dir=$(dirname ${0})
+cd ${dir}/../..
+
+source build/script_newten/functions.sh
+exportProjectVersions
+
+#Make sure commands exist in environment
+checkCommandExits proguard
+checkCommandExits mvn
+
+BUILD_LIB_DIR=build/lib
+
+# keep all rest classes in *.xml
+keepParam=$(grep -hro --include="*.xml" --exclude={pom.xml,workspace.xml,checkstyle-\*.xml} "io\.kyligence\.kap\.rest\.[^\"\<]*" src | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
+# keep all class name in double quote
+keepParam+=$(grep -hro --include="*.java" "\"io\.kyligence\.kap\.[^\"\\]*" src | cut -c 2- | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
+# keep classes in kylin.properties
+keepParam+=$(grep -hro --include="kylin.properties" "io\.kyligence\.kap\.[^\"\\]*" src | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
+# keep classes in kylin-defaults*.properties
+keepParam+=$(grep -hro --include="kylin-defaults*.properties" "io\.kyligence\.kap\.[^\"\\#]*" src | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
+# keep classes in kylin-*-log4j.properties
+keepParam+=$(grep -hro --include="kylin-*-log4j.properties" "io\.kyligence\.kap\.[^\"\\#]*" src | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
+# keep classes in *.sh
+keepParam+=$(grep -hro --include="*.sh" "io\.kyligence\.kap\.[^\*\.]*\.[^ \`\"]*" src | sort -u | awk '{print "-keep class " $0 " {*;}"}')' '
+
+if [ -z $java_home ]; then
+	java_home_mess=`mvn -version | grep "Java home"`
+	java_home=`cut -d ':' -f 2- <<< "$java_home_mess"`
+fi
+
+# directory tmp for output
+if [ ! -f tmp ]; then
+	mkdir tmp
+fi
+
+# $1 - dir for get class path
+# $2 - bin location dir
+# $3 - 0 for -printmapping, other for -applymapping
+# $4 - 0 for delete input jars, other for keep
+# $5 - output jar name, without .jar
+# .. - input jar names
+function obfuscate {
+	cd $1
+	MVN_OPTS="-Dmdep.outputFile=cp.txt"
+	if [ "$MVN_PROFILE" != "" ]; then
+	    MVN_OPTS="-P $MVN_PROFILE $MVN_OPTS"
+    fi
+	mvn dependency:build-classpath $MVN_OPTS
+	cp=`cat cp.txt`
+	rm cp.txt
+	cd -
+
+	# cover both jar and jar
+	location_dir=$2
+	output_jar=$location_dir/$5.jar
+
+	if [ "$3" -eq "0" ];then
+		otherParam='-printmapping server_mapping.txt'
+	else
+		otherParam='-applymapping server_mapping.txt'
+	fi
+
+    keep_input=$4
+	shift 5
+
+	# make proguard config
+	cat build/script_newten/obfuscate.pro > tmp.pro
+	for input_jar in $@; do
+	    echo -injars $location_dir/$input_jar \(!META-INF/*.SF,!META-INF/*.DSA,!META-INF/*.RSA\)  >> tmp.pro
+	done
+
+	echo -outjars $output_jar \(!META-INF/*.SF,!META-INF/*.DSA,!META-INF/*.RSA\)    >> tmp.pro
+	echo -libraryjars $cp                                                           >> tmp.pro
+	echo -libraryjars $java_home/lib/rt.jar                                         >> tmp.pro
+	echo -libraryjars $java_home/lib/jce.jar                                        >> tmp.pro
+	echo -libraryjars $java_home/lib/jsse.jar                                       >> tmp.pro
+	echo -libraryjars $java_home/lib/ext/sunjce_provider.jar                        >> tmp.pro
+	echo $keepParam $otherParam                                                     >> tmp.pro
+	
+	proguard @tmp.pro  || { exit 1; }
+
+    if [ "$keep_input" -eq "0" ]; then
+        for input_jar in $@; do
+            rm $location_dir/$input_jar
+        done
+	fi
+	rm tmp.pro
+}
+
+# extract server jar
+mkdir tmp_jar
+cd tmp_jar
+jar tvf ../src/server/target/kap-server-${kap_version}.jar | grep 'kap.*.jar' | awk '{print $8 }' > kap_jar.txt
+jar xf ../src/server/target/kap-server-${kap_version}.jar @kap_jar.txt
+cd ..
+
+# only obfuscate kap* jars
+obfuscate src/server/ tmp_jar/BOOT-INF/lib 0 0 kap-all `cd tmp_jar/BOOT-INF/lib;ls kap-*.jar`
+
+cd tmp_jar
+cp ../src/server/target/kap-server-${kap_version}.jar .
+for f in `cat kap_jar.txt`; do
+	zip -d kap-server-${kap_version}.jar $f
+done
+jar -uf0 kap-server-${kap_version}.jar BOOT-INF/lib/*.jar
+mv kap-server-${kap_version}.jar ../tmp/kap.jar
+chmod 644 ../tmp/kap.jar
+cd ..
+rm -rf tmp_jar
+
+# obfuscate job(assembly) jar
+obfuscate src/assembly/ src/assembly/target 1 1 kap-assembly-${release_version}-job-obf kap-assembly-${release_version}-job.jar
+mv src/assembly/target/kap-assembly-${release_version}-job-obf.jar tmp/
+
+# obfuscate tool jar
+obfuscate src/tool-assembly/ src/tool-assembly/target/ 1 1 kap-tool-assembly-${release_version}-assembly-obf kap-tool-assembly-${release_version}-assembly.jar
+mv src/tool-assembly/target/kap-tool-assembly-${release_version}-assembly-obf.jar tmp/

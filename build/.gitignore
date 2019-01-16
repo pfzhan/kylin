@@ -1,2 +1,4 @@
 spark/
 influxdb/
+*.rpm
+CHANGELOG.md

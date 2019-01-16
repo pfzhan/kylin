@@ -16,6 +16,10 @@ for PARAM in $@; do
     fi
 done
 
+if [ "$SKIP_OBF" != "1" ]; then
+    build/script_newten/obfuscate.sh       || { exit 1; }
+fi
+
 #create ext dir
 mkdir -p build/ext
 

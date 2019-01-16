@@ -25,6 +25,7 @@ package io.kyligence.kap.query.relnode;
 
 import java.util.List;
 
+import io.kyligence.kap.common.obf.IKeepNames;
 import org.apache.calcite.adapter.enumerable.EnumerableRel;
 import org.apache.calcite.adapter.enumerable.EnumerableRelImplementor;
 import org.apache.calcite.adapter.enumerable.JavaRowFormat;
@@ -55,7 +56,7 @@ import io.kyligence.kap.query.util.QueryContextCutter;
  * If you're renaming this class, please keep it ending with OLAPToEnumerableConverter
  * see org.apache.calcite.plan.OLAPRelMdRowCount#shouldIntercept(org.apache.calcite.rel.RelNode)
  */
-public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter implements EnumerableRel {
+public class KapOLAPToEnumerableConverter extends OLAPToEnumerableConverter implements EnumerableRel, IKeepNames {
     private static final Logger logger = LoggerFactory.getLogger(KapOLAPToEnumerableConverter.class);
 
     public static final int MAX_RETRY_TIMES_OF_CONTEXT_CUT = 10;

@@ -92,5 +92,20 @@ rm -rf ${package_name}
 
 cd ../dist
 
+# package obf tar
+if [ "$SKIP_OBF" != "1" ]; then
+    tar -xzf ${package_name}-orig.tar.gz
+
+    mv ../tmp/kap.jar ${package_name}/server/newten.jar
+    mv ../tmp/kap-assembly-${release_version}-job-obf.jar ${package_name}/lib/newten-job.jar
+    mv ../tmp/kap-tool-assembly-${release_version}-assembly-obf.jar ${package_name}/tool/kap-tool-${release_version}.jar
+    tar -cvzf ${package_name}.tar.gz ${package_name}
+
+    rm -r ../tmp
+    rm -rf ${package_name}
+
+    mv ../server_mapping.txt ${package_name}-obf.mapping
+fi
+
 echo "Package ready."
 ls ${package_name}*.tar.gz

@@ -24,12 +24,16 @@
 
 package io.kyligence.kap.common.persistence.event;
 
+import java.io.Serializable;
+
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+import io.kyligence.kap.common.obf.IKeep;
 import lombok.Data;
 
 @Data
 @JsonTypeInfo(use = JsonTypeInfo.Id.CLASS)
-public class Event {
+public class Event implements Serializable, IKeep {
 
     private String key;
 

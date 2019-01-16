@@ -26,7 +26,6 @@ package io.kyligence.kap.server.swagger;
 
 import com.google.common.base.Predicates;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import springfox.documentation.builders.ApiInfoBuilder;
 import springfox.documentation.service.ApiInfo;
 import springfox.documentation.service.Contact;
@@ -38,7 +37,7 @@ import springfox.documentation.swagger2.annotations.EnableSwagger2;
 import static springfox.documentation.builders.PathSelectors.ant;
 
 @EnableSwagger2
-@Configuration
+//@Configuration
 public class SwaggerConfig {
 
     @Bean

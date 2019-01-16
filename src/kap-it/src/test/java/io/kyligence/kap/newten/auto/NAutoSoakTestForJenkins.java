@@ -32,7 +32,7 @@ import java.util.Map;
 public class NAutoSoakTestForJenkins {
 
     /**
-     * inside kap-it/ dir, run: mvn exec:java -Dexec.mainClass="io.kyligence.kap.newten.auto.NAutoSoakTestForJenkins”
+     * inside kap-it/ dir, run: mvn exec:java -Dexec.mainClass="io.kyligence.kap.newten.auto.NAutoSoakTestForJenkins"
      * -Dexec.args="10 5" -Dexec.classpathScope=test
      *
      * @param args two args, first one is the round of soak test, second one is the factor for query generation

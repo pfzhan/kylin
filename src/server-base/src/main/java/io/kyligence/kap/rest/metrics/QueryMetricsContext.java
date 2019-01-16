@@ -23,6 +23,7 @@
  */
 package io.kyligence.kap.rest.metrics;
 
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.time.Instant;
@@ -34,15 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import io.kyligence.kap.metadata.query.QueryHistory;
-import io.kyligence.kap.query.util.QueryPatternUtil;
-import lombok.Getter;
-import lombok.Setter;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.validate.SqlValidatorException;
 import org.apache.commons.lang3.StringUtils;
@@ -56,7 +48,17 @@ import org.apache.kylin.rest.response.SQLResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Function;
+import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
+import io.kyligence.kap.metadata.query.QueryHistory;
+import io.kyligence.kap.query.util.QueryPatternUtil;
+import lombok.Getter;
+import lombok.Setter;
 
 public class QueryMetricsContext {
 
@@ -156,7 +158,8 @@ public class QueryMetricsContext {
 
         // this case happens when a query hit cache, the process did not proceed to the place where massaged sql is set
         if (correctedSql == null) {
-            correctedSql = QueryUtil.massageSql(request.getSql(), request.getProject(), request.getLimit(), request.getOffset(), null);
+            correctedSql = QueryUtil.massageSql(request.getSql(), request.getProject(), request.getLimit(),
+                    request.getOffset(), null);
         }
 
         this.sql = correctedSql;
@@ -207,8 +210,8 @@ public class QueryMetricsContext {
         collectErrorType(context);
         collectRealizationMetrics(response);
 
-        logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter,
-                hostname, suite, queryDuration, totalScanBytes, errorType, engineType);
+        logger.debug("Query[{}] collect metrics {}, {}, {}, {}, {}, {}, {}, {}", queryId, sql, submitter, hostname,
+                suite, queryDuration, totalScanBytes, errorType, engineType);
     }
 
     private void collectErrorType(final QueryContext context) {
@@ -252,11 +255,9 @@ public class QueryMetricsContext {
         final ImmutableMap.Builder<String, String> builder = ImmutableMap.<String, String> builder() //
                 .put(QueryHistory.SUBMITTER, submitter) //
                 .put(QueryHistory.SUITE, suite) //
-                .put(QueryHistory.ENGINE_TYPE, engineType)
-                .put(QueryHistory.ANSWERED_BY, answeredBy)
+                .put(QueryHistory.ENGINE_TYPE, engineType).put(QueryHistory.ANSWERED_BY, answeredBy)
                 .put(QueryHistory.IS_CUBE_HIT, String.valueOf(isCubeHit))
-                .put(QueryHistory.ACCELERATE_STATUS, accelerateStatus)
-                .put(QueryHistory.QUERY_MONTH, month);
+                .put(QueryHistory.ACCELERATE_STATUS, accelerateStatus).put(QueryHistory.QUERY_MONTH, month);
 
         if (StringUtils.isBlank(hostname)) {
             try {
@@ -278,14 +279,10 @@ public class QueryMetricsContext {
         final ImmutableMap.Builder<String, Object> builder = ImmutableMap.<String, Object> builder() //
                 .put(QueryHistory.SQL_TEXT, sql) //
                 .put(QueryHistory.QUERY_ID, queryId) //
-                .put(QueryHistory.QUERY_DURATION, queryDuration)
-                .put(QueryHistory.TOTAL_SCAN_BYTES, totalScanBytes)
-                .put(QueryHistory.TOTAL_SCAN_COUNT, totalScanCount)
-                .put(QueryHistory.RESULT_ROW_COUNT, resultRowCount)
-                .put(QueryHistory.IS_CACHE_HIT, isCacheHit)
-                .put(QueryHistory.QUERY_STATUS, queryStatus)
-                .put(QueryHistory.QUERY_TIME, queryTime)
-                .put(QueryHistory.SQL_PATTERN, sqlPattern);
+                .put(QueryHistory.QUERY_DURATION, queryDuration).put(QueryHistory.TOTAL_SCAN_BYTES, totalScanBytes)
+                .put(QueryHistory.TOTAL_SCAN_COUNT, totalScanCount).put(QueryHistory.RESULT_ROW_COUNT, resultRowCount)
+                .put(QueryHistory.IS_CACHE_HIT, isCacheHit).put(QueryHistory.QUERY_STATUS, queryStatus)
+                .put(QueryHistory.QUERY_TIME, queryTime).put(QueryHistory.SQL_PATTERN, sqlPattern);
 
         if (!realizationMetrics.isEmpty()) {
             final Collection<String> realizations = Collections2.transform(realizationMetrics,
@@ -306,13 +303,14 @@ public class QueryMetricsContext {
         return builder.build();
     }
 
-    public static RealizationMetrics createRealizationMetrics(String cuboidLayoutId, String realizationType, String modelId) {
+    public static RealizationMetrics createRealizationMetrics(String cuboidLayoutId, String realizationType,
+            String modelId) {
         return new RealizationMetrics(cuboidLayoutId, realizationType, modelId);
     }
 
     @Getter
     @Setter
-    public static class RealizationMetrics {
+    public static class RealizationMetrics implements Serializable {
 
         private String queryId;
 
@@ -342,8 +340,7 @@ public class QueryMetricsContext {
         }
 
         public Map<String, Object> getInfluxdbFields() {
-            return ImmutableMap.<String, Object> builder()
-                    .put(QueryHistory.QUERY_ID, queryId)
+            return ImmutableMap.<String, Object> builder().put(QueryHistory.QUERY_ID, queryId)
                     .put(QueryHistory.QUERY_DURATION, duration).build();
         }
     }

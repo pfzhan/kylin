@@ -24,18 +24,12 @@
 
 package io.kyligence.kap.engine.spark.stats.analyzer;
 
-import com.google.common.collect.Iterators;
-import com.google.common.collect.Maps;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
-import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
-import io.kyligence.kap.metadata.cube.model.NDataSegment;
-import io.kyligence.kap.engine.spark.NJoinedFlatTable;
-import io.kyligence.kap.engine.spark.NSparkCubingEngine;
-import io.kyligence.kap.engine.spark.builder.NSizeEstimator;
-import io.kyligence.kap.metadata.model.DataCheckDesc;
-import io.kyligence.kap.metadata.model.NDataModel;
-import io.kyligence.kap.metadata.model.NTableMetadataManager;
-import lombok.val;
+import java.io.IOException;
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.kylin.common.KapConfig;
 import org.apache.kylin.common.KylinConfig;
@@ -55,10 +49,19 @@ import org.apache.spark.sql.SparkSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.Maps;
+
+import io.kyligence.kap.engine.spark.NJoinedFlatTable;
+import io.kyligence.kap.engine.spark.NSparkCubingEngine;
+import io.kyligence.kap.engine.spark.builder.NSizeEstimator;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRange;
+import io.kyligence.kap.metadata.cube.model.NDataLoadingRangeManager;
+import io.kyligence.kap.metadata.cube.model.NDataSegment;
+import io.kyligence.kap.metadata.model.DataCheckDesc;
+import io.kyligence.kap.metadata.model.NDataModel;
+import io.kyligence.kap.metadata.model.NTableMetadataManager;
+import lombok.val;
 
 public class ModelAnalyzer implements Serializable {
 
@@ -170,17 +173,26 @@ public class ModelAnalyzer implements Serializable {
     private TableAnalyzerResult analysisTable(final Dataset<Row> tableDS, final TableDesc tableDesc) {
         final int partition = estimatePartitions(tableDS, config);
         logger.info("Analysing table {}, repartition with size {}", tableDesc.getName(), partition);
-        return tableDS.toJavaRDD().repartition(partition).mapPartitionsWithIndex((index, rowIterator) -> {
-            final TableAnalyzer tableAnalyzer = new TableAnalyzer(tableDesc);
-            while (rowIterator.hasNext()) {
-                tableAnalyzer.analyze(rowIterator.next());
-            }
-            final TableAnalyzerResult analyzerResult = tableAnalyzer.getResult();
-            System.out.println("Analysing table " + tableDesc.getName() + " with partition " + partition
-                    + ", row size: " + analyzerResult.getRowCount());
-            return Iterators.singletonIterator(analyzerResult);
-        }, false).reduce(
-                (Function2<TableAnalyzerResult, TableAnalyzerResult, TableAnalyzerResult>) TableAnalyzerResult::reduce);
+        return tableDS.toJavaRDD().repartition(partition)
+                .mapPartitionsWithIndex(new Function2<Integer, Iterator<Row>, Iterator<TableAnalyzerResult>>() {
+                    @Override
+                    public Iterator<TableAnalyzerResult> call(Integer index, Iterator<Row> rowIterator)
+                            throws Exception {
+                        final TableAnalyzer tableAnalyzer = new TableAnalyzer(tableDesc);
+                        while (rowIterator.hasNext()) {
+                            tableAnalyzer.analyze(rowIterator.next());
+                        }
+                        final TableAnalyzerResult analyzerResult = tableAnalyzer.getResult();
+                        System.out.println("Analysing table " + tableDesc.getName() + " with partition " + partition
+                                + ", row size: " + analyzerResult.getRowCount());
+                        return Iterators.singletonIterator(analyzerResult);
+                    }
+                }, false).reduce(new Function2<TableAnalyzerResult, TableAnalyzerResult, TableAnalyzerResult>() {
+                    @Override
+                    public TableAnalyzerResult call(TableAnalyzerResult v1, TableAnalyzerResult v2) throws Exception {
+                        return TableAnalyzerResult.reduce(v1, v2);
+                    }
+                });
     }
 
     private void saveOrUpdateTableStats(TableAnalyzerResult analyzerResult, SegmentRange segRange) throws IOException {

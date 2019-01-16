@@ -8,7 +8,7 @@ source build/script_newten/functions.sh
 rm -rf build/influxdb
 
 influxdb_version="1.6.4.x86_64"
-influxdb_pkg_md5="195daab700e4332fcdaf7c66236de542"
+influxdb_pkg_md5="e24a00fb3b41d2974f85def72035f9f2"
 
 if [ ! -f "build/influxdb-${influxdb_version}.rpm" ]
 then
@@ -25,4 +25,4 @@ else
 fi
 
 mkdir -p build/influxdb
-mv build/influxdb-${influxdb_version}.rpm build/influxdb
+cp build/influxdb-${influxdb_version}.rpm build/influxdb
