@@ -75,7 +75,7 @@ public class AsyncQueryService extends QueryService {
     private Cache<String, QueryStatus> queryStatusCache = CacheBuilder.newBuilder().maximumSize(1000)
             .expireAfterWrite(1, TimeUnit.DAYS).build();
 
-    protected FileSystem getFileSystem() throws IOException {
+    protected FileSystem getFileSystem() {
         return HadoopUtil.getWorkingFileSystem();
     }
 

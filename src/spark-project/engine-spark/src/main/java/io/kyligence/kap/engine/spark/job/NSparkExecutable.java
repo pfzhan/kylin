@@ -27,6 +27,7 @@ package io.kyligence.kap.engine.spark.job;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -152,12 +153,17 @@ public class NSparkExecutable extends AbstractExecutable {
                 int layoutSize = NSparkCubingUtil.str2Longs(getParam(NBatchConstants.P_LAYOUT_IDS)).size();
                 getParams().remove(NBatchConstants.P_LAYOUT_IDS);
                 setParam(NBatchConstants.P_LAYOUT_ID_PATH, tmpDir.getCanonicalPath());
-                logger.info("Layout size :" + layoutSize);
+                logger.info("Layout size : {}", layoutSize);
             } catch (IOException e) {
                 if (tmpDir != null && tmpDir.exists()) {
-                    tmpDir.delete();
+                    try {
+                        Files.delete(tmpDir.toPath());
+                    } catch (IOException e1) {
+                        throw new ExecuteException(
+                                "Write cuboidLayoutIds failed: Error for delete file " + tmpDir.getPath(), e1);
+                    }
                 }
-                throw new ExecuteException("Write cuboidLayoutIds failed", e);
+                throw new ExecuteException("Write cuboidLayoutIds failed: ", e);
             }
 
         }
@@ -274,12 +280,13 @@ public class NSparkExecutable extends AbstractExecutable {
             case NBatchConstants.P_CLASS_NAME:
                 appArgs.add(0, v);
                 appArgs.add(0, "-" + k);
+                break;
             case NBatchConstants.P_JARS:
                 // JARS is for spark-submit, not for app
-                continue;
+                break;
             case PARENT_ID:
                 // JARS is for spark-submit, not for app
-                continue;
+                break;
             default:
                 appArgs.add("-" + k);
                 appArgs.add(v);

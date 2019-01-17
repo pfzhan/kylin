@@ -59,6 +59,7 @@ trait SharedSparkSession
       .appName(getClass.getSimpleName)
       .config("spark.sql.shuffle.partitions", "4")
       .config("spark.sql.columnVector.offheap.enabled", "true")
+      .config("spark.memory.fraction", "0.1")
       .config("fs.file.impl", classOf[DebugFilesystem].getCanonicalName)
       //      .config("spark.sql.adaptive.enabled", "true")
       .config(conf)

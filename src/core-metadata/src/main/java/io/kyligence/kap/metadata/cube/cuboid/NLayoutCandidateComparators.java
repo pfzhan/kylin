@@ -24,6 +24,7 @@
 
 package io.kyligence.kap.metadata.cube.cuboid;
 
+
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -35,6 +36,7 @@ import org.apache.kylin.metadata.model.TblColRef;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+
 
 public class NLayoutCandidateComparators {
 
@@ -48,7 +50,7 @@ public class NLayoutCandidateComparators {
     }
 
     public static Comparator<NLayoutCandidate> matchQueryPattern(final ImmutableSet<TblColRef> filters,
-            KylinConfig config) {
+                                                                 KylinConfig config) {
         return new Comparator<NLayoutCandidate>() {
 
             @Override

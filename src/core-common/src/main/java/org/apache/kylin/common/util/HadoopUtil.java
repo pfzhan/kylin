@@ -96,7 +96,7 @@ public class HadoopUtil {
         return conf;
     }
 
-    public static FileSystem getWorkingFileSystem() throws IOException {
+    public static FileSystem getWorkingFileSystem() {
         return getFileSystem(KylinConfig.getInstanceFromEnv().getHdfsWorkingDirectory(null));
     }
 
@@ -114,11 +114,11 @@ public class HadoopUtil {
         Path parquetReadPath = new Path(KylinConfig.getInstanceFromEnv().getReadHdfsWorkingDirectory(null));
         return getFileSystem(parquetReadPath, conf);
     }
-    public static FileSystem getFileSystem(String path) throws IOException {
+    public static FileSystem getFileSystem(String path) {
         return getFileSystem(new Path(makeURI(path)));
     }
 
-    public static FileSystem getFileSystem(Path path) throws IOException {
+    public static FileSystem getFileSystem(Path path) {
         Configuration conf = getCurrentConfiguration();
         return getFileSystem(path, conf);
     }

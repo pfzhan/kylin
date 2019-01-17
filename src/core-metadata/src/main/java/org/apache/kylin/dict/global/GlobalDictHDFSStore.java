@@ -79,7 +79,7 @@ public class GlobalDictHDFSStore extends GlobalDictStore {
     private final Configuration conf;
     private final FileSystem fileSystem;
 
-    public GlobalDictHDFSStore(String baseDir) throws IOException {
+    public GlobalDictHDFSStore(String baseDir) {
         super(baseDir);
         this.basePath = new Path(baseDir);
         this.conf = HadoopUtil.getCurrentConfiguration();
