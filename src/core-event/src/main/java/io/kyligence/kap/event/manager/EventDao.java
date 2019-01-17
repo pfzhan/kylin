@@ -68,7 +68,7 @@ public class EventDao {
     private static final Serializer<Event> EVENT_SERIALIZER = new JsonSerializer<Event>(Event.class);
     private static final Logger logger = LoggerFactory.getLogger(EventDao.class);
 
-    public static Set<Class> buildJobRelatedEvent = new HashSet<>();
+    protected static final Set<Class> buildJobRelatedEvent = new HashSet<>();
 
     static {
         buildJobRelatedEvent.add(AddCuboidEvent.class);
